@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Composition;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -69,15 +70,10 @@ public sealed class ComponentConstructionCodeFixProvider : RaskCodeFixProvider<O
     // could not spend its base slot.
     private static bool IsMarkupHost(INamedTypeSymbol type)
     {
-        foreach (var attribute in type.GetAttributes())
+        if (type.GetAttributes().Any(static attribute => string.Equals(
+                attribute.AttributeClass?.ToDisplayString(), "Rask.Core.RaskMarkupAttribute", StringComparison.Ordinal)))
         {
-            if (string.Equals(
-                    attribute.AttributeClass?.ToDisplayString(),
-                    "Rask.Core.RaskMarkupAttribute",
-                    StringComparison.Ordinal))
-            {
-                return true;
-            }
+            return true;
         }
 
         for (INamedTypeSymbol? current = type; current is not null; current = current.BaseType)

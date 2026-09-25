@@ -103,7 +103,7 @@ just pages.
 
 ```csharp
 using Rask.Core.Routing;
-using Rask.Query;
+using Rask.Querying;
 
 namespace Shop.Features.Products;
 
@@ -173,7 +173,7 @@ Same shape, and the list page in the next step links to both — so write them n
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Rask.Core.Routing;
-using Rask.Query;
+using Rask.Querying;
 
 namespace Shop.Features.Products;
 
@@ -264,7 +264,7 @@ Four things in that page are doing more than they look:
 `Features/Products/DeleteProduct.cs` is a small reusable button the list page drops next to each row:
 
 ```csharp
-using Rask.Query;
+using Rask.Querying;
 
 namespace Shop.Features.Products;
 
@@ -296,12 +296,8 @@ public sealed partial class DeleteProduct : Component
                 // list below shows the reader what happened either way.
                 await delete.Send(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
 
-                // Invoke() hands back the Task for an async handler and null for a synchronous one, which is
-                // what keeps a sync handler off the async path.
-                if (OnDeleted?.Invoke() is { } pending)
-                {
-                    await pending;
-                }
+                // Tell the page. Unset is a no-op, and a synchronous handler is an already-completed task.
+                await OnDeleted.Invoke();
             })[delete.IsPending ? "Deleting…" : "Delete"];
     }
 }
@@ -318,7 +314,7 @@ table behind a `DeletedAt` stamp instead.
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Rask.Core.Routing;
-using Rask.Query;
+using Rask.Querying;
 
 namespace Shop.Features.Products;
 

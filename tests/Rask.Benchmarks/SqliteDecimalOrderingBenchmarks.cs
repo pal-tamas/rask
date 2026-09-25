@@ -74,7 +74,7 @@ public class SqliteDecimalOrderingBenchmarks
     }
 
     [Benchmark(Baseline = true)]
-    public int DecimalCollated() => Consume($"SELECT text_amount FROM prices ORDER BY text_amount COLLATE {SqliteCollations.Decimal}");
+    public int DecimalCollated() => Consume($"SELECT text_amount FROM prices ORDER BY text_amount COLLATE {SqliteCollations.DecimalOrder}");
 
     [Benchmark]
     public int DecimalBinary() => Consume("SELECT text_amount FROM prices ORDER BY text_amount");

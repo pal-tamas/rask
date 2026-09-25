@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 /// The drain persists each job's outcome on its own, so a row changing underneath the batch costs at most that

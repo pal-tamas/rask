@@ -147,7 +147,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///         writing <c>Width = null</c> would clobber a default the component meant to keep.
     ///     </para>
     /// </remarks>
-    protected abstract void WriteParameters(Dictionary<string, object?> into);
+    protected abstract void WriteParameters(IDictionary<string, object?> into);
 
     /// <summary>
     ///     Builds the hosted component the way Blazor does, so that <c>[Inject]</c> runs.
@@ -168,7 +168,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///         re-implement injection to be useful, which is exactly the mistake being fixed.
     ///     </para>
     /// </remarks>
-    private TComponent Build(BlazorIslandRenderer renderer) =>
+    private static TComponent Build(BlazorIslandRenderer renderer) =>
         (TComponent)renderer.Build(typeof(TComponent));
 
     /// <summary>
@@ -288,7 +288,9 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         if (_repaintAfterHook)
         {
             _repaintAfterHook = false;
+#pragma warning disable S6966 // fire-and-forget on purpose: awaiting would wait on the render that is running this hook
             StateHasChanged();
+#pragma warning restore S6966
         }
     }
 
@@ -532,8 +534,8 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     /// <inheritdoc />
     protected sealed override Component? Render() =>
         BlazorHost
-            .Data(new Dictionary<string, string?> { ["rask-blazor"] = ComponentName })
-            .Attributes(new Dictionary<string, string?>
+            .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-blazor"] = ComponentName })
+            .Attributes(new Dictionary<string, string?>(StringComparer.Ordinal)
             {
                 [BlazorDefaults.NameAttribute] = ComponentName,
                 [BlazorDefaults.ComponentAttribute] = typeof(TComponent).FullName,

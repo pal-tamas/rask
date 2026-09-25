@@ -1,4 +1,4 @@
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     Names the queries a command makes out of date, so dispatching it through

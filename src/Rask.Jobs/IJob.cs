@@ -1,6 +1,6 @@
 using Rask.Cqrs;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 /// A unit of background work. Enqueue it with <c>Jobs.Enqueue(job)</c>; the

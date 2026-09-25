@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 ///     A <c>Send</c> still being worded: <c>await Mail.Send(reminder).In(24.Hours)</c>. Nothing is queued

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Core.Forms;
 using Rask.Data;
-using Rask.Query;
+using Rask.Querying;
 using Rask.SQLite.Browser;
 
 namespace Rask.Site.DataDemo;
@@ -59,7 +59,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, Body[body]];
 
     /// <inheritdoc />
-    protected override async Task OnMount() => _owner = await ownership.Resolved;
+    protected override async Task OnMount() => _owner = await ownership.Resolved.ConfigureAwait(false);
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -69,19 +69,20 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         // Every note, newest first. Keyed by the aggregate, so a save of a Note refetches it.
         var notes = QueryClient.Query(QueryKey.For<Note>("recent"), async ct =>
         {
-            await ready.Task;
-            return await Note.Read.OrderByDescending(n => n.CreatedAt).Take(50).ToListAsync(ct);
+            await ready.Task.ConfigureAwait(false);
+            return await Note.Read.OrderByDescending(n => n.CreatedAt).Take(50).ToListAsync(ct).ConfigureAwait(false);
         });
 
         // The search: follows the box, and pauses while it is empty (a null input fetches nothing).
         var hits = QueryClient.Query(QueryKey.For<Note>("search"), term.Length == 0 ? null : term,
             async (text, ct) =>
             {
-                await ready.Task;
+                await ready.Task.ConfigureAwait(false);
                 return await Note.Read.Search(text)
                     .Take(20)
                     .Select(n => new Hit(n.Id, FullText.Highlight(n.Title), FullText.Snippet(n.Body, 12)))
-                    .ToListAsync(ct);
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false);
             });
 
         return Main.Class("notes")[
@@ -135,7 +136,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
 
     private static Component Results(string term, Query<List<Hit>> hits) =>
         Section.Aria("label", "Search results")[
-            H2.Id("results-heading")[hits.Data is { } found ? $"{found.Count} {(found.Count == 1 ? "match" : "matches")} for “{term}”" : $"Searching for “{term}”…"],
+            H2.Id("results-heading")[ResultsHeading(term, hits.Data)],
             hits.Data is { Count: 0 }
                 ? P.Id("no-hits").Class("note-body")["Nothing matches every word. The last word also matches as a prefix."]
                 : Ul.Id("hits").Class("notes-list")[(hits.Data ?? []).Select(h => Li.Key(h.Id).Class("hit")[
@@ -144,12 +145,19 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                 ])]
         ];
 
+    private static string ResultsHeading(string term, List<Hit>? found) => found switch
+    {
+        null => $"Searching for “{term}”…",
+        { Count: 1 } => $"1 match for “{term}”",
+        _ => $"{found.Count} matches for “{term}”",
+    };
+
     private async Task AddAsync(NoteModel note)
     {
         try
         {
             // Refreshes the two queries above: the save reports that it wrote a Note.
-            await Note.CreateAsync(note, cancellationToken: CancellationToken);
+            await Note.CreateAsync(note, cancellationToken: CancellationToken).ConfigureAwait(false);
 
             _saveError = null;
             _draft = new();

@@ -111,25 +111,7 @@ internal static class TemplateMaterializer
                 continue;
             }
 
-            var relative = Rename(asset.Path).Replace(NameToken, name, StringComparison.Ordinal);
-            var destination = Path.Combine(targetDirectory, relative.Replace('/', Path.DirectorySeparatorChar));
-
-            if (asset.IsBinary)
-            {
-                files.Add(new ScaffoldFile(destination, string.Empty) { Bytes = asset.Bytes });
-                continue;
-            }
-
-            var text = Decode(asset.Bytes);
-            text = TemplateMarkers.Apply(text, on, asset.Path);
-            text = text
-                .Replace(VersionToken, version, StringComparison.Ordinal)
-                // Before the name token, because the slug is the name's own lower-case spelling and
-                // replacing the name first would leave nothing for this to match.
-                .Replace(SlugToken, Slug(name), StringComparison.Ordinal)
-                .Replace(NameToken, name, StringComparison.Ordinal);
-
-            files.Add(new ScaffoldFile(destination, text));
+            files.Add(Materialize(asset, targetDirectory, name, version, on));
         }
 
         var written = islands is { Count: > 0 }
@@ -159,6 +141,30 @@ internal static class TemplateMaterializer
 
         VerifyFrameworkRewritten(written, dotnet);
         return written;
+    }
+
+    /// <summary>One asset as the file it becomes: renamed, its regions resolved and its tokens replaced.</summary>
+    private static ScaffoldFile Materialize(
+        TemplateAsset asset, string targetDirectory, string name, string version, IReadOnlySet<string> on)
+    {
+        var relative = Rename(asset.Path).Replace(NameToken, name, StringComparison.Ordinal);
+        var destination = Path.Combine(targetDirectory, relative.Replace('/', Path.DirectorySeparatorChar));
+
+        if (asset.IsBinary)
+        {
+            return new ScaffoldFile(destination, string.Empty) { Bytes = asset.Bytes };
+        }
+
+        var text = Decode(asset.Bytes);
+        text = TemplateMarkers.Apply(text, on, asset.Path);
+        text = text
+            .Replace(VersionToken, version, StringComparison.Ordinal)
+            // Before the name token, because the slug is the name's own lower-case spelling and
+            // replacing the name first would leave nothing for this to match.
+            .Replace(SlugToken, Slug(name), StringComparison.Ordinal)
+            .Replace(NameToken, name, StringComparison.Ordinal);
+
+        return new ScaffoldFile(destination, text);
     }
 
     /// <summary>
@@ -217,7 +223,7 @@ internal static class TemplateMaterializer
         // two obvious file types is what let .vscode/launch.json through.
         var missed = files
             .Where(file => file.Bytes is null)
-            .Where(file => dotnet.StillNamesTheDefault(file.Content))
+            .Where(file => DotnetTarget.StillNamesTheDefault(file.Content))
             .Select(file => Path.GetFileName(file.Path))
             .Order(StringComparer.Ordinal)
             .ToArray();

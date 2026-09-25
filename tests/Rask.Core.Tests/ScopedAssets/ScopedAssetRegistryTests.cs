@@ -102,7 +102,7 @@ public partial class ScopedAssetRegistryTests
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         var count = 0;
-        Action<Type, AssetKind> handler = (_, _) => count++;
+        EventHandler<ScopedAssetChangedEventArgs> handler = (_, _) => count++;
         ScopedAssetRegistry.AssetChanged += handler;
         try
         {
@@ -151,7 +151,7 @@ public partial class ScopedAssetRegistryTests
     public void Unregistering_an_unknown_type_does_nothing_and_raises_no_event()
     {
         var count = 0;
-        Action<Type, AssetKind> handler = (_, _) => count++;
+        EventHandler<ScopedAssetChangedEventArgs> handler = (_, _) => count++;
         ScopedAssetRegistry.AssetChanged += handler;
         try
         {
@@ -442,7 +442,7 @@ public partial class ScopedAssetRegistryTests
     public void AssetChanged_fires_with_the_type_and_kind_on_each_kind_independently()
     {
         var events = new List<(Type, AssetKind)>();
-        Action<Type, AssetKind> handler = (t, k) => events.Add((t, k));
+        EventHandler<ScopedAssetChangedEventArgs> handler = (_, change) => events.Add((change.Component, change.Kind));
         ScopedAssetRegistry.AssetChanged += handler;
         try
         {
@@ -464,7 +464,7 @@ public partial class ScopedAssetRegistryTests
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
         var count = 0;
-        Action<Type, AssetKind> handler = (_, _) => count++;
+        EventHandler<ScopedAssetChangedEventArgs> handler = (_, _) => count++;
         ScopedAssetRegistry.AssetChanged += handler;
         try
         {
@@ -484,7 +484,7 @@ public partial class ScopedAssetRegistryTests
     public void AssetChanged_fires_on_unregister_only_when_something_was_registered()
     {
         var count = 0;
-        Action<Type, AssetKind> handler = (_, _) => count++;
+        EventHandler<ScopedAssetChangedEventArgs> handler = (_, _) => count++;
         ScopedAssetRegistry.AssetChanged += handler;
         try
         {

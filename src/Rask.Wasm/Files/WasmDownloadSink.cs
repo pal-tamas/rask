@@ -18,7 +18,7 @@ internal sealed class WasmDownloadSink : IDownloadSink
     // working set. WASM is single-threaded, so the queue + dictionary need no extra locking.
     private const int MaxRetainedStagings = 16;
 
-    private readonly ConcurrentDictionary<string, byte[]> _bytesByToken = new();
+    private readonly ConcurrentDictionary<string, byte[]> _bytesByToken = new(StringComparer.Ordinal);
     private readonly Queue<string> _order = new();
     private PendingDownload? _pending;
 

@@ -13,7 +13,7 @@ Rask.Blazor.RaskBlazorOptions.RaskBlazorOptions() -> void
 Rask.Blazor.RaskBlazorServiceCollectionExtensions
 RaskBuilderSettersRask_Blazor
 RaskEntriesRask_Blazor
-abstract Rask.Blazor.BlazorComponent<TComponent>.WriteParameters(System.Collections.Generic.Dictionary<string!, object?>! into) -> void
+abstract Rask.Blazor.BlazorComponent<TComponent>.WriteParameters(System.Collections.Generic.IDictionary<string!, object?>! into) -> void
 const Rask.Blazor.BlazorDefaults.ComponentAttribute = "component" -> string!
 const Rask.Blazor.BlazorDefaults.HostTag = "rask-blazor" -> string!
 const Rask.Blazor.BlazorDefaults.NameAttribute = "name" -> string!

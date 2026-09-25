@@ -38,6 +38,14 @@ public sealed partial class UiKitDataGridDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        ColumnsAreFactorySection(),
+        SelectionIsTypedSection(),
+        GroupingAndSubtotalsSection(),
+        HandingStateOverSection(),
+        OperatorsTableSection()
+    ];
+
+    private static Component ColumnsAreFactorySection() =>
         Section(
             "Columns are a factory, not a list",
             "The indexer takes a lambda whose parameter is the grid, and that is what fixes the row "
@@ -46,12 +54,13 @@ public sealed partial class UiKitDataGridDemo : Component
                 Ui.DataGrid.Data(Catalog).RowKey(r => r.Id).Zebra(true).Label("Packages")[c => [
                     c.Field(r => r.Name).Title("Package").Sortable(true),
                     c.Field(r => r.Channel).Title("Channel")
-                        .Cell(r => Ui.Badge.Tone(r.Channel == "stable" ? Ui.Tone.Success : Ui.Tone.Info)[r.Channel]),
+                        .Cell(r => Ui.Badge.Tone(r.Channel is "stable" ? Ui.Tone.Success : Ui.Tone.Info)[r.Channel]),
                     c.Field(r => r.Downloads).Title("Downloads").Sortable(true).Class("text-right")
                         .Footer(rows => rows.Sum(x => x.Downloads)),
                 ]]
-            ]),
+            ]);
 
+    private Component SelectionIsTypedSection() =>
         Section(
             "Selection is typed",
             "RowKey says what identifies a row. It is required, so every grid has one, and the type it "
@@ -71,8 +80,9 @@ public sealed partial class UiKitDataGridDemo : Component
                         ? "Nothing selected."
                         : $"Selected ids: {string.Join(", ", _selected.Order())}."
                 ]
-            ]),
+            ]);
 
+    private static Component GroupingAndSubtotalsSection() =>
         Section(
             "Grouping, subtotals and the column chooser",
             "Group from a column's header button, then reorder or remove the grouping in the panel. "
@@ -93,8 +103,9 @@ public sealed partial class UiKitDataGridDemo : Component
                         c.Field(r => r.Downloads).Title("Downloads").Class("text-right")
                             .Footer(rows => rows.Sum(x => x.Downloads)),
                     ]]
-            ]),
+            ]);
 
+    private Component HandingStateOverSection() =>
         Section(
             "Handing the state over",
             "Name a state and its callback and that axis belongs to the page. Here the sort and the "
@@ -116,8 +127,9 @@ public sealed partial class UiKitDataGridDemo : Component
                     $"Page {_page + 1}, sorted by {_sort ?? "nothing"} "
                     + (_descending ? "descending." : "ascending.")
                 ]
-            ]),
+            ]);
 
+    private Component OperatorsTableSection() =>
         Section(
             "An operator's table",
             "Secondary columns wait until the table has room for them, while the phone's stacked lines "
@@ -139,10 +151,9 @@ public sealed partial class UiKitDataGridDemo : Component
                         c.Field(r => r.Channel).Title("Channel").ShowFrom(Ui.Breakpoint.Md),
                         c.Field(r => r.Shipped).Title("Shipped").ShowFrom(Ui.Breakpoint.Lg),
                     ]]
-            ])
-    ];
+            ]);
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+    private static AttrBag Testid(string value) => new("testid", value);
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

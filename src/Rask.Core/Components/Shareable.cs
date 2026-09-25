@@ -37,5 +37,5 @@ public sealed partial class Shareable : Component
         Template.Invoke(new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["rask-share"] = JsonSerializer.Serialize(Data, RaskBrowserJsonContext.Default.ShareData)
-        })!;
+        });
 }

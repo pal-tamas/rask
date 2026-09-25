@@ -56,7 +56,7 @@ namespace Rask;
 /// remain public. This is a layer over them.
 /// </para>
 /// </remarks>
-public sealed class RaskApp
+public sealed partial class RaskApp
 {
     private readonly WebApplicationBuilder _builder;
     private readonly List<Action<IEndpointRouteBuilder>> _endpoints = [];
@@ -150,6 +150,25 @@ public sealed class RaskApp
         string pathBase = "")
         where TApp : Component
     {
+        AddLiveRuntime();
+
+        // The batteries, LAST — after every Configure block and after anything Program.cs registered
+        // itself. Both halves matter: the off-switches are only known now, and every AddRaskX is
+        // idempotent, so an app that called one directly has already won.
+        RaskBatteryWiring.Apply(_builder, _options);
+
+        var app = _builder.Build();
+
+        BindAppServices(app);
+        UseHostPipeline(app);
+        UseRequestScope(app);
+        MapEndpoints<TApp>(app, pathBase);
+
+        return app;
+    }
+
+    private void AddLiveRuntime()
+    {
         // The live runtime, now that Configure has had its say. One call, because a second is dropped.
         _builder.Services.AddRask(
             configure: _options.Live,
@@ -163,14 +182,10 @@ public sealed class RaskApp
                         c.SupportedCultures.Add(culture);
                     }
                 });
+    }
 
-        // The batteries, LAST — after every Configure block and after anything Program.cs registered
-        // itself. Both halves matter: the off-switches are only known now, and every AddRaskX is
-        // idempotent, so an app that called one directly has already won.
-        RaskBatteryWiring.Apply(_builder, _options);
-
-        var app = _builder.Build();
-
+    private void BindAppServices(WebApplication app)
+    {
         // Hand the model surface its factory, so `Product.Where(…)` works with nothing injected and
         // nothing configured. Conditional on a binding existing, which is
         // the Data battery having been wired — an app with `c.Data.Off()` has no database to point at.
@@ -185,15 +200,15 @@ public sealed class RaskApp
         // this app has no accounts. Said out loud because it is the one battery that cannot switch itself
         // on: Rask ships no user class, so an app that declares none leaves the accounts with nothing to
         // close over. Silence here would read exactly like a working auth battery until the first sign-in.
-        if (_options.Auth.Enabled && _options.Data.Enabled && !AuthUser.Exists)
+        if (_options.Auth.Enabled && _options.Data.Enabled && !AuthUser.Exists
+            && app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask") is { } logger)
         {
-            app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask").LogWarning(
-                "The auth battery is on, but this app declares no user type, so accounts are not "
-                + "wired. Declare a class deriving from Authenticatable — `rask new` writes one as "
-                + "Features/Shared/User.cs — and Rask finds it. If this app has no accounts, say so "
-                + "with app.Configure(c => c.Auth.Off()) and this notice stops.");
+            NoUserType(logger);
         }
+    }
 
+    private void UseHostPipeline(WebApplication app)
+    {
         // FIRST: rewrite Request.Scheme and RemoteIpAddress from the proxy's headers, so everything below
         // — HSTS, redirects, the app's own logging — sees the request the visitor actually made. Opt-in,
         // because trusting these from an arbitrary client lets it forge its own IP.
@@ -227,17 +242,17 @@ public sealed class RaskApp
         {
             app.MapStaticAssets();
         }
-        else
+        else if (app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask") is { } assetLogger)
         {
-            app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask").LogWarning(
-                "No static-asset manifest at {Manifest}, so wwwroot is not being served. Expected for a "
-                + "test host; in a real app it means the project is not using the Web SDK.",
-                manifest);
+            NoAssetManifest(assetLogger, manifest);
         }
 
         // Give a bare status code — a 404 from an unmatched route — a readable body instead of a blank page.
         app.UseStatusCodePages();
+    }
 
+    private void UseRequestScope(WebApplication app)
+    {
         // Before anything opens the database: a restore that runs after the first query has already lost,
         // and the failure is a fresh empty database on a machine that was supposed to have recovered.
         if (_options.RunBeforeDatabaseOpensAsync is { } restore)
@@ -274,7 +289,12 @@ public sealed class RaskApp
                 }
             });
         }
+    }
 
+    private void MapEndpoints<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+        WebApplication app, string pathBase)
+        where TApp : Component
+    {
         // Controllers, and the 404 that keeps a wrong URL under the API prefix from being answered with
         // the app. Mapped for the same reason every other battery is wired here: an app that writes a
         // controller should not also have to know the line that makes it reachable.
@@ -323,7 +343,17 @@ public sealed class RaskApp
         {
             WebPush.RaskPushEndpointExtensions.MapRaskPush(app);
         }
-
-        return app;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message =
+        "The auth battery is on, but this app declares no user type, so accounts are not "
+        + "wired. Declare a class deriving from Authenticatable — `rask new` writes one as "
+        + "Features/Shared/User.cs — and Rask finds it. If this app has no accounts, say so "
+        + "with app.Configure(c => c.Auth.Off()) and this notice stops.")]
+    private static partial void NoUserType(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message =
+        "No static-asset manifest at {Manifest}, so wwwroot is not being served. Expected for a "
+        + "test host; in a real app it means the project is not using the Web SDK.")]
+    private static partial void NoAssetManifest(ILogger logger, string manifest);
 }

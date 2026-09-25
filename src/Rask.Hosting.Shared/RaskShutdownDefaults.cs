@@ -50,14 +50,14 @@ internal sealed class RaskShutdownDefaults : IConfigureOptions<HostOptions>
     /// drain would get 15 seconds and no warning — so the timeout is only replaced while it still holds
     /// the framework default.
     /// </remarks>
-    private static readonly TimeSpan FrameworkDefault = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan _frameworkDefault = TimeSpan.FromSeconds(30);
 
     /// <inheritdoc/>
     public void Configure(HostOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.ShutdownTimeout == FrameworkDefault)
+        if (options.ShutdownTimeout == _frameworkDefault)
         {
             options.ShutdownTimeout = TimeSpan.FromSeconds(HostShutdownSeconds);
         }

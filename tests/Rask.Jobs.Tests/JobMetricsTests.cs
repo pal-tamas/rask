@@ -1,7 +1,7 @@
 using System.Diagnostics.Metrics;
 using Microsoft.EntityFrameworkCore;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 /// The jobs pillar's metrics. What matters is that the numbers are real (they come from the processor
@@ -21,7 +21,7 @@ public sealed class JobMetricsTests
         await h.RunUntilAsync(() => collector.Sum("rask.jobs.processed") >= 1);
 
         Assert.Equal(1, collector.Sum("rask.jobs.processed"));
-        Assert.Equal("Rask.Jobs.Tests.RecordJob", collector.LastTag("rask.jobs.processed", "job.type"));
+        Assert.Equal("Rask.Background.Tests.RecordJob", collector.LastTag("rask.jobs.processed", "job.type"));
         // The histogram fired for the same job. Duration is wall-clock, so assert it was recorded rather
         // than pinning a value.
         Assert.True(collector.Count("rask.jobs.duration") >= 1);

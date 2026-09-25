@@ -494,6 +494,7 @@ internal static class UiClassNames
         _ => "",
     };
 
+    /// <summary>The classes that hide a data-grid column below a breakpoint.</summary>
     /// <remarks>
     /// Table mode only. <c>sm:</c> comes first, so below <c>sm</c> — where the grid lists every cell as its own
     /// labelled line — nothing is hidden; <see cref="Ui.Breakpoint.Sm" /> is no change, because the table starts
@@ -507,6 +508,7 @@ internal static class UiClassNames
         _ => "",
     };
 
+    /// <summary>The background a data-grid row takes for a tone.</summary>
     /// <remarks>A tint, not a fill: the row's text stays the body ink, so every tone reads at the same contrast.</remarks>
     internal static string RowTone(Ui.Tone value) => value switch
     {
@@ -634,6 +636,7 @@ internal static class UiClassNames
         _ => "",
     };
 
+    /// <summary>Where a row of tabs sits against its panel.</summary>
     /// <remarks>
     ///     A row of tabs sits above or below its panel and nowhere else, so the horizontal members of
     ///     <see cref="Ui.Position" /> return nothing rather than a class daisyUI never defined.
@@ -715,6 +718,7 @@ internal static class UiClassNames
         _ => "",
     };
 
+    /// <summary>Where a divider's words sit along its line.</summary>
     /// <remarks>
     ///     A drawer opens from the left or the right edge, and daisyUI's one class for it is <c>drawer-end</c>,
     ///     so only <see cref="Ui.Position.Right" /> writes anything.
@@ -727,6 +731,7 @@ internal static class UiClassNames
         _ => "",
     };
 
+    /// <summary>The classes that keep a sidebar in the page's flow from a breakpoint up.</summary>
     /// <remarks>
     ///     The width from which a sidebar sits in the page's flow instead of sliding over it. Every member a complete
     ///     literal: <c>"lg:" + "drawer-open"</c> is invisible to Tailwind's scan, and the sidebar would never open.
@@ -740,6 +745,7 @@ internal static class UiClassNames
         _ => "lg:drawer-open",
     };
 
+    /// <summary>The corner a toaster's stack is pinned to.</summary>
     /// <remarks>
     ///     Where a toast or a stack of them is pinned. SIX complete literals rather than an edge joined to an
     ///     alignment: <c>"top-3 " + side</c> is two names Tailwind can see and one it cannot, and the toast would
@@ -760,6 +766,7 @@ internal static class UiClassNames
             _ => "inset-x-3 bottom-3 sm:inset-x-0",
         };
 
+    /// <summary>Which way a textarea can be resized.</summary>
     /// <remarks>
     ///     Tailwind's own resize utilities, one complete literal per member — <c>"resize-" + value</c> is invisible
     ///     to the scan, and a textarea that asked for a fixed size would silently keep its handle.
@@ -772,6 +779,7 @@ internal static class UiClassNames
         _ => "resize-y",
     };
 
+    /// <summary>The classes that hide an element from a breakpoint up.</summary>
     /// <remarks>The toggle is only needed while the sidebar slides over the page, so it hides where the sidebar docks.</remarks>
     internal static string HiddenFrom(Ui.Breakpoint value) => value switch
     {
@@ -782,6 +790,7 @@ internal static class UiClassNames
         _ => "lg:hidden",
     };
 
+    /// <summary>The classes that show an element from a breakpoint up.</summary>
     /// <remarks>
     ///     The mirror of <see cref="HiddenFrom" />, for the collapse control: narrowing the sidebar to a rail only
     ///     means anything once it is DOCKED, so the control is hidden until then. ONE class name, as every member
@@ -814,6 +823,7 @@ internal static class UiClassNames
         _ => "text-sm",
     };
 
+    /// <summary>The ink a run of text takes for a tone.</summary>
     /// <remarks>The ink colours, which are what keep body text readable on every theme's base.</remarks>
     internal static string TextTone(Ui.Tone value) => value switch
     {
@@ -833,6 +843,7 @@ internal static class UiClassNames
         _ => "",
     };
 
+    /// <summary>The frame size of an avatar.</summary>
     /// <remarks>
     ///     daisyUI's avatar has no size classes of its own — its docs size the inner box with a width
     ///     utility — so the literals live here, where Tailwind can see them.

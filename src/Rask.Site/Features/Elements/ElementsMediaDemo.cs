@@ -9,6 +9,12 @@ public sealed partial class ElementsMediaDemo : Component
     private static string Asset(string name) => LiveOptions.PathBase + "/img/" + name;
 
     protected override Component? Render() => Div.Class("flex flex-col gap-3")[
+        PictureCanvasIframe(),
+        EmbedObjectMap(),
+        AudioVideo()
+    ];
+
+    private static Component PictureCanvasIframe() =>
         Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("m-0")[
                 // <picture> picks a <source> by media query, else falls back to <img>.
@@ -36,7 +42,9 @@ public sealed partial class ElementsMediaDemo : Component
                     .Class("border rounded"),
                 Figcaption.Class("mt-2 text-sm text-ui-muted")["iframe (srcdoc)"]
             ]
-        ],
+        ];
+
+    private static Component EmbedObjectMap() =>
         Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("m-0")[
                 Embed.Src(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
@@ -58,7 +66,9 @@ public sealed partial class ElementsMediaDemo : Component
                 Map.Name("regions")[Area.Shape("rect").Coords("0,0,48,96").Href("#").Alt("left half")],
                 Figcaption.Class("mt-2 text-sm text-ui-muted")["img usemap / map / area"]
             ]
-        ],
+        ];
+
+    private static Component AudioVideo() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
                 P.Class("text-sm mb-1 text-ui-muted")["audio (controls)"],
@@ -75,6 +85,5 @@ public sealed partial class ElementsMediaDemo : Component
                     Track.Kind("captions").Src(Asset("captions.vtt")).Srclang("en").Label("English").Default(true)
                 ]
             ]
-        ]
-    ];
+        ];
 }

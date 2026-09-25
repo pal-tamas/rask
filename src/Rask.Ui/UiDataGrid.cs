@@ -54,16 +54,10 @@ namespace Rask;
 public sealed partial class UiDataGrid<T, TKey> : Component
     where TKey : notnull
 {
-    // Per-instance, so two id-less grids on one page cannot collide on the ids their detail rows are
-    // announced by — aria-controls points at them, and a collision aims it at the wrong row.
-    private static int _instances;
-
-    private readonly int _instance = Interlocked.Increment(ref _instances);
-
     // Uncontrolled state. Each of these is consulted only while the matching controlled property is
     // unset, which is what lets one axis be driven from outside while the rest keep holding their own.
     private readonly HashSet<object> _expanded = [];
-    private readonly HashSet<string> _collapsed = [];
+    private readonly HashSet<string> _collapsed = new(StringComparer.Ordinal);
     private readonly List<string> _grouped = [];
     private readonly List<string> _hidden = [];
     private readonly List<string> _order = [];
@@ -307,7 +301,6 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
-    /// <inheritdoc />
     /// <summary>
     ///     Describes the grid's columns, ending the chain:
     ///     <c>Ui.DataGrid.Rows(_rows)[c =&gt; [ c.Field(r =&gt; r.Name), c.Column()[ … ] ]]</c>.
@@ -421,7 +414,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // won; the carrier holds exactly one, and `Invoke` hands back null when it was the synchronous one —
     // so the completed task is supplied here rather than a state machine being created for it.
     private static Task Raise<TArg>(Callback<TArg>? handler, TArg arg) =>
-        handler?.Invoke(arg) ?? Task.CompletedTask;
+        handler.Invoke(arg);
 
     // Ascending, descending, then off. The third state is not decoration: it is the only way back to the
     // order the source itself chose, which for a query is whatever the store returns and for a list is
@@ -434,10 +427,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             return;
         }
 
-        var (field, descending) =
-            !string.Equals(CurrentSort, token, StringComparison.Ordinal) ? (token, false)
-            : !CurrentSortDescending ? (token, true)
-            : ((string?)null, false);
+        var (field, descending) = (string.Equals(CurrentSort, token, StringComparison.Ordinal), CurrentSortDescending) switch
+        {
+            (false, _) => (token, false),
+            (true, false) => (token, true),
+            _ => ((string?)null, false),
+        };
 
         if (!SortControlled)
         {
@@ -548,7 +543,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         return next.Remove(token) ? SetGroupedAsync(next) : Task.CompletedTask;
     }
 
-    private Task MoveAsync(IReadOnlyList<string> list, string token, int delta,
+    private static Task MoveAsync(IReadOnlyList<string> list, string token, int delta,
         Func<IReadOnlyList<string>, Task> commit)
     {
         var next = new List<string>(list);
@@ -649,71 +644,33 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         && column.FieldName is { } token
         && CurrentGrouped.Contains(token, StringComparer.Ordinal);
 
-    private List<UiColumn<T>> VisibleColumns(IReadOnlyList<UiColumn<T>> columns)
+    private List<UiColumn<T>> VisibleColumns(List<UiColumn<T>> columns)
     {
-        var visible = new List<UiColumn<T>>(columns.Count);
-        foreach (var column in Ordered(columns))
-        {
-            if (!IsHidden(column) && !IsGroupedAway(column))
-            {
-                visible.Add(column);
-            }
-        }
-
-        return visible;
+        return [.. Ordered(columns).Where(column => !IsHidden(column) && !IsGroupedAway(column))];
     }
 
     // Columns the order names, in the order it names them; everything else after, in declared order. A
     // token the order does not mention is not an error — a chooser that has moved one column has said
     // nothing about the rest.
-    private List<UiColumn<T>> Ordered(IReadOnlyList<UiColumn<T>> columns)
+    private List<UiColumn<T>> Ordered(List<UiColumn<T>> columns)
     {
         var order = CurrentOrder;
         if (order.Count == 0)
         {
-            return [.. columns];
+            return columns;
         }
 
-        var ranked = new List<UiColumn<T>>(columns.Count);
-        foreach (var token in order)
-        {
-            foreach (var column in columns)
-            {
-                if (string.Equals(column.FieldName, token, StringComparison.Ordinal)
-                    && !ranked.Contains(column))
-                {
-                    ranked.Add(column);
-                }
-            }
-        }
-
-        foreach (var column in columns)
-        {
-            if (!ranked.Contains(column))
-            {
-                ranked.Add(column);
-            }
-        }
-
+        var ranked = order
+            .SelectMany(token => columns.Where(column => string.Equals(column.FieldName, token, StringComparison.Ordinal)))
+            .Distinct()
+            .ToList();
+        ranked.AddRange(columns.Except(ranked));
         return ranked;
     }
 
     private List<UiColumn<T>> GroupColumns(IReadOnlyList<UiColumn<T>> columns)
     {
-        var grouped = new List<UiColumn<T>>();
-        foreach (var token in CurrentGrouped)
-        {
-            foreach (var column in columns)
-            {
-                if (string.Equals(column.FieldName, token, StringComparison.Ordinal))
-                {
-                    grouped.Add(column);
-                    break;
-                }
-            }
-        }
-
-        return grouped;
+        return [.. CurrentGrouped.Select(token => Find(columns, token)).OfType<UiColumn<T>>()];
     }
 
     // ---- rows -----------------------------------------------------------------------------------
@@ -769,9 +726,14 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
         if (SortedColumn(columns) is { OrderBy: { } key })
         {
-            ordered = ordered is null
-                ? CurrentSortDescending ? query.OrderByDescending(key) : query.OrderBy(key)
-                : CurrentSortDescending ? ordered.ThenByDescending(key) : ordered.ThenBy(key);
+            if (ordered is null)
+            {
+                ordered = CurrentSortDescending ? query.OrderByDescending(key) : query.OrderBy(key);
+            }
+            else
+            {
+                ordered = CurrentSortDescending ? ordered.ThenByDescending(key) : ordered.ThenBy(key);
+            }
         }
 
         var paged = (IQueryable<T>?)ordered ?? query;
@@ -795,20 +757,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private UiColumn<T>? SortedColumn(IReadOnlyList<UiColumn<T>> columns)
     {
-        if (CurrentSort is not { } token)
-        {
-            return null;
-        }
-
-        foreach (var column in columns)
-        {
-            if (string.Equals(column.FieldName, token, StringComparison.Ordinal))
-            {
-                return column;
-            }
-        }
-
-        return null;
+        return CurrentSort is { } token ? Find(columns, token) : null;
     }
 
     // Grouping first, sort second. Bands have to arrive contiguous or a band header would open twice for
@@ -823,28 +772,27 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         }
 
         IOrderedEnumerable<T>? ordered = null;
-        foreach (var group in groups)
+        foreach (var band in groups.Select(group => new Func<T, IComparable?>(group.BandOrder)))
         {
-            ordered = ordered is null
-                ? rows.OrderBy(group.BandOrder)
-                : ordered.ThenBy(group.BandOrder);
+            ordered = ordered is null ? rows.OrderBy(band) : ordered.ThenBy(band);
         }
 
         if (sorted is not null)
         {
-            ordered = ordered is null
-                ? CurrentSortDescending
-                    ? rows.OrderByDescending(sorted.SortOf)
-                    : rows.OrderBy(sorted.SortOf)
-                : CurrentSortDescending
-                    ? ordered.ThenByDescending(sorted.SortOf)
-                    : ordered.ThenBy(sorted.SortOf);
+            if (ordered is null)
+            {
+                ordered = CurrentSortDescending ? rows.OrderByDescending(sorted.SortOf) : rows.OrderBy(sorted.SortOf);
+            }
+            else
+            {
+                ordered = CurrentSortDescending ? ordered.ThenByDescending(sorted.SortOf) : ordered.ThenBy(sorted.SortOf);
+            }
         }
 
         return ordered is null ? rows : [.. ordered];
     }
 
-    private IReadOnlyList<T> Slice(IReadOnlyList<T> rows)
+    private List<T> Slice(List<T> rows)
     {
         if (Paging <= 0)
         {
@@ -858,14 +806,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             return [];
         }
 
-        var end = Math.Min(start + Paging, rows.Count);
-        var page = new List<T>(end - start);
-        for (var i = start; i < end; i++)
-        {
-            page.Add(rows[i]);
-        }
-
-        return page;
+        return rows.GetRange(start, Math.Min(Paging, rows.Count - start));
     }
 
     private int PageCount(int total) =>
@@ -878,20 +819,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private bool AllSelected(IReadOnlyList<T> rows)
     {
-        if (rows.Count == 0)
-        {
-            return false;
-        }
-
-        foreach (var row in rows)
-        {
-            if (!IsSelected(row))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return rows.Count > 0 && rows.All(IsSelected);
     }
 
     private Task ToggleAsync(T row, bool on)
@@ -941,7 +869,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             }
         }
 
-        return OnSelectionChange?.Invoke(next.ToList()) ?? Task.CompletedTask;
+        return OnSelectionChange.Invoke(next.ToList());
     }
 
     // A row's identity for the live diff. It is the row KEY now, never the index: an index makes two
@@ -981,16 +909,11 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 : "",
             column.CellClasses);
 
-    // Shared and immutable, so the common case — a busy-free, unnamed grid — allocates nothing for its
-    // aria bag. Only a grid that is both named and busy builds one.
-    private static readonly IReadOnlyDictionary<string, string?> AriaBusy =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["busy"] = "true" };
-
     private IReadOnlyDictionary<string, string?>? TableAria()
     {
         if (Label is not { } label)
         {
-            return Busy ? AriaBusy : null;
+            return Busy ? UiDataGridAria.Busy : null;
         }
 
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = label };
@@ -1025,7 +948,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             .Aria(TableAria())[
             Head(visible, rows.Rows),
             Tbody[Body(visible, groups, rows, span)],
-            Foot(visible, rows.All, span)
+            Foot(visible, rows.All)
         ];
 
         var scroller = Div
@@ -1056,19 +979,21 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             ]
         ];
 
-    // Shared and immutable, so a header row allocates nothing to say how it is sorted. Deliberately
-    // non-generic-free of per-column state: there are only ever three answers.
-    private static readonly IReadOnlyDictionary<string, string?> SortNone =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["sort"] = "none" };
-
-    private static readonly IReadOnlyDictionary<string, string?> SortAscending =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["sort"] = "ascending" };
-
-    private static readonly IReadOnlyDictionary<string, string?> SortDescendingAria =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["sort"] = "descending" };
-
     private IReadOnlyDictionary<string, string?> SortAria(bool sorted) =>
-        !sorted ? SortNone : CurrentSortDescending ? SortDescendingAria : SortAscending;
+        (sorted, CurrentSortDescending) switch
+        {
+            (false, _) => UiDataGridAria.SortNone,
+            (_, true) => UiDataGridAria.SortDescending,
+            _ => UiDataGridAria.SortAscending,
+        };
+
+    private Ui.IconName SortIcon(bool sorted) =>
+        (sorted, CurrentSortDescending) switch
+        {
+            (false, _) => Ui.IconName.ArrowsUpDown,
+            (_, true) => Ui.IconName.ChevronDown,
+            _ => Ui.IconName.ChevronUp,
+        };
 
     private Component HeaderCell(UiColumn<T> column)
     {
@@ -1102,11 +1027,10 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                         .OnClick(() => ToggleSortAsync(column))[
                         column.Title ?? "",
                         Ui.Icon
-                            .Name(!sorted ? Ui.IconName.ArrowsUpDown
-                                : CurrentSortDescending ? Ui.IconName.ChevronDown : Ui.IconName.ChevronUp)
+                            .Name(SortIcon(sorted))
                             .Class("size-3 shrink-0 opacity-60")
                     ]
-                    : (Component)Span[column.Title ?? ""],
+                    : Span[column.Title ?? ""],
                 groupable ? GroupToggle(column) : null
             ]
         ];
@@ -1125,7 +1049,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token))[Ui.Icon.Name(Ui.IconName.Stack)];
     }
 
-    private Component SelectAllBox(IReadOnlyList<T> pageRows)
+    private Input<bool> SelectAllBox(IReadOnlyList<T> pageRows)
     {
         // "Select all" would be a lie wherever a pager is: the grid holds one page and can only name the
         // keys it has.
@@ -1144,7 +1068,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // ---- body -----------------------------------------------------------------------------------
 
     private IEnumerable<Component?> Body(
-        IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<UiColumn<T>> groups, Resolved rows, int span)
+        IReadOnlyList<UiColumn<T>> visible, List<UiColumn<T>> groups, Resolved rows, int span)
     {
         if (rows.Rows.Count == 0)
         {
@@ -1158,7 +1082,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
         if (groups.Count == 0)
         {
-            foreach (var component in Rows(visible, rows.Rows, span, 0))
+            foreach (var component in Rows(visible, rows.Rows, span))
             {
                 yield return component;
             }
@@ -1172,8 +1096,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         }
     }
 
-    private IEnumerable<Component?> Rows(
-        IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> rows, int span, int offset)
+    private IEnumerable<Component?> Rows(IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> rows, int span)
     {
         // A cell's class depends on its column and on the grid, never on the row, so it is composed once per
         // column here rather than once per cell. A polling grid re-renders on every update, and composing per cell
@@ -1255,9 +1178,9 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // One handler either way. `Invoke` returns null for a synchronous one, so the completed task is
     // supplied here rather than a state machine being created for it.
     private Func<Task>? RowClickHandler(T row) =>
-        OnRowClick is { } click ? () => click.Invoke(row) ?? Task.CompletedTask : null;
+        OnRowClick is { } click ? () => click.Invoke(row) : null;
 
-    private Component SelectBox(T row)
+    private Input<bool> SelectBox(T row)
     {
         return Input
             .Of<bool>()
@@ -1268,15 +1191,20 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             .Disabled(Busy);
     }
 
-    private Component Expander(T row, object key, bool open) =>
-        Detail?.Invoke(row) is null
-            ? Span
-            : Ui.Button
-                .AccessibleLabel(open ? "Collapse row" : "Expand row")
-                .Square(true)
-                .Size(Ui.Size.Xs)
-                .Variant(Ui.Variant.Ghost)
-                .OnClick(() => ToggleExpand(key))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)];
+    private Component Expander(T row, object key, bool open)
+    {
+        if (Detail?.Invoke(row) is null)
+        {
+            return Span;
+        }
+
+        return Ui.Button
+            .AccessibleLabel(open ? "Collapse row" : "Expand row")
+            .Square(true)
+            .Size(Ui.Size.Xs)
+            .Variant(Ui.Variant.Ghost)
+            .OnClick(() => ToggleExpand(key))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)];
+    }
 
     // ---- bands ----------------------------------------------------------------------------------
 
@@ -1291,16 +1219,16 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private IEnumerable<Component?> Bands(
         IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<UiColumn<T>> groups, IReadOnlyList<T> rows,
         int span) =>
-        Band(visible, groups, rows, span, 0, 0, []);
+        Band(visible, groups, rows, span, 0, []);
 
     private IEnumerable<Component?> Band(
         IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<UiColumn<T>> groups, IReadOnlyList<T> rows,
-        int span, int level, int offset, IReadOnlyList<object?> above)
+        int span, int level, IReadOnlyList<object?> above)
     {
         // Past the last grouped column: what is left is ordinary rows.
         if (level == groups.Count)
         {
-            foreach (var component in Rows(visible, rows, span, offset))
+            foreach (var component in Rows(visible, rows, span))
             {
                 yield return component;
             }
@@ -1331,14 +1259,14 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
             if (!(GroupCollapsible is not false && _collapsed.Contains(path)))
             {
-                foreach (var component in Band(visible, groups, band, span, level + 1, offset + at, keys))
+                foreach (var component in Band(visible, groups, band, span, level + 1, keys))
                 {
                     yield return component;
                 }
 
                 if (GroupSubtotals is true)
                 {
-                    yield return Subtotal(visible, band, level, span);
+                    yield return Subtotal(visible, band, level);
                 }
             }
 
@@ -1349,7 +1277,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // A band is addressed by the keys above it, joined — so a collapsed "Europe / France" survives a
     // re-render and does not collapse "Asia / France" with it. A unit separator rather than a printable
     // one, so a key that happens to contain the separator cannot forge another band's path.
-    private static string Path(IReadOnlyList<object?> keys, int depth)
+    private static string Path(List<object?> keys, int depth)
     {
         var parts = new string[depth];
         for (var i = 0; i < depth; i++)
@@ -1372,12 +1300,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     }
 
     private Component BandHeader(
-        UiColumn<T> column, object? key, IReadOnlyList<T> band, string path, int level, int span)
+        UiColumn<T> column, object? key, List<T> band, string path, int level, int span)
     {
         var collapsed = _collapsed.Contains(path);
         var heading = column.GroupHeader is { } custom && custom.Invoke(key, band) is { } drawn
             ? drawn
-            : (Component)Span.Class("font-medium")[
+            : Span.Class("font-medium")[
                 (column.Title ?? "") + ": " + (key?.ToString() ?? "—")
                 + " (" + band.Count.ToString(CultureInfo.InvariantCulture) + ")"
             ];
@@ -1385,22 +1313,29 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         return Tr.Key("band-" + path)[
             Td.Colspan(span).Class("bg-base-200")[
                 Div.Class("flex items-center gap-2").Style("padding-inline-start:" + level + "rem")[
-                    GroupCollapsible is false
-                        ? null
-                        : Ui.Button
-                            .AccessibleLabel(collapsed ? "Expand group" : "Collapse group")
-                            .Square(true)
-                            .Size(Ui.Size.Xs)
-                            .Variant(Ui.Variant.Ghost)
-                            .OnClick(() => ToggleBand(path))[Ui.Icon.Name(collapsed ? Ui.IconName.ChevronRight : Ui.IconName.ChevronDown)],
+                    BandToggle(path, collapsed),
                     heading
                 ]
             ]
         ];
     }
 
-    private Component Subtotal(
-        IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> band, int level, int span) =>
+    private Component? BandToggle(string path, bool collapsed)
+    {
+        if (GroupCollapsible is false)
+        {
+            return null;
+        }
+
+        return Ui.Button
+            .AccessibleLabel(collapsed ? "Expand group" : "Collapse group")
+            .Square(true)
+            .Size(Ui.Size.Xs)
+            .Variant(Ui.Variant.Ghost)
+            .OnClick(() => ToggleBand(path))[Ui.Icon.Name(collapsed ? Ui.IconName.ChevronRight : Ui.IconName.ChevronDown)];
+    }
+
+    private Component Subtotal(IReadOnlyList<UiColumn<T>> visible, List<T> band, int level) =>
         Tr.Key("subtotal-" + level + "-" + band.Count)[
             LeadingCells > 0 ? Td.Colspan(LeadingCells).Class("bg-base-100") : null,
             visible.Select(column =>
@@ -1419,7 +1354,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // than about taste: HTML5 drag events do not fire on touch at all and cannot be driven from a
     // keyboard, so a panel whose only gesture was dragging would be unreachable on the phone this kit
     // designs for first. Both paths call the same handler, so there is one behaviour to test.
-    private Component? Chrome(IReadOnlyList<UiColumn<T>> columns, IReadOnlyList<UiColumn<T>> groups)
+    private DragDrop? Chrome(IReadOnlyList<UiColumn<T>> columns, IReadOnlyList<UiColumn<T>> groups)
     {
         var chooser = ColumnChooser is true;
         var panel = GroupPanel is true;
@@ -1431,7 +1366,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         return DragDrop
             .Body(ctx => Div.Class("flex flex-wrap items-start gap-2")[
                 chooser ? ChooserBar(columns, ctx) : null,
-                panel ? Panel(columns, groups, ctx) : null
+                panel ? Panel(groups, ctx) : null
             ])
             .OnDrop(move => DropAsync(move, columns));
     }
@@ -1526,8 +1461,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         }
     }
 
-    private Component Panel(
-        IReadOnlyList<UiColumn<T>> columns, IReadOnlyList<UiColumn<T>> groups, DragDropContext ctx) =>
+    private Component Panel(IReadOnlyList<UiColumn<T>> groups, DragDropContext ctx) =>
         Div
             .Class("flex flex-wrap items-center gap-2 rounded-box border border-dashed "
                 + "border-base-300 p-2")
@@ -1540,11 +1474,10 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 ? [Span.Class("text-sm text-base-content/60")[
                     "Group by a column with its header button."
                 ]]
-                : GroupChips(columns, groups, ctx)
+                : GroupChips(groups, ctx)
         ];
 
-    private IEnumerable<Component?> GroupChips(
-        IReadOnlyList<UiColumn<T>> columns, IReadOnlyList<UiColumn<T>> groups, DragDropContext ctx)
+    private IEnumerable<Component?> GroupChips(IReadOnlyList<UiColumn<T>> groups, DragDropContext ctx)
     {
         for (var i = 0; i < groups.Count; i++)
         {
@@ -1583,22 +1516,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             .Disabled(!enabled)
             .OnClick(click)[Ui.Icon.Name(icon)];
 
-    private static UiColumn<T>? Find(IReadOnlyList<UiColumn<T>> columns, string token)
-    {
-        foreach (var column in columns)
-        {
-            if (string.Equals(column.FieldName, token, StringComparison.Ordinal))
-            {
-                return column;
-            }
-        }
-
-        return null;
-    }
+    private static UiColumn<T>? Find(IReadOnlyList<UiColumn<T>> columns, string token) =>
+        columns.FirstOrDefault(column => string.Equals(column.FieldName, token, StringComparison.Ordinal));
 
     // ---- footer, cards, pager -------------------------------------------------------------------
 
-    private Component? Foot(IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> all, int span)
+    private Component? Foot(IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> all)
     {
         if (!visible.Any(static c => c.HasFooter))
         {

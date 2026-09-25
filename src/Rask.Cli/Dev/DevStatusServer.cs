@@ -137,7 +137,7 @@ internal sealed class DevStatusServer : IDisposable
             {
                 Respond(context);
             }
-            catch (Exception)
+            catch (Exception ex) when (ex is HttpListenerException or IOException or ObjectDisposedException or InvalidOperationException)
             {
                 // A dropped poll is not worth a word: the client polls again in a moment, and `rask dev`'s
                 // console belongs to the build output, not to this.
@@ -154,7 +154,7 @@ internal sealed class DevStatusServer : IDisposable
         response.AddHeader("Access-Control-Allow-Origin", "*");
         response.AddHeader("Cache-Control", "no-store");
 
-        if (context.Request.HttpMethod == "OPTIONS")
+        if (string.Equals(context.Request.HttpMethod, "OPTIONS", StringComparison.Ordinal))
         {
             response.AddHeader("Access-Control-Allow-Methods", "GET");
             response.StatusCode = 204;

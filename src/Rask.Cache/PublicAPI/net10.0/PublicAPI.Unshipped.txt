@@ -1,117 +1,116 @@
 #nullable enable
-Rask.Cache.Cache
-Rask.Cache.CacheEntry
-Rask.Cache.CacheEntry.AbsoluteExpiration.get -> System.DateTime?
-Rask.Cache.CacheEntry.CacheEntry() -> void
-Rask.Cache.CacheEntry.ExpiresAt.get -> System.DateTime
-Rask.Cache.CacheEntry.Key.get -> string!
-Rask.Cache.CacheEntry.SlidingSeconds.get -> double?
-Rask.Cache.CacheEntry.Value.get -> byte[]!
-Rask.Cache.CacheEntryConfiguration
-Rask.Cache.CacheEntryConfiguration.CacheEntryConfiguration() -> void
-Rask.Cache.CacheEntryConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Cache.CacheEntry!>! entity) -> void
-Rask.Cache.CacheEntryRead
-Rask.Cache.CacheEntryRead.AbsoluteExpiration.get -> System.DateTime?
-Rask.Cache.CacheEntryRead.AbsoluteExpiration.init -> void
-Rask.Cache.CacheEntryRead.CacheEntryRead() -> void
-Rask.Cache.CacheEntryRead.CreatedAt.get -> System.DateTime
-Rask.Cache.CacheEntryRead.CreatedAt.init -> void
-Rask.Cache.CacheEntryRead.ExpiresAt.get -> System.DateTime
-Rask.Cache.CacheEntryRead.ExpiresAt.init -> void
-Rask.Cache.CacheEntryRead.Id.get -> System.Guid
-Rask.Cache.CacheEntryRead.Id.init -> void
-Rask.Cache.CacheEntryRead.Key.get -> string!
-Rask.Cache.CacheEntryRead.Key.init -> void
-Rask.Cache.CacheEntryRead.SlidingSeconds.get -> double?
-Rask.Cache.CacheEntryRead.SlidingSeconds.init -> void
-Rask.Cache.CacheEntryRead.UpdatedAt.get -> System.DateTime
-Rask.Cache.CacheEntryRead.UpdatedAt.init -> void
-Rask.Cache.CacheEntryRead.Value.get -> byte[]!
-Rask.Cache.CacheEntryRead.Value.init -> void
-Rask.Cache.CacheEntryReadAccess
-Rask.Cache.CacheEntryReadAccess.extension(Rask.Cache.CacheEntry!)
-Rask.Cache.CacheModelBuilderExtensions
-Rask.Cache.CacheOptions
-Rask.Cache.CacheOptions.CacheOptions() -> void
-Rask.Cache.CacheOptions.DefaultSlidingExpiration.get -> System.TimeSpan?
-Rask.Cache.CacheOptions.DefaultSlidingExpiration.set -> void
-Rask.Cache.CacheOptions.PurgeInterval.get -> System.TimeSpan
-Rask.Cache.CacheOptions.PurgeInterval.set -> void
-Rask.Cache.CachePurger<TContext>
-Rask.Cache.CachePurger<TContext>.CachePurger(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Rask.Cache.CacheOptions! options, System.TimeProvider! timeProvider, Microsoft.Extensions.Logging.ILogger<Rask.Cache.CachePurger<TContext!>!>! logger) -> void
-Rask.Cache.ICache
-Rask.Cache.RaskCacheServiceCollectionExtensions
-Rask.Cache.RaskDistributedCache<TContext>
-Rask.Cache.RaskDistributedCache<TContext>.Get(string! key) -> byte[]?
-Rask.Cache.RaskDistributedCache<TContext>.GetAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]?>!
-Rask.Cache.RaskDistributedCache<TContext>.RaskDistributedCache(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Rask.Cache.CacheOptions! options, System.TimeProvider! timeProvider, Microsoft.Extensions.Logging.ILogger<Rask.Cache.RaskDistributedCache<TContext!>!>! logger) -> void
-Rask.Cache.RaskDistributedCache<TContext>.Refresh(string! key) -> void
-Rask.Cache.RaskDistributedCache<TContext>.RefreshAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Cache.RaskDistributedCache<TContext>.Remove(string! key) -> void
-Rask.Cache.RaskDistributedCache<TContext>.RemoveAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Cache.RaskDistributedCache<TContext>.Set(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options) -> void
-Rask.Cache.RaskDistributedCache<TContext>.SetAsync(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-const Rask.Cache.CacheEntry.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
-static Rask.Cache.CacheEntry.For(string! key, byte[]! value, System.DateTime expiresAt, System.DateTime savedAt, System.DateTime? absoluteExpiration = null, double? slidingSeconds = null) -> Rask.Cache.CacheEntry!
-static Rask.Cache.CacheEntryReadAccess.extension(Rask.Cache.CacheEntry!).Read.get -> Rask.Data.ModelQuery<Rask.Cache.CacheEntryRead!>!
-static Rask.Cache.CacheEntryReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Cache.CacheEntryRead!>!
-static Rask.Cache.CacheModelBuilderExtensions.AddRaskCache(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-static Rask.Cache.RaskCacheServiceCollectionExtensions.AddRaskCache<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cache.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-Rask.Cache.CacheExtensions
-Rask.Cache.CacheExtensions.extension(Rask.Cache.ICache!)
-Rask.Cache.CacheExtensions.extension(Rask.Cache.ICache!).Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-Rask.Cache.CacheExtensions.extension(Rask.Cache.ICache!).Remember<T>(string! key, System.Func<System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-Rask.Cache.CacheExtensions.extension(Rask.Cache.ICache!).Remember<T>(string! key, System.Func<T>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-Rask.Cache.CacheExtensions.extension(Rask.Cache.ICache!).Set<T>(string! key, T value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Setting<T>
-Rask.Cache.CacheLifetime
-Rask.Cache.CacheLifetime.CacheLifetime() -> void
-Rask.Cache.CacheLifetime.CacheLifetime(System.TimeSpan? For, System.TimeSpan? Sliding, System.DateTimeOffset? Until) -> void
-Rask.Cache.CacheLifetime.Deconstruct(out System.TimeSpan? For, out System.TimeSpan? Sliding, out System.DateTimeOffset? Until) -> void
-Rask.Cache.CacheLifetime.Equals(Rask.Cache.CacheLifetime other) -> bool
-Rask.Cache.CacheLifetime.For.get -> System.TimeSpan?
-Rask.Cache.CacheLifetime.For.init -> void
-Rask.Cache.CacheLifetime.Sliding.get -> System.TimeSpan?
-Rask.Cache.CacheLifetime.Sliding.init -> void
-Rask.Cache.CacheLifetime.Until.get -> System.DateTimeOffset?
-Rask.Cache.CacheLifetime.Until.init -> void
-Rask.Cache.CacheOptions.Json.get -> System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver?
-Rask.Cache.CacheOptions.Json.set -> void
-Rask.Cache.ICache.Forget(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Cache.ICache.Get<T>(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T?>!
-Rask.Cache.ICache.Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, Rask.Cache.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<T>!
-Rask.Cache.ICache.Set<T>(string! key, T value, Rask.Cache.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-Rask.Cache.Remembering<T>
-Rask.Cache.Remembering<T>.AsTask() -> System.Threading.Tasks.Task<T>!
-Rask.Cache.Remembering<T>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<T>
-Rask.Cache.Remembering<T>.For(System.TimeSpan duration) -> Rask.Cache.Remembering<T>
-Rask.Cache.Remembering<T>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<T>
-Rask.Cache.Remembering<T>.Remembering() -> void
-Rask.Cache.Remembering<T>.Sliding(System.TimeSpan window) -> Rask.Cache.Remembering<T>
-Rask.Cache.Remembering<T>.Until(System.DateTimeOffset moment) -> Rask.Cache.Remembering<T>
-Rask.Cache.Setting<T>
-Rask.Cache.Setting<T>.AsTask() -> System.Threading.Tasks.Task!
-Rask.Cache.Setting<T>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable
-Rask.Cache.Setting<T>.For(System.TimeSpan duration) -> Rask.Cache.Setting<T>
-Rask.Cache.Setting<T>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
-Rask.Cache.Setting<T>.Setting() -> void
-Rask.Cache.Setting<T>.Sliding(System.TimeSpan window) -> Rask.Cache.Setting<T>
-Rask.Cache.Setting<T>.Until(System.DateTimeOffset moment) -> Rask.Cache.Setting<T>
-override Rask.Cache.CacheLifetime.GetHashCode() -> int
-static Rask.Cache.Cache.Forget(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-static Rask.Cache.Cache.Get<T>(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T?>!
-static Rask.Cache.Cache.Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-static Rask.Cache.Cache.Remember<T>(string! key, System.Func<System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-static Rask.Cache.Cache.Remember<T>(string! key, System.Func<T>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-static Rask.Cache.Cache.Set<T>(string! key, T value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Setting<T>
-static Rask.Cache.CacheExtensions.Remember<T>(this Rask.Cache.ICache! cache, string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-static Rask.Cache.CacheExtensions.Remember<T>(this Rask.Cache.ICache! cache, string! key, System.Func<System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-static Rask.Cache.CacheExtensions.Remember<T>(this Rask.Cache.ICache! cache, string! key, System.Func<T>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Remembering<T>
-static Rask.Cache.CacheExtensions.Set<T>(this Rask.Cache.ICache! cache, string! key, T value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Cache.Setting<T>
-static Rask.Cache.CacheLifetime.operator !=(Rask.Cache.CacheLifetime left, Rask.Cache.CacheLifetime right) -> bool
-static Rask.Cache.CacheLifetime.operator ==(Rask.Cache.CacheLifetime left, Rask.Cache.CacheLifetime right) -> bool
-static Rask.Cache.RaskCacheServiceCollectionExtensions.AddRaskCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cache.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-~override Rask.Cache.CacheLifetime.Equals(object obj) -> bool
-~override Rask.Cache.CacheLifetime.ToString() -> string
+Rask.Caching.Cache
+Rask.Caching.CacheEntry
+Rask.Caching.CacheEntry.AbsoluteExpiration.get -> System.DateTime?
+Rask.Caching.CacheEntry.CacheEntry() -> void
+Rask.Caching.CacheEntry.ExpiresAt.get -> System.DateTime
+Rask.Caching.CacheEntry.Key.get -> string!
+Rask.Caching.CacheEntry.SlidingSeconds.get -> double?
+Rask.Caching.CacheEntry.Value.get -> byte[]!
+Rask.Caching.CacheEntryConfiguration
+Rask.Caching.CacheEntryConfiguration.CacheEntryConfiguration() -> void
+Rask.Caching.CacheEntryRead
+Rask.Caching.CacheEntryRead.AbsoluteExpiration.get -> System.DateTime?
+Rask.Caching.CacheEntryRead.AbsoluteExpiration.init -> void
+Rask.Caching.CacheEntryRead.CacheEntryRead() -> void
+Rask.Caching.CacheEntryRead.CreatedAt.get -> System.DateTime
+Rask.Caching.CacheEntryRead.CreatedAt.init -> void
+Rask.Caching.CacheEntryRead.ExpiresAt.get -> System.DateTime
+Rask.Caching.CacheEntryRead.ExpiresAt.init -> void
+Rask.Caching.CacheEntryRead.Id.get -> System.Guid
+Rask.Caching.CacheEntryRead.Id.init -> void
+Rask.Caching.CacheEntryRead.Key.get -> string!
+Rask.Caching.CacheEntryRead.Key.init -> void
+Rask.Caching.CacheEntryRead.SlidingSeconds.get -> double?
+Rask.Caching.CacheEntryRead.SlidingSeconds.init -> void
+Rask.Caching.CacheEntryRead.UpdatedAt.get -> System.DateTime
+Rask.Caching.CacheEntryRead.UpdatedAt.init -> void
+Rask.Caching.CacheEntryRead.Value.get -> byte[]!
+Rask.Caching.CacheEntryRead.Value.init -> void
+Rask.Caching.CacheEntryReadAccess
+Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!)
+Rask.Caching.CacheModelBuilderExtensions
+Rask.Caching.CacheOptions
+Rask.Caching.CacheOptions.CacheOptions() -> void
+Rask.Caching.CacheOptions.DefaultSlidingExpiration.get -> System.TimeSpan?
+Rask.Caching.CacheOptions.DefaultSlidingExpiration.set -> void
+Rask.Caching.CacheOptions.PurgeInterval.get -> System.TimeSpan
+Rask.Caching.CacheOptions.PurgeInterval.set -> void
+Rask.Caching.CachePurger<TContext>
+Rask.Caching.CachePurger<TContext>.CachePurger(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Rask.Caching.CacheOptions! options, System.TimeProvider! timeProvider, Microsoft.Extensions.Logging.ILogger<Rask.Caching.CachePurger<TContext!>!>! logger) -> void
+Rask.Caching.ICache
+Rask.Caching.RaskCacheServiceCollectionExtensions
+Rask.Caching.RaskDistributedCache<TContext>
+Rask.Caching.RaskDistributedCache<TContext>.Get(string! key) -> byte[]?
+Rask.Caching.RaskDistributedCache<TContext>.GetAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]?>!
+Rask.Caching.RaskDistributedCache<TContext>.RaskDistributedCache(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Rask.Caching.CacheOptions! options, System.TimeProvider! timeProvider, Microsoft.Extensions.Logging.ILogger<Rask.Caching.RaskDistributedCache<TContext!>!>! logger) -> void
+Rask.Caching.RaskDistributedCache<TContext>.Refresh(string! key) -> void
+Rask.Caching.RaskDistributedCache<TContext>.RefreshAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Caching.RaskDistributedCache<TContext>.Remove(string! key) -> void
+Rask.Caching.RaskDistributedCache<TContext>.RemoveAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Caching.RaskDistributedCache<TContext>.Set(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options) -> void
+Rask.Caching.RaskDistributedCache<TContext>.SetAsync(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+const Rask.Caching.CacheEntry.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
+static Rask.Caching.CacheEntry.For(string! key, byte[]! value, System.DateTime expiresAt, System.DateTime savedAt, System.DateTime? absoluteExpiration = null, double? slidingSeconds = null) -> Rask.Caching.CacheEntry!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Read.get -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheModelBuilderExtensions.AddRaskCache(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Caching.RaskCacheServiceCollectionExtensions.AddRaskCache<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Caching.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Caching.CacheExtensions
+Rask.Caching.CacheExtensions.extension(Rask.Caching.ICache!)
+Rask.Caching.CacheExtensions.extension(Rask.Caching.ICache!).Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+Rask.Caching.CacheExtensions.extension(Rask.Caching.ICache!).Remember<T>(string! key, System.Func<System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+Rask.Caching.CacheExtensions.extension(Rask.Caching.ICache!).Remember<T>(string! key, System.Func<T>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+Rask.Caching.CacheExtensions.extension(Rask.Caching.ICache!).Set<T>(string! key, T value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Setting<T>
+Rask.Caching.CacheLifetime
+Rask.Caching.CacheLifetime.CacheLifetime() -> void
+Rask.Caching.CacheLifetime.CacheLifetime(System.TimeSpan? For, System.TimeSpan? Sliding, System.DateTimeOffset? Until) -> void
+Rask.Caching.CacheLifetime.Deconstruct(out System.TimeSpan? For, out System.TimeSpan? Sliding, out System.DateTimeOffset? Until) -> void
+Rask.Caching.CacheLifetime.Equals(Rask.Caching.CacheLifetime other) -> bool
+Rask.Caching.CacheLifetime.For.get -> System.TimeSpan?
+Rask.Caching.CacheLifetime.For.init -> void
+Rask.Caching.CacheLifetime.Sliding.get -> System.TimeSpan?
+Rask.Caching.CacheLifetime.Sliding.init -> void
+Rask.Caching.CacheLifetime.Until.get -> System.DateTimeOffset?
+Rask.Caching.CacheLifetime.Until.init -> void
+Rask.Caching.CacheOptions.Json.get -> System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver?
+Rask.Caching.CacheOptions.Json.set -> void
+Rask.Caching.ICache.Forget(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Caching.ICache.Get<T>(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T?>!
+Rask.Caching.ICache.Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, Rask.Caching.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<T>!
+Rask.Caching.ICache.Set<T>(string! key, T value, Rask.Caching.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Caching.Remembering<T>
+Rask.Caching.Remembering<T>.AsTask() -> System.Threading.Tasks.Task<T>!
+Rask.Caching.Remembering<T>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<T>
+Rask.Caching.Remembering<T>.For(System.TimeSpan duration) -> Rask.Caching.Remembering<T>
+Rask.Caching.Remembering<T>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<T>
+Rask.Caching.Remembering<T>.Remembering() -> void
+Rask.Caching.Remembering<T>.Sliding(System.TimeSpan window) -> Rask.Caching.Remembering<T>
+Rask.Caching.Remembering<T>.Until(System.DateTimeOffset moment) -> Rask.Caching.Remembering<T>
+Rask.Caching.Setting<T>
+Rask.Caching.Setting<T>.AsTask() -> System.Threading.Tasks.Task!
+Rask.Caching.Setting<T>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable
+Rask.Caching.Setting<T>.For(System.TimeSpan duration) -> Rask.Caching.Setting<T>
+Rask.Caching.Setting<T>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
+Rask.Caching.Setting<T>.Setting() -> void
+Rask.Caching.Setting<T>.Sliding(System.TimeSpan window) -> Rask.Caching.Setting<T>
+Rask.Caching.Setting<T>.Until(System.DateTimeOffset moment) -> Rask.Caching.Setting<T>
+override Rask.Caching.CacheLifetime.GetHashCode() -> int
+static Rask.Caching.Cache.Forget(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Caching.Cache.Get<T>(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T?>!
+static Rask.Caching.Cache.Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+static Rask.Caching.Cache.Remember<T>(string! key, System.Func<System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+static Rask.Caching.Cache.Remember<T>(string! key, System.Func<T>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+static Rask.Caching.Cache.Set<T>(string! key, T value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Setting<T>
+static Rask.Caching.CacheExtensions.Remember<T>(this Rask.Caching.ICache! cache, string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+static Rask.Caching.CacheExtensions.Remember<T>(this Rask.Caching.ICache! cache, string! key, System.Func<System.Threading.Tasks.Task<T>!>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+static Rask.Caching.CacheExtensions.Remember<T>(this Rask.Caching.ICache! cache, string! key, System.Func<T>! load, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Remembering<T>
+static Rask.Caching.CacheExtensions.Set<T>(this Rask.Caching.ICache! cache, string! key, T value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Caching.Setting<T>
+static Rask.Caching.CacheLifetime.operator !=(Rask.Caching.CacheLifetime left, Rask.Caching.CacheLifetime right) -> bool
+static Rask.Caching.CacheLifetime.operator ==(Rask.Caching.CacheLifetime left, Rask.Caching.CacheLifetime right) -> bool
+static Rask.Caching.RaskCacheServiceCollectionExtensions.AddRaskCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Caching.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+~override Rask.Caching.CacheLifetime.Equals(object obj) -> bool
+~override Rask.Caching.CacheLifetime.ToString() -> string
 Rask.Batteries.Counting<T>
 Rask.Batteries.Counting<T>.Count.get -> int
 Rask.Batteries.Counting<T>.Counting() -> void
@@ -119,26 +118,29 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
 Rask.Batteries.CountingException.CountingException(string! message) -> void
-Rask.Cache.CacheFake
-Rask.Cache.CacheFake.Clear() -> void
-Rask.Cache.CacheFake.Dispose() -> void
-Rask.Cache.CacheFake.Forget(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Cache.CacheFake.Forgotten() -> Rask.Batteries.Counting<string!>
-Rask.Cache.CacheFake.Forgotten(string! key) -> Rask.Batteries.Counting<string!>
-Rask.Cache.CacheFake.Get<T>(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T?>!
-Rask.Cache.CacheFake.Loaded() -> Rask.Batteries.Counting<string!>
-Rask.Cache.CacheFake.Loaded(string! key) -> Rask.Batteries.Counting<string!>
-Rask.Cache.CacheFake.Read() -> Rask.Batteries.Counting<string!>
-Rask.Cache.CacheFake.Read(string! key) -> Rask.Batteries.Counting<string!>
-Rask.Cache.CacheFake.Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, Rask.Cache.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<T>!
-Rask.Cache.CacheFake.Set<T>(string! key, T value, Rask.Cache.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-Rask.Cache.CacheFakes
-Rask.Cache.CacheFakes.extension(Rask.Cache.Cache!)
-static Rask.Cache.CacheFakes.Fake() -> Rask.Cache.CacheFake!
-static Rask.Cache.CacheFakes.extension(Rask.Cache.Cache!).Fake() -> Rask.Cache.CacheFake!
-static Rask.Cache.Cache.IsOn.get -> bool
+Rask.Caching.CacheFake
+Rask.Caching.CacheFake.Clear() -> void
+Rask.Caching.CacheFake.Dispose() -> void
+Rask.Caching.CacheFake.Forget(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Caching.CacheFake.Forgotten() -> Rask.Batteries.Counting<string!>
+Rask.Caching.CacheFake.Forgotten(string! key) -> Rask.Batteries.Counting<string!>
+Rask.Caching.CacheFake.Get<T>(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T?>!
+Rask.Caching.CacheFake.Loaded() -> Rask.Batteries.Counting<string!>
+Rask.Caching.CacheFake.Loaded(string! key) -> Rask.Batteries.Counting<string!>
+Rask.Caching.CacheFake.Read() -> Rask.Batteries.Counting<string!>
+Rask.Caching.CacheFake.Read(string! key) -> Rask.Batteries.Counting<string!>
+Rask.Caching.CacheFake.Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, Rask.Caching.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<T>!
+Rask.Caching.CacheFake.Set<T>(string! key, T value, Rask.Caching.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Caching.CacheFakes
+Rask.Caching.CacheFakes.extension(Rask.Caching.Cache!)
+static Rask.Caching.CacheFakes.Fake() -> Rask.Caching.CacheFake!
+static Rask.Caching.CacheFakes.extension(Rask.Caching.Cache!).Fake() -> Rask.Caching.CacheFake!
+static Rask.Caching.Cache.IsOn.get -> bool
+Rask.Caching.CacheEntryConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Caching.CacheEntry!>! builder) -> void
+Rask.Batteries.CountingException.CountingException() -> void
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void

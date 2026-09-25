@@ -39,12 +39,12 @@ public sealed partial class UiCollapse : Component
         var title = Button
             .Type("button")
             .Class("collapse-title flex w-full items-center text-left font-semibold")
-            .Aria(new Dictionary<string, string?> { ["expanded"] = Open == true ? "true" : "false" });
+            .Aria("expanded", Open == true ? "true" : "false");
 
         if (OnToggle is { } toggle)
         {
             var next = Open != true;
-            title = title.OnClick(() => toggle.Invoke(next) ?? Task.CompletedTask);
+            title = title.OnClick(() => toggle.Invoke(next));
         }
 
         return Div.Class(UiClass.Compose(

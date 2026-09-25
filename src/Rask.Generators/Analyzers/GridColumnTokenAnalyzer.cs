@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -69,7 +70,7 @@ public sealed class GridColumnTokenAnalyzer : DiagnosticAnalyzer
         var operation = (IInvocationOperation)context.Operation;
 
         // The token-less opening, and only it. Field(...) always produces a token, so it is never this.
-        if (operation.TargetMethod.Name != "Column" || !IsGrid(operation.TargetMethod.ContainingType))
+        if (!string.Equals(operation.TargetMethod.Name, "Column", StringComparison.Ordinal) || !IsGrid(operation.TargetMethod.ContainingType))
         {
             return;
         }

@@ -174,7 +174,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     {
         public ClaimsPrincipal Current { get; } = principal;
 
-        public event Action? Changed
+        public event EventHandler? Changed
         {
             add { }
             remove { }
@@ -186,7 +186,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
         public ClaimsPrincipal Current { get; } = new(new ClaimsIdentity());
         public bool IsLoading => true;
 
-        public event Action? Changed
+        public event EventHandler? Changed
         {
             add { }
             remove { }

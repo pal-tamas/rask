@@ -5,19 +5,6 @@ using Microsoft.CodeAnalysis;
 
 namespace Rask.Generators.Shared;
 
-/// <summary>How generated code gets a value into a property it cannot assign directly.</summary>
-internal enum WriteKind
-{
-    /// <summary>A public setter, assigned directly.</summary>
-    Public,
-
-    /// <summary>A non-public setter, reached through an <c>[UnsafeAccessor]</c> method.</summary>
-    Setter,
-
-    /// <summary>No usable setter but a compiler backing field, reached through an <c>[UnsafeAccessor]</c> field.</summary>
-    Field,
-}
-
 /// <summary>
 ///     The one definition of what the <c>Rask.Data</c> generators and analyzers treat as an entity, an aggregate and a
 ///     value object — so the registry that maps them, the generator that writes them and the analyzers that check
@@ -170,7 +157,7 @@ internal static class AggregateShape
     }
 
     private static bool IsRaskDataType(INamedTypeSymbol type) =>
-        type.ContainingNamespace?.ToDisplayString() == RaskDataNamespace;
+        string.Equals(type.ContainingNamespace?.ToDisplayString(), RaskDataNamespace, StringComparison.Ordinal);
 
     private static bool HasBackingField(IPropertySymbol property)
     {
@@ -185,8 +172,8 @@ internal static class AggregateShape
     private static bool IsFrameworkType(INamedTypeSymbol type)
     {
         var ns = type.ContainingNamespace?.ToDisplayString() ?? "";
-        return ns == "System" || ns.StartsWith("System.", StringComparison.Ordinal) ||
-               ns == "Microsoft" || ns.StartsWith("Microsoft.", StringComparison.Ordinal) ||
+        return string.Equals(ns, "System", StringComparison.Ordinal) || ns.StartsWith("System.", StringComparison.Ordinal) ||
+               string.Equals(ns, "Microsoft", StringComparison.Ordinal) || ns.StartsWith("Microsoft.", StringComparison.Ordinal) ||
                ns.StartsWith("NetTopologySuite", StringComparison.Ordinal) ||
                ns.StartsWith("Npgsql", StringComparison.Ordinal);
     }

@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 
 namespace Rask.Cli;
 
@@ -41,25 +40,25 @@ internal static class DockerProbe
 
         // Nothing is built locally — the build context ships to the host's daemon — but the CLI is
         // still the client for every `docker -H ssh://` call, so it has to be here.
-        console.Error.WriteLine("Docker isn't installed or isn't on your PATH. `rask deploy` uses the Docker CLI to build and run your app on the host.");
-        console.Error.WriteLine($"  Install Docker: {InstallHint()}");
+        await console.Error.WriteLineAsync("Docker isn't installed or isn't on your PATH. `rask deploy` uses the Docker CLI to build and run your app on the host.").ConfigureAwait(false);
+        await console.Error.WriteLineAsync($"  Install Docker: {InstallHint()}").ConfigureAwait(false);
         return false;
     }
 
     /// <summary>The install command for this machine — a command to paste beats a page to go read.</summary>
     private static string InstallHint()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (OperatingSystem.IsMacOS())
         {
             return "brew install --cask docker (or https://docs.docker.com/get-docker/)";
         }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (OperatingSystem.IsWindows())
         {
             return "winget install Docker.DockerDesktop (or https://docs.docker.com/get-docker/)";
         }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (OperatingSystem.IsLinux())
         {
             return "curl -fsSL https://get.docker.com | sh (or https://docs.docker.com/get-docker/)";
         }

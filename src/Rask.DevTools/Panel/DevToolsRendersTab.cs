@@ -97,26 +97,29 @@ internal sealed partial class DevToolsRendersTab : Component
             ],
             commits.Length == 0
                 ? Ui.Alert["No renders yet. Use the page, and every component that renders is counted here, with why."]
-                : Div.Class("flex flex-col gap-3")[
-                    Ui.MetricRow[
-                        Ui.Metric.Label("Commits").Value(Count(commits.Length)),
-                        Ui.Metric.Label("Renders").Value(Count(renders)),
-                        Ui.Metric.Label("Components").Value(Count(stats.Count)),
-                        Ui.Metric.Label("Render time").Value(Milliseconds(ticks))
-                    ],
-                    _byCommit ? CommitTable(commits) : ComponentTable(stats)
-                ]
+                : Counted(commits, stats, renders, ticks)
         ];
     }
 
-    private void OnFeedChanged() => _gate?.Notify();
+    private Component Counted(DevToolsCommit[] commits, List<ComponentStat> stats, int renders, long ticks) =>
+        Div.Class("flex flex-col gap-3")[
+            Ui.MetricRow[
+                Ui.Metric.Label("Commits").Value(Count(commits.Length)),
+                Ui.Metric.Label("Renders").Value(Count(renders)),
+                Ui.Metric.Label("Components").Value(Count(stats.Count)),
+                Ui.Metric.Label("Render time").Value(Milliseconds(ticks))
+            ],
+            _byCommit ? CommitTable(commits) : ComponentTable(stats)
+        ];
+
+    private void OnFeedChanged(object? sender, EventArgs e) => _gate?.Notify();
 
     private Component ViewButton(string label, bool byCommit) =>
         Ui.Button
             .Size(Ui.Size.Sm)
             // daisyUI's own markers, written whole: a composed class name is invisible to the kit's Tailwind scan.
             .Class(_byCommit == byCommit ? "join-item btn-active" : "join-item")
-            .Aria(new Dictionary<string, string?> { ["pressed"] = _byCommit == byCommit ? "true" : "false" })
+            .Aria("pressed", _byCommit == byCommit ? "true" : "false")
             .OnClick(() => _byCommit = byCommit)[label];
 
     /// <summary>One component instance's renders across the commits held.</summary>
@@ -128,7 +131,7 @@ internal sealed partial class DevToolsRendersTab : Component
         internal int Renders { get; set; }
         internal long Ticks { get; set; }
         internal long LastCommit { get; set; }
-        internal int[] Reasons { get; } = new int[Enum.GetValues<DevToolsRenderReason>().Length];
+        internal int[] ReasonCounts { get; } = new int[Enum.GetValues<DevToolsRenderReason>().Length];
     }
 
     /// <summary>Totals per component instance, most renders first, then most time, then the most recently rendered.</summary>
@@ -147,7 +150,7 @@ internal sealed partial class DevToolsRendersTab : Component
                 }
 
                 stat.Renders++;
-                stat.Reasons[(int)render.Reason]++;
+                stat.ReasonCounts[(int)render.Reason]++;
                 stat.LastCommit = commit.Sequence;
                 renders++;
                 if (render.SelfTicks > 0)
@@ -159,10 +162,12 @@ internal sealed partial class DevToolsRendersTab : Component
         }
 
         var list = byId.Values.ToList();
-        list.Sort(static (a, b) =>
-            a.Renders != b.Renders ? b.Renders.CompareTo(a.Renders)
-            : a.Ticks != b.Ticks ? b.Ticks.CompareTo(a.Ticks)
-            : b.LastCommit.CompareTo(a.LastCommit));
+        list.Sort(static (a, b) => (a.Renders != b.Renders, a.Ticks != b.Ticks) switch
+        {
+            (true, _) => b.Renders.CompareTo(a.Renders),
+            (_, true) => b.Ticks.CompareTo(a.Ticks),
+            _ => b.LastCommit.CompareTo(a.LastCommit),
+        });
         return list;
     }
 
@@ -176,7 +181,7 @@ internal sealed partial class DevToolsRendersTab : Component
             rows[i] = Tr.Key(stat.Id)[
                 Td[Name(stat.Type, stat.Key)],
                 Td.Class("tabular-nums")[Count(stat.Renders)],
-                Td[Reasons(stat.Reasons)],
+                Td[Reasons(stat.ReasonCounts)],
                 Td.Class("tabular-nums whitespace-nowrap")[Milliseconds(stat.Ticks)],
                 Td.Class("tabular-nums opacity-60")[stat.LastCommit.ToString(CultureInfo.InvariantCulture)]
             ];
@@ -245,7 +250,7 @@ internal sealed partial class DevToolsRendersTab : Component
         var groups = new List<(string Type, DevToolsRenderReason Reason, int Count)>();
         foreach (var render in commit.Renders)
         {
-            var index = groups.FindIndex(g => g.Type == render.Type && g.Reason == render.Reason);
+            var index = groups.FindIndex(g => string.Equals(g.Type, render.Type, StringComparison.Ordinal) && g.Reason == render.Reason);
             if (index >= 0)
             {
                 groups[index] = groups[index] with { Count = groups[index].Count + 1 };

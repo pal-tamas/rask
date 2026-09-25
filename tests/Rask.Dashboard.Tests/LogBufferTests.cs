@@ -79,7 +79,7 @@ public sealed class LogBufferTests
     {
         var buffer = Buffer();
         var raised = 0;
-        buffer.Changed += () => raised++;
+        buffer.Changed += (_, _) => raised++;
 
         buffer.Add(LogLevel.Information, "Cat", "one", null);
         buffer.Clear();

@@ -3,11 +3,11 @@ using System.Text.Json;
 
 namespace Rask.Core.Live;
 
-// Shared JSON-payload readers for the typed DOM event-arg records (MouseEventArgs, WheelEventArgs,
-// PointerEventArgs, …). The client serialises each DOM event into a flat JSON object; these helpers
+// Shared JSON-payload readers for the typed DOM event-arg records (MouseEvent, WheelEvent,
+// PointerEvent, …). The client serialises each DOM event into a flat JSON object; these helpers
 // pull individual fields out defensively (missing/wrong-typed fields fall back to a zero/empty
 // default) so a record's FromJson stays a one-liner per field. Mirrors the inline readers that
-// KeyboardEventArgs/ScrollEvent grew first; centralised here now that many records need them.
+// KeyboardEvent/ScrollEvent grew first; centralised here now that many records need them.
 internal static class EventPayload
 {
     public static string ReadString(JsonElement p, string name) =>

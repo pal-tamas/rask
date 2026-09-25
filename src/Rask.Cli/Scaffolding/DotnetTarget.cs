@@ -117,7 +117,7 @@ internal sealed record DotnetTarget(string Moniker, string BrowserMoniker, strin
     }
 
     /// <summary>Whether <paramref name="text" /> still names the default framework after a rewrite.</summary>
-    public bool StillNamesTheDefault(string text) =>
+    public static bool StillNamesTheDefault(string text) =>
         text is not null
         && (text.Contains($"<TargetFramework>{Default.Moniker}<", StringComparison.Ordinal)
             || text.Contains($"<TargetFramework>{Default.BrowserMoniker}<", StringComparison.Ordinal)

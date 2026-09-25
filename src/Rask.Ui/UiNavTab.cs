@@ -57,6 +57,7 @@ public sealed partial class UiNavTab : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
+        var badgeTone = BadgeTone is { } tone ? UiClassNames.BadgeTone(tone) : "badge-ghost";
         Component[] content =
         [
             Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null!,
@@ -64,7 +65,7 @@ public sealed partial class UiNavTab : Component
             Badge is { } badge
                 ? Span.Class(UiClass.Compose(
                     "badge badge-sm",
-                    BadgeTone is { } tone ? UiClassNames.BadgeTone(tone) : "badge-ghost"))[badge]
+                    badgeTone))[badge]
                 : null!
         ];
 

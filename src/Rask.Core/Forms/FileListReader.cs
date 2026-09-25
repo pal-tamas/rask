@@ -7,11 +7,11 @@ namespace Rask.Core.Forms;
 
 internal static class FileListReader
 {
-    public static IReadOnlyList<RaskFile> Read(JsonElement payload, string property = "files")
+    public static IReadOnlyList<IRaskFile> Read(JsonElement payload, string property = "files")
     {
         if (!payload.TryGetProperty(property, out var arr) || arr.ValueKind != JsonValueKind.Array)
         {
-            return Array.Empty<RaskFile>();
+            return Array.Empty<IRaskFile>();
         }
 
         var backend = ResolveBackend();
@@ -25,10 +25,10 @@ internal static class FileListReader
                 $"[Rask.Forms] {arr.GetArrayLength()} file(s) arrived from the client but no "
                 + "IBrowserFileBackend is registered, so the handler will receive an empty list. Every Rask "
                 + "host registers one; in a unit test register Rask.Testing's TestFileBackend.");
-            return Array.Empty<RaskFile>();
+            return Array.Empty<IRaskFile>();
         }
 
-        var list = new List<RaskFile>(arr.GetArrayLength());
+        var list = new List<IRaskFile>(arr.GetArrayLength());
         foreach (var meta in arr.EnumerateArray())
         {
             if (meta.ValueKind != JsonValueKind.Object)

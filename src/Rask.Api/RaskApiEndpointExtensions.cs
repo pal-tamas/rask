@@ -60,7 +60,7 @@ public static class RaskApiEndpointExtensions
 
         if (options.NotFound)
         {
-            var pattern = options.Prefix == "/"
+            var pattern = string.Equals(options.Prefix, "/", StringComparison.Ordinal)
                 ? "/{**rest}"
                 : options.Prefix + "/{**rest}";
 

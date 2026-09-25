@@ -216,6 +216,20 @@
   </ItemGroup>
 
   <!--
+    The third-party static analyzers (docs/code-analysis.md), on everything under src/ and nothing else:
+    tests and benchmarks keep the SDK's own set, which is what keeps the one-minute hooks inside budget.
+    PrivateAssets="all" keeps every one of them out of the packages — a consumer of Rask gets Rask's own
+    analyzers and none of these. Rule severities, and the reason each tuned rule is tuned, are in .editorconfig.
+  -->
+  <ItemGroup Condition=" '$(_RaskInSrc)' == 'true' ">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"/>
+    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"/>
+    <PackageReference Include="Roslynator.Analyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"/>
+    <PackageReference Include="SonarAnalyzer.CSharp" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"/>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt"/>
+  </ItemGroup>
+
+  <!--
     Which baseline folder a build reads: one per FACE, not one per .NET version.
 
     A package's net11.0 build is the same source as its net10.0 build — there is no #if NET11 anywhere —

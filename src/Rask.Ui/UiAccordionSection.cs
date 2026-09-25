@@ -30,16 +30,16 @@ public sealed partial class UiAccordionSection : Component
                 + "Ui.Accordion.Open(key).OnOpen(k => …)[ Ui.AccordionSection.Key(\"a\").Title(\"…\")[ … ] ].");
 
         var key = Key as string;
-        var open = key is not null && state.Open == key;
+        var open = key is not null && string.Equals(state.Open, key, StringComparison.Ordinal);
 
         var title = Button
             .Type("button")
             .Class("collapse-title flex w-full items-center text-left font-semibold")
-            .Aria(new Dictionary<string, string?> { ["expanded"] = open ? "true" : "false" });
+            .Aria("expanded", open ? "true" : "false");
 
         if (state.OnOpen is { } onOpen)
         {
-            title = title.OnClick(() => onOpen.Invoke(open ? null : key) ?? Task.CompletedTask);
+            title = title.OnClick(() => onOpen.Invoke(open ? null : key));
         }
 
         return Div.Class(UiClass.Compose(

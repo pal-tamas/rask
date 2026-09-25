@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Rask.Wasm;
@@ -173,11 +174,13 @@ internal static class PrerenderShell
     /// </remarks>
     private static void AppendBetweenHeadAndBody(StringBuilder builder, ReadOnlySpan<char> span)
     {
-        for (var i = 0; i < span.Length; i++)
+        var i = 0;
+        while (i < span.Length)
         {
             if (!char.IsWhiteSpace(span[i]))
             {
                 builder.Append(span[i]);
+                i++;
                 continue;
             }
 
@@ -195,7 +198,7 @@ internal static class PrerenderShell
                 builder.Append(span[i..run]);
             }
 
-            i = run - 1;
+            i = run;
         }
     }
 
@@ -274,24 +277,7 @@ internal static class PrerenderShell
             added.Append(' ').Append(PrerenderedAttribute);
         }
 
-        var documentOpen = IndexOfTag(document, tag);
-        var documentGt = documentOpen < 0 ? -1 : document.AsSpan(documentOpen).IndexOf('>');
-        if (documentOpen >= 0 && documentGt > 0)
-        {
-            var documentAttrs = document
-                .Substring(documentOpen + nameEnd, documentGt - nameEnd).Trim().TrimEnd('/').Trim();
-
-            foreach (var attribute in SplitAttributes(documentAttrs))
-            {
-                var name = AttributeName(attribute);
-                if (name.Length == 0 || HasAttribute(shellAttrs, name))
-                {
-                    continue;
-                }
-
-                added.Append(' ').Append(attribute);
-            }
-        }
+        AppendDocumentAttributes(added, document, tag, shellAttrs);
 
         if (added.Length == 0)
         {
@@ -300,6 +286,32 @@ internal static class PrerenderShell
 
         var insertAt = shellOpen + shellGt;
         return shellPrefix[..insertAt] + added + shellPrefix[insertAt..];
+    }
+
+    // The document's attributes on its opening tag that the shell's does not already carry.
+    private static void AppendDocumentAttributes(StringBuilder added, string document, string tag, string shellAttrs)
+    {
+        var documentOpen = IndexOfTag(document, tag);
+        var documentGt = documentOpen < 0 ? -1 : document.AsSpan(documentOpen).IndexOf('>');
+        if (documentOpen < 0 || documentGt <= 0)
+        {
+            return;
+        }
+
+        var nameEnd = 1 + tag.Length;
+        var documentAttrs = document
+            .Substring(documentOpen + nameEnd, documentGt - nameEnd).Trim().TrimEnd('/').Trim();
+
+        foreach (var attribute in SplitAttributes(documentAttrs))
+        {
+            var name = AttributeName(attribute);
+            if (name.Length == 0 || HasAttribute(shellAttrs, name))
+            {
+                continue;
+            }
+
+            added.Append(' ').Append(attribute);
+        }
     }
 
     /// <summary>Splits an attribute list, respecting quoted values.</summary>
@@ -357,18 +369,9 @@ internal static class PrerenderShell
         return (eq < 0 ? attribute : attribute[..eq]).Trim();
     }
 
-    private static bool HasAttribute(string attributes, string name)
-    {
-        foreach (var attribute in SplitAttributes(attributes))
-        {
-            if (string.Equals(AttributeName(attribute), name, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool HasAttribute(string attributes, string name) =>
+        SplitAttributes(attributes).Exists(attribute =>
+            string.Equals(AttributeName(attribute), name, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     ///     Removes the HTML comments from a shell's head, leaving no blank line where one stood alone.
@@ -432,46 +435,50 @@ internal static class PrerenderShell
                 continue;
             }
 
-            // A comment on a line of its own takes the line with it; one sharing a line with markup
-            // takes only itself.
-            var lineStart = comment;
-            while (lineStart > cursor && headInner[lineStart - 1] is ' ' or '\t')
-            {
-                lineStart--;
-            }
-
-            var lineEnd = end;
-            while (lineEnd < headInner.Length && headInner[lineEnd] is ' ' or '\t')
-            {
-                lineEnd++;
-            }
-
-            var aloneBefore = lineStart == 0 || headInner[lineStart - 1] == '\n';
-            var aloneAfter = lineEnd == headInner.Length || headInner[lineEnd] is '\r' or '\n';
-            if (aloneBefore && aloneAfter)
-            {
-                builder.Append(headInner, cursor, lineStart - cursor);
-                if (lineEnd < headInner.Length && headInner[lineEnd] == '\r')
-                {
-                    lineEnd++;
-                }
-
-                if (lineEnd < headInner.Length && headInner[lineEnd] == '\n')
-                {
-                    lineEnd++;
-                }
-
-                cursor = lineEnd;
-            }
-            else
-            {
-                builder.Append(headInner, cursor, comment - cursor);
-                cursor = end;
-            }
+            cursor = DropComment(builder, headInner, cursor, comment, end);
         }
 
         builder.Append(headInner, cursor, headInner.Length - cursor);
         return builder.ToString();
+    }
+
+    // Copies up to the comment and answers where copying resumes: past the comment, or past its whole line.
+    private static int DropComment(StringBuilder builder, string headInner, int cursor, int comment, int end)
+    {
+        // A comment on a line of its own takes the line with it; one sharing a line with markup
+        // takes only itself.
+        var lineStart = comment;
+        while (lineStart > cursor && headInner[lineStart - 1] is ' ' or '\t')
+        {
+            lineStart--;
+        }
+
+        var lineEnd = end;
+        while (lineEnd < headInner.Length && headInner[lineEnd] is ' ' or '\t')
+        {
+            lineEnd++;
+        }
+
+        var aloneBefore = lineStart == 0 || headInner[lineStart - 1] == '\n';
+        var aloneAfter = lineEnd == headInner.Length || headInner[lineEnd] is '\r' or '\n';
+        if (aloneBefore && aloneAfter)
+        {
+            builder.Append(headInner, cursor, lineStart - cursor);
+            if (lineEnd < headInner.Length && headInner[lineEnd] == '\r')
+            {
+                lineEnd++;
+            }
+
+            if (lineEnd < headInner.Length && headInner[lineEnd] == '\n')
+            {
+                lineEnd++;
+            }
+
+            return lineEnd;
+        }
+
+        builder.Append(headInner, cursor, comment - cursor);
+        return end;
     }
 
     /// <summary>
@@ -701,6 +708,7 @@ internal static class PrerenderShell
     /// <summary>
     ///     Where an element's content starts and ends, exclusive of its own tags.
     /// </summary>
+    [StructLayout(LayoutKind.Auto)]
     private readonly record struct ElementSpan(int InnerStart, int InnerEnd);
 
     private static bool TryFindElement(string html, string name, out ElementSpan span)

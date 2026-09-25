@@ -63,7 +63,7 @@ public sealed partial class GreetingIsland : BlazorComponent<Greeting>
     public string? Heading { get; set; }
     public int? Count { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         // Nullable + null OMITS its key, so the hosted component keeps its own default.
         if (Heading is not null)
@@ -148,7 +148,7 @@ public sealed partial class ClickerIsland : BlazorComponent<Clicker>
     public string[]? Rows { get; set; }
     public Callback<int>? OnPick { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         if (Rows is not null)
         {
@@ -160,7 +160,7 @@ public sealed partial class ClickerIsland : BlazorComponent<Clicker>
             // The carrier holds either shape, so the bridge is written as the asynchronous one:
             // Invoke hands back null for a synchronous handler, and that null IS the fast path.
             into["OnPick"] = EventCallback.Factory.Create<int>(
-                this, (Func<int, Task>)(v => OnPick.Value.Invoke(v) ?? Task.CompletedTask));
+                this, (Func<int, Task>)(v => OnPick.Value.Invoke(v)));
         }
     }
 }
@@ -170,7 +170,7 @@ public sealed partial class SlowIsland : BlazorComponent<SlowGreeting>
 {
     public string? Heading { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         if (Heading is not null)
         {
@@ -211,12 +211,12 @@ public sealed partial class PreventingLinkIsland : BlazorComponent<PreventingLin
 {
     public Callback? OnPick { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         if (OnPick is not null)
         {
             into["OnPick"] = EventCallback.Factory.Create(
-                this, (Func<Task>)(() => OnPick.Value.Invoke() ?? Task.CompletedTask));
+                this, (Func<Task>)(() => OnPick.Value.Invoke()));
         }
     }
 }

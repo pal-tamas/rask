@@ -230,7 +230,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     // would fail if these quietly split back into a pair.
     [Theory]
     [InlineData("OnClick", typeof(Rask.Core.Callback))]
-    [InlineData("OnMouseDown", typeof(Rask.Core.Callback<Rask.Core.Live.MouseEventArgs>))]
+    [InlineData("OnMouseDown", typeof(Rask.Core.Callback<Rask.Core.Live.MouseEvent>))]
     public void A_dom_event_is_one_carrier_typed_property(string prop, Type expected)
     {
         var element = typeof(Rask.Core.Element);

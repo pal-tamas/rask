@@ -1,5 +1,5 @@
 <Project>
   <ItemGroup>
-    <Using Include="Rask.Mail"/>
+    <Using Include="Rask.Mailing"/>
   </ItemGroup>
 </Project>

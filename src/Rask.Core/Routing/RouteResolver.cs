@@ -2,7 +2,7 @@ namespace Rask.Core.Routing;
 
 public static class RouteResolver
 {
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
 
     // Flattened leaves per route tree, keyed by the tree's IDENTITY. This was a single pair of fields
     // until mounted applications existed, when one host began resolving against two trees — the host

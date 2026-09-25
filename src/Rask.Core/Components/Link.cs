@@ -91,6 +91,12 @@ public sealed partial class Link : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
+        WriteTargetAttributes(sb);
+        WriteFetchAttributes(sb);
+    }
+
+    private void WriteTargetAttributes(StringBuilder sb)
+    {
         if (Href is not null)
         {
             AppendUrlAttr(sb, "href", Href);
@@ -120,7 +126,10 @@ public sealed partial class Link : Element
         {
             AppendAttr(sb, "hreflang", Hreflang);
         }
+    }
 
+    private void WriteFetchAttributes(StringBuilder sb)
+    {
         if (As is not null)
         {
             AppendAttr(sb, "as", As);

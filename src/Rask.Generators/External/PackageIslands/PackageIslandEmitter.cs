@@ -52,7 +52,7 @@ internal sealed class PackageIslandEmitter
     public string WriterMethods => _writerMethods.ToString();
 
     /// <summary>The declaration of one generated prop.</summary>
-    public string Declaration(PackageProp prop, bool needsNew)
+    public static string Declaration(PackageProp prop, bool needsNew)
     {
         var sb = new StringBuilder();
         sb.Append(PackageIslandNaming.Summary(prop.Doc, $"Sent to the package as `{prop.Wire}`.", prop.Default, "    "));
@@ -143,7 +143,7 @@ internal sealed class PackageIslandEmitter
     {
         var callback = prop.Callback!;
         var argType = callback.ArgType!;
-        var invoke = $"this.{prop.ClrName}!.Value.Invoke(__v) ?? {Task}.CompletedTask";
+        var invoke = $"this.{prop.ClrName}!.Value.Invoke(__v)";
 
         var sb = new StringBuilder();
         sb.AppendLine($"    /// <summary>Feeds the package's argument to <c>{prop.ClrName}</c> from the dispatched frame.</summary>");
@@ -165,11 +165,22 @@ internal sealed class PackageIslandEmitter
             sb.AppendLine($"        if (__e.ValueKind == {ValueKind}.Null)");
             sb.AppendLine("        {");
             sb.AppendLine($"            {fqn} __n = null;");
-            sb.AppendLine($"            return this.{prop.ClrName}!.Value.Invoke(__n) ?? {Task}.CompletedTask;");
+            sb.AppendLine($"            return this.{prop.ClrName}!.Value.Invoke(__n);");
             sb.AppendLine("        }");
             sb.AppendLine();
         }
 
+        AppendArgumentRead(sb, argType, fqn);
+
+        sb.AppendLine();
+        sb.AppendLine($"        return {invoke};");
+        sb.AppendLine("    };");
+        sb.AppendLine();
+        return sb.ToString();
+    }
+
+    private void AppendArgumentRead(StringBuilder sb, CsType argType, string fqn)
+    {
         // A value of the wrong kind is dropped rather than coerced. It can only come from a snapshot that no
         // longer matches the package, and handing C# a default it never sent is worse than not calling it.
         switch (argType.Kind)
@@ -207,12 +218,6 @@ internal sealed class PackageIslandEmitter
                 break;
             }
         }
-
-        sb.AppendLine();
-        sb.AppendLine($"        return {invoke};");
-        sb.AppendLine("    };");
-        sb.AppendLine();
-        return sb.ToString();
     }
 
     /// <summary>The generated types, at namespace level, with the island's accessibility.</summary>
@@ -229,75 +234,90 @@ internal sealed class PackageIslandEmitter
             switch (type.Kind)
             {
                 case "enum":
-                    sb.Append(_access).Append(" enum ").AppendLine(type.Name);
-                    sb.AppendLine("{");
-                    foreach (var member in type.EnumMembers)
-                    {
-                        var shown = member.Literal.IsNumber || member.Literal.IsBoolean
-                            ? member.Literal.Text
-                            : "\"" + member.Literal.Text + "\"";
-                        sb.Append("    /// <summary>Sent as <c>")
-                            .Append(PackageIslandNaming.Escape(PackageIslandNaming.SingleLine(shown)))
-                            .AppendLine("</c>.</summary>");
-                        sb.Append("    ").Append(member.Member).AppendLine(",");
-                        sb.AppendLine();
-                    }
-
-                    sb.AppendLine("}");
+                    AppendEnum(sb, type);
                     break;
 
                 case "record":
-                    sb.Append(_access).Append(" sealed record ").AppendLine(type.Name);
-                    sb.AppendLine("{");
-                    foreach (var member in type.RecordMembers)
-                    {
-                        sb.Append(PackageIslandNaming.Summary(member.Doc, $"Sent to the package as `{member.Wire}`.", null, "    "));
-                        sb.Append("    public ");
-                        if (member.Required)
-                        {
-                            sb.Append("required ");
-                        }
-
-                        sb.Append(member.Required && !member.Nullable ? member.Type.Fqn : member.Type.NullableFqn)
-                            .Append(' ').Append(member.ClrName).AppendLine(" { get; init; }");
-                        sb.AppendLine();
-                    }
-
-                    sb.AppendLine("}");
+                    AppendRecord(sb, type);
                     break;
 
                 case "union":
-                    sb.Append(_access).Append(" readonly record struct ").AppendLine(type.Name);
-                    sb.AppendLine("{");
-                    sb.AppendLine("    private readonly string? _text;");
-                    sb.AppendLine("    private readonly double _number;");
-                    sb.AppendLine("    private readonly bool _isNumber;");
-                    sb.AppendLine();
-                    sb.AppendLine($"    private {type.Name}(string? text, double number, bool isNumber)");
-                    sb.AppendLine("    {");
-                    sb.AppendLine("        _text = text;");
-                    sb.AppendLine("        _number = number;");
-                    sb.AppendLine("        _isNumber = isNumber;");
-                    sb.AppendLine("    }");
-                    sb.AppendLine();
-                    sb.AppendLine("    /// <summary>The value as a string.</summary>");
-                    sb.AppendLine($"    public static implicit operator {type.Name}(string text) => new(text, 0, false);");
-                    sb.AppendLine();
-                    sb.AppendLine("    /// <summary>The value as a number.</summary>");
-                    sb.AppendLine($"    public static implicit operator {type.Name}(double number) => new(null, number, true);");
-                    sb.AppendLine();
-                    sb.AppendLine($"    internal void __Write({Writer} writer)");
-                    sb.AppendLine("    {");
-                    sb.AppendLine("        if (_isNumber) { writer.WriteNumberValue(_number); }");
-                    sb.AppendLine("        else if (_text is null) { writer.WriteNullValue(); }");
-                    sb.AppendLine("        else { writer.WriteStringValue(_text); }");
-                    sb.AppendLine("    }");
-                    sb.AppendLine("}");
+                    AppendUnion(sb, type);
                     break;
             }
         }
 
         return sb.ToString();
+    }
+
+    private void AppendEnum(StringBuilder sb, GeneratedType type)
+    {
+        sb.Append(_access).Append(" enum ").AppendLine(type.Name);
+        sb.AppendLine("{");
+        foreach (var member in type.EnumMembers)
+        {
+            var shown = member.Literal.IsNumber || member.Literal.IsBoolean
+                ? member.Literal.Text
+                : "\"" + member.Literal.Text + "\"";
+            sb.Append("    /// <summary>Sent as <c>")
+                .Append(PackageIslandNaming.Escape(PackageIslandNaming.SingleLine(shown)))
+                .AppendLine("</c>.</summary>");
+            sb.Append("    ").Append(member.Member).AppendLine(",");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("}");
+    }
+
+    private void AppendRecord(StringBuilder sb, GeneratedType type)
+    {
+        sb.Append(_access).Append(" sealed record ").AppendLine(type.Name);
+        sb.AppendLine("{");
+        foreach (var member in type.RecordMembers)
+        {
+            sb.Append(PackageIslandNaming.Summary(member.Doc, $"Sent to the package as `{member.Wire}`.", null, "    "));
+            sb.Append("    public ");
+            if (member.Required)
+            {
+                sb.Append("required ");
+            }
+
+            sb.Append(member.Required && !member.Nullable ? member.Type.Fqn : member.Type.NullableFqn)
+                .Append(' ').Append(member.ClrName).AppendLine(" { get; init; }");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("}");
+    }
+
+    private void AppendUnion(StringBuilder sb, GeneratedType type)
+    {
+        sb.Append(_access).Append(" readonly record struct ").AppendLine(type.Name);
+        sb.AppendLine("{");
+        sb.AppendLine("    private readonly string? _text;");
+        sb.AppendLine("    private readonly double _number;");
+        sb.AppendLine("    private readonly bool _isNumber;");
+        sb.AppendLine();
+        sb.AppendLine($"    private {type.Name}(string? text, double number, bool isNumber)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        _text = text;");
+        sb.AppendLine("        _number = number;");
+        sb.AppendLine("        _isNumber = isNumber;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>The value as a string.</summary>");
+        sb.AppendLine($"    public static implicit operator {type.Name}(string text) => new(text, 0, false);");
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>The value as a number.</summary>");
+        sb.AppendLine($"    public static implicit operator {type.Name}(double number) => new(null, number, true);");
+        sb.AppendLine();
+        sb.AppendLine($"    internal void __Write({Writer} writer)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (_isNumber) { writer.WriteNumberValue(_number); }");
+        sb.AppendLine("        else if (_text is null) { writer.WriteNullValue(); }");
+        sb.AppendLine("        else { writer.WriteStringValue(_text); }");
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
     }
 
     /// <summary>The name of the writer method for <paramref name="type" />, emitting it the first time.</summary>
@@ -341,78 +361,95 @@ internal sealed class PackageIslandEmitter
                 break;
 
             case "enum":
-            {
-                body.AppendLine("        switch (value)");
-                body.AppendLine("        {");
-                foreach (var member in _typesByFqn[type.Fqn].EnumMembers)
-                {
-                    body.Append("            case ").Append(type.Fqn).Append('.').Append(member.Member).Append(": ")
-                        .Append(WriteLiteral(member.Literal)).AppendLine(" break;");
-                }
-
-                body.AppendLine("            default: writer.WriteNullValue(); break;");
-                body.AppendLine("        }");
+                AppendEnumWrite(body, type);
                 break;
-            }
 
             case "list":
-            {
-                var element = EnsureWriter(type.Element!);
-                body.AppendLine("        writer.WriteStartArray();");
-                body.AppendLine("        foreach (var item in value)");
-                body.AppendLine("        {");
-                body.Append(WriteMaybeNull("item", type.Element!, type.ElementNullable, element, "            "));
-                body.AppendLine("        }");
-                body.AppendLine("        writer.WriteEndArray();");
+                AppendListWrite(body, type);
                 break;
-            }
 
             case "map":
-            {
-                var element = EnsureWriter(type.Element!);
-                body.AppendLine("        writer.WriteStartObject();");
-                body.AppendLine("        foreach (var pair in value)");
-                body.AppendLine("        {");
-                body.AppendLine("            writer.WritePropertyName(pair.Key);");
-                body.Append(WriteMaybeNull("pair.Value", type.Element!, type.ElementNullable, element, "            "));
-                body.AppendLine("        }");
-                body.AppendLine("        writer.WriteEndObject();");
+                AppendMapWrite(body, type);
                 break;
-            }
 
             case "record":
-            {
-                body.AppendLine("        writer.WriteStartObject();");
-                foreach (var member in _typesByFqn[type.Fqn].RecordMembers)
-                {
-                    var memberWriter = EnsureWriter(member.Type);
-                    var access = "value." + member.ClrName;
-                    if (!member.Required)
-                    {
-                        body.AppendLine($"        if ({access} is not null)");
-                        body.AppendLine("        {");
-                        body.AppendLine($"            writer.WritePropertyName({Literal(member.Wire)});");
-                        body.AppendLine($"            {memberWriter}(writer, {Unwrap(access, member.Type)});");
-                        body.AppendLine("        }");
-                    }
-                    else
-                    {
-                        body.AppendLine($"        writer.WritePropertyName({Literal(member.Wire)});");
-                        body.Append(WriteMaybeNull(access, member.Type, member.Nullable, memberWriter, "        "));
-                    }
-                }
-
-                body.AppendLine("        writer.WriteEndObject();");
+                AppendRecordWrite(body, type);
                 break;
-            }
         }
 
+        AppendWriterMethod(id, type, body);
+        return id;
+    }
+
+    private void AppendWriterMethod(string id, CsType type, StringBuilder body)
+    {
         _writerMethods.AppendLine($"    private static void {id}({Writer} writer, {type.Fqn} value)");
         _writerMethods.AppendLine("    {");
         _writerMethods.Append(body);
         _writerMethods.AppendLine("    }");
         _writerMethods.AppendLine();
-        return id;
+    }
+
+    private void AppendEnumWrite(StringBuilder body, CsType type)
+    {
+        body.AppendLine("        switch (value)");
+        body.AppendLine("        {");
+        foreach (var member in _typesByFqn[type.Fqn].EnumMembers)
+        {
+            body.Append("            case ").Append(type.Fqn).Append('.').Append(member.Member).Append(": ")
+                .Append(WriteLiteral(member.Literal)).AppendLine(" break;");
+        }
+
+        body.AppendLine("            default: writer.WriteNullValue(); break;");
+        body.AppendLine("        }");
+    }
+
+    private void AppendListWrite(StringBuilder body, CsType type)
+    {
+        var element = EnsureWriter(type.Element!);
+        body.AppendLine("        writer.WriteStartArray();");
+        body.AppendLine("        foreach (var item in value)");
+        body.AppendLine("        {");
+        body.Append(WriteMaybeNull("item", type.Element!, type.ElementNullable, element, "            "));
+        body.AppendLine("        }");
+        body.AppendLine("        writer.WriteEndArray();");
+    }
+
+    private void AppendMapWrite(StringBuilder body, CsType type)
+    {
+        var element = EnsureWriter(type.Element!);
+        body.AppendLine("        writer.WriteStartObject();");
+        body.AppendLine("        foreach (var pair in value)");
+        body.AppendLine("        {");
+        body.AppendLine("            writer.WritePropertyName(pair.Key);");
+        body.Append(WriteMaybeNull("pair.Value", type.Element!, type.ElementNullable, element, "            "));
+        body.AppendLine("        }");
+        body.AppendLine("        writer.WriteEndObject();");
+    }
+
+    private void AppendRecordWrite(StringBuilder body, CsType type)
+    {
+        body.AppendLine("        writer.WriteStartObject();");
+        foreach (var member in _typesByFqn[type.Fqn].RecordMembers)
+        {
+            var memberWriter = EnsureWriter(member.Type);
+            var access = "value." + member.ClrName;
+            if (!member.Required)
+            {
+                body.AppendLine($"        if ({access} is not null)");
+                body.AppendLine("        {");
+                body.AppendLine($"            writer.WritePropertyName({Literal(member.Wire)});");
+                body.AppendLine($"            {memberWriter}(writer, {Unwrap(access, member.Type)});");
+                body.AppendLine("        }");
+            }
+            else
+            {
+                body.AppendLine($"        writer.WritePropertyName({Literal(member.Wire)});");
+                body.Append(WriteMaybeNull(access, member.Type, member.Nullable, memberWriter, "        "));
+            }
+        }
+
+        body.AppendLine("        writer.WriteEndObject();");
     }
 
     private static string WriteMaybeNull(string access, CsType type, bool nullable, string writer, string indent)
@@ -450,7 +487,7 @@ internal sealed class PackageIslandEmitter
     {
         if (literal.IsBoolean)
         {
-            return $"__e.ValueKind == {ValueKind}.{(literal.Text == "true" ? "True" : "False")}";
+            return $"__e.ValueKind == {ValueKind}.{(string.Equals(literal.Text, "true", StringComparison.Ordinal) ? "True" : "False")}";
         }
 
         if (literal.IsNumber)

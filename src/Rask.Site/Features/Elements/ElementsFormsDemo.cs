@@ -55,7 +55,7 @@ public sealed partial class ElementsFormsDemo : Component
         ]
     ];
 
-    private sealed class Fields
+    public sealed class Fields
     {
         public string? Name { get; set; }
     }

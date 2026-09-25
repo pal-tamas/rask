@@ -327,9 +327,9 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
         {
             var ctx = LiveRenderContext.Current!;
             var con = ctx.GetOrCreate(_ => _consumer);
-            ctx.NotifyParameters(con, false);
+            LiveRenderContext.NotifyParameters(con, false);
             var pl = ctx.GetOrCreate(_ => _plain);
-            ctx.NotifyParameters(pl, false);
+            LiveRenderContext.NotifyParameters(pl, false);
             return Context.Provide(Theme)[con, pl];
         }
     }

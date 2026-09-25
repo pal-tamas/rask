@@ -90,7 +90,7 @@ public sealed class DragDrop : Component
             return Task.CompletedTask;
         }
 
-        return OnDrop?.Invoke(move) ?? Task.CompletedTask;
+        return OnDrop.Invoke(move);
     }
 
     // Snapshots the source, clears all drag state, and returns the move — or null if no drag was

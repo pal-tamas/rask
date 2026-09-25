@@ -88,7 +88,7 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Consumer);
-            ctx.NotifyParameters(c, false);
+            LiveRenderContext.NotifyParameters(c, false);
             return Div[c];
         }
     }

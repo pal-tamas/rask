@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 /// OpenTelemetry-compatible metrics for the jobs pillar, published on the <see cref="MeterName"/> meter.

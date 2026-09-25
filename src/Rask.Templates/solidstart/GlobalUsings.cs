@@ -7,13 +7,13 @@ global using Rask;
 global using Rask.Cqrs;
 // rask:end
 // rask:if jobs
-global using Rask.Jobs;
+global using Rask.Background;
 // rask:end
 // rask:if mail
-global using Rask.Mail;
+global using Rask.Mailing;
 // rask:end
 // rask:if cache
-global using Rask.Cache;
+global using Rask.Caching;
 // rask:end
 // rask:if storage
 global using Rask.Storage;

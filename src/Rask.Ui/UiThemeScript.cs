@@ -116,15 +116,12 @@ public sealed partial class UiThemeScript : Component
     /// </remarks>
     private static string Escape(string key)
     {
-        foreach (var c in key)
+        if (key.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('-' or '_' or '.' or ':')))
         {
-            if (!char.IsAsciiLetterOrDigit(c) && c is not ('-' or '_' or '.' or ':'))
-            {
-                throw new ArgumentException(
-                    $"'{key}' is not usable as a storage key: it is written into a script in the document "
-                    + "head, so it is restricted to letters, digits and - _ . :",
-                    nameof(key));
-            }
+            throw new ArgumentException(
+                $"'{key}' is not usable as a storage key: it is written into a script in the document "
+                + "head, so it is restricted to letters, digits and - _ . :",
+                nameof(key));
         }
 
         return key;

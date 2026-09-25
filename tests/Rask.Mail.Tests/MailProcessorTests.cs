@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 [Collection(MailDbCollection.Name)]
 public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup

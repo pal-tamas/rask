@@ -79,6 +79,19 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
     }
 
     [Fact]
+    public async Task StateHasChangedAsync_is_reported_just_as_the_sync_call_is()
+    {
+        var inner = new StubComponent(() => Span["x"]);
+        var view = new StubComponent(() => Div[inner]);
+        view.RenderAsLiveRoot();
+        _probe.Events.Clear();
+
+        await inner.StateHasChangedAsync();
+
+        Assert.Contains(_probe.Events, e => e.Name == "state-requested" && ReferenceEquals(e.Component, inner));
+    }
+
+    [Fact]
     public void A_clean_nested_component_is_walked_again_but_not_rendered_again()
     {
         // The cause is only worked out for a render that really ran. A component served from its cache must not

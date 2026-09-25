@@ -104,17 +104,13 @@ internal static class PageBinder
             }
         }
 
-        if (info.IsQueryParam)
+        if (info.IsQueryParam
+            && query.Keys.FirstOrDefault(key => string.Equals(key, info.BindingName, StringComparison.OrdinalIgnoreCase))
+                is { } queryKey)
         {
-            foreach (var key in query.Keys)
-            {
-                if (string.Equals(key, info.BindingName, StringComparison.OrdinalIgnoreCase))
-                {
-                    var stringValues = query[key];
-                    raw = stringValues.Count == 0 ? null : stringValues[0];
-                    return true;
-                }
-            }
+            var stringValues = query[queryKey];
+            raw = stringValues.Count == 0 ? null : stringValues[0];
+            return true;
         }
 
         raw = null;

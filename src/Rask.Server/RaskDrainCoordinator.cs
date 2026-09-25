@@ -64,6 +64,7 @@ internal sealed class RaskDrainCoordinator : IDisposable
         }
         catch (ObjectDisposedException)
         {
+            // The host is already past its shutdown and disposed the coordinator: there is nothing left to arm.
         }
     }
 

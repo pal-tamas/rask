@@ -10,7 +10,7 @@ namespace Rask.SQLite.Litestream;
 /// (so a transient failure doesn't stop backups for good), and a failure is never propagated, so a backup
 /// problem cannot take the web app down with it.
 /// </summary>
-internal sealed class LitestreamReplicationService : BackgroundService
+internal sealed partial class LitestreamReplicationService : BackgroundService
 {
     private static readonly TimeSpan MaxRestartDelay = TimeSpan.FromMinutes(1);
 
@@ -45,7 +45,7 @@ internal sealed class LitestreamReplicationService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            _logger.LogInformation("Starting Litestream replication.");
+            LogStarting(_logger);
             _status.MarkStarted(_timeProvider.GetUtcNow());
 
             try
@@ -61,9 +61,7 @@ internal sealed class LitestreamReplicationService : BackgroundService
 
                 // `replicate` runs until cancelled; returning on its own means the backup stream stopped.
                 _status.MarkExited(_timeProvider.GetUtcNow(), exitCode);
-                _logger.LogCritical(
-                    "Litestream replication exited unexpectedly with code {ExitCode}; restarting in {Delay}.",
-                    exitCode, restartDelay);
+                LogExited(_logger, exitCode, restartDelay);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -76,7 +74,7 @@ internal sealed class LitestreamReplicationService : BackgroundService
 #pragma warning restore CA1031
             {
                 _status.MarkFailed(_timeProvider.GetUtcNow(), ex.Message);
-                _logger.LogCritical(ex, "Litestream replication could not run; restarting in {Delay}.", restartDelay);
+                LogCouldNotRun(_logger, ex, restartDelay);
             }
 
             try
@@ -95,4 +93,15 @@ internal sealed class LitestreamReplicationService : BackgroundService
                 : TimeSpan.FromTicks(Math.Min(restartDelay.Ticks * 2, MaxRestartDelay.Ticks));
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Starting Litestream replication.")]
+    private static partial void LogStarting(ILogger logger);
+
+    [LoggerMessage(
+        Level = LogLevel.Critical,
+        Message = "Litestream replication exited unexpectedly with code {ExitCode}; restarting in {Delay}.")]
+    private static partial void LogExited(ILogger logger, int exitCode, TimeSpan delay);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Litestream replication could not run; restarting in {Delay}.")]
+    private static partial void LogCouldNotRun(ILogger logger, Exception exception, TimeSpan delay);
 }

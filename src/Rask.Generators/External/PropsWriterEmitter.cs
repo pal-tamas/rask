@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -37,7 +38,7 @@ internal sealed class PropsWriterEmitter(bool stringEnums = false)
     private const string StringEnumMemberName = "System.Text.Json.Serialization.JsonStringEnumMemberNameAttribute";
 
     private readonly StringBuilder _methods = new();
-    private readonly Dictionary<string, string> _emitted = new();
+    private readonly Dictionary<string, string> _emitted = new(StringComparer.Ordinal);
     private int _next;
 
     /// <summary>The generated writers, ready to drop into the island's partial.</summary>
@@ -104,71 +105,20 @@ internal sealed class PropsWriterEmitter(bool stringEnums = false)
                 break;
 
             case WireKind.Nullable:
-            {
-                var inner = Ensure(type.Inner!);
-                sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); }}");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                // .Value for a Nullable<T>; a nullable reference type needs no unwrap and the compiler
-                // is happy either way once the null branch has run.
-                var unwrapped = type.Inner!.Kind is WireKind.Object or WireKind.Sequence
-                                              or WireKind.Dictionary or WireKind.Bytes
-                    ? access
-                    : $"{access}.Value";
-                sb.AppendLine($"            WP{inner}(writer, {unwrapped}!);");
-                sb.AppendLine("        }");
+                WriteNullable(sb, type, access);
                 break;
-            }
 
             case WireKind.Sequence:
-            {
-                var inner = Ensure(type.Inner!);
-                sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); }}");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine("            writer.WriteStartArray();");
-                sb.AppendLine($"            foreach (var item in {access})");
-                sb.AppendLine("            {");
-                sb.AppendLine($"                WP{inner}(writer, item!);");
-                sb.AppendLine("            }");
-                sb.AppendLine("            writer.WriteEndArray();");
-                sb.AppendLine("        }");
+                WriteSequence(sb, type, access);
                 break;
-            }
 
             case WireKind.Dictionary:
-            {
-                var inner = Ensure(type.Inner!);
-                sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); }}");
-                sb.AppendLine("        else");
-                sb.AppendLine("        {");
-                sb.AppendLine("            writer.WriteStartObject();");
-                sb.AppendLine($"            foreach (var pair in {access})");
-                sb.AppendLine("            {");
-                sb.AppendLine("                writer.WritePropertyName(pair.Key);");
-                sb.AppendLine($"                WP{inner}(writer, pair.Value!);");
-                sb.AppendLine("            }");
-                sb.AppendLine("            writer.WriteEndObject();");
-                sb.AppendLine("        }");
+                WriteDictionary(sb, type, access);
                 break;
-            }
 
             case WireKind.Object:
-            {
-                sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); return; }}");
-                sb.AppendLine("        writer.WriteStartObject();");
-                foreach (var member in type.Members)
-                {
-                    var inner = Ensure(member.Type);
-                    // Escaped, not quoted by hand: a [JsonPropertyName] can hold a quote or a backslash, and
-                    // pasted into a literal either one ends the string and starts code.
-                    sb.AppendLine($"        writer.WritePropertyName({Literal(member.WireName)});");
-                    sb.AppendLine($"        WP{inner}(writer, {access}.{member.ClrName}!);");
-                }
-
-                sb.AppendLine("        writer.WriteEndObject();");
+                WriteObject(sb, type, access);
                 break;
-            }
 
             default:
                 // Unreachable: the caller rejects an unsupported shape with a diagnostic before asking
@@ -177,6 +127,69 @@ internal sealed class PropsWriterEmitter(bool stringEnums = false)
                 sb.AppendLine("        writer.WriteNullValue();");
                 break;
         }
+    }
+
+    private void WriteNullable(StringBuilder sb, WireType type, string access)
+    {
+        var inner = Ensure(type.Inner!);
+        sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); }}");
+        sb.AppendLine("        else");
+        sb.AppendLine("        {");
+        // .Value for a Nullable<T>; a nullable reference type needs no unwrap and the compiler
+        // is happy either way once the null branch has run.
+        var unwrapped = type.Inner!.Kind is WireKind.Object or WireKind.Sequence
+                                      or WireKind.Dictionary or WireKind.Bytes
+            ? access
+            : $"{access}.Value";
+        sb.AppendLine($"            WP{inner}(writer, {unwrapped}!);");
+        sb.AppendLine("        }");
+    }
+
+    private void WriteSequence(StringBuilder sb, WireType type, string access)
+    {
+        var inner = Ensure(type.Inner!);
+        sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); }}");
+        sb.AppendLine("        else");
+        sb.AppendLine("        {");
+        sb.AppendLine("            writer.WriteStartArray();");
+        sb.AppendLine($"            foreach (var item in {access})");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                WP{inner}(writer, item!);");
+        sb.AppendLine("            }");
+        sb.AppendLine("            writer.WriteEndArray();");
+        sb.AppendLine("        }");
+    }
+
+    private void WriteDictionary(StringBuilder sb, WireType type, string access)
+    {
+        var inner = Ensure(type.Inner!);
+        sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); }}");
+        sb.AppendLine("        else");
+        sb.AppendLine("        {");
+        sb.AppendLine("            writer.WriteStartObject();");
+        sb.AppendLine($"            foreach (var pair in {access})");
+        sb.AppendLine("            {");
+        sb.AppendLine("                writer.WritePropertyName(pair.Key);");
+        sb.AppendLine($"                WP{inner}(writer, pair.Value!);");
+        sb.AppendLine("            }");
+        sb.AppendLine("            writer.WriteEndObject();");
+        sb.AppendLine("        }");
+    }
+
+    private void WriteObject(StringBuilder sb, WireType type, string access)
+    {
+        sb.AppendLine($"        if ({access} is null) {{ writer.WriteNullValue(); return; }}");
+        sb.AppendLine("        writer.WriteStartObject();");
+        foreach (var member in type.Members)
+        {
+            var inner = Ensure(member.Type);
+            // Escaped, not quoted by hand: a [JsonPropertyName] can hold a quote or a backslash, and
+            // pasted into a literal either one ends the string and starts code.
+            sb.AppendLine($"        writer.WritePropertyName({Literal(member.WireName)});");
+            sb.AppendLine($"        WP{inner}(writer, {access}.{member.ClrName}!);");
+        }
+
+        sb.AppendLine("        writer.WriteEndObject();");
     }
 
     /// <summary>Writes an enum as the string its member stands for.</summary>
@@ -202,7 +215,7 @@ internal sealed class PropsWriterEmitter(bool stringEnums = false)
             }
 
             var wire = field.GetAttributes()
-                           .Where(a => a.AttributeClass?.ToDisplayString() == StringEnumMemberName)
+                           .Where(a => string.Equals(a.AttributeClass?.ToDisplayString(), StringEnumMemberName, StringComparison.Ordinal))
                            .Select(a => a.ConstructorArguments.Length == 1 ? a.ConstructorArguments[0].Value as string : null)
                            .FirstOrDefault(v => v is not null)
                        ?? CamelCase(field.Name);

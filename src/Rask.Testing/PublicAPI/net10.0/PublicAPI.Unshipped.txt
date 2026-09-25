@@ -95,8 +95,6 @@ Rask.Testing.StagedDownload.StagedDownload(string! FileName, byte[]! Bytes, stri
 Rask.Testing.StagedDownload.Text.get -> string!
 Rask.Testing.TestDownloadSink
 Rask.Testing.TestDownloadSink.Last.get -> Rask.Testing.StagedDownload?
-Rask.Testing.TestDownloadSink.Stage(string! fileName, System.IO.Stream! content, string? contentType) -> void
-Rask.Testing.TestDownloadSink.Stage(string! fileName, byte[]! bytes, string? contentType) -> void
 Rask.Testing.TestDownloadSink.Staged.get -> System.Collections.Generic.IReadOnlyList<Rask.Testing.StagedDownload!>!
 Rask.Testing.TestDownloadSink.TestDownloadSink() -> void
 Rask.Testing.TestDownloadSink.TryConsume(out Rask.Core.Routing.PendingDownload? download) -> bool
@@ -107,10 +105,10 @@ Rask.Testing.TestFile.Ref.get -> string!
 Rask.Testing.TestFileBackend
 Rask.Testing.TestFileBackend.Add(string! name, byte[]! bytes, string? contentType = null, System.DateTimeOffset? lastModified = null) -> Rask.Testing.TestFile!
 Rask.Testing.TestFileBackend.Add(string! name, string! text, string? contentType = null) -> Rask.Testing.TestFile!
-Rask.Testing.TestFileBackend.Create(System.Text.Json.JsonElement metadata) -> Rask.Core.Forms.RaskFile!
+Rask.Testing.TestFileBackend.Create(System.Text.Json.JsonElement metadata) -> Rask.Core.Forms.IRaskFile!
 Rask.Testing.TestFileBackend.FormPayload(string! fieldName, params Rask.Testing.TestFile![]! files) -> string!
 Rask.Testing.TestFileBackend.Payload(params Rask.Testing.TestFile![]! files) -> string!
-Rask.Testing.TestFileBackend.Release(System.Collections.Generic.IEnumerable<Rask.Core.Forms.RaskFile!>! files) -> void
+Rask.Testing.TestFileBackend.Release(System.Collections.Generic.IEnumerable<Rask.Core.Forms.IRaskFile!>! files) -> void
 Rask.Testing.TestFileBackend.Released.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Testing.TestFileBackend.Staged.get -> System.Collections.Generic.IReadOnlyList<Rask.Testing.TestFile!>!
 Rask.Testing.TestFileBackend.TestFileBackend() -> void
@@ -138,11 +136,6 @@ override Rask.Testing.JSCall.GetHashCode() -> int
 override Rask.Testing.StagedDownload.Equals(object? obj) -> bool
 override Rask.Testing.StagedDownload.GetHashCode() -> int
 override Rask.Testing.StagedDownload.ToString() -> string!
-override Rask.Testing.TestFile.ContentType.get -> string!
-override Rask.Testing.TestFile.LastModified.get -> System.DateTimeOffset
-override Rask.Testing.TestFile.Name.get -> string!
-override Rask.Testing.TestFile.OpenReadStream(long maxAllowedSize = 524288, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
-override Rask.Testing.TestFile.Size.get -> long
 static Rask.Testing.CapturedDiagnostic.operator !=(Rask.Testing.CapturedDiagnostic? left, Rask.Testing.CapturedDiagnostic? right) -> bool
 static Rask.Testing.CapturedDiagnostic.operator ==(Rask.Testing.CapturedDiagnostic? left, Rask.Testing.CapturedDiagnostic? right) -> bool
 static Rask.Testing.CapturingDiagnostics.Install() -> Rask.Testing.CapturingDiagnostics!
@@ -197,3 +190,10 @@ Rask.Testing.FakeClock.Dispose() -> void
 Rask.Testing.FakeClock.Now.get -> System.DateTimeOffset
 static Rask.Testing.ClockFakes.Fake(System.DateTimeOffset at) -> Rask.Testing.FakeClock!
 static Rask.Testing.ClockFakes.extension(Rask.Clock!).Fake(System.DateTimeOffset at) -> Rask.Testing.FakeClock!
+Rask.Testing.TestDownloadSink.Stage(string! filename, System.IO.Stream! stream, string? contentType) -> void
+Rask.Testing.TestDownloadSink.Stage(string! filename, byte[]! bytes, string? contentType) -> void
+Rask.Testing.TestFile.ContentType.get -> string!
+Rask.Testing.TestFile.LastModified.get -> System.DateTimeOffset
+Rask.Testing.TestFile.Name.get -> string!
+Rask.Testing.TestFile.OpenReadStream(long maxAllowedSize = 524288, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
+Rask.Testing.TestFile.Size.get -> long

@@ -75,7 +75,7 @@ public sealed partial class UiCommand : Component
         // lands is worked out against the list the last render left, which is the list the reader has been looking
         // at. After typing, the cursor is back at 0, which every narrowed list starts with.
         var active = _scope is { } previous ? Active(previous.Entries) : 0;
-        _scope = new UiMenuScope(
+        var scope = new UiMenuScope(
             Prefix,
             active,
             new HashSet<int>(),
@@ -83,18 +83,34 @@ public sealed partial class UiCommand : Component
             static _ => Task.CompletedTask,
             query: _query,
             options: true);
+        _scope = scope;
 
+        return
+        [
+            Trigger(),
+            Palette(SearchBox(active), scope)
+        ];
+    }
+
+    private Component Trigger()
+    {
         (string, string?)[] opens = [("command", "show-modal"), ("commandfor", DialogId), ("popovertarget", DialogId)];
-        (string, string?)[] closes =
-            [("command", "close"), ("commandfor", DialogId), ("popovertarget", DialogId), ("popovertargetaction", "hide")];
 
-        var trigger = Button
+        return Button
             .Type("button")
             .Class(UiClass.Compose("input w-full cursor-pointer justify-between gap-2 text-left", Class))
-            .Aria(new Dictionary<string, string?> { ["haspopup"] = "dialog" })
-            .Attributes(Shortcut is { } shortcut ? [.. opens, ("data-rask-shortcut", shortcut)] : opens);
+            .Aria("haspopup", "dialog")
+            .Attributes(Shortcut is { } shortcut ? [.. opens, ("data-rask-shortcut", shortcut)] : opens)[
+            Span.Class("flex min-w-0 items-center gap-2 opacity-70")[
+                Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0"),
+                Span.Class("truncate")[Label]
+            ],
+            Shortcut is { } keys ? Keys(keys) : null
+        ];
+    }
 
-        var box = Input
+    private Input<string> SearchBox(int active) =>
+        Input
             .Value(_query)
             .Type(InputType.Text)
             .Class("grow bg-transparent py-3 outline-none")
@@ -114,11 +130,16 @@ public sealed partial class UiCommand : Component
             })
             .OnKeyDown(OnKey);
 
-        var dialog = Dialog
+    private Component Palette(Input<string> box, UiMenuScope scope)
+    {
+        (string, string?)[] closes =
+            [("command", "close"), ("commandfor", DialogId), ("popovertarget", DialogId), ("popovertargetaction", "hide")];
+
+        return Dialog
             .Id(DialogId)
             .Class("modal modal-top sm:modal-middle")
             .Popover("auto")
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            .Aria("label", Label)
             // A pick closes the palette in the runtime, after the pick's own handler has run.
             .Attributes(("data-rask-close-on-pick", null))
             .OnToggle(e =>
@@ -129,40 +150,28 @@ public sealed partial class UiCommand : Component
                     _query = string.Empty;
                     _cursor = 0;
                 }
-            });
-
-        return
-        [
-            trigger[
-                Span.Class("flex min-w-0 items-center gap-2 opacity-70")[
-                    Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0"),
-                    Span.Class("truncate")[Label]
+            })[
+            Div.Class("modal-box max-w-lg p-0")[
+                Div.Class("flex items-center gap-2 border-b border-base-300 px-4")[
+                    Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0 opacity-60"),
+                    box
                 ],
-                Shortcut is { } keys ? Keys(keys) : null
-            ],
-            dialog[
-                Div.Class("modal-box max-w-lg p-0")[
-                    Div.Class("flex items-center gap-2 border-b border-base-300 px-4")[
-                        Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0 opacity-60"),
-                        box
-                    ],
-                    Ul.Id(ListId)
-                        .Role("listbox")
-                        .Aria(new Dictionary<string, string?> { ["label"] = Label })
-                        .Class("ui-command-list menu max-h-80 w-full flex-nowrap overflow-y-auto p-2")[
-                        Context.Provide(new UiMenuLevel(_scope, -1))[Children ?? []],
-                        Li.Class("ui-command-empty px-3 py-6 text-center text-sm opacity-60").Role("presentation")[
-                            EmptyText ?? "No results"
-                        ]
+                Ul.Id(ListId)
+                    .Role("listbox")
+                    .Aria("label", Label)
+                    .Class("ui-command-list menu max-h-80 w-full flex-nowrap overflow-y-auto p-2")[
+                    Context.Provide(new UiMenuLevel(scope, -1))[Children ?? []],
+                    Li.Class("ui-command-empty px-3 py-6 text-center text-sm opacity-60").Role("presentation")[
+                        EmptyText ?? "No results"
                     ]
-                ],
-                Button
-                    .Type("button")
-                    .Class("modal-backdrop")
-                    .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
-                    .TabIndex(-1)
-                    .Attributes(closes)["close"]
-            ]
+                ]
+            ],
+            Button
+                .Type("button")
+                .Class("modal-backdrop")
+                .Aria("hidden", "true")
+                .TabIndex(-1)
+                .Attributes(closes)["close"]
         ];
     }
 
@@ -200,7 +209,7 @@ public sealed partial class UiCommand : Component
             : at;
     }
 
-    private void OnKey(KeyboardEventArgs e)
+    private void OnKey(KeyboardEvent e)
     {
         if (_scope is not { } scope || scope.Entries.Count == 0 || e.Ctrl || e.Alt || e.Meta)
         {

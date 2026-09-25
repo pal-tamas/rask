@@ -21,6 +21,18 @@ public sealed partial class UiKitDataDisplayDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        AccordionSection(),
+        CollapseSection(),
+        AuraSection(),
+        TextRotateSection(),
+        Hover3DSection(),
+        HoverGallerySection(),
+        CardsFiguresEmptySection(),
+        ChartSection(),
+        RestOfCategorySection()
+    ];
+
+    private Component AccordionSection() =>
         Section(
             "Accordion",
             "One section at a time, and the page owns which. That is the difference from a run of "
@@ -42,8 +54,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-accordion-state"))[
                     _section is null ? "All sections closed." : $"Open section: {_section}."
                 ]
-            ]),
+            ]);
 
+    private Component CollapseSection() =>
         Section(
             "Collapse",
             "The standalone section. Open is nullable here too — unset lets the browser open it on "
@@ -56,8 +69,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                     .OnToggle(open => { _advanced = open; })[
                     P["Nothing in here is required."]
                 ]
-            ]),
+            ]);
 
+    private static Component AuraSection() =>
         Section(
             "Aura",
             "Decoration, and only decoration — it says nothing a reader who cannot see it would miss. "
@@ -66,8 +80,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 Aura("holo", Ui.AuraStyle.Holo, "Holo"),
                 Aura("gold", Ui.AuraStyle.Gold, "Gold"),
                 Aura("rainbow", Ui.AuraStyle.Rainbow, "Rainbow")
-            ]),
+            ]);
 
+    private static Component TextRotateSection() =>
         Section(
             "Text rotate",
             "One slot of text cycling through several words. Every word is in the markup, so the phrase "
@@ -76,8 +91,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 "Ship it ",
                 Ui.TextRotate.Words(["fast", "typed", "small", "whole"]).Class("text-primary"),
                 "."
-            ]),
+            ]);
 
+    private static Component Hover3DSection() =>
         Section(
             "Hover 3D",
             "Pointer-only by construction: there is no hover on a touch screen and none from a "
@@ -86,8 +102,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 Ui.Hover3d[
                     Ui.Card.Heading("Tilt me")[P["The content is complete without the effect."]]
                 ]
-            ]),
+            ]);
 
+    private static Component HoverGallerySection() =>
         Section(
             "Hover gallery",
             "Several images in the space of one. The first is what shows at rest — and on a touch "
@@ -98,8 +115,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                     Swatch("two", "bg-secondary"),
                     Swatch("three", "bg-accent")
                 ]
-            ]),
+            ]);
 
+    private static Component CardsFiguresEmptySection() =>
         Section(
             "Cards, figures and empty states",
             "What an operator screen is made of. A card given an Href is one link, figures and all — so "
@@ -132,8 +150,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                             .Detail("Retention drops entries by age and by count.")
                     ]
                 ]
-            ]),
+            ]);
 
+    private static Component ChartSection() =>
         Section(
             "Chart",
             "Drawn as SVG on the server — no script, no chart library. Series arrive through a factory, as a data "
@@ -149,8 +168,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
                     c.X(m => m.Name),
                     c.Bar(m => m.Orders).Label("Orders")
                 ]]
-            ]),
+            ]);
 
+    private static Component RestOfCategorySection() =>
         Section(
             "The rest of the category",
             "Static, and covered by unit tests for their class composition.",
@@ -164,12 +184,11 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 Ui.StatusDot.Key("status").Label("Healthy").Tone(Ui.Tone.Success),
                 Ui.Countdown.Key("countdown").Value(42).Label("seconds left"),
                 Ui.ChatBubble.Key("chat").Message("On my way").Author("Ada").When("09:14")
-            ])
-    ];
+            ]);
 
     private sealed record Month(string Name, decimal Revenue, int Costs, int Orders);
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+    private static AttrBag Testid(string value) => new("testid", value);
 
     private static Component Aura(string key, Ui.AuraStyle style, string label) =>
         Div.Key(key)[
@@ -180,7 +199,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             ]
         ];
 
-    private static Component Swatch(string key, string colour) =>
+    private static Rask.Core.Components.Div Swatch(string key, string colour) =>
         Div.Key(key).Class($"h-full w-full {colour}");
 
     private static Component Section(string heading, string blurb, Component body) =>

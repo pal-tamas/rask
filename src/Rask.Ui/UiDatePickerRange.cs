@@ -79,7 +79,7 @@ public sealed partial class UiDatePickerRange : UiFormField<UiDateRange>
                 FieldId,
                 chosen == default ? null : UiDayGrid.Short(chosen.Start) + " – " + UiDayGrid.Short(chosen.End),
                 Placeholder ?? "Choose dates",
-                ControlAria(),
+                BuildControlAria(),
                 _open,
                 Disabled == true,
                 UiClass.Compose(UiDayGrid.BoxClass(Tone, Size, Variant), Class),

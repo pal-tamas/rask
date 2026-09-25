@@ -43,7 +43,9 @@
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
     <Compile Include="..\Rask.Batteries.Shared\Counting.cs" Link="Shared\Counting.cs"/>
-    <Compile Include="..\Rask.Batteries.Shared\HousekeepingContexts.cs" Link="Shared\HousekeepingContexts.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\CountingException.cs" Link="Shared\CountingException.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\HousekeepingContextFactory.cs" Link="Shared\HousekeepingContextFactory.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\HousekeepingServiceCollectionExtensions.cs" Link="Shared\HousekeepingServiceCollectionExtensions.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
 
@@ -51,7 +53,7 @@
     <InternalsVisibleTo Include="Rask.Cache.Tests"/>
   </ItemGroup>
 
-  <!-- Ship the global `using Rask.Cache;` to downstream consumers. -->
+  <!-- Ship the global `using Rask.Caching;` to downstream consumers. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
     <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>

@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
-using Rask.Query;
+using Rask.Querying;
 using Rask.Wasm;
 
 namespace Rask;

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Routing;
 using Rask.Dashboard.Panels;
 
@@ -122,11 +123,11 @@ public sealed partial class QueuePage(
             Tile(QueueFilter.Processed, "Processed", _counts.Processed, tone: null)
         ];
 
-    private Component Tile(QueueFilter filter, string label, int count, Ui.Tone? tone) =>
+    private UiMetric Tile(QueueFilter filter, string label, int count, Ui.Tone? tone) =>
         Ui.Metric
             .Key(label)
             .Label(label)
-            .Value(count.ToString())
+            .Value(count.ToString(CultureInfo.CurrentCulture))
             .Tone(tone)
             .Href(Routes.QueuePage(_panel!.Slug, Show: filter.ToString().ToLowerInvariant()))
             .Active(Filter == filter);
@@ -171,7 +172,7 @@ public sealed partial class QueuePage(
     }
 
     // Mail's "type" column is really its subject; calling it Type on that page would be a small lie.
-    private string TypeColumnLabel() => _panel!.Slug == "mail" ? "Subject" : "Type";
+    private string TypeColumnLabel() => string.Equals(_panel!.Slug, "mail", StringComparison.Ordinal) ? "Subject" : "Type";
 
     // Keyed buttons and nothing between them. The grid cell spaces adjacent buttons itself; a " " text node here
     // mixed unkeyed text into keyed siblings, which makes the live diff match by position — so after a Retry the
@@ -370,7 +371,7 @@ public sealed partial class QueuePage(
         _page = 0;
         _expanded = null;
         await LoadAsync(CancellationToken).ConfigureAwait(false);
-        StateHasChanged();
+        await StateHasChangedAsync().ConfigureAwait(false);
     }
 
     // The question, in the flow, where it cannot be missed. The two answers share one cell of the alert, so
@@ -391,13 +392,18 @@ public sealed partial class QueuePage(
     // The answer, out of the flow. An inline result pushed the whole table down the moment an action
     // completed, which on a polling page moves rows under the operator's pointer; a toast reports the same
     // thing and moves nothing.
-    private Component? ResultToast() =>
-        _message is { } message
-            ? Ui.Toast
-                .Message(message)
-                .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? Ui.Tone.Error : null)
-                .OnDismiss(Dismiss)
-            : null;
+    private UiToast? ResultToast()
+    {
+        if (_message is not { } message)
+        {
+            return null;
+        }
+
+        return Ui.Toast
+            .Message(message)
+            .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? Ui.Tone.Error : null)
+            .OnDismiss(Dismiss);
+    }
 
     private void Cancel()
     {
@@ -416,6 +422,6 @@ public sealed partial class QueuePage(
         _page = Math.Max(0, page);
         _expanded = null;
         await LoadAsync(CancellationToken).ConfigureAwait(false);
-        StateHasChanged();
+        await StateHasChangedAsync().ConfigureAwait(false);
     }
 }

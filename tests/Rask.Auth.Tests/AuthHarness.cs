@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Data;
-using Rask.Mail;
+using Rask.Mailing;
 
 namespace Rask.Auth.Tests;
 

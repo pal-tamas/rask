@@ -94,16 +94,16 @@ public class ComponentDocumentationTests
     // it was undocumented — a blank tooltip on the single most-typed call — because these props live on
     // the BASE types rather than on any tag, so documenting all 141 element components missed them
     // entirely. The DOM events are the same story: `.OnClick(…)` and its 87 siblings are declared once on
-    // ElementEvents and inherited everywhere.
+    // Element (Element.Events.cs) and inherited everywhere.
     //
     // Checks the properties a consumer writes (public, non-static, not an interface's own `internal`
     // plumbing) and nothing else. A file-based check rather than reflection: a doc comment lives in the
     // source, and the failure names the exact line to fix.
     [Theory]
     [InlineData("Rask.Core", "Element.cs")]
-    [InlineData("Rask.Core", "ElementEvents.cs")]
+    [InlineData("Rask.Core", "Element.Events.cs")]
     [InlineData("Rask.Core", "Components/HtmlMediaElement.cs")]
-    [InlineData("Rask.Core", "Forms/FormControlInterfaces.cs")]
+    [InlineData("Rask.Core", "Forms/IFormControl{T}.cs")]
     public void Every_universal_property_is_documented(string project, string relativePath)
     {
         var path = Path.Combine(RepoRoot(), "src", project, relativePath.Replace('/', Path.DirectorySeparatorChar));

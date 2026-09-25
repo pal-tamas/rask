@@ -1,25 +1,8 @@
 using System.Globalization;
-using Rask;
 using Rask.Core;
 using Rask.DevTools.Probe;
 
 namespace Rask.DevTools.Panel;
-
-/// <summary>
-///     The panel's tab ids. A class of their own: inside markup, a component's name is its chain entry, not the type, so
-///     constants on the component itself are out of reach there.
-/// </summary>
-internal static class DevToolsTabIds
-{
-    internal const string Wire = "wire";
-    internal const string Tree = "tree";
-    internal const string Renders = "renders";
-    internal const string Perf = "perf";
-    internal const string Errors = "errors";
-
-    /// <summary>The <c>key</c> of the keydown the page's "Open in DevTools" arrives as.</summary>
-    internal const string ShowErrorsKey = "errors:show";
-}
 
 /// <summary>
 ///     The panel's tab strip, with the count of errors not yet seen on the Errors tab — and the hidden element that tells
@@ -94,7 +77,7 @@ internal sealed partial class DevToolsTabs : Component
         var app = AppErrors.Snapshot();
 
         // On the Errors tab, everything listed is being looked at.
-        if (Current == Errors)
+        if (IsCurrent(Errors))
         {
             _seenPage = Latest(page, _seenPage);
             _seenApp = Latest(app, _seenApp);
@@ -112,18 +95,18 @@ internal sealed partial class DevToolsTabs : Component
             ],
             // For the panel's script: the count, for the pill's dot, and the page's request to show the errors.
             Span.Hidden(true)
-                .Data(new Dictionary<string, string?>
-                {
-                    ["rask-devtools-errors"] = unseen.ToString(CultureInfo.InvariantCulture),
-                })
+                .Data(
+                    ("rask-devtools-errors", unseen.ToString(CultureInfo.InvariantCulture)))
                 .OnKeyDown(e => Requested(e.Key))
         ];
     }
 
-    private void OnChanged() => _gate?.Notify();
+    private void OnChanged(object? sender, EventArgs e) => _gate?.Notify();
+
+    private bool IsCurrent(string id) => string.Equals(Current, id, StringComparison.Ordinal);
 
     private Task Requested(string? key) =>
-        key == DevToolsTabIds.ShowErrorsKey && OnSelect is { } select ? select.Invoke(Errors) ?? Task.CompletedTask : Task.CompletedTask;
+        string.Equals(key, DevToolsTabIds.ShowErrorsKey, StringComparison.Ordinal) && OnSelect is { } select ? select.Invoke(Errors) : Task.CompletedTask;
 
     private Component TabButton(string id, string label, int count) =>
         Ui.Button
@@ -131,9 +114,9 @@ internal sealed partial class DevToolsTabs : Component
             .Size(Ui.Size.Sm)
             .Role("tab")
             // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
-            .Class(Current == id ? "btn-active" : null)
-            .Aria(new Dictionary<string, string?> { ["selected"] = Current == id ? "true" : "false" })
-            .OnClick(() => OnSelect?.Invoke(id) ?? Task.CompletedTask)[
+            .Class(IsCurrent(id) ? "btn-active" : null)
+            .Aria("selected", IsCurrent(id) ? "true" : "false")
+            .OnClick(() => OnSelect.Invoke(id))[
                 label,
                 count > 0 ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Error)[count.ToString(CultureInfo.InvariantCulture)] : null
             ];

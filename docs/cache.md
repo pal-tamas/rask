@@ -145,7 +145,7 @@ builder.Services.AddRaskCache();   // no <AppDbContext> — the store is Redis
 That is the whole change. `Cache.Remember` and the rest behave identically, because the typed layer only
 ever talks to `IDistributedCache`; nothing about your calling code moves.
 
-There is **no `Rask.Cache.Redis` package**, and there shouldn't be:
+There is **no `Rask.Caching.Redis` package**, and there shouldn't be:
 [`Microsoft.Extensions.Caching.StackExchangeRedis`](https://www.nuget.org/packages/Microsoft.Extensions.Caching.StackExchangeRedis)
 is the standard .NET API for this and wrapping it would only add a layer to keep in step.
 

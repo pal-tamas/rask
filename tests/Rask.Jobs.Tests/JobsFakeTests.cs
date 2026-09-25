@@ -1,6 +1,6 @@
 using Rask.Batteries;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 /// The fake stands in for the whole queue, so there is no database to reach — see the exempt list in
@@ -36,7 +36,7 @@ public sealed class JobsFakeTests
 
         await Jobs.Enqueue(new ChaseInvoice(7));
 
-        var enqueued = jobs.Enqueued<ChaseInvoice>().Single();
+        var enqueued = jobs.Enqueued<ChaseInvoice>().Only();
         Assert.Equal(7, enqueued.Job.Number);
     }
 

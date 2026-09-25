@@ -21,6 +21,58 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Firing an event is `await OnPick.Invoke();`.** `Callback.Invoke()` (and `Callback<T>`, `Callback<T1, T2>`) returns
+  a non-null `Task` — the cached, already-completed one for a synchronous or unset handler, so awaiting it never
+  yields — and the event property answers `Invoke` itself, so forwarding one is `.OnClick(() => OnRate.Invoke(i))`.
+  Before: `if (OnPick?.Invoke() is { } t) await t;` and `OnRate?.Invoke(i) ?? Task.CompletedTask`. Both old forms
+  still compile.
+- **BREAKING — framework events are standard `EventHandler`s.** `IUserProvider.Changed`, `IToaster.Changed`,
+  `IRaskCulture.Changed`, `RouteState.Changed` and `EditContext.ValidationStateChanged` are `EventHandler`,
+  `EditContext.FieldChanged` is `EventHandler<FieldChangedEventArgs>` and `ScopedAssetRegistry.AssetChanged` is
+  `EventHandler<ScopedAssetChangedEventArgs>`. `route.Changed += StateHasChanged;` is unchanged — `Component` has
+  the matching overload; a lambda subscriber takes `(_, e) => Validate(e.Field)`, and an `IUserProvider` of your own
+  declares `event EventHandler? Changed` and raises it with `Changed?.Invoke(this, EventArgs.Empty)`.
+- **BREAKING — the batteries' namespaces are nouns of their own.** `Rask.Mail` → `Rask.Mailing`, `Rask.Jobs` →
+  `Rask.Background`, `Rask.Cache` → `Rask.Caching`, `Rask.Query` → `Rask.Querying`; the packages keep their names
+  and still import their namespace globally, so `Mail.Send(…)`/`Jobs.Enqueue(…)` read the same. A file that wrote
+  `using Rask.Mail;` writes `using Rask.Mailing;`.
+- **BREAKING — renames the analyzers asked for.** DOM event arguments drop the `Args` they never derived from:
+  `MouseEventArgs` → `MouseEvent` (likewise `Keyboard`, `Pointer`, `Touch`, `Wheel`, `Clipboard`, `Media`, `Toggle`).
+  `SensorPermission`/`NotificationPermission` → `SensorPermissionState`/`NotificationPermissionState`,
+  `RequestHandlerDelegate` → `RequestHandler`, `JobQueue` → `JobBacklog`, `MailQueue` → `MailOutbox`,
+  `UiStack` → `UiStackLayout` (still `Ui.Stack` in markup), `Ui.TreeSelection.Single`/`Multiple` → `One`/`Many`,
+  `SqliteCollations.Decimal` → `DecimalOrder`, a fake's `.Single()` → `.Only()`
+  (`mail.Sent().To("ann@x.io").Only()`), and the generated-markup hook `__Fragment` → `RaskFragment`.
+- **Exceptions you can catch by type.** `SqliteTransactionRolledBackException` (Rask.SQLite) and the CQRS server's
+  `BadRequestException` and `UploadOffsetException` are public, and they and `RaskValidationException` carry the
+  standard `()`, `(message)` and `(message, inner)` constructors.
+- **Fixes the analyzers found.** `IDispatcher.Subscribe(null!)` throws when called rather than on the first
+  enumeration; a scoped `IQueryClient` stops its live-refresh listener when its scope ends (it listened forever);
+  Litestream's `Validate()` throws `InvalidOperationException` for a null `Verification` or `BusyRetry`, as it
+  documents, instead of `ArgumentNullException`.
+- **A bad setting names its key, and every bad setting is reported at once.** The Jobs, Mail, Outbox, Cache,
+  Logging and Dashboard options are validated at startup by an `IValidateOptions<T>` that says
+  `Rask:Jobs:PollInterval must be positive.` — before, a setter threw an `ArgumentOutOfRangeException` for the first
+  bad value only, naming a parameter that did not exist. The batteries' shutdown and lease warnings now log the caught
+  exception with its stack. `FileRejectedException` carries the standard constructors.
+- **`UiFormField<T>.ControlAria()` returns `IReadOnlyDictionary<string, string?>`.** A form control of your own that
+  added to it builds its own dictionary from it.
+- **Smaller shape changes.** `FieldIdentifier` has `==`/`!=`; `FilePickerOptions.Accept` and
+  `SaveFilePickerOptions.Accept` are `IReadOnlyDictionary<string, string[]>?` (an initializer still compiles; mutating
+  `Accept` afterwards does not).
+- **BREAKING — a picked file is an `IRaskFile`.** The file an input hands a handler, and the file a CQRS message
+  carries, is the interface `IRaskFile` (it was the abstract class `RaskFile`, with no state of its own):
+  `OnFiles(IReadOnlyList<IRaskFile> files)`, `public IRaskFile? Photo { get; init; }`. A test double implements it
+  rather than deriving from it.
+- **BREAKING — `WasmHostBuilder.UseManifest(manifest)` is gone**; it was the `[Obsolete]` alias of
+  `UsePwa(manifest)`.
+- **`ApiException` carries the standard constructors**, and the server host passes the request's cancellation token
+  to the page, file and redirect writes it makes, so a dropped client stops them; a WASM file stream honours its token.
+- **Rask's own code is analyzer-clean.** `src/` now builds with Meziantou, Roslynator, SonarAnalyzer and
+  BannedApiAnalyzers beside the .NET analyzers at `latest-recommended`, every finding an error. Findings are fixed;
+  the few the code cannot satisfy are silenced at their one site with the reason on the line. None of these analyzers
+  reaches an app's dependency graph. See [Code analysis](docs/code-analysis.md).
+
 - **`rask new` scaffolds onto `RaskApp`.** A server app's `Program.cs` is `RaskApp.Create(args).Run<App>();`, its
   csproj references `Rask.Server` (plus the dev-only `Rask.DevTools`), and there is no `AppDbContext.cs` — RaskApp's
   own context maps your aggregates and every battery's tables. A `--no-<battery>` flag writes `c.Jobs.Off()` into
@@ -48,6 +100,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
+  render asked for with the awaitable form never appeared as a state render in the Renders tab.
+- **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
+  its ids per item type, so two trees of different row types both rendered `uitree-1`; the counter is shared now.
 - **An app that references only `Rask.Server` or `Rask.Wasm` draws with the kit again.** `Rask.Ui`'s build hooks —
   the kit's stylesheet in `wwwroot` and daisyUI's plugin beside `Styles/app.css` — recognised a direct `Rask.Ui`
   reference or the removed meta-package, so an app naming only its host got neither, and Tailwind stopped on

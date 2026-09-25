@@ -1,6 +1,6 @@
 using Rask.Batteries;
 
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 /// <summary>
 /// The fake stands in for the battery without a database, so these are pure unit tests — see the exempt
@@ -63,7 +63,7 @@ public sealed class MailFakeTests
 
         await Mail.Send(Welcome("ann@x.io"));
 
-        var sent = mail.Sent().To("ann@x.io").Single();
+        var sent = mail.Sent().To("ann@x.io").Only();
         Assert.Contains("unsubscribe", sent.Html, StringComparison.Ordinal);
     }
 

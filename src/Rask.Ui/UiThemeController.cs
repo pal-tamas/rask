@@ -50,11 +50,11 @@ public sealed partial class UiThemeController : Component
                 Size is { } size ? UiClassNames.ButtonSize(size) : "",
                 Active == true ? "btn-active" : "",
                 Class))
-            .Aria(new Dictionary<string, string?> { ["pressed"] = Active == true ? "true" : "false" });
+            .Aria("pressed", Active == true ? "true" : "false");
 
         if (OnChange is { } change)
         {
-            button = button.OnClick(() => change.Invoke(Theme) ?? Task.CompletedTask);
+            button = button.OnClick(() => change.Invoke(Theme));
         }
 
         return button[Span[Label]];

@@ -42,16 +42,10 @@ internal static class SpaAppBundle
             return null;
         }
 
-        foreach (var attribute in assembly.GetCustomAttributes<AssemblyMetadataAttribute>())
-        {
-            if (string.Equals(attribute.Key, key, StringComparison.Ordinal)
-                && !string.IsNullOrWhiteSpace(attribute.Value))
-            {
-                return attribute.Value;
-            }
-        }
-
-        return null;
+        return assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => string.Equals(attribute.Key, key, StringComparison.Ordinal)
+                                         && !string.IsNullOrWhiteSpace(attribute.Value))
+            ?.Value;
     }
 
     /// <summary>
@@ -104,15 +98,8 @@ internal static class SpaAppBundle
             return false;
         }
 
-        foreach (var file in files.GetDirectoryContents("_framework"))
-        {
-            if (file.Name.StartsWith("dotnet", StringComparison.Ordinal)
-                && file.Name.EndsWith(".js", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return files.GetDirectoryContents("_framework").Any(file =>
+            file.Name.StartsWith("dotnet", StringComparison.Ordinal)
+            && file.Name.EndsWith(".js", StringComparison.Ordinal));
     }
 }

@@ -38,7 +38,7 @@ public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IA
                 return;
             }
 
-            if (await idle.RequestPermissionAsync() != "granted")
+            if (await idle.RequestPermissionAsync() is not "granted")
             {
                 _status = "Permission denied";
                 return;

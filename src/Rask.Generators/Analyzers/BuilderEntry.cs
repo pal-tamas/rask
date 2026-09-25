@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -108,20 +109,9 @@ internal static class BuilderEntry
         return false;
     }
 
-    private static bool HasMarkupAttribute(INamedTypeSymbol type)
-    {
-        foreach (var attribute in type.GetAttributes())
-        {
-            if (string.Equals(
-                    attribute.AttributeClass?.ToDisplayString(), RaskMarkupAttributeFullName,
-                    StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool HasMarkupAttribute(INamedTypeSymbol type) =>
+        type.GetAttributes().Any(static attribute => string.Equals(
+            attribute.AttributeClass?.ToDisplayString(), RaskMarkupAttributeFullName, StringComparison.Ordinal));
 
     /// <summary>
     ///     Whether <paramref name="method" /> is a step on the markup chain.
@@ -207,64 +197,14 @@ internal static class BuilderEntry
             return false;
         }
 
-        var current = (ExpressionSyntax?)node;
-        while (current is not null)
-        {
-            switch (current)
-            {
-                case ElementAccessExpressionSyntax indexer:
-                    current = indexer.Expression;
-                    continue;
-                case ParenthesizedExpressionSyntax paren:
-                    current = paren.Expression;
-                    continue;
-                case InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax member }:
-                    steps.Add(member.Name.Identifier.ValueText);
-                    current = member.Expression;
-                    continue;
-            }
-
-            break;
-        }
-
-        // `Li` is an IdentifierName; a qualified entry (`RaskEntriesX.Li`) is the Name half of a member
-        // access, which is how a type in scope with the same simple name is worked around.
-        var name = current switch
-        {
-            IdentifierNameSyntax id => (SimpleNameSyntax)id,
-            MemberAccessExpressionSyntax member => member.Name,
-            _ => null,
-        };
-
+        var name = EntryName(node, steps);
         if (name is null
             || model.GetSymbolInfo(name, cancellationToken).Symbol is not IPropertySymbol property)
         {
             return false;
         }
 
-        // A SEED-opened chain. A generic component or form control cannot hand back `Build<T>` from its
-        // entry, because the component's own type argument is not known until a step pins it — so its
-        // entry is typed `RaskSeed_<Name>` and the first step returns the chain. Matching only
-        // `Build<T>` here therefore stood down RASK022/RASK023 on every generic component and every form
-        // control, silently, which is the same failure mode #704 fixed one shape earlier: the analyzer
-        // does not report anything wrong, it simply never runs.
-        //
-        // Recognised by the seed's NAME rather than by a marker interface because the seed is a
-        // generated struct with no shared base, and the generator spells that name in exactly one place
-        // (SeedName = "RaskSeed_" + TypeName). `built` stays null: the component is not knowable from the
-        // seed alone, and the only caller that needs it (RASK023) is asking about a non-generic tag,
-        // which never has a seed.
-        if (property.Type.Name.Length > SeedPrefix.Length
-            && property.Type.Name.StartsWith(SeedPrefix, StringComparison.Ordinal)
-            && (string.Equals(
-                    property.Type.Name.Substring(SeedPrefix.Length), name.Identifier.ValueText,
-                    StringComparison.Ordinal)
-                // A grouped seed — `Ui.Select` hands back `RaskSeed_UiSelect` — on the group class.
-                || (property is { IsStatic: true, ContainingType: { } seedGroup }
-                    && string.Equals(
-                        ComponentFactoryGenerator.GroupMemberName(
-                            property.Type.Name.Substring(SeedPrefix.Length), seedGroup.Name),
-                        name.Identifier.ValueText, StringComparison.Ordinal))))
+        if (IsSeedOpened(property, name))
         {
             entry = name;
             built = null;
@@ -291,6 +231,62 @@ internal static class BuilderEntry
         built = produced;
         return true;
     }
+
+    // Walks a chain down past its indexers, parentheses and steps (collecting the step names) to the
+    // name that opened it. `Li` is an IdentifierName; a qualified entry (`RaskEntriesX.Li`) is the Name
+    // half of a member access, which is how a type in scope with the same simple name is worked around.
+    private static SimpleNameSyntax? EntryName(ExpressionSyntax node, HashSet<string> steps)
+    {
+        var current = node;
+        while (true)
+        {
+            switch (current)
+            {
+                case ElementAccessExpressionSyntax indexer:
+                    current = indexer.Expression;
+                    continue;
+                case ParenthesizedExpressionSyntax paren:
+                    current = paren.Expression;
+                    continue;
+                case InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax member }:
+                    steps.Add(member.Name.Identifier.ValueText);
+                    current = member.Expression;
+                    continue;
+            }
+
+            return current switch
+            {
+                IdentifierNameSyntax id => id,
+                MemberAccessExpressionSyntax member => member.Name,
+                _ => null,
+            };
+        }
+    }
+
+    // A SEED-opened chain. A generic component or form control cannot hand back `Build<T>` from its
+    // entry, because the component's own type argument is not known until a step pins it — so its
+    // entry is typed `RaskSeed_<Name>` and the first step returns the chain. Matching only
+    // `Build<T>` here therefore stood down RASK022/RASK023 on every generic component and every form
+    // control, silently, which is the same failure mode #704 fixed one shape earlier: the analyzer
+    // does not report anything wrong, it simply never runs.
+    //
+    // Recognised by the seed's NAME rather than by a marker interface because the seed is a
+    // generated struct with no shared base, and the generator spells that name in exactly one place
+    // (SeedName = "RaskSeed_" + TypeName). `built` stays null: the component is not knowable from the
+    // seed alone, and the only caller that needs it (RASK023) is asking about a non-generic tag,
+    // which never has a seed.
+    private static bool IsSeedOpened(IPropertySymbol property, SimpleNameSyntax name) =>
+        property.Type.Name.Length > SeedPrefix.Length
+        && property.Type.Name.StartsWith(SeedPrefix, StringComparison.Ordinal)
+        && (string.Equals(
+                property.Type.Name.Substring(SeedPrefix.Length), name.Identifier.ValueText,
+                StringComparison.Ordinal)
+            // A grouped seed — `Ui.Select` hands back `RaskSeed_UiSelect` — on the group class.
+            || (property is { IsStatic: true, ContainingType: { } seedGroup }
+                && string.Equals(
+                    ComponentFactoryGenerator.GroupMemberName(
+                        property.Type.Name.Substring(SeedPrefix.Length), seedGroup.Name),
+                    name.Identifier.ValueText, StringComparison.Ordinal)));
 
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
 
@@ -367,12 +363,10 @@ internal static class BuilderEntry
     {
         for (var current = type; current is not null; current = current.BaseType)
         {
-            foreach (var member in current.GetMembers(name))
+            var entry = current.GetMembers(name).FirstOrDefault(member => EntryTypeOf(member, component) is not null);
+            if (entry is not null)
             {
-                if (EntryTypeOf(member, component) is not null)
-                {
-                    return member;
-                }
+                return entry;
             }
         }
 
@@ -468,7 +462,7 @@ internal static class BuilderEntry
         }
 
         if (name.Length > GlobalPrefix.Length
-            && string.CompareOrdinal(name.ToString(0, GlobalPrefix.Length), GlobalPrefix) == 0)
+            && string.Equals(name.ToString(0, GlobalPrefix.Length), GlobalPrefix, StringComparison.Ordinal))
         {
             name.Remove(0, GlobalPrefix.Length);
         }
@@ -517,15 +511,8 @@ internal static class BuilderEntry
             return false;
         }
 
-        foreach (var attribute in prop.GetAttributes())
-        {
-            if (attribute.AttributeClass?.ToDisplayString() == SkipFactoryFullName)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return !prop.GetAttributes().Any(static attribute =>
+            string.Equals(attribute.AttributeClass?.ToDisplayString(), SkipFactoryFullName, StringComparison.Ordinal));
     }
 
     private static bool IsRequired(

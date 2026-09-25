@@ -18,7 +18,7 @@ namespace Rask.Core.Components;
 // re-render. See /virtualize in the showcase for the pattern.
 //
 // Always invoked through the hand-written generic factory `Components.VirtualizeModel<T>(...)`
-// (see VirtualizeModel.Generics.cs). The non-generic factory remains as the forwarding target.
+// (see Virtualize.cs). The non-generic factory remains as the forwarding target.
 //
 // Items vs ItemsProvider — exactly one must be set:
 //   • Items: IEnumerable in memory; window is sliced directly.
@@ -105,7 +105,7 @@ public sealed class VirtualizeModel : Component
     /// </remarks>
     public int? InitialTotalCount { get; set; }
 
-    // The render fragment. Called with the type-erased VirtualizationState every render;
+    // The render fragment. Called with the type-erased VirtualizationState every render, and
     // returns the user's chosen root Component for the virtualized region. Stored under the
     // name "Body" rather than "Render" to avoid colliding with Component.Render(). The
     // user-facing typed factory VirtualizeModel<T>(...) exposes this parameter as "Render".
@@ -162,38 +162,21 @@ public sealed class VirtualizeModel : Component
         }
 
         _activeFetch = null;
-        try { fetch.Cancel(); }
-        catch (ObjectDisposedException) { }
+        try
+        {
+            fetch.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The fetch already finished and disposed its token: nothing left to cancel.
+        }
 
         fetch.Dispose();
     }
 
     protected override Component? Render()
     {
-        if (Body is not { } body)
-        {
-            throw new InvalidOperationException(
-                "VirtualizeModel has no Body, so there is nothing for it to render. Body receives the virtualization state — wire its OnScroll to your scroll "
-                + "container and render state.Items inside it: "
-                + "VirtualizeModel.Body(state => Div.OnScroll(state.OnScroll)[ … ]).Items(rows).ItemSize(32).");
-        }
-
-        if (Items is null == ItemsProvider is null)
-        {
-            throw new InvalidOperationException(
-                "VirtualizeModel: provide exactly one of Items or ItemsProvider.");
-        }
-
-        if (ItemSize <= 0)
-        {
-            // ArgumentOutOfRangeException, not InvalidOperationException: the offending value belongs in
-            // the exception rather than only in the prose, and this IS an out-of-range argument.
-            throw new ArgumentOutOfRangeException(
-                nameof(ItemSize), ItemSize,
-                "VirtualizeModel.ItemSize is the pixel height of one row and drives every scroll "
-                + "calculation, so it must be greater than zero. Pass the row height you render, e.g. "
-                + "ItemSize: 32.");
-        }
+        var body = RequireValidProps();
 
         var itemSize = ItemSize;
         var clientHeight = _clientHeight > 0
@@ -201,19 +184,7 @@ public sealed class VirtualizeModel : Component
             : Math.Max(InitialClientHeight ?? 0, itemSize);
         var overscan = Math.Max(0, OverscanCount ?? 0);
 
-        int totalCount;
-        if (Items is not null)
-        {
-            totalCount = CountItems(Items);
-            _totalCount = totalCount;
-            _totalCountKnown = true;
-        }
-        else
-        {
-            // Nothing has answered yet, so fall back to the caller's estimate. Zero -- the previous
-            // unconditional answer -- means no window, hence no rows, hence a box that pops.
-            totalCount = _totalCountKnown ? _totalCount : Math.Max(0, InitialTotalCount ?? 0);
-        }
+        var totalCount = CurrentTotalCount();
 
         var startIndex = Math.Max(0, (_scrollTop / itemSize) - overscan);
         var endIndex = Math.Min(
@@ -256,6 +227,53 @@ public sealed class VirtualizeModel : Component
             _onScrollDelegate);
 
         return body.Invoke(state)!;
+    }
+
+    // The props a render cannot proceed without, checked with messages that say what to write instead.
+    private Fn<VirtualizationState, Component> RequireValidProps()
+    {
+        if (Body is not { } body)
+        {
+            throw new InvalidOperationException(
+                "VirtualizeModel has no Body, so there is nothing for it to render. Body receives the virtualization state — wire its OnScroll to your scroll "
+                + "container and render state.Items inside it: "
+                + "VirtualizeModel.Body(state => Div.OnScroll(state.OnScroll)[ … ]).Items(rows).ItemSize(32).");
+        }
+
+        if (Items is null == ItemsProvider is null)
+        {
+            throw new InvalidOperationException(
+                "VirtualizeModel: provide exactly one of Items or ItemsProvider.");
+        }
+
+        if (ItemSize <= 0)
+        {
+            // ArgumentOutOfRangeException, not InvalidOperationException: the offending value belongs in
+            // the exception rather than only in the prose, and this IS an out-of-range argument.
+#pragma warning disable MA0015, S3928 // the argument out of range is the .ItemSize(...) chain step's (#611)
+            throw new ArgumentOutOfRangeException(
+                nameof(ItemSize), ItemSize,
+                "VirtualizeModel.ItemSize is the pixel height of one row and drives every scroll "
+                + "calculation, so it must be greater than zero. Pass the row height you render, e.g. "
+                + "ItemSize: 32.");
+#pragma warning restore MA0015, S3928
+        }
+
+        return body;
+    }
+
+    private int CurrentTotalCount()
+    {
+        if (Items is not null)
+        {
+            _totalCount = CountItems(Items);
+            _totalCountKnown = true;
+            return _totalCount;
+        }
+
+        // Nothing has answered yet, so fall back to the caller's estimate. Zero -- the previous
+        // unconditional answer -- means no window, hence no rows, hence a box that pops.
+        return _totalCountKnown ? _totalCount : Math.Max(0, InitialTotalCount ?? 0);
     }
 
     private static void FillFromItems(
@@ -406,20 +424,7 @@ public sealed class VirtualizeModel : Component
             return;
         }
 
-        // Cancel any prior fetch so rapid scroll doesn't keep stale work running. Take the new
-        // CTS before cancelling so a continuation observing _activeFetch can't race onto the
-        // cancelled one. Also dispose the prior CTS — without this, every fetch leaks one
-        // CancellationTokenSource (rapid scrolling = dozens per second) until GC reclaims it.
-        var prev = _activeFetch;
-        var cts = new CancellationTokenSource();
-        _activeFetch = cts;
-        if (prev is not null)
-        {
-            try { prev.Cancel(); }
-            catch (ObjectDisposedException) { }
-
-            prev.Dispose();
-        }
+        var cts = await SupersedeActiveFetchAsync().ConfigureAwait(false);
 
         ItemsProviderResultErased result;
         try
@@ -458,11 +463,34 @@ public sealed class VirtualizeModel : Component
         _totalCount = result.TotalItemCount;
         _totalCountKnown = true;
 
+#pragma warning disable S6966 // request the paint, never wait for the frame: nothing after this needs it sent
         StateHasChanged();
+#pragma warning restore S6966
+    }
+
+    // Cancel any prior fetch so rapid scroll doesn't keep stale work running. Take the new
+    // CTS before cancelling so a continuation observing _activeFetch can't race onto the
+    // cancelled one. Also dispose the prior CTS — without this, every fetch leaks one
+    // CancellationTokenSource (rapid scrolling = dozens per second) until GC reclaims it.
+    private async Task<CancellationTokenSource> SupersedeActiveFetchAsync()
+    {
+        var prev = _activeFetch;
+        var cts = new CancellationTokenSource();
+        _activeFetch = cts;
+        if (prev is not null)
+        {
+            try
+            {
+                await prev.CancelAsync().ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed by an unmount racing this fetch: nothing left to cancel.
+            }
+
+            prev.Dispose();
+        }
+
+        return cts;
     }
 }
-
-// Type-erased ItemsProvider result. The typed VirtualizeModel<T>(...) factory boxes the user's
-// IReadOnlyList<T> into IReadOnlyList<object?> before handing the closure off to the
-// non-generic component. Kept internal — users only see the typed ItemsProviderResult<T>.
-internal sealed record ItemsProviderResultErased(IReadOnlyList<object?> Items, int TotalItemCount);

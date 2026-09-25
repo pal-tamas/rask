@@ -30,6 +30,12 @@ public sealed partial class UiKitTreeDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        TreeSection(),
+        HeldByPageSection(),
+        FiveThousandNodesSection()
+    ];
+
+    private static Component TreeSection() =>
         Section(
             "A tree",
             "Four steps and an indexer: where it starts, what identifies a node, what a node looks like, what the "
@@ -43,9 +49,10 @@ public sealed partial class UiKitTreeDemo : Component
                     .Label("Files")
                     .ExpandDepth(1)
                     .NodeText(f => f.Name)
-                    .Selection(Ui.TreeSelection.Single)[f => f.Children]
-            ]),
+                    .Selection(Ui.TreeSelection.One)[f => f.Children]
+            ]);
 
+    private Component HeldByPageSection() =>
         Section(
             "Held by the page",
             "The same tree with both axes on this component: Expanded and Selected are fields here, and the tree "
@@ -59,7 +66,7 @@ public sealed partial class UiKitTreeDemo : Component
                         .Label("Files, held by the page")
                         .Expanded(_open)
                         .OnExpandedChange(keys => _open = keys)
-                        .Selection(Ui.TreeSelection.Multiple)
+                        .Selection(Ui.TreeSelection.Many)
                         .Selected(_picked)
                         .OnSelectionChange(keys => _picked = keys)[f => f.Children]
                 ],
@@ -67,8 +74,9 @@ public sealed partial class UiKitTreeDemo : Component
                     $"open: {string.Join(", ", _open)} · selected: "
                     + (_picked.Count == 0 ? "none" : string.Join(", ", _picked))
                 ]
-            ]),
+            ]);
 
+    private Component FiveThousandNodesSection() =>
         Section(
             "Five thousand nodes",
             "ItemSize turns the tree into a virtualized flat list: one row's height, only the visible rows in the "
@@ -88,8 +96,7 @@ public sealed partial class UiKitTreeDemo : Component
                 P.Data(Testid("ui-tree-hover-state")).Class("text-xs text-ui-muted")[
                     _hovered is null ? "hovering: nothing" : $"hovering: {_hovered}"
                 ]
-            ])
-    ];
+            ]);
 
     // 100 branches of 50, so the flat list is long enough for the window to matter.
     private static TreeNode[] BuildMany()
@@ -109,7 +116,7 @@ public sealed partial class UiKitTreeDemo : Component
         return roots;
     }
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+    private static AttrBag Testid(string value) => new("testid", value);
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

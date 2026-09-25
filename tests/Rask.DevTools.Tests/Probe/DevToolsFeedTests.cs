@@ -76,7 +76,7 @@ public sealed class DevToolsFeedTests
     {
         var feed = new DevToolsFeed();
         var notifications = 0;
-        feed.Changed += () => notifications++;
+        feed.Changed += (_, _) => notifications++;
 
         feed.RecordDiff(opCount: 3, usedDiff: true);
         feed.RecordWire(DevToolsWireDirection.In, "frame", 300, 1);

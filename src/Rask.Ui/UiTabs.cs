@@ -52,7 +52,7 @@ public sealed partial class UiTabs : Component
 
     // The tabs pattern, activating as it moves: ArrowLeft/Right step and SHOW, Home and End jump to the ends.
     // Wraps, because a tab row is a ring — there is no "past the last tab" for a reader to fall off.
-    private static Task OnKeyAsync(Rask.Core.Live.KeyboardEventArgs e, UiTabScope scope)
+    private static Task OnKeyAsync(Rask.Core.Live.KeyboardEvent e, UiTabScope scope)
     {
         var names = scope.Names;
         if (names.Count == 0 || e.Ctrl || e.Alt || e.Meta)
@@ -86,7 +86,7 @@ public sealed partial class UiTabs : Component
         return -1;
     }
 
-    private Element TabRow() =>
+    private Nav TabRow() =>
         // role=tablist on a <nav> of links: daisyUI's own markup for the link form, and what tells
         // assistive technology these are alternatives rather than an arbitrary run of links.
         Nav.Role("tablist")

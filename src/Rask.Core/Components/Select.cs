@@ -116,7 +116,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
         return base.EnterChildrenScope();
     }
 
-    private static IEnumerable<Component?> MarkSelected(IEnumerable<Component?> children, Selection current)
+    private static Component?[] MarkSelected(IEnumerable<Component?> children, Selection current)
     {
         var list = new List<Component?>();
         foreach (var c in children)
@@ -146,7 +146,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     private readonly struct Selection(string single, IReadOnlySet<string>? many)
     {
         public bool Matches(string? value) =>
-            many is null ? value == single : value is not null && many.Contains(value);
+            many is null ? string.Equals(value, single, StringComparison.Ordinal) : value is not null && many.Contains(value);
     }
 
     private static Option MarkOption(Option opt, Selection current)
@@ -201,7 +201,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
 
     // The picked values a multi-select bound to a collection should mark, or null for every other shape —
     // which keeps the single-value path on its existing string compare.
-    private IReadOnlySet<string>? SelectionSet(object? bound)
+    private HashSet<string>? SelectionSet(object? bound)
     {
         if (Multiple is not true || !BindingHelpers.IsBindableSelectionType<T>())
         {
@@ -243,7 +243,16 @@ public sealed partial class Select<T> : Element, IFormControl<T>
             _selectedValues = SelectionSet(Value);
         }
 
-        var name = Name ?? acc?.PropertyName;
+        WriteControlAttributes(sb, Name ?? acc?.PropertyName);
+
+        if (LiveRenderContext.CurrentSync is { } ctx)
+        {
+            WriteChangeHandler(sb, ctx, acc, bindCtx, fid);
+        }
+    }
+
+    private void WriteControlAttributes(StringBuilder sb, string? name)
+    {
         if (name is not null)
         {
             AppendAttr(sb, "name", name);
@@ -283,12 +292,12 @@ public sealed partial class Select<T> : Element, IFormControl<T>
         {
             AppendAttr(sb, "autocomplete", Autocomplete);
         }
+    }
 
-        if (LiveRenderContext.CurrentSync is not { } ctx)
-        {
-            return;
-        }
-
+    private void WriteChangeHandler(
+        StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor? acc, EditContext? bindCtx,
+        FieldIdentifier fid)
+    {
         if (acc is not null)
         {
             var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);

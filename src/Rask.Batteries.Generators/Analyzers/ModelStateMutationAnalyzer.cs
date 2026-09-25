@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -88,12 +89,10 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
 
         AnalyzeMembers(context, type);
 
-        foreach (var valueObject in ModelTypes.ValueObjectsOf(type))
+        foreach (var valueObject in ModelTypes.ValueObjectsOf(type)
+                     .Where(valueObject => checkedValueObjects.TryAdd(valueObject, 0)))
         {
-            if (checkedValueObjects.TryAdd(valueObject, 0))
-            {
-                AnalyzeMembers(context, valueObject);
-            }
+            AnalyzeMembers(context, valueObject);
         }
     }
 

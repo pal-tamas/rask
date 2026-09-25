@@ -25,8 +25,8 @@ public sealed partial class RatingStars : Component
             Enumerable.Range(1, 5).Select(i => Button.Key(i).OnClick(() => Rate(i))[i <= Value ? "★" : "☆"])
         ];
 
-    // Raise the event. Invoke returns null for a synchronous handler — nothing to await.
-    private Task Rate(int n) => OnRate?.Invoke(n) ?? Task.CompletedTask;
+    // Raise the event. Unset, or a synchronous handler, is an already-completed task.
+    private Task Rate(int n) => OnRate.Invoke(n);
 }
 
 // Parent: passes a lambda that mutates its own state.
@@ -61,8 +61,8 @@ holds for a value the framework *asks* a component for rather than an event: a t
 (`Ui.DataGrid`'s `RowClass`, `Ui.Select`'s `OptionTemplate`) is an `Fn<…>`, called during the render and
 never auto-wrapped.
 
-Calling one back: `if (OnRate?.Invoke(i) is { } t) await t;` — `Invoke` returns `null` for a synchronous
-handler, so the sync path never acquires a `Task`. **Wrapping is unchanged:** a component callback is
+Calling one back: `await OnRate.Invoke(i);` — an unset event is a no-op, and a synchronous handler returns the
+cached, already-completed task, so awaiting it never yields. **Wrapping is unchanged:** a component callback is
 auto-wrapped, a DOM handler is not.
 
 **DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
@@ -83,28 +83,28 @@ Pass a **bare lambda or method group** — `.OnMouseMove(e => { _x = e.OffsetX; 
 — never `new Action<T>(…)`: the step already gives the lambda its type. The surface:
 
 - **Mouse** — `OnClick` (parameterless), `OnDoubleClick`, `OnContextMenu`, `OnMouseDown`/`Up`/`Move`/
-  `Enter`/`Leave`/`Over`/`Out`, all taking `MouseEventArgs` (button/buttons, client/screen/page/offset/
+  `Enter`/`Leave`/`Over`/`Out`, all taking `MouseEvent` (button/buttons, client/screen/page/offset/
   movement coords, modifiers).
-- **Wheel** — `OnWheel` (`WheelEventArgs`: the mouse geometry plus `DeltaX/Y/Z` + `DeltaMode`).
+- **Wheel** — `OnWheel` (`WheelEvent`: the mouse geometry plus `DeltaX/Y/Z` + `DeltaMode`).
 - **Pointer & touch** — `OnPointerDown`/`Up`/`Move`/`Enter`/`Leave`/`Over`/`Out`/`Cancel`
-  (`PointerEventArgs`: mouse geometry + `PointerId`/`Pressure`/`PointerType`/`IsPrimary`/tilt);
-  `OnTouchStart`/`End`/`Move`/`Cancel` (`TouchEventArgs`).
+  (`PointerEvent`: mouse geometry + `PointerId`/`Pressure`/`PointerType`/`IsPrimary`/tilt);
+  `OnTouchStart`/`End`/`Move`/`Cancel` (`TouchEvent`).
 - **Focus** — `OnFocus`/`OnBlur`/`OnFocusIn`/`OnFocusOut` (parameterless; reach the element via
   capture-phase delegation).
-- **Keyboard** — `OnKeyDown`/`OnKeyUp` (`KeyboardEventArgs`: `Key` `"Escape"`, `Code` `"KeyA"`, the
+- **Keyboard** — `OnKeyDown`/`OnKeyUp` (`KeyboardEvent`: `Key` `"Escape"`, `Code` `"KeyA"`, the
   `Shift`/`Ctrl`/`Alt`/`Meta` modifiers, `Repeat`). Focus-scoped; never `preventDefault`-ed, so
   handlers compose with normal typing.
-- **Clipboard** — `OnCopy`/`OnCut`/`OnPaste` (`ClipboardEventArgs.Text`).
+- **Clipboard** — `OnCopy`/`OnCut`/`OnPaste` (`ClipboardEvent.Text`).
 - **Scroll & drag** — `OnScroll` (`ScrollEvent`, rAF-coalesced); `OnDragStart`/`Over`/`Drop`/`End`
   plus `OnDrag`/`OnDragEnter`/`OnDragLeave` (parameterless — the dragged item's identity rides the
   handler's closure).
 - **Forms** — `OnBeforeInput` (`Callback<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
-- **Open state** — `OnToggle`/`OnBeforeToggle` (`ToggleEventArgs`: `OldState`/`NewState`/`IsOpen`) for a
+- **Open state** — `OnToggle`/`OnBeforeToggle` (`ToggleEvent`: `OldState`/`NewState`/`IsOpen`) for a
   popover or `<details>`; a `<dialog>`'s `OnCancel` (a dismissal — Escape or a light dismiss) and `OnClose` (any
   close, after `OnCancel`), both parameterless. None of them can veto the change: the client never
   `preventDefault`s.
 - **Media** — `Audio`/`Video` add the `HTMLMediaElement` events `OnPlay`/`OnPause`/`OnEnded`/
-  `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEventArgs`: current time, duration, paused, volume, …).
+  `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEvent`: current time, duration, paused, volume, …).
 
 You never name the `Callback`: you pass the lambda or method group and the step does the rest. It exists
 so a property and its builder setter can share a name — a delegate-typed property *is* invocable, which would make

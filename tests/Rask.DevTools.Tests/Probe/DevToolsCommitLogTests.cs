@@ -95,7 +95,7 @@ public sealed class DevToolsCommitLogTests
         var ids = new DevToolsTreeSnapshotter();
         var child = Child();
         var notified = 0;
-        feed.Changed += () => notified++;
+        feed.Changed += (_, _) => notified++;
 
         feed.RecordCommit(Renders((child, RenderCause.Uncached)), walked: 1, ids, timestamp: 1);
         feed.ClearCommits();

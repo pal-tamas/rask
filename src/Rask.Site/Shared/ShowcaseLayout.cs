@@ -57,7 +57,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     protected override async Task OnUnmount() => route.Changed -= OnRouteChanged;
 
-    private void OnRouteChanged()
+    private void OnRouteChanged(object? sender, EventArgs e)
     {
         _drawerOpen = false;
         OpenActiveGroup();
@@ -274,18 +274,15 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     {
         foreach (var (section, links) in Sections())
         {
-            foreach (var link in links)
+            if (links.FirstOrDefault(link => IsActive(link.Path, link.MatchPrefix)) is { Path: not null } active)
             {
-                if (IsActive(link.Path, link.MatchPrefix))
-                {
-                    _openGroups.Add(GroupKey(section, link.Group));
-                    return;
-                }
+                _openGroups.Add(GroupKey(section, active.Group));
+                return;
             }
         }
     }
 
-    private static string GroupKey(string section, string group) => $"{section}{group}";
+    private static string GroupKey(string section, string group) => $"{section}\u001f{group}";
 
     // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
     // groups in the order their first item appears, exactly as the flat list was authored).
@@ -297,7 +294,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
         foreach (var link in links)
         {
-            if (link.Group != current)
+            if (!string.Equals(link.Group, current, StringComparison.Ordinal))
             {
                 if (bucket is not null)
                 {
@@ -319,9 +316,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     private bool IsActive(string href, string? matchPrefix = null)
     {
-        if (href == "/")
+        if (href is "/")
         {
-            return route.Path == "/" || string.IsNullOrEmpty(route.Path);
+            return route.Path is "/" || string.IsNullOrEmpty(route.Path);
         }
 
         var trimmed = route.Path.TrimEnd('/');

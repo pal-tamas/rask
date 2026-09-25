@@ -105,6 +105,6 @@ public sealed partial class UiCalendarRange : Component, IFormControl<UiDateRang
     private Task PageAsync(DateOnly month)
     {
         _month = month;
-        return OnMonth?.Invoke(month) ?? Task.CompletedTask;
+        return OnMonth.Invoke(month);
     }
 }

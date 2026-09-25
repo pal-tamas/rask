@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Rask.Jobs;
+using Rask.Background;
 using Rask.Outbox;
 
 namespace Rask.Dashboard.Tests;

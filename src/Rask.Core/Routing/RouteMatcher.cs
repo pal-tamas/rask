@@ -34,7 +34,7 @@ internal static class RouteMatcher
         }
 
         chain = Array.Empty<Type>();
-        values = new Dictionary<string, string?>();
+        values = new Dictionary<string, string?>(StringComparer.Ordinal);
         fullTemplate = string.Empty;
         return false;
     }

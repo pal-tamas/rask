@@ -45,8 +45,9 @@ for p in src/*.Generators/*.csproj; do dotnet build "$p" -c Debug --nologo -v qu
 ```bash
 dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true
 ```
-Zero warnings: .NET analyzers (CAxxxx), code-style (IDExxxx), nullable, and Rask's own
-RASK0xx generators. The WASM trimming path must stay IL-warning-free — if you touched anything
+Zero warnings: .NET analyzers (CAxxxx), Meziantou (MAxxxx), Roslynator (RCSxxxx), Sonar (Sxxxx),
+banned APIs (RS0030), code-style (IDExxxx), nullable, and Rask's own RASK0xx generators. FIX a finding;
+silence one only when the code cannot satisfy it, at that site, with a `#pragma` reason (docs/code-analysis.md). The WASM trimming path must stay IL-warning-free — if you touched anything
 reflection-adjacent, also:
 ```bash
 dotnet publish src/Rask.Site -c Release   # zero IL trim warnings required

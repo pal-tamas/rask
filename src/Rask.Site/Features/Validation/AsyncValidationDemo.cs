@@ -1,9 +1,8 @@
-using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 
 namespace Rask.Site.Features;
 
-public sealed partial class AsyncValidationDemo : Component
+public sealed partial class AsyncValidationDemo : Component, IDisposable
 {
     private readonly EditContext _ctx;
     private readonly SignupModel _model = new();
@@ -14,6 +13,8 @@ public sealed partial class AsyncValidationDemo : Component
         _ctx = new EditContext(_model);
         _ctx.AddValidator(new UniqueUsernameValidator());
     }
+
+    public void Dispose() => _ctx.Dispose();
 
     protected override Component? Render() =>
     [
@@ -29,57 +30,4 @@ public sealed partial class AsyncValidationDemo : Component
             ? null
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
-}
-
-public sealed class SignupModel
-{
-    [Required(ErrorMessage = "Username is required.")]
-    [StringLength(20, MinimumLength = 3, ErrorMessage = "Username must be 3–20 characters.")]
-    public string Username { get; set; } = "";
-}
-
-public sealed class UniqueUsernameValidator : IAsyncFieldValidator
-{
-    private static readonly HashSet<string> Taken = new(StringComparer.OrdinalIgnoreCase) { "admin", "taken", "root" };
-
-    public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
-    {
-        if (context.Model is SignupModel m)
-        {
-            await CheckAsync(context, new FieldIdentifier(m, nameof(SignupModel.Username)), m.Username,
-                cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
-        CancellationToken cancellationToken)
-    {
-        if (context.Model is SignupModel m && field.FieldName == nameof(SignupModel.Username))
-        {
-            await CheckAsync(context, field, m.Username, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private static async Task CheckAsync(EditContext context, FieldIdentifier field, string username,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return;
-        }
-
-        // E2E test seam: the literal "explode" forces the validator to throw mid-await so the
-        // framework's generic "Validation could not be completed." path is exercised end-to-end.
-        if (string.Equals(username, "explode", StringComparison.OrdinalIgnoreCase))
-        {
-            await Task.Yield();
-            throw new InvalidOperationException("Simulated remote failure.");
-        }
-
-        await Task.Delay(400, ct).ConfigureAwait(false);
-        if (Taken.Contains(username))
-        {
-            context.AddValidationMessage(field, $"\"{username}\" is already taken.");
-        }
-    }
 }

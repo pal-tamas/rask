@@ -124,7 +124,7 @@ Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
 
 ### Components that take file uploads
 
-A file input's handler receives `RaskFile`s the host reads back from the browser, so a test has to supply
+A file input's handler receives `IRaskFile`s the host reads back from the browser, so a test has to supply
 that host half. `TestFileBackend` is it — stage the bytes, register it, pick the files:
 
 ```csharp
@@ -155,7 +155,7 @@ await page.On("#form").SubmitAsync(files.FormPayload("attachment", files.Add("cv
 
 `.Staged` lists everything added; `.Released` records what the framework handed back after the handler
 returned — the browser hosts drop their client-side references at that point and the server frees its upload
-slot, so a component holding a `RaskFile` past the handler is holding something already gone.
+slot, so a component holding a `IRaskFile` past the handler is holding something already gone.
 
 ### Handing a component its services
 

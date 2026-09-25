@@ -97,7 +97,7 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
@@ -212,3 +212,5 @@ static Rask.WebPush.SentPushCounting.ToEveryone(this Rask.Batteries.Counting<Ras
 static Rask.WebPush.SentPushCounting.WithTitle(this Rask.Batteries.Counting<Rask.WebPush.SentPush!> sent, string! title) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
 static Rask.WebPush.WebPushModelBuilderExtensions.AddRaskWebPush(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Batteries.CountingException.CountingException() -> void
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void

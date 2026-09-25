@@ -17,7 +17,7 @@ public sealed partial class UiBreadcrumbs : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Nav.Class(UiClass.Compose("breadcrumbs text-sm", Class))
-            .Aria(new Dictionary<string, string?> { ["label"] = "Breadcrumb" })[
+            .Aria("label", "Breadcrumb")[
             Ul[
                 // Keyed by the crumb's own text: a trail's identity is what it says, and keying by index
                 // would let the diff reuse one crumb's element for another when a level is inserted.

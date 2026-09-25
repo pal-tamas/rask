@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 [Collection(CacheDbCollection.Name)]
 public sealed class CachePurgerTests

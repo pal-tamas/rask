@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Rask;
 
 /// <summary>The value axis of a chart: its ends, and the round steps between them.</summary>
@@ -6,6 +8,7 @@ namespace Rask;
 /// 0, 250, 500, 750, 1,000 rather than 0, 237.5, 475. Zero is on the axis unless every value is on one side of it
 /// and the caller moved it — a bar that starts at 80 instead of 0 is a bar that lies about its size.
 /// </remarks>
+[StructLayout(LayoutKind.Auto)]
 internal readonly record struct UiChartScale(double Min, double Max, double Step)
 {
     private const int Steps = 4;
@@ -62,8 +65,8 @@ internal readonly record struct UiChartScale(double Min, double Max, double Step
         var exponent = Math.Floor(Math.Log10(range));
         var fraction = range / Math.Pow(10, exponent);
         var nice = round
-            ? fraction < 1.5 ? 1 : fraction < 3 ? 2 : fraction < 7 ? 5 : 10
-            : fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10;
+            ? fraction switch { < 1.5 => 1, < 3 => 2, < 7 => 5, _ => 10 }
+            : fraction switch { <= 1 => 1, <= 2 => 2, <= 5 => 5, _ => 10 };
         return nice * Math.Pow(10, exponent);
     }
 }

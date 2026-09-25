@@ -68,14 +68,17 @@ internal static class JsonText
         }
 
         var sb = new StringBuilder(raw.Length);
-        for (var i = 0; i < raw.Length; i++)
+        var i = 0;
+        while (i < raw.Length)
         {
             if (raw[i] != '\\' || i + 1 >= raw.Length)
             {
                 sb.Append(raw[i]);
+                i++;
                 continue;
             }
 
+            // i moves onto the escape character; a \u escape moves it past its four digits too.
             var e = raw[++i];
             switch (e)
             {
@@ -104,6 +107,8 @@ internal static class JsonText
                     sb.Append(e);
                     break;
             }
+
+            i++;
         }
 
         return sb.ToString();

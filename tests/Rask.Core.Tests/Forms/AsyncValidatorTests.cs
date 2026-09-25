@@ -64,7 +64,7 @@ public class AsyncValidatorTests
         var gate = new TaskCompletionSource();
         ctx.AddValidator(new GatedValidator((_, _, _) => gate.Task));
         var stateChanges = 0;
-        ctx.ValidationStateChanged += () => stateChanges++;
+        ctx.ValidationStateChanged += (_, _) => stateChanges++;
 
         var task = ctx.ValidateFieldAsync(fid);
 

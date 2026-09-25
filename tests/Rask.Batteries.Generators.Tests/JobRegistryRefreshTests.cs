@@ -1,4 +1,4 @@
-namespace Rask.Jobs.Generators.Tests;
+namespace Rask.Background.Generators.Tests;
 
 /// <summary>
 ///     The registry is populated by a <c>[ModuleInitializer]</c>, which the runtime never re-runs after
@@ -15,13 +15,13 @@ public class JobRegistryRefreshTests
 {
     // Must match the entry in RaskHotReload.RefreshTargetTypeNames. The coordinator resolves this
     // with Assembly.GetType(name), so both the namespace and the class name are load-bearing.
-    private const string RefreshTargetTypeName = "Rask.Jobs.Generated.__RaskJobsRegistry";
+    private const string RefreshTargetTypeName = "Rask.Background.Generated.__RaskJobsRegistry";
 
     private static GeneratorRun Run(string source) =>
         GeneratorHarness.Run(source, new JobRegistryGenerator(), "Rask.Jobs", "Rask.Cqrs");
 
     private const string OneJob = """
-        using Rask.Jobs;
+        using Rask.Background;
         namespace Demo;
         public sealed record SendWelcomeEmail(int UserId) : IJob;
         """;
@@ -64,7 +64,7 @@ public class JobRegistryRefreshTests
         var source = Run(OneJob).GeneratedSource("__RaskJobsRegistry");
 
         Assert.Contains(
-            "global::Rask.Jobs.JobSerializerRegistry.Replace(typeof(__RaskJobsRegistry), ",
+            "global::Rask.Background.JobSerializerRegistry.Replace(typeof(__RaskJobsRegistry), ",
             source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("RegisterJob(", source, StringComparison.Ordinal);

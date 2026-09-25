@@ -95,12 +95,9 @@ internal sealed class NotificationFeed(CqrsExecutionOptions? options = null)
 
         Remembered(watched);
 
-        foreach (var listener in listeners)
+        foreach (var listener in listeners.Where(listener => listener.Wants(notification)))
         {
-            if (listener.Wants(notification))
-            {
-                listener.Offer(notification, sequence);
-            }
+            listener.Offer(notification, sequence);
         }
     }
 
@@ -131,7 +128,7 @@ internal sealed class NotificationFeed(CqrsExecutionOptions? options = null)
 
     private sealed class Watched
     {
-        public readonly object Gate = new();
+        public readonly Lock Gate = new();
 
         // Oldest first, so the newest match is found by walking back from the end.
         public readonly List<(INotification Notification, long Sequence)> Recent = [];

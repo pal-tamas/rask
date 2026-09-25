@@ -2,7 +2,7 @@ namespace Rask.Site.Features;
 
 public sealed partial class BindingAfterBindDemo : Component
 {
-    private static readonly Dictionary<string, string[]> Cities = new()
+    private static readonly Dictionary<string, string[]> Cities = new(StringComparer.Ordinal)
     {
         ["US"] = new[] { "New York", "Los Angeles", "Chicago" },
         ["DE"] = new[] { "Berlin", "Hamburg", "Munich" },

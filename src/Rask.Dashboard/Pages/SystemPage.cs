@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Routing;
 using Rask.Dashboard.Panels;
 
@@ -37,7 +38,7 @@ public sealed partial class SystemPage(
             [$"{_database?.SizeBytes}:{_database?.JournalMode}:{_database?.ForeignKeys}",
              $"{_replication?.IsReplicating}:{_replication?.RestartCount}:{_replication?.LastError}",
              $"{_verification?.Outcome}:{_verification?.LastVerifiedAt?.Ticks ?? 0}:{_verification?.LastError}",
-             $"{_snapshots.Count}:{_snapshots.FirstOrDefault()?.Name}",
+             $"{_snapshots.Count}:{(_snapshots.Count > 0 ? _snapshots[0].Name : null)}",
              .. _recurring.Select(r => $"{r.Name}:{r.LastEnqueuedAt?.Ticks ?? 0}")]);
     }
 
@@ -139,7 +140,7 @@ public sealed partial class SystemPage(
 
             yield return Ui.Stat
                 .Key("restarts")
-                .Value(r.RestartCount.ToString())
+                .Value(r.RestartCount.ToString(CultureInfo.CurrentCulture))
                 .Label("Restarts")
                 .Tone(r.RestartCount > 0 ? Ui.Tone.Warning : null)
                 .Caption(r.LastError ?? "no failures recorded")

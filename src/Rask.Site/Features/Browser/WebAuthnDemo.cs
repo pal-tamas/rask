@@ -38,7 +38,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
             _support = "Support check failed: " + ex.Message;
         }
 
-        StateHasChanged();
+        await StateHasChangedAsync();
     }
 
     protected override Component? Render() =>

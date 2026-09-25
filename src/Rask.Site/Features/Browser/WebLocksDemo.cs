@@ -45,13 +45,13 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
 
         _holding = true;
         _status = "waiting for the lock…";
-        StateHasChanged();
+        await StateHasChangedAsync();
         try
         {
             await locks.RequestAsync(LockName, async () =>
             {
                 _status = "holding — other tabs wait here";
-                StateHasChanged();
+                await StateHasChangedAsync();
                 await Task.Delay(2000);
             });
             _status = "released";

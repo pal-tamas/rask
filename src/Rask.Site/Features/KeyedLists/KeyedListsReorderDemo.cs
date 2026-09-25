@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Site.Features;
 
 // Keyed reconciliation in miniature. A stable Key: per row makes a reorder ship trusted Move ops, so
@@ -59,7 +61,7 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[(index + 1).ToString()],
+        Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[(index + 1).ToString(CultureInfo.InvariantCulture)],
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
         Ui.Input.Value<string>(null).AccessibleLabel("type here, then reorder…")
             .Type(InputType.Text)

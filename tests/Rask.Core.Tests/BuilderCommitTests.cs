@@ -155,7 +155,7 @@ public class BuilderCommitTests
 
         public bool IsLoading => false;
 
-        public event Action? Changed
+        public event EventHandler? Changed
         {
             add { }
             remove { }

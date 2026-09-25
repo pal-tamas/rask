@@ -92,7 +92,7 @@ public partial class BuilderRenderPathTests : global::Rask.Core.RaskMarkup
     {
         using var ctx = LiveRenderContext.Begin(host, sp);
         var resolved = ctx.GetOrCreate(_ => host);
-        ctx.NotifyParameters(resolved, propsChanged: true);
+        LiveRenderContext.NotifyParameters(resolved, propsChanged: true);
         return resolved.ToHtml();
     }
 
@@ -140,7 +140,7 @@ public partial class BuilderRenderPathTests : global::Rask.Core.RaskMarkup
 
         using var ctx = LiveRenderContext.Begin(builder, sp);
         var resolved = ctx.GetOrCreate(_ => builder);
-        ctx.NotifyParameters(resolved, propsChanged: true);
+        LiveRenderContext.NotifyParameters(resolved, propsChanged: true);
 
         Assert.Equal("<div><span>a</span></div>", resolved.ToHtml());
         Assert.Contains(

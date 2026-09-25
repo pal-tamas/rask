@@ -112,7 +112,7 @@ public partial class DisposeTests : global::Rask.Core.RaskMarkup
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _grandchild);
-            ctx.NotifyParameters(c, true);
+            LiveRenderContext.NotifyParameters(c, true);
             return c;
         }
     }
@@ -132,7 +132,7 @@ public partial class DisposeTests : global::Rask.Core.RaskMarkup
 
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, true);
+            LiveRenderContext.NotifyParameters(c, true);
             return c;
         }
     }
@@ -146,7 +146,7 @@ public partial class DisposeTests : global::Rask.Core.RaskMarkup
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, true);
+            LiveRenderContext.NotifyParameters(c, true);
             return c;
         }
     }

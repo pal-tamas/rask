@@ -47,7 +47,7 @@ public class RenderedTests
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Component);
-            ctx.NotifyParameters(c, true);
+            LiveRenderContext.NotifyParameters(c, true);
             return c;
         }
     }

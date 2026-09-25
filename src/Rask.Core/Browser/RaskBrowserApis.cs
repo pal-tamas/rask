@@ -43,48 +43,68 @@ public static class RaskBrowserApis
     public static IServiceCollection AddCoreBrowserApis(this IServiceCollection services, ServiceLifetime lifetime)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddBrowserApi<IBrowserStorage, BrowserStorage>(lifetime);
+        AddPageAndDeviceApis(services, lifetime);
+        AddObserverAndMediaApis(services, lifetime);
+        AddStorageAndSecurityApis(services, lifetime);
+        AddPwaApis(services, lifetime);
+        return services;
+    }
+
+    private static void AddPageAndDeviceApis(IServiceCollection services, ServiceLifetime lifetime)
+    {
         services.AddBrowserApi<IClipboard, Clipboard>(lifetime);
         services.AddBrowserApi<IGeolocation, Geolocation>(lifetime);
         services.AddBrowserApi<INavigatorInfo, NavigatorInfo>(lifetime);
         services.AddBrowserApi<INetworkInfo, NetworkInfo>(lifetime);
         services.AddBrowserApi<IMediaQuery, MediaQuery>(lifetime);
+        services.AddBrowserApi<IScreenInfo, ScreenInfoReader>(lifetime);
+        services.AddBrowserApi<IVisualViewport, VisualViewportReader>(lifetime);
+        services.AddBrowserApi<IGamepad, Gamepad>(lifetime);
+        services.AddBrowserApi<IDeviceOrientation, DeviceOrientation>(lifetime);
+        services.AddBrowserApi<IDeviceMotion, DeviceMotion>(lifetime);
+        services.AddBrowserApi<IPerformance, Performance>(lifetime);
+        services.AddBrowserApi<IVibration, Vibration>(lifetime);
+        services.AddBrowserApi<IPageVisibility, PageVisibilityInfo>(lifetime);
+        services.AddBrowserApi<IViewTransitions, ViewTransitions>(lifetime);
+        services.AddBrowserApi<IWebAnimations, WebAnimations>(lifetime);
+        services.AddBrowserApi<IBattery, BrowserBattery>(lifetime);
+    }
+
+    private static void AddObserverAndMediaApis(IServiceCollection services, ServiceLifetime lifetime)
+    {
         services.AddBrowserApi<ISpeechSynthesis, SpeechSynthesis>(lifetime);
         services.AddBrowserApi<ISpeechRecognition, SpeechRecognition>(lifetime);
-        services.AddBrowserApi<IScreenInfo, ScreenInfoReader>(lifetime);
-        services.AddBrowserApi<IStorageEstimator, StorageEstimator>(lifetime);
-        services.AddBrowserApi<IVisualViewport, VisualViewportReader>(lifetime);
         services.AddBrowserApi<IBroadcastChannel, BroadcastChannelService>(lifetime);
         services.AddBrowserApi<IIntersectionObserver, IntersectionObserverService>(lifetime);
         services.AddBrowserApi<IResizeObserver, ResizeObserverService>(lifetime);
         services.AddBrowserApi<IMutationObserver, MutationObserverService>(lifetime);
         services.AddBrowserApi<IMediaSession, MediaSession>(lifetime);
-        services.AddBrowserApi<IGamepad, Gamepad>(lifetime);
-        services.AddBrowserApi<IDeviceOrientation, DeviceOrientation>(lifetime);
-        services.AddBrowserApi<IDeviceMotion, DeviceMotion>(lifetime);
-        services.AddBrowserApi<ICrypto, Crypto>(lifetime);
-        services.AddBrowserApi<IPerformance, Performance>(lifetime);
-        services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
-        services.AddBrowserApi<IFileSystemAccess, FileSystemAccess>(lifetime);
-        services.AddBrowserApi<IOriginPrivateFileSystem, OriginPrivateFileSystem>(lifetime);
-        services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
-        services.AddBrowserApi<ICookies, Cookies>(lifetime);
-        services.AddBrowserApi<IPermissions, Permissions>(lifetime);
-        services.AddBrowserApi<IVibration, Vibration>(lifetime);
-        services.AddBrowserApi<IPageVisibility, PageVisibilityInfo>(lifetime);
-        services.AddBrowserApi<IViewTransitions, ViewTransitions>(lifetime);
-        services.AddBrowserApi<IWebAnimations, WebAnimations>(lifetime);
-        services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
         services.AddBrowserApi<IMediaStreams, MediaStreams>(lifetime);
         services.AddBrowserApi<ISignaling, Signaling>(lifetime);
         services.AddBrowserApi<IWebRtc, WebRtc>(lifetime);
-        services.AddBrowserApi<IBattery, BrowserBattery>(lifetime);
-        // Transport-agnostic PWA APIs (IJSRuntime-backed, no transient activation): push subscribe, local
-        // notifications, app badge, screen wake lock. Their JS helpers ship on Server only under AddRaskPwa.
+    }
+
+    private static void AddStorageAndSecurityApis(IServiceCollection services, ServiceLifetime lifetime)
+    {
+        services.AddBrowserApi<IBrowserStorage, BrowserStorage>(lifetime);
+        services.AddBrowserApi<IStorageEstimator, StorageEstimator>(lifetime);
+        services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
+        services.AddBrowserApi<IFileSystemAccess, FileSystemAccess>(lifetime);
+        services.AddBrowserApi<IOriginPrivateFileSystem, OriginPrivateFileSystem>(lifetime);
+        services.AddBrowserApi<ICookies, Cookies>(lifetime);
+        services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
+        services.AddBrowserApi<ICrypto, Crypto>(lifetime);
+        services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
+        services.AddBrowserApi<IPermissions, Permissions>(lifetime);
+    }
+
+    // Transport-agnostic PWA APIs (IJSRuntime-backed, no transient activation): push subscribe, local
+    // notifications, app badge, screen wake lock. Their JS helpers ship on Server only under AddRaskPwa.
+    private static void AddPwaApis(IServiceCollection services, ServiceLifetime lifetime)
+    {
         services.AddBrowserApi<IWebPush, WebPush>(lifetime);
         services.AddBrowserApi<INotifications, Notifications>(lifetime);
         services.AddBrowserApi<IBadge, Badge>(lifetime);
         services.AddBrowserApi<IWakeLock, WakeLock>(lifetime);
-        return services;
     }
 }

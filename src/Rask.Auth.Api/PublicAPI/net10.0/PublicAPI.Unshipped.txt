@@ -14,7 +14,6 @@ Rask.Auth.AuthInstanceClaim.Id.get -> int
 Rask.Auth.AuthInstanceClaim.Id.set -> void
 Rask.Auth.AuthInstanceClaimConfiguration
 Rask.Auth.AuthInstanceClaimConfiguration.AuthInstanceClaimConfiguration() -> void
-Rask.Auth.AuthInstanceClaimConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Auth.AuthInstanceClaim!>! entity) -> void
 Rask.Auth.AuthModelBuilderExtensions
 Rask.Auth.AuthOptions
 Rask.Auth.AuthOptions.AccessDeniedPath.get -> string!
@@ -300,3 +299,4 @@ static Rask.Auth.SignedOut.operator !=(Rask.Auth.SignedOut? left, Rask.Auth.Sign
 static Rask.Auth.SignedOut.operator ==(Rask.Auth.SignedOut? left, Rask.Auth.SignedOut? right) -> bool
 static Rask.Auth.UserRegistered.operator !=(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool
 static Rask.Auth.UserRegistered.operator ==(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool
+Rask.Auth.AuthInstanceClaimConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Auth.AuthInstanceClaim!>! builder) -> void

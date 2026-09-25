@@ -6,12 +6,37 @@ namespace Rask.SQLite;
 /// escapes <see cref="SqliteConnectionExtensions.InImmediateTransactionAsync{T}"/>, which either
 /// re-runs the whole transaction or converts this into a diagnosable <c>SqliteException</c>.
 /// </summary>
-internal sealed class SqliteTransactionRolledBackException(string sql, int attempt)
-    : Exception($"'{sql}' was answered with a contended lock and found no transaction left, on attempt {attempt}.")
+public sealed class SqliteTransactionRolledBackException : Exception
 {
-    /// <summary>The statement that lost its transaction — always <c>COMMIT;</c> in production.</summary>
-    public string Sql { get; } = sql;
+    /// <summary>Creates the exception with a default message.</summary>
+    public SqliteTransactionRolledBackException()
+        : this("A contended statement found its transaction rolled back.")
+    {
+    }
 
-    /// <summary>Which pass of the busy-retry loop discovered it, 1-based.</summary>
-    public int Attempt { get; } = attempt;
+    /// <summary>Creates the exception with <paramref name="message"/>.</summary>
+    public SqliteTransactionRolledBackException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>Creates the exception with <paramref name="message"/> and the exception that caused it.</summary>
+    public SqliteTransactionRolledBackException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+
+    /// <summary>Creates the exception for <paramref name="sql"/>, lost on pass <paramref name="attempt"/>.</summary>
+    public SqliteTransactionRolledBackException(string sql, int attempt)
+        : base($"'{sql}' was answered with a contended lock and found no transaction left, on attempt {attempt}.")
+    {
+        Sql = sql;
+        Attempt = attempt;
+    }
+
+    /// <summary>The statement that lost its transaction — always <c>COMMIT;</c> in production.</summary>
+    public string Sql { get; } = "";
+
+    /// <summary>Which pass of the busy-retry loop discovered it, 1-based; <c>0</c> when not known.</summary>
+    public int Attempt { get; }
 }

@@ -1,140 +1,9 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Rask.Data;
-
-/// <summary>One column on a read face, and where it comes from on the write model.</summary>
-/// <param name="member">The property on the read face — <c>TotalAmount</c>.</param>
-/// <param name="path">
-///     The dotted path to it on the write model — <c>Total.Amount</c> — used to find what EF actually decided.
-/// </param>
-/// <param name="columnName">
-///     The column the convention says it lands on. The mirror overrides this wherever the write model
-///     disagrees, so it only decides for a property the write model has nothing to say about.
-/// </param>
-public sealed class ReadColumnMapping(string member, string path, string columnName)
-{
-    /// <summary>The property on the read face.</summary>
-    public string Member { get; } = member;
-
-    /// <summary>The dotted path to the same value on the write model.</summary>
-    public string Path { get; } = path;
-
-    /// <summary>The column name the convention derives.</summary>
-    public string ColumnName { get; } = columnName;
-}
-
-/// <summary>A navigation on a read face, inferred from an id the write model holds.</summary>
-/// <param name="navigation">The navigation's name — <c>ShippedByUser</c>.</param>
-/// <param name="targetReadType">The read face it points at — <c>UserRead</c>.</param>
-/// <param name="foreignKey">The id property it is inferred from — <c>ShippedByUserId</c>.</param>
-public sealed class ReadReferenceMapping(
-    string navigation,
-    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type targetReadType,
-    string foreignKey)
-{
-    /// <summary>The navigation's name.</summary>
-    public string Navigation { get; } = navigation;
-
-    /// <summary>The read face it points at.</summary>
-    [DynamicallyAccessedMembers(DataTrimming.Entity)]
-    public Type TargetReadType { get; } = targetReadType;
-
-    /// <summary>The id property it is inferred from.</summary>
-    public string ForeignKey { get; } = foreignKey;
-}
-
-/// <summary>A collection of children on a read face, and the navigation back from each child.</summary>
-/// <param name="collection">The collection on the root's read face — <c>Lines</c>.</param>
-/// <param name="childReadType">The child's read face — <c>OrderLineRead</c>.</param>
-/// <param name="childWriteType">The child's write type, for finding the relationship EF built.</param>
-/// <param name="inverse">The navigation back to the root on the child's read face — <c>Order</c>.</param>
-public sealed class ReadChildMapping(
-    string collection,
-    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type childReadType,
-    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type childWriteType,
-    string inverse)
-{
-    /// <summary>The collection on the root's read face.</summary>
-    public string Collection { get; } = collection;
-
-    /// <summary>The child's read face.</summary>
-    [DynamicallyAccessedMembers(DataTrimming.Entity)]
-    public Type ChildReadType { get; } = childReadType;
-
-    /// <summary>The child's write type.</summary>
-    [DynamicallyAccessedMembers(DataTrimming.Entity)]
-    public Type ChildWriteType { get; } = childWriteType;
-
-    /// <summary>The navigation back to the root on the child's read face.</summary>
-    public string Inverse { get; } = inverse;
-}
-
-/// <summary>A collection of values on a read face: one column, mapped as JSON or as a primitive collection.</summary>
-/// <param name="member">The member's name — <c>Tags</c>, <c>Stops</c>.</param>
-/// <param name="valueObject">
-///     The value object the collection holds, which makes the column JSON; null for plain values.
-/// </param>
-public sealed class ReadValueCollectionMapping(
-    string member,
-    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type? valueObject)
-{
-    /// <summary>The member's name.</summary>
-    public string Member { get; } = member;
-
-    /// <summary>The value object held, or null for a primitive collection.</summary>
-    [DynamicallyAccessedMembers(DataTrimming.Entity)]
-    public Type? ValueObject { get; } = valueObject;
-}
-
-/// <summary>Everything one read face is mapped from.</summary>
-/// <param name="readType">The generated read face — <c>OrderRead</c>.</param>
-/// <param name="writeType">The entity it reads — <c>Order</c>.</param>
-/// <param name="isRoot">Whether the entity is an aggregate root, which is what has a version and a soft delete.</param>
-/// <param name="tableName">The table the convention says it lives in, overridden by the mirror.</param>
-/// <param name="columns">Its columns.</param>
-/// <param name="references">Its inferred navigations.</param>
-/// <param name="children">Its child collections.</param>
-/// <param name="valueCollections">Its collections of values.</param>
-public sealed class ReadEntityMapping(
-    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type readType,
-    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type writeType,
-    bool isRoot,
-    string tableName,
-    IReadOnlyList<ReadColumnMapping> columns,
-    IReadOnlyList<ReadReferenceMapping> references,
-    IReadOnlyList<ReadChildMapping> children,
-    IReadOnlyList<ReadValueCollectionMapping> valueCollections)
-{
-    /// <summary>The generated read face.</summary>
-    [DynamicallyAccessedMembers(DataTrimming.Entity)]
-    public Type ReadType { get; } = readType;
-
-    /// <summary>The entity it reads.</summary>
-    [DynamicallyAccessedMembers(DataTrimming.Entity)]
-    public Type WriteType { get; } = writeType;
-
-    /// <summary>Whether the entity is an aggregate root.</summary>
-    public bool IsRoot { get; } = isRoot;
-
-    /// <summary>The table the convention derives.</summary>
-    public string TableName { get; } = tableName;
-
-    /// <summary>Its columns.</summary>
-    public IReadOnlyList<ReadColumnMapping> Columns { get; } = columns;
-
-    /// <summary>Its inferred navigations.</summary>
-    public IReadOnlyList<ReadReferenceMapping> References { get; } = references;
-
-    /// <summary>Its child collections.</summary>
-    public IReadOnlyList<ReadChildMapping> Children { get; } = children;
-
-    /// <summary>Its collections of values.</summary>
-    public IReadOnlyList<ReadValueCollectionMapping> ValueCollections { get; } = valueCollections;
-}
 
 /// <summary>
 ///     The read faces the model is built from, contributed by each assembly's generated registry — the read
@@ -230,48 +99,7 @@ public static class ReadModelRegistry
 
         foreach (var column in mapping.Columns)
         {
-            var source = write is null ? null : FindProperty(write, column.Path);
-
-            // The write model knows this entity and does not have the property: it was ignored, renamed out
-            // of existence, or is not stored at all. Mapping it anyway would ask for a column the table has
-            // not got, and the first query would fail on something the author never wrote.
-            if (write is not null && source is null)
-            {
-                builder.Ignore(column.Member);
-                continue;
-            }
-
-            var property = builder.Property(column.Member);
-
-            if (source is null)
-            {
-                property.HasColumnName(column.ColumnName);
-                continue;
-            }
-
-            property.HasColumnName(
-                (store is { } table ? source.GetColumnName(table) : source.GetColumnName()) ?? column.ColumnName);
-            property.IsRequired(!source.IsNullable);
-
-            if (source.GetColumnType() is { Length: > 0 } columnType)
-            {
-                property.HasColumnType(columnType);
-            }
-
-            if (source.GetValueConverter() is { } converter)
-            {
-                property.HasConversion(converter);
-            }
-
-            if (source.GetMaxLength() is { } maxLength)
-            {
-                property.HasMaxLength(maxLength);
-            }
-
-            if (source.IsUnicode() is { } unicode)
-            {
-                property.IsUnicode(unicode);
-            }
+            MapColumn(builder, column, write, store);
         }
 
         // One column each, so they are mapped the same way the write side maps them rather than as a
@@ -288,6 +116,60 @@ public static class ReadModelRegistry
             builder.PrimitiveCollection(collection.Member);
         }
 
+        MapAnnotationsAndFilters(builder, mapping, write, context);
+    }
+
+    private static void MapColumn(
+        EntityTypeBuilder builder, ReadColumnMapping column, IEntityType? write, StoreObjectIdentifier? store)
+    {
+        var source = write is null ? null : FindProperty(write, column.Path);
+
+        // The write model knows this entity and does not have the property: it was ignored, renamed out
+        // of existence, or is not stored at all. Mapping it anyway would ask for a column the table has
+        // not got, and the first query would fail on something the author never wrote.
+        if (write is not null && source is null)
+        {
+            builder.Ignore(column.Member);
+            return;
+        }
+
+        var property = builder.Property(column.Member);
+
+        if (source is null)
+        {
+            property.HasColumnName(column.ColumnName);
+            return;
+        }
+
+        property.HasColumnName(
+            (store is { } table ? source.GetColumnName(table) : source.GetColumnName()) ?? column.ColumnName);
+        property.IsRequired(!source.IsNullable);
+
+        if (source.GetColumnType() is { Length: > 0 } columnType)
+        {
+            property.HasColumnType(columnType);
+        }
+
+        if (source.GetValueConverter() is { } converter)
+        {
+            property.HasConversion(converter);
+        }
+
+        if (source.GetMaxLength() is { } maxLength)
+        {
+            property.HasMaxLength(maxLength);
+        }
+
+        if (source.IsUnicode() is { } unicode)
+        {
+            property.IsUnicode(unicode);
+        }
+    }
+
+    // Rask's own annotations and the write side's query filters, mirrored onto the face.
+    private static void MapAnnotationsAndFilters(
+        EntityTypeBuilder builder, ReadEntityMapping mapping, IEntityType? write, DbContext? context)
+    {
         // Rask's own annotations travel with the face. The full-text index is declared on the ENTITY —
         // builder.HasFullTextSearch(x => new { x.Title, x.Body }) — and Search is now a read-side operator,
         // so without this Post.Read.Search would refuse with "no full-text index" while the table plainly
@@ -321,7 +203,7 @@ public static class ReadModelRegistry
                     "declared ': DbContext, ITenantScoped'.");
             }
 
-            builder.Property(typeof(Guid?), Columns.TenantId);
+            builder.Property<Guid?>(Columns.TenantId);
             builder.HasQueryFilter(
                 ModelBuilderExtensions.TenantFilter,
                 ModelBuilderExtensions.BuildTenantFilter(mapping.ReadType, context));

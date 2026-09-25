@@ -29,7 +29,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
             _status = "Setup failed: " + ex.Message;
         }
 
-        StateHasChanged();
+        await StateHasChangedAsync();
     }
 
     protected override Component? Render() =>

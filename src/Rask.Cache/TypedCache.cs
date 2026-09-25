@@ -4,7 +4,7 @@ using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>
 ///     <see cref="ICache" /> over the registered <see cref="IDistributedCache" />, serializing with the app's
@@ -47,7 +47,9 @@ internal sealed class TypedCache(IDistributedCache store, IOptions<CacheOptions>
     {
         try
         {
+#pragma warning disable CA2263 // GetTypeInfo<T>() is .NET 11 only, and this line also builds for net10.0
             return (JsonTypeInfo<T>)_json.GetTypeInfo(typeof(T));
+#pragma warning restore CA2263
         }
         catch (Exception e) when (e is NotSupportedException or InvalidOperationException)
         {
@@ -74,6 +76,6 @@ internal sealed class TypedCache(IDistributedCache store, IOptions<CacheOptions>
         Justification = "Guarded by JsonSerializer.IsReflectionEnabledByDefault, which the trimmer turns off.")]
     [UnconditionalSuppressMessage("AOT", "IL3050",
         Justification = "Guarded by JsonSerializer.IsReflectionEnabledByDefault, which AOT turns off.")]
-    private static IJsonTypeInfoResolver? Reflection() =>
+    private static DefaultJsonTypeInfoResolver? Reflection() =>
         JsonSerializer.IsReflectionEnabledByDefault ? new DefaultJsonTypeInfoResolver() : null;
 }

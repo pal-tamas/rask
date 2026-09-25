@@ -82,8 +82,8 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
     {
         for (var current = symbol.BaseType; current is not null; current = current.BaseType)
         {
-            if (current.Name == AuthenticatableBase &&
-                current.ContainingNamespace?.ToDisplayString() == AuthNamespace)
+            if (current.Name is AuthenticatableBase &&
+                current.ContainingNamespace?.ToDisplayString() is AuthNamespace)
             {
                 return true;
             }

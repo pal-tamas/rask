@@ -30,7 +30,7 @@ public sealed partial class UiCountdown : Component
 
         return Span
             .Class(UiClass.Compose("countdown", Class))
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })[
+            .Aria("label", Label)[
             Span.Style($"--value:{text}").Attributes(("aria-hidden", "true"))[text]
         ];
     }

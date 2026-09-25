@@ -24,7 +24,7 @@ namespace Rask.Generators.Translations;
 internal static class PluralRules
 {
     // CLDR category names, in the order a catalog should list them.
-    public static readonly string[] Categories = ["zero", "one", "two", "few", "many", "other"];
+    public static readonly string[] AllCategories = ["zero", "one", "two", "few", "many", "other"];
 
     private sealed class Rule(string[] categories, string body)
     {
@@ -216,7 +216,7 @@ internal static class PluralRules
         _rules.TryGetValue(PrimaryLanguage(cultureTag), out var rule) ? rule.Body : null;
 
     /// <summary>Whether <paramref name="name" /> is a CLDR plural category at all.</summary>
-    public static bool IsCategory(string name) => Array.IndexOf(Categories, name) >= 0;
+    public static bool IsCategory(string name) => Array.IndexOf(AllCategories, name) >= 0;
 
     private static string PrimaryLanguage(string tag)
     {

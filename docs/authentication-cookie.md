@@ -201,13 +201,13 @@ public sealed class ApiUserProvider(HttpClient http) : IUserProvider
     private ClaimsPrincipal _current = new(new ClaimsIdentity());
     public ClaimsPrincipal Current => _current;
     public bool IsLoading { get; private set; }
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     public Task EnsureLoadedAsync() => LoadAsync();
 
     public async Task RefreshAsync()
     {
-        IsLoading = true; Changed?.Invoke();
+        IsLoading = true; Changed?.Invoke(this, EventArgs.Empty);
         await LoadAsync();
     }
 
@@ -222,7 +222,7 @@ public sealed class ApiUserProvider(HttpClient http) : IUserProvider
                 : new ClaimsPrincipal(new ClaimsIdentity());
         }
         catch (HttpRequestException) { _current = new ClaimsPrincipal(new ClaimsIdentity()); }
-        finally { IsLoading = false; Changed?.Invoke(); }
+        finally { IsLoading = false; Changed?.Invoke(this, EventArgs.Empty); }
     }
 }
 

@@ -30,7 +30,7 @@ internal sealed partial class DevToolsPageErrorReceiver : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Span.Hidden(true)
-            .Data(new Dictionary<string, string?> { ["rask-devtools-page-errors"] = "" })
+            .Data("rask-devtools-page-errors", "")
             .OnKeyDown(e => Received(e.Key));
 
     private void Received(string? key)
@@ -69,11 +69,11 @@ internal sealed partial class DevToolsPageErrorReceiver : Component
         }
 
         var island = Text(report, "island", TitleLimit);
-        var kind = Text(report, "kind", 16) == "island" ? DevToolsErrorKind.Island : DevToolsErrorKind.Page;
+        var kind = string.Equals(Text(report, "kind", 16), "island", StringComparison.Ordinal) ? DevToolsErrorKind.Island : DevToolsErrorKind.Page;
         var at = report.TryGetProperty("at", out var ms) && ms.TryGetInt64(out var millis)
                  && millis is > 0 and < 253402300800000
             ? DateTimeOffset.FromUnixTimeMilliseconds(millis).ToLocalTime()
-            : DateTimeOffset.Now;
+            : TimeProvider.System.GetLocalNow();
 
         if (kind == DevToolsErrorKind.Island)
         {
@@ -107,8 +107,14 @@ internal sealed partial class DevToolsPageErrorReceiver : Component
         }
     }
 
-    private static string? Text(JsonElement report, string name, int limit) =>
-        report.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { } text
-            ? text.Length <= limit ? text : text[..limit]
-            : null;
+    private static string? Text(JsonElement report, string name, int limit)
+    {
+        if (!report.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.String
+            || value.GetString() is not { } text)
+        {
+            return null;
+        }
+
+        return text.Length <= limit ? text : text[..limit];
+    }
 }

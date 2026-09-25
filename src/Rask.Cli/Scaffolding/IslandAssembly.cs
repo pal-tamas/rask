@@ -151,6 +151,37 @@ internal static class IslandAssembly
     /// <summary>The flat config, carrying a plugin for each runtime the project actually holds.</summary>
     private static string EsLintConfig(IReadOnlyList<string> runtimes)
     {
+        var (imports, blocks) = EsLintPlugins(runtimes);
+
+        // $$ so that a single brace is literal and {{…}} interpolates: this emits JavaScript, which is
+        // mostly braces, and a raw string literal does not use the {{ doubling that a plain
+        // interpolated string does.
+        return $$"""
+            // ESLint's flat config for this project's islands. Close to the recommended sets on purpose:
+            // a starter that argues about style on its first run is a starter people delete the config
+            // from. eslint-config-prettier goes LAST and turns off every rule the formatter would fight.
+            //
+            // obj/ is ignored: the prop types and the Vite config Rask generates live there, and linting
+            // generated code reports problems in files nobody may edit.
+            {{imports}}
+            export default ts.config(
+              {
+                ignores: ['obj/**', 'bin/**', 'node_modules/**', 'wwwroot/_rask/**'],
+              },
+            {{blocks}}  {
+                languageOptions: {
+                  globals: { ...globals.browser },
+                },
+              },
+              prettier,
+            )
+
+            """;
+    }
+
+    /// <summary>The import lines and config blocks for each runtime's lint plugin.</summary>
+    private static (StringBuilder Imports, StringBuilder Blocks) EsLintPlugins(IReadOnlyList<string> runtimes)
+    {
         var imports = new StringBuilder()
             .AppendLine("import js from '@eslint/js'")
             .AppendLine("import ts from 'typescript-eslint'")
@@ -193,30 +224,7 @@ internal static class IslandAssembly
             blocks.AppendLine("  lit.configs['flat/recommended'],");
         }
 
-        // $$ so that a single brace is literal and {{…}} interpolates: this emits JavaScript, which is
-        // mostly braces, and a raw string literal does not use the {{ doubling that a plain
-        // interpolated string does.
-        return $$"""
-            // ESLint's flat config for this project's islands. Close to the recommended sets on purpose:
-            // a starter that argues about style on its first run is a starter people delete the config
-            // from. eslint-config-prettier goes LAST and turns off every rule the formatter would fight.
-            //
-            // obj/ is ignored: the prop types and the Vite config Rask generates live there, and linting
-            // generated code reports problems in files nobody may edit.
-            {{imports}}
-            export default ts.config(
-              {
-                ignores: ['obj/**', 'bin/**', 'node_modules/**', 'wwwroot/_rask/**'],
-              },
-            {{blocks}}  {
-                languageOptions: {
-                  globals: { ...globals.browser },
-                },
-              },
-              prettier,
-            )
-
-            """;
+        return (imports, blocks);
     }
 
     /// <summary>The flags the templates' island regions are marked with.</summary>
@@ -228,6 +236,11 @@ internal static class IslandAssembly
     {
         ArgumentNullException.ThrowIfNull(runtimes);
 
+        return FlagsIterator(runtimes);
+    }
+
+    private static IEnumerable<string> FlagsIterator(IReadOnlyList<string> runtimes)
+    {
         if (runtimes.Any(r => !string.Equals(r, IslandRuntimes.Blazor, StringComparison.Ordinal)))
         {
             yield return "islands";
@@ -238,6 +251,9 @@ internal static class IslandAssembly
             yield return "islands-blazor";
         }
     }
+
+    private static readonly string[] IslandIncludePatterns =
+        ["Features/**/*.ts", "Features/**/*.tsx", "Features/**/*.vue", "Features/**/*.svelte"];
 
     private static bool IsTsConfig(ScaffoldFile file) =>
         string.Equals(Path.GetFileName(file.Path), "tsconfig.json", StringComparison.Ordinal);
@@ -262,8 +278,27 @@ internal static class IslandAssembly
             }) as JsonObject ?? [];
 
         node["extends"] = "./obj/rask-external/tsconfig.paths.json";
+        node["compilerOptions"] = WithIslandCompilerOptions(node["compilerOptions"] as JsonObject ?? [], runtimes);
 
-        var options = node["compilerOptions"] as JsonObject ?? [];
+        var include = node["include"] as JsonArray ?? [];
+        var missing = IslandIncludePatterns
+            .Where(pattern => !include.Any(v => string.Equals(v?.GetValue<string>(), pattern, StringComparison.Ordinal)))
+            .ToArray();
+        foreach (var pattern in missing)
+        {
+            include.Add(pattern);
+        }
+
+        node["include"] = include;
+
+        return file with
+        {
+            Content = node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n",
+        };
+    }
+
+    private static JsonObject WithIslandCompilerOptions(JsonObject options, IReadOnlyList<string> runtimes)
+    {
 
         // Without a jsx setting the island type-check cannot compile a .tsx at ALL, so a React, Preact
         // or Solid island fails its first build with an error about the syntax rather than the config.
@@ -303,26 +338,7 @@ internal static class IslandAssembly
             options["useDefineForClassFields"] = false;
         }
 
-        node["compilerOptions"] = options;
-
-        var include = node["include"] as JsonArray ?? [];
-        foreach (var pattern in new[]
-        {
-            "Features/**/*.ts", "Features/**/*.tsx", "Features/**/*.vue", "Features/**/*.svelte",
-        })
-        {
-            if (!include.Any(v => string.Equals(v?.GetValue<string>(), pattern, StringComparison.Ordinal)))
-            {
-                include.Add(pattern);
-            }
-        }
-
-        node["include"] = include;
-
-        return file with
-        {
-            Content = node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n",
-        };
+        return options;
     }
 
     private static bool ReadDependencies(byte[] islandJson, SortedDictionary<string, string> into)

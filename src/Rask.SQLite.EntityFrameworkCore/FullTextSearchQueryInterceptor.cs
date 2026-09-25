@@ -126,7 +126,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                    && name is nameof(Queryable.ThenBy) or nameof(Queryable.ThenByDescending)
                    && call.Arguments.Count == 2)
             {
-                orderings.Insert(0, ((LambdaExpression)Unquote(call.Arguments[1]), name == nameof(Queryable.ThenByDescending)));
+                orderings.Insert(0, ((LambdaExpression)Unquote(call.Arguments[1]), string.Equals(name, nameof(Queryable.ThenByDescending), StringComparison.Ordinal)));
                 current = call.Arguments[0];
             }
 
@@ -135,7 +135,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 : null;
         }
 
-        private static Expression RewriteSearch(
+        private static MethodCallExpression RewriteSearch(
             Index index,
             Expression source,
             Expression match,
@@ -143,8 +143,21 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
         {
             var entity = index.EntityType.ClrType;
             var hit = HitType.For(entity);
+            var ordered = OrderByRank(hit, Hits(index, hit, source, match), tieBreakers);
 
-            Expression hits;
+            var o = Expression.Parameter(hit.Type, "o");
+            return Expression.Call(
+                typeof(Queryable),
+                nameof(Queryable.Select),
+                [hit.Type, entity],
+                ordered,
+                Expression.Quote(Expression.Lambda(Expression.Property(o, hit.Item), o)));
+        }
+
+        // The searched rows paired with their rank, as FullTextHit<TEntity>.
+        private static MethodCallExpression Hits(Index index, HitType hit, Expression source, Expression match)
+        {
+            var entity = index.EntityType.ClrType;
             if (index.KeyEntity is null)
             {
                 // Posts ⋈ (index WHERE index = @match) ON Posts.Id = index.rowid
@@ -156,7 +169,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 var r = Expression.Parameter(entity, "r");
                 var m = Expression.Parameter(typeof(Dictionary<string, object>), "m");
 
-                hits = Expression.Call(
+                return Expression.Call(
                     typeof(Queryable),
                     nameof(Queryable.Join),
                     [entity, typeof(Dictionary<string, object>), key.ClrType, hit.Type],
@@ -166,26 +179,30 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                     Expression.Quote(Expression.Lambda(Property(f, FullTextSearchEntityConvention.RowId, key.ClrType), f)),
                     Expression.Quote(Expression.Lambda(Hit(hit, r, Property(m, FullTextSearchEntityConvention.Rank, typeof(double))), r, m)));
             }
-            else
-            {
-                // Posts ⋈ keys ON every key column ⋈ (index WHERE index = @match) ON keys.rowid = index.rowid
-                var p = Expression.Parameter(entity, "p");
-                var rank = RankOf(index, p, match);
-                var r = Expression.Parameter(entity, "r");
-                var s = Expression.Parameter(typeof(double), "s");
 
-                hits = Expression.Call(
-                    typeof(Queryable),
-                    nameof(Queryable.SelectMany),
-                    [entity, typeof(double), hit.Type],
-                    source,
-                    Expression.Quote(Expression.Lambda(
-                        typeof(Func<,>).MakeGenericType(entity, typeof(IEnumerable<double>)), rank, p)),
-                    Expression.Quote(Expression.Lambda(Hit(hit, r, s), r, s)));
-            }
+            // Posts ⋈ keys ON every key column ⋈ (index WHERE index = @match) ON keys.rowid = index.rowid
+            var e = Expression.Parameter(entity, "p");
+            var rank = RankOf(index, e, match);
+            var hitRow = Expression.Parameter(entity, "r");
+            var s = Expression.Parameter(typeof(double), "s");
 
+            return Expression.Call(
+                typeof(Queryable),
+                nameof(Queryable.SelectMany),
+                [entity, typeof(double), hit.Type],
+                source,
+                Expression.Quote(Expression.Lambda(
+                    typeof(Func<,>).MakeGenericType(entity, typeof(IEnumerable<double>)), rank, e)),
+                Expression.Quote(Expression.Lambda(Hit(hit, hitRow, s), hitRow, s)));
+        }
+
+        private static MethodCallExpression OrderByRank(
+            HitType hit,
+            MethodCallExpression hits,
+            List<(LambdaExpression Key, bool Descending)> tieBreakers)
+        {
             var h = Expression.Parameter(hit.Type, "h");
-            Expression ordered = Expression.Call(
+            var ordered = Expression.Call(
                 typeof(Queryable),
                 nameof(Queryable.OrderBy),
                 [hit.Type, typeof(double)],
@@ -206,17 +223,11 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                     Expression.Quote(Expression.Lambda(body, t)));
             }
 
-            var o = Expression.Parameter(hit.Type, "o");
-            return Expression.Call(
-                typeof(Queryable),
-                nameof(Queryable.Select),
-                [hit.Type, entity],
-                ordered,
-                Expression.Quote(Expression.Lambda(Expression.Property(o, hit.Item), o)));
+            return ordered;
         }
 
         // keys.Where(k => k.K1 == p.K1 && …).Join(index.Where(f => f.Match == @match), k => k.rowid, f => f.rowid, (k, f) => f.Rank)
-        private static Expression RankOf(Index index, Expression entity, Expression match)
+        private static MethodCallExpression RankOf(Index index, Expression entity, Expression match)
         {
             var keys = MatchingKeys(index, entity);
             var matching = Where(index.IndexEntity, row => Equal(Property(row, FullTextSearchEntityConvention.Match, typeof(string)), match));
@@ -237,14 +248,14 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 Expression.Quote(Expression.Lambda(Property(jf, FullTextSearchEntityConvention.Rank, typeof(double)), jk, jf)));
         }
 
-        private static Expression MatchingKeys(Index index, Expression entity) =>
+        private static MethodCallExpression MatchingKeys(Index index, Expression entity) =>
             Where(index.KeyEntity!, row => index.Key
                 .Select(key => Equal(Property(row, key.Name, key.ClrType), Property(entity, key.Name, key.ClrType)))
                 .Aggregate(Expression.AndAlso));
 
         // ---- Highlight / Snippet ------------------------------------------------------------------------------
 
-        private Expression RewriteFunction(MethodCallExpression node)
+        private MethodCallExpression RewriteFunction(MethodCallExpression node)
         {
             var name = node.Method.Name;
             var argument = Unwrap(node.Arguments[0]);
@@ -266,55 +277,74 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                     $"{string.Join(", ", index.Spec.Properties)}.");
             }
 
-            // How the caller would have written it. A read face is reached through its entity —
-            // Post.Read.Search(…) — so naming the CLR type would print PostRead.Search, which is not a
-            // thing anyone can type.
-            static string SearchedAs(Type queried) =>
-                typeof(global::Rask.Data.IReadModel).IsAssignableFrom(queried) &&
-                queried.Name.EndsWith("Read", StringComparison.Ordinal)
-                    ? queried.Name[..^"Read".Length] + ".Read"
-                    : queried.Name;
-
-            if (!searches.TryGetValue(owner.Type, out var matches) || matches.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    $"FullText.{name} marks what a search matched, so it needs one: call it on a query that calls " +
-                    $"Search(text), as in {SearchedAs(owner.Type)}.Search(text).Select(p => FullText.{name}(p.{member.Name})).");
-            }
-
-            if (matches.Count > 1)
-            {
-                throw new InvalidOperationException(
-                    $"FullText.{name} cannot tell which of this query's {matches.Count} searches of {owner.Type.Name} " +
-                    "to mark. Search each once, and project the highlights from that query.");
-            }
-
-            var match = matches[0];
+            var match = SingleMatch(name, owner.Type, member.Name);
             var visitedOwner = Visit(owner);
 
             var f = Expression.Parameter(typeof(Dictionary<string, object>), "f");
-            Expression predicate = Equal(Property(f, FullTextSearchEntityConvention.Match, typeof(string)), match);
-
-            predicate = index.KeyEntity is null
-                ? Expression.AndAlso(
-                    Equal(Property(f, FullTextSearchEntityConvention.RowId, index.Key[0].ClrType), Property(visitedOwner, index.Key[0].Name, index.Key[0].ClrType)),
-                    predicate)
-                : Expression.AndAlso(
-                    Equal(Property(f, FullTextSearchEntityConvention.RowId, typeof(long)), FirstRowId(index, visitedOwner)),
-                    predicate);
-
             var filtered = Expression.Call(
                 typeof(Queryable),
                 nameof(Queryable.Where),
                 [typeof(Dictionary<string, object>)],
                 new EntityQueryRootExpression(index.IndexEntity),
-                Expression.Quote(Expression.Lambda(predicate, f)));
+                Expression.Quote(Expression.Lambda(IndexRowOf(index, f, visitedOwner, match), f)));
 
             var hidden = Property(f, FullTextSearchEntityConvention.Match, typeof(string));
+            var selected = Expression.Call(
+                typeof(Queryable),
+                nameof(Queryable.Select),
+                [typeof(Dictionary<string, object>), typeof(string)],
+                filtered,
+                Expression.Quote(Expression.Lambda(MarkMatches(name, hidden, column, node), f)));
+
+            return Expression.Call(typeof(Queryable), nameof(Queryable.FirstOrDefault), [typeof(string)], selected);
+        }
+
+        // How the caller would have written it. A read face is reached through its entity —
+        // Post.Read.Search(…) — so naming the CLR type would print PostRead.Search, which is not a
+        // thing anyone can type.
+        private static string SearchedAs(Type queried) =>
+            typeof(global::Rask.Data.IReadModel).IsAssignableFrom(queried) &&
+            queried.Name.EndsWith("Read", StringComparison.Ordinal)
+                ? queried.Name[..^"Read".Length] + ".Read"
+                : queried.Name;
+
+        // The one search of the owner's type in this query: the match the function marks.
+        private Expression SingleMatch(string name, Type owner, string member)
+        {
+            if (!searches.TryGetValue(owner, out var matches) || matches.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"FullText.{name} marks what a search matched, so it needs one: call it on a query that calls " +
+                    $"Search(text), as in {SearchedAs(owner)}.Search(text).Select(p => FullText.{name}(p.{member})).");
+            }
+
+            if (matches.Count > 1)
+            {
+                throw new InvalidOperationException(
+                    $"FullText.{name} cannot tell which of this query's {matches.Count} searches of {owner.Name} " +
+                    "to mark. Search each once, and project the highlights from that query.");
+            }
+
+            return matches[0];
+        }
+
+        // f is the owner's index row and matches the search: f.rowid == owner's rowid && f.index == @match
+        private static BinaryExpression IndexRowOf(Index index, ParameterExpression f, Expression owner, Expression match)
+        {
+            var key = index.Key[0];
+            var sameRow = index.KeyEntity is null
+                ? Equal(Property(f, FullTextSearchEntityConvention.RowId, key.ClrType), Property(owner, key.Name, key.ClrType))
+                : Equal(Property(f, FullTextSearchEntityConvention.RowId, typeof(long)), FirstRowId(index, owner));
+            return Expression.AndAlso(sameRow, Equal(Property(f, FullTextSearchEntityConvention.Match, typeof(string)), match));
+        }
+
+        // highlight(index, column, start, end), or snippet(index, column, start, end, '…', words)
+        private MethodCallExpression MarkMatches(string name, Expression hidden, int column, MethodCallExpression node)
+        {
             var start = Expression.Constant(FullText.MatchStart.ToString());
             var end = Expression.Constant(FullText.MatchEnd.ToString());
 
-            Expression call = name == nameof(FullText.Highlight)
+            return string.Equals(name, nameof(FullText.Highlight), StringComparison.Ordinal)
                 ? Expression.Call(FullTextFunctions.HighlightMethod, hidden, Expression.Constant(column), start, end)
                 : Expression.Call(
                     FullTextFunctions.SnippetMethod,
@@ -324,19 +354,10 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                     end,
                     Expression.Constant("…"),
                     Words(Visit(node.Arguments[1])));
-
-            var selected = Expression.Call(
-                typeof(Queryable),
-                nameof(Queryable.Select),
-                [typeof(Dictionary<string, object>), typeof(string)],
-                filtered,
-                Expression.Quote(Expression.Lambda(call, f)));
-
-            return Expression.Call(typeof(Queryable), nameof(Queryable.FirstOrDefault), [typeof(string)], selected);
         }
 
         // keys.Where(k => k.K1 == p.K1 && …).Select(k => k.rowid).FirstOrDefault()
-        private static Expression FirstRowId(Index index, Expression entity)
+        private static MethodCallExpression FirstRowId(Index index, Expression entity)
         {
             var k = Expression.Parameter(typeof(Dictionary<string, object>), "k");
             var rowIds = Expression.Call(
@@ -364,7 +385,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
 
         // ---- Helpers ------------------------------------------------------------------------------------------
 
-        private static Expression Where(IEntityType entityType, Func<ParameterExpression, Expression> predicate)
+        private static MethodCallExpression Where(IEntityType entityType, Func<ParameterExpression, Expression> predicate)
         {
             var row = Expression.Parameter(typeof(Dictionary<string, object>), "row");
             return Expression.Call(
@@ -375,7 +396,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 Expression.Quote(Expression.Lambda(predicate(row), row)));
         }
 
-        private static Expression Hit(HitType hit, Expression item, Expression rank) =>
+        private static MemberInitExpression Hit(HitType hit, Expression item, Expression rank) =>
             Expression.MemberInit(Expression.New(hit.Constructor), Expression.Bind(hit.Item, item), Expression.Bind(hit.Rank, rank));
 
         // EF.Property<TProperty>(entity, name), closed over a column type read from the model — exactly how EF Core
@@ -383,10 +404,10 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
         [UnconditionalSuppressMessage("Trimming", "IL2060:MakeGenericMethod",
             Justification = "EF.Property<TProperty> declares no DynamicallyAccessedMembers on TProperty, so closing it "
                             + "over any type needs nothing kept for it; it is a marker EF translates, never invoked.")]
-        private static Expression Property(Expression instance, string name, Type type) =>
+        private static MethodCallExpression Property(Expression instance, string name, Type type) =>
             Expression.Call(PropertyMethod.MakeGenericMethod(type), instance, Expression.Constant(name));
 
-        private static Expression Equal(Expression left, Expression right) =>
+        private static BinaryExpression Equal(Expression left, Expression right) =>
             Expression.Equal(left, right.Type == left.Type ? right : Expression.Convert(right, left.Type));
 
         private static Expression Unwrap(Expression node) =>
@@ -468,13 +489,4 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 model.FindEntityType(FullTextSearchEntityConvention.KeyEntityName(declaring)));
         }
     }
-}
-
-/// <summary>A searched row paired with its rank, between the join and the projection back to the row.</summary>
-/// <typeparam name="TEntity">The searched entity.</typeparam>
-internal sealed class FullTextHit<TEntity>
-{
-    public TEntity Item { get; set; } = default!;
-
-    public double Rank { get; set; }
 }

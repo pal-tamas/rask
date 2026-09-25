@@ -93,7 +93,7 @@ internal sealed partial class DevToolsPerfTab : Component
         ];
     }
 
-    private void OnFeedChanged() => _gate?.Notify();
+    private void OnFeedChanged(object? sender, EventArgs e) => _gate?.Notify();
 
     private static Component InteractionTable(DevToolsInteraction[] interactions)
     {
@@ -110,7 +110,7 @@ internal sealed partial class DevToolsPerfTab : Component
                 Td.Class("tabular-nums whitespace-nowrap")[item.DiffTicks > 0 ? Milliseconds(item.DiffTicks) : ""],
                 Td.Class("tabular-nums whitespace-nowrap")[item.Frames == 0 ? "nothing sent" : Size(item.Bytes)],
                 Td.Class("tabular-nums whitespace-nowrap")[
-                    item.PatchMilliseconds is { } patch ? Milliseconds(patch) : item.Frames == 0 ? "" : "…"
+                    Patch(item)
                 ],
                 Td.Class("tabular-nums whitespace-nowrap font-semibold")[
                     Milliseconds(Stopwatch.GetElapsedTime(0, item.ServerTicks).TotalMilliseconds + (item.PatchMilliseconds ?? 0))
@@ -129,6 +129,17 @@ internal sealed partial class DevToolsPerfTab : Component
                 Tbody[rows]
             ]
         ];
+    }
+
+    // The browser's patch time; blank for an interaction that sent nothing, an ellipsis while it is still coming.
+    private static string Patch(DevToolsInteraction item)
+    {
+        if (item.PatchMilliseconds is { } patch)
+        {
+            return Milliseconds(patch);
+        }
+
+        return item.Frames == 0 ? "" : "…";
     }
 
     private static Component Trigger(DevToolsInteraction item) =>

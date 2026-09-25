@@ -157,12 +157,9 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     private static void RegisterSubGraph(LiveRenderContext live, EditContext ctx, object root)
     {
-        foreach (var node in ModelGraphWalker.Walk(root))
+        foreach (var node in ModelGraphWalker.Walk(root).Where(node => !ReferenceEquals(node, root)))
         {
-            if (!ReferenceEquals(node, root))
-            {
-                live.RegisterEditContextForKey(node, ctx);
-            }
+            live.RegisterEditContextForKey(node, ctx);
         }
     }
 
@@ -313,11 +310,13 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     // Which form, when a page has several. Nothing identifies a Form intrinsically, so this leans on
     // whatever the author already wrote — an id, a name, a class — and says nothing when there is none,
     // rather than inventing a label that would not help anyone find it.
-    private string Describe() =>
-        Id is { Length: > 0 } id ? $" '#{id}'"
-        : Name is { Length: > 0 } name ? $" '{name}'"
-        : Class is { Length: > 0 } cls ? $" '.{cls}'"
-        : string.Empty;
+    private string Describe() => this switch
+    {
+        { Id: { Length: > 0 } id } => $" '#{id}'",
+        { Name: { Length: > 0 } name } => $" '{name}'",
+        { Class: { Length: > 0 } cls } => $" '.{cls}'",
+        _ => string.Empty,
+    };
 
     private Func<FormData, Task> BuildSubmitBridge(EditContext ctx) =>
         async formData =>
@@ -343,10 +342,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
                 {
                     // No model-shaped handler: fall back to the raw FormData one, which is what a form that
                     // only wants the posted values uses.
-                    if (OnAnySubmit?.Invoke(formData) is { } raw)
-                    {
-                        await raw.ConfigureAwait(false);
-                    }
+                    await OnAnySubmit.Invoke(formData).ConfigureAwait(false);
 
                     return;
                 }
@@ -354,10 +350,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
                 // Typed, so the model goes straight to the handler — the non-generic Form had to
                 // DynamicInvoke here, because all it held was a Delegate.
                 var model = (TModel)ctx.Model;
-                if (onModel.Value.Invoke(model) is { } pending)
-                {
-                    await pending.ConfigureAwait(false);
-                }
+                await onModel.Value.Invoke(model).ConfigureAwait(false);
             }
 #pragma warning disable CA1031 // Any failure of the app's own save is the page's to render, not the framework's to choose between.
             catch (Exception ex)

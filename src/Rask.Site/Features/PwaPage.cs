@@ -98,7 +98,7 @@ public sealed partial class PwaPage : Component
     private static Component Rail(IReadOnlyList<Section> sections) =>
         Nav
             .Class("mt-6 mb-8 rounded-xl bg-ui-bg ring-1 ring-ui-line p-4")
-            .Aria(new Dictionary<string, string?> { ["label"] = "On this page" })[
+            .Aria("label", "On this page")[
                 Div.Class("text-xs font-semibold uppercase tracking-widest text-ui-muted mb-2")["On this page"],
                 Ul.Class("grid gap-1 sm:grid-cols-2 lg:grid-cols-3")[
                     sections.Select(section =>
@@ -131,6 +131,22 @@ public sealed partial class PwaPage : Component
 
     private static List<Section> Sections() =>
     [
+        NotificationsTopic(),
+        InstallPromptTopic(),
+        WakeLockTopic(),
+        OrientationTopic(),
+        FullscreenTopic(),
+        PictureInPictureTopic(),
+        EyeDropperTopic(),
+        IdleDetectionTopic(),
+        MediaDevicesTopic(),
+        WebSerialTopic(),
+        WebUsbTopic(),
+        WebHidTopic(),
+        WebBluetoothTopic(),
+    ];
+
+    private static Section NotificationsTopic() =>
         new("notifications", "Notifications, push & badge", () =>
         [
             P.Class("text-ui-muted")[
@@ -142,8 +158,9 @@ public sealed partial class PwaPage : Component
                 .Notes("Local notifications, Web Push readiness, and the installed-app badge — all WASM-only "
                     + "(they need a live user gesture or the installed-PWA instance the Server round-trip can't carry).")
                 .Result(PwaDemo)
-        ]),
+        ]);
 
+    private static Section InstallPromptTopic() =>
         new("install", "Install prompt", () =>
         [
             P.Class("text-ui-muted")[
@@ -158,8 +175,9 @@ public sealed partial class PwaPage : Component
                     + "event and returns the user's InstallOutcome. The browser only offers it over HTTPS with a "
                     + "valid manifest + service worker, once per load.")
                 .Result(InstallPromptDemo)
-        ]),
+        ]);
 
+    private static Section WakeLockTopic() =>
         new("wake-lock", "Wake lock", () =>
         [
             P.Class("text-ui-muted")[
@@ -172,8 +190,9 @@ public sealed partial class PwaPage : Component
                 .Notes("RequestAsync returns an IWakeLockSentinel (IAsyncDisposable); dispose it to release. "
                     + "WASM-only — the lock is tied to the live document.")
                 .Result(WakeLockDemo)
-        ]),
+        ]);
 
+    private static Section OrientationTopic() =>
         new("orientation", "Orientation", () =>
         [
             P.Class("text-ui-muted")[
@@ -185,8 +204,9 @@ public sealed partial class PwaPage : Component
                 .Notes("GetAsync returns the OrientationInfo (type + angle); LockAsync/UnlockAsync change it. "
                     + "WASM-only — locking needs the live, usually fullscreen, document.")
                 .Result(OrientationDemo)
-        ]),
+        ]);
 
+    private static Section FullscreenTopic() =>
         new("fullscreen", "Fullscreen", () =>
         [
             P.Class("text-ui-muted")[
@@ -199,8 +219,9 @@ public sealed partial class PwaPage : Component
                 .Notes("RequestAsync(ElementRef?) fullscreens that element (or the page when null); ExitAsync "
                     + "leaves. Gate on IsSupportedAsync and wrap in try/catch — a request without activation rejects.")
                 .Result(FullscreenDemo)
-        ]),
+        ]);
 
+    private static Section PictureInPictureTopic() =>
         new("picture-in-picture", "Picture-in-Picture", () =>
         [
             P.Class("text-ui-muted")[
@@ -214,8 +235,9 @@ public sealed partial class PwaPage : Component
                 .Notes("RequestAsync(ElementRef) sends that <video> to the miniplayer; ExitAsync brings it back. "
                     + "Gate on IsSupportedAsync and wrap in try/catch — a request without activation rejects.")
                 .Result(PictureInPictureDemo)
-        ]),
+        ]);
 
+    private static Section EyeDropperTopic() =>
         new("eye-dropper", "EyeDropper", () =>
         [
             P.Class("text-ui-muted")[
@@ -228,8 +250,9 @@ public sealed partial class PwaPage : Component
                 .Notes("OpenAsync() resolves with the picked sRGB hex (e.g. \"#3366ff\"), or null if the user "
                     + "cancels (Escape) — cancellation is not an error. Gate on IsSupportedAsync.")
                 .Result(EyeDropperDemo)
-        ]),
+        ]);
 
+    private static Section IdleDetectionTopic() =>
         new("idle", "Idle detection", () =>
         [
             P.Class("text-ui-muted")[
@@ -244,8 +267,9 @@ public sealed partial class PwaPage : Component
                     + "then pushes an IdleReading on each user/screen state change. The spec enforces a 60-second "
                     + "minimum threshold. Dispose the handle to stop.")
                 .Result(IdleDetectorDemo)
-        ]),
+        ]);
 
+    private static Section MediaDevicesTopic() =>
         new("media-devices", "Camera & microphone", () =>
         [
             P.Class("text-ui-muted")[
@@ -261,8 +285,9 @@ public sealed partial class PwaPage : Component
                     + "The live MediaStream stays JS-side under a minted id. Gate on IsSupportedAsync and "
                     + "try/catch — a denied request throws.")
                 .Result(MediaDevicesDemo)
-        ]),
+        ]);
 
+    private static Section WebSerialTopic() =>
         new("serial", "Web Serial", () =>
         [
             P.Class("text-ui-muted")[
@@ -278,8 +303,9 @@ public sealed partial class PwaPage : Component
                     + "chooser (not an error). Dispose the port to stop reading and release it. Gate on "
                     + "IsSupportedAsync.")
                 .Result(SerialDemo)
-        ]),
+        ]);
 
+    private static Section WebUsbTopic() =>
         new("usb", "WebUSB", () =>
         [
             P.Class("text-ui-muted")[
@@ -295,8 +321,9 @@ public sealed partial class PwaPage : Component
                     + "Actual transfers are device-specific, so the demo shows discovery + lifecycle. Gate on "
                     + "IsSupportedAsync.")
                 .Result(UsbDemo)
-        ]),
+        ]);
 
+    private static Section WebHidTopic() =>
         new("hid", "WebHID", () =>
         [
             P.Class("text-ui-muted")[
@@ -313,8 +340,9 @@ public sealed partial class PwaPage : Component
                     + "optional disconnect signal) to your callback; dispose the watch and the device to release. "
                     + "Report payloads cross as byte[]. Gate on IsSupportedAsync.")
                 .Result(HidDemo)
-        ]),
+        ]);
 
+    private static Section WebBluetoothTopic() =>
         new("bluetooth", "Web Bluetooth", () =>
         [
             P.Class("text-ui-muted")[
@@ -331,6 +359,5 @@ public sealed partial class PwaPage : Component
                     + "(notifications). This demo reads the standard Battery Service. Values cross as byte[]; "
                     + "dispose the device to drop the connection. Gate on IsSupportedAsync.")
                 .Result(BluetoothDemo)
-        ]),
-    ];
+        ]);
 }

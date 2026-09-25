@@ -98,13 +98,13 @@ public class DisposalTests
 
     private sealed class CountingUserProvider : IUserProvider
     {
-        private Action? _changed;
+        private EventHandler? _changed;
 
         public int SubscriberCount => _changed?.GetInvocationList().Length ?? 0;
 
         public ClaimsPrincipal Current { get; } = new(new ClaimsIdentity());
 
-        public event Action? Changed
+        public event EventHandler? Changed
         {
             add => _changed += value;
             remove => _changed -= value;

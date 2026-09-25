@@ -90,7 +90,6 @@ Rask.Dashboard.DashboardSecurityState.IsUnsecured.get -> bool
 Rask.Dashboard.DashboardSecurityState.UsingFallbackPolicy.get -> bool
 Rask.Dashboard.Logging.DashboardLogBuffer
 Rask.Dashboard.Logging.DashboardLogBuffer.Categories() -> System.Collections.Generic.IReadOnlyList<string!>!
-Rask.Dashboard.Logging.DashboardLogBuffer.Changed -> System.Action?
 Rask.Dashboard.Logging.DashboardLogBuffer.Clear() -> void
 Rask.Dashboard.Logging.DashboardLogBuffer.DashboardLogBuffer(Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
 Rask.Dashboard.Logging.DashboardLogBuffer.IsEnabled(Microsoft.Extensions.Logging.LogLevel level) -> bool
@@ -466,3 +465,4 @@ Rask.Dashboard.Panels.RecurringJobRow.RecurringJobRow(string! Name, string! Sche
 Rask.Dashboard.Panels.RecurringJobRow.Schedule.get -> string!
 Rask.Dashboard.Panels.RecurringJobRow.Schedule.init -> void
 Rask.Dashboard.Pages.LogsPage.LogsPage(Rask.Dashboard.Logging.DashboardLogBuffer! buffer, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, Rask.Core.Routing.Navigator! navigator) -> void
+Rask.Dashboard.Logging.DashboardLogBuffer.Changed -> System.EventHandler?

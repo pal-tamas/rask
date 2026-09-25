@@ -4,123 +4,6 @@ using System.Globalization;
 namespace Rask.Cli;
 
 /// <summary>
-/// What a single SSH round-trip found out about a deploy host. Every field is what the box actually
-/// reported — the host is the source of truth, so nothing here is remembered between deploys.
-/// </summary>
-/// <param name="Complete">
-/// The probe ran to its <c>end=ok</c> sentinel. When false the output was truncated or garbled and
-/// every other field is untrustworthy — critically, "everything is missing" and "we couldn't ask" must
-/// never be confused, or we'd cheerfully re-install Docker over a working box.
-/// </param>
-internal sealed record HostFacts(
-    string User,
-    bool IsRoot,
-    bool HasSystemd,
-    bool DockerInstalled,
-    bool DockerUsable,
-    bool InDockerGroup,
-    bool CanSudo,
-    bool HasApt,
-    bool UfwInstalled,
-    bool UfwActive,
-    string DockerFirewall,
-    IReadOnlyList<int> SshPorts,
-    bool SshConfigInclude,
-    bool SshdReadable,
-    bool SshRootLoginPermitted,
-    bool SshPasswordAuthEnabled,
-    bool SshKbdAuthEnabled,
-    bool Complete)
-{
-    /// <summary>The box is ready to deploy to as-is: docker is installed and this user can drive it.</summary>
-    public bool DockerReady => DockerInstalled && DockerUsable;
-
-    /// <summary>
-    /// Why docker isn't usable, in the user's terms — the distinction
-    /// <see cref="DockerProbe.CanReachHostAsync"/> used to collapse into one message.
-    /// </summary>
-    public string? DockerDiagnosis => (DockerInstalled, DockerUsable, InDockerGroup) switch
-    {
-        (false, _, _) => "Docker isn't installed",
-        (true, false, false) => $"'{User}' isn't in the `docker` group",
-        (true, false, true) => "the Docker daemon isn't running",
-        _ => null,
-    };
-
-    /// <summary>
-    /// Parse the probe's <c>key=value</c> lines. Unknown keys are ignored so an older CLI can read a
-    /// newer probe; absent keys keep their conservative default (missing/false).
-    /// </summary>
-    public static HostFacts Parse(string probeOutput)
-    {
-        var user = "unknown";
-        var uid = -1;
-        bool systemd = false, docker = false, dockerOk = false, dockerGroup = false;
-        bool sudo = false, apt = false, ufw = false, ufwActive = false, sshInclude = false, complete = false;
-        var dockerFirewall = string.Empty;
-        bool sshdRead = false, rootLogin = false, passwordAuth = false, kbdAuth = false;
-        var sshPorts = new List<int>();
-
-        foreach (var raw in probeOutput.Split('\n'))
-        {
-            var line = raw.Trim('\r', ' ', '\t');
-            var eq = line.IndexOf('=', StringComparison.Ordinal);
-            if (eq <= 0)
-            {
-                continue;
-            }
-
-            var key = line[..eq];
-            var value = line[(eq + 1)..];
-            switch (key)
-            {
-                case "user": user = value; break;
-                case "uid": uid = int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var u) ? u : -1; break;
-                case "systemd": systemd = Yes(value); break;
-                case "docker": docker = Yes(value); break;
-                case "dockerok": dockerOk = Yes(value); break;
-                case "dockergroup": dockerGroup = Yes(value); break;
-
-                // "root" (uid 0) and "yes" (passwordless sudo) both mean we can run privileged steps.
-                case "sudo": sudo = Yes(value) || string.Equals(value, "root", StringComparison.Ordinal); break;
-                case "apt": apt = Yes(value); break;
-                case "ufw": ufw = Yes(value); break;
-                case "ufwactive": ufwActive = string.Equals(value, "active", StringComparison.OrdinalIgnoreCase); break;
-
-                // The signature of the Docker/ufw block already on the box, or empty for "none". It
-                // encodes both the rule format and the ports allowed, so changing --port re-plans the
-                // step instead of leaving a stale allow-list that would black-hole the new port.
-                case "dockerfw": dockerFirewall = value; break;
-                case "sshinclude": sshInclude = Yes(value); break;
-                case "sshdread": sshdRead = Yes(value); break;
-
-                // sshd -T prints its keywords and values lower-cased. Anything other than a flat "no"
-                // (yes, prohibit-password, forced-commands-only) still lets root in over SSH.
-                case "sshrootlogin": rootLogin = !string.Equals(value, "no", StringComparison.Ordinal); break;
-                case "sshpasswordauth": passwordAuth = Yes(value); break;
-                case "sshkbdauth": kbdAuth = Yes(value); break;
-                case "sshport":
-                    if (int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var p) && p is > 0 and <= 65535 && !sshPorts.Contains(p))
-                    {
-                        sshPorts.Add(p);
-                    }
-
-                    break;
-                case "end": complete = string.Equals(value, "ok", StringComparison.Ordinal); break;
-                default: break;
-            }
-        }
-
-        sshPorts.Sort();
-        return new HostFacts(
-            user, uid == 0, systemd, docker, dockerOk, dockerGroup, sudo, apt, ufw, ufwActive,
-            dockerFirewall, sshPorts, sshInclude, sshdRead, rootLogin, passwordAuth, kbdAuth, complete);
-
-        static bool Yes(string value) => string.Equals(value, "yes", StringComparison.Ordinal);
-    }
-}
-
-/// <summary>
 /// Asks a deploy host what it is, in one SSH round-trip, before <c>rask deploy</c> touches it.
 ///
 /// <para>This replaces the old <c>docker -H ssh://&lt;host&gt; version</c> reachability check rather
@@ -177,7 +60,7 @@ internal static class HostProbe
         catch (Win32Exception)
         {
             // No ssh binary at all — launching it throws rather than returning non-zero.
-            console.Error.WriteLine("`ssh` isn't installed or isn't on your PATH. `rask deploy` needs it to reach the host.");
+            await console.Error.WriteLineAsync("`ssh` isn't installed or isn't on your PATH. `rask deploy` needs it to reach the host.").ConfigureAwait(false);
             return null;
         }
 
@@ -189,12 +72,12 @@ internal static class HostProbe
             {
                 // ssh already explained itself (permission denied / host key / name resolution) —
                 // its message beats anything we'd invent.
-                console.Error.WriteLine();
-                console.Error.WriteLine(Indent(detail));
-                console.Error.WriteLine();
+                await console.Error.WriteLineAsync().ConfigureAwait(false);
+                await console.Error.WriteLineAsync(Indent(detail)).ConfigureAwait(false);
+                await console.Error.WriteLineAsync().ConfigureAwait(false);
             }
 
-            console.Error.WriteLine($"Make sure `ssh {target.Destination}` works non-interactively — key-based auth, with the host key already trusted.");
+            await console.Error.WriteLineAsync($"Make sure `ssh {target.Destination}` works non-interactively — key-based auth, with the host key already trusted.").ConfigureAwait(false);
             return null;
         }
 
@@ -202,7 +85,7 @@ internal static class HostProbe
         if (!facts.Complete)
         {
             console.WriteErrorLine($"The host check on '{target}' didn't complete — couldn't tell what's installed on the box.", ConsoleStyle.Error);
-            console.Error.WriteLine("This usually means the login shell isn't POSIX-compatible or prints a banner. Rask won't guess and change the host blind.");
+            await console.Error.WriteLineAsync("This usually means the login shell isn't POSIX-compatible or prints a banner. Rask won't guess and change the host blind.").ConfigureAwait(false);
             return null;
         }
 

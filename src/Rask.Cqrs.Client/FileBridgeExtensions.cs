@@ -9,7 +9,7 @@ namespace Rask.Cqrs.Client;
 /// <remarks>
 ///     <para>
 ///         There is deliberately no upload counterpart. A message declares its file as
-///         <see cref="Rask.Core.Forms.RaskFile" /> — the same type a file input hands a component — so the
+///         <see cref="Rask.Core.Forms.IRaskFile" /> — the same type a file input hands a component — so the
 ///         file a user picked is passed straight to the handler with no conversion at the call site:
 ///     </para>
 ///     <code>
@@ -18,7 +18,7 @@ namespace Rask.Cqrs.Client;
 ///     <para>
 ///         That is identical on a server-rendered app and a WASM-hosted one. Where it runs
 ///         in-process the handler simply receives the picked file; where it travels, the generated codec
-///         carries the bytes and hands the handler a <c>RaskFile</c> over what arrived. An adapter method
+///         carries the bytes and hands the handler a <c>IRaskFile</c> over what arrived. An adapter method
 ///         here would be a step the developer had to know about on some hosts and not others.
 ///     </para>
 /// </remarks>

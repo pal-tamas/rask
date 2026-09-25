@@ -1,4 +1,4 @@
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     Which cache entries a <c>QueryKey</c> reaches: everything beneath it, or only itself.

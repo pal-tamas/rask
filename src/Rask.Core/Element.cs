@@ -9,6 +9,10 @@ namespace Rask.Core;
 // HTML-only concerns.
 public abstract partial class Element : Component
 {
+    // An element's children are walked at serialization time (RenderChildren), never embedded in its
+    // cached render result, so they never invalidate it.
+    private protected override bool BakesChildrenIntoRender => false;
+
     /// <summary>
     ///     The global <c>id</c> attribute — this element's unique identifier in the document. It is what a
     ///     <c>#fragment</c> link scrolls to, what a <c>label</c>'s <c>for</c> points at, and what
@@ -60,8 +64,8 @@ public abstract partial class Element : Component
     public IReadOnlyDictionary<string, string?>? Data { get; set; }
 
     // Accessibility, available on every element. `Aria` is the data-* model applied to ARIA: each
-    // entry emits aria-{key}="{value}" (key verbatim, value HTML-encoded) — so `Aria: new() {
-    // ["label"] = "Close" }` renders aria-label="Close", and the full ARIA vocabulary is reachable
+    // entry emits aria-{key}="{value}" (key verbatim, value HTML-encoded) — so an `Aria` entry of
+    // label → Close renders aria-label="Close", and the full ARIA vocabulary is reachable
     // without a typed property per attribute. `Role` and `TabIndex` are plain attributes (not aria-*,
     // so not expressible through the dictionary) but are core a11y affordances for custom widgets and
     // keyboard focus. All three are nullable → optional factory parameters, like the other HTML attrs.
@@ -138,7 +142,7 @@ public abstract partial class Element : Component
     /// </summary>
     public string? Title { get; set; }
 
-    // A stable DOM handle for JS interop. When set, emits data-rask-ref="{id}" in the data-* group;
+    // A stable DOM handle for JS interop. When set, emits data-rask-ref="{id}" in the data-* group, and
     // the client reviver resolves an ElementRef arg to this element via [data-rask-ref="..."].
     // Storage is hoisted into the lazy LiveState (ElementRefInternal) so a ref-less element keeps
     // `_live` null and adds zero footprint — direct fields on Element are what the LiveState hoist
@@ -164,7 +168,7 @@ public abstract partial class Element : Component
     // Native HTML5 drag-and-drop attribute, available on every element. `Draggable` emits
     // draggable="true" (nullable so it stays an optional factory param — Blazor-parity with the other
     // HTML attrs). The drag *handlers* (OnDragStart/Over/Drop/End plus drag/dragenter/dragleave) live on
-    // the unified GlobalEventHandlers surface in ElementEvents.cs, like every other event.
+    // the unified GlobalEventHandlers surface in Element.Events.cs, like every other event.
     // Backed by two bits of the base Component flags byte (present + value) instead of a dedicated
     // Nullable<bool> field, so a drag-less element carries no extra slot — see Component._flags.
     private const byte FlagDraggablePresent = 1 << 1;
@@ -356,7 +360,17 @@ public abstract partial class Element : Component
     // id/class/style/data-* walk. NavLink overrides this to splice in its active class.
     protected virtual string? ResolveClass() => Class;
 
+    // The universal attributes, in the documented order: id, class, style, title, the plain globals, data-*,
+    // role, tabindex, aria-*, then Attributes. A subclass's tag-specific attrs follow (after base.WriteAttributes).
     protected override void WriteAttributes(StringBuilder sb)
+    {
+        WriteIdentityAttributes(sb);
+        WritePlainGlobalAttributes(sb);
+        WriteDataGroup(sb);
+        WriteAccessibilityGroup(sb);
+    }
+
+    private void WriteIdentityAttributes(StringBuilder sb)
     {
         if (Id is not null)
         {
@@ -380,7 +394,10 @@ public abstract partial class Element : Component
         {
             AppendAttr(sb, "title", Title);
         }
+    }
 
+    private void WritePlainGlobalAttributes(StringBuilder sb)
+    {
         // The remaining plain global attributes, slotted with the other plain ones (id/class/style/title)
         // and ahead of the prefixed data-*/aria-* groups, so the documented order stays "globals first,
         // grouped".
@@ -429,7 +446,10 @@ public abstract partial class Element : Component
         {
             AppendAttr(sb, "translate", translate ? "yes" : "no");
         }
+    }
 
+    private void WriteDataGroup(StringBuilder sb)
+    {
         // Effective keyed-list identity: this element's own Key, else a key forwarded from a
         // transparent ancestor component (Consume clears the slot so only the FIRST element
         // adopts it). Emitted in the data-* group below so FrameDiffer.ExtractRaskKey finds it
@@ -466,13 +486,16 @@ public abstract partial class Element : Component
 
         // The full GlobalEventHandlers surface — drag, keyboard, click, scroll, mouse, pointer, touch,
         // focus, clipboard, wheel — is emitted by EmitDomEvents in one fixed order from the unified
-        // DomEvents store (see ElementEvents.cs). data-rask-on-* hooks register a handler id per wired
+        // DomEvents store (see Element.Events.cs). data-rask-on-* hooks register a handler id per wired
         // event; a plain element with no handlers early-outs in one null check.
         if (LiveRenderContext.CurrentSync is { } ctx)
         {
             EmitDomEvents(sb, ctx);
         }
+    }
 
+    private void WriteAccessibilityGroup(StringBuilder sb)
+    {
         // Accessibility group: after data-*, before the Attributes escape hatch and any subclass
         // tag-specific attrs (those run after base.WriteAttributes). Documented order in full:
         // id, class, style, title, the plain globals (lang, dir, hidden, inert, popover,
@@ -500,6 +523,7 @@ public abstract partial class Element : Component
         {
             AppendPrefixedAttrs(sb, string.Empty, extra, skipKey: null);
         }
+
     }
 
     // Emit each entry of a data-*/aria-* bag as "{prefix}{key}=\"{value}\"". Iterating a concrete
@@ -522,7 +546,9 @@ public abstract partial class Element : Component
 
             if (bag.Rest is { } rest)
             {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
                 foreach (var kv in rest)
+#pragma warning restore S3267
                 {
                     if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
                     {
@@ -536,7 +562,9 @@ public abstract partial class Element : Component
 
         if (map is Dictionary<string, string?> dict)
         {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
             foreach (var kv in dict)
+#pragma warning restore S3267
             {
                 if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
                 {
@@ -546,7 +574,9 @@ public abstract partial class Element : Component
         }
         else
         {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
             foreach (var kv in map)
+#pragma warning restore S3267
             {
                 if (skipKey is null || !string.Equals(kv.Key, skipKey, StringComparison.Ordinal))
                 {

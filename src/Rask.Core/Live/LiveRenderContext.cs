@@ -61,7 +61,7 @@ public sealed class LiveRenderContext : IDisposable
         _currentEditContexts = currentEditContexts;
         Services = services;
         HeadAssets = headAssets;
-        MountedTypes = mountedTypes;
+        _mountedTypes = mountedTypes;
         _handle = root.RenderHandle;
         // One context IS one render pass, and a pass is exactly the scope over which each component
         // numbers its handler slots from 0. Stamping the generation here rather than in
@@ -71,7 +71,7 @@ public sealed class LiveRenderContext : IDisposable
         _previous = _current.Value;
         _previousSync = _syncCurrent;
         _current.Value = this;
-        _syncCurrent = this;
+        InstallSync(this);
 
         Culture = _handle?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
         UICulture = _handle?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
@@ -109,7 +109,9 @@ public sealed class LiveRenderContext : IDisposable
     // async render can release a thread at an await with _syncCurrent still set, so a later
     // synchronous test on that thread would otherwise observe a leftover context. Tests call
     // this before each test (see ResetLiveSyncContextAttribute). Not used by product code.
-    internal static void ResetSyncForTests() => _syncCurrent = null;
+    internal static void ResetSyncForTests() => InstallSync(null);
+
+    private static void InstallSync(LiveRenderContext? context) => _syncCurrent = context;
 
     internal RouteRenderState? Route { get; set; }
 
@@ -177,7 +179,9 @@ public sealed class LiveRenderContext : IDisposable
     ///         not <see cref="ScopedAssetRegistry.TryGetScopeId" /> finds a scope id.
     ///     </para>
     /// </summary>
-    public HashSet<Type> MountedTypes { get; }
+    public IReadOnlySet<Type> MountedTypes => _mountedTypes;
+
+    private readonly HashSet<Type> _mountedTypes;
 
     internal ErrorBoundary? CurrentBoundary => _boundaryStack.Count > 0 ? _boundaryStack.Peek() : null;
 
@@ -193,7 +197,7 @@ public sealed class LiveRenderContext : IDisposable
     {
         IsActive = false;
         _current.Value = _previous;
-        _syncCurrent = _previousSync;
+        InstallSync(_previousSync);
 
         // Restore the pin only if this walk's culture is still the one in effect. An async render can
         // release its thread at an await and resume elsewhere, so Dispose may run on a thread this
@@ -216,7 +220,7 @@ public sealed class LiveRenderContext : IDisposable
         var type = instance.GetType();
         // Record the type unconditionally — MountedTypes is a public per-render contract populated for
         // every user component (with or without assets), so it can't be short-circuited.
-        MountedTypes.Add(type);
+        _mountedTypes.Add(type);
 
         // The by-type scope lookup, however, always misses when no component has registered scoped CSS
         // (the common case), so skip the ConcurrentDictionary probe behind a cheap IsEmpty check.
@@ -321,7 +325,7 @@ public sealed class LiveRenderContext : IDisposable
     ///     Keeps the subtree currently being walked out of the clean-subtree frame cache, for a
     ///     component whose serialization does work a replay would skip.
     /// </summary>
-    internal void MarkSubtreeUncacheable() => HtmlSerializer.MarkNestedComponent();
+    internal static void MarkSubtreeUncacheable() => HtmlSerializer.MarkNestedComponent();
 
     /// <summary>Re-register a captured run under its component's own slot ids, as the skipped walk would.</summary>
     internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run) =>
@@ -385,7 +389,7 @@ public sealed class LiveRenderContext : IDisposable
         return child;
     }
 
-    public void NotifyParameters(Component component, bool propsChanged) =>
+    public static void NotifyParameters(Component component, bool propsChanged) =>
         component.RaiseLifecycleBeforeRender(propsChanged);
 
     // A component the walk met that nothing registered: registers it under the component whose subtree it sits
@@ -513,10 +517,7 @@ public sealed class LiveRenderContext : IDisposable
     // via GetOrCreateEditContext(model) instead of auto-creating a fresh one.
     public void RegisterEditContext(EditContext ctx)
     {
-        if (ctx is null)
-        {
-            throw new ArgumentNullException(nameof(ctx));
-        }
+        ArgumentNullException.ThrowIfNull(ctx);
 
         AttachRenderRequest(ctx);
         _currentEditContexts[new ObjectKey(ctx.Model)] = ctx;
@@ -549,15 +550,8 @@ public sealed class LiveRenderContext : IDisposable
     // must be able to overwrite those subs to point at the user-supplied Context.
     internal void RegisterEditContextForKey(object subModel, EditContext ctx)
     {
-        if (subModel is null)
-        {
-            throw new ArgumentNullException(nameof(subModel));
-        }
-
-        if (ctx is null)
-        {
-            throw new ArgumentNullException(nameof(ctx));
-        }
+        ArgumentNullException.ThrowIfNull(subModel);
+        ArgumentNullException.ThrowIfNull(ctx);
 
         _currentEditContexts[new ObjectKey(subModel)] = ctx;
     }

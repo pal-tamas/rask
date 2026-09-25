@@ -35,7 +35,7 @@ public sealed partial class HeroCode : Component
             Div
                 .Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2")
                 .Role("tablist")
-                .Aria(new Dictionary<string, string?> { ["label"] = "Source file" })[
+                .Aria("label", "Source file")[
                 Dot("#ff5f57"), Dot("#febc2e"), Dot("#28c840"),
                 Div.Class("ml-2 flex min-w-0 gap-1")[Files.Select((file, index) => Tab(file.File, index))]
             ],
@@ -49,7 +49,7 @@ public sealed partial class HeroCode : Component
             .Key(file)
             .Type("button")
             .Role("tab")
-            .Aria(new Dictionary<string, string?> { ["selected"] = index == _active ? "true" : "false" })
+            .Aria("selected", index == _active ? "true" : "false")
             // min-h-9: a mono label is a small target, and these sit where a thumb reaches first.
             .Class("hero-code-tab inline-flex min-h-9 items-center rounded-md px-2 font-mono text-xs "
                    + (index == _active
@@ -59,7 +59,7 @@ public sealed partial class HeroCode : Component
 
     // A window-chrome dot. The colour is an inline style because these three are macOS's traffic lights,
     // not palette entries — putting them in the theme would invite something else to use them.
-    private static Component Dot(string color) =>
+    private static Rask.Core.Components.Span Dot(string color) =>
         Span.Class("size-2.5 shrink-0 rounded-full").Style($"background:{color}");
 
     // ---- highlighting ----

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -114,15 +115,9 @@ public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
             return named.TypeArguments[0];
         }
 
-        foreach (var implemented in named.AllInterfaces)
-        {
-            if (SymbolEqualityComparer.Default.Equals(implemented.OriginalDefinition, collection))
-            {
-                return implemented.TypeArguments[0];
-            }
-        }
-
-        return null;
+        return named.AllInterfaces
+            .FirstOrDefault(implemented => SymbolEqualityComparer.Default.Equals(implemented.OriginalDefinition, collection))
+            ?.TypeArguments[0];
     }
 
     // Implements ICollection<T> and throws from every mutator — reporting one would ask the author to wrap a
@@ -131,7 +126,7 @@ public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
     {
         var ns = type.ContainingNamespace?.ToDisplayString();
         return ns is "System.Collections.Immutable" or "System.Collections.Frozen"
-               || (ns == "System.Collections.ObjectModel"
+               || (ns is "System.Collections.ObjectModel"
                    && type.Name is "ReadOnlyCollection" or "ReadOnlyObservableCollection" or "ReadOnlySet");
     }
 

@@ -171,7 +171,7 @@ internal sealed partial class AllocInvokeLeaf : Component
     {
         // Invoke hands back null when the handler was synchronous, which these are, so nothing is
         // being dropped here — the discard IS the fast path. A component that admits async handlers
-        // awaits instead: `if (OnPing?.Invoke() is { } t) await t;`.
+        // awaits instead: `await OnPing.Invoke();`.
         _ = OnPing?.Invoke();
         _ = OnNamed?.Invoke("x");
         return Div;
@@ -463,7 +463,7 @@ public class BuilderEntryAllocationPinTests
     {
         using var ctx = LiveRenderContext.Begin(host, sp);
         var resolved = ctx.GetOrCreate(_ => host);
-        ctx.NotifyParameters(resolved, propsChanged: true);
+        LiveRenderContext.NotifyParameters(resolved, propsChanged: true);
         _ = resolved.ToHtml();
     }
 }

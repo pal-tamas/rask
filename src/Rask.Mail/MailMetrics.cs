@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// OpenTelemetry-compatible metrics for the mail pillar, published on the <see cref="MeterName"/> meter.

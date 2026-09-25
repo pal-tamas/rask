@@ -538,7 +538,7 @@ public abstract partial class SharedSmokeTests
         await eForm.Locator("button[type=submit]").ClickAsync();
         await Expect(eForm).ToContainTextAsync("Last submitted: Ada", contains);
 
-        // Full surface demo: OnDoubleClick (MouseEventArgs) + OnFocus (parameterless) reach C# and re-render
+        // Full surface demo: OnDoubleClick (MouseEvent) + OnFocus (parameterless) reach C# and re-render
         // — proving the universal event store dispatches over both transports, not just OnClick.
         var eSurface = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "double-clicks:" });
         await eSurface.Locator("button:has-text('Double-click')").DblClickAsync();

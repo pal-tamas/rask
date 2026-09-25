@@ -57,13 +57,12 @@ public static partial class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, DataChangesInterceptor>();
         }
 
+#pragma warning disable S3251 // implemented only by the browser build (Browser/); a server build has nothing to wire
         AddBrowserWiring(services);
+#pragma warning restore S3251
 
         return services;
     }
-
-    // Rask.Data's browser build fills this in (Browser/BrowserData.cs); on a server the Rask host wires the same.
-    static partial void AddBrowserWiring(IServiceCollection services);
 
     /// <summary>
     ///     Registers the interceptors as <see cref="AddRaskData" /> does, and binds
@@ -121,6 +120,11 @@ public static partial class RaskDataServiceCollectionExtensions
     // the options helper every other battery source-links: Rask.SQLite.EntityFrameworkCore sees this assembly's
     // internals AND Rask.SQLite's, and two copies of that helper in its sight would be ambiguous. One bool? is little
     // enough to register by hand.
+    // Rask.Data's browser build fills this in (Browser/BrowserData.cs); on a server the Rask host wires the same.
+#pragma warning disable S3251 // implemented only by the browser build (Browser/)
+    static partial void AddBrowserWiring(IServiceCollection services);
+#pragma warning restore S3251
+
     private static void AddOptions(IServiceCollection services, Action<RaskDataOptions>? configure)
     {
         if (services.Any(static d => d.ServiceType == typeof(RaskDataOptions)))

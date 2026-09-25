@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Rask.Cli.Commands;
@@ -32,9 +33,10 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
 
     public override Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
-        if (!CreateSchema().TryResolveVerb(args.FirstOrDefault(), out var shell))
+        var verb = args.Count > 0 ? args[0] : null;
+        if (!CreateSchema().TryResolveVerb(verb, out var shell))
         {
-            return Task.FromResult(FailUnknownVerb(args.FirstOrDefault(), CreateSchema()));
+            return Task.FromResult(FailUnknownVerb(verb, CreateSchema()));
         }
 
         // A stray argument here is a typo, and this command's output gets piped straight into a shell rc
@@ -91,7 +93,7 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
         builder.AppendLine("_rask_complete() {");
         builder.AppendLine("  local cur prev words cword");
         builder.AppendLine("  _get_comp_words_by_ref -n : cur prev words cword 2>/dev/null || { cur=\"${COMP_WORDS[COMP_CWORD]}\"; words=(\"${COMP_WORDS[@]}\"); cword=$COMP_CWORD; }");
-        builder.AppendLine($"  local commands=\"{string.Join(' ', commandNames)}\"");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"  local commands=\"{string.Join(' ', commandNames)}\"");
         builder.AppendLine("  if [ \"$cword\" -le 1 ]; then");
         builder.AppendLine("    COMPREPLY=( $(compgen -W \"$commands\" -- \"$cur\") ); return 0");
         builder.AppendLine("  fi");
@@ -105,17 +107,17 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
                 continue;
             }
 
-            builder.AppendLine($"    {command})");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"    {command})");
 
             // An option with a closed set completes its own values, keyed off the preceding word — nested
             // inside the command's branch because the same option name can mean different things from one
             // command to the next.
             foreach (var option in ChoiceOptionsFor(command))
             {
-                builder.AppendLine($"      if [ \"$prev\" = \"--{option.LongName}\" ]; then COMPREPLY=( $(compgen -W \"{string.Join(' ', option.Choices!)}\" -- \"$cur\") ); return 0; fi");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"      if [ \"$prev\" = \"--{option.LongName}\" ]; then COMPREPLY=( $(compgen -W \"{string.Join(' ', option.Choices!)}\" -- \"$cur\") ); return 0; fi");
             }
 
-            builder.AppendLine($"      COMPREPLY=( $(compgen -W \"{string.Join(' ', words)}\" -- \"$cur\") );;");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"      COMPREPLY=( $(compgen -W \"{string.Join(' ', words)}\" -- \"$cur\") );;");
         }
 
         builder.AppendLine("    *) COMPREPLY=( $(compgen -f -- \"$cur\") );;");
@@ -132,7 +134,7 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
         builder.AppendLine("# rask zsh completion — place on your $fpath as _rask.");
         builder.AppendLine("_rask() {");
         builder.AppendLine("  local -a commands");
-        builder.AppendLine($"  commands=({string.Join(' ', commandNames)})");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"  commands=({string.Join(' ', commandNames)})");
         builder.AppendLine("  if (( CURRENT <= 2 )); then");
         builder.AppendLine("    compadd -- $commands; return");
         builder.AppendLine("  fi");
@@ -146,13 +148,13 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
                 continue;
             }
 
-            builder.AppendLine($"    {command})");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"    {command})");
             foreach (var option in ChoiceOptionsFor(command))
             {
-                builder.AppendLine($"      if [[ \"$prev\" == \"--{option.LongName}\" ]]; then compadd -- {string.Join(' ', option.Choices!)}; return; fi");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"      if [[ \"$prev\" == \"--{option.LongName}\" ]]; then compadd -- {string.Join(' ', option.Choices!)}; return; fi");
             }
 
-            builder.AppendLine($"      compadd -- {string.Join(' ', words)} ;;");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"      compadd -- {string.Join(' ', words)} ;;");
         }
 
         builder.AppendLine("    *) _files ;;");
@@ -173,7 +175,7 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
         foreach (var command in commands)
         {
             var description = command.Summary.Replace("'", "", StringComparison.Ordinal);
-            builder.AppendLine($"complete -c rask -f -n __rask_no_subcommand -a {command.Name} -d '{description}'");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"complete -c rask -f -n __rask_no_subcommand -a {command.Name} -d '{description}'");
         }
 
         foreach (var command in commands)
@@ -181,7 +183,7 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
             foreach (var verb in command.OptionSchema?.Verbs ?? [])
             {
                 var description = verb.Description.Replace("'", "", StringComparison.Ordinal);
-                builder.AppendLine($"complete -c rask -f -n '__fish_seen_subcommand_from {command.Name}' -a {verb.Name} -d '{description}'");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"complete -c rask -f -n '__fish_seen_subcommand_from {command.Name}' -a {verb.Name} -d '{description}'");
             }
 
             foreach (var option in command.OptionSchema?.Declared ?? [])
@@ -191,7 +193,7 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
                 // supplies that value's completions when the set is closed.
                 var takesValue = option.IsFlag ? string.Empty : " -r";
                 var values = option.Choices is { Count: > 0 } c ? $" -a '{string.Join(' ', c)}'" : string.Empty;
-                builder.AppendLine($"complete -c rask -n '__fish_seen_subcommand_from {command.Name}' -l {option.LongName}{takesValue}{values} -d '{description}'");
+                builder.AppendLine(CultureInfo.InvariantCulture, $"complete -c rask -n '__fish_seen_subcommand_from {command.Name}' -l {option.LongName}{takesValue}{values} -d '{description}'");
             }
         }
 

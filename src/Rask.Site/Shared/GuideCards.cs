@@ -20,7 +20,7 @@ public sealed partial class GuideCards : Component
     {
         foreach (var group in GuideCatalog.GroupOrder)
         {
-            var cards = GuideCatalog.All.Where(g => g.Group == group).ToArray();
+            var cards = GuideCatalog.All.Where(g => string.Equals(g.Group, group, StringComparison.Ordinal)).ToArray();
             if (cards.Length == 0)
             {
                 continue;
@@ -31,7 +31,7 @@ public sealed partial class GuideCards : Component
             // grid of cards, so it is small and quiet and the cards carry the weight.
             yield return H2
                 .Class("mt-8 mb-3 text-xs font-semibold uppercase tracking-widest text-ui-muted")[group];
-            yield return Div.Class("grid grid-cols-12 gap-4")[cards.Select(c => (Component)Card(c))];
+            yield return Div.Class("grid grid-cols-12 gap-4")[cards.Select(Card)];
         }
     }
 

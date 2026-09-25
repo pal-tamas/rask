@@ -48,6 +48,37 @@ internal sealed class AzureAccount
                 + "BlobEndpoint=…;SharedAccessSignature=…, or UseDevelopmentStorage=true for Azurite.");
         }
 
+        var parts = SplitParts(connectionString);
+        if (parts.TryGetValue("UseDevelopmentStorage", out var development)
+            && bool.TryParse(development, out var isDevelopment) && isDevelopment)
+        {
+            return new AzureAccount("http://127.0.0.1:10000/" + DevelopmentAccountName, DevelopmentAccountName,
+                Convert.FromBase64String(DevelopmentAccountKey), null);
+        }
+
+        parts.TryGetValue("AccountName", out var name);
+
+        var key = ParseKey(parts);
+        var sas = parts.TryGetValue("SharedAccessSignature", out var sasText) && sasText.TrimStart('?') is { Length: > 0 } token
+            ? token
+            : null;
+        var endpoint = ParseEndpoint(parts, name);
+
+        if (key is null && sas is null)
+        {
+            throw new InvalidOperationException($"{Setting} needs an AccountKey or a SharedAccessSignature.");
+        }
+
+        if (key is not null && string.IsNullOrWhiteSpace(name))
+        {
+            throw new InvalidOperationException($"{Setting} has an AccountKey but no AccountName to sign with.");
+        }
+
+        return new AzureAccount(endpoint, name ?? new Uri(endpoint).Host.Split('.')[0], key, sas);
+    }
+
+    private static Dictionary<string, string> SplitParts(string connectionString)
+    {
         var parts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var part in connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
@@ -61,32 +92,27 @@ internal sealed class AzureAccount
             parts[part[..eq].Trim()] = part[(eq + 1)..].Trim();
         }
 
-        if (parts.TryGetValue("UseDevelopmentStorage", out var development)
-            && bool.TryParse(development, out var isDevelopment) && isDevelopment)
+        return parts;
+    }
+
+    private static byte[]? ParseKey(Dictionary<string, string> parts)
+    {
+        if (!parts.TryGetValue("AccountKey", out var keyText) || keyText.Length == 0)
         {
-            return new AzureAccount("http://127.0.0.1:10000/" + DevelopmentAccountName, DevelopmentAccountName,
-                Convert.FromBase64String(DevelopmentAccountKey), null);
+            return null;
         }
 
-        parts.TryGetValue("AccountName", out var name);
-
-        byte[]? key = null;
-        if (parts.TryGetValue("AccountKey", out var keyText) && keyText.Length > 0)
+        var buffer = new byte[(keyText.Length * 3 / 4) + 3];
+        if (!Convert.TryFromBase64String(keyText, buffer, out var written))
         {
-            var buffer = new byte[(keyText.Length * 3 / 4) + 3];
-            if (!Convert.TryFromBase64String(keyText, buffer, out var written))
-            {
-                throw new InvalidOperationException($"The AccountKey in {Setting} is not base64.");
-            }
-
-            key = buffer[..written];
+            throw new InvalidOperationException($"The AccountKey in {Setting} is not base64.");
         }
 
-        var sas = parts.TryGetValue("SharedAccessSignature", out var sasText) && sasText.TrimStart('?') is { Length: > 0 } token
-            ? token
-            : null;
+        return buffer[..written];
+    }
 
-        string endpoint;
+    private static string ParseEndpoint(Dictionary<string, string> parts, string? name)
+    {
         if (parts.TryGetValue("BlobEndpoint", out var blobEndpoint))
         {
             if (!Uri.TryCreate(blobEndpoint, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
@@ -94,34 +120,20 @@ internal sealed class AzureAccount
                 throw new InvalidOperationException($"The BlobEndpoint in {Setting} is not an absolute http(s) URL.");
             }
 
-            endpoint = uri.GetLeftPart(UriPartial.Path).TrimEnd('/');
+            return uri.GetLeftPart(UriPartial.Path).TrimEnd('/');
         }
-        else
+
+        if (string.IsNullOrWhiteSpace(name))
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                throw new InvalidOperationException($"{Setting} needs an AccountName (or a BlobEndpoint).");
-            }
-
-            var protocol = parts.GetValueOrDefault("DefaultEndpointsProtocol", "https");
-            if (protocol is not ("https" or "http"))
-            {
-                throw new InvalidOperationException($"The DefaultEndpointsProtocol in {Setting} must be https or http.");
-            }
-
-            endpoint = $"{protocol}://{name}.blob.{parts.GetValueOrDefault("EndpointSuffix", "core.windows.net")}";
+            throw new InvalidOperationException($"{Setting} needs an AccountName (or a BlobEndpoint).");
         }
 
-        if (key is null && sas is null)
+        var protocol = parts.GetValueOrDefault("DefaultEndpointsProtocol", "https");
+        if (protocol is not ("https" or "http"))
         {
-            throw new InvalidOperationException($"{Setting} needs an AccountKey or a SharedAccessSignature.");
+            throw new InvalidOperationException($"The DefaultEndpointsProtocol in {Setting} must be https or http.");
         }
 
-        if (key is not null && string.IsNullOrWhiteSpace(name))
-        {
-            throw new InvalidOperationException($"{Setting} has an AccountKey but no AccountName to sign with.");
-        }
-
-        return new AzureAccount(endpoint, name ?? new Uri(endpoint).Host.Split('.')[0], key, sas);
+        return $"{protocol}://{name}.blob.{parts.GetValueOrDefault("EndpointSuffix", "core.windows.net")}";
     }
 }

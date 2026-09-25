@@ -1,78 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
 using Rask.Cqrs;
 
-namespace Rask.Query;
-
-/// <summary>
-///     The shared state machine behind every command shape — a record command and a function alike:
-///     pending/error/success, the components watching it, and the optimistic edits of a send to roll back.
-/// </summary>
-internal sealed class CommandCore
-{
-    private readonly ComponentReaders _readers = new();
-
-    public CommandStatus Status { get; private set; } = CommandStatus.Idle;
-
-    public Exception? Error { get; private set; }
-
-    public void Observe() => _readers.Observe();
-
-    public void Reset()
-    {
-        Status = CommandStatus.Idle;
-        Error = null;
-        _readers.RenderAll();
-    }
-
-    [SuppressMessage(
-        "Design",
-        "CA1031:Do not catch general exception types",
-        Justification = "Whatever the handler threw belongs on the command as Error, for the component "
-                        + "to render. See the remarks on Command<TCommand>.Send for why it is not rethrown.")]
-    public async Task<TResult?> RunAsync<TResult>(
-        Func<CancellationToken, Task<TResult>> dispatch,
-        Action invalidate,
-        OptimisticEdit[] optimistic,
-        CancellationToken cancellationToken)
-    {
-        Status = CommandStatus.Pending;
-        Error = null;
-        _readers.RenderAll();
-
-        // Snapshots first, and all of them, before anything is dispatched: a rollback that only
-        // covers the edits made before the failure leaves the rest applied.
-        var snapshots = optimistic.Length == 0 ? [] : new IOptimisticSnapshot[optimistic.Length];
-        for (var i = 0; i < optimistic.Length; i++)
-        {
-            snapshots[i] = optimistic[i].Apply();
-        }
-
-        try
-        {
-            var result = await dispatch(cancellationToken).ConfigureAwait(false);
-            Status = CommandStatus.Success;
-
-            // The invalidation replaces the optimistic guess with what the server actually holds, so
-            // there is nothing to undo on success.
-            invalidate();
-            _readers.RenderAll();
-            return result;
-        }
-        catch (Exception ex)
-        {
-            // Undone in reverse, so overlapping edits to one entry unwind in the order they were made.
-            for (var i = snapshots.Length - 1; i >= 0; i--)
-            {
-                snapshots[i].Restore();
-            }
-
-            Error = ex;
-            Status = CommandStatus.Error;
-            _readers.RenderAll();
-            return default;
-        }
-    }
-}
+namespace Rask.Querying;
 
 /// <summary>
 ///     A command you can render: whether it is running, whether it failed, and what to disable while
@@ -166,7 +94,7 @@ public sealed class Command<TCommand>
     public Dispatching Send(TCommand command, CancellationToken cancellationToken = default) =>
         new((edits, ct) => Run(command, edits, ct), [], cancellationToken);
 
-    private Task Run(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
+    private Task<object?> Run(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(optimistic);
@@ -383,21 +311,6 @@ public sealed class Command
     public Dispatching Send(Func<CancellationToken, Task> send, CancellationToken cancellationToken = default) =>
         new((edits, ct) => Run(send, edits, ct), [], cancellationToken);
 
-    private Task Run(Func<CancellationToken, Task> send, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(send);
-        ArgumentNullException.ThrowIfNull(optimistic);
-        return _core.RunAsync<object?>(
-            async ct =>
-            {
-                await send(ct).ConfigureAwait(false);
-                return null;
-            },
-            Invalidate,
-            optimistic,
-            cancellationToken);
-    }
-
     /// <summary>
     ///     Runs <paramref name="send" /> and returns what it produced, then invalidates the keys this
     ///     command was created with. Never throws — the failure lands on <see cref="Error" />.
@@ -413,6 +326,21 @@ public sealed class Command
         ArgumentNullException.ThrowIfNull(send);
         return new Dispatching<TResult>(
             (edits, ct) => _core.RunAsync(send, Invalidate, edits, ct), [], cancellationToken);
+    }
+
+    private Task<object?> Run(Func<CancellationToken, Task> send, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(send);
+        ArgumentNullException.ThrowIfNull(optimistic);
+        return _core.RunAsync<object?>(
+            async ct =>
+            {
+                await send(ct).ConfigureAwait(false);
+                return null;
+            },
+            Invalidate,
+            optimistic,
+            cancellationToken);
     }
 
     /// <summary>Returns to <see cref="CommandStatus.Idle" />, clearing any error.</summary>

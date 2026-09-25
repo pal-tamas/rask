@@ -27,7 +27,7 @@ public sealed partial class UiKitDataInputDemo : Component
     private List<string> _topics = ["releases"];
     private double _volume = 40;
     private int _stars = 4;
-    private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _month = DateOnly.FromDateTime(TimeProvider.System.GetLocalNow().Date);
     private DateOnly? _date;
     private readonly List<string> _dropped = [];
     private UiDateRange _stay;
@@ -46,6 +46,24 @@ public sealed partial class UiKitDataInputDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        TextControlsSection(),
+        SelectSection(),
+        SearchableSection(),
+        MultiSelectSection(),
+        ChoiceListsSection(),
+        LabelsSection(),
+        ChoicesSection(),
+        RangeRatingSection(),
+        OneTimeCodeSection(),
+        FilterSection(),
+        CalendarSection(),
+        SeveralDaysRangeSection(),
+        FileDropAreaSection(),
+        BoundModelSection(),
+        MaskSection()
+    ];
+
+    private Component TextControlsSection() =>
         Section(
             "Text controls",
             "Tone colours the border — which is how a field says it is in error without a second "
@@ -89,8 +107,9 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Placeholder("Choose…")
                     .OnChange(v => { _country = v; }),
                 Ui.FileInput.Value("").Key("avatar").Label("Avatar").Size(Ui.Size.Sm)
-            ]),
+            ]);
 
+    private Component SelectSection() =>
         Section(
             "Select — the platform's, and the drawn one",
             "Native is the default and the one to reach for. Turn it off when the list has to carry "
@@ -107,14 +126,15 @@ public sealed partial class UiKitDataInputDemo : Component
                         .Placeholder("Choose a package")
                         .Native(false)
                         .OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling")
-                        .OptionDisabled(v => v == "blazor")
+                        .OptionDisabled(v => v is "blazor")
                         .OnChange(v => { _framework = v; })
                 ],
                 P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-select-state"))[
                     _framework is null ? "Nothing chosen." : $"Chosen: {_framework}."
                 ]
-            ]),
+            ]);
 
+    private Component SearchableSection() =>
         Section(
             "Searchable — the same control, typed into",
             "There is no separate combobox: a box you type into to narrow a fixed set of answers is the "
@@ -131,14 +151,15 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Clearable(true)
                     .Filter((v, text) =>
                         v.Contains(text, StringComparison.OrdinalIgnoreCase)
-                        || Countries.Any(o => o.Value == v
+                        || Countries.Any(o => string.Equals(o.Value, v, StringComparison.Ordinal)
                                               && o.Text.Contains(text, StringComparison.CurrentCultureIgnoreCase)))
                     .OnChange(v => { _home = v; }),
                 P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-select-search-state"))[
                     _home is null ? "Nothing chosen." : $"Chosen: {_home}."
                 ]
-            ]),
+            ]);
 
+    private Component MultiSelectSection() =>
         Section(
             "Multi-select — several answers, one field",
             "The same name, for a field that holds a collection: bind a List, array or HashSet and "
@@ -158,15 +179,16 @@ public sealed partial class UiKitDataInputDemo : Component
                     .SelectAll(true)
                     .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase))
                     .OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling")
-                    .OptionDisabled(v => v == "blazor")
+                    .OptionDisabled(v => v is "blazor")
                     .OnChange(Choose),
                 P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-multiselect-state"))[
                     _packages.Count == 0
                         ? "Nothing chosen."
                         : $"Chosen: {string.Join(", ", _packages)}."
                 ]
-            ]),
+            ]);
 
+    private Component ChoiceListsSection() =>
         Section(
             "Choice lists — a whole set as one field",
             "A radio group binds the GROUP's value and a checkbox group binds the collection your model "
@@ -205,8 +227,9 @@ public sealed partial class UiKitDataInputDemo : Component
                             : $"{_plan}, {_density}, {string.Join(", ", _topics)}."
                     ]
                 ]
-            ]),
+            ]);
 
+    private static Component LabelsSection() =>
         Section(
             "Labels",
             "A labelled text field floats its label by default: the caption sits in the field until there "
@@ -219,8 +242,9 @@ public sealed partial class UiKitDataInputDemo : Component
                 Ui.Label.Key("price").Text("€").Trailing("per month")[
                     Ui.Input.Of<string>().AccessibleLabel("Price per month").Placeholder("29")
                 ]
-            ]),
+            ]);
 
+    private Component ChoicesSection() =>
         Section(
             "Choices",
             "The words are part of the hit target: on a phone a 16px box on its own is the difference "
@@ -232,12 +256,13 @@ public sealed partial class UiKitDataInputDemo : Component
                     .OnChange(v => { _alerts = v; }),
                 // A radio binds its OWN checked state, so it only ever reports true — choosing one
                 // fires nothing on the option it deselected. The group's value belongs to the group.
-                Ui.Radio.Value(_shipping == "standard").Key("std").Text("Standard").Group("shipping")
+                Ui.Radio.Value(_shipping is "standard").Key("std").Text("Standard").Group("shipping")
                     .OnChange(_ => { _shipping = "standard"; }),
-                Ui.Radio.Value(_shipping == "express").Key("exp").Text("Express").Group("shipping")
+                Ui.Radio.Value(_shipping is "express").Key("exp").Text("Express").Group("shipping")
                     .OnChange(_ => { _shipping = "express"; })
-            ]),
+            ]);
 
+    private Component RangeRatingSection() =>
         Section(
             "Range and rating",
             "A range can stand on end, and daisyUI puts the low value at the bottom — which is what a "
@@ -250,8 +275,9 @@ public sealed partial class UiKitDataInputDemo : Component
                 ],
                 Ui.Rating.Value(_stars).Key("stars").Group("score").Label("Rate this").Max(5)
                     .OnChange(v => { _stars = v; })
-            ]),
+            ]);
 
+    private Component OneTimeCodeSection() =>
         Section(
             "One-time code",
             "One input drawn as several. Per-digit boxes need script to move focus, defeat the "
@@ -263,8 +289,9 @@ public sealed partial class UiKitDataInputDemo : Component
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
                     _code.Length == 6 ? "Code complete." : $"{_code.Length} of 6 entered."
                 ]
-            ]),
+            ]);
 
+    private Component FilterSection() =>
         Section(
             "Filter",
             "Radios rather than buttons: daisyUI hides the unpicked options and shows the reset in "
@@ -276,8 +303,9 @@ public sealed partial class UiKitDataInputDemo : Component
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-filter-state"))[
                     _tag is null ? "Showing everything." : $"Filtered to {_tag}."
                 ]
-            ]),
+            ]);
 
+    private Component CalendarSection() =>
         Section(
             "Calendar",
             "Built in C#, because the element daisyUI styles for this is a JavaScript web component the "
@@ -297,8 +325,9 @@ public sealed partial class UiKitDataInputDemo : Component
                         ? $"Chosen: {picked.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}"
                         : "No date chosen."
                 ]
-            ]),
+            ]);
 
+    private Component SeveralDaysRangeSection() =>
         Section(
             "Several days, a range, and a picker",
             "The same entries. Bind a collection of days and Ui.Calendar picks several; bind a UiDateRange and it "
@@ -327,8 +356,9 @@ public sealed partial class UiKitDataInputDemo : Component
                         $" · {_daysOff.Count} days off"
                     ]
                 ]
-            ]),
+            ]);
 
+    private Component FileDropAreaSection() =>
         Section(
             "File drop area",
             "Still the native file input, stretched invisibly over the whole area: a click anywhere opens the "
@@ -349,8 +379,9 @@ public sealed partial class UiKitDataInputDemo : Component
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-dropzone-state"))[
                     _dropped.Count == 0 ? "No files yet." : "Chosen: " + string.Join(", ", _dropped)
                 ]
-            ]),
+            ]);
 
+    private Component BoundModelSection() =>
         Section(
             "Bound to a model",
             "The same controls, with no OnChange between them and the model. Bind is the other opening "
@@ -374,8 +405,9 @@ public sealed partial class UiKitDataInputDemo : Component
                     + $" seats · agreed {(_signup.Agreed ? "yes" : "no")}"
                     + $" · {_signup.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)} stars"
                 ]
-            ]),
+            ]);
 
+    private static Component MaskSection() =>
         Section(
             "Mask",
             "A closed set of shapes. Whatever is masked has to survive losing its corners.",
@@ -385,15 +417,14 @@ public sealed partial class UiKitDataInputDemo : Component
                 Masked("hexagon", Ui.MaskShape.Hexagon),
                 Masked("star", Ui.MaskShape.Star2),
                 Masked("heart", Ui.MaskShape.Heart)
-            ])
-    ];
+            ]);
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+    private static AttrBag Testid(string value) => new("testid", value);
 
     private static string Iso(DateOnly date) =>
         date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
-    private static Component Masked(string key, Ui.MaskShape shape) =>
+    private static UiMask Masked(string key, Ui.MaskShape shape) =>
         Ui.Mask.Key(key).Shape(shape).Class("size-14 bg-primary");
 
     // Controlled mode hands over a fresh collection every time — see Ui.MultiSelect's OnChange. The
@@ -412,7 +443,7 @@ public sealed partial class UiKitDataInputDemo : Component
         ];
 
     // An ordinary model, which is the point: nothing on it knows it is being edited by a UI kit.
-    private sealed class Signup
+    public sealed class Signup
     {
         public string Email { get; set; } = "";
 

@@ -35,7 +35,7 @@ public sealed partial class KeyedNavApp : Component
         return Task.CompletedTask;
     }
 
-    private void OnRouteChanged()
+    private void OnRouteChanged(object? sender, EventArgs e)
     {
         var insert = _route.Path switch
         {

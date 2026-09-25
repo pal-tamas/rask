@@ -259,7 +259,7 @@ public sealed partial class PushButton(IWebPush push) : Component
     private async Task Enable()
     {
         if (!await push.IsSupportedAsync()) return;
-        if (await push.RequestPermissionAsync() != NotificationPermission.Granted) return;
+        if (await push.RequestPermissionAsync() != NotificationPermissionState.Granted) return;
 
         await push.RegisterServiceWorkerAsync();                 // default rask-sw.js
         var sub = await push.SubscribeAsync(Push.PublicKey!);    // the app's VAPID public key

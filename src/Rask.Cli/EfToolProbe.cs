@@ -86,16 +86,16 @@ internal static class EfToolProbe
 
         if (installed is null)
         {
-            console.Out.WriteLine("The EF Core tools (dotnet-ef) aren't installed. Installing them globally…");
+            await console.Out.WriteLineAsync("The EF Core tools (dotnet-ef) aren't installed. Installing them globally…").ConfigureAwait(false);
             var exit = await process.RunAsync("dotnet", ["tool", "install", "--global", "dotnet-ef"], null, cancellationToken).ConfigureAwait(false);
             if (exit == 0)
             {
-                console.Out.WriteLine("Installed dotnet-ef.");
+                await console.Out.WriteLineAsync("Installed dotnet-ef.").ConfigureAwait(false);
                 return true;
             }
 
-            console.Error.WriteLine("Couldn't install the EF Core tools automatically. Install them and re-run:");
-            console.Error.WriteLine("  dotnet tool install --global dotnet-ef");
+            await console.Error.WriteLineAsync("Couldn't install the EF Core tools automatically. Install them and re-run:").ConfigureAwait(false);
+            await console.Error.WriteLineAsync("  dotnet tool install --global dotnet-ef").ConfigureAwait(false);
             return false;
         }
 
@@ -104,9 +104,9 @@ internal static class EfToolProbe
             return true;
         }
 
-        console.Out.WriteLine(string.Create(
+        await console.Out.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"The EF Core tools are {installed}, older than the {Floor} runtime this app uses. Updating them…"));
+            $"The EF Core tools are {installed}, older than the {Floor} runtime this app uses. Updating them…")).ConfigureAwait(false);
 
         // Pinned to the floor's MAJOR rather than left floating to `latest`. On a machine with a newer SDK
         // than the app targets, `latest` installs the next major's tools, which then complain in the other
@@ -119,14 +119,14 @@ internal static class EfToolProbe
 
         if (updated == 0)
         {
-            console.Out.WriteLine("Updated dotnet-ef.");
+            await console.Out.WriteLineAsync("Updated dotnet-ef.").ConfigureAwait(false);
             return true;
         }
 
         // Not a failure: the tool that is already there still works, it just prints a notice first. Saying
         // so and carrying on beats refusing to run a migration over a version number.
-        console.Error.WriteLine("Couldn't update the EF Core tools automatically. Carrying on with the version installed:");
-        console.Error.WriteLine($"  dotnet tool update --global dotnet-ef --version {Floor.Major}.*");
+        await console.Error.WriteLineAsync("Couldn't update the EF Core tools automatically. Carrying on with the version installed:").ConfigureAwait(false);
+        await console.Error.WriteLineAsync($"  dotnet tool update --global dotnet-ef --version {Floor.Major}.*").ConfigureAwait(false);
         return true;
     }
 }

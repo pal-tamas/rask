@@ -2,21 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Rask.Dashboard.Logging;
 
-/// <summary>One captured log entry.</summary>
-/// <param name="Sequence">Monotonic id — the stable key for a list row, since timestamps can collide.</param>
-/// <param name="Timestamp">When it was logged (UTC).</param>
-/// <param name="Level">Its severity.</param>
-/// <param name="Category">The logger category, e.g. <c>Rask.Live</c>.</param>
-/// <param name="Message">The formatted message.</param>
-/// <param name="Exception">The exception's <c>ToString()</c>, if one was attached.</param>
-public sealed record DashboardLogEntry(
-    long Sequence,
-    DateTimeOffset Timestamp,
-    LogLevel Level,
-    string Category,
-    string Message,
-    string? Exception);
-
 /// <summary>
 /// A bounded, in-memory tail of the application's log — <b>not</b> a log store. It holds the last
 /// <see cref="RaskDashboardOptions.LogBufferSize" /> entries at or above
@@ -35,7 +20,7 @@ public sealed class DashboardLogBuffer(RaskDashboardOptions options, TimeProvide
     private long _sequence;
 
     /// <summary>Raised after an entry is added, so the log panel can push instead of poll.</summary>
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     /// <summary>Whether this entry would be kept, checked before the message is even formatted.</summary>
     public bool IsEnabled(LogLevel level) =>
@@ -79,7 +64,7 @@ public sealed class DashboardLogBuffer(RaskDashboardOptions options, TimeProvide
             _entries.Clear();
         }
 
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     internal void Add(LogLevel level, string category, string message, Exception? exception)
@@ -104,6 +89,6 @@ public sealed class DashboardLogBuffer(RaskDashboardOptions options, TimeProvide
 
         // Raised outside the lock: a subscriber re-rendering must never block the logging call that
         // triggered it, and re-entering Add from a handler would otherwise deadlock.
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 }

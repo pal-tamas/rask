@@ -19,7 +19,7 @@ public static class CqrsRegistry
     /// <summary>Invokes every handler for a notification.</summary>
     public delegate Task NotificationInvoker(IServiceProvider provider, object notification, CancellationToken cancellationToken);
 
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
     private static readonly Dictionary<Type, RequestInvoker> _manualRequests = new();
     private static readonly Dictionary<Type, NotificationInvoker> _manualNotifications = new();
 
@@ -29,15 +29,15 @@ public static class CqrsRegistry
 
     // The flattened dispatch tables. Rebuilt under the lock and installed in a single store, so a
     // dispatch in flight observes either the complete old table or the complete new one.
-    private static volatile IReadOnlyDictionary<Type, RequestInvoker> _requests =
+    private static volatile Dictionary<Type, RequestInvoker> _requests =
         new Dictionary<Type, RequestInvoker>();
 
-    private static volatile IReadOnlyDictionary<Type, NotificationInvoker> _notifications =
+    private static volatile Dictionary<Type, NotificationInvoker> _notifications =
         new Dictionary<Type, NotificationInvoker>();
 
     private static readonly List<(object Key, (Type Type, SubscriptionRegistration Registration)[] Items)> _subscriptionGroups = new();
 
-    private static volatile IReadOnlyDictionary<Type, SubscriptionRegistration> _subscriptions =
+    private static volatile Dictionary<Type, SubscriptionRegistration> _subscriptions =
         new Dictionary<Type, SubscriptionRegistration>();
 
     // The modules whose initializer has been forced, so a lookup that misses does it at most once per module.

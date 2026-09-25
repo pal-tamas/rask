@@ -27,12 +27,7 @@ public sealed partial class UiChatBubble : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class(UiClass.Compose(Mine == true ? "chat chat-end" : "chat chat-start", Class))[
-            Author is null && When is null
-                ? null
-                : Div.Class("chat-header")[
-                    Author is { } author ? Span[author] : null,
-                    When is { } when ? Time.Class("ms-1 text-xs opacity-50")[when] : null
-                ],
+            Header(),
             Div.Class(UiClass.Compose(
                 "chat-bubble",
                 Tone is { } tone ? ToneClass(tone) : ""))[Message]
@@ -52,4 +47,17 @@ public sealed partial class UiChatBubble : Component
         Ui.Tone.Neutral => "chat-bubble-neutral",
         _ => "",
     };
+
+    private Component? Header()
+    {
+        if (Author is null && When is null)
+        {
+            return null;
+        }
+
+        return Div.Class("chat-header")[
+            Author is { } author ? Span[author] : null,
+            When is { } when ? Time.Class("ms-1 text-xs opacity-50")[when] : null
+        ];
+    }
 }

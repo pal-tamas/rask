@@ -89,6 +89,12 @@ public sealed partial class Img : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
+        WriteSourceAttributes(sb);
+        WriteFetchAttributes(sb);
+    }
+
+    private void WriteSourceAttributes(StringBuilder sb)
+    {
         if (Src is not null)
         {
             AppendMediaUrlAttr(sb, "src", Src);
@@ -123,7 +129,10 @@ public sealed partial class Img : Element
         {
             AppendAttr(sb, "sizes", Sizes);
         }
+    }
 
+    private void WriteFetchAttributes(StringBuilder sb)
+    {
         if (CrossOrigin is not null)
         {
             AppendAttr(sb, "crossorigin", CrossOrigin);

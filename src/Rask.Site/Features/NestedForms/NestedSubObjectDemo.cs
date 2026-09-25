@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Rask.Site.Features;
 
 // Sub-object binding — sub-class instance owns its own validation state under a single
@@ -55,30 +53,4 @@ public sealed partial class NestedSubObjectDemo : Component
             ? null
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-result")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
-}
-
-public sealed class CheckoutModel
-{
-    [Required(ErrorMessage = "Name is required.")]
-    [StringLength(60)]
-    public string Name { get; set; } = "";
-
-    [Required(ErrorMessage = "Email is required.")]
-    [EmailAddress(ErrorMessage = "Looks like an invalid email.")]
-    public string Email { get; set; } = "";
-
-    public AddressModel Address { get; set; } = new();
-}
-
-public sealed class AddressModel
-{
-    [Required(ErrorMessage = "Street is required.")]
-    public string Street { get; set; } = "";
-
-    [Required(ErrorMessage = "City is required.")]
-    public string City { get; set; } = "";
-
-    [Required(ErrorMessage = "Country is required.")]
-    [RegularExpression("^[A-Z]{2}$", ErrorMessage = "Use the ISO 2-letter code.")]
-    public string Country { get; set; } = "";
 }

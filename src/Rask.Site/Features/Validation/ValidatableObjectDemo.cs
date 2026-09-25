@@ -52,29 +52,3 @@ public sealed partial class ValidatableObjectDemo : Component
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
-
-public sealed class BookingModel : IValidatableObject
-{
-    private static readonly DateOnly Today = new(2026, 5, 14);
-
-    [Required(ErrorMessage = "Name is required.")]
-    public string Name { get; set; } = "";
-
-    public DateOnly Departure { get; set; } = new(2026, 7, 1);
-    public DateOnly Arrival { get; set; } = new(2026, 7, 5);
-
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
-        if (Departure < Today)
-        {
-            yield return new ValidationResult(
-                "Departure cannot be in the past.",
-                new[] { nameof(Departure) });
-        }
-
-        if (Arrival <= Departure)
-        {
-            yield return new ValidationResult("Arrival must be after departure.");
-        }
-    }
-}

@@ -111,7 +111,9 @@ internal static partial class SpaDebugProxy
         }
 
         browser = parsed;
+#pragma warning disable S5332 // a loopback DevTools endpoint, which the browser serves over plain http only
         devTools = $"http://{parsed.Authority}";
+#pragma warning restore S5332
         return true;
     }
 
@@ -150,7 +152,7 @@ internal static partial class SpaDebugProxy
         return start;
     }
 
-    [GeneratedRegex(@"Now listening on:\s*(?<url>\S+)", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"Now listening on:\s*(?<url>\S+)", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ListeningLine();
 
     /// <summary>One proxy per DevTools endpoint, started on first use and stopped with the host.</summary>
@@ -218,6 +220,7 @@ internal static partial class SpaDebugProxy
             }
             catch (OperationCanceledException)
             {
+                // Timed out waiting for the address line: fall through to kill the proxy and report it.
             }
 
             var error = process.HasExited ? await process.StandardError.ReadToEndAsync(CancellationToken.None).ConfigureAwait(false) : "";
@@ -227,6 +230,7 @@ internal static partial class SpaDebugProxy
             }
             catch (InvalidOperationException)
             {
+                // Already exited between the check and the kill — nothing left to stop.
             }
 
             process.Dispose();

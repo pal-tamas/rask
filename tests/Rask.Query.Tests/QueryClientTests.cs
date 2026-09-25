@@ -1,4 +1,4 @@
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 public class QueryClientTests
 {

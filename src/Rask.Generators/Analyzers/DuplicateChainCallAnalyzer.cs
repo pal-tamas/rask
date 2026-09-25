@@ -78,12 +78,10 @@ public sealed class DuplicateChainCallAnalyzer : DiagnosticAnalyzer
         {
             // A step or setter takes the component and hands it back; anything else in the chain — the
             // children indexer, a cast, the entry itself — is not a write and does not count.
-            if (current.Instance is not null || current.TargetMethod.IsExtensionMethod)
+            if ((current.Instance is not null || current.TargetMethod.IsExtensionMethod)
+                && !seen.Add(current.TargetMethod.Name))
             {
-                if (!seen.Add(current.TargetMethod.Name))
-                {
-                    duplicates.Add(current.TargetMethod.Name);
-                }
+                duplicates.Add(current.TargetMethod.Name);
             }
         }
 

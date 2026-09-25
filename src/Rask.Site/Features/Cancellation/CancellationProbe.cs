@@ -22,7 +22,7 @@ public sealed partial class CancellationProbe : Component
         // Make the "running" pill visible BEFORE the long await — the framework's
         // post-await StateHasChanged only fires after the continuation resumes, so
         // without this the user would jump straight from "pending" to "completed".
-        StateHasChanged();
+        await StateHasChangedAsync();
 
         // Synchronous cancellation observer: fires the instant the framework calls
         // Cancel() on our lifetime CTS (inside DisposeComponentTree, before the loop's
@@ -85,7 +85,7 @@ public sealed partial class CancellationProbe : Component
         return Div.Class("flex gap-2 items-center flex-wrap items-center")[
             Span.Class($"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
             Span.Class("text-ui-muted text-sm")[
-                _status == "running"
+                _status is "running"
                     ? "Awaiting Task.Delay(2500ms, CancellationToken). Click Unmount to abort."
                     : "Awaited task settled — probe is still alive."
             ]

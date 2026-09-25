@@ -20,8 +20,3 @@ public sealed partial class VueChart : Rask.External.VueComponent
     /// <summary>Runs when a bar is clicked, with that bar's value — straight back into C#.</summary>
     public Callback<int>? OnBarClick { get; set; }
 }
-
-/// <summary>One plotted bar. A record composed of wire-encodable types, so it crosses as JSON.</summary>
-/// <param name="Label">The bar's caption.</param>
-/// <param name="Value">The bar's height, 0..100.</param>
-public sealed record ChartBar(string Label, int Value);

@@ -125,12 +125,9 @@ public sealed class RaskLoggingOptions
     /// <summary>Whether <paramref name="category"/> is excluded from capture.</summary>
     internal bool IsExcluded(string category)
     {
-        foreach (var prefix in AlwaysExcluded)
+        if (AlwaysExcluded.Any(prefix => category.StartsWith(prefix, StringComparison.Ordinal)))
         {
-            if (category.StartsWith(prefix, StringComparison.Ordinal))
-            {
-                return true;
-            }
+            return true;
         }
 
         // Indexed rather than foreach: this runs per logger construction, and IList<string> would box an
@@ -145,68 +142,5 @@ public sealed class RaskLoggingOptions
         }
 
         return false;
-    }
-
-    /// <summary>Validates the option values once <c>Rask:Logging</c> and the callback have applied, at host start, so a bad value fails fast.</summary>
-    internal void Validate()
-    {
-        if (Retention < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(Retention), Retention, "Retention cannot be negative.");
-        }
-
-        if (MaxRows < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxRows), MaxRows, "MaxRows cannot be negative.");
-        }
-
-        if (FlushInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(FlushInterval), FlushInterval, "FlushInterval must be positive.");
-        }
-
-        if (BatchSize < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(BatchSize), BatchSize, "BatchSize must be at least 1.");
-        }
-
-        if (MaxScopeValues < 1)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(MaxScopeValues), MaxScopeValues,
-                "MaxScopeValues must be at least 1. Set CaptureScopes = false to store no scope state.");
-        }
-
-        if (MaxScopeValueLength < 1)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(MaxScopeValueLength), MaxScopeValueLength, "MaxScopeValueLength must be at least 1.");
-        }
-
-        if (QueueCapacity < 1)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(QueueCapacity), QueueCapacity, "QueueCapacity must be at least 1.");
-        }
-
-        if (PurgeInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(PurgeInterval), PurgeInterval, "PurgeInterval must be positive.");
-        }
-
-        if (ShutdownDrainTimeout < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownDrainTimeout), ShutdownDrainTimeout, "ShutdownDrainTimeout cannot be negative.");
-        }
-
-        ArgumentNullException.ThrowIfNull(Pragmas);
-        ArgumentNullException.ThrowIfNull(BusyRetry);
-
-        // SqliteOptions.Validate() is internal to Rask.SQLite, but BuildScript throws on the same bad
-        // values — so building the script here buys the identical fail-fast without reaching for internals.
-        SqlitePragmas.BuildScript(Pragmas);
     }
 }

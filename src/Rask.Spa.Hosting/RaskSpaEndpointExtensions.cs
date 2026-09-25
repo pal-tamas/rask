@@ -149,16 +149,73 @@ public static class RaskSpaEndpointExtensions
 
         if (dev)
         {
-            Console.WriteLine(
-                $"Rask.Spa.Hosting: serving the WebAssembly client's build output (hot reload) from {devManifest}");
-
-            // Mapped endpoints, so they win over the catch-all's asset 404 for /_framework/.
-            if (wasm && SpaDebugProxy.ResolveHost(devManifest!) is { } debugHost)
-            {
-                SpaDebugProxy.Map(endpoints, prefix, debugHost);
-            }
+            MapDevSession(endpoints, prefix, devManifest!, wasm);
         }
 
+        UseBundleFiles(app, fileProvider, prefix, options, dev, wasm);
+        MapIndexDocument(endpoints, prefix, options, wasm, IndexPath(fileProvider, options, devManifest, resolved));
+        return endpoints;
+    }
+
+    /// <summary>Where the index document is read from.</summary>
+    /// <remarks>
+    ///     In a development session the index document comes from the manifest, not from next to the
+    ///     bundle: the build output's wwwroot/ holds only _framework/, and the index document maps to a
+    ///     placeholder-filled copy under obj/ whose import map carries the build's fingerprints. The one
+    ///     in the source tree still has those placeholders empty and cannot boot the runtime.
+    /// </remarks>
+    private static string IndexPath(
+        IFileProvider fileProvider,
+        SpaHostingOptions options,
+        string? devManifest,
+        string? resolved) =>
+        devManifest is not null
+            ? fileProvider.GetFileInfo(options.IndexFileName).PhysicalPath
+              ?? throw new InvalidOperationException(
+                  $"The WebAssembly client's build manifest has no {options.IndexFileName} ({devManifest}). "
+                  + "Rebuild the client project.")
+            : Path.Combine(resolved!, options.IndexFileName);
+
+    private static void MapIndexDocument(
+        IEndpointRouteBuilder endpoints,
+        string prefix,
+        SpaHostingOptions options,
+        bool wasm,
+        string indexPath) =>
+        StaticSpaFiles.MapCatchAll(endpoints, prefix, async context =>
+        {
+            if (ShouldRefuse(context, options, prefix, wasm))
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
+            context.Response.ContentType = "text/html; charset=utf-8";
+            context.Response.Headers.CacheControl = "no-cache";
+            await context.Response.SendFileAsync(indexPath, context.RequestAborted).ConfigureAwait(false);
+        });
+
+    private static void MapDevSession(IEndpointRouteBuilder endpoints, string prefix, string devManifest, bool wasm)
+    {
+        Console.WriteLine(
+            $"Rask.Spa.Hosting: serving the WebAssembly client's build output (hot reload) from {devManifest}");
+
+        // Mapped endpoints, so they win over the catch-all's asset 404 for /_framework/.
+        if (wasm && SpaDebugProxy.ResolveHost(devManifest) is { } debugHost)
+        {
+            SpaDebugProxy.Map(endpoints, prefix, debugHost);
+        }
+    }
+
+    // Compression, then the default document, then the bundle's own files with their cache headers.
+    private static void UseBundleFiles(
+        IApplicationBuilder app,
+        IFileProvider fileProvider,
+        string prefix,
+        SpaHostingOptions options,
+        bool dev,
+        bool wasm)
+    {
         // Precompressed siblings first, so a .br/.gz emitted by the build is served as-is with no
         // request-time CPU. Falls straight through when there are none.
         //
@@ -193,57 +250,37 @@ public static class RaskSpaEndpointExtensions
             FileProvider = fileProvider,
             RequestPath = prefix,
             ContentTypeProvider = _contentTypes,
-            OnPrepareResponse = context =>
-            {
-                // The precompressed middleware may have rewritten the path to a .br/.gz sibling, after
-                // which the content type was keyed off that suffix — restore it from the real name.
-                var name = StaticSpaFiles.UnderlyingFileName(context.File.Name);
-
-                if (_contentTypes.TryGetContentType(name, out var mime))
-                {
-                    context.Context.Response.ContentType = mime;
-                }
-                else if (name.EndsWith(".mjs", StringComparison.OrdinalIgnoreCase))
-                {
-                    context.Context.Response.ContentType = "text/javascript";
-                }
-
-                context.Context.Response.Headers.CacheControl =
-                    SpaCacheClassification.IsImmutable(
-                        Relative(context.Context.Request.Path.Value, prefix), name, options, wasm)
-                        ? "public, max-age=31536000, immutable"
-                        : "no-cache";
-
-                // Last, so an app can override anything decided above.
-                options.OnPrepareResponse?.Invoke(context);
-            },
+            OnPrepareResponse = context => PrepareResponse(context, prefix, options, wasm),
         });
+    }
 
-        // In a development session the index document comes from the manifest, not from next to the
-        // bundle: the build output's wwwroot/ holds only _framework/, and the index document maps to a
-        // placeholder-filled copy under obj/ whose import map carries the build's fingerprints. The one
-        // in the source tree still has those placeholders empty and cannot boot the runtime.
-        var indexPath = dev
-            ? fileProvider.GetFileInfo(options.IndexFileName).PhysicalPath
-              ?? throw new InvalidOperationException(
-                  $"The WebAssembly client's build manifest has no {options.IndexFileName} ({devManifest}). "
-                  + "Rebuild the client project.")
-            : Path.Combine(resolved!, options.IndexFileName);
+    private static void PrepareResponse(
+        StaticFileResponseContext context,
+        string prefix,
+        SpaHostingOptions options,
+        bool wasm)
+    {
+        // The precompressed middleware may have rewritten the path to a .br/.gz sibling, after
+        // which the content type was keyed off that suffix — restore it from the real name.
+        var name = StaticSpaFiles.UnderlyingFileName(context.File.Name);
 
-        StaticSpaFiles.MapCatchAll(endpoints, prefix, async context =>
+        if (_contentTypes.TryGetContentType(name, out var mime))
         {
-            if (ShouldRefuse(context, options, prefix, wasm))
-            {
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                return;
-            }
+            context.Context.Response.ContentType = mime;
+        }
+        else if (name.EndsWith(".mjs", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Context.Response.ContentType = "text/javascript";
+        }
 
-            context.Response.ContentType = "text/html; charset=utf-8";
-            context.Response.Headers.CacheControl = "no-cache";
-            await context.Response.SendFileAsync(indexPath);
-        });
+        context.Context.Response.Headers.CacheControl =
+            SpaCacheClassification.IsImmutable(
+                Relative(context.Context.Request.Path.Value, prefix), name, options, wasm)
+                ? "public, max-age=31536000, immutable"
+                : "no-cache";
 
-        return endpoints;
+        // Last, so an app can override anything decided above.
+        options.OnPrepareResponse?.Invoke(context);
     }
 
     /// <summary>
@@ -360,11 +397,12 @@ public static class RaskSpaEndpointExtensions
         var wasmClient = SpaAppBundle.Read(entry, SpaAppBundle.WasmClientMetadataKey);
         var client = SpaAppBundle.Read(entry, SpaAppBundle.ClientMetadataKey);
         var devServer = options.DevServerUrl ?? SpaAppBundle.Read(entry, SpaAppBundle.DevServerMetadataKey);
-        var buildHint = wasmClient is not null
-            ? $"publish {wasmClient}"
-            : client is null
-                ? "run your bundler's build"
-                : $"run the build in {client}";
+        var buildHint = (wasmClient, client) switch
+        {
+            ({ } wasmProject, _) => $"publish {wasmProject}",
+            (null, null) => "run your bundler's build",
+            (null, { } clientDirectory) => $"run the build in {clientDirectory}",
+        };
 
         if (environment?.IsDevelopment() == true)
         {
@@ -379,7 +417,9 @@ public static class RaskSpaEndpointExtensions
             {
                 context.Response.ContentType = "text/html; charset=utf-8";
                 context.Response.Headers.CacheControl = "no-store";
-                await context.Response.WriteAsync(DevelopmentPage(devServer, buildHint, wasmClient is not null));
+                await context.Response.WriteAsync(
+                        DevelopmentPage(devServer, buildHint, wasmClient is not null), context.RequestAborted)
+                    .ConfigureAwait(false);
             });
 
             return;
@@ -396,12 +436,16 @@ public static class RaskSpaEndpointExtensions
         StaticSpaFiles.MapCatchAll(endpoints, prefix, async context =>
         {
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-            await context.Response.WriteAsync($"The single-page app is unavailable: {reason}.");
+            await context.Response.WriteAsync($"The single-page app is unavailable: {reason}.", context.RequestAborted)
+                .ConfigureAwait(false);
         });
     }
 
     private static string DevelopmentPage(string? devServer, string buildHint, bool wasm)
     {
+        var startIt = devServer is null
+            ? "<p>Start it with <code>rask dev</code>.</p>"
+            : $"""<p><a href="{WebUtility.HtmlEncode(devServer)}">{WebUtility.HtmlEncode(devServer)}</a> &mdash; started by <code>rask dev</code>.</p>""";
         var where = wasm
             ? """
               <p>This host serves your WebAssembly app's <em>build output</em>, and there isn't any.
@@ -410,9 +454,7 @@ public static class RaskSpaEndpointExtensions
             : $"""
                <p>This host serves your app's <em>build output</em>, and there isn't any. In development the
                front end is served by the bundler instead, which is the one with hot reload.</p>
-               {(devServer is null
-                   ? "<p>Start it with <code>rask dev</code>.</p>"
-                   : $"""<p><a href="{WebUtility.HtmlEncode(devServer)}">{WebUtility.HtmlEncode(devServer)}</a> &mdash; started by <code>rask dev</code>.</p>""")}
+               {startIt}
                """;
 
         return $"""

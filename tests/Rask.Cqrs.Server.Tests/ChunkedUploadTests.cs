@@ -21,7 +21,7 @@ namespace Rask.Cqrs.Server.Tests;
 /// <remarks>
 ///     The reason this path exists: a browser's <c>fetch</c> reads a request body into memory before
 ///     sending it, so a single-shot upload costs its own size in the tab. Every host reads a
-///     <c>RaskFile</c> in bounded slices already — chunking is what keeps the <em>request</em> bounded too.
+///     <c>IRaskFile</c> in bounded slices already — chunking is what keeps the <em>request</em> bounded too.
 /// </remarks>
 public sealed class ChunkedUploadTests
 {

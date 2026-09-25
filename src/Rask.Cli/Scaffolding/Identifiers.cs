@@ -73,15 +73,7 @@ internal static class Identifiers
     /// </summary>
     public static bool IsValidRoutePath(string route)
     {
-        foreach (var c in route)
-        {
-            if (c is '"' or '\\' || char.IsControl(c))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return !route.Any(c => c is '"' or '\\' || char.IsControl(c));
     }
 
     /// <summary>
@@ -92,12 +84,9 @@ internal static class Identifiers
     public static string? ToNamespacePart(string segment)
     {
         var builder = new StringBuilder(segment.Length);
-        foreach (var c in segment)
+        foreach (var c in segment.Where(c => char.IsLetterOrDigit(c) || c == '_'))
         {
-            if (char.IsLetterOrDigit(c) || c == '_')
-            {
-                builder.Append(c);
-            }
+            builder.Append(c);
         }
 
         if (builder.Length == 0)

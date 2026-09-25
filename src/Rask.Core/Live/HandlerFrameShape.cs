@@ -50,7 +50,7 @@ internal static class HandlerFrameShape
     }
 
     // The frame types that legitimately feed each shape, indexed by (int)Shape. Rows overlap on purpose:
-    // `click` feeds a parameterless handler, the legacy MouseModifiers one, and a MouseEventArgs one, so
+    // `click` feeds a parameterless handler, the legacy MouseModifiers one, and a MouseEvent one, so
     // it appears in three rows. Kept in step with the client's send sites (rask.js / rask.wasm.js /
     // the shared rask-input.js / rask-events.js splices) and with the delegate cases in
     // Component.TryInvokeHandlerAsync.
@@ -82,33 +82,33 @@ internal static class HandlerFrameShape
         new[] { "files"u8.ToArray() },
         // Scroll — ScrollEvent.
         new[] { "scroll"u8.ToArray() },
-        // Keyboard — KeyboardEventArgs.
+        // Keyboard — KeyboardEvent.
         new[] { "keydown"u8.ToArray(), "keyup"u8.ToArray() },
-        // Mouse — MouseEventArgs.
+        // Mouse — MouseEvent.
         new[]
         {
             "click"u8.ToArray(), "dblclick"u8.ToArray(), "mousedown"u8.ToArray(), "mouseup"u8.ToArray(),
             "mousemove"u8.ToArray(), "mouseenter"u8.ToArray(), "mouseleave"u8.ToArray(),
             "mouseover"u8.ToArray(), "mouseout"u8.ToArray(), "contextmenu"u8.ToArray()
         },
-        // Wheel — WheelEventArgs.
+        // Wheel — WheelEvent.
         new[] { "wheel"u8.ToArray() },
-        // Pointer — PointerEventArgs.
+        // Pointer — PointerEvent.
         new[]
         {
             "pointerdown"u8.ToArray(), "pointerup"u8.ToArray(), "pointermove"u8.ToArray(),
             "pointerenter"u8.ToArray(), "pointerleave"u8.ToArray(), "pointerover"u8.ToArray(),
             "pointerout"u8.ToArray(), "pointercancel"u8.ToArray()
         },
-        // Touch — TouchEventArgs.
+        // Touch — TouchEvent.
         new[]
         {
             "touchstart"u8.ToArray(), "touchend"u8.ToArray(),
             "touchmove"u8.ToArray(), "touchcancel"u8.ToArray()
         },
-        // Clipboard — ClipboardEventArgs.
+        // Clipboard — ClipboardEvent.
         new[] { "copy"u8.ToArray(), "cut"u8.ToArray(), "paste"u8.ToArray() },
-        // Media — MediaEventArgs.
+        // Media — MediaEvent.
         new[]
         {
             "play"u8.ToArray(), "pause"u8.ToArray(), "playing"u8.ToArray(), "ended"u8.ToArray(),
@@ -116,7 +116,7 @@ internal static class HandlerFrameShape
             "durationchange"u8.ToArray(), "loadedmetadata"u8.ToArray(), "seeked"u8.ToArray(),
             "seeking"u8.ToArray(), "waiting"u8.ToArray()
         },
-        // Toggle — ToggleEventArgs.
+        // Toggle — ToggleEvent.
         new[] { "toggle"u8.ToArray(), "beforetoggle"u8.ToArray() }
     };
 
@@ -143,7 +143,9 @@ internal static class HandlerFrameShape
 
         // Not a feeder for this shape. Refuse only if some OTHER shape claims it; an unrecognised type
         // is a client this build doesn't know, not a misfire.
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var row in Feeders)
+#pragma warning restore S3267
         {
             if (Contains(row, type))
             {
@@ -167,7 +169,9 @@ internal static class HandlerFrameShape
 
     private static bool Contains(byte[][] types, JsonElement type)
     {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var candidate in types)
+#pragma warning restore S3267
         {
             if (type.ValueEquals(candidate))
             {
@@ -188,19 +192,19 @@ internal static class HandlerFrameShape
             or Action<MouseModifiers> or Func<MouseModifiers, Task> => Shape.Modifiers,
         Action<string> or Func<string, Task> or Action<string> or Func<string, Task> => Shape.Value,
         Action<FormData> or Func<FormData, Task> or Action<FormData> or Func<FormData, Task> => Shape.Form,
-        Action<IReadOnlyList<RaskFile>> or Func<IReadOnlyList<RaskFile>, Task>
-            or Action<IReadOnlyList<RaskFile>> or Func<IReadOnlyList<RaskFile>, Task> => Shape.Files,
+        Action<IReadOnlyList<IRaskFile>> or Func<IReadOnlyList<IRaskFile>, Task>
+            or Action<IReadOnlyList<IRaskFile>> or Func<IReadOnlyList<IRaskFile>, Task> => Shape.Files,
         Action<ScrollEvent> or Func<ScrollEvent, Task>
             or Action<ScrollEvent> or Func<ScrollEvent, Task> => Shape.Scroll,
-        Action<KeyboardEventArgs> or Func<KeyboardEventArgs, Task>
-            or Action<KeyboardEventArgs> or Func<KeyboardEventArgs, Task> => Shape.Keyboard,
-        Action<MouseEventArgs> or Func<MouseEventArgs, Task> => Shape.Mouse,
-        Action<WheelEventArgs> or Func<WheelEventArgs, Task> => Shape.Wheel,
-        Action<PointerEventArgs> or Func<PointerEventArgs, Task> => Shape.Pointer,
-        Action<TouchEventArgs> or Func<TouchEventArgs, Task> => Shape.Touch,
-        Action<ClipboardEventArgs> or Func<ClipboardEventArgs, Task> => Shape.Clipboard,
-        Action<MediaEventArgs> or Func<MediaEventArgs, Task> => Shape.Media,
-        Action<ToggleEventArgs> or Func<ToggleEventArgs, Task> => Shape.Toggle,
+        Action<KeyboardEvent> or Func<KeyboardEvent, Task>
+            or Action<KeyboardEvent> or Func<KeyboardEvent, Task> => Shape.Keyboard,
+        Action<MouseEvent> or Func<MouseEvent, Task> => Shape.Mouse,
+        Action<WheelEvent> or Func<WheelEvent, Task> => Shape.Wheel,
+        Action<PointerEvent> or Func<PointerEvent, Task> => Shape.Pointer,
+        Action<TouchEvent> or Func<TouchEvent, Task> => Shape.Touch,
+        Action<ClipboardEvent> or Func<ClipboardEvent, Task> => Shape.Clipboard,
+        Action<MediaEvent> or Func<MediaEvent, Task> => Shape.Media,
+        Action<ToggleEvent> or Func<ToggleEvent, Task> => Shape.Toggle,
         // Last on purpose. This switch is a linear sequence of type tests, so an arm's position is a
         // cost paid by every arm below it — and measurably: placed next to its Shape.Value sibling, the
         // four patterns here cost the scroll path ~1.7ns (+6%) on every frame. A multi-select change

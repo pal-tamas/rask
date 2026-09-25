@@ -47,6 +47,6 @@ public class WasmAuthSignInTests
     private sealed class StubUserProvider : IUserProvider
     {
         public ClaimsPrincipal Current { get; } = new(new ClaimsIdentity());
-        public event Action? Changed { add { } remove { } }
+        public event EventHandler? Changed { add { } remove { } }
     }
 }

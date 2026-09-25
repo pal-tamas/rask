@@ -108,12 +108,10 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
         }
 
         HashSet<Type>? types = null;
-        foreach (var entry in context.ChangeTracker.Entries())
+        foreach (var entry in context.ChangeTracker.Entries()
+                     .Where(static e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
-            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
-            {
-                (types ??= []).Add(RootOf(entry.Metadata));
-            }
+            (types ??= []).Add(RootOf(entry.Metadata));
         }
 
         if (types is not null)
@@ -173,10 +171,12 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
             {
                 observer.Saved(types);
             }
+#pragma warning disable RCS1075 // deliberate swallow: a stale screen is recoverable, a duplicated write is not
             catch (Exception)
             {
                 // See the justification: a stale screen is recoverable, a duplicated write is not.
             }
+#pragma warning restore RCS1075
         }
     }
 
@@ -215,10 +215,12 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
                         TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                         TaskScheduler.Default);
             }
+#pragma warning disable RCS1075 // deliberate swallow: a committed save must not surface as a failed one
             catch (Exception)
             {
                 // See the justification above.
             }
+#pragma warning restore RCS1075
         }
     }
 
@@ -264,10 +266,10 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
             return null;
         }
 
-        foreach (var foreignKey in type.GetForeignKeys())
+        foreach (var principal in type.GetForeignKeys().Select(static foreignKey => foreignKey.PrincipalEntityType))
         {
-            if (typeof(IEntity).IsAssignableFrom(foreignKey.PrincipalEntityType.ClrType)
-                && FindRoot(foreignKey.PrincipalEntityType, depth + 1) is { } root)
+            if (typeof(IEntity).IsAssignableFrom(principal.ClrType)
+                && FindRoot(principal, depth + 1) is { } root)
             {
                 return root;
             }

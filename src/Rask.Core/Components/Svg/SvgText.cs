@@ -60,6 +60,12 @@ public sealed partial class SvgText : SvgElement
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
+        WritePositionAttributes(sb);
+        WriteTypographyAttributes(sb);
+    }
+
+    private void WritePositionAttributes(StringBuilder sb)
+    {
         if (X is not null)
         {
             AppendAttr(sb, "x", X);
@@ -84,7 +90,10 @@ public sealed partial class SvgText : SvgElement
         {
             AppendAttr(sb, "rotate", Rotate);
         }
+    }
 
+    private void WriteTypographyAttributes(StringBuilder sb)
+    {
         if (TextAnchor is not null)
         {
             AppendAttr(sb, "text-anchor", TextAnchor);

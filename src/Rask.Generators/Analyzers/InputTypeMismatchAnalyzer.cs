@@ -10,7 +10,7 @@ namespace Rask.Generators.Analyzers;
 
 // RASK025 — warn when an explicit string-only InputType is set on an Input<T> whose T is not string.
 // A generic Input<T> derives its HTML input type from T (bool→checkbox, int/decimal→number, DateOnly→date,
-// …). The string-only InputTypes — Text/Search/Tel/Url/Email/Password — only make sense for Input<string>;
+// …). The string-only InputTypes — Text/Search/Tel/Url/Email/Password — only make sense for Input<string>:
 // pairing one with Input<int>/Input<bool>/… is a mistake (the value would never round-trip). The fix is to
 // drop the explicit Type (it's inferred from T) or bind a string. Suppressible like any analyzer.
 [DiagnosticAnalyzer(LanguageNames.CSharp)]

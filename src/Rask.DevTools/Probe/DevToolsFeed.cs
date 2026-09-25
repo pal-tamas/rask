@@ -4,31 +4,6 @@ using Rask.Core.Live;
 
 namespace Rask.DevTools.Probe;
 
-/// <summary>Which way a frame crossed the wire, from the inspected page's point of view.</summary>
-internal enum DevToolsWireDirection : byte
-{
-    /// <summary>The page sent it to the app: an event, a navigation, a hello.</summary>
-    Out,
-
-    /// <summary>The app sent it to the page: a render frame, an ack, a control frame.</summary>
-    In,
-}
-
-/// <summary>One frame on the wire, as the panel's Wire tab lists it.</summary>
-/// <param name="Sequence">Monotonic per feed, so the panel can key rows and tell what is new.</param>
-/// <param name="Direction">Which way it went.</param>
-/// <param name="Kind">The frame's <c>type</c> for inbound traffic; <c>frame</c> for a render the app sent.</param>
-/// <param name="Bytes">Its UTF-8 size on the wire.</param>
-/// <param name="Timestamp">A <see cref="System.Diagnostics.Stopwatch" /> timestamp.</param>
-/// <param name="DiffOps">For a render frame, how many edit ops it carried; null for a full document or other traffic.</param>
-internal readonly record struct DevToolsWireEvent(
-    long Sequence,
-    DevToolsWireDirection Direction,
-    string Kind,
-    int Bytes,
-    long Timestamp,
-    int? DiffOps);
-
 /// <summary>
 ///     What the devtools have seen of one inspected session, bounded so a long-running page cannot grow it without limit.
 /// </summary>
@@ -82,7 +57,7 @@ internal sealed partial class DevToolsFeed
     internal const int RenderCapacity = 5000;
 
     /// <summary>Raised after every recorded event, outside the lock. Subscribers must not block.</summary>
-    internal event Action? Changed;
+    internal event EventHandler? Changed;
 
     internal void RecordDiff(int opCount, bool usedDiff)
     {
@@ -97,7 +72,7 @@ internal sealed partial class DevToolsFeed
         lock (_gate)
         {
             int? ops = null;
-            if (direction == DevToolsWireDirection.In && kind == "frame")
+            if (direction == DevToolsWireDirection.In && string.Equals(kind, "frame", StringComparison.Ordinal))
             {
                 ops = _pendingDiffOps;
                 _pendingDiffOps = null;
@@ -116,7 +91,7 @@ internal sealed partial class DevToolsFeed
             }
         }
 
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Whether a panel is showing this session's component tree, so the probe knows to build one.</summary>
@@ -210,7 +185,7 @@ internal sealed partial class DevToolsFeed
             _tree = root;
         }
 
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>The component tree as of the last render, or null while nothing has been recorded.</summary>
@@ -283,7 +258,7 @@ internal sealed partial class DevToolsFeed
             }
         }
 
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Whether a panel is flashing this session's renders, so each render is recorded with its place.</summary>
@@ -314,7 +289,7 @@ internal sealed partial class DevToolsFeed
             _heldRenders = 0;
         }
 
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>The wire events currently held, oldest first.</summary>

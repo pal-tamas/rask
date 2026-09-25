@@ -35,7 +35,9 @@ public abstract partial class UiMenuSurface : Component
     private bool _open;
     private int _cursor = -1;
     private UiMenuScope? _scope;
+#pragma warning disable S3459 // a mutable struct whose default is its empty state; Next() fills it in place
     private UiTypeAhead _typeAhead;
+#pragma warning restore S3459
 
     /// <summary>
     ///     Whether the menu is open. Leave it unset to let the reader open and close it; set it to take
@@ -99,7 +101,7 @@ public abstract partial class UiMenuSurface : Component
             panel = panel.Data("rask-popover-open", controlled ? "true" : "false");
         }
 
-        var aria = new Dictionary<string, string?>();
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
         if (labelledBy is not null)
         {
             aria["labelledby"] = labelledBy;
@@ -126,7 +128,7 @@ public abstract partial class UiMenuSurface : Component
         return panel[menu[Context.Provide(new UiMenuLevel(_scope, -1))[Children ?? []]]];
     }
 
-    private async Task OnPanelToggleAsync(ToggleEventArgs e)
+    private async Task OnPanelToggleAsync(ToggleEvent e)
     {
         _open = e.IsOpen;
         _openSubs.Clear();
@@ -136,7 +138,7 @@ public abstract partial class UiMenuSurface : Component
         // because Open became true fires this same event.
         if (OnToggle is { } onToggle && e.IsOpen != Open)
         {
-            await (onToggle.Invoke(e.IsOpen) ?? Task.CompletedTask).ConfigureAwait(false);
+            await onToggle.Invoke(e.IsOpen).ConfigureAwait(false);
         }
     }
 
@@ -163,7 +165,7 @@ public abstract partial class UiMenuSurface : Component
 
     // ---- the keyboard ---------------------------------------------------------------------------
 
-    private Task OnKeyAsync(KeyboardEventArgs e)
+    private Task OnKeyAsync(KeyboardEvent e)
     {
         // A modified key belongs to the browser or the app, not to the menu.
         if (_scope is not { } scope || scope.Entries.Count == 0 || e.Ctrl || e.Alt || e.Meta)
@@ -198,7 +200,7 @@ public abstract partial class UiMenuSurface : Component
                 _cursor = level;
                 break;
             default:
-                if (e.Key.Length == 1 && e.Key != " ")
+                if (e.Key.Length == 1 && !string.Equals(e.Key, " ", StringComparison.Ordinal))
                 {
                     TypeAhead(e.Key, entries, level, at);
                 }

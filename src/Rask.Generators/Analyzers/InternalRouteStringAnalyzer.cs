@@ -86,7 +86,7 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
     {
         var inv = (IInvocationOperation)context.Operation;
         var method = inv.TargetMethod;
-        if (method.Name != "NavigateTo"
+        if (!string.Equals(method.Name, "NavigateTo", StringComparison.Ordinal)
             || !SymbolEqualityComparer.Default.Equals(method.ContainingType, navigator))
         {
             return;
@@ -210,13 +210,11 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
                     firstTemplate = t;
                 }
             }
-            else if (parentAttr is not null && SymbolEqualityComparer.Default.Equals(cls, parentAttr))
+            else if (parentAttr is not null && SymbolEqualityComparer.Default.Equals(cls, parentAttr)
+                     && attr.ConstructorArguments.Length > 0
+                     && attr.ConstructorArguments[0].Value is INamedTypeSymbol p)
             {
-                if (attr.ConstructorArguments.Length > 0
-                    && attr.ConstructorArguments[0].Value is INamedTypeSymbol p)
-                {
-                    parentFqn = p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                }
+                parentFqn = p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
         }
 

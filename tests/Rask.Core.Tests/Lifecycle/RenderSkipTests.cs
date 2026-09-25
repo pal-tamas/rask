@@ -139,7 +139,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, false);
+            LiveRenderContext.NotifyParameters(c, false);
             return c;
         }
     }
@@ -178,7 +178,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, false);
+            LiveRenderContext.NotifyParameters(c, false);
             return Span[c];
         }
     }

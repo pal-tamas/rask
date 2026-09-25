@@ -45,5 +45,10 @@ public sealed class RaskMetaHealthCheck : IHealthCheck
     public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(_drain.IsDraining ? _draining : _readiness.IsReady ? _ready : _starting);
+        Task.FromResult(_drain.IsDraining switch
+        {
+            true => _draining,
+            false when _readiness.IsReady => _ready,
+            false => _starting,
+        });
 }

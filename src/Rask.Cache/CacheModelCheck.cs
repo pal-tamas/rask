@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Batteries;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>The cache's claim on the application's model, checked once at boot. See #1015.</summary>
 /// <remarks>

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Background;
 using Rask.Dashboard.Pages;
-using Rask.Jobs;
 using Rask.Testing;
 
 namespace Rask.Dashboard.Tests;

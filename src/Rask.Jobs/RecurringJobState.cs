@@ -1,8 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Data;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 /// Durable bookkeeping for an interval-recurring job, keyed by its registered name, so a restart never
@@ -26,25 +24,12 @@ public sealed class RecurringJobState : Entity<Guid>
     public string Name { get; private set; } = "";
 
     /// <summary>When this recurring job was last enqueued (UTC), or <c>null</c> if it never has been.</summary>
+#pragma warning disable S1144 // EF materializes the column through the setter; code only moves it with ExecuteUpdate
     public DateTime? LastEnqueuedAt { get; private set; }
+#pragma warning restore S1144
 
     /// <summary>Starts the bookkeeping for <paramref name="name" />, never yet enqueued.</summary>
     /// <param name="name">The recurring job's registered name.</param>
     public static RecurringJobState For(string name) =>
         new() { Id = Guid.CreateVersion7(), Name = name };
-}
-
-/// <summary>The EF Core mapping for <see cref="RecurringJobState"/>.</summary>
-public sealed class RecurringJobStateConfiguration : IEntityTypeConfiguration<RecurringJobState>
-{
-    /// <inheritdoc/>
-    public void Configure(EntityTypeBuilder<RecurringJobState> entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        entity.HasKey(x => x.Id);
-        entity.Property(x => x.Name).IsRequired().HasMaxLength(200);
-        // The name is still what identifies a recurring job, and still what makes two instances racing to
-        // create the row resolve to one winner — as a unique index rather than as the primary key.
-        entity.HasIndex(x => x.Name).IsUnique();
-    }
 }

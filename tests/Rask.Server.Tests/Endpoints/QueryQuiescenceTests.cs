@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Cqrs;
-using Rask.Query;
+using Rask.Querying;
 using Rask.Server.Tests.Infrastructure;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>

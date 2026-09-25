@@ -39,7 +39,7 @@ builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:63
 builder.Services.AddRaskCache();   // no <AppDbContext>
 ```
 
-There is deliberately no `Rask.Cache.Redis` package —
+There is deliberately no `Rask.Caching.Redis` package —
 `Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API for this. The overload takes no
 `CacheOptions`, because both of them are implemented by the database-backed store and would silently do
 nothing against another one.

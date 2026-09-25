@@ -27,7 +27,7 @@ public sealed class UploadPageTests
         var file = new FakeFile("doc.txt", 12345, "text/plain",
             DateTimeOffset.FromUnixTimeSeconds(1_700_000_000));
 
-        onFiles.Invoke(page, [new[] { (RaskFile)file }]);
+        onFiles.Invoke(page, [new[] { (IRaskFile)file }]);
 
         Assert.Equal("doc.txt", GetField<string?>(page, "_name"));
         Assert.Equal(12345L, GetField<long>(page, "_size"));
@@ -45,7 +45,7 @@ public sealed class UploadPageTests
         // Pre-set _name as if a previous file had been chosen.
         SetField(page, "_name", "leftover.txt");
 
-        onFiles.Invoke(page, [Array.Empty<RaskFile>()]);
+        onFiles.Invoke(page, [Array.Empty<IRaskFile>()]);
 
         Assert.Null(GetField<string?>(page, "_name"));
     }
@@ -65,16 +65,16 @@ public sealed class UploadPageTests
         f.SetValue(page, value);
     }
 
-    // Minimal RaskFile stand-in for the metadata-hydration test.
+    // Minimal IRaskFile stand-in for the metadata-hydration test.
     private sealed class FakeFile(string name, long size, string contentType, DateTimeOffset lastModified)
-        : RaskFile
+        : IRaskFile
     {
-        public override string Name { get; } = name;
-        public override long Size { get; } = size;
-        public override string ContentType { get; } = contentType;
-        public override DateTimeOffset LastModified { get; } = lastModified;
+        public string Name { get; } = name;
+        public long Size { get; } = size;
+        public string ContentType { get; } = contentType;
+        public DateTimeOffset LastModified { get; } = lastModified;
 
-        public override Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
+        public Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 }

@@ -41,21 +41,3 @@ public sealed class AuthInstanceClaim
     /// <summary>When it was claimed (UTC).</summary>
     public DateTime ClaimedUtc { get; set; }
 }
-
-/// <summary>The EF Core mapping for <see cref="AuthInstanceClaim"/>.</summary>
-public sealed class AuthInstanceClaimConfiguration : IEntityTypeConfiguration<AuthInstanceClaim>
-{
-    /// <inheritdoc/>
-    public void Configure(EntityTypeBuilder<AuthInstanceClaim> entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-
-        entity.ToTable("RaskAuthInstanceClaim");
-
-        // Never generated: the value is the constraint. A database-assigned key would let every
-        // registration insert a new row, which is exactly the guarantee this table exists to provide.
-        entity.HasKey(x => x.Id);
-        entity.Property(x => x.Id).ValueGeneratedNever();
-
-    }
-}

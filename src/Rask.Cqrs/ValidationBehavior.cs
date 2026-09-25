@@ -33,7 +33,7 @@ public sealed class ValidationBehavior<TRequest, TResult> : IPipelineBehavior<TR
     }
 
     /// <inheritdoc />
-    public async Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next)
+    public async Task<TResult> Handle(TRequest request, RequestHandler<TResult> next)
     {
         ArgumentNullException.ThrowIfNull(next);
 

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 /// A job runs for the user who enqueued it: the row records <see cref="Current.UserId" />, and the processor

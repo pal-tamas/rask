@@ -97,7 +97,7 @@ public readonly struct Counting<T>
     ///     The one that matched, to assert on what the steps do not cover — the body's text, a job's
     ///     property. Throws unless exactly one matched.
     /// </summary>
-    public T Single()
+    public T Only()
     {
         Once();
         return _matching[0];
@@ -120,10 +120,3 @@ public readonly struct Counting<T>
             : $"{head} All {_all.Count} {_verb}: {string.Join("; ", _all.Select(_describe))}.";
     }
 }
-
-/// <summary>A fake battery's expectation that did not hold.</summary>
-[SuppressMessage(
-    "Design",
-    "CA1032:Implement standard exception constructors",
-    Justification = "Only a Counting step throws this, always with the message it built.")]
-public sealed class CountingException(string message) : Exception(message);

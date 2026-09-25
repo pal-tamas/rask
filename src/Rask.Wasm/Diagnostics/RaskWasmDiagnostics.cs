@@ -27,7 +27,7 @@ namespace Rask.Wasm.Diagnostics;
 ///         mapping fails a test until the other matches.
 ///     </para>
 /// </remarks>
-internal static class RaskWasmDiagnostics
+internal static partial class RaskWasmDiagnostics
 {
     private static ILoggerFactory? _factory;
 
@@ -65,7 +65,9 @@ internal static class RaskWasmDiagnostics
     {
         try
         {
-            factory.CreateLogger(e.Category).Log(Map(e.Level), e.Exception, "{RaskMessage}", e.Message);
+            var logger = factory.CreateLogger(e.Category);
+            var level = Map(e.Level);
+            Write(logger, level, e.Exception, e.Message);
         }
         catch
         {
@@ -86,4 +88,7 @@ internal static class RaskWasmDiagnostics
         RaskLogLevel.Warning => LogLevel.Warning,
         _ => LogLevel.Information
     };
+
+    [LoggerMessage(Message = "{RaskMessage}")]
+    private static partial void Write(ILogger logger, LogLevel level, Exception? exception, string raskMessage);
 }

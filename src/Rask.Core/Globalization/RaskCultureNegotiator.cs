@@ -2,28 +2,6 @@ using System.Globalization;
 
 namespace Rask.Core.Globalization;
 
-/// <summary>Where a negotiated culture came from.</summary>
-public enum CultureSource
-{
-    /// <summary>Nothing matched; the configured default was used.</summary>
-    Default,
-
-    /// <summary>The visitor's own preference (<c>Accept-Language</c> / <c>navigator.languages</c>).</summary>
-    Client,
-
-    /// <summary>A remembered explicit choice.</summary>
-    Cookie,
-
-    /// <summary>An explicit override in the URL.</summary>
-    Query,
-}
-
-/// <summary>The outcome of negotiation: which cultures to use, and what decided it.</summary>
-public readonly record struct CultureNegotiation(
-    CultureInfo Culture,
-    CultureInfo UICulture,
-    CultureSource Source);
-
 /// <summary>
 ///     Chooses a visitor's culture from the signals a host can offer. Pure, and free of host types, so
 ///     the decision is unit-testable without a server or a browser.

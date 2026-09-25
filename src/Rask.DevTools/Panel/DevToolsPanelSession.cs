@@ -19,7 +19,7 @@ namespace Rask.DevTools.Panel;
 ///         the app's render walk and the render state the two sessions share per thread is never interleaved.
 ///     </para>
 /// </remarks>
-internal sealed class DevToolsPanelSession : LiveSessionBase, IDisposable
+internal sealed class DevToolsPanelSession : LiveSessionBase
 {
     /// <summary>The panel document's <c>data-rask-root</c> value.</summary>
     internal const string RootId = "rask-devtools";
@@ -37,6 +37,7 @@ internal sealed class DevToolsPanelSession : LiveSessionBase, IDisposable
     private bool _lastBuildHadJsInvokes;
     private int _disposed;
 
+    /// <summary>A session drawing <paramref name="view" /> into the panel's own frame.</summary>
     /// <param name="view">The panel's root, already wrapped in the root error boundary.</param>
     /// <param name="services">The panel's own container — never the app's, whose route state and navigator are the app's.</param>
     /// <param name="send">Where each frame goes. The memory is valid only for the call.</param>
@@ -133,7 +134,7 @@ internal sealed class DevToolsPanelSession : LiveSessionBase, IDisposable
         }
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {

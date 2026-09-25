@@ -202,8 +202,8 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     {
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
-            if (current.Name == "ControllerBase" &&
-                current.ContainingNamespace?.ToDisplayString() == MvcNamespace)
+            if (string.Equals(current.Name, "ControllerBase", StringComparison.Ordinal) &&
+                string.Equals(current.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -257,7 +257,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             ? registration.Verb + " (route not a constant)"
             : registration.Verb + " " + registration.Pattern;
 
-        if (registration.Pattern == MinimalApi.GroupedMarker)
+        if (string.Equals(registration.Pattern, MinimalApi.GroupedMarker, StringComparison.Ordinal))
         {
             spc.ReportDiagnostic(Diagnostic.Create(
                 EndpointSkipped, registration.Site, registration.Verb + " (in a MapGroup)",
@@ -319,6 +319,9 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             spc, action, route, verb, clientName, clientNamespace, action.Name, declaredBy, At(action), compilation);
     }
 
+    private static string Build(IReadOnlyList<ApiEndpoint> endpoints) =>
+        ClientEmitter.Emit(endpoints);
+
     /// <summary>
     ///     Turns a handler and a resolved route into a client method, or reports why it cannot.
     /// </summary>
@@ -339,7 +342,6 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         Location site,
         Compilation compilation)
     {
-
         if (route.Contains("{*"))
         {
             spc.ReportDiagnostic(Diagnostic.Create(
@@ -364,16 +366,42 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             return null;
         }
 
-        var parameters = new List<ApiParameter>();
+        if (!TryParameters(spc, action, tokens, site, declaredBy, compilation, out var parameters))
+        {
+            return null;
+        }
+
+        // A route token no parameter fills would be substituted with nothing, producing a URL that
+        // silently addresses the wrong resource.
+        var unfilled = tokens.FirstOrDefault(token => !parameters.Any(p => p.Binding == ApiBinding.Route &&
+            string.Equals(p.WireName, token, StringComparison.OrdinalIgnoreCase)));
+        if (unfilled is not null)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                EndpointSkipped, site, declaredBy,
+                $"its route names '{{{unfilled}}}' but no parameter supplies it"));
+            return null;
+        }
+
+        return new ApiEndpoint(
+            verb, route, clientName, clientNamespace, methodName, parameters, resultType, resultFqn, declaredBy);
+    }
+
+    // The client method's parameters, in the action's own order — or false, with the reason reported.
+    private static bool TryParameters(
+        SourceProductionContext spc,
+        IMethodSymbol action,
+        IReadOnlyList<string> tokens,
+        Location site,
+        string declaredBy,
+        Compilation compilation,
+        out List<ApiParameter> parameters)
+    {
+        parameters = new List<ApiParameter>();
         var bodySeen = false;
 
-        foreach (var parameter in action.Parameters)
+        foreach (var parameter in action.Parameters.Where(p => !IsInfrastructure(p)))
         {
-            if (IsInfrastructure(parameter))
-            {
-                continue;
-            }
-
             var shape = WireShape.Classify(parameter.Type, allowFile: false, compilation: compilation);
 
             if (shape.Kind == WireKind.Unsupported)
@@ -389,7 +417,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 spc.ReportDiagnostic(Diagnostic.Create(
                     NoWireEncoding, At(parameter), declaredBy,
                     $"parameter '{parameter.Name}' {shape.Reason}"));
-                return null;
+                return false;
             }
 
             var binding = BindingOf(parameter, shape, tokens, ref bodySeen);
@@ -399,7 +427,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 spc.ReportDiagnostic(Diagnostic.Create(
                     EndpointSkipped, site, declaredBy,
                     $"parameter '{parameter.Name}' would be a second request body, and a request has one"));
-                return null;
+                return false;
             }
 
             // Refused HERE, where it can be reported. The emitter has no way to attach a header to the
@@ -413,7 +441,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     $"parameter '{parameter.Name}' binds from a request header, which a generated client "
                     + "cannot send. Pass it as a route or query value, or set it for every call with "
                     + "ApiClientOptions.ConfigureRequestAsync"));
-                return null;
+                return false;
             }
 
             parameters.Add(new ApiParameter(
@@ -426,22 +454,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                 DefaultLiteral(parameter)));
         }
 
-        // A route token no parameter fills would be substituted with nothing, producing a URL that
-        // silently addresses the wrong resource.
-        foreach (var token in tokens)
-        {
-            if (!parameters.Any(p => p.Binding == ApiBinding.Route &&
-                    string.Equals(p.WireName, token, StringComparison.OrdinalIgnoreCase)))
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    EndpointSkipped, site, declaredBy,
-                    $"its route names '{{{token}}}' but no parameter supplies it"));
-                return null;
-            }
-        }
-
-        return new ApiEndpoint(
-            verb, route, clientName, clientNamespace, methodName, parameters, resultType, resultFqn, declaredBy);
+        return true;
     }
 
     private static bool TryResult(
@@ -548,13 +561,13 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     {
         body = null;
 
-        if (type.ContainingNamespace?.ToDisplayString() != "Microsoft.AspNetCore.Http.HttpResults" ||
+        if (!string.Equals(type.ContainingNamespace?.ToDisplayString(), "Microsoft.AspNetCore.Http.HttpResults", StringComparison.Ordinal) ||
             type is not INamedTypeSymbol named)
         {
             return false;
         }
 
-        if (named.Name == "Results" && named.TypeArguments.Length > 0)
+        if (string.Equals(named.Name, "Results", StringComparison.Ordinal) && named.TypeArguments.Length > 0)
         {
             var recognised = false;
 
@@ -596,7 +609,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     {
         foreach (var attribute in action.GetAttributes())
         {
-            if (attribute.AttributeClass?.Name != "ProducesResponseTypeAttribute")
+            if (!string.Equals(attribute.AttributeClass?.Name, "ProducesResponseTypeAttribute", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -683,13 +696,13 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
     private static string? BindingAttribute(IParameterSymbol parameter)
     {
-        foreach (var attribute in parameter.GetAttributes())
+        foreach (var attributeClass in parameter.GetAttributes().Select(attribute => attribute.AttributeClass))
         {
-            var name = attribute.AttributeClass?.Name;
+            var name = attributeClass?.Name;
 
             if (name is "FromRouteAttribute" or "FromQueryAttribute" or "FromBodyAttribute"
                 or "FromHeaderAttribute" &&
-                attribute.AttributeClass?.ContainingNamespace?.ToDisplayString() == MvcNamespace)
+                string.Equals(attributeClass?.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal))
             {
                 return name;
             }
@@ -710,7 +723,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
 
             foreach (var named in attribute.NamedArguments)
             {
-                if (named.Key == "Name" && named.Value.Value is string name && name.Length > 0)
+                if (string.Equals(named.Key, "Name", StringComparison.Ordinal) && named.Value.Value is string name && name.Length > 0)
                 {
                     return name;
                 }
@@ -720,18 +733,9 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         return parameter.Name;
     }
 
-    private static bool HasAttribute(ISymbol symbol, string attributeName)
-    {
-        foreach (var attribute in symbol.GetAttributes())
-        {
-            if (attribute.AttributeClass?.Name == attributeName)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool HasAttribute(ISymbol symbol, string attributeName) =>
+        symbol.GetAttributes().Any(attribute =>
+            string.Equals(attribute.AttributeClass?.Name, attributeName, StringComparison.Ordinal));
 
     // The action's own default, as a C# literal. Emitting `default` instead would make the client send a
     // zero or a null whenever the caller omits the argument, quietly replacing the server's default with
@@ -768,7 +772,4 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         .WithMiscellaneousOptions(
             SymbolDisplayMiscellaneousOptions.UseSpecialTypes
             | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
-
-    private static string Build(IReadOnlyList<ApiEndpoint> endpoints) =>
-        ClientEmitter.Emit(endpoints);
 }

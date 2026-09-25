@@ -25,16 +25,18 @@ public class CarrierTests
         Assert.False(typeof(Validator<string>).IsSubclassOf(typeof(Delegate)));
     }
 
-    // A synchronous handler must not acquire an asynchronous hop it did not have: no Task, no closure,
-    // no state machine. `null` is how the slot says "nothing to await", which is what lets a caller
-    // write `if (cb?.Invoke() is { } t) await t;` and stay off the async path entirely.
+    // A synchronous handler must not acquire an asynchronous hop it did not have: no new Task, no closure,
+    // no state machine. It hands back the cached completed task, so a caller's plain `await cb.Invoke();`
+    // never yields.
     [Fact]
-    public void A_sync_handler_runs_and_hands_back_nothing_to_await()
+    public void A_sync_handler_runs_and_hands_back_the_cached_completed_task()
     {
         var ran = false;
         var cb = new Callback(() => ran = true);
 
-        Assert.Null(cb.Invoke());
+        var pending = cb.Invoke();
+
+        Assert.Same(Task.CompletedTask, pending);
         Assert.True(ran);
     }
 
@@ -50,7 +52,6 @@ public class CarrierTests
 
         var pending = cb.Invoke();
 
-        Assert.NotNull(pending);
         await pending;
         Assert.True(ran);
     }
@@ -60,24 +61,43 @@ public class CarrierTests
     [Fact]
     public void An_unset_carrier_is_inert()
     {
-        Assert.Null(default(Callback).Invoke());
-        Assert.Null(default(Callback<int>).Invoke(1));
-        Assert.Null(default(Callback<int, int>).Invoke(1, 2));
+        Assert.Same(Task.CompletedTask, default(Callback).Invoke());
+        Assert.Same(Task.CompletedTask, default(Callback<int>).Invoke(1));
+        Assert.Same(Task.CompletedTask, default(Callback<int, int>).Invoke(1, 2));
         Assert.False(default(Callback).HasValue);
         Assert.False(default(Fn<string>).HasValue);
         Assert.Null(default(Fn<string>).Invoke());
         Assert.Null(default(Fn<int, string>).Invoke(1));
     }
 
+    // An event PROPERTY is `Callback?`, and it answers Invoke itself — so firing and forwarding need no `?.`
+    // and no `?? Task.CompletedTask`.
+    [Fact]
+    public async Task An_event_property_invokes_whether_or_not_it_was_set()
+    {
+        Callback? unset = null;
+        Callback<int>? unsetOne = null;
+        var seen = 0;
+        Callback<int>? set = new Callback<int>(v => seen = v);
+
+        var none = unset.Invoke();
+        var noneWithArg = unsetOne.Invoke(1);
+        await set.Invoke(7);
+
+        Assert.Same(Task.CompletedTask, none);
+        Assert.Same(Task.CompletedTask, noneWithArg);
+        Assert.Equal(7, seen);
+    }
+
     [Fact]
     public void Argument_carrying_callbacks_pass_their_arguments()
     {
         var seen = 0;
-        Assert.Null(new Callback<int>(v => seen = v).Invoke(42));
+        Assert.Same(Task.CompletedTask, new Callback<int>(v => seen = v).Invoke(42));
         Assert.Equal(42, seen);
 
         var sum = 0;
-        Assert.Null(new Callback<int, int>((a, b) => sum = a + b).Invoke(3, 4));
+        Assert.Same(Task.CompletedTask, new Callback<int, int>((a, b) => sum = a + b).Invoke(3, 4));
         Assert.Equal(7, sum);
     }
 

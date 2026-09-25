@@ -39,7 +39,7 @@ public sealed partial class IslandsPage : Component
         CodeSample
             .Files([
                 "IslandsDemo.cs",
-                "VueChart.cs", "VueChart.vue",
+                "VueChart.cs", "ChartBar.cs", "VueChart.vue",
                 "ReactCounter.cs", "ReactCounter.tsx",
                 "Colorful.cs", "ColorfulHexColorPicker.props.json", "ColorfulHexColorInput.props.json",
                 "SvelteMeter.cs", "SvelteMeter.svelte",

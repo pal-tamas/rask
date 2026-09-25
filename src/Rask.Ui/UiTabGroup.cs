@@ -77,7 +77,7 @@ public sealed partial class UiTabGroup : Component
         _selected = name;
         if (OnSelect is { } onSelect)
         {
-            await (onSelect.Invoke(name) ?? Task.CompletedTask).ConfigureAwait(false);
+            await onSelect.Invoke(name).ConfigureAwait(false);
         }
     }
 }

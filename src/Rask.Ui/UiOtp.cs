@@ -66,10 +66,7 @@ public sealed partial class UiOtp : UiFormField<string>
                 // ran. One slot means one handler, so ours calls theirs.
                 .AfterBind(async value =>
                 {
-                    if (AfterBind?.Invoke(value) is { } hook)
-                    {
-                        await hook.ConfigureAwait(false);
-                    }
+                    await AfterBind.Invoke(value).ConfigureAwait(false);
 
                     await CompleteAsync(value).ConfigureAwait(false);
                 })
@@ -85,10 +82,7 @@ public sealed partial class UiOtp : UiFormField<string>
             .Value(Value ?? string.Empty)
             .OnChange(async value =>
             {
-                if (OnChange?.Invoke(value) is { } notify)
-                {
-                    await notify.ConfigureAwait(false);
-                }
+                await OnChange.Invoke(value).ConfigureAwait(false);
 
                 await CompleteAsync(value).ConfigureAwait(false);
             })
@@ -111,10 +105,7 @@ public sealed partial class UiOtp : UiFormField<string>
             return;
         }
 
-        if (OnComplete?.Invoke(value) is { } complete)
-        {
-            await complete.ConfigureAwait(false);
-        }
+        await OnComplete.Invoke(value).ConfigureAwait(false);
     }
 
     private (string Name, string? Value)[] Hints() =>

@@ -70,6 +70,6 @@ public sealed partial class LifecycleCycleDemo : Component
     private async Task DeferredRerenderAsync()
     {
         await Task.Delay(50);
-        StateHasChanged();
+        await StateHasChangedAsync();
     }
 }

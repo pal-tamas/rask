@@ -177,7 +177,7 @@ public sealed partial class GuideChrome : Component
             ]);
         }
 
-        return Nav.Class("guide-chapters").Aria(new Dictionary<string, string?> { ["label"] = "Chapters" })[
+        return Nav.Class("guide-chapters").Aria("label", "Chapters")[
             Div.Class("guide-chapters-title")["Chapters"],
             Ol.Class("guide-chapters-list")[chapters]
         ];
@@ -195,10 +195,10 @@ public sealed partial class GuideChrome : Component
         return Aside.Class("guide-onthispage")[
             Nav
                 .Class("guide-onthispage-inner")
-                .Aria(new Dictionary<string, string?> { ["label"] = "On this page" })[
+                .Aria("label", "On this page")[
                 Div.Class("guide-onthispage-title")["On this page"],
                 Ul.Class("guide-onthispage-list")[
-                    headings.Select(h => (Component)Li
+                    headings.Select(h => Li
                         .Key(h.Id)
                         .Class(h.Level == 3 ? "guide-onthispage-sub" : null)[
                         Anchor(h, "guide-onthispage-link")
@@ -221,7 +221,7 @@ public sealed partial class GuideChrome : Component
 
         return Nav
             .Class("guide-prevnext")
-            .Aria(new Dictionary<string, string?> { ["label"] = "Guide navigation" })[
+            .Aria("label", "Guide navigation")[
             prev is null
                 ? Span.Class("guide-prevnext-spacer")
                 : NavLink
@@ -257,7 +257,7 @@ public sealed partial class GuideChrome : Component
         var index = -1;
         for (var i = 0; i < ordered.Count; i++)
         {
-            if (ordered[i].Slug == slug)
+            if (string.Equals(ordered[i].Slug, slug, StringComparison.Ordinal))
             {
                 index = i;
                 break;

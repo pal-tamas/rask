@@ -64,7 +64,7 @@ public class ToastTests
     {
         IToaster toast = new Toaster();
         var fired = 0;
-        toast.Changed += () => fired++;
+        toast.Changed += (_, _) => fired++;
 
         toast.Warning("careful");
 

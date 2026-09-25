@@ -1,6 +1,6 @@
 using Rask.Cqrs;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 // The registry is process-global and the generated module initializer already owns a group in it, so
 // every test here drives its own group key. That is the point of the group key: a contributor can only

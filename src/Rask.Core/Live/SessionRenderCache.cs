@@ -78,7 +78,9 @@ public sealed class SessionRenderCache : IDisposable
     ///     lets <c>FrameDiffer.Diff</c> attach HTML fragments to
     ///     <see cref="EditOpKind.InsertSubtree" /> ops for the client interpreter.
     /// </summary>
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
     public bool TryComputeDiff(List<EditOp> output, ReadOnlySpan<char> newHtml = default)
+#pragma warning restore MA0016
         => TryComputeDiff(output, out _, newHtml);
 
     /// <summary>
@@ -91,7 +93,9 @@ public sealed class SessionRenderCache : IDisposable
     ///     without promoting <c>_current</c>; the caller commits exactly once via
     ///     <see cref="Snapshot" /> after the loop settles.
     /// </summary>
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
     public bool TryComputeDiff(List<EditOp> output, bool rotate, ReadOnlySpan<char> newHtml = default)
+#pragma warning restore MA0016
         => TryComputeDiff(output, out _, newHtml, rotate);
 
     /// <summary>
@@ -102,10 +106,14 @@ public sealed class SessionRenderCache : IDisposable
     ///     identity on surviving nodes (focus, IDL state, listeners), so they're safe to
     ///     ship as diff; positional structural ops still route to the full-HTML morph path.
     /// </summary>
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
     public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, ReadOnlySpan<char> newHtml = default)
+#pragma warning restore MA0016
         => TryComputeDiff(output, out usedKeyedPath, newHtml, true);
 
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
     public bool TryComputeDiff(List<EditOp> output, out bool usedKeyedPath, ReadOnlySpan<char> newHtml, bool rotate)
+#pragma warning restore MA0016
     {
         output.Clear();
         usedKeyedPath = false;
@@ -156,7 +164,9 @@ public sealed class SessionRenderCache : IDisposable
     public bool Render(
         Component rootComponent,
         StringBuilder htmlOutput,
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
         List<EditOp> diffOps)
+#pragma warning restore MA0016
     {
         var writer = PrepareCurrentBuffer();
         using (FrameSinkScope.Push(writer))

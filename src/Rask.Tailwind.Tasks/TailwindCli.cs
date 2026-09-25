@@ -5,18 +5,6 @@ using System.Runtime.InteropServices;
 
 namespace Rask.Tailwind.Tasks;
 
-/// <summary>The platforms Tailwind publishes a standalone binary for.</summary>
-/// <remarks>
-///     Public only so the tests can name it in a theory. This assembly is build-only — it is loaded by
-///     a UsingTask and never referenced by a consumer — so there is no API surface to protect.
-/// </remarks>
-public enum TailwindOs
-{
-    MacOs,
-    Linux,
-    Windows,
-}
-
 /// <summary>
 ///     Which Tailwind binary this machine needs, and where it is cached.
 /// </summary>
@@ -115,17 +103,7 @@ internal static class TailwindCli
             return false;
         }
 
-        var actual = new FileInfo(path).Length;
-        var why =
-            !File.Exists(ReceiptPath(path)) ? "was not fetched by a build that records what it verified"
-            : !long.TryParse(
-                File.ReadAllText(ReceiptPath(path)).Trim(),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out var expected) ? "has an unreadable receipt beside it"
-            : expected != actual ? $"is {actual} bytes where {expected} were verified"
-            : null;
-
+        var why = WhyNotTrusted(path);
         if (why is null)
         {
             // Idempotent, and the other half of the same repair: a restore can drop the mode bits while
@@ -140,6 +118,26 @@ internal static class TailwindCli
 
         Discard(path);
         return false;
+    }
+
+    private static string? WhyNotTrusted(string path)
+    {
+        if (!File.Exists(ReceiptPath(path)))
+        {
+            return "was not fetched by a build that records what it verified";
+        }
+
+        if (!long.TryParse(
+                File.ReadAllText(ReceiptPath(path)).Trim(),
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var expected))
+        {
+            return "has an unreadable receipt beside it";
+        }
+
+        var actual = new FileInfo(path).Length;
+        return expected != actual ? $"is {actual} bytes where {expected} were verified" : null;
     }
 
     /// <summary>Records the size a freshly verified binary was written at.</summary>
@@ -176,7 +174,7 @@ internal static class TailwindCli
 
         // Arguments rather than ArgumentList: this targets netstandard2.0, where the list form does not
         // exist. The path is ours and quoted, so a space in the cache directory is still safe.
-        using var chmod = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("chmod")
+        using var chmod = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ChmodPath)
         {
             Arguments = "+x \"" + path + "\"",
             UseShellExecute = false,
@@ -184,6 +182,13 @@ internal static class TailwindCli
 
         chmod?.WaitForExit();
     }
+
+    // An absolute path, so a PATH entry cannot stand in for chmod. /bin is the norm; NixOS has neither.
+    private static readonly string ChmodPath =
+        Array.Find(
+            new[] { "/bin/chmod", "/usr/bin/chmod", "/run/current-system/sw/bin/chmod" },
+            File.Exists)
+        ?? "/bin/chmod";
 
     /// <summary>The release URL for a pinned version.</summary>
     public static string DownloadUrl(string version, string assetName) =>

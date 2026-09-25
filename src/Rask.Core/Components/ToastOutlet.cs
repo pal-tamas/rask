@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Core.Messaging;
@@ -28,7 +27,7 @@ public sealed partial class ToastOutlet : Component
 {
     // Own gate: the dismiss callback, Changed handler and auto-dismiss timers may run from a
     // timer/thread-pool thread while Render enumerates. Mirrors Toaster's own locking discipline.
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly List<ToastMessage> _messages = [];
 
     // One-shot auto-dismiss timers, keyed by message id — created on drain when AutoDismissAfter is set,
@@ -102,10 +101,10 @@ public sealed partial class ToastOutlet : Component
             snapshot = [.. _messages];
         }
 
-        return Template!(snapshot, Dismiss);
+        return Template(snapshot, Dismiss);
     }
 
-    private void OnToastChanged()
+    private void OnToastChanged(object? sender, EventArgs e)
     {
         Drain();
         StateHasChanged();
@@ -125,9 +124,8 @@ public sealed partial class ToastOutlet : Component
             _messages.AddRange(incoming);
             if (delay is { } d && d > TimeSpan.Zero)
             {
-                foreach (var message in incoming)
+                foreach (var id in incoming.Select(message => message.Id))
                 {
-                    var id = message.Id;
                     _timers[id] = new Timer(_ => Dismiss(id), null, d, Timeout.InfiniteTimeSpan);
                 }
             }

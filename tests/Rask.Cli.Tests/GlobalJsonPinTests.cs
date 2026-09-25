@@ -99,9 +99,9 @@ public sealed class GlobalJsonPinTests
     {
         var committed = DotnetTarget.Default.GlobalJson;
 
-        Assert.True(DotnetTarget.Preview.StillNamesTheDefault(committed));
+        Assert.True(DotnetTarget.StillNamesTheDefault(committed));
         Assert.False(
-            DotnetTarget.Preview.StillNamesTheDefault(DotnetTarget.Preview.Rewrite(committed)));
+            DotnetTarget.StillNamesTheDefault(DotnetTarget.Preview.Rewrite(committed)));
         Assert.Equal(
             "11.0.0",
             Sdk(DotnetTarget.Preview.Rewrite(committed)).GetProperty("version").GetString());

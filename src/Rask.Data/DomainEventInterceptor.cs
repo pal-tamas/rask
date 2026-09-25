@@ -111,15 +111,15 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
         // Drain the events off the tracked entities now — a Deleted entity is detached once the save
         // completes, so collecting after SaveChanges would lose its events.
         var events = new List<INotification>();
-        foreach (var entry in context.ChangeTracker.Entries<IHasDomainEvents>())
+        foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(static entry => entry.Entity))
         {
-            if (entry.Entity.DomainEvents.Count == 0)
+            if (entity.DomainEvents.Count == 0)
             {
                 continue;
             }
 
-            events.AddRange(entry.Entity.DomainEvents);
-            entry.Entity.ClearDomainEvents();
+            events.AddRange(entity.DomainEvents);
+            entity.ClearDomainEvents();
         }
 
         if (events.Count > 0)
@@ -137,7 +137,8 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
 
         _pending.Remove(context);
 
-        await using var scope = _scopeFactory.CreateAsyncScope();
+        var scope = _scopeFactory.CreateAsyncScope();
+        await using var scopeScope = scope.ConfigureAwait(false);
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         foreach (var domainEvent in events)
         {

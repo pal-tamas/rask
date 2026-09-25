@@ -43,14 +43,28 @@ internal sealed class LinuxDevHostPlatform(IProcessRunner process, IConsole cons
     ///     The anchor directory and refresh command for this distribution, or null when it is one we do
     ///     not recognise.
     /// </summary>
-    private static (string Directory, string Command, string[] Arguments)? Anchors =>
-        Directory.Exists("/usr/local/share/ca-certificates")
-            ? ("/usr/local/share/ca-certificates", "update-ca-certificates", [])
-            : Directory.Exists("/etc/pki/ca-trust/source/anchors")
-                ? ("/etc/pki/ca-trust/source/anchors", "update-ca-trust", ["extract"])
-                : Directory.Exists("/etc/ca-certificates/trust-source/anchors")
-                    ? ("/etc/ca-certificates/trust-source/anchors", "trust", ["extract-compat"])
-                    : null;
+    private static (string Directory, string Command, string[] Arguments)? Anchors
+    {
+        get
+        {
+            if (Directory.Exists("/usr/local/share/ca-certificates"))
+            {
+                return ("/usr/local/share/ca-certificates", "update-ca-certificates", []);
+            }
+
+            if (Directory.Exists("/etc/pki/ca-trust/source/anchors"))
+            {
+                return ("/etc/pki/ca-trust/source/anchors", "update-ca-trust", ["extract"]);
+            }
+
+            if (Directory.Exists("/etc/ca-certificates/trust-source/anchors"))
+            {
+                return ("/etc/ca-certificates/trust-source/anchors", "trust", ["extract-compat"]);
+            }
+
+            return null;
+        }
+    }
 
     private static string? AnchorPath => Anchors is { } anchors
         ? Path.Combine(anchors.Directory, "rask-local-ca.crt")

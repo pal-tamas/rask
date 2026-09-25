@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Rask.Logging;
 
@@ -95,6 +94,3 @@ internal static class LogScopeJson
         }
     }
 }
-
-[JsonSerializable(typeof(Dictionary<string, string>))]
-internal sealed partial class LogScopeJsonContext : JsonSerializerContext;

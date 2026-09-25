@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -103,7 +102,7 @@ public static class RaskStorageServiceCollectionExtensions
     {
         public ValidateOptionsResult Validate(string? name, StorageOptions options)
         {
-            if (name is not null && name != Options.DefaultName)
+            if (name is not null && !string.Equals(name, Options.DefaultName, StringComparison.Ordinal))
             {
                 return ValidateOptionsResult.Skip;
             }

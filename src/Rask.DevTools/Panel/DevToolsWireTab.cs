@@ -107,7 +107,7 @@ internal sealed partial class DevToolsWireTab : Component
         ];
     }
 
-    private void OnFeedChanged() => _gate?.Notify();
+    private void OnFeedChanged(object? sender, EventArgs e) => _gate?.Notify();
 
     private static Component Row(DevToolsWireEvent e, DevToolsWireEvent? previous) =>
         Tr.Key(e.Sequence)[
@@ -115,10 +115,12 @@ internal sealed partial class DevToolsWireTab : Component
             Td[e.Direction == DevToolsWireDirection.Out ? Ui.Badge.Tone(Ui.Tone.Info)["sent"] : Ui.Badge["received"]],
             Td.Class("font-mono")[e.Kind],
             Td.Class("tabular-nums whitespace-nowrap")[Size(e.Bytes)],
-            Td.Class("tabular-nums whitespace-nowrap")[e.DiffOps is { } ops ? Count(ops) + (ops == 1 ? " op" : " ops") : ""],
+            Td.Class("tabular-nums whitespace-nowrap")[e.DiffOps is { } ops ? Ops(ops) : ""],
             // Time since the frame before it, which is what a round trip or a chatty handler looks like in a list.
             Td.Class("tabular-nums whitespace-nowrap opacity-60")[previous is { } p ? Gap(p.Timestamp, e.Timestamp) : ""]
         ];
+
+    private static string Ops(int ops) => Count(ops) + (ops == 1 ? " op" : " ops");
 
     private static string Count(long value) => value.ToString("N0", CultureInfo.InvariantCulture);
 

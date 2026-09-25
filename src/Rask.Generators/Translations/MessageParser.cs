@@ -1,26 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Rask.Generators.Translations;
-
-// One placeholder in a message: the name a caller sees, the CLR type its parameter takes, and any
-// .NET format specifier to apply.
-internal sealed class Placeholder(string name, string clrType, string? format)
-{
-    public string Name { get; } = name;
-    public string ClrType { get; } = clrType;
-    public string? Format { get; } = format;
-}
-
-// A message with its placeholders lifted out: "Hello, {name}!" becomes "Hello, {0}!" plus one
-// placeholder called name.
-internal sealed class ParsedMessage(string format, List<Placeholder> placeholders, string? error)
-{
-    public string Format { get; } = format;
-    public List<Placeholder> Placeholders { get; } = placeholders;
-    public string? Error { get; } = error;
-}
 
 /// <summary>
 ///     Turns a catalog value into a <c>string.Format</c> template plus a typed parameter list.
@@ -64,116 +47,46 @@ internal static class MessageParser
         var sawNamed = false;
         var sawPositional = false;
 
-        for (var i = 0; i < value.Length; i++)
+        var i = 0;
+        while (i < value.Length)
         {
             var c = value[i];
+            var doubled = i + 1 < value.Length && value[i + 1] == c;
 
-            if (c == '{')
+            if (c == '{' && !doubled)
             {
-                if (i + 1 < value.Length && value[i + 1] == '{')
-                {
-                    format.Append("{{");
-                    i++;
-                    continue;
-                }
-
                 var close = value.IndexOf('}', i + 1);
                 if (close < 0)
                 {
                     return Fail("an unclosed '{' — write '{{' for a literal brace");
                 }
 
-                var body = value.Substring(i + 1, close - i - 1);
-                i = close;
-
-                if (body.Length == 0)
+                var error = ReadPlaceholder(
+                    value.Substring(i + 1, close - i - 1), ref sawNamed, ref sawPositional, out var placeholder);
+                if (error is not null)
                 {
-                    return Fail("an empty placeholder '{}'");
+                    return Fail(error);
                 }
 
-                var parts = body.Split(':');
-                var name = parts[0].Trim();
-                if (name.Length == 0)
-                {
-                    return Fail("a placeholder with no name");
-                }
-
-                var positional = IsAllDigits(name);
-                if (positional)
-                {
-                    sawPositional = true;
-                    name = "arg" + name;
-                }
-                else
-                {
-                    sawNamed = true;
-                    if (!IsIdentifier(name))
-                    {
-                        return Fail($"'{name}' is not usable as a parameter name");
-                    }
-                }
-
-                if (sawNamed && sawPositional)
-                {
-                    return Fail("a mix of positional {0} and named {name} placeholders — use one or the other");
-                }
-
-                var clrType = "object?";
-                string? fmt = null;
-                if (parts.Length > 1)
-                {
-                    var typeToken = parts[1].Trim();
-                    if (typeToken.Length > 0 && _types.TryGetValue(typeToken, out var mapped))
-                    {
-                        clrType = mapped;
-                        if (parts.Length > 2)
-                        {
-                            fmt = string.Join(":", parts, 2, parts.Length - 2).Trim();
-                        }
-                    }
-                    else
-                    {
-                        // Not a type keyword, so the rest is a .NET format specifier: {when::d} and
-                        // {when:d} mean the same thing.
-                        fmt = string.Join(":", parts, 1, parts.Length - 1).Trim();
-                    }
-
-                    if (fmt is { Length: 0 })
-                    {
-                        fmt = null;
-                    }
-                }
-
-                if (!byName.TryGetValue(name, out var index))
-                {
-                    index = placeholders.Count;
-                    byName[name] = index;
-                    placeholders.Add(new Placeholder(name, clrType, fmt));
-                }
-
-                format.Append('{').Append(index);
-                if (fmt is not null)
-                {
-                    format.Append(':').Append(fmt);
-                }
-
-                format.Append('}');
+                AppendPlaceholder(format, placeholders, byName, placeholder!);
+                i = close + 1;
                 continue;
             }
 
-            if (c == '}')
+            if (c == '}' && !doubled)
             {
-                if (i + 1 < value.Length && value[i + 1] == '}')
-                {
-                    format.Append("}}");
-                    i++;
-                    continue;
-                }
-
                 return Fail("a stray '}' — write '}}' for a literal brace");
             }
 
+            if (c is '{' or '}')
+            {
+                format.Append(c).Append(c);
+                i += 2;
+                continue;
+            }
+
             format.Append(c);
+            i++;
         }
 
         return new ParsedMessage(format.ToString(), placeholders, null);
@@ -181,34 +94,99 @@ internal static class MessageParser
         static ParsedMessage Fail(string reason) => new(string.Empty, [], reason);
     }
 
-    private static bool IsAllDigits(string s)
+    // One `{…}` body — name, then an optional type keyword or format specifier. Returns the reason it is
+    // unusable, or null with the placeholder it describes.
+    private static string? ReadPlaceholder(
+        string body, ref bool sawNamed, ref bool sawPositional, out Placeholder? placeholder)
     {
-        foreach (var c in s)
+        placeholder = null;
+        if (body.Length == 0)
         {
-            if (c is < '0' or > '9')
+            return "an empty placeholder '{}'";
+        }
+
+        var parts = body.Split(':');
+        var name = parts[0].Trim();
+        if (name.Length == 0)
+        {
+            return "a placeholder with no name";
+        }
+
+        if (IsAllDigits(name))
+        {
+            sawPositional = true;
+            name = "arg" + name;
+        }
+        else
+        {
+            sawNamed = true;
+            if (!IsIdentifier(name))
             {
-                return false;
+                return $"'{name}' is not usable as a parameter name";
             }
         }
 
-        return s.Length > 0;
-    }
-
-    private static bool IsIdentifier(string s)
-    {
-        if (s.Length == 0 || (!char.IsLetter(s[0]) && s[0] != '_'))
+        if (sawNamed && sawPositional)
         {
-            return false;
+            return "a mix of positional {0} and named {name} placeholders — use one or the other";
         }
 
-        foreach (var c in s)
+        var (clrType, fmt) = TypeAndFormat(parts);
+        placeholder = new Placeholder(name, clrType, fmt);
+        return null;
+    }
+
+    private static (string ClrType, string? Format) TypeAndFormat(string[] parts)
+    {
+        if (parts.Length == 1)
         {
-            if (!char.IsLetterOrDigit(c) && c != '_')
+            return ("object?", null);
+        }
+
+        var clrType = "object?";
+        string? fmt = null;
+        var typeToken = parts[1].Trim();
+        if (typeToken.Length > 0 && _types.TryGetValue(typeToken, out var mapped))
+        {
+            clrType = mapped;
+            if (parts.Length > 2)
             {
-                return false;
+                fmt = string.Join(":", parts, 2, parts.Length - 2).Trim();
             }
         }
+        else
+        {
+            // Not a type keyword, so the rest is a .NET format specifier: {when::d} and
+            // {when:d} mean the same thing.
+            fmt = string.Join(":", parts, 1, parts.Length - 1).Trim();
+        }
 
-        return true;
+        return (clrType, fmt is { Length: 0 } ? null : fmt);
     }
+
+    private static void AppendPlaceholder(
+        StringBuilder format, List<Placeholder> placeholders, Dictionary<string, int> byName, Placeholder placeholder)
+    {
+        if (!byName.TryGetValue(placeholder.Name, out var index))
+        {
+            index = placeholders.Count;
+            byName[placeholder.Name] = index;
+            placeholders.Add(placeholder);
+        }
+
+        format.Append('{').Append(index);
+        if (placeholder.Format is not null)
+        {
+            format.Append(':').Append(placeholder.Format);
+        }
+
+        format.Append('}');
+    }
+
+    private static bool IsAllDigits(string s) => s.Length > 0 && s.All(static c => c is >= '0' and <= '9');
+
+    private static bool IsIdentifier(string s) =>
+        s.Length > 0
+        && (char.IsLetter(s[0]) || s[0] == '_')
+        && s.All(static c => char.IsLetterOrDigit(c) || c == '_');
 }

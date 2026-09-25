@@ -71,6 +71,22 @@ public static class RaskAuthServiceCollectionExtensions
             return services;
         }
 
+        KeepDevelopmentOnCookies(services);
+        AddAccounts<TContext, TUser>(services);
+        AddHostedParts<TContext, TUser>(services);
+        AddCookieScheme(services);
+
+        // AddRask() also calls this; it is idempotent, and Rask.Auth must not depend on being wired
+        // after the host.
+        services.AddAuthorization();
+
+        AddBearer(services);
+
+        return services;
+    }
+
+    private static void KeepDevelopmentOnCookies(IServiceCollection services)
+    {
         // A bearer key that cannot sign keeps a Development app on cookies rather than stopping it, so a first
         // run needs no configuration; everywhere else Validate refuses to start. PostConfigure runs after the
         // section and every callback and before validation, which is exactly where that decision belongs. An
@@ -85,7 +101,12 @@ public static class RaskAuthServiceCollectionExtensions
                 options.Bearer = false;
             }
         });
+    }
 
+    private static void AddAccounts<TContext, TUser>(IServiceCollection services)
+        where TContext : DbContext
+        where TUser : Authenticatable, new()
+    {
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<FirstRunToken>();
         services.TryAddSingleton<IInstanceClaimStore, InstanceClaimStore<TContext>>();
@@ -123,7 +144,12 @@ public static class RaskAuthServiceCollectionExtensions
         // The endpoints resolve the store without naming the user type — MapRaskAuth() is a
         // parameterless extension method, so it has no way to know which one this app configured.
         services.TryAddScoped<IAccounts>(sp => sp.GetRequiredService<AccountService<TUser>>());
+    }
 
+    private static void AddHostedParts<TContext, TUser>(IServiceCollection services)
+        where TContext : DbContext
+        where TUser : Authenticatable, new()
+    {
         // Whatever the Rask host adds on top: an IAuth bound to its sign-in relay, and email bodies
         // rendered from real components. Null on a host that renders none, which is the whole point of
         // this package — see AuthHost.
@@ -148,7 +174,10 @@ public static class RaskAuthServiceCollectionExtensions
         // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
         // AddHostedService does.
         services.AddHousekeepingService<SessionSweep<TContext>, TContext>();
+    }
 
+    private static void AddCookieScheme(IServiceCollection services)
+    {
         // The cookie scheme is Rask.Auth's, unconditionally: cookies are the only session Rask
         // authenticates, so the battery owns the scheme rather than standing down when the app has
         // wired authentication of its own. An external provider still composes — it adds a CHALLENGE
@@ -204,14 +233,6 @@ public static class RaskAuthServiceCollectionExtensions
                 // The session rows: a sign-in starts one, a sign-out ends it, every request resumes it. See AuthCookieEvents.
                 o.EventsType = typeof(AuthCookieEvents);
             });
-
-        // AddRask() also calls this; it is idempotent, and Rask.Auth must not depend on being wired
-        // after the host.
-        services.AddAuthorization();
-
-        AddBearer(services);
-
-        return services;
     }
 
     // The values themselves, then the bearer key: a key that cannot sign is refused here — which is to say at

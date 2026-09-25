@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Rask.Mail;
+using Rask.Mailing;
 using Rask.WebPush;
 
 namespace Rask.Server.Tests.App;

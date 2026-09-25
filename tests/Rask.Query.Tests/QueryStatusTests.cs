@@ -1,4 +1,4 @@
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>
 ///     <see cref="QueryStatus" /> and <see cref="FetchStatus" /> are orthogonal, and these are the

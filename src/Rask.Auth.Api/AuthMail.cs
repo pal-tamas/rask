@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Rask.Mail;
+using Rask.Mailing;
 
 namespace Rask.Auth;
 
@@ -23,7 +23,7 @@ namespace Rask.Auth;
 /// looks exactly like one that worked, and the person waiting for the email has no way to tell.
 /// </para>
 /// </remarks>
-internal sealed class AuthMail(
+internal sealed partial class AuthMail(
     IServiceProvider services,
     AuthOptions options,
     IAuthEmailBodies bodies,
@@ -90,12 +90,7 @@ internal sealed class AuthMail(
             // NOT the mail tables does, and that app has a perfectly good IMail registered. The mail
             // battery's own worker tolerates a table that is not there yet (it must — a fresh app boots
             // before its first migration), which is exactly why the failure surfaces here instead.
-            logger.LogError(
-                ex,
-                "Rask.Auth could not queue a '{Subject}' email. The account operation itself succeeded. "
-                + "If this says the mail table is not in the model, add modelBuilder.AddRaskMail() to "
-                + "the app's OnModelCreating beside AddRaskAuth(), then create the migration.",
-                subject);
+            NotQueued(logger, ex, subject);
 
             return false;
         }
@@ -156,11 +151,20 @@ internal sealed class AuthMail(
         // Said rather than swallowed. With nothing to prefix, the link goes out relative — which looks
         // fine in the queue and in the .eml, and is simply dead in an inbox. The symptom is a link
         // nobody can click, reported as "the reset email does not work", and nothing in the app says why.
-        logger.LogWarning(
-            "Rask.Auth is sending a link with no origin to build it from, so it will go out relative and "
-            + "will not work from an email client. Set AuthOptions.PublicOrigin to this app's public "
-            + "address (app.Configure(c => c.Auth.Configure(o => o.PublicOrigin = \"https://…\"))).");
+        RelativeLink(logger);
 
         return string.Empty;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message =
+        "Rask.Auth could not queue a '{Subject}' email. The account operation itself succeeded. "
+        + "If this says the mail table is not in the model, add modelBuilder.AddRaskMail() to "
+        + "the app's OnModelCreating beside AddRaskAuth(), then create the migration.")]
+    private static partial void NotQueued(ILogger logger, Exception exception, string subject);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message =
+        "Rask.Auth is sending a link with no origin to build it from, so it will go out relative and "
+        + "will not work from an email client. Set AuthOptions.PublicOrigin to this app's public "
+        + "address (app.Configure(c => c.Auth.Configure(o => o.PublicOrigin = \"https://…\"))).")]
+    private static partial void RelativeLink(ILogger logger);
 }

@@ -8,5 +8,5 @@ public sealed partial class PropsAriaDemo : Component
         Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
             .Role("switch")
             .TabIndex(0)
-            .Aria(new Dictionary<string, string?> { ["label"] = "Toggle dark mode", ["pressed"] = "false" })[Ui.Icon.Name(Ui.IconName.Moon), "Theme"];
+            .Aria(("label", "Toggle dark mode"), ("pressed", "false"))[Ui.Icon.Name(Ui.IconName.Moon), "Theme"];
 }

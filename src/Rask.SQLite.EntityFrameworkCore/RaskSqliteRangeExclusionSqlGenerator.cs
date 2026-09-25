@@ -33,7 +33,7 @@ public class RaskSqliteRangeExclusionSqlGenerator(
     /// <inheritdoc />
     public override IReadOnlyList<MigrationCommand> Generate(
         IReadOnlyList<MigrationOperation> operations,
-        IModel? model,
+        IModel? model = null,
         MigrationsSqlGenerationOptions options = MigrationsSqlGenerationOptions.Default)
     {
         var commands = base.Generate(operations, model, options).ToList();

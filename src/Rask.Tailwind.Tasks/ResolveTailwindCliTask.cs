@@ -76,7 +76,7 @@ public sealed class ResolveTailwindCliTask : Task
     public override bool Execute()
     {
         var wanted = Engine?.Trim().ToLowerInvariant() ?? "auto";
-        if (wanted == "npm")
+        if (string.Equals(wanted, "npm", StringComparison.Ordinal))
         {
             return FallBackToNpm(becauseNoBinary: false);
         }
@@ -84,7 +84,7 @@ public sealed class ResolveTailwindCliTask : Task
         var assetName = AssetForThisMachine();
         if (assetName is null)
         {
-            if (wanted == "standalone")
+            if (string.Equals(wanted, "standalone", StringComparison.Ordinal))
             {
                 Log.LogError(
                     "Rask.Tailwind: RaskTailwindEngine=standalone, but Tailwind publishes no standalone "
@@ -164,7 +164,11 @@ public sealed class ResolveTailwindCliTask : Task
             $"Rask.Tailwind: fetching the Tailwind {Version} CLI (one-off, cached in {CacheRoot})…");
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        Install(DownloadVerified(assetName), path);
+    }
 
+    private byte[] DownloadVerified(string assetName)
+    {
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
         var expected = TailwindCli.ExpectedChecksum(
             http.GetStringAsync(TailwindCli.ChecksumUrl(Version)).GetAwaiter().GetResult(),
@@ -188,6 +192,11 @@ public sealed class ResolveTailwindCliTask : Task
                 $"the download did not match its published checksum (expected {expected}, got {actual})");
         }
 
+        return bytes;
+    }
+
+    private static void Install(byte[] bytes, string path)
+    {
         // Written beside the target and moved into place, so a cancelled build cannot leave a truncated
         // binary that every later build then tries to execute.
         //

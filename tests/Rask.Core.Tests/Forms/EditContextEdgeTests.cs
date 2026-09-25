@@ -10,7 +10,7 @@ public class EditContextEdgeTests
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
         var validationFired = 0;
-        ctx.ValidationStateChanged += () => validationFired++;
+        ctx.ValidationStateChanged += (_, _) => validationFired++;
 
         ctx.NotifyFieldChanged(fid);
 
@@ -50,7 +50,7 @@ public class EditContextEdgeTests
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "A");
         var fired = 0;
-        ctx.ValidationStateChanged += () => fired++;
+        ctx.ValidationStateChanged += (_, _) => fired++;
 
         ctx.ClearMessages(fid);
 
@@ -66,7 +66,7 @@ public class EditContextEdgeTests
         ctx.AddValidationMessage(a, "ax");
         ctx.AddValidationMessage(b, "bx");
         var fired = 0;
-        ctx.ValidationStateChanged += () => fired++;
+        ctx.ValidationStateChanged += (_, _) => fired++;
 
         ctx.ClearAllMessages();
 
@@ -81,7 +81,7 @@ public class EditContextEdgeTests
     {
         var ctx = new EditContext(new Model());
         var fired = 0;
-        ctx.ValidationStateChanged += () => fired++;
+        ctx.ValidationStateChanged += (_, _) => fired++;
 
         ctx.ClearAllMessages();
 
@@ -135,7 +135,7 @@ public class EditContextEdgeTests
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "A");
         var fired = 0;
-        ctx.ValidationStateChanged += () => fired++;
+        ctx.ValidationStateChanged += (_, _) => fired++;
 
         ctx.AddValidationMessage(fid, "boom");
         ctx.AddValidationMessage(fid, "boom");

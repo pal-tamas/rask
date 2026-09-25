@@ -94,6 +94,13 @@ public sealed class Button : Element
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
+        WriteControlAttributes(sb);
+        WriteFormOverrideAttributes(sb);
+        WriteInvokerAttributes(sb);
+    }
+
+    private void WriteControlAttributes(StringBuilder sb)
+    {
         if (Type is not null)
         {
             AppendAttr(sb, "type", Type);
@@ -123,7 +130,10 @@ public sealed class Button : Element
         {
             AppendAttr(sb, "form", Form);
         }
+    }
 
+    private void WriteFormOverrideAttributes(StringBuilder sb)
+    {
         // Sanitised like every other URL-valued attribute: formaction is a navigation target, so a
         // `javascript:` value here is script execution on submit.
         if (FormAction is not null)
@@ -150,7 +160,10 @@ public sealed class Button : Element
         {
             AppendAttr(sb, "formtarget", FormTarget);
         }
+    }
 
+    private void WriteInvokerAttributes(StringBuilder sb)
+    {
         if (PopoverTarget is not null)
         {
             AppendAttr(sb, "popovertarget", PopoverTarget);

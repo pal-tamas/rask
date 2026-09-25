@@ -51,56 +51,60 @@ internal static class FramePathWalker
 
         var levelStart = 0;
         var levelEnd = frames.Length;
-
-        while (true)
+        bool? located;
+        do
         {
-            var index = levelStart;
-            var slot = 0;
-            var descended = false;
-
-            while (index < levelEnd)
-            {
-                if (index == start)
-                {
-                    firstSlot = slot;
-                    domNodeCount = CountDomNodes(frames, start, Math.Min(end, levelEnd));
-                    return true;
-                }
-
-                ref readonly var frame = ref frames[index];
-                var length = frame.Kind == RenderFrameKind.Element ? Math.Max(1, frame.SubtreeLength) : 1;
-
-                if (frame.Kind == RenderFrameKind.Element && start > index && start < index + length)
-                {
-                    if (frame.Opaque)
-                    {
-                        return false;
-                    }
-
-                    path.Add(slot);
-                    levelStart = SkipAttributes(frames, index + 1, index + length);
-                    levelEnd = index + length;
-                    descended = true;
-                    break;
-                }
-
-                if (OccupiesSlot(frame.Kind))
-                {
-                    slot++;
-                }
-
-                index += length;
-            }
-
-            if (descended)
-            {
-                continue;
-            }
-
-            // The whole level was walked without reaching `start` at a frame boundary and without an element containing
-            // it. With empty spans rejected up front, that leaves one shape: a span starting inside leading attributes.
-            return false;
+            located = WalkLevel(frames, start, end, path, ref levelStart, ref levelEnd, ref firstSlot, ref domNodeCount);
         }
+        while (located is null);
+
+        return located.Value;
+    }
+
+    // One level of the descent: true when `start` is found on it, null when it lies inside one of the level's
+    // elements (the level bounds then move into that element), false when it cannot be located.
+    private static bool? WalkLevel(
+        ReadOnlySpan<RenderFrame> frames, int start, int end, List<int> path,
+        ref int levelStart, ref int levelEnd, ref int firstSlot, ref int domNodeCount)
+    {
+        var index = levelStart;
+        var slot = 0;
+        while (index < levelEnd)
+        {
+            if (index == start)
+            {
+                firstSlot = slot;
+                domNodeCount = CountDomNodes(frames, start, Math.Min(end, levelEnd));
+                return true;
+            }
+
+            ref readonly var frame = ref frames[index];
+            var length = frame.Kind == RenderFrameKind.Element ? Math.Max(1, frame.SubtreeLength) : 1;
+
+            if (frame.Kind == RenderFrameKind.Element && start > index && start < index + length)
+            {
+                if (frame.Opaque)
+                {
+                    return false;
+                }
+
+                path.Add(slot);
+                levelStart = SkipAttributes(frames, index + 1, index + length);
+                levelEnd = index + length;
+                return null;
+            }
+
+            if (OccupiesSlot(frame.Kind))
+            {
+                slot++;
+            }
+
+            index += length;
+        }
+
+        // The whole level was walked without reaching `start` at a frame boundary and without an element containing
+        // it. With empty spans rejected up front, that leaves one shape: a span starting inside leading attributes.
+        return false;
     }
 
     private static int CountDomNodes(ReadOnlySpan<RenderFrame> frames, int from, int to)

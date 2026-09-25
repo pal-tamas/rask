@@ -25,7 +25,7 @@ public sealed partial class UiProgress : Component
         Progress
             .Value(Value)
             .Max(Max ?? 100)
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            .Aria("label", Label)
             .Class(UiClass.Compose(
                 "progress",
                 Tone is { } tone ? UiClassNames.ProgressTone(tone) : "",

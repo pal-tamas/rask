@@ -130,7 +130,16 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
             _content = BindingHelpers.FormatValue(Value);
         }
 
-        var name = Name ?? acc?.PropertyName;
+        WriteControlAttributes(sb, Name ?? acc?.PropertyName);
+
+        if (LiveRenderContext.CurrentSync is { } ctx)
+        {
+            WriteHandlers(sb, ctx, acc, bindCtx, fid);
+        }
+    }
+
+    private void WriteControlAttributes(StringBuilder sb, string? name)
+    {
         if (name is not null)
         {
             AppendAttr(sb, "name", name);
@@ -166,6 +175,11 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
             AppendAttr(sb, "readonly", null);
         }
 
+        WriteTextAttributes(sb);
+    }
+
+    private void WriteTextAttributes(StringBuilder sb)
+    {
         if (MaxLength is not null)
         {
             AppendAttr(sb, "maxlength", MaxLength.Value.ToString(CultureInfo.InvariantCulture));
@@ -200,12 +214,12 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
         {
             AppendAttr(sb, "dirname", Dirname);
         }
+    }
 
-        if (LiveRenderContext.CurrentSync is not { } ctx)
-        {
-            return;
-        }
-
+    private void WriteHandlers(
+        StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor? acc, EditContext? bindCtx,
+        FieldIdentifier fid)
+    {
         if (acc is not null)
         {
             // Bound: write the model on input, touch + revalidate on change.

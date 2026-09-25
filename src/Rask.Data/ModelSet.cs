@@ -75,10 +75,12 @@ public static class ModelSet
         /// </param>
         /// <param name="cancellationToken">Cancels the save.</param>
         /// <returns>The inserted entity, with any store-generated key filled in.</returns>
+#pragma warning disable CA1000 // the entity's own static is the DX
         public static Task<TEntity> CreateAsync(
             TEntity entity,
             DbContext? db = null,
             CancellationToken cancellationToken = default) =>
             GeneratedModelWrites.CreateAsync(entity, db, cancellationToken);
+#pragma warning restore CA1000
     }
 }

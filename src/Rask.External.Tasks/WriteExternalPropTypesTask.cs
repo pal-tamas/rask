@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Microsoft.Build.Framework;
 using Rask.Spa.Tasks;
@@ -140,77 +141,7 @@ public sealed class WriteExternalPropTypesTask : Task
 
         try
         {
-            var constants = GeneratedTypeScript.Read(AssemblyPath, GeneratedNamespace, GeneratedTypeName);
-
-            // No early return when the assembly declares nothing (#943), but no check either — and the
-            // difference between those two is the whole of this change.
-            //
-            // The original defect: returning here wrote no tsconfig.check.json, no tsconfig.vue.json and
-            // no tsconfig.svelte.json, every checker in _RaskExternalTypeCheck is gated on its config
-            // existing, so tsgo, vue-tsc and svelte-check ALL did nothing — while none of the three
-            // "skipping…" messages fired, because each is gated on a different cause. Silent.
-            //
-            // The obvious repair, checking the discovered files anyway, was tried and is WRONG. The file
-            // list cannot identify island code on its own, and two kinds of file proved it: Rask's own
-            // scoped TypeScript, which is a plain .ts beside a component (#938), and the whole client/
-            // tree of a meta-framework host — a front end that type-checks under ITS toolchain and not
-            // under an island config. Checking them reported TS2304 on Next's generated globals and
-            // TS2307 on @rask/client, in files that are perfectly correct.
-            //
-            // So the skip stays, and becomes loud and specific instead. Stale configs are deleted on the
-            // way out, which the early return also skipped: a tsconfig.vue.json left by a previous build
-            // is a checker that runs next time against a file list that may no longer exist.
-            var declared = constants.Count > 0;
-            var written = wroteConfig ? 1 : 0;
-
-            foreach (var pair in constants)
-            {
-                var path = Path.Combine(OutputDirectory, pair.Key + ".props.d.ts");
-                if (GeneratedTypeScript.WriteIfDifferent(path, pair.Value))
-                {
-                    written++;
-                }
-            }
-
-            // Stale types are worse than missing ones: a deleted component would leave a .d.ts that
-            // still type-checks, so the front end would keep compiling against something the server
-            // no longer renders.
-            Prune(constants.Keys);
-
-            if (WriteCheckConfig(declared))
-            {
-                written++;
-            }
-
-            ReportUnbuiltIslands();
-
-            if (!declared)
-            {
-                // Normal, not High. #943 is about SILENCE — a check that stops running and says nothing —
-                // and Normal cures that: any `-v:n` build shows it, which is what someone asking "did my
-                // islands get checked?" runs. High was tried and is its own version of the same defect:
-                // seven projects in this repository legitimately have front-end files and no islands (the
-                // six meta samples and the showcase's scoped TypeScript), so it printed a paragraph each,
-                // on every build, about nothing being wrong. A line that always fires is a line nobody
-                // reads, which is how the real occurrence would be missed.
-                Log.LogMessage(
-                    FrontEndFiles.Length > 0 ? MessageImportance.Normal : MessageImportance.Low,
-                    $"Rask.External: '{Path.GetFileName(AssemblyPath)}' declares no external components, "
-                    + $"so the prop type-check is skipped for the {FrontEndFiles.Length} front-end file(s) "
-                    + "beside it. Without a declaration nothing distinguishes an island from scoped "
-                    + "TypeScript or from a meta framework's own front end, and checking those reports "
-                    + "errors that are not in your code. If you expected islands here, check that the "
-                    + "component derives from ReactComponent/LitComponent/… and that "
-                    + "RaskExternalPropTypes is not false.");
-            }
-            else if (written > 0)
-            {
-                Log.LogMessage(
-                    MessageImportance.High,
-                    $"Rask.External: wrote prop types for {constants.Count} component(s) to '{OutputDirectory}'.");
-            }
-
-            return true;
+            return WritePropTypes(wroteConfig);
         }
         catch (Exception ex)
         {
@@ -218,6 +149,81 @@ public sealed class WriteExternalPropTypesTask : Task
             // build's props, which type-checks and then arrives wrong in the browser.
             Log.LogError($"Rask.External: could not read the generated prop types from '{AssemblyPath}' — {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>Writes the prop types the assembly declares, the check configs, and reports what it did.</summary>
+    private bool WritePropTypes(bool wroteConfig)
+    {
+        var constants = GeneratedTypeScript.Read(AssemblyPath, GeneratedNamespace, GeneratedTypeName);
+
+        // No early return when the assembly declares nothing (#943), but no check either — and the
+        // difference between those two is the whole of this change.
+        //
+        // The original defect: returning here wrote no tsconfig.check.json, no tsconfig.vue.json and
+        // no tsconfig.svelte.json, every checker in _RaskExternalTypeCheck is gated on its config
+        // existing, so tsgo, vue-tsc and svelte-check ALL did nothing — while none of the three
+        // "skipping…" messages fired, because each is gated on a different cause. Silent.
+        //
+        // The obvious repair, checking the discovered files anyway, was tried and is WRONG. The file
+        // list cannot identify island code on its own, and two kinds of file proved it: Rask's own
+        // scoped TypeScript, which is a plain .ts beside a component (#938), and the whole client/
+        // tree of a meta-framework host — a front end that type-checks under ITS toolchain and not
+        // under an island config. Checking them reported TS2304 on Next's generated globals and
+        // TS2307 on @rask/client, in files that are perfectly correct.
+        //
+        // So the skip stays, and becomes loud and specific instead. Stale configs are deleted on the
+        // way out, which the early return also skipped: a tsconfig.vue.json left by a previous build
+        // is a checker that runs next time against a file list that may no longer exist.
+        var declared = constants.Count > 0;
+        var written = wroteConfig ? 1 : 0;
+
+        written += constants.Count(pair =>
+            GeneratedTypeScript.WriteIfDifferent(Path.Combine(OutputDirectory, pair.Key + ".props.d.ts"), pair.Value));
+
+        // Stale types are worse than missing ones: a deleted component would leave a .d.ts that
+        // still type-checks, so the front end would keep compiling against something the server
+        // no longer renders.
+        Prune(constants.Keys);
+
+        if (WriteCheckConfig(declared))
+        {
+            written++;
+        }
+
+        ReportUnbuiltIslands();
+
+        ReportOutcome(declared, written, constants.Count);
+
+        return true;
+    }
+
+    private void ReportOutcome(bool declared, int written, int components)
+    {
+        if (!declared)
+        {
+            // Normal, not High. #943 is about SILENCE — a check that stops running and says nothing —
+            // and Normal cures that: any `-v:n` build shows it, which is what someone asking "did my
+            // islands get checked?" runs. High was tried and is its own version of the same defect:
+            // seven projects in this repository legitimately have front-end files and no islands (the
+            // six meta samples and the showcase's scoped TypeScript), so it printed a paragraph each,
+            // on every build, about nothing being wrong. A line that always fires is a line nobody
+            // reads, which is how the real occurrence would be missed.
+            Log.LogMessage(
+                FrontEndFiles.Length > 0 ? MessageImportance.Normal : MessageImportance.Low,
+                $"Rask.External: '{Path.GetFileName(AssemblyPath)}' declares no external components, "
+                + $"so the prop type-check is skipped for the {FrontEndFiles.Length} front-end file(s) "
+                + "beside it. Without a declaration nothing distinguishes an island from scoped "
+                + "TypeScript or from a meta framework's own front end, and checking those reports "
+                + "errors that are not in your code. If you expected islands here, check that the "
+                + "component derives from ReactComponent/LitComponent/… and that "
+                + "RaskExternalPropTypes is not false.");
+        }
+        else if (written > 0)
+        {
+            Log.LogMessage(
+                MessageImportance.High,
+                $"Rask.External: wrote prop types for {components} component(s) to '{OutputDirectory}'.");
         }
     }
 
@@ -289,11 +295,9 @@ public sealed class WriteExternalPropTypesTask : Task
             return;
         }
 
-        var discovered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in FrontEndFiles)
-        {
-            discovered.Add(Path.GetFileName(item.GetMetadata("FullPath").Replace('\\', '/')));
-        }
+        var discovered = new HashSet<string>(
+            FrontEndFiles.Select(item => Path.GetFileName(item.GetMetadata("FullPath").Replace('\\', '/'))),
+            StringComparer.OrdinalIgnoreCase);
 
         foreach (var pair in modules)
         {
@@ -303,21 +307,7 @@ public sealed class WriteExternalPropTypesTask : Task
             {
                 if (PackageIslandsScanned && !discovered.Contains(pair.Key + ".props.json"))
                 {
-                    Log.LogWarning(
-                        subcategory: null,
-                        warningCode: ExternalDiagnosticCodes.UnscannedPackageIsland,
-                        helpKeyword: null,
-                        file: null,
-                        lineNumber: 0,
-                        columnNumber: 0,
-                        endLineNumber: 0,
-                        endColumnNumber: 0,
-                        message: $"Rask.External: '{pair.Key}' names the package '{pair.Value}' as its Module, but the "
-                        + "build did not find it before the compile, so its props were not read from the package "
-                        + "and its snapshot was not refreshed. Return the module as a constant string from the "
-                        + "class's own body — protected override string Module => \"" + pair.Value + "\"; — "
-                        + "which is the form the build reads.",
-                        messageArgs: null);
+                    WarnUnscannedPackage(pair.Key, pair.Value);
                 }
 
                 continue;
@@ -328,33 +318,53 @@ public sealed class WriteExternalPropTypesTask : Task
             // item held as an absolute path.
             var file = Path.GetFileName(pair.Value.Replace('\\', '/'));
 
-            if (file.Length == 0 || discovered.Contains(file))
+            if (file.Length != 0 && !discovered.Contains(file))
             {
-                continue;
+                WarnUnbuilt(pair.Key, file);
             }
-
-            // The long overload purely to carry the CODE. Everything else is what the short one passes
-            // for itself — no subcategory, no file, no position — so the warning is still attributed to
-            // the target that invoked this task, exactly as before.
-            Log.LogWarning(
-                subcategory: null,
-                warningCode: UnbuiltIslandCode,
-                helpKeyword: null,
-                file: null,
-                lineNumber: 0,
-                columnNumber: 0,
-                endLineNumber: 0,
-                endColumnNumber: 0,
-                message: $"Rask.External: '{pair.Key}' declares the front-end file '{file}', which is not among "
-                + "the files this project will bundle. Its markup will render and its chunk will not "
-                + "exist, so the browser reports \"'" + pair.Key + "' is not in the manifest\" and the "
-                + "island never mounts. Either put the file where the island globs reach it, or declare "
-                + "it explicitly with a <RaskExternal Include=\"…\"/> item. A project whose islands are "
-                + "test fixtures with no module on purpose can demote this code with "
-                + "<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);" + UnbuiltIslandCode
-                + "</MSBuildWarningsAsMessages>.",
-                messageArgs: null);
         }
+    }
+
+    private void WarnUnscannedPackage(string island, string package) =>
+        Log.LogWarning(
+            subcategory: null,
+            warningCode: ExternalDiagnosticCodes.UnscannedPackageIsland,
+            helpKeyword: null,
+            file: null,
+            lineNumber: 0,
+            columnNumber: 0,
+            endLineNumber: 0,
+            endColumnNumber: 0,
+            message: $"Rask.External: '{island}' names the package '{package}' as its Module, but the "
+            + "build did not find it before the compile, so its props were not read from the package "
+            + "and its snapshot was not refreshed. Return the module as a constant string from the "
+            + "class's own body — protected override string Module => \"" + package + "\"; — "
+            + "which is the form the build reads.",
+            messageArgs: null);
+
+    private void WarnUnbuilt(string island, string file)
+    {
+        // The long overload purely to carry the CODE. Everything else is what the short one passes
+        // for itself — no subcategory, no file, no position — so the warning is still attributed to
+        // the target that invoked this task, exactly as before.
+        Log.LogWarning(
+            subcategory: null,
+            warningCode: UnbuiltIslandCode,
+            helpKeyword: null,
+            file: null,
+            lineNumber: 0,
+            columnNumber: 0,
+            endLineNumber: 0,
+            endColumnNumber: 0,
+            message: $"Rask.External: '{island}' declares the front-end file '{file}', which is not among "
+            + "the files this project will bundle. Its markup will render and its chunk will not "
+            + "exist, so the browser reports \"'" + island + "' is not in the manifest\" and the "
+            + "island never mounts. Either put the file where the island globs reach it, or declare "
+            + "it explicitly with a <RaskExternal Include=\"…\"/> item. A project whose islands are "
+            + "test fixtures with no module on purpose can demote this code with "
+            + "<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);" + UnbuiltIslandCode
+            + "</MSBuildWarningsAsMessages>.",
+            messageArgs: null);
     }
 
     /// <summary>Deletes the <c>.d.ts</c> of a component that no longer exists.</summary>
@@ -455,21 +465,7 @@ public sealed class WriteExternalPropTypesTask : Task
         // a project whose TypeScript is perfectly fine.
         var runtimes = Runtimes();
 
-        HasSolidConfig = WriteConfigFor(
-            SolidConfigPath, directory, p => declared && Is(runtimes, p, "solid"), ref written,
-            // "preserve" hands the JSX to the Solid plugin rather than compiling it here, and
-            // jsxImportSource is what points the TYPES at solid-js instead of React.
-            ["\"jsx\": \"preserve\"", "\"jsxImportSource\": \"solid-js\""]);
-
-        HasPreactConfig = WriteConfigFor(
-            PreactConfigPath, directory, p => declared && Is(runtimes, p, "preact"), ref written,
-            ["\"jsx\": \"react-jsx\"", "\"jsxImportSource\": \"preact\""]);
-
-        HasAngularConfig = WriteConfigFor(
-            AngularConfigPath, directory, p => declared && Is(runtimes, p, "angular"), ref written,
-            // Angular's decorators are the TypeScript 4 form. Lit 3's are the standard ones and need
-            // this OFF, which is exactly why the two cannot share a config.
-            ["\"experimentalDecorators\": true", "\"emitDecoratorMetadata\": true"]);
+        WriteRuntimeConfigs(directory, declared, runtimes, ref written);
 
         // Everything else tsgo can read: React, Lit, and any JSX file no component has claimed yet.
         //
@@ -507,6 +503,27 @@ public sealed class WriteExternalPropTypesTask : Task
         return written;
     }
 
+    /// <summary>The configs for the JSX runtimes that cannot share React's settings: Solid, Preact and Angular.</summary>
+    private void WriteRuntimeConfigs(
+        string directory, bool declared, Dictionary<string, string> runtimes, ref bool written)
+    {
+        HasSolidConfig = WriteConfigFor(
+            SolidConfigPath, directory, p => declared && Is(runtimes, p, "solid"), ref written,
+            // "preserve" hands the JSX to the Solid plugin rather than compiling it here, and
+            // jsxImportSource is what points the TYPES at solid-js instead of React.
+            ["\"jsx\": \"preserve\"", "\"jsxImportSource\": \"solid-js\""]);
+
+        HasPreactConfig = WriteConfigFor(
+            PreactConfigPath, directory, p => declared && Is(runtimes, p, "preact"), ref written,
+            ["\"jsx\": \"react-jsx\"", "\"jsxImportSource\": \"preact\""]);
+
+        HasAngularConfig = WriteConfigFor(
+            AngularConfigPath, directory, p => declared && Is(runtimes, p, "angular"), ref written,
+            // Angular's decorators are the TypeScript 4 form. Lit 3's are the standard ones and need
+            // this OFF, which is exactly why the two cannot share a config.
+            ["\"experimentalDecorators\": true", "\"emitDecoratorMetadata\": true"]);
+    }
+
     /// <summary>Writes one checker's config over the files it can read, or removes a stale one.</summary>
     /// <param name="configPath">Where the config goes. Empty skips it.</param>
     /// <param name="directory">The config's own directory, which its relative paths are resolved from.</param>
@@ -528,15 +545,11 @@ public sealed class WriteExternalPropTypesTask : Task
             return false;
         }
 
-        var files = new List<string>();
-        foreach (var item in FrontEndFiles)
-        {
-            var full = item.GetMetadata("FullPath");
-            if (matches(full))
-            {
-                files.Add(Relative(directory, full));
-            }
-        }
+        var files = FrontEndFiles
+            .Select(item => item.GetMetadata("FullPath"))
+            .Where(matches)
+            .Select(full => Relative(directory, full))
+            .ToList();
 
         if (files.Count == 0)
         {
@@ -554,6 +567,16 @@ public sealed class WriteExternalPropTypesTask : Task
 
         files.Sort(StringComparer.Ordinal);
 
+        if (GeneratedTypeScript.WriteIfDifferent(configPath, CheckConfigJson(directory, files, options)))
+        {
+            written = true;
+        }
+
+        return true;
+    }
+
+    private string CheckConfigJson(string directory, List<string> files, IReadOnlyList<string>? options)
+    {
         var json = new StringBuilder();
         json.AppendLine("{");
         json.AppendLine("  // <auto-generated/> Rask writes this to type-check components against their");
@@ -588,12 +611,7 @@ public sealed class WriteExternalPropTypesTask : Task
         json.AppendLine("  ]");
         json.AppendLine("}");
 
-        if (GeneratedTypeScript.WriteIfDifferent(configPath, json.ToString()))
-        {
-            written = true;
-        }
-
-        return true;
+        return json.ToString();
     }
 
     /// <summary>The JSX setting every checker but Solid's and Angular's uses.</summary>

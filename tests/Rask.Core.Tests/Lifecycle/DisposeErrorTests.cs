@@ -107,9 +107,9 @@ public partial class DisposeErrorTests : global::Rask.Core.RaskMarkup
 
             var ctx = LiveRenderContext.Current!;
             var first = ctx.GetOrCreate(_a.GetType(), _ => _a);
-            ctx.NotifyParameters(first, true);
+            LiveRenderContext.NotifyParameters(first, true);
             var second = ctx.GetOrCreate(_b.GetType(), _ => _b);
-            ctx.NotifyParameters(second, true);
+            LiveRenderContext.NotifyParameters(second, true);
             return Div[first, second];
         }
     }

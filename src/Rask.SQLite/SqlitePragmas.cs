@@ -22,7 +22,13 @@ public static class SqlitePragmas
         ArgumentNullException.ThrowIfNull(options);
 
         var sb = new StringBuilder();
+        AppendConnectionPragmas(sb, options);
+        AppendTuningPragmas(sb, options);
+        return sb.ToString();
+    }
 
+    private static void AppendConnectionPragmas(StringBuilder sb, SqliteOptions options)
+    {
         // busy_timeout FIRST, before any lock-taking pragma. On a brand-new database `journal_mode=WAL`
         // takes an exclusive lock, and two connections initialising concurrently would otherwise race
         // with busy_timeout still at 0 — one gets SQLITE_BUSY immediately, defeating the whole point.
@@ -47,7 +53,10 @@ public static class SqlitePragmas
         {
             Append(sb, "synchronous", SynchronousKeyword(synchronous));
         }
+    }
 
+    private static void AppendTuningPragmas(StringBuilder sb, SqliteOptions options)
+    {
         if (options.CacheSize is { } cacheSize)
         {
             Append(sb, "cache_size", cacheSize.ToString(CultureInfo.InvariantCulture));
@@ -82,8 +91,6 @@ public static class SqlitePragmas
         {
             Append(sb, "analysis_limit", analysisLimit.ToString(CultureInfo.InvariantCulture));
         }
-
-        return sb.ToString();
     }
 
     /// <summary>Executes <see cref="BuildScript"/> against an already-open <paramref name="connection"/>.</summary>
@@ -116,7 +123,8 @@ public static class SqlitePragmas
             return;
         }
 
-        await using var command = connection.CreateCommand();
+        var command = connection.CreateCommand();
+        await using var _ = command.ConfigureAwait(false);
         command.CommandText = script;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }

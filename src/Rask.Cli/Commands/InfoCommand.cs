@@ -48,7 +48,7 @@ internal sealed class InfoCommand(IConsole console, IProcessRunner process) : Cl
             return 0;
         }
 
-        Console.Out.WriteLine(FormatReport(CliMetadata.Version, sdkVersion, RuntimeInformation.OSDescription));
+        await Console.Out.WriteLineAsync(FormatReport(CliMetadata.Version, sdkVersion, RuntimeInformation.OSDescription)).ConfigureAwait(false);
         return 0;
     }
 

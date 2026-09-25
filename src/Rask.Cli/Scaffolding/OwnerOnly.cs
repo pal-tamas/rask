@@ -28,9 +28,11 @@ internal static class OwnerOnly
         }
         catch (IOException)
         {
+            // Best effort: a file system without Unix modes keeps its defaults, which is all this can offer.
         }
         catch (UnauthorizedAccessException)
         {
+            // Best effort, as above: a path this user does not own keeps the mode its owner gave it.
         }
     }
 }

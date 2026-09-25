@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Browser;
 
 namespace Rask.Site.Features;
@@ -40,7 +41,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         _supported = await rtc.IsSupportedAsync();
         if (!_supported)
         {
-            StateHasChanged();
+            await StateHasChangedAsync();
         }
     }
 
@@ -64,15 +65,16 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                             "Connection state: ", Span.Id("rtc-state")[_state]],
                         Div.Class("text-sm text-ui-muted mb-1")[
                             "Local ICE candidates gathered: ",
-                            Span.Id("rtc-candidates")[_localCandidates.ToString()]],
+                            Span.Id("rtc-candidates")[_localCandidates.ToString(CultureInfo.InvariantCulture)]],
                         Div.Class("text-sm text-ui-muted mb-1")["Received by the other peer:"],
-                        _log.Count == 0
-                            ? Div.Class("text-sm text-ui-muted italic").Id("rtc-log")["(nothing yet)"]
-                            : Ul.Class("text-sm mb-0").Id("rtc-log")[
-                                _log.Select(m => Li.Key(m)[m])
-                            ]
+                        MessageLog()
                     ]
             ];
+
+    private Component MessageLog() =>
+        _log.Count == 0
+            ? Div.Class("text-sm text-ui-muted italic").Id("rtc-log")["(nothing yet)"]
+            : Ul.Class("text-sm mb-0").Id("rtc-log")[_log.Select(m => Li.Key(m)[m])];
 
     private async Task ConnectAsync()
     {
@@ -83,7 +85,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
 
         _connecting = true;
         _state = "connecting";
-        StateHasChanged();
+        await StateHasChangedAsync();
 
         // The caller. Its local candidates belong to the callee — in a real app, this is a signaling send.
         _caller = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
@@ -119,7 +121,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         _callerReady = true;
 
         await FlushAsync();
-        StateHasChanged();
+        await StateHasChangedAsync();
     }
 
     // Hands a batch of candidates to the other peer, holding them back until that peer has a remote
@@ -133,7 +135,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         // Counted for the demo's own display: this is the batch the browser pushed into C#, so a non-zero
         // count is proof the whole gather → coalesce → [JSInvokable] → callback path ran.
         _localCandidates += candidates.Count;
-        StateHasChanged();
+        await StateHasChangedAsync();
 
         if (target is null || !ready)
         {

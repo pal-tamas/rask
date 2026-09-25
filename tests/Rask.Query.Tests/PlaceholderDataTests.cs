@@ -1,4 +1,4 @@
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>
 ///     Paging without the table blinking. This is the difference between a page change that feels

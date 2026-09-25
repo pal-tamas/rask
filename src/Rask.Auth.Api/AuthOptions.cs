@@ -298,24 +298,22 @@ public sealed class AuthOptions
     /// <summary>Throws when the options cannot produce a working app.</summary>
     internal void Validate()
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(CookieName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(LoginPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(RegisterPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(LogoutPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ConfirmEmailPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ForgotPasswordPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ResetPasswordPath);
+        NotEmpty(CookieName, nameof(CookieName));
+        NotEmpty(LoginPath, nameof(LoginPath));
+        NotEmpty(RegisterPath, nameof(RegisterPath));
+        NotEmpty(LogoutPath, nameof(LogoutPath));
+        NotEmpty(ConfirmEmailPath, nameof(ConfirmEmailPath));
+        NotEmpty(ForgotPasswordPath, nameof(ForgotPasswordPath));
+        NotEmpty(ResetPasswordPath, nameof(ResetPasswordPath));
 
         if (ExpireTimeSpan <= TimeSpan.Zero)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(ExpireTimeSpan), ExpireTimeSpan, "The session lifetime must be positive.");
+            throw new InvalidOperationException($"ExpireTimeSpan ({ExpireTimeSpan}): the session lifetime must be positive.");
         }
 
         if (TokenLifetime <= TimeSpan.Zero)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(TokenLifetime), TokenLifetime, "The token lifetime must be positive.");
+            throw new InvalidOperationException($"TokenLifetime ({TokenLifetime}): the token lifetime must be positive.");
         }
 
         // Caught at startup rather than at the first ceremony: an RP id with a scheme or a port hashes to something no
@@ -323,9 +321,16 @@ public sealed class AuthOptions
         if (PasskeyRelyingPartyId is { } rpId
             && (rpId.Contains("://", StringComparison.Ordinal) || rpId.Contains(':') || rpId.Contains('/')))
         {
-            throw new ArgumentException(
-                $"The passkey relying party id must be a bare domain such as 'example.com', but was '{rpId}'.",
-                nameof(PasskeyRelyingPartyId));
+            throw new InvalidOperationException(
+                $"PasskeyRelyingPartyId: the passkey relying party id must be a bare domain such as 'example.com', but was '{rpId}'.");
+        }
+    }
+
+    private static void NotEmpty(string? value, string setting)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException($"{setting} must not be empty.");
         }
     }
 }

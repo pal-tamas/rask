@@ -36,7 +36,11 @@ internal static class VapidKeyMaterial
     // Right-align `source` into destination[offset .. offset+width) (left-padding with zeros).
     internal static void CopyRightAligned(ReadOnlySpan<byte> source, Span<byte> destination, int offset, int width)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(source.Length, width);
+        if (source.Length > width)
+        {
+            throw new ArgumentOutOfRangeException(nameof(source), source.Length, $"Must be at most {width} bytes.");
+        }
+
         source.CopyTo(destination.Slice(offset + width - source.Length, source.Length));
     }
 }

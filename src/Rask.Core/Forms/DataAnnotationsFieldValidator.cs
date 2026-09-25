@@ -125,12 +125,10 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         if (owner is IValidatableObject validatable)
         {
             var fullCtx = NewValidationContext(owner);
-            foreach (var r in validatable.Validate(fullCtx))
+            foreach (var r in validatable.Validate(fullCtx)
+                         .Where(r => r.MemberNames.Contains(field.FieldName, StringComparer.Ordinal)))
             {
-                if (r.MemberNames.Contains(field.FieldName))
-                {
-                    context.AddValidationMessage(field, r.ErrorMessage ?? "Invalid value.");
-                }
+                context.AddValidationMessage(field, r.ErrorMessage ?? "Invalid value.");
             }
         }
     }
@@ -170,34 +168,19 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         // object-level failure on the wire twice.
         var seen = new HashSet<(string, string)>();
 
-        foreach (var r in results)
+        // ValidationResult.Success IS null, and an IValidatableObject is free to yield it — the BCL
+        // filters those out, so anything hand-rolling this loop has to as well or it dereferences
+        // null on a model that only said "this one is fine". OfType is that filter.
+        foreach (var r in results.OfType<ValidationResult>())
         {
-            // ValidationResult.Success IS null, and an IValidatableObject is free to yield it — the BCL
-            // filters those out, so anything hand-rolling this loop has to as well or it dereferences
-            // null on a model that only said "this one is fine".
-            if (r is null)
-            {
-                continue;
-            }
-
             var message = r.ErrorMessage ?? "Invalid value.";
             var members = r.MemberNames.Where(static m => m is not null).ToList();
-            if (members.Count == 0)
-            {
-                if (seen.Add((string.Empty, message)))
-                {
-                    yield return (string.Empty, message);
-                }
+            IEnumerable<string> fields = members.Count == 0 ? [string.Empty] : members;
 
-                continue;
-            }
-
-            foreach (var m in members)
+            // HashSet.Add is the "not seen yet" test: it records the pair as it passes it.
+            foreach (var pair in fields.Select(m => (m, message)).Where(seen.Add))
             {
-                if (seen.Add((m, message)))
-                {
-                    yield return (m, message);
-                }
+                yield return pair;
             }
         }
     }

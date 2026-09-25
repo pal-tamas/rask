@@ -1,9 +1,8 @@
-using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 
 namespace Rask.Site.Features;
 
-public sealed partial class ProgrammaticValidateDemo : Component
+public sealed partial class ProgrammaticValidateDemo : Component, IDisposable
 {
     private readonly EditContext _ctx;
     private readonly TaskModel _model = new();
@@ -16,6 +15,8 @@ public sealed partial class ProgrammaticValidateDemo : Component
     }
 
     private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
+
+    public void Dispose() => _ctx.Dispose();
 
     protected override Component? Render() =>
     [
@@ -32,48 +33,4 @@ public sealed partial class ProgrammaticValidateDemo : Component
             ? null
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
-}
-
-public sealed class TaskModel
-{
-    [Required(ErrorMessage = "Title is required.")]
-    public string Title { get; set; } = "";
-}
-
-// 600ms delay so the e2e test for submit-disable has a deterministic window to observe
-// the disabled state before the async validator settles. Like UniqueUsernameValidator,
-// the literal "explode" exercises the framework's exception fallback.
-public sealed class SlowTitleValidator : IAsyncFieldValidator
-{
-    public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
-    {
-        if (context.Model is TaskModel m)
-        {
-            await CheckAsync(context, new FieldIdentifier(m, nameof(TaskModel.Title)), m.Title, cancellationToken)
-                .ConfigureAwait(false);
-        }
-    }
-
-    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
-        CancellationToken cancellationToken)
-    {
-        if (context.Model is TaskModel m && field.FieldName == nameof(TaskModel.Title))
-        {
-            await CheckAsync(context, field, m.Title, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private static async Task CheckAsync(EditContext context, FieldIdentifier field, string title, CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            return;
-        }
-
-        await Task.Delay(600, ct).ConfigureAwait(false);
-        if (string.Equals(title, "duplicate", StringComparison.OrdinalIgnoreCase))
-        {
-            context.AddValidationMessage(field, $"\"{title}\" is already used.");
-        }
-    }
 }

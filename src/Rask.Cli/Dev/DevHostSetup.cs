@@ -4,9 +4,6 @@ using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
 
-/// <summary>The hostname the app is being served on, and what the child process needs to do it.</summary>
-internal sealed record DevHostResult(string Hostname, string Url, IReadOnlyDictionary<string, string> Environment);
-
 /// <summary>
 ///     Puts <c>rask dev</c> on <c>https://appname.test</c> instead of <c>http://localhost:5000</c>:
 ///     resolves the name, trusts a local authority once, issues a certificate for it, and makes sure
@@ -98,14 +95,14 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
         CancellationToken cancellationToken)
     {
         var authority = store.ReadAuthority();
-        var mintAuthority = authority is null || DevCertificates.NeedsReissue(authority, hostname: null, DateTimeOffset.Now);
+        var mintAuthority = authority is null || DevCertificates.NeedsReissue(authority, hostname: null, TimeProvider.System.GetLocalNow());
 
         // A freshly minted authority is by definition not trusted yet; otherwise ask the platform.
         var trustAuthority = mintAuthority || !await IsTrustedAsync(platform, authority!.Value, cancellationToken).ConfigureAwait(false);
 
         // A certificate signed by an authority we are about to replace is worthless, whatever its dates.
         var issueCertificate = mintAuthority
-                               || DevCertificates.NeedsReissue(store.ReadCertificate(hostname), hostname, DateTimeOffset.Now);
+                               || DevCertificates.NeedsReissue(store.ReadCertificate(hostname), hostname, TimeProvider.System.GetLocalNow());
 
         var hosts = ReadHosts(platform) is { } current ? DevHostFiles.AddHost(current, hostname) : null;
 
@@ -163,7 +160,7 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
         {
             store.WriteCertificate(
                 plan.Hostname,
-                DevCertificates.IssueServerCertificate(authority, plan.Hostname, DateTimeOffset.Now));
+                DevCertificates.IssueServerCertificate(authority, plan.Hostname, TimeProvider.System.GetLocalNow()));
         }
 
         return await TrustAsync(platform, plan, cancellationToken).ConfigureAwait(false)
@@ -172,7 +169,7 @@ internal sealed class DevHostSetup(IConsole console, IProcessRunner processRunne
 
         DevCertificate Mint()
         {
-            var minted = DevCertificates.CreateAuthority(DateTimeOffset.Now);
+            var minted = DevCertificates.CreateAuthority(TimeProvider.System.GetLocalNow());
             store.WriteAuthority(minted);
             return minted;
         }

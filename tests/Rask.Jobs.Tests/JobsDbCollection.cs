@@ -1,4 +1,4 @@
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 ///     The classes that build a <see cref="JobsDbContext" />, run as one xUnit collection so they do not

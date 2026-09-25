@@ -73,10 +73,8 @@ public sealed class UnitCountAnalyzer : DiagnosticAnalyzer
         }
 
         var name = access.Name.Identifier.ValueText;
-        var replacement = count == 1
-            ? Singulars.TryGetValue(name, out var singular) ? singular : null
-            : Plurals.TryGetValue(name, out var plural) ? plural : null;
-        if (replacement is null || !DeclaredOnUnits(context, access, units))
+        var spellings = count == 1 ? Singulars : Plurals;
+        if (!spellings.TryGetValue(name, out var replacement) || !DeclaredOnUnits(context, access, units))
         {
             return;
         }

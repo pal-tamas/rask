@@ -2,10 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Rask.Cache;
+using Rask.Background;
+using Rask.Caching;
 using Rask.Core.Routing;
-using Rask.Jobs;
-using Rask.Mail;
+using Rask.Mailing;
 using Rask.Outbox;
 using Rask.Storage;
 

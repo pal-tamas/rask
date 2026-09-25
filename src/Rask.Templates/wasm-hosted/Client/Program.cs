@@ -2,7 +2,7 @@ using Company.RaskServer.Client;
 using Rask.Wasm;
 // rask:if cqrs
 using Rask.Cqrs.Client;
-using Rask.Query;
+using Rask.Querying;
 // rask:end
 // rask:if pwa
 using Rask.Core.Browser;

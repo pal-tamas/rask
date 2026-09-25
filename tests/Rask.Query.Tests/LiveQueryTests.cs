@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
 
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>A stand-in for a Rask.Data aggregate: only its name travels in a <see cref="DataChanged" />.</summary>
 public sealed class Order;
@@ -144,6 +144,30 @@ public sealed class LiveQueryTests
         await Changed(dispatcher, clock, typeof(Order));
 
         await Eventually(() => a > beforeA && b > beforeB);
+    }
+
+    [Fact]
+    public async Task A_session_whose_scope_ends_stops_refetching()
+    {
+        var dispatcher = new CountingDispatcher();
+        var clock = new TestClock(DateTimeOffset.UnixEpoch.AddYears(55));
+        await using var services = new ServiceCollection()
+            .AddSingleton<IDispatcher>(dispatcher)
+            .AddSingleton<TimeProvider>(clock)
+            .AddRaskQuery()
+            .BuildServiceProvider();
+        var scope = services.CreateAsyncScope();
+        var fetches = 0;
+        var query = scope.ServiceProvider.GetRequiredService<IQueryClient>()
+            .Query(QueryKey.For<Order>(), Counting(() => fetches++), Keep);
+        await Settled(query);
+        var before = fetches;
+
+        await scope.DisposeAsync();
+        await Changed(dispatcher, clock, typeof(Order));
+
+        await Task.Delay(150);
+        Assert.Equal(before, fetches);
     }
 
     private static Func<CancellationToken, Task<string>> Counting(Action onFetch) =>

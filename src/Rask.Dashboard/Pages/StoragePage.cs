@@ -158,6 +158,6 @@ public sealed partial class StoragePage(
     {
         _page = Math.Max(0, page);
         await LoadAsync(CancellationToken).ConfigureAwait(false);
-        StateHasChanged();
+        await StateHasChangedAsync().ConfigureAwait(false);
     }
 }

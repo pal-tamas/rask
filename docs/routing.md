@@ -329,7 +329,7 @@ Mutate `RouteState` through `Navigator`, not by setting `Path`/`Query` directly,
 
 ### Reacting to navigation — `RouteState.Changed`
 
-`RouteState` raises an `event Action? Changed` whenever `Path` or `Query` actually changes (`Path` is compared by
+`RouteState` raises an `event EventHandler? Changed` whenever `Path` or `Query` actually changes (`Path` is compared by
 value, `Query` by reference, so a no-op set doesn't fire). Components **inside** the routed page subtree usually don't
 need it — the router re-renders them on navigation. But a component rendered **above** the `Router()` (a sidebar,
 breadcrumb, header path display) won't be re-rendered by the router, so it must subscribe explicitly. Subscribe in

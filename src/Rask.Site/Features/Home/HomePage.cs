@@ -24,8 +24,6 @@ namespace Rask.Site.Pages;
 [Route("/")]
 public sealed partial class HomePage : Component
 {
-    private static Dictionary<string, string?> Attr(string key, string? value) => new() { [key] = value };
-
     // The page's vocabulary. Constants rather than @apply: @apply moves the decision into a stylesheet
     // Tailwind then has to be told about, which is the coupling this rewrite removed. A constant is read
     // by the compiler, renamed by the IDE, and found by Tailwind's scanner like any other literal.
@@ -97,7 +95,7 @@ public sealed partial class HomePage : Component
     ];
 
     // ---- hero ----
-    private Component Hero() =>
+    private static Component Hero() =>
         Section.Class("pt-14 pb-16 sm:pt-20 sm:pb-24")[
             Div.Class(Wrap)[
                 // The code track is SIZED FOR ITS CODE, not half the row. At an even split the code
@@ -164,7 +162,7 @@ public sealed partial class HomePage : Component
 
     // A window-chrome dot. The colour is an inline style because these three are macOS's traffic lights,
     // not palette entries — putting them in the theme would invite something else to use them.
-    private static Component Dot(string color) =>
+    private static Rask.Core.Components.Span Dot(string color) =>
         Span.Class("size-2.5 shrink-0 rounded-full").Style($"background:{color}");
 
     private static Component SecHead(string eyebrow, string heading, params Component?[] body) =>
@@ -195,7 +193,7 @@ public sealed partial class HomePage : Component
             Span.Class("mt-4 block font-mono text-xs text-ui-ink")[prev]
         ];
 
-    private Component HostsSection() =>
+    private static Component HostsSection() =>
         Section.Class(SectionPad)[
             Div.Class(Wrap)[
                 SecHead("One component model · every host",
@@ -225,7 +223,7 @@ public sealed partial class HomePage : Component
     /// </remarks>
     internal const string FrontEndsSectionId = "front-ends";
 
-    private Component FrontEndsSection() =>
+    private static Component FrontEndsSection() =>
         Section.Id(FrontEndsSectionId).Class(SectionPad)[
             Div.Class(Wrap)[
                 SecHead("Four front ends · one back end",
@@ -296,7 +294,7 @@ public sealed partial class HomePage : Component
     //
     // One card per shipped piece, each the way into its guide. No card for anything that is not in the
     // box: a front door that promises a package nobody can reference is worse than a shorter list.
-    private Component WholeStackSection() =>
+    private static Component WholeStackSection() =>
         Section.Id(WholeStackSectionId).Class(SectionPad)[
             Div.Class(Wrap)[
                 SecHead("The whole stack · one codebase",
@@ -327,7 +325,7 @@ public sealed partial class HomePage : Component
     // The page's own proof leads it: a component's whole source beside the component, running. It sat in
     // the hero while the page was about UI; the hero is the stack now, and the counter is still the
     // shortest honest answer to "what is a Rask component".
-    private Component FrontendSection() =>
+    private static Component FrontendSection() =>
         Section.Id(FrontendSectionId).Class(SectionPad)[
             Div.Class(Wrap)[
                 SecHead("Frontend · C# components",
@@ -364,7 +362,7 @@ public sealed partial class HomePage : Component
     internal const int BrowserApiCount = 53;
 
     // ---- install ----
-    private Component InstallSection() =>
+    private static Component InstallSection() =>
         Section.Class(SectionPad)[
             Div.Class(Wrap)[
                 Div.Class("mx-auto mb-10 max-w-2xl text-center")[
@@ -376,7 +374,7 @@ public sealed partial class HomePage : Component
         ];
 
     // ---- footer ----
-    private Component FooterSection() =>
+    private static Component FooterSection() =>
         Footer.Class("border-t border-ui-line py-16 sm:py-20")[
             Div.Class(Wrap)[
                 Div.Class("mx-auto max-w-2xl text-center")[

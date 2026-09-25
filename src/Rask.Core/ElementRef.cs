@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
 
@@ -51,57 +50,4 @@ public sealed class ElementRef
     public static ElementRef New() => new(Guid.NewGuid().ToString("N"));
 
     public override string ToString() => Id;
-}
-
-/// <summary>JSON shape for <see cref="ElementRef" />: <c>{"__raskRef__":"id"}</c>, matched by the client reviver.</summary>
-internal sealed class ElementRefJsonConverter : JsonConverter<ElementRef>
-{
-    public override ElementRef Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        string? id = null;
-        if (reader.TokenType == JsonTokenType.StartObject)
-        {
-            while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-            {
-                if (reader.TokenType == JsonTokenType.PropertyName
-                    && reader.GetString() == ElementRef.Marker)
-                {
-                    reader.Read();
-                    id = reader.GetString();
-                }
-                else
-                {
-                    reader.Skip();
-                }
-            }
-        }
-
-        return new ElementRef(id ?? string.Empty);
-    }
-
-    public override void Write(Utf8JsonWriter writer, ElementRef value, JsonSerializerOptions options)
-    {
-        writer.WriteStartObject();
-        writer.WriteString(ElementRef.Marker, value.Id ?? string.Empty);
-        writer.WriteEndObject();
-    }
-}
-
-/// <summary>
-///     Built-in element-ref operations over <see cref="IJSRuntime" />. Each passes the ref to a
-///     framework JS helper (<c>__raskEl.*</c>) that receives the resolved DOM element.
-/// </summary>
-public static class ElementRefInterop
-{
-    /// <summary>Focus the element.</summary>
-    public static ValueTask FocusAsync(this ElementRef element, IJSRuntime js) =>
-        js.InvokeVoidAsync("__raskEl.focus", element);
-
-    /// <summary>Remove focus from the element.</summary>
-    public static ValueTask BlurAsync(this ElementRef element, IJSRuntime js) =>
-        js.InvokeVoidAsync("__raskEl.blur", element);
-
-    /// <summary>Scroll the element into view (smooth, nearest).</summary>
-    public static ValueTask ScrollIntoViewAsync(this ElementRef element, IJSRuntime js) =>
-        js.InvokeVoidAsync("__raskEl.scrollIntoView", element);
 }

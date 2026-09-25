@@ -60,7 +60,9 @@ public static class SiteIdentity
     public const string Author = "Tamás Pál";
 
     /// <summary>Where the author is found.</summary>
+#pragma warning disable S1075 // this named constant IS the one place the URL is spelled
     public const string AuthorUrl = "https://github.com/pal-tamas";
+#pragma warning restore S1075
 
     /// <summary>The source repository.</summary>
     public const string Repository = "https://github.com/pal-tamas/rask";

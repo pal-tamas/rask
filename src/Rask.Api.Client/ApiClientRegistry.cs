@@ -7,7 +7,7 @@ namespace Rask.Api.Client;
 /// </summary>
 public static class ApiClientRegistry
 {
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
 
     // One entry per contributing assembly, keyed by that assembly's generated registry type, so a
     // hot-reload re-run swaps that assembly's contribution instead of merging into it — the same shape,
@@ -102,10 +102,3 @@ public static class ApiClientRegistry
         _all = [.. byType.Values];
     }
 }
-
-/// <summary>
-///     One generated API client: the type an app injects, and how to build it.
-/// </summary>
-/// <param name="ClientType">The client's CLR type.</param>
-/// <param name="Factory">Builds the client over a configured <see cref="HttpClient" />.</param>
-public readonly record struct ApiClientRegistration(Type ClientType, Func<HttpClient, ApiClientOptions, object> Factory);

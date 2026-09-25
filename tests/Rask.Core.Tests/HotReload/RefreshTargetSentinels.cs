@@ -35,7 +35,7 @@ internal static class __RaskCqrsRegistry
     internal static void RefreshAll() => Hook?.Invoke();
 }
 
-namespace Rask.Jobs.Generated
+namespace Rask.Background.Generated
 {
     internal static class __RaskJobsRegistry
     {
@@ -67,7 +67,7 @@ namespace Rask.Core.Tests.HotReload
             global::__RaskScopedCssRegistration.Hook = css;
             global::__RaskScopedJsRegistration.Hook = js;
             global::__RaskCqrsRegistry.Hook = cqrs;
-            Jobs.Generated.__RaskJobsRegistry.Hook = jobs;
+            Background.Generated.__RaskJobsRegistry.Hook = jobs;
             Outbox.Generated.__RaskOutboxRegistry.Hook = outbox;
             return new Disarm();
         }
@@ -79,7 +79,7 @@ namespace Rask.Core.Tests.HotReload
                 global::__RaskScopedCssRegistration.Hook = null;
                 global::__RaskScopedJsRegistration.Hook = null;
                 global::__RaskCqrsRegistry.Hook = null;
-                Jobs.Generated.__RaskJobsRegistry.Hook = null;
+                Background.Generated.__RaskJobsRegistry.Hook = null;
                 Outbox.Generated.__RaskOutboxRegistry.Hook = null;
             }
         }

@@ -123,27 +123,30 @@ internal static class ClientEmitter
             + "cancellationToken).ConfigureAwait(false);");
 
         EmitHeaders(builder, endpoint);
+        EmitResult(builder, codecs, endpoint);
 
+        builder.AppendLine("        }");
+    }
+
+    private static void EmitResult(StringBuilder builder, WireCodecEmitter codecs, ApiEndpoint endpoint)
+    {
         if (endpoint.ResultFqn is null || endpoint.ResultType is null)
         {
             builder.AppendLine("            _ = __bytes;");
-        }
-        else
-        {
-            var reader = codecs.Ensure(endpoint.ResultType);
-
-            builder.AppendLine("            if (__bytes == null)");
-            builder.AppendLine("            {");
-            builder.AppendLine("                return default;");
-            builder.AppendLine("            }");
-            builder.AppendLine();
-            builder.AppendLine("            var __reader = new global::System.Text.Json.Utf8JsonReader(__bytes);");
-            builder.AppendLine("            __reader.Read();");
-            builder.AppendLine(
-                $"            return R{reader}(ref __reader, __NoFiles, \"$\");");
+            return;
         }
 
-        builder.AppendLine("        }");
+        var reader = codecs.Ensure(endpoint.ResultType);
+
+        builder.AppendLine("            if (__bytes == null)");
+        builder.AppendLine("            {");
+        builder.AppendLine("                return default;");
+        builder.AppendLine("            }");
+        builder.AppendLine();
+        builder.AppendLine("            var __reader = new global::System.Text.Json.Utf8JsonReader(__bytes);");
+        builder.AppendLine("            __reader.Read();");
+        builder.AppendLine(
+            $"            return R{reader}(ref __reader, __NoFiles, \"$\");");
     }
 
     private static void EmitPath(StringBuilder builder, ApiEndpoint endpoint)
@@ -155,23 +158,42 @@ internal static class ClientEmitter
         // (RemoteDispatch prepends LiveOptions.PathBase). Resolving against the base address gets it
         // here without this package needing to know what a path base is.
         var route = RouteTemplate.Bareize(endpoint.Route).TrimStart('/');
-        var path = new StringBuilder();
+        var path = new StringBuilder(string.Join(" + ", RouteParts(route, endpoint)));
+
+        var query = endpoint.Parameters.Where(p => p.Binding == ApiBinding.Query).ToList();
+
+        if (query.Count > 0)
+        {
+            var pairs = query.Select(p => $"({Quote(p.WireName)}, (object){p.Name})");
+            path.Append(" + global::Rask.Api.Client.ApiUri.Query(")
+                .Append(string.Join(", ", pairs))
+                .Append(')');
+        }
+
+        builder.AppendLine($"            var __path = {path};");
+    }
+
+    // The route as C# operands to concatenate: quoted literals, and each token as its escaped parameter.
+    private static List<string> RouteParts(string route, ApiEndpoint endpoint)
+    {
         var literal = new StringBuilder();
         var parts = new List<string>();
 
-        for (var i = 0; i < route.Length; i++)
+        var i = 0;
+        while (i < route.Length)
         {
             if (route[i] != '{')
             {
                 literal.Append(route[i]);
+                i++;
                 continue;
             }
 
             var close = route.IndexOf('}', i);
             var token = route.Substring(i + 1, close - i - 1);
-            i = close;
+            i = close + 1;
 
-            var parameter = endpoint.Parameters.FirstOrDefault(p =>
+            var parameter = endpoint.Parameters.First(p =>
                 p.Binding == ApiBinding.Route &&
                 string.Equals(p.WireName, token, StringComparison.OrdinalIgnoreCase));
 
@@ -181,7 +203,7 @@ internal static class ClientEmitter
                 literal.Clear();
             }
 
-            parts.Add($"global::Rask.Api.Client.ApiUri.Segment({parameter!.Name})");
+            parts.Add($"global::Rask.Api.Client.ApiUri.Segment({parameter.Name})");
         }
 
         if (literal.Length > 0)
@@ -196,19 +218,7 @@ internal static class ClientEmitter
             parts.Add(Quote(string.Empty));
         }
 
-        path.Append(string.Join(" + ", parts));
-
-        var query = endpoint.Parameters.Where(p => p.Binding == ApiBinding.Query).ToList();
-
-        if (query.Count > 0)
-        {
-            var pairs = query.Select(p => $"({Quote(p.WireName)}, (object){p.Name})");
-            path.Append(" + global::Rask.Api.Client.ApiUri.Query(")
-                .Append(string.Join(", ", pairs))
-                .Append(')');
-        }
-
-        builder.AppendLine($"            var __path = {path};");
+        return parts;
     }
 
     private static void EmitBody(StringBuilder builder, WireCodecEmitter codecs, ApiEndpoint endpoint)

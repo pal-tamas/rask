@@ -71,7 +71,7 @@ public sealed class SessionCulture : IRaskCulture
     public bool IsRightToLeft => Culture.TextInfo.IsRightToLeft;
 
     /// <inheritdoc />
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     /// <inheritdoc />
     public Task<bool> SetAsync(CultureInfo culture)
@@ -119,7 +119,7 @@ public sealed class SessionCulture : IRaskCulture
 
         // The session subscribes to this and re-renders. Raised after persistence so a reload during
         // the render cannot observe the old preference.
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
         return true;
     }
 }

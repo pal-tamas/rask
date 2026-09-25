@@ -18,12 +18,12 @@ namespace Rask.Core;
 ///         lets the chain receive on the COMPONENT rather than on a wrapper over it.
 ///     </para>
 ///     <para>
-///         <see cref="Invoke" /> returns <see langword="null" /> when there is nothing to await, so a
-///         synchronous handler never acquires an asynchronous hop it did not have: no <c>Task</c>, no
-///         closure, no state machine. Call it as
-///         <c>if (OnClick?.Invoke() is { } t) await t;</c>. That is the whole reason it is not modelled on
-///         Blazor's <c>EventCallback</c>, whose <c>InvokeAsync</c> always hands back a <c>Task</c> and puts
-///         the caller on the async path regardless.
+///         <see cref="Invoke" /> always returns a <see cref="Task" />, and for a synchronous or unset handler
+///         it is the cached, already-completed <see cref="Task.CompletedTask" /> — no allocation, and awaiting
+///         it does not yield, so a synchronous handler never acquires an asynchronous hop it did not have.
+///         Fire an event with <c>await OnClick.Invoke();</c> and forward one with
+///         <c>.OnClick(() => OnRate.Invoke(i))</c>: <see cref="CallbackExtensions" /> gives the nullable
+///         property the same <c>Invoke</c>, so an unset slot needs no <c>?.</c> and no <c>??</c>.
 ///     </para>
 ///     <para>
 ///         The delegate is stored bare rather than adapted, so the runtime's handler dispatch keeps
@@ -56,21 +56,21 @@ public readonly struct Callback
     public bool HasValue => _handler is not null;
 
     /// <summary>
-    ///     Runs the handler, returning the <see cref="Task" /> to await — or <see langword="null" /> when
-    ///     there is nothing to wait for, which is the case for a synchronous handler and for an unset one.
+    ///     Runs the handler and returns the <see cref="Task" /> to await — the cached
+    ///     <see cref="Task.CompletedTask" /> for a synchronous handler and for an unset one.
     /// </summary>
-    public Task? Invoke() => _handler switch
+    public Task Invoke() => _handler switch
     {
-        Action sync => Run(sync),
-        Func<Task> async => async(),
-        null => null,
+        Action syncHandler => Run(syncHandler),
+        Func<Task> asyncHandler => asyncHandler(),
+        null => Task.CompletedTask,
         _ => throw Unexpected(_handler),
     };
 
-    private static Task? Run(Action sync)
+    private static Task Run(Action syncHandler)
     {
-        sync();
-        return null;
+        syncHandler();
+        return Task.CompletedTask;
     }
 
     internal static InvalidOperationException Unexpected(Delegate handler) =>
@@ -100,18 +100,18 @@ public readonly struct Callback<T>
 
     /// <inheritdoc cref="Callback.Invoke" />
     /// <param name="arg">The argument the event carries.</param>
-    public Task? Invoke(T arg) => _handler switch
+    public Task Invoke(T arg) => _handler switch
     {
-        Action<T> sync => Run(sync, arg),
-        Func<T, Task> async => async(arg),
-        null => null,
+        Action<T> syncHandler => Run(syncHandler, arg),
+        Func<T, Task> asyncHandler => asyncHandler(arg),
+        null => Task.CompletedTask,
         _ => throw Callback.Unexpected(_handler),
     };
 
-    private static Task? Run(Action<T> sync, T arg)
+    private static Task Run(Action<T> syncHandler, T arg)
     {
-        sync(arg);
-        return null;
+        syncHandler(arg);
+        return Task.CompletedTask;
     }
 }
 
@@ -146,17 +146,17 @@ public readonly struct Callback<T1, T2>
     /// <inheritdoc cref="Callback.Invoke" />
     /// <param name="arg1">The first argument the event carries.</param>
     /// <param name="arg2">The second argument the event carries.</param>
-    public Task? Invoke(T1 arg1, T2 arg2) => _handler switch
+    public Task Invoke(T1 arg1, T2 arg2) => _handler switch
     {
-        Action<T1, T2> sync => Run(sync, arg1, arg2),
-        Func<T1, T2, Task> async => async(arg1, arg2),
-        null => null,
+        Action<T1, T2> syncHandler => Run(syncHandler, arg1, arg2),
+        Func<T1, T2, Task> asyncHandler => asyncHandler(arg1, arg2),
+        null => Task.CompletedTask,
         _ => throw Callback.Unexpected(_handler),
     };
 
-    private static Task? Run(Action<T1, T2> sync, T1 arg1, T2 arg2)
+    private static Task Run(Action<T1, T2> syncHandler, T1 arg1, T2 arg2)
     {
-        sync(arg1, arg2);
-        return null;
+        syncHandler(arg1, arg2);
+        return Task.CompletedTask;
     }
 }

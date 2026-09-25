@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core;
 using Rask.Core.Browser;
 
@@ -31,7 +32,7 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
 
         _observation = await observer.ObserveAsync(_target, entry =>
         {
-            if (entry.Type == "attributes")
+            if (entry.Type is "attributes")
             {
                 _attrChanges++;
             }
@@ -40,7 +41,7 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
                 _childChanges++;
             }
 
-            _last = entry.Type == "attributes"
+            _last = entry.Type is "attributes"
                 ? $"attributes ({entry.AttributeName})"
                 : $"childList (+{entry.AddedCount} / -{entry.RemovedCount})";
             StateHasChanged();
@@ -64,7 +65,7 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
                     .Id("mo-target")
                     .Class("border rounded p-3 mb-3" + (_highlight ? " border-warning bg-warning-subtle" : ""))[
                     Ul.Class("mb-0")[
-                        Enumerable.Range(1, _items).Select(i => Li.Key(i.ToString())[$"item {i}"])
+                        Enumerable.Range(1, _items).Select(i => Li.Key(i.ToString(CultureInfo.InvariantCulture))[$"item {i}"])
                     ]
                 ],
                 Div.Class("text-sm text-ui-muted")[

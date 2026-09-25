@@ -15,7 +15,7 @@ public interface IUserProvider
     /// </summary>
     bool IsLoading => false;
 
-    event Action? Changed;
+    event EventHandler? Changed;
 
     /// <summary>
     ///     Optional one-shot initialization (e.g. fetch /api/me on WASM). Hosts await this before the

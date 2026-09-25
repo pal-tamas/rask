@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.JSInterop;
 
 namespace Rask.Site.Features;
@@ -21,6 +22,6 @@ public sealed partial class JsOnlyDemo(IJSRuntime js) : Component
     private async Task HandleClickAsync()
     {
         var next = await js.InvokeAsync<int>("Rask.JsOnlyDemo.bump");
-        _clicks = next.ToString();
+        _clicks = next.ToString(CultureInfo.InvariantCulture);
     }
 }

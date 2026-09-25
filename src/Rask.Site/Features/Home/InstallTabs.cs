@@ -26,7 +26,7 @@ public sealed partial class InstallTabs : Component
             Div
                 .Class("mb-3 flex justify-center gap-2")
                 .Role("tablist")
-                .Aria(new Dictionary<string, string?> { ["label"] = "Project template" })[
+                .Aria("label", "Project template")[
                 Tab(0), Tab(1)
             ],
             // .term and .install-foot are TEST contracts: SiteExampleTests reads the rendered command and
@@ -58,7 +58,7 @@ public sealed partial class InstallTabs : Component
                 : "border border-transparent text-ui-muted hover:bg-ui-well hover:text-ui-ink"))
             .Type("button")
             .Role("tab")
-            .Aria(new Dictionary<string, string?> { ["selected"] = i == _active ? "true" : "false" })
+            .Aria("selected", i == _active ? "true" : "false")
             .OnClick(() => _active = i)[Labels[i]];
 
     /// <summary>
@@ -79,7 +79,7 @@ public sealed partial class InstallTabs : Component
     ///         and a visitor who lands on the WASM tab still needs the CLI first.
     ///     </para>
     /// </remarks>
-    private Component Terminal() =>
+    private UiMockupCode Terminal() =>
         Ui.MockupCode.Lines(_active == 1 ? WasmLines : ServerLines).Class("term text-left");
 
     private static readonly (string Prefix, string Text)[] ServerLines =

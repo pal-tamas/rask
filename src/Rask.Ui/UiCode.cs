@@ -30,11 +30,14 @@ public sealed partial class UiCode : Component
             Content
         ];
 
-        return Label is null
-            ? block
-            : Div[
-                Div.Class("mb-1.5 text-xs font-medium " + (failed ? "text-error" : "opacity-60"))[Label],
-                block
-            ];
+        if (Label is null)
+        {
+            return block;
+        }
+
+        return Div[
+            Div.Class("mb-1.5 text-xs font-medium " + (failed ? "text-error" : "opacity-60"))[Label],
+            block
+        ];
     }
 }

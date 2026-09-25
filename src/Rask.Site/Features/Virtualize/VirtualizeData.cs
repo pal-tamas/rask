@@ -1,13 +1,8 @@
 namespace Rask.Site.Features;
 
-// Shared sample data for the /virtualize demos. Deliberately kept out of the code-sample
-// tabs (the demos reference VirtualizeData.Rows) so each snippet stays focused on the
-// VirtualizeModel usage rather than the row-building boilerplate.
-public sealed record VirtualizeRow(int Index, string Name, string City, decimal Balance);
-
 public static class VirtualizeData
 {
-    public static readonly VirtualizeRow[] Rows = Build(10_000);
+    public static readonly IReadOnlyList<VirtualizeRow> Rows = Build(10_000);
 
     private static VirtualizeRow[] Build(int count)
     {
@@ -24,7 +19,9 @@ public static class VirtualizeData
             "London", "New York", "Helsinki", "Boston", "Stanford", "Cambridge", "Amsterdam", "Oxford",
             "Manchester", "Berkeley"
         };
+#pragma warning disable S2245 // seeded on purpose: the same demo data on every visit, nothing secret
         var rng = new Random(42);
+#pragma warning restore S2245
         var rows = new VirtualizeRow[count];
         for (var i = 0; i < count; i++)
         {

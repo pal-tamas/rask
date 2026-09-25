@@ -208,17 +208,3 @@ internal sealed class ServerAuth<TUser>(
     private string? Origin() =>
         http.HttpContext is { Request: { } request } ? request.Scheme + "://" + request.Host.Value : null;
 }
-
-/// <summary>Checks a live session's principal against its <see cref="Session" /> row.</summary>
-internal sealed class SessionRevalidator(IAuthSessions sessions) : ISessionRevalidator
-{
-    public async ValueTask<System.Security.Claims.ClaimsPrincipal?> RevalidateAsync(
-        System.Security.Claims.ClaimsPrincipal principal, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(principal);
-
-        return AuthPrincipal.SessionId(principal) is { } sessionId
-            ? await sessions.ResumeAsync(sessionId, cancellationToken).ConfigureAwait(false)
-            : null;
-    }
-}

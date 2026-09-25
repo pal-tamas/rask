@@ -48,7 +48,7 @@ internal static class ContextStack
     {
         for (var e = _head.Value; e is not null; e = e.Parent)
         {
-            if (e.Name == name && requested.IsAssignableFrom(e.ValueType))
+            if (string.Equals(e.Name, name, StringComparison.Ordinal) && requested.IsAssignableFrom(e.ValueType))
             {
                 return e;
             }

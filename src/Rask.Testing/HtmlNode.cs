@@ -26,6 +26,7 @@ public sealed class HtmlNode
     // order matters — `<li><span>7</span> shipped</li>` reads "7 shipped", and a model that buffered all
     // of an element's own text separately from its children would render that as "shipped7".
     private readonly List<object> _content = [];
+    private readonly List<HtmlNode> _children = [];
     private readonly Dictionary<string, string> _attributes = new(StringComparer.OrdinalIgnoreCase);
 
     internal HtmlNode(string tag) => Tag = tag;
@@ -37,7 +38,7 @@ public sealed class HtmlNode
     public HtmlNode? Parent { get; private set; }
 
     /// <summary>Child elements, in document order.</summary>
-    public IReadOnlyList<HtmlNode> Children => _content.OfType<HtmlNode>().ToArray();
+    public IReadOnlyList<HtmlNode> Children => _children;
 
     /// <summary>Attributes, values HTML-decoded. Names are matched case-insensitively.</summary>
     public IReadOnlyDictionary<string, string> Attributes => _attributes;
@@ -89,7 +90,7 @@ public sealed class HtmlNode
     public IEnumerable<HtmlNode> DescendantsAndSelf()
     {
         yield return this;
-        foreach (var child in _content.OfType<HtmlNode>())
+        foreach (var child in _children)
         {
             foreach (var node in child.DescendantsAndSelf())
             {
@@ -124,6 +125,7 @@ public sealed class HtmlNode
     {
         child.Parent = this;
         _content.Add(child);
+        _children.Add(child);
     }
 
     internal void SetAttribute(string name, string value) =>

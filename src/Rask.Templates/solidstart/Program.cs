@@ -3,7 +3,7 @@ using Company.RaskServer.Features.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 // rask:if cache
-using Rask.Cache;
+using Rask.Caching;
 // rask:end
 // rask:if storage
 using Rask.Storage;
@@ -14,14 +14,14 @@ using Rask.Cqrs.Server;
 // rask:if cqrs data
 using Rask.Data;
 // rask:if jobs
-using Rask.Jobs;
+using Rask.Background;
 // rask:end
 // rask:end
 // rask:if logs
 using Rask.Logging;
 // rask:end
 // rask:if cqrs data mail
-using Rask.Mail;
+using Rask.Mailing;
 // rask:end
 using Rask.Meta.Hosting;
 // rask:if cqrs data outbox

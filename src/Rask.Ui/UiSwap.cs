@@ -55,16 +55,14 @@ public sealed partial class UiSwap : Component
                 Animation is { } animation ? UiClassNames.SwapAnimation(animation) : "",
                 Active == true ? "swap-active" : "",
                 Class))
-            .Aria(new Dictionary<string, string?>
-            {
-                ["label"] = AccessibleLabel,
-                ["pressed"] = Active == true ? "true" : "false",
-            });
+            .Aria(
+                ("label", AccessibleLabel),
+                ("pressed", Active == true ? "true" : "false"));
 
         if (OnChange is { } change)
         {
             var next = Active != true;
-            button = button.OnClick(() => change.Invoke(next) ?? Task.CompletedTask);
+            button = button.OnClick(() => change.Invoke(next));
         }
 
         return button[

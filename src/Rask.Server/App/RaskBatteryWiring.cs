@@ -12,18 +12,18 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Api;
 using Rask.Auth;
-using Rask.Cache;
+using Rask.Background;
+using Rask.Caching;
 using Rask.Core.Browser;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 using Rask.Cqrs;
 using Rask.Dashboard;
 using Rask.Data;
-using Rask.Jobs;
 using Rask.Logging;
-using Rask.Mail;
+using Rask.Mailing;
 using Rask.Outbox;
-using Rask.Query;
+using Rask.Querying;
 using Rask.Server;
 using Rask.SQLite;
 using Rask.SQLite.Litestream;
@@ -60,7 +60,7 @@ internal static class RaskBatteryWiring
     /// The development defaults, as configuration keys. Each one is what a fresh app needs to start before anybody has
     /// configured anything, and each is overridden by the same key set anywhere else.
     /// </summary>
-    internal static readonly IReadOnlyDictionary<string, string?> Defaults = new Dictionary<string, string?>
+    internal static readonly IReadOnlyDictionary<string, string?> Defaults = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
     {
         ["Rask:ConnectionStrings:App"] = "Data Source=app.db",
         ["Rask:ConnectionStrings:Logs"] = "Data Source=logs.db",
@@ -94,6 +94,43 @@ internal static class RaskBatteryWiring
     {
         var services = builder.Services;
 
+        var provider = ApplyConfiguration(builder, options);
+        WireMediator(services, options);
+
+        // Every scaffolded feature handler dispatches through the mediator, so a database without one has
+        // nothing driving it.
+        var data = options.Data.Enabled && options.Cqrs.Enabled;
+        if (data)
+        {
+            WireData(services);
+        }
+
+        // On PostgreSQL or SQL Server the log goes into the application database (WireFor), so it is not wired here.
+        var serverDatabase = data && provider != RaskDatabaseProvider.Sqlite;
+
+        // The app's own context, when it registered one. Read here so its provider check is registered before any
+        // battery: options are validated in the order they were registered, before any hosted service starts, so a
+        // battery whose validation fails on the wrong database (a snapshot of a file a server connection string does
+        // not name) would otherwise report first and hide the real mistake. See RaskDatabaseProviderCheck.
+        var appContext = data ? FindDbContext(services) : null;
+        if (appContext is not null)
+        {
+            AddProviderCheck(services, appContext);
+        }
+
+        WireHostBatteries(builder, options, serverDatabase);
+
+        if (!data)
+        {
+            return;
+        }
+
+        WireBackups(builder, options, provider);
+        WireDatabase(services, options, appContext, provider);
+    }
+
+    private static RaskDatabaseProvider ApplyConfiguration(WebApplicationBuilder builder, RaskAppOptions options)
+    {
         // Read while services are registered, like Rask:Cqrs, because it decides which services exist: where the log is
         // kept, whether snapshots run. Read before the defaults go in, which name no provider.
         var provider = RaskDatabase.Provider(builder.Configuration);
@@ -111,6 +148,11 @@ internal static class RaskBatteryWiring
                 [new KeyValuePair<string, string?>("Rask:ConnectionStrings:App", connectionString)]);
         }
 
+        return provider;
+    }
+
+    private static void WireMediator(IServiceCollection services, RaskAppOptions options)
+    {
         // The mediator, and the query cache that rides with it. A dispatcher without a cache means every
         // render refetches, which is the first thing anyone building over IDispatcher needs solved.
         // Validation is a property of the RENDER as much as of dispatch, so the switch is set before
@@ -138,44 +180,33 @@ internal static class RaskBatteryWiring
                 services.AddRaskRequestValidation();
             }
         }
+    }
 
-        // Every scaffolded feature handler dispatches through the mediator, so a database without one has
-        // nothing driving it.
-        var data = options.Data.Enabled && options.Cqrs.Enabled;
-        if (data)
-        {
-            services.AddRaskData();
+    private static void WireData(IServiceCollection services)
+    {
+        services.AddRaskData();
 
-            // A live session's reads have to see the tenant of the user that session belongs to, and a read
-            // is a static call that runs outside any DI scope. This makes the session's own scope ambient
-            // for the duration of its work; Rask.Server brackets with it, Rask.Data reads through it.
-            services.AddSingleton<ISessionWorkScope, SessionDataScope>();
+        // A live session's reads have to see the tenant of the user that session belongs to, and a read
+        // is a static call that runs outside any DI scope. This makes the session's own scope ambient
+        // for the duration of its work; Rask.Server brackets with it, Rask.Data reads through it.
+        services.AddSingleton<ISessionWorkScope, SessionDataScope>();
 
-            // Scoped, because the principal it reads is: this instance belongs to one session or request, and
-            // SessionDataScope above (and the request middleware in RaskApp) is what makes it reachable from a
-            // read, a write's tenant stamp and Current.UserId.
-            services.AddScoped<ClaimsPrincipalSource>();
-            services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
+        // Scoped, because the principal it reads is: this instance belongs to one session or request, and
+        // SessionDataScope above (and the request middleware in RaskApp) is what makes it reachable from a
+        // read, a write's tenant stamp and Current.UserId.
+        services.AddScoped<ClaimsPrincipalSource>();
+        services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
 
-            // A write refreshes the queries about what it wrote, on the screen of the session that made it:
-            // Person.CreateAsync(model) refetches QueryKey.For<Person> queries with no invalidation to write.
-            // Rask.Query is always here with data — both need the mediator — and the scope is the same one
-            // SessionDataScope makes ambient.
-            services.AddScoped<IDataChanges, QueryDataChanges>();
-        }
+        // A write refreshes the queries about what it wrote, on the screen of the session that made it:
+        // Person.CreateAsync(model) refetches QueryKey.For<Person> queries with no invalidation to write.
+        // Rask.Query is always here with data — both need the mediator — and the scope is the same one
+        // SessionDataScope makes ambient.
+        services.AddScoped<IDataChanges, QueryDataChanges>();
+    }
 
-        // On PostgreSQL or SQL Server the log goes into the application database (WireFor), so it is not wired here.
-        var serverDatabase = data && provider != RaskDatabaseProvider.Sqlite;
-
-        // The app's own context, when it registered one. Read here so its provider check is registered before any
-        // battery: options are validated in the order they were registered, before any hosted service starts, so a
-        // battery whose validation fails on the wrong database (a snapshot of a file a server connection string does
-        // not name) would otherwise report first and hide the real mistake. See RaskDatabaseProviderCheck.
-        var appContext = data ? FindDbContext(services) : null;
-        if (appContext is not null)
-        {
-            AddProviderCheck(services, appContext);
-        }
+    private static void WireHostBatteries(WebApplicationBuilder builder, RaskAppOptions options, bool serverDatabase)
+    {
+        var services = builder.Services;
 
         if (options.Logs.Enabled && !serverDatabase)
         {
@@ -227,11 +258,11 @@ internal static class RaskBatteryWiring
         {
             services.AddRaskApiValidation();
         }
+    }
 
-        if (!data)
-        {
-            return;
-        }
+    private static void WireBackups(WebApplicationBuilder builder, RaskAppOptions options, RaskDatabaseProvider provider)
+    {
+        var services = builder.Services;
 
         if (provider == RaskDatabaseProvider.Sqlite)
         {
@@ -261,7 +292,11 @@ internal static class RaskBatteryWiring
         {
             RefuseSqliteOnlyBatteries(builder.Configuration, options, provider);
         }
+    }
 
+    private static void WireDatabase(
+        IServiceCollection services, RaskAppOptions options, Type? appContext, RaskDatabaseProvider provider)
+    {
         // The pillars need the application's DbContext as a type argument. The app already named it, in
         // its own AddDbContextFactory call — and because this runs last, that registration is sitting in
         // the collection. Reading it there beats asking for the name a second time.
@@ -359,7 +394,7 @@ internal static class RaskBatteryWiring
     /// it would be the worst answer, so that refuses the start and names what to remove.
     /// </remarks>
     private static void RefuseSqliteOnlyBatteries(
-        IConfiguration configuration,
+        ConfigurationManager configuration,
         RaskAppOptions options,
         RaskDatabaseProvider provider)
     {
@@ -402,9 +437,8 @@ internal static class RaskBatteryWiring
     /// </remarks>
     private static Type? FindDbContext(IServiceCollection services)
     {
-        foreach (var descriptor in services)
+        foreach (var type in services.Select(static descriptor => descriptor.ServiceType))
         {
-            var type = descriptor.ServiceType;
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IDbContextFactory<>))
             {
                 return type.GetGenericArguments()[0];
@@ -424,7 +458,9 @@ internal static class RaskBatteryWiring
         Type context,
         RaskDatabaseProvider provider) =>
         typeof(RaskBatteryWiring)
+#pragma warning disable S3011 // this class's own private generic step, closed over the app's context type
             .GetMethod(nameof(WireFor), BindingFlags.NonPublic | BindingFlags.Static)!
+#pragma warning restore S3011
             .MakeGenericMethod(context)
             .Invoke(null, [services, options, provider]);
 
@@ -433,7 +469,9 @@ internal static class RaskBatteryWiring
         Justification = "The context type comes from the app's own IDbContextFactory<T> registration, which roots it.")]
     private static void AddProviderCheck(IServiceCollection services, Type context) =>
         typeof(RaskBatteryWiring)
+#pragma warning disable S3011 // this class's own private generic step, closed over the app's context type
             .GetMethod(nameof(AddProviderCheckFor), BindingFlags.NonPublic | BindingFlags.Static)!
+#pragma warning restore S3011
             .MakeGenericMethod(context)
             .Invoke(null, [services]);
 
@@ -506,6 +544,13 @@ internal static class RaskBatteryWiring
             services.AddRaskCache<TContext>(o => options.Cache.Apply(o));
         }
 
+        WireStorageAndPush<TContext>(services, options);
+        WireOps<TContext>(services, options);
+    }
+
+    private static void WireStorageAndPush<TContext>(IServiceCollection services, RaskAppOptions options)
+        where TContext : DbContext
+    {
         if (options.Storage.Enabled)
         {
             // Uploaded files, kept by id: the bytes on disk (/data/files on the deploy volume) or in a bucket, and a
@@ -521,7 +566,11 @@ internal static class RaskBatteryWiring
             // keys. When a pair IS configured, the sender was already registered above with start-time validation.
             services.AddRaskWebPush<TContext>(o => options.Push.Apply(o));
         }
+    }
 
+    private static void WireOps<TContext>(IServiceCollection services, RaskAppOptions options)
+        where TContext : DbContext
+    {
         if (options.Ops.Enabled)
         {
             // WHO MAY OPERATE THE APP. The dashboard shows job payloads, stored email bodies and log lines, so
@@ -561,7 +610,7 @@ internal static class RaskBatteryWiring
 
     // Web Push is configured either through the block or through Rask:WebPush:VapidKeys; either is enough, and
     // AddRaskWebPush binds the section itself.
-    private static bool HasVapidKeys(IConfiguration configuration, RaskAppOptions options)
+    private static bool HasVapidKeys(ConfigurationManager configuration, RaskAppOptions options)
     {
         var probe = new WebPushOptions();
         options.Push.Apply(probe);

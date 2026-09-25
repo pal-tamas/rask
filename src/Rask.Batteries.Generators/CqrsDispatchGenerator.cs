@@ -89,14 +89,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         var policies = new List<PolicyModel>();
         var handlers = new List<HandlerModel>();
-        foreach (var iface in symbol.AllInterfaces)
+        foreach (var iface in symbol.AllInterfaces.Where(static iface =>
+                     iface.ContainingNamespace?.ToDisplayString() is Namespace && iface.IsGenericType))
         {
-            if (iface.ContainingNamespace?.ToDisplayString() != Namespace || !iface.IsGenericType)
-            {
-                continue;
-            }
-
-            if (iface.MetadataName == "IWatchPolicy`1")
+            if (iface.MetadataName is "IWatchPolicy`1")
             {
                 // Registered like a handler, and skipped for the same reasons one would be — silently, since a
                 // missing policy already fails closed and says which policy it looked for.
@@ -108,39 +104,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var kind = iface.MetadataName switch
+            if (Handler(symbol, iface, compilation) is { } handler)
             {
-                "IQueryHandler`2" => (HandlerKind?)HandlerKind.Query,
-                "ICommandHandler`1" => HandlerKind.CommandVoid,
-                "ICommandHandler`2" => HandlerKind.CommandResult,
-                "INotificationHandler`1" => HandlerKind.Notification,
-                _ => null,
-            };
-
-            if (kind is null)
-            {
-                continue;
+                handlers.Add(handler);
             }
-
-            var args = iface.TypeArguments;
-            var requestFqn = Fqn(args[0], compilation);
-            var resultFqn = kind switch
-            {
-                HandlerKind.Query => Fqn(args[1], compilation),
-                HandlerKind.CommandResult => Fqn(args[1], compilation),
-                HandlerKind.CommandVoid => "global::Rask.Cqrs.Unit",
-                _ => string.Empty,
-            };
-
-            var registerability = DescribeRegisterability(symbol, args, compilation);
-            handlers.Add(new HandlerModel(
-                kind.Value,
-                Fqn(symbol, compilation),
-                requestFqn,
-                resultFqn,
-                Fqn(iface, compilation),
-                registerability?.Problem,
-                registerability?.Remedy));
         }
 
         if (handlers.Count == 0 && policies.Count == 0 && subscription is null)
@@ -153,6 +120,43 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             LocationInfo.From(symbol),
             subscription,
             new EquatableArray<PolicyModel>(policies));
+    }
+
+    private static HandlerModel? Handler(INamedTypeSymbol symbol, INamedTypeSymbol iface, Compilation compilation)
+    {
+        var kind = iface.MetadataName switch
+        {
+            "IQueryHandler`2" => (HandlerKind?)HandlerKind.Query,
+            "ICommandHandler`1" => HandlerKind.CommandVoid,
+            "ICommandHandler`2" => HandlerKind.CommandResult,
+            "INotificationHandler`1" => HandlerKind.Notification,
+            _ => null,
+        };
+
+        if (kind is null)
+        {
+            return null;
+        }
+
+        var args = iface.TypeArguments;
+        var requestFqn = Fqn(args[0], compilation);
+        var resultFqn = kind switch
+        {
+            HandlerKind.Query => Fqn(args[1], compilation),
+            HandlerKind.CommandResult => Fqn(args[1], compilation),
+            HandlerKind.CommandVoid => "global::Rask.Cqrs.Unit",
+            _ => string.Empty,
+        };
+
+        var registerability = DescribeRegisterability(symbol, args, compilation);
+        return new HandlerModel(
+            kind.Value,
+            Fqn(symbol, compilation),
+            requestFqn,
+            resultFqn,
+            Fqn(iface, compilation),
+            registerability?.Problem,
+            registerability?.Remedy);
     }
 
     private static readonly EquatableArray<HandlerModel> NoHandlers = new(Array.Empty<HandlerModel>());
@@ -168,16 +172,11 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             return null;
         }
 
-        foreach (var iface in symbol.AllInterfaces)
-        {
-            if (iface.MetadataName == "ISubscription`1"
-                && iface.ContainingNamespace?.ToDisplayString() == Namespace)
-            {
-                return new SubscriptionModel(Fqn(symbol, compilation), Fqn(iface.TypeArguments[0], compilation));
-            }
-        }
-
-        return null;
+        var subscription = symbol.AllInterfaces.FirstOrDefault(static iface =>
+            iface.MetadataName is "ISubscription`1" && iface.ContainingNamespace?.ToDisplayString() is Namespace);
+        return subscription is null
+            ? null
+            : new SubscriptionModel(Fqn(symbol, compilation), Fqn(subscription.TypeArguments[0], compilation));
     }
 
     // Returns the reason a handler cannot be registered, or null when it is fine. Open generic
@@ -241,13 +240,9 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         var policies = new SortedSet<(string ServiceFqn, string ImplementationFqn)>();
         foreach (var candidate in candidates)
         {
-            foreach (var handler in candidate.Handlers)
-            {
-                if (seen.Add((handler.HandlerTypeFqn, handler.ServiceInterfaceFqn)))
-                {
-                    models.Add((handler, candidate.Location));
-                }
-            }
+            models.AddRange(candidate.Handlers
+                .Where(handler => seen.Add((handler.HandlerTypeFqn, handler.ServiceInterfaceFqn)))
+                .Select(handler => (handler, candidate.Location)));
 
             if (candidate.Subscription is { } subscription)
             {
@@ -265,7 +260,54 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             return;
         }
 
-        // RASK029: skip unregisterable handlers with a warning.
+        var registerable = Registerable(spc, models);
+
+        var requests = registerable
+            .Where(e => e.Model.Kind != HandlerKind.Notification)
+            .ToList();
+
+        spc.AddSource("__RaskCqrsRegistry.g.cs", SourceText.From(
+            Build(
+                UniqueRequests(spc, requests),
+                NotificationTypes(registerable),
+                HandlerImplementations(registerable),
+                ImplementationTypes(registerable, policies),
+                subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
+                policies.ToList()),
+            Encoding.UTF8));
+    }
+
+    private static List<string> NotificationTypes(List<(HandlerModel Model, LocationInfo? Location)> registerable) =>
+        registerable
+            .Where(e => e.Model.Kind == HandlerKind.Notification)
+            .Select(e => e.Model.RequestTypeFqn)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(t => t, StringComparer.Ordinal)
+            .ToList();
+
+    private static List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> HandlerImplementations(
+        List<(HandlerModel Model, LocationInfo? Location)> registerable) =>
+        registerable
+            .Select(e => (e.Model.ServiceInterfaceFqn, e.Model.HandlerTypeFqn, IsNotification: e.Model.Kind == HandlerKind.Notification))
+            .Distinct()
+            .OrderBy(t => t.ServiceInterfaceFqn, StringComparer.Ordinal)
+            .ThenBy(t => t.HandlerTypeFqn, StringComparer.Ordinal)
+            .ToList();
+
+    private static List<string> ImplementationTypes(
+        List<(HandlerModel Model, LocationInfo? Location)> registerable,
+        SortedSet<(string ServiceFqn, string ImplementationFqn)> policies) =>
+        registerable
+            .Select(e => e.Model.HandlerTypeFqn)
+            .Concat(policies.Select(p => p.ImplementationFqn))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(t => t, StringComparer.Ordinal)
+            .ToList();
+
+    // RASK029: skip unregisterable handlers with a warning.
+    private static List<(HandlerModel Model, LocationInfo? Location)> Registerable(
+        SourceProductionContext spc, List<(HandlerModel Model, LocationInfo? Location)> models)
+    {
         var registerable = new List<(HandlerModel Model, LocationInfo? Location)>();
         foreach (var entry in models)
         {
@@ -283,14 +325,13 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             registerable.Add(entry);
         }
 
-        var requests = registerable
-            .Where(e => e.Model.Kind != HandlerKind.Notification)
-            .ToList();
-        var notifications = registerable
-            .Where(e => e.Model.Kind == HandlerKind.Notification)
-            .ToList();
+        return registerable;
+    }
 
-        // RASK028: a query/command must have exactly one handler.
+    // RASK028: a query/command must have exactly one handler.
+    private static List<HandlerModel> UniqueRequests(
+        SourceProductionContext spc, List<(HandlerModel Model, LocationInfo? Location)> requests)
+    {
         var requestGroups = requests
             .GroupBy(e => e.Model.RequestTypeFqn, StringComparer.Ordinal)
             .OrderBy(g => g.Key, StringComparer.Ordinal)
@@ -312,35 +353,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             uniqueRequests.Add(members[0].Model);
         }
 
-        var notificationTypes = notifications
-            .Select(e => e.Model.RequestTypeFqn)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(t => t, StringComparer.Ordinal)
-            .ToList();
-
-        var handlerImpls = registerable
-            .Select(e => (e.Model.ServiceInterfaceFqn, e.Model.HandlerTypeFqn, IsNotification: e.Model.Kind == HandlerKind.Notification))
-            .Distinct()
-            .OrderBy(t => t.ServiceInterfaceFqn, StringComparer.Ordinal)
-            .ThenBy(t => t.HandlerTypeFqn, StringComparer.Ordinal)
-            .ToList();
-
-        var distinctImplTypes = registerable
-            .Select(e => e.Model.HandlerTypeFqn)
-            .Concat(policies.Select(p => p.ImplementationFqn))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(t => t, StringComparer.Ordinal)
-            .ToList();
-
-        spc.AddSource("__RaskCqrsRegistry.g.cs", SourceText.From(
-            Build(
-                uniqueRequests,
-                notificationTypes,
-                handlerImpls,
-                distinctImplTypes,
-                subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
-                policies.ToList()),
-            Encoding.UTF8));
+        return uniqueRequests;
     }
 
     private static string Build(
@@ -367,14 +380,36 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 .Append(", typeof(").Append(impl).AppendLine("))]");
         }
 
-        // Init() runs once, at module load. RefreshAll() is the re-invocable half the hot-reload
-        // coordinator calls after a metadata update (see RaskHotReload.RefreshTargetTypeNames) —
-        // so it must hold ONLY idempotent work. The dispatch tables qualify: ReplaceRequests /
-        // ReplaceNotifications install this assembly's whole contribution, so re-running them swaps in
-        // the invokers built from the new IL and drops handlers that no longer exist. The DI
-        // registrations below deliberately do NOT belong there: RegisterServices
-        // enqueues onto a queue that is never drained, so refreshing it on every save would grow
-        // that queue without bound for the life of the watch session.
+        AppendInit(sb, handlerImpls, policies);
+        AppendRefreshAll(sb, requests, notificationTypes, subscriptions);
+
+        for (var i = 0; i < requests.Count; i++)
+        {
+            EmitRequestInvoker(sb, requests[i], i);
+        }
+
+        for (var i = 0; i < notificationTypes.Count; i++)
+        {
+            EmitNotificationInvoker(sb, notificationTypes[i], i);
+        }
+
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    // Init() runs once, at module load. RefreshAll() is the re-invocable half the hot-reload
+    // coordinator calls after a metadata update (see RaskHotReload.RefreshTargetTypeNames) —
+    // so it must hold ONLY idempotent work. The dispatch tables qualify: ReplaceRequests /
+    // ReplaceNotifications install this assembly's whole contribution, so re-running them swaps in
+    // the invokers built from the new IL and drops handlers that no longer exist. The DI
+    // registrations below deliberately do NOT belong there: RegisterServices
+    // enqueues onto a queue that is never drained, so refreshing it on every save would grow
+    // that queue without bound for the life of the watch session.
+    private static void AppendInit(
+        StringBuilder sb,
+        List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> handlerImpls,
+        List<(string ServiceFqn, string ImplementationFqn)> policies)
+    {
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         sb.AppendLine("    internal static void Init()");
         sb.AppendLine("    {");
@@ -406,7 +441,11 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         sb.AppendLine("    }");
         sb.AppendLine();
+    }
 
+    private static void AppendRefreshAll(
+        StringBuilder sb, List<HandlerModel> requests, List<string> notificationTypes, List<SubscriptionModel> subscriptions)
+    {
         sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
 
@@ -443,44 +482,36 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         // older Rask.Cqrs would not have.
         if (subscriptions.Count > 0)
         {
-            sb.AppendLine();
-            sb.AppendLine(
-                "        global::Rask.Cqrs.CqrsRegistry.ReplaceSubscriptions(typeof(__RaskCqrsRegistry), " +
-                "new (global::System.Type, global::Rask.Cqrs.SubscriptionRegistration)[]");
-            sb.AppendLine("        {");
-            foreach (var subscription in subscriptions)
-            {
-                // Matches goes through the interface rather than the record: an explicit implementation is still a
-                // legitimate way to write one, and casting to the concrete type would not find it.
-                sb.Append("            (typeof(").Append(subscription.SubscriptionFqn)
-                    .AppendLine("), new global::Rask.Cqrs.SubscriptionRegistration(");
-                sb.Append("                typeof(").Append(subscription.NotificationFqn).AppendLine("),");
-                sb.Append("                static (s, n) => ((global::Rask.Cqrs.ISubscription<")
-                    .Append(subscription.NotificationFqn).Append(">)s).Matches((")
-                    .Append(subscription.NotificationFqn).AppendLine(")n),");
-                sb.Append("                static (sp, s, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
-                    .Append(subscription.SubscriptionFqn).Append(">(sp, (")
-                    .Append(subscription.SubscriptionFqn).AppendLine(")s, ct))),");
-            }
-
-            sb.AppendLine("        });");
+            AppendSubscriptions(sb, subscriptions);
         }
 
         sb.AppendLine("    }");
         sb.AppendLine();
+    }
 
-        for (var i = 0; i < requests.Count; i++)
+    private static void AppendSubscriptions(StringBuilder sb, List<SubscriptionModel> subscriptions)
+    {
+        sb.AppendLine();
+        sb.AppendLine(
+            "        global::Rask.Cqrs.CqrsRegistry.ReplaceSubscriptions(typeof(__RaskCqrsRegistry), " +
+            "new (global::System.Type, global::Rask.Cqrs.SubscriptionRegistration)[]");
+        sb.AppendLine("        {");
+        foreach (var subscription in subscriptions)
         {
-            EmitRequestInvoker(sb, requests[i], i);
+            // Matches goes through the interface rather than the record: an explicit implementation is still a
+            // legitimate way to write one, and casting to the concrete type would not find it.
+            sb.Append("            (typeof(").Append(subscription.SubscriptionFqn)
+                .AppendLine("), new global::Rask.Cqrs.SubscriptionRegistration(");
+            sb.Append("                typeof(").Append(subscription.NotificationFqn).AppendLine("),");
+            sb.Append("                static (s, n) => ((global::Rask.Cqrs.ISubscription<")
+                .Append(subscription.NotificationFqn).Append(">)s).Matches((")
+                .Append(subscription.NotificationFqn).AppendLine(")n),");
+            sb.Append("                static (sp, s, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
+                .Append(subscription.SubscriptionFqn).Append(">(sp, (")
+                .Append(subscription.SubscriptionFqn).AppendLine(")s, ct))),");
         }
 
-        for (var i = 0; i < notificationTypes.Count; i++)
-        {
-            EmitNotificationInvoker(sb, notificationTypes[i], i);
-        }
-
-        sb.AppendLine("}");
-        return sb.ToString();
+        sb.AppendLine("        });");
     }
 
     private static void EmitRequestInvoker(StringBuilder sb, HandlerModel model, int index)
@@ -502,12 +533,12 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         if (model.Kind == HandlerKind.CommandVoid)
         {
-            sb.Append("        global::Rask.Cqrs.RequestHandlerDelegate<").Append(result)
+            sb.Append("        global::Rask.Cqrs.RequestHandler<").Append(result)
                 .AppendLine("> next = async () => { await handler.Handle(typed).ConfigureAwait(false); return default; };");
         }
         else
         {
-            sb.Append("        global::Rask.Cqrs.RequestHandlerDelegate<").Append(result)
+            sb.Append("        global::Rask.Cqrs.RequestHandler<").Append(result)
                 .AppendLine("> next = () => handler.Handle(typed);");
         }
 

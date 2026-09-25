@@ -1,125 +1,10 @@
 using System.Data.Common;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Jobs;
+using Rask.Background;
 
 namespace Rask.Dashboard.Panels;
-
-/// <summary>
-/// Backup state for the system panel. The dashboard deliberately takes no dependency on
-/// <c>Rask.SQLite.Litestream</c> or <c>Rask.SQLite.Snapshots</c>: those pull a native SQLitePCLRaw provider
-/// bundle, and the dashboard itself is provider-agnostic — it reads EF entities and works just as well on
-/// Postgres. Register an implementation to light up the backup tiles; without one they stay hidden.
-/// <para>
-/// The data it needs is public API: <c>LitestreamStatus.Current</c> and
-/// <c>ISqliteSnapshotStore.ListAsync(ct)</c>.
-/// </para>
-/// </summary>
-public interface IDashboardBackupProbe
-{
-    /// <summary>Continuous-replication state, or <c>null</c> if the app doesn't run any.</summary>
-    Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken);
-
-    /// <summary>Stored snapshots, newest first. Empty when the app takes none.</summary>
-    Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Restore-verification state, or <c>null</c> when nothing has verified the backup — which is the
-    /// default, since verification is opt-in and costs a real restore. The default implementation returns
-    /// <c>null</c>, so an existing probe keeps compiling and simply shows no restorability tile.
-    /// </summary>
-    Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
-        Task.FromResult<BackupVerificationInfo?>(null);
-}
-
-/// <summary>Continuous-backup liveness, as the dashboard displays it.</summary>
-/// <param name="IsReplicating">Whether replication is running right now.</param>
-/// <param name="LastStartedAt">When the current or most recent run started.</param>
-/// <param name="RestartCount">How many times it has restarted — climbing means flapping.</param>
-/// <param name="LastError">The most recent failure, if any.</param>
-public sealed record BackupReplicationInfo(
-    bool IsReplicating, DateTimeOffset? LastStartedAt, int RestartCount, string? LastError);
-
-/// <summary>
-/// Whether the backup has been proven <b>restorable</b>, which is a different fact from whether the
-/// replicator is running — a replica written to the wrong prefix keeps replication looking healthy and is
-/// only ever caught by restoring it.
-/// </summary>
-/// <param name="Outcome">
-/// The verdict, as free text so the dashboard stays provider-agnostic (it never references the backup
-/// packages). "Verified" is the good one; "Inconclusive" means the check raced replication lag.
-/// </param>
-/// <param name="Level">
-/// How the outcome should read. Supplied by the probe rather than inferred here, because only the probe
-/// knows which of its own outcome names are failures.
-/// </param>
-/// <param name="LastVerifiedAt">
-/// When the backup was last proven restorable — the field worth alerting on, since it survives a pass
-/// that merely raced replication.
-/// </param>
-/// <param name="LastError">Why the most recent pass was inconclusive or failed.</param>
-public sealed record BackupVerificationInfo(
-    string Outcome, BackupVerificationLevel Level, DateTimeOffset? LastVerifiedAt, string? LastError);
-
-/// <summary>
-/// How a verification outcome reads on the dashboard. Three states, not two: "the check raced replication
-/// lag" and "the restore did not contain what it should" are different, and showing the first one in red
-/// is how an operator learns to ignore the tile.
-/// </summary>
-public enum BackupVerificationLevel
-{
-    /// <summary>Proven restorable.</summary>
-    Verified,
-
-    /// <summary>Nothing was proven either way — lag, or a pass that had nothing to check.</summary>
-    Unknown,
-
-    /// <summary>The backup could not be restored. This is the one worth waking someone for.</summary>
-    Broken,
-}
-
-/// <summary>One stored snapshot.</summary>
-/// <param name="Name">The snapshot's name.</param>
-/// <param name="SizeBytes">Its size on disk.</param>
-/// <param name="CreatedAt">When it was taken (UTC).</param>
-public sealed record BackupSnapshotInfo(string Name, long SizeBytes, DateTime CreatedAt);
-
-/// <summary>A recurring job's schedule joined to when it actually last fired.</summary>
-/// <param name="Name">The durable name.</param>
-/// <param name="Schedule">When it should run, as an operator reads it: "every 1h", "daily at 03:00".</param>
-/// <param name="LastEnqueuedAt">When it was last enqueued, or <c>null</c> if it never has been.</param>
-public sealed record RecurringJobRow(string Name, string Schedule, DateTime? LastEnqueuedAt);
-
-/// <summary>How the database is configured, as far as the dashboard can see from the open connection.</summary>
-/// <param name="Provider">The EF provider name.</param>
-/// <param name="JournalMode">SQLite <c>journal_mode</c>, or <c>null</c> on another provider.</param>
-/// <param name="ForeignKeys">SQLite <c>foreign_keys</c>, or <c>null</c> on another provider.</param>
-/// <param name="SizeBytes">Database size in bytes, or <c>null</c> when the provider can't report it cheaply.</param>
-public sealed record DatabaseInfo(string Provider, string? JournalMode, bool? ForeignKeys, long? SizeBytes);
-
-/// <summary>
-/// The system reader, without the context type parameter — pages aren't generic, so they resolve this.
-/// </summary>
-public interface ISystemPanelReader
-{
-    /// <summary>Whether an <see cref="IDashboardBackupProbe"/> is registered, so the backup card can hide.</summary>
-    bool HasBackupProbe { get; }
-
-    /// <summary>Provider, SQLite pragmas where applicable, and database size.</summary>
-    Task<DatabaseInfo> DatabaseAsync(CancellationToken cancellationToken);
-
-    /// <summary>The declared recurring schedule joined to when each job last fired.</summary>
-    Task<IReadOnlyList<RecurringJobRow>> RecurringJobsAsync(CancellationToken cancellationToken);
-
-    /// <summary>Continuous-replication state, or <c>null</c>.</summary>
-    Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken);
-
-    /// <summary>Stored snapshots, newest first.</summary>
-    Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken);
-
-    /// <summary>Restore-verification state, or <c>null</c> when nothing has verified the backup.</summary>
-    Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken);
-}
 
 /// <summary>Host-level facts: how the database is configured, what is scheduled, and whether backups run.</summary>
 internal sealed class SystemPanel<TContext>(
@@ -134,7 +19,8 @@ internal sealed class SystemPanel<TContext>(
 
     public async Task<DatabaseInfo> DatabaseAsync(CancellationToken cancellationToken)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         var provider = db.Database.ProviderName ?? "unknown";
 
         // Read through the raw DbConnection rather than a SQLite package: PRAGMA is just SQL, so this needs
@@ -153,11 +39,12 @@ internal sealed class SystemPanel<TContext>(
             var pageCount = await ScalarAsync(connection, "PRAGMA page_count;", cancellationToken).ConfigureAwait(false);
             var pageSize = await ScalarAsync(connection, "PRAGMA page_size;", cancellationToken).ConfigureAwait(false);
 
-            long? size = long.TryParse(pageCount, out var pages) && long.TryParse(pageSize, out var bytes)
+            long? size = long.TryParse(pageCount, NumberStyles.Integer, CultureInfo.InvariantCulture, out var pages)
+                          && long.TryParse(pageSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out var bytes)
                 ? pages * bytes
                 : null;
 
-            return new DatabaseInfo(provider, journalMode, foreignKeys == "1", size);
+            return new DatabaseInfo(provider, journalMode, string.Equals(foreignKeys, "1", StringComparison.Ordinal), size);
         }
         finally
         {
@@ -177,7 +64,8 @@ internal sealed class SystemPanel<TContext>(
             return [];
         }
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         if (db.Model.FindEntityType(typeof(RecurringJobState)) is null)
         {
             return [];
@@ -186,7 +74,7 @@ internal sealed class SystemPanel<TContext>(
         var names = _jobOptions.RecurringJobs.Select(r => r.Name).ToList();
         var state = await db.Set<RecurringJobState>()
             .Where(s => names.Contains(s.Name))
-            .ToDictionaryAsync(s => s.Name, s => s.LastEnqueuedAt, cancellationToken)
+            .ToDictionaryAsync(s => s.Name, s => s.LastEnqueuedAt, StringComparer.Ordinal, cancellationToken)
             .ConfigureAwait(false);
 
         return [.. _jobOptions.RecurringJobs.Select(r =>
@@ -204,7 +92,8 @@ internal sealed class SystemPanel<TContext>(
 
     private static async Task<string?> ScalarAsync(DbConnection connection, string sql, CancellationToken cancellationToken)
     {
-        await using var command = connection.CreateCommand();
+        var command = connection.CreateCommand();
+        await using var commandScope = command.ConfigureAwait(false);
         command.CommandText = sql;
         var value = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return value?.ToString();

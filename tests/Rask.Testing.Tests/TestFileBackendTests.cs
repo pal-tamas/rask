@@ -67,7 +67,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     public async Task The_framework_releases_the_files_after_the_handler_returns()
     {
         // The browser hosts drop their client-side references here and the server frees its upload slot, so a
-        // component that holds a RaskFile past the handler is holding something already gone.
+        // component that holds an IRaskFile past the handler is holding something already gone.
         var files = new TestFileBackend();
         var page = Page.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
@@ -131,10 +131,10 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
 internal sealed partial class UploadProbe : Component
 {
     public bool Fired { get; private set; }
-    public IReadOnlyList<RaskFile> Received { get; private set; } = [];
+    public IReadOnlyList<IRaskFile> Received { get; private set; } = [];
     public string? ReadBack { get; private set; }
 
-    private void OnFiles(IReadOnlyList<RaskFile> files)
+    private void OnFiles(IReadOnlyList<IRaskFile> files)
     {
         Fired = true;
         Received = files;
@@ -143,7 +143,7 @@ internal sealed partial class UploadProbe : Component
             return;
         }
 
-        // Read through the real RaskFile API, so the test proves the stream works and not just the metadata.
+        // Read through the real IRaskFile API, so the test proves the stream works and not just the metadata.
         using var reader = new StreamReader(files[0].OpenReadStream());
         ReadBack = reader.ReadToEnd();
     }
@@ -156,7 +156,7 @@ internal sealed partial class UploadFormProbe : Component
 {
     private readonly Attachment _model = new();
 
-    public IReadOnlyList<RaskFile> Received { get; private set; } = [];
+    public IReadOnlyList<IRaskFile> Received { get; private set; } = [];
 
     private void OnAnySubmit(FormData form) => Received = form.Files("attachment");
 

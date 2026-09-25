@@ -34,7 +34,7 @@ public sealed partial class UiSidebarCollapse : Component
             .For(For + "-rail")
             .Class(UiClass.Compose(
                 "btn btn-ghost btn-square btn-sm",
-                Collapsible is { } from ? "hidden" : "",
+                Collapsible is null ? "" : "hidden",
                 Collapsible is { } shown ? UiClassNames.ShownFrom(shown) : "",
                 Class))
             .Role("button")

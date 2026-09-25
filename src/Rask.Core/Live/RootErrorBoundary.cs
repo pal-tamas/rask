@@ -79,7 +79,7 @@ internal sealed class RootErrorBoundary : Component
         // via RaiseLifecycleBeforeRender(false). Now that the wrapper is the root, the App
         // is a child — NotifyParameters here replicates the same call so Mount /
         // Updated still fire on the App exactly as they used to.
-        ctx.NotifyParameters(inner, false);
+        LiveRenderContext.NotifyParameters(inner, false);
 
         // The second parameter is the boundary's Recover, and it used to be discarded. Forwarding it
         // gives the page a "Try again" that clears the error and re-renders in place — worth having
@@ -95,59 +95,9 @@ internal sealed class RootErrorBoundary : Component
 
         RenderedFallback = false;
         FallbackError = null;
-        boundary.SetProps([inner], (ex, recover) =>
-        {
-            // In development, a fault the tree survived is shown OVER the app instead of replacing it.
-            //
-            // The full-document swap is right in production and wrong in development, where a handler
-            // that throws is the common case rather than the exceptional one: it takes the scroll
-            // position, the form input, the expanded panels and the route with it, so the developer
-            // loses the state that produced the bug at the moment they most want to look at it. React's
-            // and Next's dev overlays leave the app mounted for exactly this reason.
-            //
-            // Only for a fault the tree SURVIVED. After a render fault, re-rendering the subtree that
-            // just threw would only throw again — so a render fault still replaces the page, in
-            // development as in production, which is the honest outcome.
-            if (boundary is { Source: not ErrorSource.Render }
-                && DevErrorInfo.From(ex, boundary.Source == ErrorSource.Action ? "handler" : "lifecycle")
-                    is { } devError)
-            {
-                ctx.ReportDevError(devError);
+        boundary.SetProps([inner], (ex, recover) => Fallback(ctx, boundary, inner, ex, recover));
 
-                // Clear without asking for a render: this render is already in flight and is about to
-                // show the app. Recover() would signal one, and the signal would land while the walk
-                // that set it is still running.
-                boundary.ClearErrorInRender();
-                return inner;
-            }
-
-            RenderedFallback = true;
-            FallbackError = ex;
-
-            // Body content only — the document around it is this component's, and it is already built
-            // by the time the boundary trips. OwnsDocument lets the page contribute its own <title> and
-            // the charset/viewport meta, so it is complete even when the App threw before contributing
-            // any head of its own; a nested boundary's fallback replaces one widget and says nothing
-            // about the document, which is why the flag exists rather than being unconditional.
-            return new DefaultErrorPage(ex, recover) { OwnsDocument = true };
-        });
-
-        // Compose the document. The App's Shell override is user code that builds components, so it is
-        // held to the same promise as its Render(): a throw shows the error page rather than escaping to
-        // the host as a 500. The framework's own default shell takes over for that render — a custom
-        // shell cannot be trusted after it has just failed, and the error page needs a document to live
-        // in.
-        var head = Head;
-        Component document;
-        try
-        {
-            document = inner.ShellInternal(head, boundary);
-        }
-        catch (Exception ex)
-        {
-            boundary.TripInRender(ex);
-            document = ShellInternal(head, boundary);
-        }
+        var document = ComposeDocument(inner, boundary);
 
         // A collection expression, not F.Fragment(): the factory would make the wrapper a tracked child
         // and retain it, and this one is pure grouping — two children that never change, on the one
@@ -155,5 +105,62 @@ internal sealed class RootErrorBoundary : Component
         // render it does not (it is the same transient Fragment every root render used to build for the
         // App's own [Doctype(), Html(...)]).
         return [CoreDoctype, document];
+    }
+
+    private Component Fallback(
+        LiveRenderContext ctx, ErrorBoundary boundary, Component inner, Exception ex, Action recover)
+    {
+        // In development, a fault the tree survived is shown OVER the app instead of replacing it.
+        //
+        // The full-document swap is right in production and wrong in development, where a handler
+        // that throws is the common case rather than the exceptional one: it takes the scroll
+        // position, the form input, the expanded panels and the route with it, so the developer
+        // loses the state that produced the bug at the moment they most want to look at it. React's
+        // and Next's dev overlays leave the app mounted for exactly this reason.
+        //
+        // Only for a fault the tree SURVIVED. After a render fault, re-rendering the subtree that
+        // just threw would only throw again — so a render fault still replaces the page, in
+        // development as in production, which is the honest outcome.
+        if (boundary is { Source: not ErrorSource.Render }
+            && DevErrorInfo.From(ex, boundary.Source == ErrorSource.Action ? "handler" : "lifecycle")
+                is { } devError)
+        {
+            ctx.ReportDevError(devError);
+
+            // Clear without asking for a render: this render is already in flight and is about to
+            // show the app. Recover() would signal one, and the signal would land while the walk
+            // that set it is still running.
+            boundary.ClearErrorInRender();
+            return inner;
+        }
+
+        RenderedFallback = true;
+        FallbackError = ex;
+
+        // Body content only — the document around it is this component's, and it is already built
+        // by the time the boundary trips. OwnsDocument lets the page contribute its own <title> and
+        // the charset/viewport meta, so it is complete even when the App threw before contributing
+        // any head of its own; a nested boundary's fallback replaces one widget and says nothing
+        // about the document, which is why the flag exists rather than being unconditional.
+        return new DefaultErrorPage(ex, recover) { OwnsDocument = true };
+    }
+
+    // Compose the document. The App's Shell override is user code that builds components, so it is
+    // held to the same promise as its Render(): a throw shows the error page rather than escaping to
+    // the host as a 500. The framework's own default shell takes over for that render — a custom
+    // shell cannot be trusted after it has just failed, and the error page needs a document to live
+    // in.
+    private Component ComposeDocument(Component inner, ErrorBoundary boundary)
+    {
+        var head = Head;
+        try
+        {
+            return inner.ShellInternal(head, boundary);
+        }
+        catch (Exception ex)
+        {
+            boundary.TripInRender(ex);
+            return ShellInternal(head, boundary);
+        }
     }
 }

@@ -6,36 +6,6 @@ using Microsoft.CodeAnalysis;
 namespace Rask.Generators.Blazor;
 
 /// <summary>
-///     One hosted <c>[Parameter]</c>, as both a chain step and a dictionary entry.
-/// </summary>
-/// <param name="Parameter">The hosted component's own parameter name — the dictionary key.</param>
-/// <param name="Name">What the island calls it, which is the chain step's name.</param>
-/// <param name="ChainTypeFqn">The generated property's type.</param>
-/// <param name="EventArg">For an <c>EventCallback&lt;T&gt;</c>, the fully-qualified <c>T</c>.</param>
-/// <param name="IsEventCallback">Whether the hosted parameter is an <c>EventCallback</c>.</param>
-/// <param name="IsRequired">
-///     Whether the hosted component marked it <c>[EditorRequired]</c>, which makes it a required
-///     chain step rather than an optional one.
-/// </param>
-/// <param name="NeedsNew">
-///     Whether the property shadows an inherited chain entry and so must say <c>new</c>.
-/// </param>
-/// <param name="DeclaredByUser">
-///     Whether the island already declares this property itself — via <c>[BlazorParameter]</c> or a
-///     plain hand-written property. It is still WRITTEN to the parameter dictionary; it just must not
-///     be declared a second time.
-/// </param>
-internal readonly record struct BlazorParam(
-    string Parameter,
-    string Name,
-    string ChainTypeFqn,
-    string? EventArg,
-    bool IsEventCallback,
-    bool IsRequired,
-    bool NeedsNew,
-    bool DeclaredByUser);
-
-/// <summary>
 ///     Reads the chain steps an island gets from the Blazor component it hosts.
 /// </summary>
 /// <remarks>
@@ -85,9 +55,9 @@ internal static class BlazorParameters
             // wanted; matched on shape rather than symbol identity because this runs where no
             // Compilation is available to resolve the unbound definition.
             var def = t.OriginalDefinition;
-            if (def.Name == IslandBaseName
+            if (string.Equals(def.Name, IslandBaseName, StringComparison.Ordinal)
                 && def.Arity == 1
-                && def.ContainingNamespace?.ToDisplayString() == IslandBaseNamespace
+                && string.Equals(def.ContainingNamespace?.ToDisplayString(), IslandBaseNamespace, StringComparison.Ordinal)
                 && t.TypeArguments.Length == 1
                 && t.TypeArguments[0] is INamedTypeSymbol hosted)
             {
@@ -127,18 +97,47 @@ internal static class BlazorParameters
             return result;
         }
 
-        // A hand-written property is an explicit override and wins outright — but only an INSTANCE
-        // member counts. Chain entries are STATIC members named after components, and Rask.Core's
-        // arrive by inheritance from RaskMarkup, so a parameter called Text, Table, Form or Label
-        // would otherwise look like an override of an entry it has nothing to do with and be dropped
-        // silently: no step, no diagnostic, no way to pass a value the component plainly declares.
+        var (declared, inherited) = IslandMemberNames(island);
+        var renames = ReadRenames(island);
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+
+        for (var t = hosted; t is not null; t = t.BaseType)
+        {
+            foreach (var prop in t.GetMembers().OfType<IPropertySymbol>())
+            {
+                if (prop.IsStatic
+                    || prop.SetMethod is null
+                    || prop.DeclaredAccessibility != Accessibility.Public
+                    || !HasAttribute(prop, ParameterAttrName)
+                    || !taken.Add(prop.Name))
+                {
+                    continue;
+                }
+
+                var name = renames.TryGetValue(prop.Name, out var renamed) ? renamed : prop.Name;
+                if (ToParam(prop, name, declared, inherited) is { } param)
+                {
+                    result.Add(param);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // A hand-written property is an explicit override and wins outright — but only an INSTANCE
+    // member counts. Chain entries are STATIC members named after components, and Rask.Core's
+    // arrive by inheritance from RaskMarkup, so a parameter called Text, Table, Form or Label
+    // would otherwise look like an override of an entry it has nothing to do with and be dropped
+    // silently: no step, no diagnostic, no way to pass a value the component plainly declares.
+    //
+    // Inherited is everything reachable, static included. A generated property whose name matches an
+    // inherited entry HIDES it, which is CS0108 and fatal here — so it has to say `new`, exactly as
+    // Element does for its own Title.
+    private static (HashSet<string> Declared, HashSet<string> Inherited) IslandMemberNames(INamedTypeSymbol island)
+    {
         var declared = new HashSet<string>(StringComparer.Ordinal);
-
-        // Everything reachable, static included. A generated property whose name matches an inherited
-        // entry HIDES it, which is CS0108 and fatal here — so it has to say `new`, exactly as
-        // Element does for its own Title.
         var inherited = new HashSet<string>(StringComparer.Ordinal);
-
         for (var t = island; t is not null; t = t.BaseType)
         {
             // The island ITSELF, not its bases (#950). "The island declares this one, so leave it alone"
@@ -148,7 +147,6 @@ internal static class BlazorParameters
             // fed Rask's reconciliation key to the hosted component's own parameter — no step, no
             // diagnostic, and a value the component plainly declares with no way to pass it.
             var isIsland = SymbolEqualityComparer.Default.Equals(t, island);
-
             foreach (var m in t.GetMembers())
             {
                 if (isIsland && !m.IsStatic)
@@ -163,73 +161,53 @@ internal static class BlazorParameters
             }
         }
 
-        var renames = ReadRenames(island);
-        var taken = new HashSet<string>(StringComparer.Ordinal);
+        return (declared, inherited);
+    }
 
-        for (var t = hosted; t is not null; t = t.BaseType)
+    private static BlazorParam? ToParam(
+        IPropertySymbol prop, string name, HashSet<string> declared, HashSet<string> inherited)
+    {
+        var typeFqn = prop.Type.ToDisplayString(TypeFormat);
+
+        // A fragment parameter — ChildContent, a named one, or a templated
+        // RenderFragment<T> — has no Rask equivalent: an island hosts markup, it does not
+        // compose with Rask children (RASK062). Skipping is better than emitting a step that
+        // compiles and cannot work.
+        if (typeFqn.StartsWith("global::" + RenderFragmentName, StringComparison.Ordinal))
         {
-            foreach (var prop in t.GetMembers().OfType<IPropertySymbol>())
-            {
-                if (prop.IsStatic
-                    || prop.SetMethod is null
-                    || prop.DeclaredAccessibility != Accessibility.Public
-                    || !HasAttribute(prop, ParameterAttrName))
-                {
-                    continue;
-                }
-
-                if (!taken.Add(prop.Name))
-                {
-                    continue;
-                }
-
-                var typeFqn = prop.Type.ToDisplayString(TypeFormat);
-
-                // A fragment parameter — ChildContent, a named one, or a templated
-                // RenderFragment<T> — has no Rask equivalent: an island hosts markup, it does not
-                // compose with Rask children (RASK062). Skipping is better than emitting a step that
-                // compiles and cannot work.
-                if (typeFqn.StartsWith("global::" + RenderFragmentName, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var name = renames.TryGetValue(prop.Name, out var renamed) ? renamed : prop.Name;
-
-                // A property the island declares itself is NOT skipped — it is the mapping. Skipping
-                // it here is what made [BlazorParameter("ChartSeries")] on a hand-written Series
-                // produce a chain step that accepted a value and never passed it on: the step existed
-                // (the factory generator sees the real property) but nothing wrote it into the
-                // parameter dictionary. It is emitted as a WRITE without a declaration.
-                var declaredByUser = declared.Contains(name);
-
-                var isCallback = typeFqn.StartsWith("global::" + EventCallbackName, StringComparison.Ordinal);
-                var eventArg = isCallback && prop.Type is INamedTypeSymbol { TypeArguments.Length: 1 } named
-                    ? named.TypeArguments[0].ToDisplayString(TypeFormat)
-                    : null;
-
-                // [EditorRequired] is Blazor's own way of saying a parameter is mandatory, so it maps
-                // onto Rask's own: a required chain step the call site cannot omit. Each framework
-                // states it in its own idiom and neither has to learn the other's.
-                //
-                // Never a callback, even when marked: "you must handle this event" is not something
-                // Rask's chain can usefully insist on, and an unwired callback is simply not wired —
-                // exactly as for any other Rask component.
-                var isRequired = !isCallback && HasAttribute(prop, EditorRequiredAttrName);
-
-                result.Add(new BlazorParam(
-                    prop.Name,
-                    name,
-                    ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
-                    eventArg,
-                    isCallback,
-                    isRequired,
-                    NeedsNew: !declaredByUser && inherited.Contains(name),
-                    DeclaredByUser: declaredByUser));
-            }
+            return null;
         }
 
-        return result;
+        // A property the island declares itself is NOT skipped — it is the mapping. Skipping
+        // it here is what made [BlazorParameter("ChartSeries")] on a hand-written Series
+        // produce a chain step that accepted a value and never passed it on: the step existed
+        // (the factory generator sees the real property) but nothing wrote it into the
+        // parameter dictionary. It is emitted as a WRITE without a declaration.
+        var declaredByUser = declared.Contains(name);
+
+        var isCallback = typeFqn.StartsWith("global::" + EventCallbackName, StringComparison.Ordinal);
+        var eventArg = isCallback && prop.Type is INamedTypeSymbol { TypeArguments.Length: 1 } named
+            ? named.TypeArguments[0].ToDisplayString(TypeFormat)
+            : null;
+
+        // [EditorRequired] is Blazor's own way of saying a parameter is mandatory, so it maps
+        // onto Rask's own: a required chain step the call site cannot omit. Each framework
+        // states it in its own idiom and neither has to learn the other's.
+        //
+        // Never a callback, even when marked: "you must handle this event" is not something
+        // Rask's chain can usefully insist on, and an unwired callback is simply not wired —
+        // exactly as for any other Rask component.
+        var isRequired = !isCallback && HasAttribute(prop, EditorRequiredAttrName);
+
+        return new BlazorParam(
+            prop.Name,
+            name,
+            ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
+            eventArg,
+            isCallback,
+            isRequired,
+            NeedsNew: !declaredByUser && inherited.Contains(name),
+            DeclaredByUser: declaredByUser);
     }
 
     /// <summary>The type the generated property carries.</summary>
@@ -277,7 +255,7 @@ internal static class BlazorParameters
     }
 
     private static bool HasAttribute(ISymbol symbol, string fullName) =>
-        symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == fullName);
+        symbol.GetAttributes().Any(a => string.Equals(a.AttributeClass?.ToDisplayString(), fullName, StringComparison.Ordinal));
 
     private static Dictionary<string, string> ReadRenames(INamedTypeSymbol island)
     {
@@ -286,7 +264,7 @@ internal static class BlazorParameters
         {
             foreach (var attr in member.GetAttributes())
             {
-                if (attr.AttributeClass?.ToDisplayString() == RenameAttrName
+                if (string.Equals(attr.AttributeClass?.ToDisplayString(), RenameAttrName, StringComparison.Ordinal)
                     && attr.ConstructorArguments.Length == 1
                     && attr.ConstructorArguments[0].Value is string target)
                 {

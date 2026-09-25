@@ -6,7 +6,7 @@ namespace Rask.Cqrs.Client.Tests;
 
 /// <summary>
 ///     The download half of a file's round trip. There is no upload half to test: a message declares its
-///     file as a <c>RaskFile</c>, so the file a user picked is passed to the handler unconverted.
+///     file as a <c>IRaskFile</c>, so the file a user picked is passed to the handler unconverted.
 /// </summary>
 public class FileBridgeTests
 {

@@ -76,7 +76,7 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
         // The device dropped its GATT link — release the handle (and its watch) so nothing leaks, then reset.
         await CloseInternal();
         _status = "Device disconnected";
-        StateHasChanged();
+        await StateHasChangedAsync();
     }
 
     private async Task Disconnect()

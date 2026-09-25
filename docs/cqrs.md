@@ -118,7 +118,7 @@ so one behavior shape covers everything.
 public sealed class DispatchLogBehavior<TRequest, TResult>(CqrsCounterStore store)
     : IPipelineBehavior<TRequest, TResult>
 {
-    public Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next)
+    public Task<TResult> Handle(TRequest request, RequestHandler<TResult> next)
     {
         store.Note($"⚙ dispatch {typeof(TRequest).Name}");
         return next();
@@ -280,11 +280,11 @@ failure looks like a transport problem rather than the design decision it is.
 
 ### Files, both directions
 
-**A message declares its file as a `RaskFile`** — the same type a file input hands a component. So the
+**A message declares its file as a `IRaskFile`** — the same type a file input hands a component. So the
 file a user picked is passed straight to the handler, with nothing to convert and nothing to learn:
 
 ```csharp
-public sealed record AttachReceipt(int OrderId, RaskFile File) : ICommand;
+public sealed record AttachReceipt(int OrderId, IRaskFile File) : ICommand;
 
 // The call site. Identical whether this page is server-rendered or running in the browser.
 await dispatcher.Send(new AttachReceipt(orderId, picked));
@@ -293,7 +293,7 @@ await dispatcher.Send(new AttachReceipt(orderId, picked));
 navigator.Download(await dispatcher.Query(new ExportOrders(year)));
 ```
 
-The handler receives a `RaskFile` too, and reads it exactly as it would in-process:
+The handler receives a `IRaskFile` too, and reads it exactly as it would in-process:
 
 ```csharp
 public sealed class AttachReceiptHandler : ICommandHandler<AttachReceipt>
@@ -307,8 +307,8 @@ public sealed class AttachReceiptHandler : ICommandHandler<AttachReceipt>
 ```
 
 Where the message runs in-process the handler simply gets the picked file. Where it travels, the
-generated codec carries the bytes and hands the handler a `RaskFile` over what arrived — so the *host*
-changes and the code does not. Every host reads a `RaskFile` in bounded slices (the browser ones
+generated codec carries the bytes and hands the handler a `IRaskFile` over what arrived — so the *host*
+changes and the code does not. Every host reads a `IRaskFile` in bounded slices (the browser ones
 through `Blob.slice`), and a download is streamed back headers-first.
 
 Bounded by the server's `MaxUploadBytes` and `MaxFileCount`.

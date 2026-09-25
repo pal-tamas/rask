@@ -25,6 +25,25 @@ public sealed partial class UiKitActionsDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        ButtonSection(),
+        PendingButtonSection(),
+        ButtonLinkSection(),
+        DropdownSection(),
+        ContextMenuSection(),
+        CommandPaletteSection(),
+        PopoverSection(),
+        PopoverModalSection(),
+        FlyoutModalSection(),
+        StateDrivenModalSection(),
+        SwapSection(),
+        ThemeControllerSection(),
+        FloatingActionButtonSection(),
+
+        P.Class("mt-6 text-sm text-ui-muted")
+            .Data(Testid("ui-actions-log"))[$"Last action: {_lastAction}."]
+    ];
+
+    private static Component ButtonSection() =>
         Section(
             "Button",
             "Colour, fill and size are three independent axes and compose, so an outlined error button "
@@ -40,8 +59,9 @@ public sealed partial class UiKitActionsDemo : Component
                 Ui.Button.Key("circle").AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.Close)],
                 Ui.Button.Key("square").AccessibleLabel("Add").Square(true)[Ui.Icon.Name(Ui.IconName.Plus)],
                 Ui.Button.Key("disabled").Disabled(true)["Disabled"]
-            ]),
+            ]);
 
+    private Component PendingButtonSection() =>
         Section(
             "Button — waiting on its handler",
             "No property to set. A button whose handler is still running after 200 ms shows a spinner at the "
@@ -61,8 +81,9 @@ public sealed partial class UiKitActionsDemo : Component
                 Span.Data(Testid("ui-button-loading-count")).Class("text-sm text-ui-muted")[
                     $"Saved {_saves} time{(_saves == 1 ? "" : "s")} · stepped {_steps}"
                 ]
-            ]),
+            ]);
 
+    private static Component ButtonLinkSection() =>
         Section(
             "Button and link — going somewhere",
             "Given a generated route, a button or a link is an <a> the runtime routes inside the app, so the "
@@ -74,8 +95,9 @@ public sealed partial class UiKitActionsDemo : Component
                     .Text("Data display components"),
                 Ui.Button.Key("to-github").Variant(Ui.Variant.Ghost)
                     .Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]
-            ]),
+            ]);
 
+    private Component DropdownSection() =>
         Section(
             "Dropdown",
             "A popover menu with Flux UI's keyboard: the arrows move a cursor, Home and End jump, a letter "
@@ -108,8 +130,9 @@ public sealed partial class UiKitActionsDemo : Component
                         .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
                     Ui.MenuItem.Key("export").Text("Export").Disabled(true)
                 ]
-            ]),
+            ]);
 
+    private Component ContextMenuSection() =>
         Section(
             "Context menu",
             "Right-click the card. It is the same menu a dropdown draws — the same rows, the same keyboard — opened "
@@ -128,8 +151,9 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuItem.Key("delete").Text("Delete").Tone(Ui.Tone.Error)
                         .OnClick(() => { _lastAction = "deleted the card"; })
                 ]
-            ]),
+            ]);
 
+    private Component CommandPaletteSection() =>
         Section(
             "Command palette",
             "Click the field, or press ⌘K (Ctrl K off a Mac) anywhere on this page. The commands are the rows a "
@@ -149,8 +173,9 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuItem.Text("Sign out").Tone(Ui.Tone.Error)
                         .OnClick(() => { _lastAction = "signed out"; })
                 ]
-            ]),
+            ]);
 
+    private Component PopoverSection() =>
         Section(
             "Popover — a panel, not a menu",
             "The gap a dropdown leaves. A dropdown IS a menu: its children are rows you pick from, it says "
@@ -167,8 +192,9 @@ public sealed partial class UiKitActionsDemo : Component
                         .Label("Show")
                         .OnChange(v => { _filters = [.. v]; })
                 ]
-            ]),
+            ]);
 
+    private Component PopoverModalSection() =>
         Section(
             "Modal — the popover path (the default)",
             "A real modal <dialog>, opened by an invoker command. The browser gives it the top layer, an "
@@ -187,8 +213,9 @@ public sealed partial class UiKitActionsDemo : Component
                         P["⌘K opens the command palette."]
                     ]
                 ]
-            ]),
+            ]);
 
+    private static Component FlyoutModalSection() =>
         Section(
             "Modal — a flyout",
             "Position Start or End slides it in from that edge at full height — a filter panel, a detail "
@@ -203,8 +230,9 @@ public sealed partial class UiKitActionsDemo : Component
                     .Footer(Ui.Button.Tone(Ui.Tone.Primary).Command("close").CommandFor("demo-filters")["Apply"])[
                     P["Only the close button, Escape, or Apply closes this one."]
                 ]
-            ]),
+            ]);
 
+    private Component StateDrivenModalSection() =>
         Section(
             "Modal — the state-driven path",
             "For when something in C# decides the dialog should appear, which the declarative path "
@@ -232,8 +260,9 @@ public sealed partial class UiKitActionsDemo : Component
                         P["This cannot be undone."]
                     ]
                     : null
-            ]),
+            ]);
 
+    private Component SwapSection() =>
         Section(
             "Swap",
             "Two faces, one shown at a time. The state is a bool on this component, not a checkbox in "
@@ -247,8 +276,9 @@ public sealed partial class UiKitActionsDemo : Component
                     .Active(_muted)
                     .OnChange(muted => { _muted = muted; }),
                 Span.Class("text-sm text-ui-muted")[_muted ? "Muted" : "Playing"]
-            ]),
+            ]);
 
+    private Component ThemeControllerSection() =>
         Section(
             "Theme controller",
             "It reports a choice; the page applies it. The control cannot write data-theme itself, "
@@ -273,8 +303,9 @@ public sealed partial class UiKitActionsDemo : Component
                         Ui.Button.Key("a").Tone(Ui.Tone.Accent).Size(Ui.Size.Sm)["Accent"]
                     ]
                 ]
-            ]),
+            ]);
 
+    private static Component FloatingActionButtonSection() =>
         Section(
             "Floating action button",
             "Opened by the browser on focus-within — daisyUI defines no class to force it, so this one "
@@ -292,15 +323,11 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.Button.Key("photo").Size(Ui.Size.Sm)["Photo"],
                     Ui.Button.Key("file").Size(Ui.Size.Sm)["File"]
                 ]
-            ]),
+            ]);
 
-        P.Class("mt-6 text-sm text-ui-muted")
-            .Data(Testid("ui-actions-log"))[$"Last action: {_lastAction}."]
-    ];
+    private static AttrBag Testid(string value) => new("testid", value);
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
-
-    private Component ThemeButton(string key, string label, Ui.ThemeName theme) =>
+    private UiThemeController ThemeButton(string key, string label, Ui.ThemeName theme) =>
         Ui.ThemeController
             .Key(key)
             .Label(label)
@@ -309,7 +336,7 @@ public sealed partial class UiKitActionsDemo : Component
             .Active(_theme == theme)
             .OnChange(chosen => { _theme = chosen; });
 
-    private Component MenuAction(string key, string label, string? kbd, Ui.Tone? tone = null) =>
+    private UiMenuItem MenuAction(string key, string label, string? kbd, Ui.Tone? tone = null) =>
         Ui.MenuItem.Key(key).Text(label).Kbd(kbd).Tone(tone).OnClick(() =>
         {
             _lastAction = label.ToLowerInvariant();

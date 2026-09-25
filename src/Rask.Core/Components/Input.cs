@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
-using RaskFileType = Rask.Core.Forms.RaskFile;
+using RaskFileType = Rask.Core.Forms.IRaskFile;
 
 namespace Rask.Core.Components;
 
@@ -253,42 +253,55 @@ public sealed partial class Input<T> : Element, IFormControl<T>
 
         // Type: an explicit InputType wins; otherwise bound mode (and non-string T) default from T, while a
         // plain string input keeps "no type unless set".
-        var resolvedType = Type?.ToHtml();
-        if (resolvedType is null && (acc is not null || typeof(T) != typeof(string)))
-        {
-            resolvedType = BindingHelpers.DefaultInputType(typeof(T));
-        }
+        var resolvedType = ResolveType(acc is not null);
 
         // A RADIO bound over a bool is the same control as a checkbox as far as the model is concerned:
         // it asks whether THIS option is the chosen one, and its state is `checked`. Without this it fell
         // through to the value branch and rendered `value="True"` with no checked at all — a bound radio
         // that draws the model correctly in C# and comes out unset in the markup, on every frame. A radio
         // bound over anything else is carrying the group's value and still writes it.
-        var isCheckbox = resolvedType == "checkbox"
-                         || (resolvedType == "radio" && typeof(T) == typeof(bool));
-        var name = Name ?? acc?.PropertyName;
+        var isCheckbox = string.Equals(resolvedType, "checkbox", StringComparison.Ordinal)
+                         || (string.Equals(resolvedType, "radio", StringComparison.Ordinal) && typeof(T) == typeof(bool));
 
-        // Value / checked state. Bound mode derives one from the model (checkbox → checked, else → value);
+        // Value / checked state. Bound mode derives one from the model (checkbox → checked, else → value), while
         // plain/controlled mode honors the explicit Value/Checked props independently, exactly as before.
-        string? valueString = null;
-        bool? checkedState = null;
-        if (acc is not null)
+        var (valueString, checkedState) = ResolveValueState(acc is not null, boundValue, isCheckbox);
+
+        WriteValueAttributes(sb, resolvedType, Name ?? acc?.PropertyName, valueString, checkedState);
+        WriteConstraintAttributes(sb, resolvedType);
+        WriteHintAttributes(sb);
+        WriteFormAttributes(sb);
+
+        if (LiveRenderContext.CurrentSync is { } ctx)
         {
-            if (isCheckbox)
-            {
-                checkedState = boundValue is bool b && b;
-            }
-            else
-            {
-                valueString = BindingHelpers.FormatValue(boundValue);
-            }
+            WriteHandlerAttributes(sb, ctx, acc, bindCtx, fid, isCheckbox);
         }
-        else
+    }
+
+    private string? ResolveType(bool bound)
+    {
+        var resolvedType = Type?.ToHtml();
+        if (resolvedType is null && (bound || typeof(T) != typeof(string)))
         {
-            checkedState = Checked;
-            valueString = Value is not null ? BindingHelpers.FormatValue(Value) : null;
+            resolvedType = BindingHelpers.DefaultInputType(typeof(T));
         }
 
+        return resolvedType;
+    }
+
+    private (string? Value, bool? Checked) ResolveValueState(bool bound, object? boundValue, bool isCheckbox)
+    {
+        if (!bound)
+        {
+            return (Value is not null ? BindingHelpers.FormatValue(Value) : null, Checked);
+        }
+
+        return isCheckbox ? (null, boundValue is true) : (BindingHelpers.FormatValue(boundValue), null);
+    }
+
+    private void WriteValueAttributes(
+        StringBuilder sb, string? resolvedType, string? name, string? valueString, bool? checkedState)
+    {
         if (resolvedType is not null)
         {
             AppendAttr(sb, "type", resolvedType);
@@ -328,7 +341,10 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         {
             AppendAttr(sb, "checked", null);
         }
+    }
 
+    private void WriteConstraintAttributes(StringBuilder sb, string? resolvedType)
+    {
         if (Min is not null)
         {
             AppendAttr(sb, "min", Min);
@@ -382,7 +398,10 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         {
             AppendAttr(sb, "capture", Capture);
         }
+    }
 
+    private void WriteHintAttributes(StringBuilder sb)
+    {
         if (Alt is not null)
         {
             AppendAttr(sb, "alt", Alt);
@@ -412,7 +431,10 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         {
             AppendAttr(sb, "autofocus", null);
         }
+    }
 
+    private void WriteFormAttributes(StringBuilder sb)
+    {
         if (Form is not null)
         {
             AppendAttr(sb, "form", Form);
@@ -462,12 +484,12 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         {
             AppendAttr(sb, "height", Height.Value.ToString(CultureInfo.InvariantCulture));
         }
+    }
 
-        if (LiveRenderContext.CurrentSync is not { } ctx)
-        {
-            return;
-        }
-
+    private void WriteHandlerAttributes(
+        StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor? acc, EditContext? bindCtx,
+        FieldIdentifier fid, bool isCheckbox)
+    {
         if (acc is not null)
         {
             // Bound: write the model on input (immediate for string) / change, validate.

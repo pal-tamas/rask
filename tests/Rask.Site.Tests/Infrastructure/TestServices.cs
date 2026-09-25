@@ -46,7 +46,7 @@ internal static class TestServices
         sc.AddSingleton<IToaster, Toaster>();
         // The query cache the Rask.Query demo reads through QueryClient. The site gets it from the Rask meta project's
         // WASM host wiring, which this hand-composed container does not run.
-        Rask.Query.RaskQueryServiceCollectionExtensions.AddRaskQuery(sc);
+        Rask.Querying.RaskQueryServiceCollectionExtensions.AddRaskQuery(sc);
 
         routeState ??= new RouteState();
         sc.AddSingleton(routeState);

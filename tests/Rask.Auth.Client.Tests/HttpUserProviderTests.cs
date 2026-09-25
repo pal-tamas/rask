@@ -43,7 +43,7 @@ public sealed class HttpUserProviderTests
     {
         var provider = Provider(HttpStatusCode.OK, """{"id":"u1","email":"a@b.c","roles":[]}""");
         var raised = 0;
-        provider.Changed += () => raised++;
+        provider.Changed += (_, _) => raised++;
 
         await provider.EnsureLoadedAsync();
 

@@ -1,7 +1,7 @@
 using Rask.Batteries;
 using Rask.Testing;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 /// <summary>
 /// The fake stands in for the whole battery, so there is no database and no distributed cache to reach.

@@ -64,7 +64,7 @@ public sealed partial class UiTab : Component
             // current page, beside the section tab that is.
             .ActiveClass("")
             .Role("tab")
-            .Aria(new Dictionary<string, string?> { ["selected"] = Active == true ? "true" : "false" })
+            .Aria("selected", Active == true ? "true" : "false")
             .Class(TabClass(Active == true))[
             Content()
         ];
@@ -86,11 +86,9 @@ public sealed partial class UiTab : Component
             // PANEL rather than walking every remaining tab. The arrows move between them instead.
             .TabIndex(selected ? 0 : -1)
             .Class(TabClass(selected))
-            .Aria(new Dictionary<string, string?>
-            {
-                ["selected"] = selected ? "true" : "false",
-                ["controls"] = scope.PanelId(name),
-            })
+            .Aria(
+                ("selected", selected ? "true" : "false"),
+                ("controls", scope.PanelId(name)))
             .OnClick(() => scope.Select(name))[
             Content()
         ];
@@ -106,14 +104,16 @@ public sealed partial class UiTab : Component
             "min-h-11 sm:min-h-0",
             Class);
 
-    private Component Content() =>
-    [
-        Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
-        Span[Label],
-        Count is null
-            ? null
-            : Span.Class(Alarm == true
-                ? "rounded bg-error/10 px-1.5 py-0.5 text-xs tabular-nums text-error"
-                : "rounded bg-base-200 px-1.5 py-0.5 text-xs tabular-nums opacity-60")[Count]
-    ];
+    private Component Content()
+    {
+        var countClass = Alarm == true
+            ? "rounded bg-error/10 px-1.5 py-0.5 text-xs tabular-nums text-error"
+            : "rounded bg-base-200 px-1.5 py-0.5 text-xs tabular-nums opacity-60";
+        return
+        [
+            Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
+            Span[Label],
+            Count is null ? null : Span.Class(countClass)[Count]
+        ];
+    }
 }

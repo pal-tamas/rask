@@ -83,91 +83,107 @@ public static class ModelBuilderExtensions
         // EF annotates ClrType with what Entity(Type) needs kept by the trimmer, and a List<Type> would drop it.
         var entityTypes = modelBuilder.Model.GetEntityTypes().ToList();
 
+#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
         foreach (var entityType in entityTypes)
         {
-            var clrType = entityType.ClrType;
-            ApplyKeyConvention(modelBuilder, clrType);
-
-            var timestamped = typeof(IEntity).IsAssignableFrom(clrType);
-            var versioned = typeof(IAggregate).IsAssignableFrom(clrType);
-            var softDeletable = typeof(IAggregate).IsAssignableFrom(clrType);
-
-            if (!timestamped && !versioned && !softDeletable)
-            {
-                continue;
-            }
-
-            var builder = modelBuilder.Entity(clrType);
-
-            if (timestamped)
-            {
-                // Both, unless the entity declared a `Stamps` const saying otherwise — an append-only table
-                // has nothing an UpdatedAt could mean. Read from the registry the generator filled at
-                // compile time, never reflected over: see TimestampRegistry.
-                var stamps = ConventionRegistry.StampsFor(clrType);
-
-                // Ignore, not merely "do not add": both are real properties on Entity<TId>, so EF Core's own
-                // convention maps them whatever this does. Declining one has to say so out loud.
-                if ((stamps & Timestamps.Created) != 0)
-                {
-                    builder.Property(typeof(DateTime), Columns.CreatedAt);
-                }
-                else
-                {
-                    builder.Ignore(Columns.CreatedAt);
-                }
-
-                if ((stamps & Timestamps.Updated) != 0)
-                {
-                    builder.Property(typeof(DateTime), Columns.UpdatedAt);
-                }
-                else
-                {
-                    builder.Ignore(Columns.UpdatedAt);
-                }
-            }
-
-            // On unless the aggregate declined: a lost update is invisible, which is why this default is
-            // not the one soft delete got.
-            if (versioned)
-            {
-                if (ConventionRegistry.ChecksFor(clrType) == Concurrency.Version)
-                {
-                    builder.Property(typeof(int), Columns.Version).IsConcurrencyToken();
-                }
-                else
-                {
-                    builder.Ignore(Columns.Version);
-                }
-            }
-
-            // OFF unless the aggregate asked. A stamped row still occupies its UNIQUE constraints, "delete my
-            // account" has to be able to mean delete, and Rask already ships snapshots and Litestream for
-            // getting data back — so keeping the row is a choice an aggregate makes, not one it inherits.
-            if (softDeletable)
-            {
-                // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and
-                // DeletedAt are real properties on Aggregate<TId>, so EF Core maps them by its own convention
-                // whatever this does; declining one has to say so out loud.
-                if (ConventionRegistry.DeletesFor(clrType) == Deletion.Soft)
-                {
-                    builder.Property(typeof(DateTime?), Columns.DeletedAt);
-
-                    // NAMED, so IgnoreQueryFilters() can lift this one and leave the tenant filter standing.
-                    builder.HasQueryFilter(SoftDeleteFilter, BuildNotDeletedFilter(builder, clrType));
-                }
-                else
-                {
-                    builder.Ignore(Columns.DeletedAt);
-                }
-            }
+            ApplyEntityConventions(modelBuilder, entityType.ClrType);
         }
+#pragma warning restore S3267
 
         MapValueCollections(modelBuilder, entityTypes);
         ApplyTenancy(modelBuilder, entityTypes, context);
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
+    }
+
+    private static void ApplyEntityConventions(
+        ModelBuilder modelBuilder, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType)
+    {
+        ApplyKeyConvention(modelBuilder, clrType);
+
+        var timestamped = typeof(IEntity).IsAssignableFrom(clrType);
+        var aggregate = typeof(IAggregate).IsAssignableFrom(clrType);
+        if (!timestamped && !aggregate)
+        {
+            return;
+        }
+
+        var builder = modelBuilder.Entity(clrType);
+
+        if (timestamped)
+        {
+            ApplyTimestamps(builder, clrType);
+        }
+
+        if (aggregate)
+        {
+            ApplyVersion(builder, clrType);
+            ApplySoftDelete(builder, clrType);
+        }
+    }
+
+    private static void ApplyTimestamps(EntityTypeBuilder builder, Type clrType)
+    {
+        // Both, unless the entity declared a `Stamps` const saying otherwise — an append-only table
+        // has nothing an UpdatedAt could mean. Read from the registry the generator filled at
+        // compile time, never reflected over: see TimestampRegistry.
+        var stamps = ConventionRegistry.StampsFor(clrType);
+
+        // Ignore, not merely "do not add": both are real properties on Entity<TId>, so EF Core's own
+        // convention maps them whatever this does. Declining one has to say so out loud.
+        if (stamps.HasFlag(Timestamps.Created))
+        {
+            builder.Property<DateTime>(Columns.CreatedAt);
+        }
+        else
+        {
+            builder.Ignore(Columns.CreatedAt);
+        }
+
+        if (stamps.HasFlag(Timestamps.Updated))
+        {
+            builder.Property<DateTime>(Columns.UpdatedAt);
+        }
+        else
+        {
+            builder.Ignore(Columns.UpdatedAt);
+        }
+    }
+
+    // On unless the aggregate declined: a lost update is invisible, which is why this default is
+    // not the one soft delete got.
+    private static void ApplyVersion(EntityTypeBuilder builder, Type clrType)
+    {
+        if (ConventionRegistry.ChecksFor(clrType) == Concurrency.Version)
+        {
+            builder.Property<int>(Columns.Version).IsConcurrencyToken();
+        }
+        else
+        {
+            builder.Ignore(Columns.Version);
+        }
+    }
+
+    // OFF unless the aggregate asked. A stamped row still occupies its UNIQUE constraints, "delete my
+    // account" has to be able to mean delete, and Rask already ships snapshots and Litestream for
+    // getting data back — so keeping the row is a choice an aggregate makes, not one it inherits.
+    private static void ApplySoftDelete(EntityTypeBuilder builder, Type clrType)
+    {
+        // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and
+        // DeletedAt are real properties on Aggregate<TId>, so EF Core maps them by its own convention
+        // whatever this does; declining one has to say so out loud.
+        if (ConventionRegistry.DeletesFor(clrType) == Deletion.Soft)
+        {
+            builder.Property<DateTime?>(Columns.DeletedAt);
+
+            // NAMED, so IgnoreQueryFilters() can lift this one and leave the tenant filter standing.
+            builder.HasQueryFilter(SoftDeleteFilter, BuildNotDeletedFilter(builder, clrType));
+        }
+        else
+        {
+            builder.Ignore(Columns.DeletedAt);
+        }
     }
 
     // EF.Property<Guid?>(entity, "TenantId"), captured from a real expression rather than through
@@ -200,6 +216,7 @@ public static class ModelBuilderExtensions
     /// </remarks>
     private static void ApplyTenancy(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes, DbContext? context)
     {
+#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
         foreach (var entityType in entityTypes)
         {
             var clrType = entityType.ClrType;
@@ -235,11 +252,12 @@ public static class ModelBuilderExtensions
                     "context, or EF Core inlines one tenant's id into the cached query for every tenant.");
             }
 
-            builder.Property(typeof(Guid?), Columns.TenantId);
+            builder.Property<Guid?>(Columns.TenantId);
             builder.HasQueryFilter(TenantFilter, BuildTenantFilter(clrType, context));
 
             PrefixIndexesWithTenant(builder);
         }
+#pragma warning restore S3267
     }
 
     // e => current == null || EF.Property<Guid?>(e, "TenantId") == current
@@ -312,6 +330,7 @@ public static class ModelBuilderExtensions
     /// </remarks>
     private static void MapValueCollections(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
     {
+#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
         foreach (var entityType in entityTypes)
         {
             var clrType = entityType.ClrType;
@@ -357,6 +376,7 @@ public static class ModelBuilderExtensions
                 }
             }
         }
+#pragma warning restore S3267
 
         static bool IsDeclared(ConfigurationSource? source) =>
             source is ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation;

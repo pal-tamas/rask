@@ -1,4 +1,4 @@
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>
 ///     What happens to a fetch, and to a cached entry, when the thing that wanted it goes away.

@@ -134,17 +134,7 @@ public static class BindingHelpers
         ArgumentNullException.ThrowIfNull(collection);
         comparer ??= EqualityComparer<T>.Default;
 
-        T? match = default;
-        var present = false;
-        foreach (var existing in collection)
-        {
-            if (comparer.Equals(existing, item))
-            {
-                match = existing;
-                present = true;
-                break;
-            }
-        }
+        var present = TryFindMember(collection, item, comparer, out var match);
 
         if (include)
         {
@@ -164,6 +154,14 @@ public static class BindingHelpers
 
         collection.Remove(match!);
         return true;
+    }
+
+    private static bool TryFindMember<T>(IEnumerable<T> collection, T item, IEqualityComparer<T> comparer, out T? match)
+    {
+        using var found = collection.Where(existing => comparer.Equals(existing, item)).GetEnumerator();
+        var present = found.MoveNext();
+        match = present ? found.Current : default;
+        return present;
     }
 
     // Commits a field change to the EditContext from a custom control's change handler: marks the field
@@ -199,7 +197,7 @@ public static class BindingHelpers
         return () =>
         {
             var v = (TProp)acc.Getter()!;
-            return hook.Value.Invoke(v) ?? Task.CompletedTask;
+            return hook.Value.Invoke(v);
         };
     }
 
@@ -245,13 +243,10 @@ public static class BindingHelpers
         async raw =>
         {
             var didBind = false;
-            if (setOnChange)
+            if (setOnChange && TrySetTyped(acc, raw))
             {
-                if (TrySetTyped(acc, raw))
-                {
-                    ctx?.NotifyFieldChanged(fid);
-                    didBind = true;
-                }
+                ctx?.NotifyFieldChanged(fid);
+                didBind = true;
             }
 
             if (didBind && afterBind is not null)

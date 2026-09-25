@@ -15,7 +15,6 @@ Rask.Outbox.OutboxMessage.Published(System.DateTime at) -> void
 Rask.Outbox.OutboxMessage.Release() -> void
 Rask.Outbox.OutboxMessage.Type.get -> string!
 Rask.Outbox.OutboxMessageConfiguration
-Rask.Outbox.OutboxMessageConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Outbox.OutboxMessage!>! entity) -> void
 Rask.Outbox.OutboxMessageConfiguration.OutboxMessageConfiguration() -> void
 Rask.Outbox.OutboxMessageRead
 Rask.Outbox.OutboxMessageRead.Attempts.get -> int
@@ -86,3 +85,4 @@ static Rask.Outbox.OutboxSerializerRegistry.RegisterEvent(string! typeName, Syst
 static Rask.Outbox.OutboxSerializerRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<(string! TypeName, System.Type! Type)>! registrations) -> void
 static Rask.Outbox.OutboxSerializerRegistry.Serialize(Rask.Outbox.IOutboxEvent! domainEvent) -> (string! Type, string! Payload)
 static Rask.Outbox.RaskOutboxServiceCollectionExtensions.AddRaskOutbox<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Outbox.OutboxOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Outbox.OutboxMessageConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Outbox.OutboxMessage!>! builder) -> void

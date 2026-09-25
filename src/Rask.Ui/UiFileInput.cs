@@ -38,7 +38,7 @@ public sealed partial class UiFileInput : UiFormField<string>
     ///         Re-check them on the server before storing anything.
     ///     </para>
     /// </summary>
-    public Callback<IReadOnlyList<RaskFile>>? OnFiles { get; set; }
+    public Callback<IReadOnlyList<IRaskFile>>? OnFiles { get; set; }
 
 
     /// <summary>Lets the reader choose more than one file. The value reports the first.</summary>
@@ -89,10 +89,7 @@ public sealed partial class UiFileInput : UiFormField<string>
             .Id(FieldId)
             .OnFiles(async files =>
             {
-                if (OnFiles?.Invoke(files) is { } handler)
-                {
-                    await handler.ConfigureAwait(false);
-                }
+                await OnFiles.Invoke(files).ConfigureAwait(false);
 
                 var name = files.Count > 0 ? files[0].Name : string.Empty;
                 await UiFormCommit.CommitAsync(this, acc, ctx, name).ConfigureAwait(false);
@@ -117,7 +114,7 @@ public sealed partial class UiFileInput : UiFormField<string>
         // dropped anywhere is dropped on it, which every engine already turns into a chosen file and a change
         // event. `validator` stays so a following Ui.Validator still reads its aria-invalid.
         return Div
-            .Data(new Dictionary<string, string?> { ["rask-dropzone"] = null })
+            .Data("rask-dropzone")
             .Class(UiClass.Compose(
                 "relative flex flex-col items-center justify-center gap-1 rounded-box border-2 border-dashed "
                 + "bg-base-100 px-6 py-8 text-center transition-colors",
@@ -147,7 +144,7 @@ public sealed partial class UiFileInput : UiFormField<string>
     // hint and messages.
     private Dictionary<string, string?> Aria()
     {
-        var aria = ControlAria();
+        var aria = BuildControlAria();
         if (Dropzone != true)
         {
             return aria;

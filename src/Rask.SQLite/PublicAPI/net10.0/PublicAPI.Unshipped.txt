@@ -61,7 +61,7 @@ Rask.SQLite.SqliteTempStore
 Rask.SQLite.SqliteTempStore.Default = 0 -> Rask.SQLite.SqliteTempStore
 Rask.SQLite.SqliteTempStore.File = 1 -> Rask.SQLite.SqliteTempStore
 Rask.SQLite.SqliteTempStore.Memory = 2 -> Rask.SQLite.SqliteTempStore
-const Rask.SQLite.SqliteCollations.Decimal = "EF_DECIMAL" -> string!
+const Rask.SQLite.SqliteCollations.DecimalOrder = "EF_DECIMAL" -> string!
 static Rask.SQLite.SqliteCollations.Apply(Microsoft.Data.Sqlite.SqliteConnection! connection) -> void
 static Rask.SQLite.SqliteConnectionExtensions.BeginImmediate(this Microsoft.Data.Sqlite.SqliteConnection! connection) -> Microsoft.Data.Sqlite.SqliteTransaction!
 static Rask.SQLite.SqliteConnectionExtensions.InImmediateTransactionAsync(this Microsoft.Data.Sqlite.SqliteConnection! connection, Rask.SQLite.SqliteBusyRetryOptions! retry, System.Func<Microsoft.Data.Sqlite.SqliteConnection!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -74,3 +74,10 @@ static Rask.SQLite.SqliteServiceCollectionExtensions.AddRaskSqlite(this Microsof
 static Rask.SQLite.SqliteStrictTypes.Describe(string! table, string! column, string? columnType) -> string!
 static Rask.SQLite.SqliteStrictTypes.IsAllowed(string? columnType) -> bool
 static readonly Rask.SQLite.SqliteStrictTypes.Allowed -> System.Collections.Generic.IReadOnlySet<string!>!
+Rask.SQLite.SqliteTransactionRolledBackException
+Rask.SQLite.SqliteTransactionRolledBackException.Attempt.get -> int
+Rask.SQLite.SqliteTransactionRolledBackException.Sql.get -> string!
+Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackException() -> void
+Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackException(string! message) -> void
+Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackException(string! message, System.Exception! innerException) -> void
+Rask.SQLite.SqliteTransactionRolledBackException.SqliteTransactionRolledBackException(string! sql, int attempt) -> void

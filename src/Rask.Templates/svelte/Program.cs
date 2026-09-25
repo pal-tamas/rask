@@ -15,13 +15,13 @@ using Rask.Data;
 using Rask.SQLite;
 using Rask.SQLite.Litestream;
 // rask:if jobs
-using Rask.Jobs;
+using Rask.Background;
 // rask:end
 // rask:if mail
-using Rask.Mail;
+using Rask.Mailing;
 // rask:end
 // rask:if cache
-using Rask.Cache;
+using Rask.Caching;
 // rask:end
 // rask:if storage
 using Rask.Storage;

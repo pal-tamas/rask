@@ -39,3 +39,6 @@ static Rask.Api.Client.ApiUri.Segment(object? value) -> string!
 static Rask.Api.Client.RaskApiClientServiceCollectionExtensions.AddRaskApiClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Api.Client.ApiClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 ~override Rask.Api.Client.ApiClientRegistration.Equals(object obj) -> bool
 ~override Rask.Api.Client.ApiClientRegistration.ToString() -> string
+Rask.Api.Client.ApiException.ApiException() -> void
+Rask.Api.Client.ApiException.ApiException(string! message) -> void
+Rask.Api.Client.ApiException.ApiException(string! message, System.Exception? innerException) -> void

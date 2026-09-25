@@ -32,7 +32,7 @@ public class RouteStateTests
     {
         var state = new RouteState();
         var fires = 0;
-        state.Changed += () => fires++;
+        state.Changed += (_, _) => fires++;
 
         state.Path = "/foo";
 
@@ -44,7 +44,7 @@ public class RouteStateTests
     {
         var state = new RouteState { Path = "/foo" };
         var fires = 0;
-        state.Changed += () => fires++;
+        state.Changed += (_, _) => fires++;
 
         state.Path = "/foo";
 
@@ -56,7 +56,7 @@ public class RouteStateTests
     {
         var state = new RouteState();
         var fires = 0;
-        state.Changed += () => fires++;
+        state.Changed += (_, _) => fires++;
 
         state.Query = new QueryCollection(new Dictionary<string, StringValues> { ["x"] = "1" });
 
@@ -69,7 +69,7 @@ public class RouteStateTests
         var q = new QueryCollection(new Dictionary<string, StringValues> { ["x"] = "1" });
         var state = new RouteState { Query = q };
         var fires = 0;
-        state.Changed += () => fires++;
+        state.Changed += (_, _) => fires++;
 
         state.Query = q;
 

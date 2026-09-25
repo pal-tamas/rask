@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 namespace Rask.External.Tasks;
 
@@ -55,15 +56,7 @@ internal static class ExternalPackageSpecifier
             return true;
         }
 
-        foreach (var segment in export.Split('.'))
-        {
-            if (!IsIdentifier(segment))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return export.Split('.').All(IsIdentifier);
     }
 
     /// <summary>

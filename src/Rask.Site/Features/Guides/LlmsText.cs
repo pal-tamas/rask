@@ -78,9 +78,9 @@ public static partial class LlmsText
             .Append("address without `.md`, ending in a slash. Every guide except the Optional ones, in one file: ")
             .Append(Root).Append('/').Append(FullFileName).Append('\n');
 
-        foreach (var group in GuideChrome.ReadingOrder().GroupBy(guide => guide.Group))
+        foreach (var group in GuideChrome.ReadingOrder().GroupBy(guide => guide.Group, StringComparer.Ordinal))
         {
-            sb.Append("\n## ").Append(group.Key == OptionalGroup ? "Optional" : group.Key).Append("\n\n");
+            sb.Append("\n## ").Append(group.Key is OptionalGroup ? "Optional" : group.Key).Append("\n\n");
             foreach (var guide in group)
             {
                 sb.Append("- [").Append(guide.Title).Append("](").Append(MarkdownUrl(guide.Slug)).Append("): ")
@@ -95,7 +95,7 @@ public static partial class LlmsText
     public static string Full()
     {
         var guides = GuideChrome.ReadingOrder()
-            .Where(guide => guide.Group != OptionalGroup)
+            .Where(guide => guide.Group is not OptionalGroup)
             .Select(guide => (Guide: guide, Markdown: GuideCatalog.ReadMarkdown(guide.Slug)))
             .Where(pair => pair.Markdown is not null)
             .ToList();
@@ -174,16 +174,14 @@ public static partial class LlmsText
         File.WriteAllText(Path.Combine(root, FullFileName), Full());
 
         var written = 0;
-        foreach (var guide in GuideCatalog.All)
+        var twins = GuideCatalog.All
+            .Select(guide => (guide.Slug, Markdown: GuideCatalog.ReadMarkdown(guide.Slug)))
+            .Where(twin => twin.Markdown is not null);
+        foreach (var (slug, markdown) in twins)
         {
-            if (GuideCatalog.ReadMarkdown(guide.Slug) is not { } markdown)
-            {
-                continue;
-            }
-
-            var file = Path.Combine(root, Path.Combine(MarkdownPath(guide.Slug).TrimStart('/').Split('/')));
+            var file = Path.Combine([root, .. MarkdownPath(slug).TrimStart('/').Split('/')]);
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-            File.WriteAllText(file, Twin(markdown, GuideCatalog.SourcePath(guide.Slug)));
+            File.WriteAllText(file, Twin(markdown!, GuideCatalog.SourcePath(slug)));
             written++;
         }
 
@@ -200,12 +198,12 @@ public static partial class LlmsText
         var parts = line.Split('`');
         for (var i = 0; i < parts.Length; i += 2)
         {
-            parts[i] = InlineLink().Replace(parts[i], m =>
+            var relativeDone = InlineLink().Replace(parts[i], m =>
                 $"]({Url(sourcePath, m.Groups["path"].Value)}{m.Groups["frag"].Value}{m.Groups["title"].Value})");
 
             // Site-rooted — "/docs/ui/actions". It resolves on rask.sh, but llms-full.txt is read out of context,
             // where a path with no host resolves against nothing.
-            parts[i] = RootedLink().Replace(parts[i], m => $"]({Root}{m.Groups["path"].Value})");
+            parts[i] = RootedLink().Replace(relativeDone, m => $"]({Root}{m.Groups["path"].Value})");
         }
 
         parts[0] = ReferenceLink().Replace(parts[0], m =>
@@ -219,24 +217,27 @@ public static partial class LlmsText
         var target = DocLinks.Resolve(sourcePath, link);
         // A file the site serves — a guide's screenshot — is linked where the site serves it, so a reader of the twin
         // gets the picture rather than GitHub's page about it.
-        return target.GuideSlug is { } slug ? PageUrl(slug)
-            : target.SitePath is { } sitePath ? $"{Root}/{sitePath}"
-            : target.GitHubUrl;
+        return target switch
+        {
+            { GuideSlug: { } slug } => PageUrl(slug),
+            { SitePath: { } sitePath } => $"{Root}/{sitePath}",
+            _ => target.GitHubUrl,
+        };
     }
 
     // ](/path) — rooted on the site, but not protocol-relative (//host).
-    [GeneratedRegex(@"\]\((?<path>/(?!/)[^)\s]*)\)")]
+    [GeneratedRegex(@"\]\((?<path>/(?!/)[^)\s]*)\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RootedLink();
 
-    [GeneratedRegex(@"<!--\s*demo:\s*[a-z0-9][a-z0-9-]*\s*-->")]
+    [GeneratedRegex(@"<!--\s*demo:\s*[a-z0-9][a-z0-9-]*\s*-->", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex DemoMarker();
 
     // ](path#frag "title") — relative only: not a scheme, not rooted, not a bare fragment. Any target, not just
     // Markdown: ../tests/Rask.Cqrs.Tests is as dead on the site as ../cli.md was.
-    [GeneratedRegex("""\]\((?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^)\s#]+)(?<frag>#[^)\s]*)?(?<title>\s+"[^"]*")?\)""")]
+    [GeneratedRegex("""\]\((?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^)\s#]+)(?<frag>#[^)\s]*)?(?<title>\s+"[^"]*")?\)""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex InlineLink();
 
     // [label]: path#frag — a reference-style link definition.
-    [GeneratedRegex(@"^(?<lead>\s*\[[^\]]+\]:\s*)(?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^\s#]+)(?<frag>#\S*)?")]
+    [GeneratedRegex(@"^(?<lead>\s*\[[^\]]+\]:\s*)(?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^\s#]+)(?<frag>#\S*)?", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ReferenceLink();
 }

@@ -118,7 +118,7 @@ public static partial class BuilderRuntime
         Component Parent,
         Component Target,
         Action<Component, ulong> Reset,
-        ulong Pending,
+        ulong PendingMask,
         Action<Component, Component, ulong>? Copy,
         (Type Type, int Ordinal) ChildSlot);
 
@@ -169,7 +169,7 @@ public static partial class BuilderRuntime
             if (ReferenceEquals(slots[i].Target, target))
             {
                 var slot = slots[i];
-                slots[i] = slot with { Pending = slot.Pending & ~bit };
+                slots[i] = slot with { PendingMask = slot.PendingMask & ~bit };
                 return;
             }
         }
@@ -233,7 +233,7 @@ public static partial class BuilderRuntime
                 // onto the one the key kept. The still-pending bits are the props nothing named yet, so their
                 // complement is what was written; the deferred reset then handles the rest on the kept
                 // instance exactly as it would have on the provisional one.
-                slot.Copy?.Invoke(target, chosen, ~slot.Pending);
+                slot.Copy?.Invoke(target, chosen, ~slot.PendingMask);
                 slots[i] = slot with { Target = chosen };
             }
 
@@ -255,7 +255,7 @@ public static partial class BuilderRuntime
             {
                 if (ReferenceEquals(slots[i].Target, target))
                 {
-                    return slots[i].Pending;
+                    return slots[i].PendingMask;
                 }
             }
         }
@@ -289,7 +289,7 @@ public static partial class BuilderRuntime
             var slot = slots[read];
             if (ReferenceEquals(slot.Parent, parent))
             {
-                slot.Reset(slot.Target, slot.Pending);
+                slot.Reset(slot.Target, slot.PendingMask);
                 continue;
             }
 
@@ -346,7 +346,7 @@ public static partial class BuilderRuntime
         for (var i = depth; i < slots.Count; i++)
         {
             var slot = slots[i];
-            slot.Reset(slot.Target, slot.Pending);
+            slot.Reset(slot.Target, slot.PendingMask);
         }
 
         slots.RemoveRange(depth, slots.Count - depth);

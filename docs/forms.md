@@ -109,7 +109,7 @@ input), and `Dirname`. A control of your own forwards them the same way (see
 ### File inputs
 
 `InputType.File` turns an `<input>` into a file picker. Instead of binding a value, hand it an
-`OnFiles` callback (a synchronous or an asynchronous handler) that receives the selected `RaskFile`s (`Name`/`Size`/
+`OnFiles` callback (a synchronous or an asynchronous handler) that receives the selected `IRaskFile`s (`Name`/`Size`/
 `ContentType`/`OpenReadStream()`), and constrain the picker with `Accept`, `Multiple`, and `Capture`:
 
 ```csharp

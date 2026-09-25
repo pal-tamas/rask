@@ -2,7 +2,9 @@ namespace Rask.Site.Features;
 
 // Holds a Timer started in Mount and stopped in Unmount. Demonstrates the "use the
 // lifecycle hook for things that mirror Mount" pattern — no IDisposable required.
+#pragma warning disable CA1001 // disposed in OnUnmount, the lifecycle hook this demo teaches instead of IDisposable
 public sealed partial class UnmountTimerProbe : Component
+#pragma warning restore CA1001
 {
     private int _ticks;
     private Timer? _timer;
@@ -22,8 +24,11 @@ public sealed partial class UnmountTimerProbe : Component
 
     protected override async Task OnUnmount()
     {
-        _timer?.Dispose();
-        _timer = null;
+        if (_timer is not null)
+        {
+            await _timer.DisposeAsync();
+            _timer = null;
+        }
         Log.Invoke($"#{InstanceId} ticker stopped after {_ticks} tick(s)");
     }
 

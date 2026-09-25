@@ -77,7 +77,7 @@ public class HotReloadTests
         // The debounce lives on the subscriber side (Rask.Server's
         // SubscribeAssetChangedDebounced); registry stays simple.
         var events = new List<(Type Type, AssetKind Kind)>();
-        Action<Type, AssetKind> handler = (t, k) => events.Add((t, k));
+        EventHandler<ScopedAssetChangedEventArgs> handler = (_, change) => events.Add((change.Component, change.Kind));
         ScopedAssetRegistry.AssetChanged += handler;
         try
         {

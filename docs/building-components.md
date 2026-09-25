@@ -115,8 +115,9 @@ The chain's receiver is the component itself, and both are **structs**, not dele
 `.OnPick(fn)` a setter: a delegate-typed property on the receiver would be *invocable*, and C# would read
 the call as invoking it (CS1593) and never reach the step. There is no `OnPickAsync` twin to declare.
 
-Fire an event with `if (OnPick?.Invoke() is { } t) await t;` — `Invoke` returns `null` for a synchronous
-handler, so the sync path never picks up a `Task` — and call a template with `Template?.Invoke(item)`.
+Fire an event with `await OnPick.Invoke();` and forward one with `.OnClick(() => OnRate.Invoke(i))` — no `?.`,
+no `??`: an unset event is a no-op, and a synchronous handler hands back the cached, already-completed task, so
+awaiting it never yields. Call a template with `Template?.Invoke(item)`.
 
 ## Where the names come from
 

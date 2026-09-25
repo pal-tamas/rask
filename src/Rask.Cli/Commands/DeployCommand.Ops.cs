@@ -28,7 +28,7 @@ internal sealed partial class DeployCommand
         error = null;
 
         var logsOnly = parsed.Option("tail") is not null || parsed.HasFlag("follow");
-        if (logsOnly && action != "logs")
+        if (logsOnly && !string.Equals(action, "logs", StringComparison.Ordinal))
         {
             error = "--tail and --follow only apply to `rask deploy logs`.";
             return false;
@@ -40,22 +40,17 @@ internal sealed partial class DeployCommand
         }
 
         // Everything below changes what would be deployed, which none of these verbs do.
-        foreach (var name in new[] { "domain", "port", "container-port", "dockerfile", "health-path" })
+        if (Array.Find(["domain", "port", "container-port", "dockerfile", "health-path"], name => parsed.Option(name) is not null)
+            is { } option)
         {
-            if (parsed.Option(name) is not null)
-            {
-                error = $"--{name} doesn't apply to `rask deploy {action}` — it operates on what's already deployed.";
-                return false;
-            }
+            error = $"--{option} doesn't apply to `rask deploy {action}` — it operates on what's already deployed.";
+            return false;
         }
 
-        foreach (var name in new[] { "github-actions", "dry-run", "setup-host" })
+        if (Array.Find(["github-actions", "dry-run", "setup-host"], parsed.HasFlag) is { } flag)
         {
-            if (parsed.HasFlag(name))
-            {
-                error = $"--{name} doesn't apply to `rask deploy {action}`.";
-                return false;
-            }
+            error = $"--{flag} doesn't apply to `rask deploy {action}`.";
+            return false;
         }
 
         return true;
@@ -87,15 +82,30 @@ internal sealed partial class DeployCommand
         if (apps.Count == 0)
         {
             Console.WriteLine($"Nothing deployed on {HostName(host)} yet.", ConsoleStyle.Dim);
-            Console.Out.WriteLine("Run `rask deploy` to ship this app.");
+            await Console.Out.WriteLineAsync("Run `rask deploy` to ship this app.").ConfigureAwait(false);
             return 0;
         }
 
         WriteHeading($"Deployed on {HostName(host)}");
+        Console.Ansi.Write(new RaggedRight(new Padder(StatusTable(apps, slug), new Padding(2, 0, 0, 0))));
 
+        // Whether a rollback is even possible is the other half of "what's the state of this app".
+        await Console.Out.WriteLineAsync().ConfigureAwait(false);
+        var rollbackTo = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        Console.WriteLine(
+            rollbackTo is null
+                ? $"  No previous image for '{slug}' — `rask deploy rollback` has nothing to go back to yet."
+                : $"  `rask deploy rollback` would restore {slug}:{PreviousTag} ({rollbackTo}).",
+            ConsoleStyle.Dim);
+
+        return 0;
+    }
+
+    private static Table StatusTable(IEnumerable<StatusRow> apps, string slug)
+    {
         var rows = apps.Select(a => (
             App: a.App.Length > 0 ? a.App : a.Container,
-            Where: a.Domain.Length > 0 ? $"https://{a.Domain}" : a.Ports.Length > 0 ? a.Ports : "(not published)",
+            Where: Address(a),
             Colour: a.Color.Length > 0 ? a.Color : "-",
             State: a.Status)).ToArray();
 
@@ -123,18 +133,18 @@ internal sealed partial class DeployCommand
                 new Text(row.Colour, style), new Text(row.State, style));
         }
 
-        Console.Ansi.Write(new RaggedRight(new Padder(table, new Padding(2, 0, 0, 0))));
+        return table;
+    }
 
-        // Whether a rollback is even possible is the other half of "what's the state of this app".
-        Console.Out.WriteLine();
-        var rollbackTo = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
-        Console.WriteLine(
-            rollbackTo is null
-                ? $"  No previous image for '{slug}' — `rask deploy rollback` has nothing to go back to yet."
-                : $"  `rask deploy rollback` would restore {slug}:{PreviousTag} ({rollbackTo}).",
-            ConsoleStyle.Dim);
+    /// <summary>Where an app answers: its domain, else its published ports.</summary>
+    private static string Address(StatusRow app)
+    {
+        if (app.Domain.Length > 0)
+        {
+            return $"https://{app.Domain}";
+        }
 
-        return 0;
+        return app.Ports.Length > 0 ? app.Ports : "(not published)";
     }
 
     // ── logs ────────────────────────────────────────────────────────────────────────────────────────
@@ -149,7 +159,7 @@ internal sealed partial class DeployCommand
         if (container is null)
         {
             Console.WriteErrorLine($"'{slug}' isn't running on {HostName(host)} — nothing to show logs for.", ConsoleStyle.Error);
-            Console.Error.WriteLine("Run `rask deploy status` to see what is deployed.");
+            await Console.Error.WriteLineAsync("Run `rask deploy status` to see what is deployed.").ConfigureAwait(false);
             return 1;
         }
 
@@ -336,9 +346,6 @@ internal sealed partial class DeployCommand
 
         return rows;
 
-        static string Label(string value) => value == "<no value>" ? string.Empty : value.Trim();
+        static string Label(string value) => string.Equals(value, "<no value>", StringComparison.Ordinal) ? string.Empty : value.Trim();
     }
 }
-
-/// <summary>One row of <c>rask deploy status</c>, as the host reported it.</summary>
-internal readonly record struct StatusRow(string Container, string App, string Domain, string Color, string Status, string Ports);

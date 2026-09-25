@@ -135,7 +135,7 @@ public sealed class DefaultErrorPage : Component
         children.Add(Button
             .Type("button")
             .Style(ReloadButtonStyle)
-            .Data(new Dictionary<string, string?> { ["rask-reload"] = "" })[
+            .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reload"] = "" })[
                 RaskStrings.Get(RaskString.ErrorReload, "Reload this page")]);
 
         var chain = Unwind(_error);

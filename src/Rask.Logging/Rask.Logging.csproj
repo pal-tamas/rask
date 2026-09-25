@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\Counting.cs" Link="Shared\Counting.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\CountingException.cs" Link="Shared\CountingException.cs"/>
 
     <ProjectReference Include="..\Rask.SQLite\Rask.SQLite.csproj"/>
 
@@ -60,7 +61,8 @@
        other battery's: the batteries share no common assembly. -->
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
-    <Compile Include="..\Rask.Batteries.Shared\HousekeepingContexts.cs" Link="Shared\HousekeepingContexts.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\HousekeepingContextFactory.cs" Link="Shared\HousekeepingContextFactory.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\HousekeepingServiceCollectionExtensions.cs" Link="Shared\HousekeepingServiceCollectionExtensions.cs"/>
   </ItemGroup>
 
   <ItemGroup>

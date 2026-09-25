@@ -59,7 +59,7 @@ public sealed partial class CultureFormatsDemo : Component
 
         // The tag goes in a data attribute, never a class: the golden records tag names and sorted
         // class tokens, so a culture in a class would bake the sample data into the snapshot.
-        return Tr.Data(new Dictionary<string, string?> { ["culture"] = tag })[
+        return Tr.Data("culture", tag)[
             Td[Code[tag]],
             Td[Sample.ToString("d", culture)],
             Td[Price.ToString("C", culture)],

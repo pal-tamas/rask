@@ -55,7 +55,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Mouse_typed_handler_receives_geometry_buttons_and_modifiers()
     {
-        MouseEventArgs? seen = null;
+        MouseEvent? seen = null;
         var view = new StubComponent(() => Div.OnMouseDown(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-mousedown")!;
 
@@ -78,7 +78,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Wheel_typed_handler_receives_deltas_and_composed_mouse()
     {
-        WheelEventArgs? seen = null;
+        WheelEvent? seen = null;
         var view = new StubComponent(() => Div.OnWheel(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-wheel")!;
 
@@ -96,7 +96,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Pointer_typed_handler_receives_pointer_fields_and_composed_mouse()
     {
-        PointerEventArgs? seen = null;
+        PointerEvent? seen = null;
         var view = new StubComponent(() => Div.OnPointerDown(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-pointerdown")!;
 
@@ -117,7 +117,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Touch_typed_handler_receives_count_and_first_touch_coords()
     {
-        TouchEventArgs? seen = null;
+        TouchEvent? seen = null;
         var view = new StubComponent(() => Div.OnTouchStart(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-touchstart")!;
 
@@ -135,7 +135,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Clipboard_typed_handler_receives_text()
     {
-        ClipboardEventArgs? seen = null;
+        ClipboardEvent? seen = null;
         var view = new StubComponent(() => Div.OnPaste(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-paste")!;
 
@@ -187,7 +187,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Media_typed_handler_on_audio_receives_playback_state()
     {
-        MediaEventArgs? seen = null;
+        MediaEvent? seen = null;
         var view = new StubComponent(() => Audio.OnTimeUpdate(e => seen = e));
         var html = view.RenderAsLiveRoot();
         Assert.Contains("data-rask-on-timeupdate=\"h0\"", html);

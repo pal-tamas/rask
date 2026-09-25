@@ -14,7 +14,7 @@ namespace Rask.Core.Messaging;
 public interface IToaster
 {
     /// <summary>Raised after any message is added, so a mounted outlet can drain and repaint.</summary>
-    event Action? Changed;
+    event EventHandler? Changed;
 
     /// <summary>Queue a message at the given <paramref name="level" />. Thread-safe.</summary>
     void Add(ToastLevel level, string message, string? title = null);

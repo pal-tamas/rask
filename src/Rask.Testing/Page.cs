@@ -41,7 +41,7 @@ public partial class Page : IRenderHandle
     }
 
     /// <summary>The current rendered HTML, reflecting the component's state as of the last render.</summary>
-    public string Html { get; private set; } = string.Empty;
+    public string Html { get; private set; }
 
     // The parsed view of Html, rebuilt lazily and only when the markup actually changed. Keyed on
     // reference rather than value: Render() always produces a fresh string, so a reference match means
@@ -108,7 +108,7 @@ public partial class Page : IRenderHandle
                     $"The rendered markup did not satisfy the predicate within {budget}. Last render:{Environment.NewLine}{html}");
             }
 
-            await Task.Delay(PollInterval).ConfigureAwait(false);
+            await Task.Delay(PollInterval, CancellationToken.None).ConfigureAwait(false);
         }
     }
 
@@ -304,7 +304,7 @@ public partial class Page : IRenderHandle
 
         /// <summary>
         ///     Picks <paramref name="files" /> on this file input: raises its <c>files</c> handler with the
-        ///     metadata a real client would send, so the handler receives real <c>RaskFile</c>s.
+        ///     metadata a real client would send, so the handler receives real <c>IRaskFile</c>s.
         ///     Stage them with <c>TestFileBackend.Add(...)</c> and register that backend — without one the
         ///     handler is handed an empty list and the test silently proves nothing.
         /// </summary>
@@ -345,7 +345,7 @@ public partial class Page : IRenderHandle
     private string NearMiss(string selector)
     {
         var head = selector.Split([' ', '>'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-        if (head is null || head == selector)
+        if (head is null || string.Equals(head, selector, StringComparison.Ordinal))
         {
             return string.Empty;
         }
@@ -456,7 +456,7 @@ public partial class Page : IRenderHandle
             // No Navigator registered (the common case for a leaf component) means nothing to scope.
             using var scope = (_services.GetService(typeof(Navigator)) as Navigator)?.EnterHandler();
 
-            return await _root.TryInvokeHandlerAsync(handlerId, doc.RootElement, _services)
+            return await _root.TryInvokeHandlerAsync(handlerId, doc.RootElement, _services, _root.LifetimeTokenInternal)
                 .ConfigureAwait(false);
         }
     }

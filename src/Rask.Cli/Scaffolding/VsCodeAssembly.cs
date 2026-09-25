@@ -2,25 +2,6 @@ using System.Text;
 
 namespace Rask.Cli.Scaffolding;
 
-/// <summary>Which VS Code debugging setup a template ships.</summary>
-internal enum VsCodeSetup
-{
-    /// <summary>No <c>.vscode/</c> at all.</summary>
-    None,
-
-    /// <summary>An ASP.NET host: F5 runs it under the C# debugger.</summary>
-    Host,
-
-    /// <summary>
-    ///     An ASP.NET host with a Rask WebAssembly client (the <c>wasm-hosted</c> template): the host under the C# debugger,
-    ///     then the client in a browser under the JavaScript debugger, through the host's debug proxy.
-    /// </summary>
-    WasmHost,
-
-    /// <summary>A standalone browser-WASM app: its dev server in the background, the app in a debugged browser.</summary>
-    WasmBrowser,
-}
-
 /// <summary>
 ///     Adds the VS Code debugging setup to a template's files: F5 builds the app as a dev session and runs it
 ///     under the debugger that can reach its code.
@@ -69,7 +50,13 @@ internal static class VsCodeAssembly
             _ => throw new ArgumentOutOfRangeException(nameof(setup), setup, null),
         };
 
-        return debug.Count == 0 ? [] : [.. debug, "_vscode-editor", .. tailwind ? ["_vscode-tailwind"] : Array.Empty<string>()];
+        if (debug.Count == 0)
+        {
+            return [];
+        }
+
+        string[] editor = tailwind ? ["_vscode-editor", "_vscode-tailwind"] : ["_vscode-editor"];
+        return [.. debug, .. editor];
     }
 
     /// <summary>
@@ -77,7 +64,7 @@ internal static class VsCodeAssembly
     ///     Read from what the template actually wrote, so a template that gains or drops Tailwind needs no list here.
     /// </summary>
     internal static bool CompilesTailwind(string targetDirectory, IReadOnlyList<ScaffoldFile> files) =>
-        files.Any(f => Path.GetRelativePath(targetDirectory, f.Path).Replace('\\', '/') == TailwindEntry
+        files.Any(f => string.Equals(Path.GetRelativePath(targetDirectory, f.Path).Replace('\\', '/'), TailwindEntry, StringComparison.Ordinal)
                        && f.Content.Contains("@import \"tailwindcss\"", StringComparison.Ordinal));
 
     /// <summary>

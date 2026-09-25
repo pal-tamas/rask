@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Rask.Cache;
+using Rask.Caching;
 
 namespace Rask.SqlServer.Tests;
 

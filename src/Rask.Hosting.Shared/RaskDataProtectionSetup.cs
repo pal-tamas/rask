@@ -41,7 +41,7 @@ namespace Rask.Hosting.Shared;
 /// registration order, and the last one to write the value decides.
 /// </para>
 /// </remarks>
-internal sealed class RaskDataProtectionSetup(
+internal sealed partial class RaskDataProtectionSetup(
     IConfiguration? configuration,
     IHostEnvironment? environment,
     ILoggerFactory? loggerFactory)
@@ -123,14 +123,7 @@ internal sealed class RaskDataProtectionSetup(
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
-            _loggerFactory.CreateLogger<RaskDataProtectionSetup>().LogWarning(
-                ex,
-                "Rask could not persist the Data Protection key ring to {KeyPath}, so the framework default "
-                + "is being used instead. That ring does not outlive this process: every deploy will mint a "
-                + "new one, signing out every user and invalidating every session-resume record. Grant the "
-                + "app write access to that directory, point Rask:DataProtection:KeyPath somewhere writable, "
-                + "or set it to an empty value to manage the ring yourself.",
-                keyPath);
+            LogKeyRingNotPersisted(_loggerFactory.CreateLogger<RaskDataProtectionSetup>(), ex, keyPath);
         }
     }
 
@@ -157,14 +150,25 @@ internal sealed class RaskDataProtectionSetup(
             // which case the warning goes to NullLoggerFactory and nobody reads it. It is worth emitting
             // for the container that DID call AddLogging; it is not a substitute for the fact that a host
             // with a shared key ring should register an IHostEnvironment.
-            _loggerFactory.CreateLogger<RaskDataProtectionSetup>().LogWarning(
-                "Rask is persisting the Data Protection key ring, but this container has no IHostEnvironment, "
-                + "so the application discriminator keeps its content-root default. Two hosts sharing the ring "
-                + "will still derive different keys from it. Register an IHostEnvironment, or set "
-                + "DataProtectionOptions.ApplicationDiscriminator yourself.");
+            LogNoHostEnvironment(_loggerFactory.CreateLogger<RaskDataProtectionSetup>());
             return;
         }
 
         options.ApplicationDiscriminator = environment.ApplicationName;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Rask could not persist the Data Protection key ring to {KeyPath}, so the framework default "
+                  + "is being used instead. That ring does not outlive this process: every deploy will mint a "
+                  + "new one, signing out every user and invalidating every session-resume record. Grant the "
+                  + "app write access to that directory, point Rask:DataProtection:KeyPath somewhere writable, "
+                  + "or set it to an empty value to manage the ring yourself.")]
+    private static partial void LogKeyRingNotPersisted(ILogger logger, Exception exception, string keyPath);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Rask is persisting the Data Protection key ring, but this container has no IHostEnvironment, "
+                  + "so the application discriminator keeps its content-root default. Two hosts sharing the ring "
+                  + "will still derive different keys from it. Register an IHostEnvironment, or set "
+                  + "DataProtectionOptions.ApplicationDiscriminator yourself.")]
+    private static partial void LogNoHostEnvironment(ILogger logger);
 }

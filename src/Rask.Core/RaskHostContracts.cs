@@ -52,7 +52,7 @@ public static class RaskHostContracts
         // Sign-in/out. The two hosts mean very different things by it (a cookie the server sets, or a POST
         // to a logout endpoint) — which is exactly why each must supply one.
         typeof(IAuthSignIn),
-        // File input (<input type=file> -> RaskFile) and Navigator.Download.
+        // File input (<input type=file> -> IRaskFile) and Navigator.Download.
         typeof(IBrowserFileBackend),
         typeof(IDownloadSink),
         // The interop runtime every Core browser wrapper is built on.

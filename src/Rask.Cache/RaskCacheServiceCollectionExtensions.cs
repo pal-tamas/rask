@@ -3,10 +3,11 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Rask.Batteries;
 using Rask.Hosting.Shared;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>Registers the database-backed cache into an <see cref="IServiceCollection"/>.</summary>
 public static class RaskCacheServiceCollectionExtensions
@@ -81,14 +82,17 @@ public static class RaskCacheServiceCollectionExtensions
 
     // `Json` is set in code — a serializer context cannot come from appsettings — so the section binds into
     // a shape without it, and the binder's generator never meets a property it cannot build.
-    private static void AddOptions(IServiceCollection services, Action<CacheOptions>? configure) =>
+    private static void AddOptions(IServiceCollection services, Action<CacheOptions>? configure)
+    {
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<CacheOptions>, CacheOptionsValidator>());
         services.AddRaskOptions<CacheOptions>("Rask:Cache", static (section, o) =>
         {
             var bound = new FromConfiguration { PurgeInterval = o.PurgeInterval, DefaultSlidingExpiration = o.DefaultSlidingExpiration };
             section.Bind(bound);
             o.PurgeInterval = bound.PurgeInterval;
             o.DefaultSlidingExpiration = bound.DefaultSlidingExpiration;
-        }, configure, static o => o.Validate());
+        }, configure, validate: null);
+    }
 
     internal sealed class FromConfiguration
     {

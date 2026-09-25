@@ -36,7 +36,7 @@ public interface IFormControl<T>
 of and no rule about which one wins.
 
 Read them back through `Invoke`: `await Validate?.Invoke(v, ct)` hands back the messages, and
-`OnChange?.Invoke(v)` returns `null` when the handler was synchronous, so there is nothing to await.
+`await OnChange.Invoke(v)` runs the handler — a synchronous one, or none, is an already-completed task.
 
 Those three are **carriers**, and the reason is the chain. A delegate-typed property is *invocable*, so
 `.Validate(rule)` would bind to the property rather than to the setter of the same name (CS1593) the
@@ -194,8 +194,8 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 |---|---|
 | `Validator` | `Validate?.Rule` — the single delegate the `EditContext` dispatches, whichever shape it is |
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
-| `InvokeAfterBindAsync(value)` | `await (AfterBind?.Invoke(v) ?? Task.CompletedTask)` — one hook, either shape |
-| `InvokeOnChangeAsync(value)` | `await (OnChange?.Invoke(v) ?? Task.CompletedTask)` — one handler, either shape |
+| `InvokeAfterBindAsync(value)` | `await AfterBind.Invoke(v)` — one hook, either shape; unset is a no-op |
+| `InvokeOnChangeAsync(value)` | `await OnChange.Invoke(v)` — one handler, either shape; unset is a no-op |
 | `ControlledChangeHandler()` | an `Action<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each

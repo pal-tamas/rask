@@ -40,7 +40,7 @@ public sealed partial class BindingMultiDemo : Component
         ]
     ];
 
-    private sealed class Holder
+    public sealed class Holder
     {
         public bool Subscribe { get; set; }
         public int Age { get; set; } = 30;

@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>
 ///     A typed cache over the app's <see cref="Microsoft.Extensions.Caching.Distributed.IDistributedCache" />.

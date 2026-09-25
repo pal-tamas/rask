@@ -1,5 +1,5 @@
 using Rask.Cqrs;
-using Rask.Query;
+using Rask.Querying;
 
 namespace Rask.Site.Features;
 

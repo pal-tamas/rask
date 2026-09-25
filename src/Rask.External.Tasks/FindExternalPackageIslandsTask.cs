@@ -76,69 +76,81 @@ public sealed class FindExternalPackageIslandsTask : Task
 
         foreach (var island in ExternalPackageScan.PackageIslands(sources, runtimes))
         {
-            if (!island.IsPackage && island.FromDeclaration)
+            if (Refusal(island) is { } why)
             {
-                Error(island,
-                    $"Rask.External: '{island.Name}' comes from a package declaration whose Module, '{island.Module}', "
-                    + "names no npm package — return the package its Exports come from, e.g. "
-                    + "protected override string Module => \"@mui/material\";");
+                Error(island, why);
                 continue;
             }
 
-            if (!island.IsPackage)
-            {
-                // Silently ignored, it would read as the island's component while the build mounts the file's default.
-                Error(island,
-                    $"Rask.External: '{island.Name}' overrides Export, but its Module names no package — Export picks a "
-                    + "component out of an npm package, so return the package from Module as well "
-                    + "(protected override string Module => \"react-colorful\";) or remove the Export override.");
-                continue;
-            }
-
-            var hash = island.Module.IndexOf('#');
-            if (hash > 0)
-            {
-                // The old spelling. Refused rather than read, so there is one way to name an export.
-                Error(island,
-                    $"Rask.External: '{island.Name}' writes its export after a '#' in Module — name it in Export "
-                    + $"instead: protected override string Module => \"{island.Module.Substring(0, hash)}\"; "
-                    + $"protected override string Export => \"{island.Module.Substring(hash + 1)}\";");
-                continue;
-            }
-
-            var export = island.ExportOrDefault;
-            if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
-            {
-                Error(island,
-                    $"Rask.External: '{island.Name}' names the export '{export}', which is not an identifier — return "
-                    + "the export's exact name from Export (a Lit island may name the tag its module registers).");
-                continue;
-            }
-
-            if (SiblingOf(island) is { } sibling)
-            {
-                // Both would register under one name: the file as the island's module, the package as its Module.
-                // Whichever the bundler met last would win, silently.
-                Error(island,
-                    $"Rask.External: '{island.Name}' names the package '{island.Module}' as its Module, but "
-                    + $"{Path.GetFileName(sibling)} sits beside it as well — remove the Module override to use the "
-                    + "file, or delete the file to use the package.");
-                continue;
-            }
-
-            var item = new TaskItem(island.SnapshotPath);
-            item.SetMetadata("IslandName", island.Name);
-            item.SetMetadata("Runtime", island.Runtime);
-            item.SetMetadata("PackageModule", island.Module);
-            item.SetMetadata("PackageExport", export);
-            item.SetMetadata("DeclaringFile", island.DeclaringFile);
-            item.SetMetadata("ModuleLine", island.Line.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            items.Add(item);
+            items.Add(ItemFor(island));
         }
 
         PackageIslands = items.ToArray();
         Log.LogMessage(MessageImportance.Low, $"Rask islands: {items.Count} package island(s) found.");
         return !Log.HasLoggedErrors;
+    }
+
+    /// <summary>Why a scanned island cannot be built as a package island, or null when it can.</summary>
+    private static string? Refusal(ScannedPackageIsland island)
+    {
+        if (!island.IsPackage && island.FromDeclaration)
+        {
+            return
+                $"Rask.External: '{island.Name}' comes from a package declaration whose Module, '{island.Module}', "
+                + "names no npm package — return the package its Exports come from, e.g. "
+                + "protected override string Module => \"@mui/material\";";
+        }
+
+        if (!island.IsPackage)
+        {
+            // Silently ignored, it would read as the island's component while the build mounts the file's default.
+            return
+                $"Rask.External: '{island.Name}' overrides Export, but its Module names no package — Export picks a "
+                + "component out of an npm package, so return the package from Module as well "
+                + "(protected override string Module => \"react-colorful\";) or remove the Export override.";
+        }
+
+        var hash = island.Module.IndexOf('#');
+        if (hash > 0)
+        {
+            // The old spelling. Refused rather than read, so there is one way to name an export.
+            return
+                $"Rask.External: '{island.Name}' writes its export after a '#' in Module — name it in Export "
+                + $"instead: protected override string Module => \"{island.Module.Substring(0, hash)}\"; "
+                + $"protected override string Export => \"{island.Module.Substring(hash + 1)}\";";
+        }
+
+        var export = island.ExportOrDefault;
+        if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
+        {
+            return
+                $"Rask.External: '{island.Name}' names the export '{export}', which is not an identifier — return "
+                + "the export's exact name from Export (a Lit island may name the tag its module registers).";
+        }
+
+        if (SiblingOf(island) is { } sibling)
+        {
+            // Both would register under one name: the file as the island's module, the package as its Module.
+            // Whichever the bundler met last would win, silently.
+            return
+                $"Rask.External: '{island.Name}' names the package '{island.Module}' as its Module, but "
+                + $"{Path.GetFileName(sibling)} sits beside it as well — remove the Module override to use the "
+                + "file, or delete the file to use the package.";
+        }
+
+        return null;
+    }
+
+    private static TaskItem ItemFor(ScannedPackageIsland island)
+    {
+        var item = new TaskItem(island.SnapshotPath);
+        item.SetMetadata("IslandName", island.Name);
+        item.SetMetadata("Runtime", island.Runtime);
+        item.SetMetadata("PackageModule", island.Module);
+        item.SetMetadata("PackageExport", island.ExportOrDefault);
+        item.SetMetadata("DeclaringFile", island.DeclaringFile);
+        item.SetMetadata("ModuleLine", island.Line.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return item;
     }
 
     /// <summary>An absolute path for a source item, spelled from <see cref="ProjectDirectory" /> — see its remarks.</summary>

@@ -63,30 +63,31 @@ internal sealed class RoutePattern
 
         if (inner.StartsWith("**", StringComparison.Ordinal))
         {
-            var name = inner[2..];
-            if (name.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    $"Route template '{template}' has an unnamed catch-all segment '{raw}'. Name it — "
-                    + "'{**path}' — so the matched remainder has something to bind to.");
-            }
-
-            return new RouteSegment(SegmentKind.CatchAll, string.Empty, name, true);
+            return CatchAll(inner[2..], "**", raw, template);
         }
 
         if (inner.StartsWith('*'))
         {
-            var name = inner[1..];
-            if (name.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    $"Route template '{template}' has an unnamed catch-all segment '{raw}'. Name it — "
-                    + "'{*path}' — so the matched remainder has something to bind to.");
-            }
-
-            return new RouteSegment(SegmentKind.CatchAll, string.Empty, name, true);
+            return CatchAll(inner[1..], "*", raw, template);
         }
 
+        return Parameter(inner, raw, template);
+    }
+
+    private static RouteSegment CatchAll(string name, string stars, string raw, string template)
+    {
+        if (name.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Route template '{template}' has an unnamed catch-all segment '{raw}'. Name it — "
+                + $"'{{{stars}path}}' — so the matched remainder has something to bind to.");
+        }
+
+        return new RouteSegment(SegmentKind.CatchAll, string.Empty, name, true);
+    }
+
+    private static RouteSegment Parameter(string inner, string raw, string template)
+    {
         var optional = inner[^1] == '?';
         var paramName = optional ? inner[..^1] : inner;
         // Type constraints (`{id:guid}`, `{count:int}`, …) are a generator-side hint —
@@ -125,14 +126,9 @@ internal sealed class RoutePattern
 
             if (seg.Kind == SegmentKind.CatchAll)
             {
-                if (pi >= pathSegments.Length)
-                {
-                    values[seg.ParamName] = null;
-                    return true;
-                }
-
-                var rest = string.Join('/', pathSegments, pi, pathSegments.Length - pi);
-                values[seg.ParamName] = Uri.UnescapeDataString(rest);
+                values[seg.ParamName] = pi >= pathSegments.Length
+                    ? null
+                    : Uri.UnescapeDataString(string.Join('/', pathSegments, pi, pathSegments.Length - pi));
                 return true;
             }
 
@@ -148,21 +144,10 @@ internal sealed class RoutePattern
                 return false;
             }
 
-            var current = pathSegments[pi];
-            switch (seg.Kind)
+            if (!MatchSegment(seg, pathSegments[pi], values))
             {
-                case SegmentKind.Literal:
-                    if (!string.Equals(seg.Literal, current, StringComparison.OrdinalIgnoreCase))
-                    {
-                        values.Clear();
-                        return false;
-                    }
-
-                    break;
-
-                case SegmentKind.Parameter:
-                    values[seg.ParamName] = Uri.UnescapeDataString(current);
-                    break;
+                values.Clear();
+                return false;
             }
 
             pi++;
@@ -176,8 +161,20 @@ internal sealed class RoutePattern
 
         return true;
     }
+
+    // A literal must match (case-insensitively); a parameter always does, and records what it matched.
+    private static bool MatchSegment(RouteSegment seg, string current, Dictionary<string, string?> values)
+    {
+        if (seg.Kind == SegmentKind.Literal)
+        {
+            return string.Equals(seg.Literal, current, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (seg.Kind == SegmentKind.Parameter)
+        {
+            values[seg.ParamName] = Uri.UnescapeDataString(current);
+        }
+
+        return true;
+    }
 }
-
-internal enum SegmentKind { Literal, Parameter, CatchAll }
-
-internal readonly record struct RouteSegment(SegmentKind Kind, string Literal, string ParamName, bool Optional);

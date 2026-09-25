@@ -64,7 +64,7 @@ internal sealed record FullTextSearchSpec(IReadOnlyList<string> Properties, Full
 
         var parts = text.Split(FieldSeparator);
         if (parts.Length != FieldCount
-            || parts[0] != Version
+            || !string.Equals(parts[0], Version, StringComparison.Ordinal)
             || parts[1].Length == 0
             || !Enum.TryParse<FullTextTokenizer>(parts[2], ignoreCase: false, out var tokenizer)
             || !Enum.IsDefined(tokenizer))

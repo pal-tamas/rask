@@ -111,6 +111,12 @@ public abstract partial class SvgElement : Element
     {
         base.WriteAttributes(sb);
 
+        WritePaintAttributes(sb);
+        WritePresentationAttributes(sb);
+    }
+
+    private void WritePaintAttributes(StringBuilder sb)
+    {
         if (Fill is not null)
         {
             AppendAttr(sb, "fill", Fill);
@@ -160,7 +166,10 @@ public abstract partial class SvgElement : Element
         {
             AppendAttr(sb, "stroke-dashoffset", StrokeDashoffset);
         }
+    }
 
+    private void WritePresentationAttributes(StringBuilder sb)
+    {
         if (Opacity is not null)
         {
             AppendAttr(sb, "opacity", Opacity);

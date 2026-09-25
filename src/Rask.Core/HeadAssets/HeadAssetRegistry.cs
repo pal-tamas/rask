@@ -54,7 +54,9 @@ internal sealed class HeadAssetRegistry
     {
         if (head is Fragment fragment && fragment.Children is { } children)
         {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
             foreach (var child in children)
+#pragma warning restore S3267
             {
                 if (child is not null)
                 {
@@ -104,7 +106,7 @@ internal sealed class HeadAssetRegistry
         {
             for (var i = _orderedKeys.Count - 1; i >= 0; i--)
             {
-                if (_orderedKeys[i] == key)
+                if (string.Equals(_orderedKeys[i], key, StringComparison.Ordinal))
                 {
                     _orderedHtml[i] = html;
                     break;
@@ -184,7 +186,9 @@ internal sealed class HeadAssetRegistry
             return null;
         }
 
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var repeatable in _repeatableMetaPrefixes)
+#pragma warning restore S3267
         {
             if (name.StartsWith(repeatable, StringComparison.OrdinalIgnoreCase))
             {
@@ -366,7 +370,7 @@ internal sealed class HeadAssetRegistry
     private static void AppendWithRaskKey(StringBuilder sb, string html, string key)
     {
         if (html.Length < 2 || html[0] != '<'
-            || html.IndexOf("data-rask-key=", StringComparison.Ordinal) >= 0)
+            || html.Contains("data-rask-key=", StringComparison.Ordinal))
         {
             sb.Append(html);
             return;

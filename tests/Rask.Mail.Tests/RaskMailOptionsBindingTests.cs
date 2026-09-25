@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 // MailOptions come from Rask:Mail first and the AddRaskMail callback second — and the sender is chosen from the built
 // options, so SMTP configured only in appsettings or the environment is what delivers.

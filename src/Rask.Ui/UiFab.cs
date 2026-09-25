@@ -50,7 +50,7 @@ public sealed partial class UiFab : Component
                 .TabIndex(0)
                 .Role("button")
                 .Class("btn btn-lg btn-circle")
-                .Aria(new Dictionary<string, string?> { ["label"] = AccessibleLabel })[
+                .Aria("label", AccessibleLabel)[
                 Icon is { } icon ? Ui.Icon.Name(icon).Class("size-5 shrink-0") : null
             ],
             Close is null ? null : Div.Class("fab-close")[Close],

@@ -14,7 +14,7 @@ namespace Rask.SQLite.Litestream;
 /// escaping it can stop the schedule — a backup problem never takes down the app it protects.
 /// </para>
 /// </summary>
-internal sealed class LitestreamVerificationService : BackgroundService
+internal sealed partial class LitestreamVerificationService : BackgroundService
 {
     private readonly LitestreamOptions _options;
     private readonly ISqliteBackupVerifier _verifier;
@@ -74,7 +74,10 @@ internal sealed class LitestreamVerificationService : BackgroundService
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _logger.LogError(ex, "Litestream backup verification threw; will retry on the next interval.");
+            LogVerificationThrew(_logger, ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Litestream backup verification threw; will retry on the next interval.")]
+    private static partial void LogVerificationThrew(ILogger logger, Exception exception);
 }

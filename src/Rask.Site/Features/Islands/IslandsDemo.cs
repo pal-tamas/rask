@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Site;
 
 namespace Rask.Site.Features.Islands;
@@ -60,6 +61,16 @@ public sealed partial class IslandsDemo : Component
 
     protected override Component? Render() =>
     [
+        VueCard(),
+
+        ReactSvelteCard(),
+
+        LitCard(),
+
+        SolidCard()
+    ];
+
+    private Component VueCard() =>
         Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
                 P.Class("text-sm text-ui-muted")[
@@ -72,13 +83,14 @@ public sealed partial class IslandsDemo : Component
 
                 P.Class("text-sm mt-3 mb-0")[
                     "Last bar clicked: ",
-                    Code.Id("island-last-clicked")[_lastClicked == 0 ? "(none)" : _lastClicked.ToString()],
+                    Code.Id("island-last-clicked")[_lastClicked == 0 ? "(none)" : _lastClicked.ToString(CultureInfo.InvariantCulture)],
                     Span.Class("ms-2")["after "],
-                    Code.Id("island-clicks")[_clicks.ToString()],
+                    Code.Id("island-clicks")[_clicks.ToString(CultureInfo.InvariantCulture)],
                     Span[" click(s)"]
                 ]
-            ],
+            ];
 
+    private Component ReactSvelteCard() =>
         Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
                 P.Class("text-sm text-ui-muted")[
@@ -106,13 +118,14 @@ public sealed partial class IslandsDemo : Component
 
                 P.Class("text-sm mt-3 mb-0")[
                     "React reported a total of ",
-                    Code.Id("island-react-total")[_reactTotal.ToString()],
+                    Code.Id("island-react-total")[_reactTotal.ToString(CultureInfo.InvariantCulture)],
                     Span[" back to C#, and the picker the colour "],
                     Code.Id("island-color")[_color],
                     Span["."]
                 ]
-            ],
+            ];
 
+    private Component LitCard() =>
         Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Lit island, beside this app's own scoped TypeScript"],
                 P.Class("text-sm text-ui-muted")[
@@ -126,11 +139,12 @@ public sealed partial class IslandsDemo : Component
 
                 P.Class("text-sm mt-3 mb-0")[
                     "The badge reported ",
-                    Code.Id("island-badge-nudges")[_badgeNudges.ToString()],
+                    Code.Id("island-badge-nudges")[_badgeNudges.ToString(CultureInfo.InvariantCulture)],
                     Span[" nudge(s) back to C#."]
                 ]
-            ],
+            ];
 
+    private Component SolidCard() =>
         Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
                 P.Class("text-sm text-ui-muted")[
@@ -143,10 +157,9 @@ public sealed partial class IslandsDemo : Component
 
                 P.Class("text-sm mt-3 mb-0")[
                     "Last point hovered: ",
-                    Code.Id("island-hovered")[_hoveredPoint < 0 ? "(none)" : _hoveredPoint.ToString()]
+                    Code.Id("island-hovered")[_hoveredPoint < 0 ? "(none)" : _hoveredPoint.ToString(CultureInfo.InvariantCulture)]
                 ]
-            ]
-    ];
+            ];
 
     private void BarClicked(int value)
     {

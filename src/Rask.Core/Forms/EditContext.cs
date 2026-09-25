@@ -106,15 +106,7 @@ public sealed class EditContext : IDisposable
                 return true;
             }
 
-            foreach (var reg in _fieldDelegates.Values)
-            {
-                if (DelegateValidator.IsAsync(reg.Validate))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return _fieldDelegates.Values.Any(reg => DelegateValidator.IsAsync(reg.Validate));
         }
     }
 
@@ -181,13 +173,13 @@ public sealed class EditContext : IDisposable
     }
 
     /// <summary>Raised when a field's value changes, with the field that changed.</summary>
-    public event Action<FieldIdentifier>? FieldChanged;
+    public event EventHandler<FieldChangedEventArgs>? FieldChanged;
 
     /// <summary>
     ///     Raised whenever the set of validation messages changes — one added, or some cleared. Not raised
     ///     when a re-validation produces exactly the messages that were already there.
     /// </summary>
-    public event Action? ValidationStateChanged;
+    public event EventHandler? ValidationStateChanged;
 
     /// <summary>
     ///     Registers a synchronous validator for the whole form. Validators are de-duplicated by runtime
@@ -198,15 +190,14 @@ public sealed class EditContext : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="validator" /> is <see langword="null" />.</exception>
     public void AddValidator(IFieldValidator validator)
     {
-        if (validator is null)
-        {
-            throw new ArgumentNullException(nameof(validator));
-        }
+        ArgumentNullException.ThrowIfNull(validator);
 
         // foreach rather than LINQ Any: the built-in passes are registered from a form's render path, so
         // this runs where a closure and an enumerator per call are worth not allocating.
         var t = validator.GetType();
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var existing in _validators)
+#pragma warning restore S3267
         {
             if (existing.GetType() == t)
             {
@@ -217,13 +208,40 @@ public sealed class EditContext : IDisposable
         _validators.Add(validator);
     }
 
+    /// <summary>
+    ///     Registers an asynchronous validator for the whole form. De-duplicated by runtime type, exactly
+    ///     as the synchronous overload is. Adding one makes <see cref="Validate()" /> throw — the form
+    ///     must be validated through <see cref="ValidateAsync" /> from then on.
+    /// </summary>
+    /// <param name="validator">The validator to add.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="validator" /> is <see langword="null" />.</exception>
+    public void AddValidator(IAsyncFieldValidator validator)
+    {
+        ArgumentNullException.ThrowIfNull(validator);
+
+        var t = validator.GetType();
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
+        foreach (var existing in _asyncValidators)
+#pragma warning restore S3267
+        {
+            if (existing.GetType() == t)
+            {
+                return;
+            }
+        }
+
+        _asyncValidators.Add(validator);
+    }
+
     // Lets a caller skip BUILDING a validator it would only have handed to AddValidator to discard.
     // The built-in passes are registered from Form.ResolveContext, which runs on every render — and a
     // form re-renders on every keystroke — so "allocate, then dedup" would be per-keystroke garbage in
     // a render hot path.
     internal bool HasValidator(Type validatorType)
     {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var validator in _validators)
+#pragma warning restore S3267
         {
             if (validator.GetType() == validatorType)
             {
@@ -237,7 +255,9 @@ public sealed class EditContext : IDisposable
     /// <inheritdoc cref="HasValidator" />
     internal bool HasAsyncValidator(Type validatorType)
     {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var validator in _asyncValidators)
+#pragma warning restore S3267
         {
             if (validator.GetType() == validatorType)
             {
@@ -246,32 +266,6 @@ public sealed class EditContext : IDisposable
         }
 
         return false;
-    }
-
-    /// <summary>
-    ///     Registers an asynchronous validator for the whole form. De-duplicated by runtime type, exactly
-    ///     as the synchronous overload is. Adding one makes <see cref="Validate()" /> throw — the form
-    ///     must be validated through <see cref="ValidateAsync" /> from then on.
-    /// </summary>
-    /// <param name="validator">The validator to add.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="validator" /> is <see langword="null" />.</exception>
-    public void AddValidator(IAsyncFieldValidator validator)
-    {
-        if (validator is null)
-        {
-            throw new ArgumentNullException(nameof(validator));
-        }
-
-        var t = validator.GetType();
-        foreach (var existing in _asyncValidators)
-        {
-            if (existing.GetType() == t)
-            {
-                return;
-            }
-        }
-
-        _asyncValidators.Add(validator);
     }
 
     // Per-field inline Validate delegate from Input/Select/Textarea factories. Passing
@@ -471,7 +465,7 @@ public sealed class EditContext : IDisposable
     {
         var s = GetOrCreate(field);
         s.Modified = true;
-        FieldChanged?.Invoke(field);
+        FieldChanged?.Invoke(this, new FieldChangedEventArgs(field));
 
         // Re-render the binding's authoring component so its derived UI (including siblings outside the
         // Form / the control) reflects the new model value — the bound-mode counterpart of the
@@ -500,7 +494,7 @@ public sealed class EditContext : IDisposable
         if (_states.TryGetValue(field, out var s) && s.Messages.Count > 0)
         {
             s.Messages.Clear();
-            ValidationStateChanged?.Invoke();
+            ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -511,18 +505,15 @@ public sealed class EditContext : IDisposable
     public void ClearAllMessages()
     {
         var any = false;
-        foreach (var s in _states.Values)
+        foreach (var s in _states.Values.Where(s => s.Messages.Count > 0))
         {
-            if (s.Messages.Count > 0)
-            {
-                s.Messages.Clear();
-                any = true;
-            }
+            s.Messages.Clear();
+            any = true;
         }
 
         if (any)
         {
-            ValidationStateChanged?.Invoke();
+            ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -551,7 +542,7 @@ public sealed class EditContext : IDisposable
         }
 
         state.Messages.Add(message);
-        ValidationStateChanged?.Invoke();
+        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -589,7 +580,7 @@ public sealed class EditContext : IDisposable
             TrimGatedMessages(pre);
         }
 
-        ValidationStateChanged?.Invoke();
+        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         return !HasValidationMessages();
     }
 
@@ -630,7 +621,7 @@ public sealed class EditContext : IDisposable
             }
         }
 
-        ValidationStateChanged?.Invoke();
+        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         return GetValidationMessages(field).Count == 0;
     }
 
@@ -644,10 +635,12 @@ public sealed class EditContext : IDisposable
     public async ValueTask<bool> ValidateAsync(CancellationToken cancellationToken = default)
     {
         // Supersede every in-flight per-field run before we re-validate from scratch.
+#pragma warning disable S6966 // cancel synchronously: a superseded run must see it before this call returns
         foreach (var s in _states.Values)
         {
             s.Cts?.Cancel();
         }
+#pragma warning restore S6966
 
         ClearAllMessages();
 
@@ -677,32 +670,34 @@ public sealed class EditContext : IDisposable
             TrimGatedMessages(pre);
         }
 
-        if (_asyncValidators.Count > 0)
-        {
-            foreach (var v in _asyncValidators)
-            {
-                var pre = SnapshotMessageCounts();
-                try
-                {
-                    await v.ValidateAsync(this, cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception)
-                {
-                    AddValidationMessage(new FieldIdentifier(Model, string.Empty),
-                        "Validation could not be completed.");
-                }
+        await RunAsyncValidatorsAsync(cancellationToken).ConfigureAwait(false);
 
-                TrimGatedMessages(pre);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-        }
-
-        ValidationStateChanged?.Invoke();
+        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         return !HasValidationMessages();
+    }
+
+    private async ValueTask RunAsyncValidatorsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var v in _asyncValidators)
+        {
+            var pre = SnapshotMessageCounts();
+            try
+            {
+                await v.ValidateAsync(this, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                AddValidationMessage(new FieldIdentifier(Model, string.Empty),
+                    "Validation could not be completed.");
+            }
+
+            TrimGatedMessages(pre);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
     }
 
     /// <summary>
@@ -726,7 +721,9 @@ public sealed class EditContext : IDisposable
         // reaches here, the earlier one has already nulled state.Cts (sync + finally paths), so
         // these Cancel/Dispose calls only ever touch a still-owned CTS — no double-dispose, no
         // ObjectDisposedException. Keep validation off background threads to preserve this.
+#pragma warning disable S6966 // cancel synchronously: a superseded run must see it before this call returns
         state.Cts?.Cancel();
+#pragma warning restore S6966
         state.Cts?.Dispose();
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         state.Cts = cts;
@@ -736,7 +733,7 @@ public sealed class EditContext : IDisposable
         var hasFieldDelegate = _fieldDelegates.TryGetValue(field, out var fieldReg);
         var fieldDelegateIsAsync = hasFieldDelegate && DelegateValidator.IsAsync(fieldReg.Validate);
 
-        // Fast sync path: nothing async to await. Inline first, then attribute-driven;
+        // Fast sync path: nothing async to await. Inline first, then attribute-driven, and
         // first-error-wins short-circuits as soon as any stage flags the field.
         if (!fieldDelegateIsAsync && _asyncValidators.Count == 0)
         {
@@ -745,19 +742,8 @@ public sealed class EditContext : IDisposable
                 InvokeSyncFieldDelegate(field, fieldReg);
             }
 
-            if (state.Messages.Count == 0)
-            {
-                foreach (var v in _validators)
-                {
-                    v.ValidateField(this, field);
-                    if (state.Messages.Count > 0)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            ValidationStateChanged?.Invoke();
+            RunSyncFieldValidators(field, state);
+            ValidationStateChanged?.Invoke(this, EventArgs.Empty);
             if (ReferenceEquals(state.Cts, cts))
             {
                 state.Cts = null;
@@ -767,6 +753,14 @@ public sealed class EditContext : IDisposable
             return state.Messages.Count == 0;
         }
 
+        return await ValidateFieldPendingAsync(field, state, fieldReg, hasFieldDelegate, fieldDelegateIsAsync, cts)
+            .ConfigureAwait(false);
+    }
+
+    private async ValueTask<bool> ValidateFieldPendingAsync(
+        FieldIdentifier field, FieldState state, DelegateRegistration fieldReg, bool hasFieldDelegate,
+        bool fieldDelegateIsAsync, CancellationTokenSource cts)
+    {
         // Async path. Enter the pending bookkeeping up front so the inline delegate (async
         // or sync) runs ahead of the attribute-driven validators — same order as the sync
         // path above.
@@ -774,85 +768,27 @@ public sealed class EditContext : IDisposable
         state.PendingCount++;
         if (wasZero)
         {
-            ValidationStateChanged?.Invoke();
+            ValidationStateChanged?.Invoke(this, EventArgs.Empty);
         }
 
         try
         {
-            if (hasFieldDelegate)
+            if (fieldDelegateIsAsync)
             {
-                if (fieldDelegateIsAsync)
+                if (!await RunAsyncFieldDelegateAsync(field, fieldReg, cts).ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var msgs = await DelegateValidator.InvokeAsync(
-                            fieldReg.Validate, fieldReg.ValueGetter(), cts.Token).ConfigureAwait(false);
-                        foreach (var m in msgs)
-                        {
-                            AddValidationMessage(field, m);
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        return false;
-                    }
-                    catch (Exception)
-                    {
-                        AddValidationMessage(field, "Validation could not be completed.");
-                    }
-
-                    if (cts.IsCancellationRequested)
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    InvokeSyncFieldDelegate(field, fieldReg);
+                    return false;
                 }
             }
-
-            // First-error-wins: skip sync IFieldValidators once the field already has a
-            // message from an earlier stage.
-            if (state.Messages.Count == 0)
+            else if (hasFieldDelegate)
             {
-                foreach (var v in _validators)
-                {
-                    v.ValidateField(this, field);
-                    if (state.Messages.Count > 0)
-                    {
-                        break;
-                    }
-                }
+                InvokeSyncFieldDelegate(field, fieldReg);
             }
 
-            if (state.Messages.Count == 0)
+            RunSyncFieldValidators(field, state);
+            if (state.Messages.Count == 0 && !await RunAsyncFieldValidatorsAsync(field, state, cts).ConfigureAwait(false))
             {
-                foreach (var v in _asyncValidators)
-                {
-                    try
-                    {
-                        await v.ValidateFieldAsync(this, field, cts.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        return false;
-                    }
-                    catch (Exception)
-                    {
-                        AddValidationMessage(field, "Validation could not be completed.");
-                    }
-
-                    if (cts.IsCancellationRequested)
-                    {
-                        return false;
-                    }
-
-                    if (state.Messages.Count > 0)
-                    {
-                        break;
-                    }
-                }
+                return false;
             }
 
             return state.Messages.Count == 0;
@@ -868,11 +804,87 @@ public sealed class EditContext : IDisposable
                 }
 
                 ArmStickyDismissal(field, state);
-                ValidationStateChanged?.Invoke();
+                ValidationStateChanged?.Invoke(this, EventArgs.Empty);
             }
 
             cts.Dispose();
         }
+    }
+
+    // First-error-wins: skip sync IFieldValidators once the field already has a message from an earlier stage.
+    private void RunSyncFieldValidators(FieldIdentifier field, FieldState state)
+    {
+        if (state.Messages.Count > 0)
+        {
+            return;
+        }
+
+        foreach (var v in _validators)
+        {
+            v.ValidateField(this, field);
+            if (state.Messages.Count > 0)
+            {
+                return;
+            }
+        }
+    }
+
+    // False when the run was superseded or cancelled; a validator that throws is reported as a message instead.
+    private async ValueTask<bool> RunAsyncFieldDelegateAsync(
+        FieldIdentifier field, DelegateRegistration fieldReg, CancellationTokenSource cts)
+    {
+        try
+        {
+            var msgs = await DelegateValidator.InvokeAsync(
+                fieldReg.Validate, fieldReg.ValueGetter(), cts.Token).ConfigureAwait(false);
+            foreach (var m in msgs)
+            {
+                AddValidationMessage(field, m);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception)
+        {
+            AddValidationMessage(field, "Validation could not be completed.");
+        }
+
+        return !cts.IsCancellationRequested;
+    }
+
+    // As RunAsyncFieldDelegateAsync, over the registered async validators, stopping at the first message.
+    private async ValueTask<bool> RunAsyncFieldValidatorsAsync(
+        FieldIdentifier field, FieldState state, CancellationTokenSource cts)
+    {
+        foreach (var v in _asyncValidators)
+        {
+            try
+            {
+                await v.ValidateFieldAsync(this, field, cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            catch (Exception)
+            {
+                AddValidationMessage(field, "Validation could not be completed.");
+            }
+
+            if (cts.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            if (state.Messages.Count > 0)
+            {
+                break;
+            }
+        }
+
+        return true;
     }
 
     // Stamps the sticky deadline and schedules a one-shot dismissal render so the
@@ -895,7 +907,9 @@ public sealed class EditContext : IDisposable
         state.StickyTimer?.Dispose();
         state.StickyTimer = new Timer(static s =>
         {
+#pragma warning disable S8969 // the compiler needs it: unboxing an object? is CS8605 without it
             var (ctx, fid) = ((EditContext, FieldIdentifier))s!;
+#pragma warning restore S8969
             if (!ctx._states.TryGetValue(fid, out var inner))
             {
                 return;
@@ -910,7 +924,7 @@ public sealed class EditContext : IDisposable
             }
 
             inner.StickyUntilUtc = null;
-            ctx.ValidationStateChanged?.Invoke();
+            ctx.ValidationStateChanged?.Invoke(ctx, EventArgs.Empty);
             // Drive the sticky-dismissal render through the host so the
             // indicator actually leaves the DOM. ValidationStateChanged is a
             // user-facing notification; the render request itself goes via the
@@ -931,7 +945,7 @@ public sealed class EditContext : IDisposable
             s.Touched = true;
         }
 
-        // Field delegates may target fields that haven't been touched by a binding yet;
+        // Field delegates may target fields that haven't been touched by a binding yet, so
         // make sure their messages survive the next per-keystroke gate.
         foreach (var field in _fieldDelegates.Keys)
         {

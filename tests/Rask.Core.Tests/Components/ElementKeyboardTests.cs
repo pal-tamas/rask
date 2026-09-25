@@ -6,8 +6,8 @@ using Rask.Core.Live;
 namespace Rask.Core.Tests.Components;
 
 // OnKeyDown / OnKeyUp on Element: focus-scoped keyboard events wired through data-rask-on-keydown /
-// data-rask-on-keyup, dispatched into a typed KeyboardEventArgs. Each ships a sync
-// Action<KeyboardEventArgs> and an async Func<KeyboardEventArgs, Task> sibling (OnKeyDownAsync /
+// data-rask-on-keyup, dispatched into a typed KeyboardEvent. Each ships a sync
+// Action<KeyboardEvent> and an async Func<KeyboardEvent, Task> sibling (OnKeyDownAsync /
 // OnKeyUpAsync), the same typed-pair convention as OnClick/OnClickAsync.
 public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
 {
@@ -76,7 +76,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Key_down_typed_handler_receives_parsed_key_code_modifiers_and_repeat()
     {
-        KeyboardEventArgs? seen = null;
+        KeyboardEvent? seen = null;
         var view = new StubComponent(() => Div.OnKeyDown(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
@@ -115,7 +115,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Key_down_async_typed_handler_is_awaited()
     {
-        KeyboardEventArgs? seen = null;
+        KeyboardEvent? seen = null;
         var view = new StubComponent(() => Div
             .OnKeyDown(e =>
         {
@@ -134,7 +134,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Key_down_missing_payload_fields_default_to_empty_and_false()
     {
-        KeyboardEventArgs? seen = null;
+        KeyboardEvent? seen = null;
         var view = new StubComponent(() => Div.OnKeyDown(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 

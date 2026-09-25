@@ -1,7 +1,8 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>
 ///     How long an entry lives, as the steps <c>.For(10.Minutes)</c>, <c>.Sliding(20.Minutes)</c> and
@@ -9,6 +10,7 @@ namespace Rask.Cache;
 ///     and never expires when that is unset.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
+[StructLayout(LayoutKind.Auto)]
 public readonly record struct CacheLifetime(TimeSpan? For, TimeSpan? Sliding, DateTimeOffset? Until)
 {
     internal DistributedCacheEntryOptions ToEntryOptions() => new()

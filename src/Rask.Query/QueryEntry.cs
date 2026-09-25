@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>One cached result, its freshness, and whatever fetch is currently in flight for it.</summary>
 internal sealed class QueryEntry

@@ -27,7 +27,9 @@ namespace Rask.Spa.Hosting;
 internal sealed partial class SpaDevServer : BackgroundService
 {
     /// <summary>Vite's default, for a client whose csproj names no dev server URL — what <c>rask dev</c> assumes too.</summary>
+#pragma warning disable S1075 // this named constant IS the one place the default URL is spelled
     internal const string DefaultDevServerUrl = "http://localhost:5173";
+#pragma warning restore S1075
 
     private readonly IHostEnvironment _environment;
     private readonly ILogger<SpaDevServer> _logger;
@@ -116,7 +118,8 @@ internal sealed partial class SpaDevServer : BackgroundService
                     .ConfigureAwait(false))
             {
                 // Standard output, not the log: the editor watches the debug console for this exact line.
-                Console.Out.WriteLine(EditorDevSession.OpenLinePrefix + plan.Url);
+                await Console.Out.WriteLineAsync((EditorDevSession.OpenLinePrefix + plan.Url).AsMemory(), stoppingToken)
+                    .ConfigureAwait(false);
             }
 
             await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);

@@ -15,6 +15,13 @@ public sealed partial class UiKitNavigationDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        MegamenuSection(),
+        TabsSection(),
+        TabGroupSection(),
+        MenuStepsAndDockSection()
+    ];
+
+    private static Component MegamenuSection() =>
         Section(
             "Megamenu",
             "Native popovers: the browser supplies the top layer, Escape and light-dismiss, and the "
@@ -37,8 +44,9 @@ public sealed partial class UiKitNavigationDemo : Component
                         ]
                     ]
                 ]
-            ]),
+            ]);
 
+    private static Component TabsSection() =>
         Section(
             "Tabs",
             "Links, not a selected index — the one component in the kit that deliberately did not move "
@@ -59,8 +67,9 @@ public sealed partial class UiKitNavigationDemo : Component
                     Ui.Tab.Key("l1").Label("Lifted").Href("#one").Active(true),
                     Ui.Tab.Key("l2").Label("Second").Href("#two")
                 ]
-            ]),
+            ]);
 
+    private Component TabGroupSection() =>
         Section(
             "Tab group — panels for views with no URL",
             "The same Ui.Tab, given a Name instead of an Href, and a Ui.TabPanel per name. For a detail pane "
@@ -84,8 +93,9 @@ public sealed partial class UiKitNavigationDemo : Component
                     Ui.TabPanel.Key("p3").Name("danger").Class("text-sm")["Nothing here."]
                 ],
                 P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-tab-group-state"))[$"Showing: {_pane}."]
-            ]),
+            ]);
 
+    private static Component MenuStepsAndDockSection() =>
         Section(
             "Menu, steps, breadcrumbs, pagination and the dock",
             "The rest of the category, each a real link where it navigates.",
@@ -111,10 +121,9 @@ public sealed partial class UiKitNavigationDemo : Component
                         .Current(1)
                         .Href(page => PageMeta.LinkTo(Routes.UiKitNavigationPage() with { QueryString = $"?page={page}" }))
                 ]
-            ])
-    ];
+            ]);
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+    private static AttrBag Testid(string value) => new("testid", value);
 
     private static Component PanelLink(string key, string title, string blurb) =>
         A.Key(key).Href("#").Class("block rounded-lg p-2 no-underline hover:bg-base-200")[

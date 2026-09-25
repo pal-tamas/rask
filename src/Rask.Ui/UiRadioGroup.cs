@@ -58,7 +58,7 @@ public sealed partial class UiRadioGroup<T> : UiFormField<T>
 
         // A radiogroup rather than a bare div: the choices are inputs the browser already groups by name, but
         // the GROUP has a name of its own to announce — the field's label — and nothing else would carry it.
-        var aria = ControlAria();
+        var aria = BuildControlAria();
         if (Label is not null)
         {
             aria["labelledby"] = LabelId;
@@ -73,6 +73,12 @@ public sealed partial class UiRadioGroup<T> : UiFormField<T>
             Options.Select((option, index) => Choice(option, index, layout, group, current, acc, ctx))
         ];
     }
+
+    private string BoxClass() =>
+        UiClass.Compose(
+            "radio mt-0.5",
+            Tone is { } tone ? UiClassNames.RadioTone(tone) : "",
+            Size is { } size ? UiClassNames.RadioSize(size) : "");
 
     private Component Choice(
         (T Value, string Text) option,
@@ -94,12 +100,7 @@ public sealed partial class UiRadioGroup<T> : UiFormField<T>
             .Type(InputType.Radio)
             .Name(group)
             .Disabled(off)
-            .Class(UiChoice.ShowsBox(layout)
-                ? UiClass.Compose(
-                    "radio mt-0.5",
-                    Tone is { } tone ? UiClassNames.RadioTone(tone) : "",
-                    Size is { } size ? UiClassNames.RadioSize(size) : "")
-                : UiChoice.HiddenBoxClass)
+            .Class(UiChoice.ShowsBox(layout) ? BoxClass() : UiChoice.HiddenBoxClass)
             // A radio only ever reports true: choosing one fires no change on the option it deselected, so the
             // value to commit is this option's, not whatever the event carried.
             .OnChange(_ => CommitAsync(option.Value, acc, ctx));

@@ -50,7 +50,7 @@ internal static class RouteChainRenderer
             _lastPath.Add(page, new PathSnapshot { Path = route.Path });
         }
 
-        ctx.NotifyParameters(page, propsChanged);
+        LiveRenderContext.NotifyParameters(page, propsChanged);
         return page;
     }
 

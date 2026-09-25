@@ -29,7 +29,7 @@ public sealed partial class WebPushSender : IWebPush
     private const int VapidLifetimeHours = 12;
     private const long VapidRefreshMarginSeconds = 300;
 
-    private readonly ConcurrentDictionary<string, (string Header, long ExpiresAtUnix)> _vapidHeaders = new();
+    private readonly ConcurrentDictionary<string, (string Header, long ExpiresAtUnix)> _vapidHeaders = new(StringComparer.Ordinal);
     private readonly HttpClient _http;
     private readonly WebPushOptions _options;
     private readonly ILogger<WebPushSender> _logger;
@@ -62,10 +62,45 @@ public sealed partial class WebPushSender : IWebPush
         // subscriptions and denies the obvious SSRF vectors (http:// to a metadata/loopback host) a
         // caller might otherwise relay an attacker-supplied subscription into.
         if (!Uri.TryCreate(subscription.Endpoint, UriKind.Absolute, out Uri? endpoint) ||
-            endpoint.Scheme != Uri.UriSchemeHttps)
+            !string.Equals(endpoint.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
             throw new ArgumentException("Push subscription endpoint must be an absolute https URL.", nameof(subscription));
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        using var request = CreateRequest(endpoint, subscription, message);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            // Couldn't reach the push service (DNS/connection/TLS) — transient by nature; let the
+            // caller retry. A caller-requested cancellation is not caught and propagates.
+            Unreachable(_logger, ex, subscription.Endpoint);
+            return new WebPushResult(WebPushStatus.TransientFailure, null, ex.Message);
+        }
+
+        using (response)
+        {
+            int code = (int)response.StatusCode;
+            WebPushStatus status = code switch
+            {
+                >= 200 and < 300 => WebPushStatus.Success,
+                404 or 410 => WebPushStatus.Expired,
+                429 or >= 500 and < 600 => WebPushStatus.TransientFailure,
+                _ => WebPushStatus.PermanentFailure
+            };
+
+            if (status is WebPushStatus.PermanentFailure)
+                FailedPermanently(_logger, subscription.Endpoint, code, response.ReasonPhrase);
+
+            return new WebPushResult(status, code, response.ReasonPhrase);
+        }
+    }
+
+    private HttpRequestMessage CreateRequest(Uri endpoint, PushSubscription subscription, WebPushMessage message)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
 
         string? payload = BuildPayload(message);
         if (payload is null)
@@ -92,37 +127,7 @@ public sealed partial class WebPushSender : IWebPush
         if (!string.IsNullOrEmpty(message.Topic))
             request.Headers.TryAddWithoutValidation("Topic", message.Topic);
         request.Headers.TryAddWithoutValidation("Authorization", VapidAuthorization(endpoint));
-
-        HttpResponseMessage response;
-        try
-        {
-            response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-        catch (HttpRequestException ex)
-        {
-            // Couldn't reach the push service (DNS/connection/TLS) — transient by nature; let the
-            // caller retry. A caller-requested cancellation is not caught and propagates.
-            _logger.LogWarning(ex, "Web Push send to {Endpoint} could not reach the push service.", subscription.Endpoint);
-            return new WebPushResult(WebPushStatus.TransientFailure, null, ex.Message);
-        }
-
-        using (response)
-        {
-            int code = (int)response.StatusCode;
-            WebPushStatus status = code switch
-            {
-                >= 200 and < 300 => WebPushStatus.Success,
-                404 or 410 => WebPushStatus.Expired,
-                429 or >= 500 and < 600 => WebPushStatus.TransientFailure,
-                _ => WebPushStatus.PermanentFailure
-            };
-
-            if (status is WebPushStatus.PermanentFailure)
-                _logger.LogWarning("Web Push send to {Endpoint} failed permanently: {Code} {Reason}",
-                    subscription.Endpoint, code, response.ReasonPhrase);
-
-            return new WebPushResult(status, code, response.ReasonPhrase);
-        }
+        return request;
     }
 
     // The cached "vapid t=…,k=…" header for the endpoint's push-service authority, signing a fresh JWT
@@ -185,6 +190,12 @@ public sealed partial class WebPushSender : IWebPush
     {
         [JsonPropertyName("url")] public string? Url { get; init; }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Web Push send to {Endpoint} could not reach the push service.")]
+    private static partial void Unreachable(ILogger logger, Exception exception, string endpoint);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Web Push send to {Endpoint} failed permanently: {Code} {Reason}")]
+    private static partial void FailedPermanently(ILogger logger, string endpoint, int code, string? reason);
 
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonSerializable(typeof(PushPayload))]
