@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -86,23 +86,17 @@ public interface ISignalingConnection : IAsyncDisposable
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class SignalingInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, SignalingHandlers> Handlers = new();
+    private static readonly JsCallbacks<SignalingHandlers> Handlers = new();
 
-    internal static int Register(SignalingHandlers handlers)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handlers;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, SignalingHandlers handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge for each relay message; do not call.</summary>
     [JSInvokable("RaskSignalMessage")]
     public static Task Message(int id, string type, string peerId, string payload)
     {
-        if (!Handlers.TryGetValue(id, out var h))
+        if (!Handlers.TryGet(id, out var h))
         {
             return Task.CompletedTask;
         }
@@ -123,7 +117,7 @@ public static class SignalingInterop
     [JSInvokable("RaskSignalClosed")]
     public static Task Closed(int id)
     {
-        if (!Handlers.TryRemove(id, out var h))
+        if (!Handlers.TryTake(id, out var h))
         {
             return Task.CompletedTask;
         }
@@ -190,7 +184,7 @@ public sealed class Signaling : ISignaling
 
         // Register before connecting: the relay answers a join immediately, and a handler registered after
         // the fact would miss the peer list it replies with.
-        var id = SignalingInterop.Register(handlers);
+        var id = SignalingInterop.Register(_js, handlers);
         try
         {
             await _js.InvokeVoidAsync("__raskSignal.open", id, path);

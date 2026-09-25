@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -96,22 +96,16 @@ public sealed record GeolocationPosition(
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class GeolocationWatchInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<GeolocationPosition, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<GeolocationPosition, Task>> Handlers = new();
 
-    internal static int Register(Func<GeolocationPosition, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<GeolocationPosition, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge for each position fix; do not call.</summary>
     [JSInvokable("RaskGeolocationFix")]
     public static Task Fix(int id, GeolocationPosition position) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(position) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(position) : Task.CompletedTask;
 }
 
 /// <summary>
@@ -145,7 +139,7 @@ public sealed class Geolocation(IJSRuntime js) : IGeolocation
         ArgumentNullException.ThrowIfNull(onPosition);
         options ??= new GeolocationOptions();
 
-        var id = GeolocationWatchInterop.Register(onPosition);
+        var id = GeolocationWatchInterop.Register(js, onPosition);
         try
         {
             await js.InvokeVoidAsync(

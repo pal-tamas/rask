@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -67,22 +67,16 @@ public interface IDeviceOrientation
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class DeviceOrientationInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<OrientationReading, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<OrientationReading, Task>> Handlers = new();
 
-    internal static int Register(Func<OrientationReading, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<OrientationReading, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge for each orientation reading; do not call.</summary>
     [JSInvokable("RaskDeviceOrientation")]
     public static Task Reading(int id, OrientationReading reading) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(reading) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(reading) : Task.CompletedTask;
 }
 
 /// <summary>
@@ -113,7 +107,7 @@ public sealed class DeviceOrientation : IDeviceOrientation
     {
         ArgumentNullException.ThrowIfNull(onReading);
 
-        var id = DeviceOrientationInterop.Register(onReading);
+        var id = DeviceOrientationInterop.Register(_js, onReading);
         try
         {
             await _js.InvokeVoidAsync("__raskDeviceOrientation.watch", id);

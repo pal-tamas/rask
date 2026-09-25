@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -68,22 +68,16 @@ public interface IDeviceMotion
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class DeviceMotionInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<MotionReading, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<MotionReading, Task>> Handlers = new();
 
-    internal static int Register(Func<MotionReading, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<MotionReading, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge for each motion reading; do not call.</summary>
     [JSInvokable("RaskDeviceMotion")]
     public static Task Reading(int id, MotionReading reading) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(reading) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(reading) : Task.CompletedTask;
 }
 
 /// <summary>
@@ -114,7 +108,7 @@ public sealed class DeviceMotion : IDeviceMotion
     {
         ArgumentNullException.ThrowIfNull(onReading);
 
-        var id = DeviceMotionInterop.Register(onReading);
+        var id = DeviceMotionInterop.Register(_js, onReading);
         try
         {
             await _js.InvokeVoidAsync("__raskDeviceMotion.watch", id);

@@ -2352,6 +2352,9 @@ public static partial class RaskEndpointExtensions
         var invocationInfo = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
         try
         {
+            // Names this session as the caller, so a framework callback registry answers only ids its own
+            // session registered — a static [JSInvokable] is otherwise reachable from every socket.
+            using var caller = JsCaller.Enter(runtime);
             DotNetDispatcher.BeginInvokeDotNet(runtime, invocationInfo, argsJson);
         }
         catch (Exception ex)

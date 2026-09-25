@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -64,22 +64,16 @@ public interface IBattery
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class BatteryInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<BatteryStatus, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<BatteryStatus, Task>> Handlers = new();
 
-    internal static int Register(Func<BatteryStatus, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<BatteryStatus, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge when the battery status changes; do not call.</summary>
     [JSInvokable("RaskBatteryChanged")]
     public static Task Changed(int id, BatteryStatus status) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(status) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(status) : Task.CompletedTask;
 }
 
 /// <summary>
@@ -110,7 +104,7 @@ public sealed class BrowserBattery : IBattery
         ArgumentNullException.ThrowIfNull(onChange);
 
         // Register before adding the JS listeners so no early change races ahead of the handler.
-        var id = BatteryInterop.Register(onChange);
+        var id = BatteryInterop.Register(_js, onChange);
         try
         {
             await _js.InvokeVoidAsync("__raskBattery.watch", id);

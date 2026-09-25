@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -71,22 +71,16 @@ public interface ISpeechRecognition
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class SpeechRecognitionInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<RecognitionResult, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<RecognitionResult, Task>> Handlers = new();
 
-    internal static int Register(Func<RecognitionResult, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<RecognitionResult, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge for each recognition result; do not call.</summary>
     [JSInvokable("RaskSpeechResult")]
     public static Task Result(int id, RecognitionResult result) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(result) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(result) : Task.CompletedTask;
 }
 
 /// <summary>
@@ -113,7 +107,7 @@ public sealed class SpeechRecognition : ISpeechRecognition
         ArgumentNullException.ThrowIfNull(onResult);
 
         // Register before starting so a first result can't race ahead of the handler.
-        var id = SpeechRecognitionInterop.Register(onResult);
+        var id = SpeechRecognitionInterop.Register(_js, onResult);
         try
         {
             await _js.InvokeVoidAsync("__raskSpeechRecognition.start", id, options ?? new SpeechRecognitionOptions());

@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Security
 
+- **A Server socket can only answer its own session's browser callbacks.** A gesture's result, a geolocation,
+  battery, sensor, observer, speech, media-session, broadcast-channel, signaling or WebRTC push reaches C#
+  through a static `[JSInvokable]` keyed by an id that counted up across the whole process, so any connected
+  socket could post another visitor's id and feed their callback forged data (or swallow a one-shot gesture
+  result). Each registry now remembers the session that registered an id and ignores every other caller.
 - **Jobs, outbox events and the account events can no longer be sent over HTTP.** `IJob`, `IOutboxEvent` and
   every `Rask.Auth` event (`UserRegistered`, `PasswordReset`, `SignedIn`, …) are now `[LocalOnly]`, as
   `LocalOnlyAttribute`'s own docs always said. Before, the codec generator gave each one an endpoint, so anyone

@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -65,22 +65,16 @@ public interface IIntersectionObserver
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class IntersectionInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<IntersectionEntry, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<IntersectionEntry, Task>> Handlers = new();
 
-    internal static int Register(Func<IntersectionEntry, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<IntersectionEntry, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge when an observed element's intersection changes; do not call.</summary>
     [JSInvokable("RaskIntersectionChanged")]
     public static Task Changed(int id, IntersectionEntry entry) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(entry) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(entry) : Task.CompletedTask;
 }
 
 /// <summary>
@@ -105,7 +99,7 @@ public sealed class IntersectionObserverService : IIntersectionObserver
         ArgumentNullException.ThrowIfNull(element);
         ArgumentNullException.ThrowIfNull(onChange);
 
-        var id = IntersectionInterop.Register(onChange);
+        var id = IntersectionInterop.Register(_js, onChange);
         try
         {
             await _js.InvokeVoidAsync("__raskIntersect.observe", id, element, options?.Thresholds, options?.RootMargin);
