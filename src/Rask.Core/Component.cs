@@ -1171,6 +1171,57 @@ public abstract partial class Component : RaskMarkup
             $"Rask unmount hook on {comp.GetType().Name} threw",
             ex);
 
+    // A scoped-script callback arriving from the browser (ScopedScript.Callback): runs like a lifecycle
+    // hook — a render after each await — and a synchronous one paints once it returns, which a hook does
+    // not need because the render walk that called it is already painting.
+    //
+    // It runs in order with the session's event handlers (IRenderHandle.RunInOrder), so a timer's callback cannot
+    // change state underneath a click being handled.
+    internal void RunFromScript(Func<Task?> invoke)
+    {
+        if (IsTornDown)
+        {
+            return;
+        }
+
+        if (RenderHandle is { } handle)
+        {
+            handle.RunInOrder(() => RunScriptCallback(invoke));
+        }
+        else
+        {
+            _ = RunScriptCallback(invoke);
+        }
+    }
+
+    /// <summary>Unmounted or disposed — what a script-side registration made now would never be released from.</summary>
+    internal bool IsTornDown => _live is { IsUnmounted: true } or { IsDisposed: true };
+
+    private Task RunScriptCallback(Func<Task?> invoke)
+    {
+        if (IsTornDown)
+        {
+            return Task.CompletedTask;
+        }
+
+        Task? running = null;
+        InvokeAsyncLifecycleWithRendering(() =>
+        {
+            try { running = invoke(); }
+            catch (Exception ex) { running = Task.FromException(ex); }
+
+            if (running is null || running.IsCompletedSuccessfully)
+            {
+                StateHasChanged();
+                return Task.CompletedTask;
+            }
+
+            return running;
+        });
+
+        return running ?? Task.CompletedTask;
+    }
+
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
     {
         var prev = SynchronizationContext.Current;

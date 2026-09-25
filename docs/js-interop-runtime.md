@@ -7,6 +7,10 @@ The browser-side half is TypeScript — a `.js` sibling is [RASK055](diagnostics
 
 ## Calling JS from C# (`IJSRuntime`)
 
+**Your component's own scoped `.ts` needs none of this** — its exports are typed private methods
+(`await Width(_box)`), see [Calling your script from C#](js-interop.md#calling-your-script-from-c).
+`IJSRuntime` is for everything else: a browser API, a library's global, another component's script.
+
 Inject `IJSRuntime` through the **constructor** (not a property — a non-nullable settable
 property would become a required chain step) and dispatch from a lifecycle hook or
 event handler:
@@ -18,7 +22,7 @@ public sealed partial class CodeSample : Component
     public CodeSample(IJSRuntime js) => _js = js;
 
     protected override async Task OnRendered() =>
-        await _js.InvokeVoidAsync("Rask.CodeSample.rendered");
+        await _js.InvokeVoidAsync("hljs.highlightAll");
 }
 ```
 
@@ -171,8 +175,9 @@ public sealed partial class FocusDemo : Component
     // Built-in helpers: ElementRefInterop.{FocusAsync, BlurAsync, ScrollIntoViewAsync}.
     private async Task Focus() => await _input.FocusAsync(_js);
 
-    // Hand the ref to your own scoped JS — it resolves to the element before width() runs.
-    private async Task Measure() => await _js.InvokeAsync<double>("Rask.FocusDemo.width", _box);
+    // Hand the ref to your own scoped TS — Width is generated from FocusDemo.ts's `export function width`,
+    // and the ref resolves to the element before it runs.
+    private async Task Measure() => await Width(_box);
 }
 ```
 
@@ -214,13 +219,14 @@ protected override Component? Render() => Div.Ref(_host).Class("chart");
 
 // Mount the library in OnFirstRendered, not OnMount — OnMount runs *before* the first render, so the element
 // doesn't exist yet and the ref would resolve to null. OnFirstRendered runs once, so it never mounts twice.
+// Mount and Update are Chart.ts's own exports, called as typed methods.
 protected override async Task OnFirstRendered()
 {
-    await _js.InvokeVoidAsync("Rask.Chart.mount", _host, DataAsJson());
+    await Mount(_host, DataAsJson());
 }
 
 // Fires only on a real prop change — push new data at the library instead of re-mounting it.
-protected override async Task OnUpdated() => await _js.InvokeVoidAsync("Rask.Chart.update", _host, DataAsJson());
+protected override async Task OnUpdated() => await Update(_host, DataAsJson());
 
 // Sync and fire-and-forget — see the note below on why this must not be an awaited DisposeAsync.
 protected override async Task OnUnmount() => _ = DestroyQuietlyAsync();
@@ -245,7 +251,11 @@ later child's position when it vanishes, so the wrapper gets matched against the
 remounting the widget on an unrelated click. Prefer disabling to un-rendering a sibling above a
 stateful component.
 
-For events coming back the other way, a library callback can't reach an instance method — the JS shim
+For events coming back the other way, give your scoped export a **callback parameter** —
+`mount(host, data, onSelect: (id: string) => void)` is `Mount(_host, data, id => _selected = id)` in C#. It
+re-renders the component after it runs and is released when the component unmounts; nothing to register.
+
+A script you do not own can't reach an instance method — the JS shim
 dispatches to **static** `[JSInvokable]`s by assembly and name. Hand JS a token at mount, keep a static
 `ConcurrentDictionary<string, YourComponent>`, route on it, and unregister on unmount. Two things to get
 right, because a `[JSInvokable]` is callable by *any* script on the page with *any* arguments:

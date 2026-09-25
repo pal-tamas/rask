@@ -1,4 +1,3 @@
-using Microsoft.JSInterop;
 using Rask.Core;
 using Rask.Site;
 using Rask.Wasm.Browser;
@@ -10,7 +9,7 @@ namespace Rask.Site.Features;
 ///     The video is synthesized from an animated canvas by the sibling scoped JS
 ///     (<c>PictureInPictureDemo.js</c>) so the demo needs no shipped video file.
 /// </summary>
-public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRuntime js) : Component
+public sealed partial class PictureInPictureDemo(IPictureInPicture pip) : Component
 {
     private readonly ElementRef _video = ElementRef.New();
     private string _status = "(idle)";
@@ -19,7 +18,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
     {
         try
         {
-            await js.InvokeVoidAsync("Rask.PictureInPictureDemo.start", _video);
+            await Start(_video);
             _status = await pip.IsSupportedAsync()
                 ? "Playing — click \"Open miniplayer\""
                 : "Picture-in-Picture not supported in this browser";

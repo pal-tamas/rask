@@ -63,6 +63,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
     protected virtual RenderEngine EngineCore => RenderEngine.Server;
 
+    void IRenderHandle.RunInOrder(Func<Task> work) => RunInOrderCore(work);
+
+    // A single-threaded host (WASM) has nothing to order against; the Server session queues on its handler chain.
+    protected virtual void RunInOrderCore(Func<Task> work) => _ = work();
+
     // How Rask DevTools names this session in its feed. Null on a host that has only one session per
     // process (WASM); the Server session answers with its id. A virtual rather than a type test in the
     // devtools, so that package needs no reference to Rask.Server.

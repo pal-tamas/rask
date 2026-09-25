@@ -114,9 +114,8 @@ public sealed class GuideChromeTests
     public void The_routing_guide_renders_chapters_the_rail_prev_next_and_the_embedded_demo()
     {
         var sp = TestServices.Default();
-        var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = Page.Render(new GuideChrome(js) { Slug = "routing" }, sp).Html;
+        var html = Page.Render(new GuideChrome { Slug = "routing" }, sp).Html;
 
         // Chrome scaffolding.
         Assert.Contains("guide-chapters", html);
@@ -142,9 +141,8 @@ public sealed class GuideChromeTests
     public void The_forms_guide_mounts_the_live_binding_demo()
     {
         var sp = TestServices.Default();
-        var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = Page.Render(new GuideChrome(js) { Slug = "forms" }, sp).Html;
+        var html = Page.Render(new GuideChrome { Slug = "forms" }, sp).Html;
 
         // Every marker resolved and mounted — no leftover comment, no unknown-demo warning.
         Assert.DoesNotContain("<!-- demo:", html);
@@ -159,10 +157,9 @@ public sealed class GuideChromeTests
     public void The_forms_validation_guide_mounts_the_live_validation_demo()
     {
         var sp = TestServices.Default();
-        var js = sp.GetRequiredService<IJSRuntime>();
 
         // The validation sections (and their demos) moved to the forms-validation sub-page in the split.
-        var html = Page.Render(new GuideChrome(js) { Slug = "forms-validation" }, sp).Html;
+        var html = Page.Render(new GuideChrome { Slug = "forms-validation" }, sp).Html;
 
         Assert.DoesNotContain("<!-- demo:", html);
         Assert.DoesNotContain("Unknown demo", html);
@@ -175,9 +172,8 @@ public sealed class GuideChromeTests
     public void An_unknown_guide_slug_renders_not_found_rather_than_crashing()
     {
         var sp = TestServices.Default();
-        var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = Page.Render(new GuideChrome(js) { Slug = "no-such-guide" }, sp).Html;
+        var html = Page.Render(new GuideChrome { Slug = "no-such-guide" }, sp).Html;
 
         Assert.Contains("No guide found", html);
     }

@@ -49,6 +49,7 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
         // fallback — so they survive PublishTrimmed without the caller wiring up a context.
         JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.Browser.RaskBrowserJsonContext.Default);
         JsonSerializerOptions.TypeInfoResolverChain.Add(Browser.RaskWasmBrowserJsonContext.Default);
+        JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.ScopedAssets.ScopedScriptJsonContext.Default);
 
         // The reflection resolver (RequiresDynamicCode) is only added when the runtime can generate
         // code — i.e. the Mono interpreter. Under a full interp-free AOT publish this branch is

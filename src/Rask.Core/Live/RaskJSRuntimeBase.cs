@@ -17,6 +17,9 @@ internal abstract class RaskJSRuntimeBase : JSRuntime
     /// </summary>
     protected abstract ILiveJsHost CurrentHost { get; }
 
+    /// <summary>The options this runtime reads results with — what a scoped-script callback reads its arguments with.</summary>
+    internal JsonSerializerOptions SerializerOptions => JsonSerializerOptions;
+
     protected override void BeginInvokeJS(
         long taskId,
         string identifier,

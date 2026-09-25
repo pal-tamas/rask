@@ -245,6 +245,9 @@ public static partial class DemoRegistry
                 .Files(["BasicScopedCss.cs", "BasicScopedCss.css"])
                 .Result(BasicScopedCss),
             ["asset-js-only"] = () => CodeSample.Files(["JsOnlyDemo.cs", "JsOnlyDemo.ts"]).Result(JsOnlyDemo),
+            ["js-interop-script-calls"] = () => CodeSample
+                .Files(["ScriptCallsDemo.cs", "ScriptCallsDemo.ts"])
+                .Result(ScriptCallsDemo),
             ["asset-twin-bundle"] = () => CodeSample
                 .Files(["TwinA.cs", "TwinA.css"])
                 .Result(Div.Class("flex gap-2 flex-wrap items-center")[TwinA, TwinB]),
