@@ -1,68 +1,56 @@
 # Rask.WebPush
 
-**Server-side Web Push sender.** Signs [VAPID](https://www.rfc-editor.org/rfc/rfc8292) and encrypts
-([RFC 8291](https://www.rfc-editor.org/rfc/rfc8291), `aes128gcm`) push messages, then POSTs them to
-a browser `PushSubscription` endpoint. It is the **send half** that pairs with `Rask.Wasm`'s
-`IWebPush` client — but it is **transport-neutral**: usable from a Rask Server app or any ASP.NET
-backend behind a WASM PWA.
-
-No external dependencies beyond `Microsoft.Extensions.*` — all crypto is in-box
-`System.Security.Cryptography`.
-
-## Install
-
-```bash
-dotnet add package Rask.WebPush
-```
-
-## Use
-
-The key pair and the contact come from the `Rask:WebPush` configuration section. A `rask new` app already
-has a development pair in its (gitignored) `appsettings.Development.json`. Otherwise mint one with
-`VapidKeys.Generate()` and keep it out of source — the private key signs every push you send:
-
-```jsonc
-// appsettings.Development.json — gitignored
-{
-  "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
-}
-```
-
-Deployed, both keys come from the environment instead: `Rask__WebPush__VapidKeys__PublicKey` and
-`Rask__WebPush__VapidKeys__PrivateKey`.
-
-```jsonc
-// appsettings.json
-{
-  "Rask": {
-    "WebPush": {
-      "Subject": "mailto:admin@example.com"    // a contact the push service can reach
-    }
-  }
-}
-```
+**Web Push from your own server, on your own keys and your own database.** The browsers that subscribed are
+kept in a table on the app's database, and one line reaches them:
 
 ```csharp
-builder.Services.AddRaskWebPush();   // reads Rask:WebPush; a callback here would run after it and win
-
-// ... inject IWebPush, then given a PushSubscription the browser sent you:
-var result = await sender.Send(
-    subscription,
-    new WebPushMessage { Title = "Hello", Body = "from the server" },
-    ct);
-
-// Inspect the result to prune dead subscriptions:
-if (result.ShouldDelete) await store.RemoveAsync(subscription);
+await Push.Send(WebPushMessage.Text("Order shipped", "#1042 is on its way", "/orders/1042"));
+await Push.Send(WebPushMessage.Text("Your order shipped")).To(userId);   // one person's devices
 ```
 
-## Notes
+A subscription the push service says is gone (404/410) is dropped as the send finds it. Messages are
+signed with [VAPID](https://www.rfc-editor.org/rfc/rfc8292) and encrypted with
+[RFC 8291](https://www.rfc-editor.org/rfc/rfc8291) `aes128gcm`, using in-box `System.Security.Cryptography`.
 
-- **Standards-based** — VAPID (RFC 8292) auth + RFC 8291 `aes128gcm` payload encryption; interops
-  with any standard browser Push service (FCM, Mozilla, WNS).
-- **Zero external deps** — ECDH, HKDF and AES-GCM come from `System.Security.Cryptography`.
-- Generate a VAPID key pair once with `VapidKeys.Generate()` and keep the private key server-side;
-  hand the public key to the browser subscription.
-- `Send` returns a `WebPushResult` whose `ShouldDelete` / `ShouldRetry` flags map the push
-  service's response to the action to take on the subscription.
+Included in `Rask.Server` and on by default — `app.Configure(c => c.Push.Off())` to do without it.
 
-Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/pwa.md>
+## Subscribe
+
+On the server host a component keeps what the browser API hands back:
+
+```csharp
+var subscription = await push.SubscribeAsync(Push.PublicKey!);   // IWebPush, the browser API
+await Push.Subscribe(subscription);                             // the signed-in user's, when there is one
+```
+
+A WebAssembly client or a SPA posts it to the endpoints `RaskApp` maps: `GET /_rask/push/key`,
+`POST /_rask/push/subscribe`, `POST /_rask/push/unsubscribe`.
+
+## Keys
+
+The key pair and the contact come from `Rask:WebPush`. A `rask new` app already has a development pair in
+its gitignored `appsettings.Development.json`; deployed, both keys come from the environment
+(`Rask__WebPush__VapidKeys__PublicKey`, `…__PrivateKey`). The table and the subscribe endpoints work without
+keys; sending names the settings it is missing.
+
+## Test
+
+```csharp
+using var push = Push.Fake();
+
+await orders.Ship(order);
+
+push.Sent().To(order.CustomerId).WithTitle("Order shipped").Once();
+```
+
+## By hand
+
+```csharp
+builder.Services.AddRaskWebPush<AppDbContext>();   // and modelBuilder.AddRaskWebPush() in OnModelCreating
+app.MapRaskPush();                                 // after MapRask
+```
+
+`AddRaskWebPush()` without a context registers the sender alone — `IWebPush.Send(subscription, message)` —
+for an app that keeps its subscriptions somewhere of its own.
+
+Full documentation: <https://rask.sh/docs/guides/webpush>

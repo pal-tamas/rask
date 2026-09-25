@@ -534,11 +534,11 @@ Rask.Core.Browser.IWebLocks.QueryAsync() -> System.Threading.Tasks.ValueTask<Sys
 Rask.Core.Browser.IWebLocks.RequestAsync(string! name, System.Func<System.Threading.Tasks.Task!>! work, Rask.Core.Browser.LockMode mode = Rask.Core.Browser.LockMode.Exclusive) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IWebLocks.TryRequestAsync(string! name, System.Func<System.Threading.Tasks.Task!>! work, Rask.Core.Browser.LockMode mode = Rask.Core.Browser.LockMode.Exclusive) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebPush
-Rask.Core.Browser.IWebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.PushSubscription?>
+Rask.Core.Browser.IWebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription?>
 Rask.Core.Browser.IWebPush.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebPush.RegisterServiceWorkerAsync(string? swUrl = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IWebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
-Rask.Core.Browser.IWebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.PushSubscription!>
+Rask.Core.Browser.IWebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription!>
 Rask.Core.Browser.IWebPush.UnsubscribeAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebRtc
 Rask.Core.Browser.IWebRtc.CreateAsync(Rask.Core.Browser.RtcConfiguration! config, Rask.Core.Browser.RtcHandlers! handlers) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IPeerConnection!>
@@ -921,19 +921,6 @@ Rask.Core.Browser.PublicKeyCredentialUser.Id.init -> void
 Rask.Core.Browser.PublicKeyCredentialUser.Name.get -> string!
 Rask.Core.Browser.PublicKeyCredentialUser.Name.init -> void
 Rask.Core.Browser.PublicKeyCredentialUser.PublicKeyCredentialUser(string! Id, string! Name, string! DisplayName) -> void
-Rask.Core.Browser.PushSubscription
-Rask.Core.Browser.PushSubscription.<Clone>$() -> Rask.Core.Browser.PushSubscription!
-Rask.Core.Browser.PushSubscription.Auth.get -> string!
-Rask.Core.Browser.PushSubscription.Auth.init -> void
-Rask.Core.Browser.PushSubscription.Deconstruct(out string! Endpoint, out string! P256dh, out string! Auth, out double? ExpirationTime) -> void
-Rask.Core.Browser.PushSubscription.Endpoint.get -> string!
-Rask.Core.Browser.PushSubscription.Endpoint.init -> void
-Rask.Core.Browser.PushSubscription.Equals(Rask.Core.Browser.PushSubscription? other) -> bool
-Rask.Core.Browser.PushSubscription.ExpirationTime.get -> double?
-Rask.Core.Browser.PushSubscription.ExpirationTime.init -> void
-Rask.Core.Browser.PushSubscription.P256dh.get -> string!
-Rask.Core.Browser.PushSubscription.P256dh.init -> void
-Rask.Core.Browser.PushSubscription.PushSubscription(string! Endpoint, string! P256dh, string! Auth, double? ExpirationTime) -> void
 Rask.Core.Browser.RaskBrowserApis
 Rask.Core.Browser.RecognitionResult
 Rask.Core.Browser.RecognitionResult.<Clone>$() -> Rask.Core.Browser.RecognitionResult!
@@ -1299,11 +1286,11 @@ Rask.Core.Browser.WebLocks.RequestAsync(string! name, System.Func<System.Threadi
 Rask.Core.Browser.WebLocks.TryRequestAsync(string! name, System.Func<System.Threading.Tasks.Task!>! work, Rask.Core.Browser.LockMode mode = Rask.Core.Browser.LockMode.Exclusive) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebLocks.WebLocks(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebPush
-Rask.Core.Browser.WebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.PushSubscription?>
+Rask.Core.Browser.WebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription?>
 Rask.Core.Browser.WebPush.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebPush.RegisterServiceWorkerAsync(string? swUrl = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.WebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
-Rask.Core.Browser.WebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.PushSubscription!>
+Rask.Core.Browser.WebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription!>
 Rask.Core.Browser.WebPush.UnsubscribeAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebPush.WebPush(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebRtc
@@ -4057,9 +4044,6 @@ override Rask.Core.Browser.PublicKeyCredentialRequestOptions.ToString() -> strin
 override Rask.Core.Browser.PublicKeyCredentialUser.Equals(object? obj) -> bool
 override Rask.Core.Browser.PublicKeyCredentialUser.GetHashCode() -> int
 override Rask.Core.Browser.PublicKeyCredentialUser.ToString() -> string!
-override Rask.Core.Browser.PushSubscription.Equals(object? obj) -> bool
-override Rask.Core.Browser.PushSubscription.GetHashCode() -> int
-override Rask.Core.Browser.PushSubscription.ToString() -> string!
 override Rask.Core.Browser.RecognitionResult.Equals(object? obj) -> bool
 override Rask.Core.Browser.RecognitionResult.GetHashCode() -> int
 override Rask.Core.Browser.RecognitionResult.ToString() -> string!
@@ -4303,8 +4287,6 @@ static Rask.Core.Browser.PublicKeyCredentialRequestOptions.operator !=(Rask.Core
 static Rask.Core.Browser.PublicKeyCredentialRequestOptions.operator ==(Rask.Core.Browser.PublicKeyCredentialRequestOptions? left, Rask.Core.Browser.PublicKeyCredentialRequestOptions? right) -> bool
 static Rask.Core.Browser.PublicKeyCredentialUser.operator !=(Rask.Core.Browser.PublicKeyCredentialUser? left, Rask.Core.Browser.PublicKeyCredentialUser? right) -> bool
 static Rask.Core.Browser.PublicKeyCredentialUser.operator ==(Rask.Core.Browser.PublicKeyCredentialUser? left, Rask.Core.Browser.PublicKeyCredentialUser? right) -> bool
-static Rask.Core.Browser.PushSubscription.operator !=(Rask.Core.Browser.PushSubscription? left, Rask.Core.Browser.PushSubscription? right) -> bool
-static Rask.Core.Browser.PushSubscription.operator ==(Rask.Core.Browser.PushSubscription? left, Rask.Core.Browser.PushSubscription? right) -> bool
 static Rask.Core.Browser.RaskBrowserApis.AddBrowserApi<TService, TImpl>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Core.Browser.RaskBrowserApis.AddCoreBrowserApis(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Core.Browser.RecognitionResult.operator !=(Rask.Core.Browser.RecognitionResult? left, Rask.Core.Browser.RecognitionResult? right) -> bool

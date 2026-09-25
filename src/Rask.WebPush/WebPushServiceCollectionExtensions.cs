@@ -1,38 +1,19 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Batteries;
 using Rask.Hosting.Shared;
 
 namespace Rask.WebPush;
 
-// DI entry point. Call once at startup:
-//
-//   builder.Services.AddRaskWebPush();
-//
-// with the key pair and contact in configuration (the keys in user-secrets or the environment, never in source):
-//
-//   "Rask": { "WebPush": { "Subject": "mailto:admin@example.com",
-//                          "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
-//
-// then inject IWebPush wherever you deliver notifications.
-/// <summary>Registers the Web Push sender.</summary>
+/// <summary>Registers Web Push.</summary>
 public static class WebPushServiceCollectionExtensions
 {
     /// <summary>
-    ///     Registers <see cref="IWebPush" /> and its options. Call once at startup, then inject the
-    ///     sender wherever notifications are delivered:
-    ///     <code>
-    ///     builder.Services.AddRaskWebPush();   // Rask:WebPush:VapidKeys + Rask:WebPush:Subject
-    ///     </code>
-    ///     <para>
-    ///         <see cref="WebPushOptions" /> reads the <c>Rask:WebPush</c> configuration section first and then
-    ///         <paramref name="configure" />, so code wins. The options are validated when the host starts, so a
-    ///         missing key pair or a malformed subject fails there rather than on the first notification nobody
-    ///         receives. Idempotent: the first call's options win.
-    ///     </para>
+    /// The sender alone — <see cref="IWebPush" />, one subscription at a time — for an app that keeps its
+    /// subscriptions somewhere of its own. Reads <c>Rask:WebPush</c> and refuses to start without a key pair and a contact.
     /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configure">Adjusts the options, after the <c>Rask:WebPush</c> section.</param>
-    /// <returns><paramref name="services" />, for chaining.</returns>
     public static IServiceCollection AddRaskWebPush(
         this IServiceCollection services,
         Action<WebPushOptions>? configure = null)
@@ -51,4 +32,49 @@ public static class WebPushServiceCollectionExtensions
         services.AddHttpClient<IWebPush, WebPushSender>();
         return services;
     }
+
+    /// <summary>
+    /// The battery: subscribers kept on <typeparamref name="TContext" /> (map the table with
+    /// <c>modelBuilder.AddRaskWebPush()</c>), <c>Push.Send(message)</c> to reach them, and <see cref="IPush" />.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the sender alone this starts without a key pair: a fresh clone of a scaffolded app has none (the
+    /// development pair lives in a gitignored file), and the subscribe endpoints and the table have to work before
+    /// anybody sends. Sending is what needs the keys, and it says so, naming the settings.
+    /// </remarks>
+    public static IServiceCollection AddRaskWebPush<TContext>(
+        this IServiceCollection services,
+        Action<WebPushOptions>? configure = null)
+        where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        // Validated at the first send (WebPushSender checks its options when it is built), not at start. An app that
+        // also called AddRaskWebPush() first keeps that call's start-time validation: the options are registered once.
+        if (services.AddRaskOptions<WebPushOptions>(
+                "Rask:WebPush", static (section, o) => section.Bind(o), configure, validate: null))
+        {
+            services.AddHttpClient<IWebPush, WebPushSender>();
+        }
+
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
+        services.TryAddSingleton<IPush, PushStore<TContext>>();
+
+        // Before anything sends, so an app whose model never mapped PushSubscriber fails the boot naming the line
+        // to type, rather than on the first subscription. Reads the MODEL, never the database, so an app that has
+        // not run `rask db update` yet still starts.
+        services.AddHostedService<PushModelCheck<TContext>>();
+        return services;
+    }
+}
+
+internal sealed class PushModelCheck<TContext>(IDbContextFactory<TContext> contextFactory)
+    : BatteryModelCheck<TContext>(contextFactory)
+    where TContext : DbContext
+{
+    protected override string Battery => "Web Push";
+
+    protected override Type Entity => typeof(PushSubscriber);
+
+    protected override string MapCall => "AddRaskWebPush";
 }

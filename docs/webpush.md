@@ -1,13 +1,11 @@
-# Rask.WebPush — server-sent Web Push on your own keys
+# Rask.WebPush — Web Push on your own keys and your own database
 
 > **In practice:** [PWA & Web Push](pwa.md#push-notifications-iwebpush) (the browser subscribe side) · [cheat sheet](cheatsheet.md#code-idioms).
 
-`Rask.WebPush` delivers a **Web Push notification from your backend to a subscribed browser** — signed with
-your own VAPID keys ([RFC 8292](https://www.rfc-editor.org/rfc/rfc8292)) and payload-encrypted with aes128gcm
-([RFC 8291](https://www.rfc-editor.org/rfc/rfc8291)) — with **zero external dependencies**. It's a standalone
-server library: no UI, no transport dependency, no reference to the rest of Rask, so it works from a plain
-ASP.NET app, a Rask Server app, or the ASP.NET host of a WASM PWA. It pairs with the browser-side
-[`IWebPush`](pwa.md#push-notifications-iwebpush) that produces the subscription.
+`Rask.WebPush` delivers a **Web Push notification from your server to the browsers that asked for one**. It keeps
+those browsers in a table on the app's own database, signs each message with your own VAPID keys
+([RFC 8292](https://www.rfc-editor.org/rfc/rfc8292)) and encrypts it with aes128gcm
+([RFC 8291](https://www.rfc-editor.org/rfc/rfc8291)) — with no external service and no dependency beyond .NET.
 
 > Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -15,124 +13,117 @@ ASP.NET app, a Rask Server app, or the ASP.NET host of a WASM PWA. It pairs with
 > app.Configure(c => c.Push.Off());
 > ```
 
-## Why send from the server
+## Send
 
-A browser push subscription is useless until *something* pushes to it. The push service (FCM, Mozilla, …)
-will only accept a message that is **VAPID-signed** by the application server that owns the subscription and
-**encrypted** for that subscription's keys. `Rask.WebPush` does both and POSTs the result to the endpoint, so
-you hand it a stored subscription and a message and get back a typed result telling you whether the
-subscription is still good.
+```csharp
+await Push.Send(WebPushMessage.Text("Order shipped", "#1042 is on its way", "/orders/1042"));   // everyone
+await Push.Send(WebPushMessage.Text("Your order shipped")).To(order.CustomerId);             // one person's devices
+```
 
-## Use
+Awaiting it returns how many browsers received the push. A subscription the push service says is gone —
+HTTP 404 or 410, because the browser unsubscribed or the app was uninstalled — is dropped as the send finds
+it, so the table does not fill with dead endpoints. `Push` is reached from anything in progress: a handler, a
+render, a request, a job. Inject `IPush` where you would rather.
 
-**1. A key pair, once.** A scaffolded app already has one: `rask new` mints a development pair into
-`appsettings.Development.json`, which the scaffold's `.gitignore` keeps out of the repository. There is
-nothing to do to push locally — skip to step 2.
+A send reaches one person's browsers because each subscription remembers who was signed in when it was made.
+A person with a phone and a laptop has two rows, and `.To(userId)` reaches both.
 
-Mint one by hand for an app Rask did not scaffold, or to replace a lost dev pair:
+## Subscribe
+
+On the **server host**, a component asks the browser and keeps the answer:
+
+```csharp
+public sealed partial class NotifyMe(IWebPush browser) : Component
+{
+    protected override Component? Render() =>
+        Ui.Button.OnClick(Subscribe)["Notify me about my orders"];
+
+    private async Task Subscribe()
+    {
+        var subscription = await browser.SubscribeAsync(Push.PublicKey!);   // the browser API
+        await Push.Subscribe(subscription);                                // one row, for the signed-in user
+    }
+}
+```
+
+A **WebAssembly client or a SPA** posts the same record to the endpoints `RaskApp` maps:
+
+| Endpoint | What it does |
+| --- | --- |
+| `GET /_rask/push/key` | `{ "publicKey": "…" }` — empty until a key pair is configured |
+| `POST /_rask/push/subscribe` | keeps `{ endpoint, p256dh, auth }` for the signed-in user, when there is one |
+| `POST /_rask/push/unsubscribe` | forgets it |
+
+They are anonymous (a visitor may subscribe before signing in) and outside the API description. Subscribing
+again from the same browser renews its row rather than adding one.
+
+## Keys
+
+A scaffolded app already has a development pair: `rask new` mints one into `appsettings.Development.json`,
+which the scaffold's `.gitignore` keeps out of the repository. Mint one by hand for an app Rask did not
+scaffold:
 
 ```csharp
 var keys = VapidKeys.Generate();   // dotnet-run once; persist keys.PublicKey / keys.PrivateKey
 ```
 
 ```jsonc
+// appsettings.json — the contact is not a secret
+{ "Rask": { "WebPush": { "Subject": "mailto:admin@example.com" } } }
+
 // appsettings.Development.json — gitignored, so the private key stays out of the repository
-{
-  "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
-}
+{ "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } } }
 ```
 
-**Deployed, the keys come from the environment** — `rask deploy --env` sets them, and production should
-have a pair of its own:
+**Deployed, the keys come from the environment**, and production should have a pair of its own:
 
 ```bash
 rask deploy --env "Rask__WebPush__VapidKeys__PublicKey=<public>" \
             --env "Rask__WebPush__VapidKeys__PrivateKey=<private>"
 ```
 
-Never regenerate a live pair: rotating it invalidates every existing subscription, so treat a change as a
-migration rather than routine rotation. `PrivateKey` signs, so it is a secret like a database password;
-`PublicKey` is meant to be public — it is the `applicationServerKey` the browser subscribes with.
+The table and the subscribe endpoints work before any keys exist — a fresh clone of a scaffolded app has
+none. Sending is what needs them, and a send without them fails naming the settings. Never regenerate a live
+pair: every existing subscription was made against the old public key and stops working.
 
-> **user-secrets works too**, but a scaffolded csproj has no `UserSecretsId`, so it needs
-> `dotnet user-secrets init` first — without it, `dotnet user-secrets set` fails with *"Could not find the
-> global property 'UserSecretsId'"*.
-
-**2. Register the sender** at startup. It reads `Rask:WebPush`, so the call takes nothing:
+## Test
 
 ```csharp
-builder.Services.AddRaskWebPush();
+using var push = Push.Fake();
+
+await orders.Ship(order);
+
+push.Sent().To(order.CustomerId).WithTitle("Order shipped").Once();
+push.Sent().ToEveryone().None();
 ```
 
-```jsonc
-// appsettings.json — the contact is not a secret
-{
-  "Rask": {
-    "WebPush": {
-      "Subject": "mailto:admin@example.com"   // a contact the push service can reach; mailto: or https:
-    }
-  }
-}
-```
+The fake stands in for this test's flow alone, so parallel tests never see each other's pushes.
+`push.Subscribed()` answers the same way about the subscriptions a test kept.
 
-`DefaultTtl` lives in the same section. A callback — `AddRaskWebPush(o => …)` — runs after the section and
-wins.
+## The message
 
-**3. Subscribe on the client** with the **same public key**, and store what it posts up. Hand
-`keys.PublicKey` to the browser's [`IWebPush.Subscribe`](pwa.md#push-notifications-iwebpush); the client
-POSTs three fields — `Endpoint`, `P256dh`, `Auth` — which you persist as a `PushSubscription`.
+`WebPushMessage.Text(title, body?, url?)` is the common case. Its fields — `Title`, `Body`, `Icon`, `Badge`,
+`Tag`, `Url` — serialize to the JSON the default service worker (`rask-sw.js`) shows, so a push appears as a
+notification with no service-worker code. `WebPushMessage.Raw(json)` sends a payload of your own verbatim, for
+your own worker. `Urgency`, `Ttl` and `Topic` (a collapse key of up to 32 characters) map to the push
+service's own semantics ([RFC 8030](https://www.rfc-editor.org/rfc/rfc8030)).
 
-**4. Send** a notification, and act on the result:
+## One subscription, by hand
+
+`Push.Send(subscription, message)` sends to a single `PushSubscription` and returns the `WebPushResult` —
+`IsSuccess`, `ShouldDelete` (the subscription is gone) or `ShouldRetry` (429/5xx; send it through
+[`Rask.Jobs`](jobs.md) to retry durably). `PushSubscription` lives in `Rask.Wire`, one record for the browser
+API and the server alike.
+
+An app that keeps its subscriptions somewhere of its own registers the sender alone and uses `IWebPush`:
 
 ```csharp
-public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
-{
-    public async Task NotifyAsync(Guid userId, string title, string body, string url, CancellationToken ct)
-    {
-        foreach (var sub in await store.ForUserAsync(userId, ct))
-        {
-            var result = await sender.Send(sub, WebPushMessage.Text(title, body, url), ct);
-
-            if (result.ShouldDelete) await store.RemoveAsync(sub, ct);   // 404/410 — subscription is gone
-            else if (result.ShouldRetry) { /* 429/5xx — enqueue and try later (e.g. via Rask.Jobs) */ }
-        }
-    }
-}
+builder.Services.AddRaskWebPush();   // refuses to start without a key pair and a Subject
 ```
 
-## How it works
+A host assembled without `RaskApp` registers the whole battery and maps its endpoints itself:
 
-- **`VapidKeys`** — a base64url P-256 key pair. `PublicKey` is exactly the `applicationServerKey` the browser
-  passes to `pushManager.subscribe`, so the **same** string goes to the client's `IWebPush.Subscribe`;
-  `PrivateKey` stays secret on the server. `VapidKeys.Generate()` mints a fresh pair.
-- **`PushSubscription(Endpoint, P256dh, Auth)`** — the server-side mirror of the browser's subscription: the
-  push-service URL plus the client's ECDH public key and auth secret used to encrypt the payload. It's the
-  package's own type (no dependency on `Rask.Wasm`/`Rask.Core`); the two sides just agree on the wire shape.
-- **`WebPushMessage`** — typed fields (`Title`, `Body`, `Icon`, `Badge`, `Tag`, `Url`) serialize to the JSON
-  the default service worker (`rask-sw.js`) expects — `{ title, body, icon, badge, tag, data: { url } }` — so
-  a push shows a notification with **no service-worker changes**. `WebPushMessage.Text(title, body?, url?)` is
-  the common case; `WebPushMessage.Raw(json)` (or setting `RawPayload`) sends a hand-built payload verbatim for
-  your own worker. `Urgency` ([RFC 8030](https://www.rfc-editor.org/rfc/rfc8030) §5.3), `Ttl`, and `Topic` (a
-  ≤32-char collapse key) map to the corresponding push-service semantics.
-- **`IWebPush.Send`** — signs (VAPID), encrypts (aes128gcm), and POSTs via an `IHttpClientFactory`
-  typed client, returning a **`WebPushResult`**.
-- **`WebPushResult`** — classifies the outcome so the caller knows what to do: `IsSuccess`, `ShouldDelete`
-  (HTTP 404/410 — the subscription expired, remove it from your store), `ShouldRetry` (429/5xx — transient,
-  retry later), or a permanent failure (usually a VAPID/config error — don't retry).
-
-## Notes
-
-- **Server-side and stateless.** `Rask.WebPush` sends; it does **not** store subscriptions. Persist the
-  `PushSubscription` your client posts up in whatever store you like (a `Rask.Data` entity, a table, …), keyed
-  by user. A browser holds **one subscription per service-worker registration**, and a user may have several
-  devices — store and iterate all of them.
-- **Keep the keys stable.** Generate one pair per application and reuse it for the app's lifetime; rotating the
-  VAPID keys invalidates every subscription the old public key produced.
-- **`Subject` is required** and must be a `mailto:` address or an `https:` URL — the push service uses it to
-  reach you if your traffic causes problems. The options are validated when the host starts, so a missing
-  key or subject stops the app starting rather than failing the first send.
-- **Prune expired subscriptions.** Act on `ShouldDelete` so your store doesn't accumulate dead endpoints, and
-  consider running sends through [`Rask.Jobs`](jobs.md) so a `ShouldRetry` result is retried durably off the
-  request thread.
-- **The client half lives elsewhere.** Requesting permission, subscribing, and handling the notification are
-  the browser's job — see [PWA & Web Push](pwa.md) for `IWebPush` and the default service worker.
+```csharp
+builder.Services.AddRaskWebPush<AppDbContext>();   // plus modelBuilder.AddRaskWebPush() in OnModelCreating
+app.MapRaskPush();                                 // after MapRask
+```

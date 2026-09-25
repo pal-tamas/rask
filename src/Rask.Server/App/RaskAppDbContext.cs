@@ -7,6 +7,7 @@ using Rask.Logging;
 using Rask.Mail;
 using Rask.Outbox;
 using Rask.Storage;
+using Rask.WebPush;
 
 namespace Rask;
 
@@ -59,6 +60,7 @@ public class RaskAppDbContext : RaskDbContext
         modelBuilder.AddRaskMail();
         modelBuilder.AddRaskOutbox();
         modelBuilder.AddRaskStorage();
+        modelBuilder.AddRaskWebPush();
 
         // The log table only where the log lives in this database. On SQLite the log keeps a file of its own
         // (logs.db), so a SQLite app's migrations gain no table it never writes; on PostgreSQL or SQL Server RaskApp's

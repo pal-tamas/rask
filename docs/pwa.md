@@ -261,26 +261,19 @@ public sealed partial class PushButton(IWebPush push) : Component
         if (!await push.IsSupportedAsync()) return;
         if (await push.RequestPermissionAsync() != NotificationPermission.Granted) return;
 
-        await push.RegisterServiceWorkerAsync();              // default rask-sw.js
-        var sub = await push.SubscribeAsync(vapidPublicKey);  // your VAPID public key (base64url)
-
-        // POST `sub` (Endpoint, P256dh, Auth) to your backend, which signs (VAPID) and encrypts
-        // (RFC 8291) the push and delivers it to sub.Endpoint.
+        await push.RegisterServiceWorkerAsync();                 // default rask-sw.js
+        var sub = await push.SubscribeAsync(Push.PublicKey!);    // the app's VAPID public key
+        await Push.Subscribe(sub);                               // kept on the app's database
     }
 }
 ```
 
-**Sending** a push is the backend half of the Web Push Protocol — sign the request with VAPID and
-encrypt the payload (RFC 8291). The opt-in **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**
-package does exactly that with zero external dependencies. The default `rask-sw.js` receives the push
-and shows a notification from the JSON payload (`{ title, body, icon, tag, data: { url } }`).
+The default `rask-sw.js` receives a push and shows a notification from its JSON payload
+(`{ title, body, icon, tag, data: { url } }`), so nothing else runs in the browser.
 
 ### Sending from your backend (`Rask.WebPush`)
 
 > Full reference: **[Rask.WebPush](webpush.md)**. The essentials:
-
-`Rask.WebPush` is a small, server-side package (it has no UI and no transport dependency, so it works
-from a `Rask.Server` app or the ASP.NET host behind a WASM PWA alike). Add it and register a sender:
 
 > Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -288,50 +281,21 @@ from a `Rask.Server` app or the ASP.NET host behind a WASM PWA alike). Add it an
 > app.Configure(c => c.Push.Off());
 > ```
 
-```csharp
-using Rask.WebPush;
-
-// Reads Rask:WebPush — the VAPID key pair and the contact Subject. Generate ONE key pair and keep it in
-// user secrets or the environment: never regenerate per run (that invalidates every existing
-// subscription) and never ship the private key.
-builder.Services.AddRaskWebPush();
-```
-
-```jsonc
-// appsettings.json — the keys are NOT here. `rask new` wrote a development pair to the gitignored
-// appsettings.Development.json; deployed, they come from the environment
-// (Rask__WebPush__VapidKeys__PublicKey / __PrivateKey). Never in this committed file.
-{
-  "Rask": {
-    "WebPush": {
-      "Subject": "mailto:admin@example.com"   // a contact the push service can reach
-    }
-  }
-}
-```
-
-Hand the **same** `VapidKeys.PublicKey` to the client's `IWebPush.SubscribeAsync`. Store the
-`PushSubscription` your client posts up, then deliver a notification with `IWebPush`:
+The subscriptions live in a table on the app's own database, so a send is one line:
 
 ```csharp
-public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
-{
-    public async Task PingAsync()
-    {
-        foreach (var sub in store.All)
-        {
-            var result = await sender.Send(sub, WebPushMessage.Text(
-                "New message", "You have one unread item.", url: "/inbox"));
-
-            if (result.ShouldDelete) store.Remove(sub);   // 404/410 — the subscription is gone
-            else if (result.ShouldRetry) { /* 429/5xx — retry later */ }
-        }
-    }
-}
+await Push.Send(WebPushMessage.Text("New message", "You have one unread item.", "/inbox"));
+await Push.Send(WebPushMessage.Text("Your order shipped")).To(userId);   // one person's devices
 ```
 
-`VapidKeys.Generate()` mints a fresh pair (base64url) for first-time setup. The sender is transport-
-neutral and stores nothing — persisting `PushSubscription`s is your app's job.
+A subscription the push service says is gone is dropped as the send finds it. A WebAssembly client posts its
+subscription to `POST /_rask/push/subscribe` instead of calling `Push.Subscribe`, and reads the public key from
+`GET /_rask/push/key`.
+
+The keys come from `Rask:WebPush`: `rask new` wrote a development pair to the gitignored
+`appsettings.Development.json`, and deployed they come from the environment
+(`Rask__WebPush__VapidKeys__PublicKey` / `__PrivateKey`). The contact is `Rask:WebPush:Subject`, a `mailto:` or
+`https:` address. `VapidKeys.Generate()` mints a pair; never regenerate a live one.
 
 ---
 

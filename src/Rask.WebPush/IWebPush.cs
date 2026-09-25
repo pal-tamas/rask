@@ -1,3 +1,5 @@
+using Rask.Wire;
+
 namespace Rask.WebPush;
 
 // Sends a Web Push message to a single subscription: signs the request with VAPID (RFC 8292),

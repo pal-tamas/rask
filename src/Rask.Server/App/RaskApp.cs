@@ -313,6 +313,14 @@ public sealed class RaskApp
             Storage.RaskStorageEndpointExtensions.MapRaskStorage(app);
         }
 
+        // The endpoints a WebAssembly client or a SPA subscribes through (/_rask/push/key, /subscribe, /unsubscribe).
+        // After MapRask for the same reason as the file routes: it sets the path base they live under.
+        if (_options.Push.Enabled
+            && app.Services.GetService<IServiceProviderIsService>()?.IsService(typeof(WebPush.IPush)) == true)
+        {
+            WebPush.RaskPushEndpointExtensions.MapRaskPush(app);
+        }
+
         return app;
     }
 }

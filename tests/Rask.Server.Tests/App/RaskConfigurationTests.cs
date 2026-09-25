@@ -147,7 +147,7 @@ public sealed class RaskConfigurationTests
     }
 
     [Fact]
-    public void The_old_top_level_web_push_keys_do_not_switch_push_on()
+    public void The_old_top_level_web_push_keys_are_not_read()
     {
         var keys = VapidKeys.Generate();
         var built = Build(settings: new()
@@ -156,7 +156,7 @@ public sealed class RaskConfigurationTests
             ["WebPush:PrivateKey"] = keys.PrivateKey,
         });
 
-        Assert.Null(built.Services.GetService<WebPushOptions>());
+        Assert.Null(built.Services.GetRequiredService<WebPushOptions>().VapidKeys);
     }
 
     private static WebApplication Build(Dictionary<string, string?>? settings = null, Action<RaskApp>? arrange = null)

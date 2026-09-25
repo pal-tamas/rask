@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Rask.Wire;
 
 namespace Rask.Core.Browser;
 

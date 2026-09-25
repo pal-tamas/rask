@@ -514,6 +514,14 @@ internal static class RaskBatteryWiring
             services.AddRaskStorage<TContext>(o => options.Storage.Apply(o));
         }
 
+        if (options.Push.Enabled)
+        {
+            // The browsers that subscribed, on this context, and Push.Send(message) to reach them. Wired with or
+            // without a key pair — the table and the subscribe endpoints work first, and sending names the missing
+            // keys. When a pair IS configured, the sender was already registered above with start-time validation.
+            services.AddRaskWebPush<TContext>(o => options.Push.Apply(o));
+        }
+
         if (options.Ops.Enabled)
         {
             // WHO MAY OPERATE THE APP. The dashboard shows job payloads, stored email bodies and log lines, so

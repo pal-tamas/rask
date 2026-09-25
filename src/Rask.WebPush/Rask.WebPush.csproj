@@ -7,11 +7,9 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.WebPush</PackageId>
-    <Title>Rask.WebPush — Web Push (VAPID) Sender</Title>
-    <Description>Server-side Web Push sender for Rask. Signs VAPID (RFC&#160;8292) and encrypts (RFC&#160;8291 aes128gcm) push messages, then POSTs them to a browser PushSubscription endpoint — the send half that pairs with Rask.Wasm's IWebPush client. Transport-neutral: usable from a Rask.Server app or any ASP.NET backend behind a WASM PWA. No external dependencies beyond Microsoft.Extensions.* — all crypto is in-box System.Security.Cryptography.</Description>
-    <!-- Override the framework default tags (web/component/wasm) — Rask.WebPush is a transport-neutral
-         server-side sender, not a web-UI component library. -->
-    <PackageTags>web-push push-notifications vapid rfc8291 rfc8292 aes128gcm notifications dotnet net10 net11</PackageTags>
+    <Title>Rask.WebPush — Web Push on your own database and keys</Title>
+    <Description>Server-side Web Push for Rask: the browsers that subscribed, kept on the app's own database, and a send that reaches them — Push.Send(message) for everyone, .To(userId) for one person's devices — dropping subscriptions the push service says are gone. Signs VAPID (RFC&#160;8292) and encrypts (RFC&#160;8291 aes128gcm) with in-box System.Security.Cryptography, and maps the subscribe endpoints a WebAssembly client or SPA posts to. Push.Fake() for tests.</Description>
+    <PackageTags>web-push push-notifications vapid rfc8291 rfc8292 aes128gcm notifications pwa dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -22,13 +20,14 @@
     <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
+  <!-- Endpoint routing and IResult (the subscribe endpoints) and HttpClient come with the shared framework, as for
+       Rask.Storage; the Microsoft.Extensions.* abstractions do too, and naming them as well is what NU1510 rejects. -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Http"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Options"/>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
   </ItemGroup>
 
   <!-- WebPushOptions binds Rask:WebPush. The configuration binding source generator writes that bind at compile
@@ -37,8 +36,36 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
+  <!-- Source-linked, as every battery does: the boot-time "is this table mapped?" check, the sentence-shaped counts
+       the fake answers with, and the one registration every server-side options type binds through. -->
   <ItemGroup>
+    <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\Counting.cs" Link="Shared\Counting.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.WebPush.Tests"/>
+  </ItemGroup>
+
+  <!-- The subscriber table is an Entity<TId>, which is what brings Rask.Data (and the tenant, the clock, Current). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!-- READ FACES ONLY, as Rask.Storage: the table is mapped by modelBuilder.AddRaskWebPush(), never by the registry. -->
+  <PropertyGroup>
+    <RaskReadFacesOnly>true</RaskReadFacesOnly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskReadFacesOnly"/>
   </ItemGroup>
 
 </Project>

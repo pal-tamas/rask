@@ -101,7 +101,7 @@ dotnet add package Rask.Logging           # durable log store (its own SQLite fi
 dotnet add package Rask.Dashboard         # the /_rask operator dashboard over every pillar
 dotnet add package Rask.Ui                # the component kit those surfaces are drawn with
 dotnet add package Rask.DevTools          # the in-page devtools (wire, component tree), Debug-only, absent from every Release publish
-dotnet add package Rask.WebPush           # send Web Push notifications from the backend
+dotnet add package Rask.WebPush           # Web Push: subscribers on your database, Push.Send(message) to reach them
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 ```
 

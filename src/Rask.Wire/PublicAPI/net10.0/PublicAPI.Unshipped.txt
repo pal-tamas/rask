@@ -417,3 +417,21 @@ static Rask.Clock.Now.get -> System.DateTimeOffset
 static Rask.Clock.TimeProvider.get -> System.TimeProvider!
 Rask.Current
 static Rask.Current.Cancellation.get -> System.Threading.CancellationToken
+Rask.Wire.PushSubscription
+Rask.Wire.PushSubscription.<Clone>$() -> Rask.Wire.PushSubscription!
+Rask.Wire.PushSubscription.Auth.get -> string!
+Rask.Wire.PushSubscription.Auth.init -> void
+Rask.Wire.PushSubscription.Deconstruct(out string! Endpoint, out string! P256dh, out string! Auth, out double? ExpirationTime) -> void
+Rask.Wire.PushSubscription.Endpoint.get -> string!
+Rask.Wire.PushSubscription.Endpoint.init -> void
+Rask.Wire.PushSubscription.Equals(Rask.Wire.PushSubscription? other) -> bool
+Rask.Wire.PushSubscription.ExpirationTime.get -> double?
+Rask.Wire.PushSubscription.ExpirationTime.init -> void
+Rask.Wire.PushSubscription.P256dh.get -> string!
+Rask.Wire.PushSubscription.P256dh.init -> void
+Rask.Wire.PushSubscription.PushSubscription(string! Endpoint, string! P256dh, string! Auth, double? ExpirationTime = null) -> void
+override Rask.Wire.PushSubscription.Equals(object? obj) -> bool
+override Rask.Wire.PushSubscription.GetHashCode() -> int
+override Rask.Wire.PushSubscription.ToString() -> string!
+static Rask.Wire.PushSubscription.operator !=(Rask.Wire.PushSubscription? left, Rask.Wire.PushSubscription? right) -> bool
+static Rask.Wire.PushSubscription.operator ==(Rask.Wire.PushSubscription? left, Rask.Wire.PushSubscription? right) -> bool

@@ -28,7 +28,7 @@ public sealed class VapidJwtTests
         Assert.StartsWith("vapid t=", header, StringComparison.Ordinal);
         (string jwt, string k) = ParseHeader(header);
         Assert.Equal(options.VapidKeys!.PublicKey, k);
-        Assert.Equal(65, Base64Url.DecodeFromChars(k).Length); // uncompressed P-256 point.
+        Assert.Equal(65, System.Buffers.Text.Base64Url.DecodeFromChars(k).Length); // uncompressed P-256 point.
         Assert.Equal(3, jwt.Split('.').Length);
     }
 
@@ -42,7 +42,7 @@ public sealed class VapidJwtTests
         (string jwt, _) = ParseHeader(header);
         string[] parts = jwt.Split('.');
         using ECDsa ecdsa = ImportPublic(options.VapidKeys!.PublicKey);
-        byte[] signature = Base64Url.DecodeFromChars(parts[2]);
+        byte[] signature = System.Buffers.Text.Base64Url.DecodeFromChars(parts[2]);
         bool ok = ecdsa.VerifyData(
             Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"),
             signature,
@@ -60,7 +60,7 @@ public sealed class VapidJwtTests
         string header = await CaptureAuthorization(options);
 
         (string jwt, _) = ParseHeader(header);
-        using var doc = JsonDocument.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));
+        using var doc = JsonDocument.Parse(System.Buffers.Text.Base64Url.DecodeFromChars(jwt.Split('.')[1]));
         JsonElement claims = doc.RootElement;
         // aud is the endpoint's origin with no path/trailing slash.
         Assert.Equal("https://fcm.googleapis.com", claims.GetProperty("aud").GetString());
@@ -79,7 +79,7 @@ public sealed class VapidJwtTests
 
     private static ECDsa ImportPublic(string publicKeyB64)
     {
-        byte[] pub = Base64Url.DecodeFromChars(publicKeyB64);
+        byte[] pub = System.Buffers.Text.Base64Url.DecodeFromChars(publicKeyB64);
         return ECDsa.Create(new ECParameters
         {
             Curve = ECCurve.NamedCurves.nistP256,

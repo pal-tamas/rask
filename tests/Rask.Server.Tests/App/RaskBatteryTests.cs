@@ -15,6 +15,7 @@ using Rask.Jobs;
 using Rask.Mail;
 using Rask.Outbox;
 using Rask.Storage;
+using Rask.WebPush;
 
 namespace Rask.Server.Tests.App;
 
@@ -95,6 +96,7 @@ public sealed class RaskBatteryTests
             modelBuilder.AddRaskStorage();
             modelBuilder.AddRaskJobs();
             modelBuilder.AddRaskOutbox();
+            modelBuilder.AddRaskWebPush();
         }
     }
 
@@ -437,11 +439,11 @@ public sealed class RaskBatteryTests
         var built = app.Build<MinimalApp>();
         var checks = ModelChecks(built.Services);
 
-        // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache, Storage. Asserted as a count rather
+        // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache, Storage, Web Push. Asserted as a count rather
         // than "at least one" because a check that silently stopped being registered is precisely the
         // failure this whole exercise is about — the original guard lived in the meta package and fired
         // for nothing a real app does.
-        Assert.Equal(6, checks.Count);
+        Assert.Equal(7, checks.Count);
 
         var messages = new List<string>();
         foreach (var check in checks)
@@ -459,6 +461,7 @@ public sealed class RaskBatteryTests
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskCache()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskStorage()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskOutbox()", StringComparison.Ordinal));
+        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskWebPush()", StringComparison.Ordinal));
         Assert.All(messages, m => Assert.Contains("OnModelCreating", m, StringComparison.Ordinal));
     }
 
@@ -480,7 +483,7 @@ public sealed class RaskBatteryTests
         var built = app.Build<MinimalApp>();
         var checks = ModelChecks(built.Services);
 
-        Assert.Equal(6, checks.Count);
+        Assert.Equal(7, checks.Count);
 
         foreach (var check in checks)
         {

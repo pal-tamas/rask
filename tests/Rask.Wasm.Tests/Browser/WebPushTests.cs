@@ -1,5 +1,6 @@
 using Rask.Core.Browser;
 using Rask.Core.Live;
+using Rask.Wire;
 
 namespace Rask.Wasm.Tests.Browser;
 

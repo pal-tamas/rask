@@ -7,7 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Web Push keeps its subscribers, so a send is one line.** `await Push.Send(WebPushMessage.Text("Order shipped",
+  "#1042 is on its way", "/orders/1042"))` reaches every browser that asked, `.To(userId)` one person's devices, and
+  a subscription the push service answers 404/410 is dropped as the send finds it. The subscriptions live in a
+  `PushSubscriber` table on the app's own database — `RaskApp` maps it and the endpoints a WebAssembly client or SPA
+  posts to (`GET /_rask/push/key`, `POST /_rask/push/subscribe`, `/unsubscribe`); on the server host a component
+  calls `Push.Subscribe(subscription)`. The table and endpoints work before any key pair exists; a send without one
+  names the settings. `using var push = Push.Fake();` then `push.Sent().To(userId).WithTitle("…").Once()` in a test.
+  Before, the scaffold carried an in-memory store (lost on every restart) and each app looped and pruned by hand.
+  By hand: `AddRaskWebPush<AppDbContext>()`, `modelBuilder.AddRaskWebPush()`, `app.MapRaskPush()`.
+
 ### Changed
+
+- **`PushSubscription` is one record, in `Rask.Wire`.** The browser API (`IWebPush.SubscribeAsync`) and the server
+  sender each declared their own, so a component on the server host could not hand one to the other. An app that named
+  `Rask.Core.Browser.PushSubscription` or `Rask.WebPush.PushSubscription` names `Rask.Wire.PushSubscription`; the
+  `Rask.Wire` namespace is already imported wherever the package is referenced.
 
 - **BREAKING — three packages, and each means one thing.** `Rask` is now the **shared core**: what the server
   and the browser have in common — components and the element chain, routing, forms, the typed browser APIs,

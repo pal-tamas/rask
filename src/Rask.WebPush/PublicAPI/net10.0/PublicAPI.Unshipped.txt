@@ -1,16 +1,5 @@
 #nullable enable
 Rask.WebPush.IWebPush
-Rask.WebPush.PushSubscription
-Rask.WebPush.PushSubscription.<Clone>$() -> Rask.WebPush.PushSubscription!
-Rask.WebPush.PushSubscription.Auth.get -> string!
-Rask.WebPush.PushSubscription.Auth.init -> void
-Rask.WebPush.PushSubscription.Deconstruct(out string! Endpoint, out string! P256dh, out string! Auth) -> void
-Rask.WebPush.PushSubscription.Endpoint.get -> string!
-Rask.WebPush.PushSubscription.Endpoint.init -> void
-Rask.WebPush.PushSubscription.Equals(Rask.WebPush.PushSubscription? other) -> bool
-Rask.WebPush.PushSubscription.P256dh.get -> string!
-Rask.WebPush.PushSubscription.P256dh.init -> void
-Rask.WebPush.PushSubscription.PushSubscription(string! Endpoint, string! P256dh, string! Auth) -> void
 Rask.WebPush.PushUrgency
 Rask.WebPush.PushUrgency.High = 3 -> Rask.WebPush.PushUrgency
 Rask.WebPush.PushUrgency.Low = 1 -> Rask.WebPush.PushUrgency
@@ -80,9 +69,6 @@ Rask.WebPush.WebPushStatus.Expired = 1 -> Rask.WebPush.WebPushStatus
 Rask.WebPush.WebPushStatus.PermanentFailure = 3 -> Rask.WebPush.WebPushStatus
 Rask.WebPush.WebPushStatus.Success = 0 -> Rask.WebPush.WebPushStatus
 Rask.WebPush.WebPushStatus.TransientFailure = 2 -> Rask.WebPush.WebPushStatus
-override Rask.WebPush.PushSubscription.Equals(object? obj) -> bool
-override Rask.WebPush.PushSubscription.GetHashCode() -> int
-override Rask.WebPush.PushSubscription.ToString() -> string!
 override Rask.WebPush.VapidKeys.Equals(object? obj) -> bool
 override Rask.WebPush.VapidKeys.GetHashCode() -> int
 override Rask.WebPush.VapidKeys.ToString() -> string!
@@ -92,8 +78,6 @@ override Rask.WebPush.WebPushMessage.ToString() -> string!
 override Rask.WebPush.WebPushResult.Equals(object? obj) -> bool
 override Rask.WebPush.WebPushResult.GetHashCode() -> int
 override Rask.WebPush.WebPushResult.ToString() -> string!
-static Rask.WebPush.PushSubscription.operator !=(Rask.WebPush.PushSubscription? left, Rask.WebPush.PushSubscription? right) -> bool
-static Rask.WebPush.PushSubscription.operator ==(Rask.WebPush.PushSubscription? left, Rask.WebPush.PushSubscription? right) -> bool
 static Rask.WebPush.VapidKeys.Generate() -> Rask.WebPush.VapidKeys!
 static Rask.WebPush.VapidKeys.operator !=(Rask.WebPush.VapidKeys? left, Rask.WebPush.VapidKeys? right) -> bool
 static Rask.WebPush.VapidKeys.operator ==(Rask.WebPush.VapidKeys? left, Rask.WebPush.VapidKeys? right) -> bool
@@ -104,5 +88,127 @@ static Rask.WebPush.WebPushMessage.operator ==(Rask.WebPush.WebPushMessage? left
 static Rask.WebPush.WebPushResult.operator !=(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
 static Rask.WebPush.WebPushResult.operator ==(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
 static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-Rask.WebPush.IWebPush.Send(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
-Rask.WebPush.WebPushSender.Send(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.WebPush.IWebPush.Send(Rask.Wire.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.WebPush.WebPushSender.Send(Rask.Wire.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.Batteries.Counting<T>
+Rask.Batteries.Counting<T>.Count.get -> int
+Rask.Batteries.Counting<T>.Counting() -> void
+Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>! all, string! noun, string! verb, System.Func<T, string!>! describe, string? whenNoneAtAll = null) -> void
+Rask.Batteries.Counting<T>.Exactly(int times) -> void
+Rask.Batteries.Counting<T>.None() -> void
+Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Twice() -> void
+Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
+Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException(string! message) -> void
+Rask.WebPush.IPush
+Rask.WebPush.IPush.Deliver(Rask.WebPush.WebPushMessage! message, System.Guid? userId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.WebPush.IPush.PublicKey.get -> string?
+Rask.WebPush.IPush.Send(Rask.Wire.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.WebPush.IPush.Subscribe(Rask.Wire.PushSubscription! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriber!>!
+Rask.WebPush.IPush.Unsubscribe(string! endpoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.WebPush.Push
+Rask.WebPush.PushExtensions
+Rask.WebPush.PushExtensions.extension(Rask.WebPush.IPush!)
+Rask.WebPush.PushExtensions.extension(Rask.WebPush.IPush!).Send(Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.WebPush.Pushing
+Rask.WebPush.PushFake
+Rask.WebPush.PushFake.Clear() -> void
+Rask.WebPush.PushFake.Dispose() -> void
+Rask.WebPush.PushFake.PublicKey.get -> string?
+Rask.WebPush.PushFake.PublicKey.set -> void
+Rask.WebPush.PushFake.Sent() -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+Rask.WebPush.PushFake.Subscribed() -> Rask.Batteries.Counting<Rask.Wire.PushSubscription!>
+Rask.WebPush.PushFakes
+Rask.WebPush.PushFakes.extension(Rask.WebPush.Push!)
+Rask.WebPush.PushKey
+Rask.WebPush.PushKey.<Clone>$() -> Rask.WebPush.PushKey!
+Rask.WebPush.PushKey.Deconstruct(out string! PublicKey) -> void
+Rask.WebPush.PushKey.Equals(Rask.WebPush.PushKey? other) -> bool
+Rask.WebPush.PushKey.PublicKey.get -> string!
+Rask.WebPush.PushKey.PublicKey.init -> void
+Rask.WebPush.PushKey.PushKey(string! PublicKey) -> void
+Rask.WebPush.PushSubscriber
+Rask.WebPush.PushSubscriber.Auth.get -> string!
+Rask.WebPush.PushSubscriber.Endpoint.get -> string!
+Rask.WebPush.PushSubscriber.ExpiresAt.get -> System.DateTime?
+Rask.WebPush.PushSubscriber.P256dh.get -> string!
+Rask.WebPush.PushSubscriber.PushSubscriber() -> void
+Rask.WebPush.PushSubscriber.Subscription.get -> Rask.Wire.PushSubscription!
+Rask.WebPush.PushSubscriber.UserId.get -> System.Guid?
+Rask.WebPush.PushSubscriberRead
+Rask.WebPush.PushSubscriberRead.Auth.get -> string!
+Rask.WebPush.PushSubscriberRead.Auth.init -> void
+Rask.WebPush.PushSubscriberRead.CreatedAt.get -> System.DateTime
+Rask.WebPush.PushSubscriberRead.CreatedAt.init -> void
+Rask.WebPush.PushSubscriberRead.Endpoint.get -> string!
+Rask.WebPush.PushSubscriberRead.Endpoint.init -> void
+Rask.WebPush.PushSubscriberRead.ExpiresAt.get -> System.DateTime?
+Rask.WebPush.PushSubscriberRead.ExpiresAt.init -> void
+Rask.WebPush.PushSubscriberRead.Id.get -> System.Guid
+Rask.WebPush.PushSubscriberRead.Id.init -> void
+Rask.WebPush.PushSubscriberRead.P256dh.get -> string!
+Rask.WebPush.PushSubscriberRead.P256dh.init -> void
+Rask.WebPush.PushSubscriberRead.PushSubscriberRead() -> void
+Rask.WebPush.PushSubscriberRead.UpdatedAt.get -> System.DateTime
+Rask.WebPush.PushSubscriberRead.UpdatedAt.init -> void
+Rask.WebPush.PushSubscriberRead.UserId.get -> System.Guid?
+Rask.WebPush.PushSubscriberRead.UserId.init -> void
+Rask.WebPush.PushSubscriberReadAccess
+Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!)
+Rask.WebPush.Pushing
+Rask.WebPush.Pushing.AsTask() -> System.Threading.Tasks.Task<int>!
+Rask.WebPush.Pushing.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<int>
+Rask.WebPush.Pushing.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<int>
+Rask.WebPush.Pushing.Pushing() -> void
+Rask.WebPush.Pushing.To(System.Guid userId) -> Rask.WebPush.Pushing
+Rask.WebPush.RaskPushEndpointExtensions
+Rask.WebPush.SentPush
+Rask.WebPush.SentPush.<Clone>$() -> Rask.WebPush.SentPush!
+Rask.WebPush.SentPush.Body.get -> string?
+Rask.WebPush.SentPush.Body.init -> void
+Rask.WebPush.SentPush.Deconstruct(out string? Title, out string? Body, out string? Url, out System.Guid? To) -> void
+Rask.WebPush.SentPush.Equals(Rask.WebPush.SentPush? other) -> bool
+Rask.WebPush.SentPush.SentPush(string? Title, string? Body, string? Url, System.Guid? To) -> void
+Rask.WebPush.SentPush.Title.get -> string?
+Rask.WebPush.SentPush.Title.init -> void
+Rask.WebPush.SentPush.To.get -> System.Guid?
+Rask.WebPush.SentPush.To.init -> void
+Rask.WebPush.SentPush.Url.get -> string?
+Rask.WebPush.SentPush.Url.init -> void
+Rask.WebPush.SentPushCounting
+Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.SentPush!>)
+Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.SentPush!>).Saying(string! text) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.SentPush!>).To(System.Guid userId) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.SentPush!>).ToEveryone() -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.SentPush!>).WithTitle(string! title) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+Rask.WebPush.WebPushModelBuilderExtensions
+const Rask.WebPush.PushSubscriber.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
+override Rask.WebPush.PushKey.Equals(object? obj) -> bool
+override Rask.WebPush.PushKey.GetHashCode() -> int
+override Rask.WebPush.PushKey.ToString() -> string!
+override Rask.WebPush.SentPush.Equals(object? obj) -> bool
+override Rask.WebPush.SentPush.GetHashCode() -> int
+override Rask.WebPush.SentPush.ToString() -> string!
+static Rask.WebPush.Push.IsOn.get -> bool
+static Rask.WebPush.Push.PublicKey.get -> string?
+static Rask.WebPush.Push.Send(Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.WebPush.Pushing
+static Rask.WebPush.Push.Send(Rask.Wire.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+static Rask.WebPush.Push.Subscribe(Rask.Wire.PushSubscription! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriber!>!
+static Rask.WebPush.Push.Unsubscribe(string! endpoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.WebPush.PushExtensions.Send(this Rask.WebPush.IPush! push, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.WebPush.Pushing
+static Rask.WebPush.PushFakes.Fake() -> Rask.WebPush.PushFake!
+static Rask.WebPush.PushFakes.extension(Rask.WebPush.Push!).Fake() -> Rask.WebPush.PushFake!
+static Rask.WebPush.PushKey.operator !=(Rask.WebPush.PushKey? left, Rask.WebPush.PushKey? right) -> bool
+static Rask.WebPush.PushKey.operator ==(Rask.WebPush.PushKey? left, Rask.WebPush.PushKey? right) -> bool
+static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).Read.get -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!
+static Rask.WebPush.PushSubscriberReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!
+static Rask.WebPush.RaskPushEndpointExtensions.MapRaskPush(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+static Rask.WebPush.SentPush.operator !=(Rask.WebPush.SentPush? left, Rask.WebPush.SentPush? right) -> bool
+static Rask.WebPush.SentPush.operator ==(Rask.WebPush.SentPush? left, Rask.WebPush.SentPush? right) -> bool
+static Rask.WebPush.SentPushCounting.Saying(this Rask.Batteries.Counting<Rask.WebPush.SentPush!> sent, string! text) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+static Rask.WebPush.SentPushCounting.To(this Rask.Batteries.Counting<Rask.WebPush.SentPush!> sent, System.Guid userId) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+static Rask.WebPush.SentPushCounting.ToEveryone(this Rask.Batteries.Counting<Rask.WebPush.SentPush!> sent) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+static Rask.WebPush.SentPushCounting.WithTitle(this Rask.Batteries.Counting<Rask.WebPush.SentPush!> sent, string! title) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
+static Rask.WebPush.WebPushModelBuilderExtensions.AddRaskWebPush(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

@@ -18,8 +18,8 @@ internal static class TestCrypto
         public required byte[] P256dh { get; init; } // 65-byte uncompressed public point.
         public required byte[] Auth { get; init; }   // 16-byte auth secret.
 
-        public string P256dhB64 => Base64Url.EncodeToString(P256dh);
-        public string AuthB64 => Base64Url.EncodeToString(Auth);
+        public string P256dhB64 => System.Buffers.Text.Base64Url.EncodeToString(P256dh);
+        public string AuthB64 => System.Buffers.Text.Base64Url.EncodeToString(Auth);
 
         public void Dispose() => Ecdh.Dispose();
     }

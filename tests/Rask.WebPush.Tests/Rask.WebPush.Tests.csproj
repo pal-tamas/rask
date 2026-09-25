@@ -12,6 +12,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- The battery keeps subscribers on a real database, and its endpoints run on a test server. The SQLite bundle is
+         named so its version is the pinned one (CVE-2025-6965) — a direct reference is the only lever under CPM. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit"/>
     <PackageReference Include="xunit.runner.visualstudio">
@@ -21,8 +26,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.WebPush"/>
+    <Using Include="Rask.Wire"/>
   </ItemGroup>
 
   <ItemGroup>

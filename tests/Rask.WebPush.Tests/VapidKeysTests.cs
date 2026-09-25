@@ -10,8 +10,8 @@ public sealed class VapidKeysTests
     {
         VapidKeys keys = VapidKeys.Generate();
 
-        byte[] pub = Base64Url.DecodeFromChars(keys.PublicKey);
-        byte[] priv = Base64Url.DecodeFromChars(keys.PrivateKey);
+        byte[] pub = System.Buffers.Text.Base64Url.DecodeFromChars(keys.PublicKey);
+        byte[] priv = System.Buffers.Text.Base64Url.DecodeFromChars(keys.PrivateKey);
         Assert.Equal(65, pub.Length);
         Assert.Equal(0x04, pub[0]); // uncompressed point marker.
         Assert.Equal(32, priv.Length);
@@ -21,8 +21,8 @@ public sealed class VapidKeysTests
     public void Generate_keys_reimport_as_a_consistent_pair()
     {
         VapidKeys keys = VapidKeys.Generate();
-        byte[] pub = Base64Url.DecodeFromChars(keys.PublicKey);
-        byte[] priv = Base64Url.DecodeFromChars(keys.PrivateKey);
+        byte[] pub = System.Buffers.Text.Base64Url.DecodeFromChars(keys.PublicKey);
+        byte[] priv = System.Buffers.Text.Base64Url.DecodeFromChars(keys.PrivateKey);
         var parameters = new ECParameters
         {
             Curve = ECCurve.NamedCurves.nistP256,
