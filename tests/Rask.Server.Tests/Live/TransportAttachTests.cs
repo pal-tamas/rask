@@ -28,7 +28,7 @@ public sealed class TransportAttachTests
     {
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => new H1()["hi"];
+        protected override Component? Render() => Markup.H1["hi"];
     }
 
     /// <summary>A connection that records what it was asked to carry.</summary>

@@ -16,5 +16,5 @@ public sealed class ScreenOrientationTrigger : Component
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template!(GestureBridge.Attr("orientation.lock", null, arg: Orientation));
+    protected override Component Render() => Template!(GestureBridge.Attr("orientation.lock", default, arg: Orientation));
 }

@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -12,20 +12,14 @@ namespace Rask.Core.Browser;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class BroadcastInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<string, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<string, Task>> Handlers = new();
 
-    internal static int Register(Func<string, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<string, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge when a broadcast message arrives; do not call.</summary>
     [JSInvokable("RaskBroadcastReceive")]
     public static Task Receive(int id, string message) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(message) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(message) : Task.CompletedTask;
 }

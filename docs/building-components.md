@@ -56,7 +56,7 @@ narrower than it looks: choosing a mode is still enforced, because the openings 
 no longer enforced is which steps *follow* one — a `Validate` on a controlled control compiles and does
 nothing, as an unread property always could.
 
-Both spellings infer the type from what you passed, so `Input<string>()` is never needed. Where the value
+Both spellings infer the type from what you passed, so `Input.Of<string>()` is never needed. Where the value
 alone cannot say — `null` names no type — write it once:
 
 ```csharp
@@ -106,8 +106,8 @@ On a component you write, an event is a `Callback` (or `Callback<T>` when it car
 value the framework asks you for — a template, a selector — is an `Fn<…>`:
 
 ```csharp
-public Callback? OnPick { get; set; }              // Pick or PickAsync — one property, either shape
-public Callback<int>? OnRate { get; set; }
+public Callback OnPick { get; set; }               // Pick or PickAsync — one property, either shape
+public Callback<int> OnRate { get; set; }
 public Fn<Product, Component>? Template { get; set; }
 ```
 
@@ -115,9 +115,10 @@ The chain's receiver is the component itself, and both are **structs**, not dele
 `.OnPick(fn)` a setter: a delegate-typed property on the receiver would be *invocable*, and C# would read
 the call as invoking it (CS1593) and never reach the step. There is no `OnPickAsync` twin to declare.
 
-Fire an event with `await OnPick.Invoke();` and forward one with `.OnClick(() => OnRate.Invoke(i))` — no `?.`,
-no `??`: an unset event is a no-op, and a synchronous handler hands back the cached, already-completed task, so
-awaiting it never yields. Call a template with `Template?.Invoke(item)`.
+Fire an event with `await OnPick.Invoke();`. An unset event does nothing, so there is no null check, and a
+non-nullable `Callback` is never a required step — leave it off the chain and it stays unset. `Invoke` returns a
+`ValueTask` already complete for a synchronous handler, so the sync path never picks up a `Task`. Call a template
+with `Template?.Invoke(item)`.
 
 ## Where the names come from
 
@@ -145,7 +146,7 @@ Div.Class("panel")[                          // an element: bare
   inside that component, and `Markup.Footer` still reaches the element.
 - **Outside a component, don't also import `Rask.Core.Components`.** That namespace holds the element TYPES, so
   beside `using static Rask.Markup` a bare `P[…]` names both the type and the member (CS0229). Name a type in a
-  signature with `Rask.Core.Components.P`, or write `Markup.P` in that file. The templates never import it.
+  signature with `Rask.Core.Components.HTMLParagraphElement`, or write `Markup.P` in that file. The templates never import it.
 
 ## Your own components
 
@@ -156,7 +157,7 @@ public sealed partial class ProductCard : Component
 {
     public required string Title { get; set; }   // a step
     public string? Subtitle { get; set; }        // a setter
-    public Callback? OnPick { get; set; }
+    public Callback OnPick { get; set; }         // a setter too — an event is never required
 
     protected override Component? Render() => …;
 }

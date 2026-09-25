@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;

@@ -145,3 +145,4 @@ static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.B
 static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, System.IServiceProvider! services) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
 static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, System.IServiceProvider! services) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!
 Rask.Server.Authentication.SessionUserProvider.Changed -> System.EventHandler?
+Rask.RaskAppOptions.Ui.get -> Rask.Battery!

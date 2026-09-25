@@ -64,6 +64,20 @@ Raise `NodeRequirement.ScaffoldLine`, then run the unit gate — the tests name 
 follow. Do not touch the places quoting **Angular's** floor (`^22.22.3 || ^24.15.0 || >=26.0.0`);
 that is a fact about someone else's CLI. The build floor is a separate, lower number on purpose.
 
+## 3b. MDN data (the element surface)
+
+MDN is the source of truth for every element type, its attributes and its members.
+`src/Rask.Core/Dom/mdn.snapshot.json` is built from the **latest** `@webref/elements`, `@webref/idl` and
+`@mdn/browser-compat-data`. Refresh it on every run of this skill, on the latest LTS Node:
+
+```bash
+scripts/mdn/refresh.sh
+git diff --stat src/Rask.Core/Dom/mdn.snapshot.json
+```
+
+A diff is MDN moving: a new element or attribute that now ships in two engines, or a member BCD
+deprecated. Commit it through `rask-ship`; `MdnSnapshotTests` fails if a tag Rask renders stops shipping.
+
 ## 4. Apply + verify
 
 Edit the pins, then run the **`rask-ship`** gate (warnings-as-errors, so analyzer-rule changes from an

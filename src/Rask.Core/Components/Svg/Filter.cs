@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     <c>filter</c> property as <c>url(#id)</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/filter">MDN</see>
 /// </summary>
+[Tag("filter")]
 public sealed partial class Filter : SvgElement
 {
-    protected override string TagName => "filter";
-
     /// <summary>
     ///     The left edge of the filter region. Defaults to -10%, giving the effect room to spill past the
     ///     element.

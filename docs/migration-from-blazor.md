@@ -86,9 +86,9 @@ chain step that sets it wraps it so invoking it re-renders the parent that owns 
 // Rask: child declares a Callback<int>; parent passes a lambda over its own state
 public sealed partial class RatingStars : Component
 {
-    public Callback<int>? OnRate { get; set; }
+    public Callback<int> OnRate { get; set; }
     protected override Component? Render() =>
-        Button.OnClick(() => OnRate?.Invoke(5))["Rate"];
+        Button.OnClick(async () => await OnRate.Invoke(5))["Rate"];
 }
 
 // parent — the lambda captures `this`, so invoking OnRate re-renders the parent

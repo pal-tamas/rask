@@ -110,9 +110,9 @@
   </PropertyGroup>
   <!--
     The .NET analyzers run at latest-recommended for everything under src/ — the shipped code. Tests and
-    benchmarks keep the SDK default. The rules at this level that clash with a deliberate design (CA1051 on
-    RenderFrame's public hot-path fields, for one) are turned off in .editorconfig, each with its reason.
-    The third-party analyzers are wired in Directory.Build.targets (docs/code-analysis.md).
+    benchmarks keep the SDK default. A finding is fixed; one the code genuinely cannot satisfy is silenced at
+    that one site with a #pragma giving the reason. The third-party analyzers are wired in
+    Directory.Build.targets (docs/code-analysis.md).
   -->
   <PropertyGroup Condition=" $(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)src')) ">
     <AnalysisLevel>latest-recommended</AnalysisLevel>

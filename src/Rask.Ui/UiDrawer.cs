@@ -47,7 +47,7 @@ public sealed partial class UiDrawer : Component
     public bool? Open { get; set; }
 
     /// <summary>Runs when the panel is opened or closed, with the state being asked for.</summary>
-    public Callback<bool>? OnToggle { get; set; }
+    public Callback<bool> OnToggle { get; set; }
 
     /// <summary>The accessible name for the closing overlay.</summary>
     public string? CloseLabel { get; set; }
@@ -59,9 +59,9 @@ public sealed partial class UiDrawer : Component
     {
         var toggle = Input.Of<bool>().Checked(Open == true).Id(Id).Class("drawer-toggle");
 
-        if (OnToggle is { } onToggle)
+        if (OnToggle.HasValue)
         {
-            toggle = toggle.OnChange(onToggle);
+            toggle = toggle.OnChange(OnToggle);
         }
 
         return Div.Class(UiClass.Compose(

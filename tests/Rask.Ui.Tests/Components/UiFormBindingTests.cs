@@ -1,5 +1,3 @@
-using Rask.Core.Forms;
-
 namespace Rask.UiTests.Components;
 
 /// <summary>
@@ -62,7 +60,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
             .Label("Country")
             .ToHtml();
 
-        Assert.Contains("value=\"gb\" selected", html, StringComparison.Ordinal);
+        Assert.Contains("selected value=\"gb\"", html, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -206,14 +204,14 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Of_opens_controlled_mode_so_the_parent_still_owns_the_value()
+    public async Task Of_opens_controlled_mode_so_the_parent_still_owns_the_value()
     {
         var seen = "";
         var control = Ui.Input.Of<string>().Label("Search").OnChange(v => seen = v);
 
         Assert.Null(control.Bind);
 
-        control.OnChange?.Invoke("typed");
+        await control.OnChange.Invoke("typed");
 
         Assert.Equal("typed", seen);
     }

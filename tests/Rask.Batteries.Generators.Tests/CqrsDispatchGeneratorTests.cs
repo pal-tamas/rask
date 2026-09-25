@@ -1,4 +1,4 @@
-namespace Rask.Cqrs.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 public sealed class CqrsDispatchGeneratorTests
 {

@@ -87,9 +87,10 @@ public sealed class AuthOptions
     /// </summary>
     /// <remarks>
     /// A link in an email has to be absolute, and the request that triggers it is a WebSocket frame or
-    /// a POST rather than the navigation the visitor will make. Left unset, the origin of the request
-    /// that started the flow is used, which is right for a single-origin app. Set it when the app sits
-    /// behind a proxy whose public address it cannot otherwise see.
+    /// a POST rather than the navigation the visitor will make. Left unset, Development uses the origin of
+    /// the request that started the flow; everywhere else no link email is sent (and the log says so),
+    /// because a request's Host header is chosen by whoever sends it. Read from
+    /// <c>Rask:Auth:PublicOrigin</c>; <c>rask deploy --domain</c> sets it.
     /// </remarks>
     public string? PublicOrigin { get; set; }
 

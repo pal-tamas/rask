@@ -1,5 +1,3 @@
-using Rask.Core.Routing;
-
 #pragma warning disable RASK014 // test-defined components constructed directly
 
 namespace Rask.Testing.Tests;

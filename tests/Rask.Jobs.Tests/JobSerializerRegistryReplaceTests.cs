@@ -1,5 +1,3 @@
-using Rask.Cqrs;
-
 namespace Rask.Background.Tests;
 
 // The registry is process-global and the generated module initializer already owns a group in it, so

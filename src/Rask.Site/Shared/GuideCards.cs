@@ -1,4 +1,3 @@
-using Rask.Core;
 using Rask.Core.Components;
 using Rask.Site.Features;
 

@@ -67,7 +67,7 @@ internal static class BuilderEntry
         // An entry hands back the component itself, so the name test is direct. It used to hand back a
         // `Build<T>` over it, which had to be unwrapped first — `Build` being a name no author writes.
         return produced is INamedTypeSymbol named
-               && string.Equals(member.Name, named.Name, StringComparison.Ordinal)
+               && NamesEntryOf(member.Name, named)
                && DerivesFromComponent(named, component)
             ? named
             : null;
@@ -219,7 +219,7 @@ internal static class BuilderEntry
         // something that could have taken a key.
         if (property.Type is not INamedTypeSymbol produced
             || !property.IsStatic
-            || !(string.Equals(produced.Name, name.Identifier.ValueText, StringComparison.Ordinal)
+            || !(NamesEntryOf(name.Identifier.ValueText, produced)
                  || IsGroupedEntry(property, produced))
             || model.Compilation.GetTypeByMetadataName(ComponentMetadataName) is not { } component
             || !DerivesFromComponent(produced, component))
@@ -287,6 +287,29 @@ internal static class BuilderEntry
                     ComponentFactoryGenerator.GroupMemberName(
                         property.Type.Name.Substring(SeedPrefix.Length), seedGroup.Name),
                     name.Identifier.ValueText, StringComparison.Ordinal)));
+
+    private const string TagFullName = "Rask.Core.TagAttribute";
+
+    // Whether `name` is an entry of `type`: its own name, or — for an element — one its [Tag]s give it, since
+    // an element type is named after its DOM interface while its entries are named after its tags.
+    public static bool NamesEntryOf(string name, INamedTypeSymbol type) =>
+        string.Equals(name, type.Name, StringComparison.Ordinal)
+        || type.GetAttributes().Any(a => string.Equals(name, TagEntryName(a), StringComparison.Ordinal));
+
+    // The entry one [Tag] gives its element: its `Entry`, or the tag name capitalised. Null for any other attribute.
+    private static string? TagEntryName(AttributeData attribute)
+    {
+        if (!string.Equals(attribute.AttributeClass?.ToDisplayString(), TagFullName, StringComparison.Ordinal)
+            || attribute.ConstructorArguments.Length != 1
+            || attribute.ConstructorArguments[0].Value is not string { Length: > 0 } tag)
+        {
+            return null;
+        }
+
+        var entry = attribute.NamedArguments
+            .FirstOrDefault(static a => string.Equals(a.Key, "Entry", StringComparison.Ordinal)).Value.Value as string;
+        return entry ?? char.ToUpperInvariant(tag[0]) + tag.Substring(1);
+    }
 
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
 
@@ -528,7 +551,8 @@ internal static class BuilderEntry
 
         if (prop.Type.NullableAnnotation == NullableAnnotation.Annotated
             || (prop.Type.IsValueType
-                && prop.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T))
+                && prop.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+            || CallbackCarrier.IsNonNullable(prop.Type))
         {
             return false;
         }

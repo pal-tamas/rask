@@ -1,5 +1,3 @@
-using Rask.Core;
-
 namespace Rask.Site;
 
 // The set of live demos a guide can embed inline. A guide's markdown references a demo with an
@@ -174,7 +172,7 @@ public static partial class DemoRegistry
                 .Files(["TierStaticHelperDemo.cs", "TierStaticHelper.cs", "TierStatelessGreetingDemo.cs", "TierGreeting.cs", "TierStatefulCounterDemo.cs"])
                 .Result(ComponentTiersDemo),
             ["context-theme"] = () => CodeSample.Files(["ContextThemeDemo.cs", "Theme.cs"]).Result(ContextThemeDemo),
-            ["callback-rating"] = () => CodeSample.Files(["CallbackRatingDemo.cs"]).Result(CallbackRatingDemo),
+            ["callback-rating"] = () => CodeSample.Files(["RatingStars.cs", "CallbackRatingDemo.cs"]).Result(CallbackRatingDemo),
             ["virtualize-items"] = () => CodeSample.Files(["VirtualizeItemsDemo.cs"]).Result(VirtualizeItemsDemo),
             ["virtualize-provider"] = () => CodeSample.Files(["VirtualizeProviderDemo.cs"]).Result(VirtualizeProviderDemo),
             ["keyed-lists-reorder"] = () => CodeSample.Files(["KeyedListsReorderDemo.cs"]).Result(KeyedListsReorderDemo),
@@ -245,6 +243,9 @@ public static partial class DemoRegistry
                 .Files(["BasicScopedCss.cs", "BasicScopedCss.css"])
                 .Result(BasicScopedCss),
             ["asset-js-only"] = () => CodeSample.Files(["JsOnlyDemo.cs", "JsOnlyDemo.ts"]).Result(JsOnlyDemo),
+            ["js-interop-script-calls"] = () => CodeSample
+                .Files(["ScriptCallsDemo.cs", "ScriptCallsDemo.ts"])
+                .Result(ScriptCallsDemo),
             ["asset-twin-bundle"] = () => CodeSample
                 .Files(["TwinA.cs", "TwinA.css"])
                 .Result(Div.Class("flex gap-2 flex-wrap items-center")[TwinA, TwinB]),

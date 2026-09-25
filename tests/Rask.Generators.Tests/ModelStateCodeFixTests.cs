@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Rask.Data.Generators.Analyzers;
+using Rask.Batteries.Generators.Analyzers;
 using Rask.Generators.CodeFixes;
 
 namespace Rask.Generators.Tests;

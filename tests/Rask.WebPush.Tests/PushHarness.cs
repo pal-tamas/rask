@@ -28,6 +28,12 @@ internal sealed class StubSender : IWebPush
 
     public Task<WebPushResult> Send(PushSubscription subscription, WebPushMessage message, CancellationToken cancellationToken = default)
     {
+        // Refuses what the real sender refuses, so a malformed row behaves here as it would in production.
+        if (WebPushSender.Problem(subscription) is { } problem)
+        {
+            throw new ArgumentException(problem, nameof(subscription));
+        }
+
         if (Gone.Contains(subscription.Endpoint))
         {
             return Task.FromResult(new WebPushResult(WebPushStatus.Expired, 410));

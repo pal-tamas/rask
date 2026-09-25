@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Rask.Cqrs;
 using Rask.Data;
 using Rask.Querying;
 using Rask.Site.DataDemo;

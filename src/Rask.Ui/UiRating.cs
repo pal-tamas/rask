@@ -44,7 +44,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
     public int Value { get; set; }
 
     /// <inheritdoc />
-    public Callback<int>? OnChange { get; set; }
+    public Callback<int> OnChange { get; set; }
 
 
     /// <inheritdoc />
@@ -55,7 +55,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
 
 
     /// <inheritdoc />
-    public Callback<int>? AfterBind { get; set; }
+    public Callback<int> AfterBind { get; set; }
 
 
     /// <inheritdoc />

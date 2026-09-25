@@ -1,4 +1,3 @@
-using Rask.Core;
 using Rask.Core.Browser;
 using Rask.Core.Components;
 

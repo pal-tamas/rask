@@ -90,6 +90,21 @@
   </ItemGroup>
 
   <!--
+    The site's scoped .ts, compiled HERE as the Server client companion compiles an app's Client/ folder:
+    the glob is turned off and the list supplied, rooted at the site so the emitted tree lines up. A
+    component calls its own script through methods generated from the declarations that compile writes
+    (`await Width(_box)`), so without it the linked sources do not compile at all.
+  -->
+  <PropertyGroup>
+    <RaskScopedTsGlob>false</RaskScopedTsGlob>
+    <RaskScopedTsRootDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Rask.Site'))</RaskScopedTsRootDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <_RaskScopedTs Include="..\..\src\Rask.Site\**\*.ts"
+                   Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\**\node_modules\**;..\..\src\Rask.Site\wwwroot\**;..\..\src\Rask.Site\Resources\**;..\..\src\Rask.Site\Browser\**;..\..\src\Rask.Site\**\*.d.ts;..\..\src\Rask.Site\Features\Islands\**"/>
+  </ItemGroup>
+
+  <!--
     The guides the site renders, embedded here too — and this is the item most likely to be dropped by
     someone tidying this file, so it is worth being explicit about what happens then.
 

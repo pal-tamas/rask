@@ -76,7 +76,7 @@ public sealed partial class UiModal : Component
     ///     and it is how the page learns to stop rendering it open. On the modal path the browser closes it
     ///     and this hears that it did.
     /// </summary>
-    public Callback? OnClose { get; set; }
+    public Callback OnClose { get; set; }
 
     /// <summary>
     ///     Runs when it is DISMISSED — Escape or a click outside — before <see cref="OnClose" />, which still runs.
@@ -88,7 +88,7 @@ public sealed partial class UiModal : Component
     ///     open. On the modal path it is the dialog's own <c>cancel</c> event, which a browser without invoker
     ///     commands does not raise for a popover it dismisses — there only <see cref="OnClose" /> runs.
     /// </remarks>
-    public Callback? OnCancel { get; set; }
+    public Callback OnCancel { get; set; }
 
     /// <summary>Whether a click outside closes it. On unless this is <see langword="false" />.</summary>
     /// <remarks>
@@ -130,19 +130,19 @@ public sealed partial class UiModal : Component
             dialog = dialog.Attributes(("closedby", "none"));
         }
 
-        if (OnClose is { } onClose)
+        if (OnClose.HasValue)
         {
             // The dialog's own toggle event: the platform reports every way it closed, the ones no handler here
             // saw included — Escape, the backdrop, a button inside the body.
-            dialog = dialog.OnToggle(e => e.IsOpen ? Task.CompletedTask : onClose.Invoke());
+            dialog = dialog.OnToggle(e => e.IsOpen ? Task.CompletedTask : OnClose.Invoke().AsTask());
         }
 
         // Escape, and a light dismiss where the browser does one: the platform raises cancel for those and
         // for nothing else. The backdrop is a close command, which it reports as a plain close, so the
         // backdrop says it was a dismissal itself, below.
-        if (OnCancel is { } onCancel)
+        if (OnCancel.HasValue)
         {
-            dialog = dialog.OnCancel(onCancel);
+            dialog = dialog.OnCancel(OnCancel);
         }
 
         // Two roots and no wrapper: the opener is a sibling of the dialog it names, so a caller can put
@@ -211,11 +211,11 @@ public sealed partial class UiModal : Component
             .Variant(Ui.Variant.Ghost)
             .Size(Ui.Size.Sm)
             .Square(true)
-            .OnClick(() => OnClose.Invoke());
+            .OnClick(() => OnClose.Invoke().AsTask());
 
         // The trap presses the [data-rask-dismiss] control on Escape. The close button IS that control unless
         // the caller wants a dismissal told apart from a close — then Escape presses a hidden one of its own.
-        if (Escapable != false && OnClose is not null && OnCancel is null)
+        if (Escapable != false && OnClose.HasValue && !OnCancel.HasValue)
         {
             close = close.Attributes(("data-rask-dismiss", null));
         }
@@ -242,14 +242,14 @@ public sealed partial class UiModal : Component
             return EscapeTarget();
         }
 
-        return OnCancel is null
+        return !OnCancel.HasValue
             ? close[Ui.Icon.Name(Ui.IconName.Close)]
             : [close[Ui.Icon.Name(Ui.IconName.Close)], EscapeTarget()];
     }
 
     // Someone is listening for the page to stop rendering it open. Without either callback a dismissal would
     // do nothing, so the backdrop and the Escape control are left out rather than rendered dead.
-    private bool HearsDismissal => OnClose is not null || OnCancel is not null;
+    private bool HearsDismissal => OnClose.HasValue || OnCancel.HasValue;
 
     // A dismissal on the state-driven path: cancel first, then close, the order the platform raises them in.
     private async Task DismissAsync()
@@ -287,7 +287,7 @@ public sealed partial class UiModal : Component
     // Takes the dialog itself. It used to take `Build<Dialog>`, because the chain receiver was the only
     // thing carrying the children indexer; the component carries it now. The two paths differ in how the
     // dialog OPENS, not in what is inside it.
-    private Component Shell(Dialog dialog, Component? closeControl, Component? backdrop) =>
+    private Component Shell(HTMLDialogElement dialog, Component? closeControl, Component? backdrop) =>
         // No `role="dialog"`: the element IS a dialog and carries that role implicitly, so stating it
         // again is the redundant-ARIA that guidance tells you not to write. The NAME is not implicit,
         // though — a dialog with a heading inside is still an unnamed dialog to a screen reader, which

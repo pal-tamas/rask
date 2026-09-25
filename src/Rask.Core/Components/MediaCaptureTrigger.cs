@@ -29,7 +29,7 @@ public sealed class MediaCaptureTrigger : Component
     public string? FacingMode { get; set; }
 
     /// <summary>Invoked with <c>"granted"</c> when the stream starts, or <c>"denied"</c> if the user refuses.</summary>
-    public Callback<string?>? OnResult { get; set; }
+    public Callback<string?> OnResult { get; set; }
 
     /// <summary>
     ///     Invoked with the started stream's <see cref="MediaStreamId" />, so the stream stays reachable
@@ -38,7 +38,7 @@ public sealed class MediaCaptureTrigger : Component
     ///     Not invoked when the user refuses. This is the only way a <b>Server</b>-hosted app can hold on to
     ///     a captured stream.
     /// </summary>
-    public Callback<MediaStreamId>? OnStream { get; set; }
+    public Callback<MediaStreamId> OnStream { get; set; }
 
     /// <summary>Renders your trigger element; its click starts the capture and attaches it to <see cref="For" />.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
@@ -51,9 +51,9 @@ public sealed class MediaCaptureTrigger : Component
             RaskBrowserJsonContext.Default.GestureMediaConstraints);
         // Stay fire-and-forget when the app wants no result: passing a non-null sink would register a
         // callback id on every render for nobody to consume.
-        var sink = OnResult is null && OnStream is null
-            ? (Callback<string?>?)null
-            : new Callback<string?>(Dispatch);
+        var sink = OnResult.HasValue || OnStream.HasValue
+            ? new Callback<string?>(Dispatch)
+            : default;
         return Template!(GestureBridge.Attr("media.start", sink, arg: constraints, el: For.Id));
     }
 

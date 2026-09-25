@@ -4,6 +4,14 @@
 global using Rask;
 global using static Rask.Markup;
 
+// The framework's everyday namespaces: [Route] and Routes, forms, the typed browser APIs, the live
+// context, and the signed-in user.
+global using Rask.Core.Authentication;
+global using Rask.Core.Browser;
+global using Rask.Core.Forms;
+global using Rask.Core.Live;
+global using Rask.Core.Routing;
+
 // Your batteries, by name: Cache.Remember(…), Mail.Send(…), Jobs.Enqueue(…), Files.Save(…).
 // rask:if cqrs
 global using Rask.Cqrs;

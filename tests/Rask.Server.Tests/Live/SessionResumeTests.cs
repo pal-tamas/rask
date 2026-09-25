@@ -6,7 +6,6 @@ using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Tests.Infrastructure;
-using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Live;
 
@@ -46,8 +45,8 @@ public sealed class SessionResumeTests
             state.TryGet<int>(StateKey, out var count);
             return
             [
-                new Div()[count.ToString()],
-                new Div()[route.Path]
+                Markup.Div[count.ToString()],
+                Markup.Div[route.Path]
             ];
         }
     }
@@ -379,7 +378,7 @@ public sealed class SessionResumeTests
 
         // Full: the rebuild has nowhere to go.
         host.Store.MaxSessions = 1;
-        host.Store.Create(_ => new Span());
+        host.Store.Create(_ => Markup.Span);
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId, token);
 

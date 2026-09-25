@@ -202,7 +202,9 @@ reference the browser app needs and the server must not have.
 > app with no database has none to require, so it would answer 401 to every message, and the failure reads
 > as broken transport rather than as the secure default working. Once the app has a database, delete the
 > key. And because it is configuration, an environment variable can turn it off too — guard the deploy
-> environment like code.
+> environment like code. With a database, the SPA and meta templates keep the default and mark only the
+> starter greeting's two handlers `[AllowAnonymous]`, so the landing page answers before anybody has an
+> account while every message you add needs a signed-in caller.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
 can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a

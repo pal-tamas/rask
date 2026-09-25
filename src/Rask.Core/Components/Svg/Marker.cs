@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     Attach it with the <c>marker-start</c>, <c>marker-mid</c> and <c>marker-end</c> CSS properties.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/marker">MDN</see>
 /// </summary>
+[Tag("marker")]
 public sealed partial class Marker : SvgElement
 {
-    protected override string TagName => "marker";
-
     /// <summary>The marker viewport's width.</summary>
     public string? MarkerWidth { get; set; }
 

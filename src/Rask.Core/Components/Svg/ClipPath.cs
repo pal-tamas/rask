@@ -10,10 +10,9 @@ namespace Rask.Core.Components;
 ///     soft one, use a <c>mask</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/clipPath">MDN</see>
 /// </summary>
+[Tag("clipPath")]
 public sealed partial class ClipPath : SvgElement
 {
-    protected override string TagName => "clipPath";
-
     /// <summary>
     ///     The coordinate system for the clipping shape: <c>userSpaceOnUse</c> or <c>objectBoundingBox</c>.
     /// </summary>

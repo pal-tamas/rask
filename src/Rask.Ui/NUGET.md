@@ -38,7 +38,8 @@ Opt into the build writing the sheet:
 </PropertyGroup>
 ```
 
-Then link it before your own, and turn the theme scope on:
+On `RaskApp` (`Rask.Server`) or the WASM host (`Rask.Wasm`) that is all: the host links it before your own
+sheet and turns the theme scope on. A hand-wired host links it itself, and turns the theme scope on:
 
 ```csharp
 protected override Component? HeadAssets =>

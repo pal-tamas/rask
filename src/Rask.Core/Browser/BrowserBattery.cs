@@ -31,7 +31,7 @@ public sealed class BrowserBattery : IBattery
         ArgumentNullException.ThrowIfNull(onChange);
 
         // Register before adding the JS listeners so no early change races ahead of the handler.
-        var id = BatteryInterop.Register(onChange);
+        var id = BatteryInterop.Register(_js, onChange);
         try
         {
             await _js.InvokeVoidAsync("__raskBattery.watch", id);

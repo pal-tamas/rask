@@ -3,7 +3,6 @@ using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Jobs;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Rask.Data;
 using Rask.SQLite;
 

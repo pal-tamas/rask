@@ -18,5 +18,5 @@ public sealed partial class VueChart : Rask.External.VueComponent
     public string? Heading { get; set; }
 
     /// <summary>Runs when a bar is clicked, with that bar's value — straight back into C#.</summary>
-    public Callback<int>? OnBarClick { get; set; }
+    public Callback<int> OnBarClick { get; set; }
 }

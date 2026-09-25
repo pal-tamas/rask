@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Linq.Expressions;
-using Rask.Core.Forms;
 
 namespace Rask;
 
@@ -42,7 +40,7 @@ public sealed partial class UiOtp : UiFormField<string>
     ///     On the transition INTO a complete code, not on every keystroke while it is complete: a caller
     ///     that submits from here would otherwise submit on every edit.
     /// </remarks>
-    public Callback<string>? OnComplete { get; set; }
+    public Callback<string> OnComplete { get; set; }
 
     /// <summary>Draws the boxes joined into one block rather than separated.</summary>
     public bool? Joined { get; set; }

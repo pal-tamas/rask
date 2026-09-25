@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 ///     referenced by <c>id</c> from elsewhere in the document.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/defs">MDN</see>
 /// </summary>
+[Tag("defs")]
 public sealed partial class Defs : SvgElement
 {
-    protected override string TagName => "defs";
 }

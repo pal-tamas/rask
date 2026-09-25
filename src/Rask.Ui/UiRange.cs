@@ -52,7 +52,7 @@ public sealed partial class UiRange : Component, IFormControl<double>
     ///     Runs with the value the reader landed on. Without it a controlled slider draws a position and
     ///     reports nothing, which is a control you can push and cannot read.
     /// </remarks>
-    public Callback<double>? OnChange { get; set; }
+    public Callback<double> OnChange { get; set; }
 
 
     /// <inheritdoc />
@@ -63,7 +63,7 @@ public sealed partial class UiRange : Component, IFormControl<double>
 
 
     /// <inheritdoc />
-    public Callback<double>? AfterBind { get; set; }
+    public Callback<double> AfterBind { get; set; }
 
 
     /// <inheritdoc />

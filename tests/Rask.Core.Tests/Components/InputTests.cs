@@ -9,7 +9,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
         Assert.Equal("<input />", Input.Of<string>().ToHtml());
 
     [Fact]
-    public void A_decimal_binding_emits_step_any_between_the_max_and_the_pattern()
+    public void A_decimal_binding_emits_step_any()
     {
         // HTML defaults to step="1", so without this the browser's own constraint validation rejects a
         // fractional value and refuses to fire submit — silently, with nothing thrown and no message shown.
@@ -17,7 +17,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
         var model = new PriceModel();
 
         Assert.Equal(
-            "<input type=\"number\" name=\"Price\" value=\"0\" max=\"10\" step=\"any\" pattern=\"p\" />",
+            "<input max=\"10\" pattern=\"p\" type=\"number\" name=\"Price\" value=\"0\" step=\"any\" />",
             Input.Bind(() => model.Price).Max("10").Pattern("p").ToHtml());
     }
 
@@ -82,13 +82,13 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
-            "<input id=\"i\" class=\"c\" style=\"s\" spellcheck=\"false\" data-k=\"v\" type=\"text\" name=\"n\" value=\"v\" placeholder=\"p\" required disabled readonly checked min=\"1\" max=\"10\" step=\"1\" pattern=\"[a-z]&#x2B;\" size=\"20\" maxlength=\"100\" minlength=\"1\" multiple accept=\".png\" capture=\"user\" alt=\"alt\" autocomplete=\"off\" inputmode=\"numeric\" enterkeyhint=\"done\" dirname=\"d\" autofocus form=\"f\" formaction=\"/a\" formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\" list=\"l\" src=\"/s\" width=\"80\" height=\"40\" />",
+            "<input id=\"i\" class=\"c\" style=\"s\" spellcheck=\"false\" data-k=\"v\" autofocus enterkeyhint=\"done\" inputmode=\"numeric\" capture=\"user\" accept=\".png\" alt=\"alt\" autocomplete=\"off\" dirname=\"d\" disabled form=\"f\" formaction=\"/a\" formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\" height=\"40\" list=\"l\" max=\"10\" maxlength=\"100\" min=\"1\" minlength=\"1\" multiple pattern=\"[a-z]&#x2B;\" placeholder=\"p\" readonly required size=\"20\" src=\"/s\" width=\"80\" type=\"text\" name=\"n\" value=\"v\" checked step=\"1\" />",
             Input.Value("v").Type(InputType.Text).Name("n").Placeholder("p").Required(true).Disabled(true)
                 .ReadOnly(true).Checked(true).Min("1").Max("10").Step("1").Pattern("[a-z]+").Size(20)
                 .MaxLength(100).MinLength(1).Multiple(true).Accept(".png").Alt("alt").Autocomplete("off")
                 .Autofocus(true).Form("f").FormAction("/a").FormEnctype("multipart/form-data").FormMethod("post")
-                .FormNovalidate(true).FormTarget("_blank").List("l").Src("/s").Width(80).Height(40)
-                .InputMode("numeric").EnterKeyHint("done").Spellcheck(false).Capture("user").Dirname("d")
+                .FormNoValidate(true).FormTarget("_blank").List("l").Src("/s").Width(80).Height(40)
+                .InputMode("numeric").EnterKeyHint("done").Spellcheck(false).Capture("user").DirName("d")
                 .Id("i").Class("c").Style("s").Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
 
@@ -126,9 +126,9 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void File_capture_and_the_keyboard_hints_come_in_declared_order() =>
         Assert.Equal(
-            "<input type=\"file\" capture=\"environment\" inputmode=\"none\" enterkeyhint=\"send\" dirname=\"d\" />",
+            "<input enterkeyhint=\"send\" inputmode=\"none\" capture=\"environment\" dirname=\"d\" type=\"file\" />",
             Input.Of<string>().Type(InputType.File).Capture("environment").InputMode("none").EnterKeyHint("send")
-                .Dirname("d").ToHtml());
+                .DirName("d").ToHtml());
 
     [Fact]
     public void An_input_handler_outside_a_live_context_emits_no_handler_attribute()

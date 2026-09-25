@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask;
 using Rask.Core;
 using Rask.DevTools.Probe;
 
@@ -38,7 +37,7 @@ internal sealed partial class DevToolsErrorsTab : Component
     public required DevToolsErrorLog AppErrors { get; set; }
 
     /// <summary>Raised with a component's tree id when the developer asks to see it in the Tree tab.</summary>
-    public Callback<long>? OnShowInTree { get; set; }
+    public Callback<long> OnShowInTree { get; set; }
 
     /// <summary>What a framework bug report says about where the app runs; without it, no error offers one.</summary>
     public DevToolsBugReport.Environment? ReportEnvironment { get; set; }
@@ -141,8 +140,8 @@ internal sealed partial class DevToolsErrorsTab : Component
             : "No errors. A component that throws, and anything the framework warns about, is listed here.";
 
     private Component? ShowInTree(DevToolsError error) =>
-        error.ComponentId is { } id && OnShowInTree is { } show
-            ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => show.Invoke(id))["Show in tree"]
+        error.ComponentId is { } id && OnShowInTree.HasValue
+            ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => OnShowInTree.Invoke(id).AsTask())["Show in tree"]
             : null;
 
     private static string RowKey(DevToolsError error) =>

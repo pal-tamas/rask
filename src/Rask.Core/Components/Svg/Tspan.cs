@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     highlighted word, a superscript.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/tspan">MDN</see>
 /// </summary>
+[Tag("tspan")]
 public sealed partial class Tspan : SvgElement
 {
-    protected override string TagName => "tspan";
-
     /// <summary>An absolute x position for this run.</summary>
     public string? X { get; set; }
 

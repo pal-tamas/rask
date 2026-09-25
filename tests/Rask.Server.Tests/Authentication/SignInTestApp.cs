@@ -10,13 +10,13 @@ namespace Rask.Server.Tests.Authentication;
 
 public sealed partial class SignInTestApp(AuthSignIn auth, RouteState routeState, IUserProvider userProvider) : Component
 {
-    protected override Component? HeadAssets => new Title()["auth-test"];
+    protected override Component? HeadAssets => Markup.Title["auth-test"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new H1()[$"path={routeState.Path}"],
-        new P()[$"user={(userProvider.Current.Identity?.IsAuthenticated == true ? userProvider.Current.Identity.Name : "anon")}"],
+        Markup.H1[$"path={routeState.Path}"],
+        Markup.P[$"user={(userProvider.Current.Identity?.IsAuthenticated == true ? userProvider.Current.Identity.Name : "anon")}"],
         Button.OnClick(SignInAsync)["sign-in"],
         Button.OnClick(SignOutAsync)["sign-out"]
     ];

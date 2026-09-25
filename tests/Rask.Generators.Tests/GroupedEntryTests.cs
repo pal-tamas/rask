@@ -1,5 +1,3 @@
-using System.IO;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -57,7 +55,7 @@ public sealed class GroupedEntryTests
             """);
 
         Assert.Empty(Errors(compilation));
-        AssertBinds(compilation, "Button[\"plain\"]", "Rask.Core.Components.Button");
+        AssertBinds(compilation, "Button[\"plain\"]", "Rask.Core.Components.HTMLButtonElement");
     }
 
     [Fact]

@@ -47,9 +47,14 @@ var builder = WebApplication.CreateBuilder(args);
 // through. The TypeScript the front end imports is generated from these same message records
 // at build time, so the two halves cannot disagree about a payload or a result.
 //
-// Dispatched messages do not require a signed-in caller in this template —
-// Rask:Cqrs:Server:RequireAuthenticatedUser is false in appsettings.json, beside a note on when to
-// turn it back on.
+// rask:if data
+// Fails closed: a dispatched message needs a signed-in caller unless its handler is [AllowAnonymous], as
+// the starter's greeting is, so the landing page answers before anybody has an account.
+// rask:end
+// rask:ifnot data
+// Open to anonymous callers: this app has no database, so it has no accounts to require. See the note
+// beside Rask:Cqrs:Server:RequireAuthenticatedUser in appsettings.json before you ship.
+// rask:end
 builder.Services.AddRaskCqrsServer();
 
 builder.Services.AddSingleton<Company.RaskServer.Features.Hello.VisitCounter>();

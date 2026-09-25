@@ -188,6 +188,7 @@ Beyond your own `--env` values, every deployed container gets:
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
 | `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
 | `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
+| `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask__Auth__PublicOrigin=http://your-host:8080`. |
 | `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
 | `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |

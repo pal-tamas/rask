@@ -10,7 +10,7 @@ namespace Rask.Core.Components;
 public sealed class InstallTrigger : Component
 {
     /// <summary>Invoked with the install outcome: <c>"accepted"</c>, <c>"dismissed"</c>, or <c>"unavailable"</c>.</summary>
-    public Callback<string?>? OnOutcome { get; set; }
+    public Callback<string?> OnOutcome { get; set; }
 
     /// <summary>Renders your trigger element; its click shows the browser's install prompt.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }

@@ -1,4 +1,3 @@
-using Rask.Core.Components;
 using Rask.Core.HeadAssets;
 using Rask.Core.Live;
 
@@ -40,7 +39,7 @@ internal sealed partial class HeadEntryLeaf : Component
 {
     public string? Word { get; set; }
 
-    internal Meta? Probe;
+    internal HTMLMetaElement? Probe;
 
     protected override Component? HeadAssets =>
         Probe = Word == "a" ? Meta.Name("probe").Content("keep") : Meta.Name("probe");

@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     transparency — so unlike a <c>clipPath</c>, the edges can be soft.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/mask">MDN</see>
 /// </summary>
+[Tag("mask")]
 public sealed partial class Mask : SvgElement
 {
-    protected override string TagName => "mask";
-
     /// <summary>
     ///     The coordinate system for the mask's own region: <c>userSpaceOnUse</c> or
     ///     <c>objectBoundingBox</c>.

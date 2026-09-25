@@ -1,6 +1,4 @@
 using System.Globalization;
-using Rask.Core;
-using Rask.Core.Components;
 
 namespace Rask.External.Tests;
 

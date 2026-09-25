@@ -1,44 +1,36 @@
 ---
 name: add-html-tag
-description: Scaffold a new HTML tag component in Rask.Core. Use whenever adding support for an HTML element (e.g. <dialog>, <details>, <progress>, <video>) to the Rask framework. Creates src/Rask.Core/Components/{Tag}.cs and the matching tests/Rask.Core.Tests/Components/{Tag}Tests.cs asserting exact attribute order; the chain entry is generated automatically.
+description: Add or change an HTML element in Rask.Core. Use whenever an HTML element, attribute or tag is missing or wrong (e.g. a new <selectedcontent>, a renamed attribute). Elements are generated from MDN data, so this means refreshing the snapshot, and writing a hand partial only for behaviour MDN cannot know (typed binding, events, an RDFa attribute).
 ---
 
 # add-html-tag
 
-Adds one HTML element. The `Generated.{Tag}(...)` factory is produced by the Roslyn generator —
-you only write the component + its test. Follow C# conventions: `sealed`, file-scoped namespace,
-nullable enabled, expression-bodied single-line members.
+**Elements are not written by hand any more.** Every HTML element type, its base, its `[Tag]`s (the chain
+entries) and its attribute properties are generated at build time from `src/Rask.Core/Dom/mdn.snapshot.json`
+by `src/Rask.Core/Dom/Rask.Dom.targets` (the emitter is `src/Rask.Dom.Tasks/RaskDomTasks.cs`). Types take
+MDN's names (`HTMLAnchorElement`), tags share types the way the DOM shares interfaces (`h1`–`h6` are one
+`HTMLHeadingElement`), entries keep tag names (`A`, `H1`), and attributes are PascalCase IDL names (`ColSpan`).
 
-## 1. Component — `src/Rask.Core/Components/{Tag}.cs`
-- `public sealed class {Tag} : Element`, override `protected override string TagName => "{tag}";`.
-  - **If the tag shares a DOM interface with sibling tags, derive from the matching `Html*Element`
-    base instead of `Element`** — these mirror the DOM hierarchy and hold the shared attributes:
-    `HtmlMediaElement` (audio/video), `HtmlTableCellElement` (td/th), `HtmlModElement` (ins/del),
-    `HtmlTableColElement` (col/colgroup), `HtmlQuoteElement` (q/blockquote), `HtmlHeadingElement`
-    (h1–h6), `HtmlTableSectionElement` (thead/tbody/tfoot). A base's `WriteAttributes` runs first, so
-    its shared attrs emit before your tag-specific ones; the generator still flattens every inherited
-    public prop into the factory. Add a new `Html*Element` base when two tags would otherwise duplicate
-    the same attribute set.
-- **Void/self-closing** elements (br, img, input, hr, meta, link, …) add `protected override bool SelfClosing => true;`.
-- Each tag-specific attribute is a **public mutable property**. Type choice drives the factory:
-  - nullable (`string?`, `bool?`, `int?`) → **optional** factory param (default null) — use this for HTML attrs to keep them ergonomic.
-  - non-nullable, no initializer → **required** factory param (RASK001).
-  - property with an initializer or `[SkipFactory]` → excluded.
-- Override `WriteAttributes` only if there are tag-specific attributes: call `base.WriteAttributes(sb)`
-  **first** (emits id, class, style, data-*, ref), then `AppendAttr(sb, "name", value)` per attr
-  (`AppendUrlAttr` for URL attrs; `AppendAttr(sb, "disabled", null)` for bare boolean attrs).
+## 1. A tag or attribute is missing → refresh MDN
+```bash
+scripts/mdn/refresh.sh        # latest stable MDN data, latest LTS Node
+git diff --stat src/Rask.Core/Dom/mdn.snapshot.json
+```
+A local build does this by itself at most once a day. If MDN still lacks it, it does not ship in two of
+Chrome/Firefox/Safari (desktop or mobile), or MDN marks it deprecated — then Rask does not offer it either.
 
-See `templates/Component.cs`. References: `src/Rask.Core/Components/Span.cs` (simple),
-`Br.cs` (void), `Img.cs` (attributes), base `src/Rask.Core/Element.cs`.
+## 2. Behaviour MDN cannot know → a hand partial
+Add `src/Rask.Core/Components/HTML{Name}Element.cs` as a `partial` of the generated type:
+- A member it declares is **not generated** (the emitter reads the partials). Write the attributes it owns in
+  `partial void WriteOwnedAttributes(StringBuilder sb)` (after the generated ones) or
+  `WriteOwnedAttributesFirst` (before them). Examples: `HTMLMetaElement.cs` (Open Graph's `property`),
+  `HTMLMediaElement.cs` (media events).
+- A **typed control** is `public sealed partial class HTML{Name}Element<T> : HTML{Name}Element, IFormControl<T>`;
+  the emitter then makes the MDN type abstract and puts the `[Tag]` on the typed one (`HTMLInputElement.cs`).
+- Rask's own policy (URL sanitizing, omitted attributes, aliases like `For`/`Class`) lives in the emitter's
+  named tables, never in scattered overrides.
 
-## 2. Test — `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`
-Two methods, xUnit:
-- `Unset_props_render_only_the_open_and_close_tags` — only `TagName` (and self-close shape) renders.
-- `Setting_every_prop_emits_the_expected_attributes` — **asserts exact attribute order**: id, class, style, data-*, **then**
-  tag-specific attrs. Tests assert this ordering — preserve it.
-
-See `templates/ComponentTests.cs`. Reference: `tests/Rask.Core.Tests/Components/ImgTests.cs`.
-
-## 3. Finish
-This is a new feature → run the **`rask-ship`** gate (format → warnings-as-errors build → the
-unit test you just wrote → CHANGELOG → review → PR).
+## 3. Tests
+`tests/Rask.Core.Tests/Dom/GeneratedAttributeTests.cs` renders every generated attribute of every tag against the
+snapshot, so a refreshed tag is covered with no new test. Behaviour in a partial gets its own test in
+`tests/Rask.Core.Tests/Components/`. Then run the **`rask-ship`** gate.

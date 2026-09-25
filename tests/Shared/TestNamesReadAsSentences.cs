@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Xunit;
 
 namespace Rask.Tests.Conventions;
 

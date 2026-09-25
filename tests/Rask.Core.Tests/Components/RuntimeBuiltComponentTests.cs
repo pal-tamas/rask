@@ -1,5 +1,3 @@
-using Rask.Testing;
-
 namespace Rask.Core.Tests.Components;
 
 // A component the app builds itself — a runtime-chosen type, a plugin, code compiled in the browser — never

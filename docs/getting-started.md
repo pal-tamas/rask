@@ -116,7 +116,9 @@ WASM templates differ mainly in `Program.cs`):
   background jobs, transactional email, cache, outbox, file storage, operator dashboard, durable logs, Web
   Push, snapshots and continuous backup (inert until `Rask:Litestream:ReplicaUrl` is set) — plus the host
   work every app repeats: health checks at `/health`, the exception handler and HSTS outside Development,
-  HTTPS redirection, static assets, authentication, and `App` mounted as the whole site. An app that does
+  HTTPS redirection, static assets, authentication, `App` mounted as the whole site, and the document
+  around it — charset, viewport, the UI kit's stylesheet and theme, your `Styles/app.css` — so `App.cs` is a
+  title and `Render() => Router`. An app that does
   without a battery says so here, and a scaffold made with `--no-<battery>`
   ([`rask new`](cli.md#rask-new--scaffold-a-project)) has that line written for it:
 
@@ -221,20 +223,21 @@ public sealed partial class Counter : Component
 
 ### Going further: child → parent communication
 
-A child declares a plain delegate property (`Action<int>?`, `Func<Task>?`, …), and the chain step that
-sets it wraps it so invoking it re-renders the **parent** that owns the lambda. There is no
-`EventCallback` type, and the child stays oblivious to the parent:
+A child declares a `Callback<int>` property (`Callback` when the event carries nothing), and the chain step
+that sets it wraps the handler so invoking it re-renders the **parent** that owns the lambda. The caller
+hands it a sync or an async handler through the same step, an unset one does nothing when invoked, and the
+child stays oblivious to the parent:
 
 ```csharp
 public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
-    public Action<int>? OnRate { get; set; }            // a plain delegate prop
+    public Callback<int> OnRate { get; set; }           // an event: optional, never a required step
 
     protected override Component? Render() =>
         Div[
-            Enumerable.Range(1, 5).Select(i => (Component)Button.OnClick(() => OnRate?.Invoke(i))// child invokes; parent re-renders
-.Key(i)[i <= Value ? "★" : "☆"])
+            Enumerable.Range(1, 5).Select(i => (Component)Button.Key(i)
+                .OnClick(async () => await OnRate.Invoke(i))[i <= Value ? "★" : "☆"])   // child invokes; parent re-renders
         ];
 }
 
@@ -370,8 +373,6 @@ you bring in explicitly). `[RouteParam]` and `[QueryParam]` bind URL pieces to p
 route gets a generated, type-safe URL builder:
 
 ```csharp
-using Rask.Core.Routing;
-
 [Route("/users/{id}")]
 public sealed partial class UserPage : Component
 {
@@ -433,7 +434,7 @@ step by step (database, auth, jobs, email, cache, events, and deployment). In sh
 
 Read **[the doctrine](one-person-framework.md)** for the why. Reference guides for the next thing you need:
 
-- **Build a form** → [forms](forms.md) — `Form<T>`, `Input(() => model.X)`, validation.
+- **Build a form** → [forms](forms.md) — `Form.Model(m)`, `Input(() => model.X)`, validation.
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Navigator`.
 - **Load or save data** → [Rask.Data](data.md) — declare a model, read and write it off the type; or
   [plain EF Core](data-access.md) with a `DbContext` of your own.

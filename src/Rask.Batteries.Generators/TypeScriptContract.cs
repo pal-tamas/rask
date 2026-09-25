@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Rask.Generators.Shared;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>One remote message, reduced to what the TypeScript side needs to know about it.</summary>
 internal sealed class TypeScriptContract

@@ -434,8 +434,10 @@ public class BuilderSetterEmissionTests
                 output,
                 StringComparison.Ordinal);
         }
+        // AfterBind is a non-nullable `Callback<int>` on the interface, so its pass-through still takes `null`
+        // for "no hook" and stores the unset slot.
         Assert.Contains(
-            "__c.AfterBind = value;",
+            "__c.AfterBind = value.GetValueOrDefault();",
             output,
             StringComparison.Ordinal);
     }

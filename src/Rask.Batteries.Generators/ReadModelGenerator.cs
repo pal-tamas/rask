@@ -7,10 +7,9 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Rask.Cqrs.Generators;
 using Rask.Generators.Shared;
 
-namespace Rask.Data.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Generates the read face of every mapped entity — <c>OrderRead</c> for <c>Order</c> — and the

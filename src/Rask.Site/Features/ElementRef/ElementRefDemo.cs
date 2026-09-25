@@ -35,10 +35,11 @@ public sealed partial class ElementRefDemo : Component
     // Built-in helper: passes the ref to __raskEl.focus, which receives the resolved element.
     private async Task FocusInput() => await _input.FocusAsync(_js);
 
-    // User scoped JS: the ref resolves to the element before width() is called with it.
+    // User scoped TS: Width is generated from ElementRefDemo.ts's `export function width`, and the ref
+    // resolves to the element before the script sees it.
     private async Task MeasureBox()
     {
-        var width = await _js.InvokeAsync<double>("Rask.ElementRefDemo.width", _box);
+        var width = await Width(_box);
         _measured = $"Box width: {width:F0}px (measured in JS from the passed element)";
     }
 }

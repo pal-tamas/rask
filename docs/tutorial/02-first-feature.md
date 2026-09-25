@@ -102,9 +102,6 @@ just pages.
 `Features/Products/CreateProduct.cs`:
 
 ```csharp
-using Rask.Core.Routing;
-using Rask.Querying;
-
 namespace Shop.Features.Products;
 
 [Route("/products/new")]
@@ -151,7 +148,7 @@ the field, rather than in a placeholder), and the field's own validation message
 `Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
 the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
 
-Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form<T>`
+Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form.Model(m)`
 validates its model on its own, with no package to add and nothing to declare, and the save only runs for a
 valid one. See [forms](../forms.md) and [validation](../validation.md).
 
@@ -172,8 +169,6 @@ Same shape, and the list page in the next step links to both — so write them n
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using Rask.Core.Routing;
-using Rask.Querying;
 
 namespace Shop.Features.Products;
 
@@ -264,8 +259,6 @@ Four things in that page are doing more than they look:
 `Features/Products/DeleteProduct.cs` is a small reusable button the list page drops next to each row:
 
 ```csharp
-using Rask.Querying;
-
 namespace Shop.Features.Products;
 
 // A reusable delete button: removes the product, then invokes OnDeleted so the caller (the list page)
@@ -281,7 +274,8 @@ public sealed partial class DeleteProduct : Component
     // at the call site binds to the property being called rather than to the generated chain setter,
     // and the compiler reports CS1593 on a delegate that "does not take 1 arguments". Callback is a
     // struct with no invocation, so lookup finds nothing applicable and falls through to the setter.
-    public Callback? OnDeleted { get; set; }
+    // Non-nullable, and still optional: a caller that leaves it off gets an unset callback that does nothing.
+    public Callback OnDeleted { get; set; }
 
     protected override Component? Render()
     {
@@ -296,7 +290,7 @@ public sealed partial class DeleteProduct : Component
                 // list below shows the reader what happened either way.
                 await delete.Send(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
 
-                // Tell the page. Unset is a no-op, and a synchronous handler is an already-completed task.
+                // Tell the caller. Unset, this does nothing; a synchronous handler completes without a Task.
                 await OnDeleted.Invoke();
             })[delete.IsPending ? "Deleting…" : "Delete"];
     }
@@ -313,8 +307,6 @@ table behind a `DeletedAt` stamp instead.
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using Rask.Core.Routing;
-using Rask.Querying;
 
 namespace Shop.Features.Products;
 

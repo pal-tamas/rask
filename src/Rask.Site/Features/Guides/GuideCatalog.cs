@@ -1,6 +1,3 @@
-using System.Reflection;
-using Rask;
-
 namespace Rask.Site.Features;
 
 public static class GuideCatalog
@@ -296,7 +293,7 @@ public static class GuideCatalog
         new("js-interop", "JavaScript interop", "Scoped CSS/TypeScript, element refs, IJSRuntime, typed APIs.", "Frontend")
         {
             SearchTitle = "Scoped CSS and TypeScript for C# components",
-            Description = "Ship component-scoped CSS and TypeScript with C# components: how scripts are compiled, how assets are delivered and cached, and no style flash on navigation.",
+            Description = "Ship component-scoped CSS and TypeScript with C# components, call the script's exports as typed C# methods, and see how the assets are compiled and cached.",
         },
         new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.", "Frontend")
         {

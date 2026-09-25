@@ -31,14 +31,6 @@ public sealed class StylingTests
     }
 
     [Fact]
-    public void The_shell_links_what_the_build_produces()
-    {
-        // A plain <link>, nothing framework-specific: the build writes wwwroot/css/app.css and every host
-        // already serves wwwroot.
-        Assert.Contains("/css/app.css", Generate()["Features/Shared/App.cs"], StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void The_stylesheet_compiles_daisyui_from_the_plugin_the_kit_ships()
     {
         var sheet = Generate()["Styles/app.css"];
@@ -72,34 +64,16 @@ public sealed class StylingTests
     }
 
     [Fact]
-    public void The_kits_sheet_is_linked_before_the_apps_own()
+    public void The_App_leaves_the_kit_and_its_theme_to_the_host()
     {
-        // A browser ranks @layer names by FIRST APPEARANCE across every sheet on the page, in link
-        // order, and nothing later can reorder a name already placed. The kit's sheet opens by declaring
-        // the order it means, so linking it second means the ranking falls out of whichever sheet
-        // happened to mention a name earliest.
-        //
-        // That is not hypothetical: it put `base` above `utilities` for a whole document, and every
-        // text-4xl and px-* in the markup was silently beaten by preflight. rask.sh shipped that way.
-        var shell = Generate()["Features/Shared/App.cs"];
+        // RaskApp writes the kit's sheet first (it declares the @layer order), the app's own sheet after it
+        // and the theme scope on <html> — see RaskAppDocumentTests. An App that wrote them too would be a
+        // second place for the order to go wrong, and a Shell override would take the theme scope away.
+        var app = Generate()["Features/Shared/App.cs"];
 
-        Assert.True(
-            shell.IndexOf("UiStylesheet.Href", StringComparison.Ordinal)
-            < shell.IndexOf("/css/app.css", StringComparison.Ordinal),
-            "the kit's stylesheet must be linked before the app's own, because it declares the layer "
-            + "order for the whole document.");
-    }
-
-    [Fact]
-    public void The_shell_turns_the_kits_theme_scope_on()
-    {
-        // daisyUI paints :root by default; the kit confines its palette to this attribute so that
-        // referencing the package cannot repaint an app that only wanted a button. Without it every Ui*
-        // component renders structurally correct and completely grey, on a green build.
-        Assert.Contains(
-            "UiStylesheet.ThemeScopeAttribute",
-            Generate()["Features/Shared/App.cs"],
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("UiStylesheet", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("Shell(", app, StringComparison.Ordinal);
+        Assert.Contains("Render() => Router", app, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -5,7 +5,9 @@ namespace Rask.Generators.Blazor;
 /// </summary>
 /// <param name="Parameter">The hosted component's own parameter name — the dictionary key.</param>
 /// <param name="Name">What the island calls it, which is the chain step's name.</param>
-/// <param name="ChainTypeFqn">The generated property's type.</param>
+/// <param name="ChainTypeFqn">
+///     The generated property's type — or, for a property the island declares itself, the type it declared.
+/// </param>
 /// <param name="EventArg">For an <c>EventCallback&lt;T&gt;</c>, the fully-qualified <c>T</c>.</param>
 /// <param name="IsEventCallback">Whether the hosted parameter is an <c>EventCallback</c>.</param>
 /// <param name="IsRequired">

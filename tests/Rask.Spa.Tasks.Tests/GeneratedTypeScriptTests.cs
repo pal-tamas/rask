@@ -1,5 +1,3 @@
-using Rask.Spa.Tasks;
-
 namespace Rask.Spa.Tasks.Tests;
 
 /// <summary>

@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Rask.Core.Forms;
 
 namespace Rask;
@@ -88,7 +87,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
     ///     <c>string</c> rather than <typeparamref name="T" /> on purpose: mid-word input is very often not
     ///     yet a valid <typeparamref name="T" />, so parsing it per keystroke would either throw or lie.
     /// </remarks>
-    public Callback<string>? OnInput { get; set; }
+    public Callback<string> OnInput { get; set; }
 
     /// <summary>The lowest accepted value, for a number or a date. The attribute, verbatim.</summary>
     /// <remarks>
@@ -185,7 +184,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
         await self.InvokeOnChangeAsync(default!).ConfigureAwait(false);
     }
 
-    private Input<T> Field()
+    private HTMLInputElement<T> Field()
     {
         // Bound and controlled are different chain TYPES, not two settings on one — Bind and Value are
         // mutually exclusive openings — so each is built as its own complete expression.

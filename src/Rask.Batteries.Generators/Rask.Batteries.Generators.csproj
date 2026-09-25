@@ -27,7 +27,7 @@
     One analyzer assembly for the opt-in batteries: the CQRS dispatch/codec generators plus the jobs
     and outbox registry generators.
 
-    They were three assemblies (Rask.Cqrs.Generators, Rask.Background.Generators, Rask.Outbox.Generators)
+    They were three assemblies (Rask.Cqrs.Generators, Rask.Jobs.Generators, Rask.Outbox.Generators)
     because an analyzer has to be self-contained — it cannot reference another analyzer without
     shipping it, and a type reaching a consumer through two packages is emitted twice. The cost was
     paid in duplicated source: the jobs and outbox generators are the same RegistryGeneratorBase over

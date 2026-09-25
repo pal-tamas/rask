@@ -22,6 +22,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
     private const string ChainEntryFullName = "Rask.Core.RaskChainEntryAttribute";
+    private const string TagFullName = "Rask.Core.TagAttribute";
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
 
@@ -139,20 +140,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(grouped.Combine(componentHost),
             static (spc, t) => EmitBuilderEntries(spc, t.Left, t.Right));
 
-        // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
-        // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
-        // Component, and they are not in this compilation's syntax, so they are not consumer candidates.
-        // Each assembly publishes its own entries as a public `RaskEntries{Assembly}` class, which is what
-        // this finds. CompilationProvider yields a fresh Compilation per keystroke, so the result is
-        // wrapped in an EquatableArray and the emission only re-runs when the entry SET changes.
-        var externalEntries = context.CompilationProvider.Select(static (c, _) => ScanExternalEntries(c));
+        context.RegisterSourceOutput(grouped.Combine(Dom.DomSnapshot.VoidTags(context)),
+            static (spc, t) => EmitTagTable(spc, t.Left, t.Right));
 
-        context.RegisterSourceOutput(
-            grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries)
-                .Combine(extraHosts),
-            static (spc, t) =>
-                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right.InjectEntries,
-                    t.Left.Left.Right, t.Left.Right, t.Right));
+        RegisterConsumerEntries(context, grouped, builderEnabled, componentHost, extraHosts);
 
         // Which of each component's properties a builder chain MUST set. Published as assembly attributes
         // because it is the one thing about a component that metadata destroys: a member initializer
@@ -172,6 +163,29 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(setterHost),
             static (spc, t) => EmitBuilderSetters(
                 spc, t.Left.Left, t.Left.Right.InjectEntries, t.Right));
+    }
+
+    // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
+    // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
+    // Component, and they are not in this compilation's syntax, so they are not consumer candidates.
+    // Each assembly publishes its own entries as a public `RaskEntries{Assembly}` class, which is what
+    // this finds. CompilationProvider yields a fresh Compilation per keystroke, so the result is
+    // wrapped in an EquatableArray and the emission only re-runs when the entry SET changes.
+    private static void RegisterConsumerEntries(
+        IncrementalGeneratorInitializationContext context,
+        IncrementalValueProvider<ImmutableArray<Candidate>> grouped,
+        IncrementalValueProvider<BuilderOptions> builderEnabled,
+        IncrementalValueProvider<ComponentHost> componentHost,
+        IncrementalValueProvider<ImmutableArray<EntryHostDecl>> extraHosts)
+    {
+        var externalEntries = context.CompilationProvider.Select(static (c, _) => ScanExternalEntries(c));
+
+        context.RegisterSourceOutput(
+            grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries)
+                .Combine(extraHosts),
+            static (spc, t) =>
+                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right.InjectEntries,
+                    t.Left.Left.Right, t.Left.Right, t.Right));
     }
 
     private static IncrementalValueProvider<ImmutableArray<Candidate>> GroupedCandidates(IncrementalGeneratorInitializationContext context)
@@ -287,7 +301,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 }
 
                 // Carriers count as delegates here for the same reason as the per-component pass: a
-                // `Callback?` is a struct, so the TypeKind test alone would fold it and defeat the render
+                // `Callback` (or `Callback?`) is a struct, so the TypeKind test alone would fold it and defeat the render
                 // cache for every element that carries a handler.
                 var isDelegate = p.Type.TypeKind == TypeKind.Delegate
                                  || CarrierDelegates(DisplayTypeName(p.Type, FullyQualifiedNullable, compilation))
@@ -1043,7 +1057,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // One post-bind hook taking either shape. Typed as the CARRIER, which is what gives it the
             // sync and async step overloads (see EmitCarrierOverloads) in place of the sibling that used
             // to sit beside it here.
-            ("AfterBind", CallbackFqn + "<" + t + ">?"),
+            ("AfterBind", CallbackFqn + "<" + t + ">"),
         };
 
         foreach (var (name, typeFqn) in members)
@@ -1331,8 +1345,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             return;
         }
 
-        var paramType = typeFqn;
-        var assigned = AssignedValue(typeFqn, wrap);
+        var (paramType, assigned) = SetterParameter(typeFqn, wrap);
         var track = TrackStatements(name, fold, isDelegate, pendingBit);
         EmitCarrierPriority(sb, typeFqn);
 
@@ -1402,6 +1415,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // and that carrier was wrapped when a delegate was put into it. Wrapping here would wrap the
     // struct (which `Wrap` has no overload for) and, if it did compile, would double-wrap. The
     // delegate overloads beside it do the wrapping; see EmitCarrierOverloads.
+    // The setter's parameter type and what it assigns. A non-nullable `Callback` still takes `null` at its
+    // pass-through — the spelling for "no handler" that every other step accepts, and which the bare-delegate
+    // overloads beside it would otherwise make ambiguous (CS0121). A null is the unset slot, which is what
+    // `default` already is.
+    private static (string ParamType, string Assigned) SetterParameter(string typeFqn, bool wrap) =>
+        IsNonNullableCallback(typeFqn)
+            ? (typeFqn + "?", "value.GetValueOrDefault()")
+            : (typeFqn, AssignedValue(typeFqn, wrap));
+
     private static string AssignedValue(string typeFqn, bool wrap)
     {
         var suppression = typeFqn.EndsWith("?", StringComparison.Ordinal) ? string.Empty : "!";
@@ -1459,6 +1481,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     private const string CallbackFqn = "global::Rask.Core.Callback";
+
+    private static bool IsNonNullableCallback(string typeFqn) =>
+        !typeFqn.EndsWith("?", StringComparison.Ordinal)
+        && (string.Equals(typeFqn, CallbackFqn, StringComparison.Ordinal) || typeFqn.StartsWith(CallbackFqn + "<", StringComparison.Ordinal));
 
     private const string FnFqn = "global::Rask.Core.Fn";
 
@@ -1925,6 +1951,67 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             seesComponentInternals);
     }
 
+    // Every tag a [Tag] element renders, as RaskTags: id -> name and void-ness, which Element reads by the id
+    // an entry or constructor stamped. A type with one tag stamps it in the constructor emitted here, so
+    // `new Br()` renders <br> without an entry in sight.
+    private static void EmitTagTable(SourceProductionContext spc, ImmutableArray<Candidate> candidates, EquatableArray<string> voidTags)
+    {
+        var tagged = DistinctByType(candidates).Where(static c => c.Tags.Count > 0).ToList();
+        if (tagged.Count == 0)
+        {
+            return;
+        }
+
+        var names = tagged.SelectMany(static c => c.Tags).Select(static t => t.Name)
+            .Distinct(StringComparer.Ordinal).OrderBy(static n => n, StringComparer.Ordinal).ToList();
+        var voids = new HashSet<string>(voidTags, StringComparer.Ordinal);
+
+        var sb = new StringBuilder();
+        EmitGeneratedFileHeader(sb);
+        sb.AppendLine();
+        sb.AppendLine("namespace Rask.Core");
+        sb.AppendLine("{");
+        sb.AppendLine("    internal static class RaskTags");
+        sb.AppendLine("    {");
+        for (var i = 0; i < names.Count; i++)
+        {
+            sb.Append("        internal const ushort ").Append(TagConstant(names[i])).Append(" = ").Append(i + 1).AppendLine(";");
+        }
+
+        sb.AppendLine();
+        sb.Append("        internal static readonly string?[] Names = [null");
+        foreach (var name in names)
+        {
+            sb.Append(", \"").Append(name).Append('"');
+        }
+
+        sb.AppendLine("];");
+        sb.Append("        internal static readonly bool[] Void = [false");
+        foreach (var name in names)
+        {
+            sb.Append(voids.Contains(name) ? ", true" : ", false");
+        }
+
+        sb.AppendLine("];");
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+
+        foreach (var c in tagged.Where(static c => c.Tags.Count == 1 && !c.IsNested && c.Namespace.Length > 0))
+        {
+            sb.AppendLine();
+            sb.Append("namespace ").AppendLine(c.Namespace);
+            sb.AppendLine("{");
+            sb.Append("    partial class ").Append(c.TypeName).AppendLine(c.TypeParameters);
+            sb.AppendLine("    {");
+            sb.Append("        public ").Append(c.TypeName).Append("() => TagId = global::Rask.Core.RaskTags.")
+                .Append(TagConstant(c.Tags[0].Name)).AppendLine(";");
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+        }
+
+        spc.AddSource("RaskTags.g.cs", sb.ToString());
+    }
+
     private static void EmitBuilderEntries(
         SourceProductionContext spc,
         ImmutableArray<Candidate> candidates,
@@ -1972,7 +2059,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            EmitComponentEntry(sb, shared, html, c, host.AssemblyName, runtime);
+            EmitComponentEntry(sb, shared, html, c, host.AssemblyName);
         }
 
         sb.AppendLine("}");
@@ -2025,7 +2112,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     private static void EmitComponentEntry(
-        StringBuilder sb, StringBuilder shared, StringBuilder html, Candidate c, string assemblyName, string runtime)
+        StringBuilder sb, StringBuilder shared, StringBuilder html, Candidate c, string assemblyName)
     {
         // An internal component cannot surface through a `protected` member of the public
         // Component (CS0053); `private protected` keeps it to derived types in this assembly.
@@ -2033,23 +2120,21 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // The entry opens a chain and hands back the component itself: the steps after it are
         // extension methods on the component, and a carrier-typed property (not a delegate) is what
         // keeps one from swallowing its own setter (see Rask.Core.Callback).
-        EmitEntryDoc(sb, c);
-        sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-            .Append(c.FullyQualifiedName).Append(' ')
-            .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
-            .Append(c.FullyQualifiedName).Append(">(");
-        EmitResetArguments(sb, c, assemblyName);
-        sb.AppendLine(");");
-
-        foreach (var host2 in new[] { shared, html })
+        foreach (var (name, tag) in EntriesOf(c))
         {
-            EmitEntryDoc(host2, c);
-            host2.Append(c.IsPublic ? "    public static " : "    internal static ")
+            var body = EntryBody(c, tag, assemblyName);
+            EmitEntryDoc(sb, c);
+            sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                 .Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
-                .Append(c.FullyQualifiedName).Append(">(");
-            EmitResetArguments(host2, c, assemblyName);
-            host2.AppendLine(");");
+                .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
+
+            foreach (var host2 in new[] { shared, html })
+            {
+                EmitEntryDoc(host2, c);
+                host2.Append(c.IsPublic ? "    public static " : "    internal static ")
+                    .Append(c.FullyQualifiedName).Append(' ')
+                    .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
+            }
         }
     }
 
@@ -2936,9 +3021,43 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // Trigger.Gesture family and Ui.DataGrid's RowKey simply have entries.
     //
     // …and a name Component already declares (`Head`) still blocks too, which would be CS0102.
+    // The entries an unseeded component is reached by: its own name, or one per tag of a [Tag] type several
+    // tags share, whose body then stamps which tag it built (a type with one tag stamps it in its constructor).
+    private static IEnumerable<(string Name, string? Tag)> EntriesOf(Candidate c)
+    {
+        if (c.Tags.Count > 1)
+        {
+            return c.Tags.Select(static t => (t.Entry, (string?)t.Name));
+        }
+
+        var name = c.Tags.Count == 1 ? c.EntryName : c.TypeName;
+        return [(name, null)];
+    }
+
+    private static string EntryBody(Candidate c, string? tag, string assemblyName)
+    {
+        var sb = new StringBuilder();
+        if (tag is not null)
+        {
+            sb.Append("global::Rask.Core.BuilderRuntime.Tag(");
+        }
+
+        sb.Append("global::Rask.Core.BuilderRuntime.").Append(EntryMethod(c)).Append(c.FullyQualifiedName).Append(">(");
+        EmitResetArguments(sb, c, assemblyName);
+        sb.Append(')');
+        if (tag is not null)
+        {
+            sb.Append(", global::Rask.Core.RaskTags.").Append(TagConstant(tag)).Append(')');
+        }
+
+        return sb.ToString();
+    }
+
+    private static string TagConstant(string tag) => "Id_" + tag.Replace('-', '_');
+
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
         (c.TypeParameters.Length == 0 ? c.HasParameterlessCtor || c.HasDIConstructor : HasGenericEntryShape(c))
-        && !taken.Contains(c.TypeName);
+        && !taken.Contains(c.TypeName) && !taken.Contains(c.EntryName);
 
     /// <summary>
     ///     Whether a <i>generic</i> component can have an entry: it must be constructible, and it must
@@ -3818,13 +3937,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // The entry opens a chain and hands back the component itself: the steps that follow are
             // extension methods on the component, and a carrier-typed property is what keeps one from
             // swallowing its own setter (see Rask.Core.Callback).
-            EmitEntryDoc(sb, c);
-            sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
-                .Append(' ').Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime)
-                .Append(EntryMethod(c))
-                .Append(c.FullyQualifiedName).Append(">(");
-            EmitResetArguments(sb, c, host.AssemblyName);
-            sb.AppendLine(");");
+            foreach (var (name, tag) in EntriesOf(c))
+            {
+                EmitEntryDoc(sb, c);
+                sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
+                    .Append(' ').Append(EscapeIdentifier(name)).Append(" => ")
+                    .Append(EntryBody(c, tag, host.AssemblyName)).AppendLine(";");
+            }
         }
 
         sb.AppendLine("}");
@@ -4163,14 +4282,17 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            refs.Add(new EntryRef(
-                hostFqn,
-                c.EntryName,
-                NeedsSeed(c) ? SeedFqn(c) : c.FullyQualifiedName,
-                string.Empty,
-                string.Empty,
-                string.Empty,
-                string.Empty));
+            foreach (var (name, _) in NeedsSeed(c) ? [(c.EntryName, null)] : EntriesOf(c))
+            {
+                refs.Add(new EntryRef(
+                    hostFqn,
+                    name,
+                    NeedsSeed(c) ? SeedFqn(c) : c.FullyQualifiedName,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty));
+            }
         }
 
         return refs;
@@ -4868,15 +4990,25 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             global::Rask.Generators.External.PackageIslands.PackageIslandNaming.SingleLine(text));
 
     // [FactoryGeneric] and [RaskChainEntry], the two attributes that shape a candidate's entry.
-    private static (GenericFactoryConfig? GenericFactory, string? ChainEntry) ReadFactoryAttributes(INamedTypeSymbol symbol)
+    private static (GenericFactoryConfig? GenericFactory, string? ChainEntry, List<TagInfo> Tags) ReadFactoryAttributes(
+        INamedTypeSymbol symbol)
     {
         GenericFactoryConfig? genericFactory = null;
         string? chainEntry = null;
+        var tags = new List<TagInfo>();
         foreach (var attr in symbol.GetAttributes())
         {
             if (string.Equals(attr.AttributeClass?.ToDisplayString(), FactoryGenericFullName, StringComparison.Ordinal))
             {
                 genericFactory = ParseGenericFactoryConfig(attr);
+            }
+            else if (string.Equals(attr.AttributeClass?.ToDisplayString(), TagFullName, StringComparison.Ordinal)
+                     && attr.ConstructorArguments.Length == 1
+                     && attr.ConstructorArguments[0].Value is string { Length: > 0 } tag)
+            {
+                var entryArg = attr.NamedArguments
+                    .FirstOrDefault(static a => string.Equals(a.Key, "Entry", StringComparison.Ordinal)).Value.Value as string;
+                tags.Add(new TagInfo(tag, entryArg ?? char.ToUpperInvariant(tag[0]) + tag.Substring(1)));
             }
             else if (string.Equals(attr.AttributeClass?.ToDisplayString(), ChainEntryFullName, StringComparison.Ordinal)
                      && attr.ConstructorArguments.Length == 1
@@ -4887,7 +5019,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        return (genericFactory, chainEntry);
+        return (genericFactory, chainEntry, tags);
     }
 
     private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
@@ -4917,12 +5049,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             : string.Empty;
         var typeParamAnnotations = ReadTypeParameterAnnotations(symbol.TypeParameters);
         var constraints = BuildConstraintsClause(symbol.TypeParameters);
-        var (genericFactory, chainEntry) = ReadFactoryAttributes(symbol);
+        var (genericFactory, chainEntry, tags) = ReadFactoryAttributes(symbol);
 
         return new Candidate(
             ns,
             symbol.Name,
-            chainEntry ?? symbol.Name,
+            chainEntry ?? (tags.Count > 0 ? tags[0].Entry : symbol.Name),
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             typeParams,
             new EquatableArray<string>(typeParamAnnotations),
@@ -4945,7 +5077,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             EnclosingTypeHeaders(symbol),
             AllEnclosingPartial(symbol),
             global::Rask.Generators.External.PackageIslands.PackageIslandProps.Facts(symbol),
-            ChainGroupOf(symbol, chainEntry ?? symbol.Name));
+            ChainGroupOf(symbol, chainEntry ?? symbol.Name),
+            new EquatableArray<TagInfo>(tags));
     }
 
     /// <summary>
@@ -5486,9 +5619,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var (filePath, spanStart, spanLength, hasInitializer, initializerDefault) = ReadDeclaration(prop, compilation);
 
+        // A non-nullable `Callback` counts: its default is an unset slot, so it is optional rather
+        // than a required step (see CallbackCarrier).
         var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
                          || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
-                             SpecialType.System_Nullable_T);
+                             SpecialType.System_Nullable_T)
+                         || CallbackCarrier.IsNonNullable(prop.Type);
 
         var typeFqn = DisplayTypeName(prop.Type, FullyQualifiedNullable, compilation);
 
@@ -5590,7 +5726,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // isAutoRerenderDelegate, which ALSO drives the parent re-render wrapping that element
     // props must NOT get.
     // A CARRIER counts too, and missing that is the quietest regression in this file: a
-    // `Callback?` is `Nullable<Callback>`, a STRUCT, so the TypeKind test alone says false and
+    // `Callback` — or `Callback?`, `Nullable<Callback>` — is a STRUCT, so the TypeKind test alone says false and
     // every carrier-typed handler starts folding. Nothing fails — every element carrying a
     // handler simply reports propsChanged: true on every frame, and the render cache is
     // defeated tree-wide. Only the allocation benchmarks would notice.
@@ -5734,7 +5870,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         var isNullable = p.Type.NullableAnnotation == NullableAnnotation.Annotated
                          || (p.Type.IsValueType
-                             && p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T);
+                             && p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+                         || CallbackCarrier.IsNonNullable(p.Type);
         // A struct reached through an annotated `T?` (a generic base closed over DateOnly) is optional, but holds no
         // null — see the PropInfo overload above.
         var holdsNull = !p.Type.IsValueType
@@ -5913,7 +6050,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         global::Rask.Generators.External.PackageIslands.IslandFacts? Package = null,
         // Where the entry lives when it is not on the markup surface — `Ui.Button` rather than `Ui.Button`. See
         // RaskChainGroupAttribute; null for every component reached by its bare name.
-        ChainGroup? Group = null);
+        ChainGroup? Group = null,
+        // The tags a [Tag] element renders, each with its entry: one for a tag of its own, several for a type
+        // the DOM shares between tags (h1–h6 are one heading element). Empty for everything else.
+        EquatableArray<TagInfo> Tags = default);
+
+    /// <summary>One <c>[Tag]</c> on an element type: the tag it renders and the entry that builds it.</summary>
+    private sealed record TagInfo(string Name, string Entry);
 
     /// <summary>A group class an entry is added to, as the generated partial that re-opens it.</summary>
     /// <param name="Fqn">The group class, fully qualified — the key the group's entries are collected under.</param>

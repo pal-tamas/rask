@@ -54,6 +54,24 @@ encoded exactly like `Text`):
 Every standard HTML element has a generator-emitted chain entry: name it, dot onto it, nest with `[…]`.
 Tag-specific steps and the universal `Id`/`Class`/`Style`/`Data` steps sit side by side on every tag.
 
+**MDN is the source of truth.** The element types, the tags each one renders and every attribute are
+generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`, `@mdn/browser-compat-data`),
+kept in `src/Rask.Core/Dom/mdn.snapshot.json` and refreshed to the latest stable release by the local build.
+The chain you write is named after the **tag**, and the type behind it after the **DOM interface**:
+
+| You write | The type is | Why |
+|---|---|---|
+| `A.Href("/docs")` | `HTMLAnchorElement` | MDN's interface for `<a>` |
+| `Em`, `Section`, `Nav`, `Code` | `HTMLElement` | the DOM gives them no interface of their own |
+| `H1` … `H6` | `HTMLHeadingElement` | one interface, six tags |
+| `Td.ColSpan(2)`, `Th.Scope("col")` | `HTMLTableCellElement` | `ColSpan` is the IDL `colSpan` |
+| `Input.Bind(() => m.Age)` | `HTMLInputElement<int>` | the typed control, over MDN's `HTMLInputElement` |
+
+An attribute property is the IDL name in PascalCase (`ReadOnly`, `NoValidate`, `IsMap`, `DirName`), with two
+aliases where the DOM only renames for JavaScript's sake: `For` (`htmlFor`) and `Class` (`className`). Hover
+any of them for its browser support and links to MDN and the spec. A tag or attribute MDN does not ship in two
+of Chrome, Firefox and Safari is not offered.
+
 Text & semantic elements:
 
 <!-- demo:tags-text -->
@@ -70,8 +88,8 @@ Media:
 
 <!-- demo:tags-media -->
 
-Void elements (`Br`, `Hr`, `Img`, `Meta`, `Link`, `Input`, …) have `SelfClosing => true` and never
-accept children:
+Void elements (`Br`, `Hr`, `Img`, `Meta`, `Link`, `Input`, …) are self-closing, straight from the HTML
+spec's list, and never accept children:
 
 <!-- demo:tags-void -->
 
@@ -266,11 +284,10 @@ Text with `<text>` and `<tspan>` — `SvgText` is the `<text>` tag (renamed to a
 Every standard element is a generated chain entry, composed through the `[...]` children indexer. The
 catalog below groups them the way the HTML spec does, and each tag links to its MDN reference.
 
-You rarely need to leave the editor for that reference, though: **every element component documents
-itself, and the documentation is carried onto the chain**. Hovering `Video` says what `<video>` is
-and links the same MDN page, and each step carries its own description — so `Meter`'s
-`Low`/`High`/`Optimum`, `Track`'s `Kind`, and `Iframe`'s `Sandbox` explain themselves at the call site
-rather than sending you to a search engine.
+You rarely need to leave the editor for that reference, though: **every element documents itself, from
+MDN's data, and the documentation is carried onto the chain**. Hovering `Video` names its DOM interface and
+links the MDN page and the spec, and each step carries its own — so `Td`'s `ColSpan` says its default and range,
+and every attribute says which browsers ship it.
 
 ### Text & inline
 

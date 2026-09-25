@@ -415,15 +415,22 @@ with — and fingerprints the state it may change: the password hash for a reset
 for a confirm. Using it changes that state, so the same link does not work twice, and a password changed any other
 way kills every reset link already sent. Nothing is stored.
 
-**Set `PublicOrigin` behind a proxy.** An emailed link has to be absolute. Rask uses `PublicOrigin`
-first, then the current request's own origin — never a forwarded host header, because that is
-attacker-controlled on a request that reaches the app directly, and a reset link built from it would
-send a working token to a domain of the attacker's choosing.
+**A reset takes back every way in.** Besides ending every session, a completed reset removes every passkey on the
+account — one added by whoever registered the address first, or knew the old password, would otherwise still sign
+them in. For the same reason a passkey can only be added once the address is confirmed; before that the attempt
+answers `AuthError.EmailNotConfirmed`. With `RequireConfirmedEmail` on, registering creates the account but signs
+nobody in until the emailed link is followed.
+
+**Set `PublicOrigin` in production.** An emailed link has to be absolute, and Rask builds it from `PublicOrigin`
+(`Rask:Auth:PublicOrigin`). Only in Development does it fall back to the current request's origin: anywhere else the
+request's `Host` header is whatever the sender typed, and a reset link built from it would mail the victim a working
+token on the attacker's domain. So in production, with `PublicOrigin` unset, no confirm or reset email is sent and
+the log says why. `rask deploy --domain` sets it to `https://<domain>` for you.
 
 ```csharp
 app.Configure(c => c.Auth.Configure(o =>
 {
-    o.PublicOrigin = "https://app.example.com";   // required behind a proxy
+    o.PublicOrigin = "https://app.example.com";   // required outside Development
     o.RequireConfirmedEmail = true;
     o.TokenLifetime = 1.Hour;      // what the email promises AND what the token honours
 }));

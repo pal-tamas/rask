@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Rask.TestSupport;
 
 namespace Rask.External.Tests;

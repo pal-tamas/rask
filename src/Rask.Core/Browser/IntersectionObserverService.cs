@@ -25,7 +25,7 @@ public sealed class IntersectionObserverService : IIntersectionObserver
         ArgumentNullException.ThrowIfNull(element);
         ArgumentNullException.ThrowIfNull(onChange);
 
-        var id = IntersectionInterop.Register(onChange);
+        var id = IntersectionInterop.Register(_js, onChange);
         try
         {
             await _js.InvokeVoidAsync("__raskIntersect.observe", id, element, options?.Thresholds, options?.RootMargin);

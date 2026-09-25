@@ -1,5 +1,3 @@
-using Rask.Site;
-using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
 
 namespace Rask.Site.Tests.Demos;

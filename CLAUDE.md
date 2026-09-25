@@ -131,7 +131,8 @@ dotnet run --project src/Rask.Site
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
 - **`Key`** — reconciliation identity, a chain step that can go ANYWHERE in the chain (generic components too; #1118, RASK046 retired); enables trusted structural diff; not a reactive prop.
-- **One `Callback`/`Callback<T>` property per event**, taking either handler shape (sync or async) at the
+- **One `Callback`/`Callback<T>` property per event**, declared NON-nullable and fired `await OnX.Invoke(v)`
+  (unset = no-op, never a required step), taking either handler shape (sync or async) at the
   call site — a plain `Func<…>` still types a template or a selector. It is a STRUCT, which is what keeps
   the setter reachable now the component is the receiver (above). Auto-wrapped to re-render the owning parent.
   **Refs**: `ElementRef.New()` in a field, pass to `IJSRuntime`. **Context**: `Context.Provide<T>` /
@@ -141,14 +142,14 @@ dotnet run --project src/Rask.Site
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 53-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–093, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–094, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **New HTML tag** → `add-html-tag` skill (`src/Rask.Core/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–093 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK094). **Grep `src/`
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–094 are documented in `docs/diagnostics.md`
+  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK095). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

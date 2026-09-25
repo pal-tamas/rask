@@ -24,7 +24,7 @@ public sealed partial class AsyncValidationApp : Component
         _ctx.AddValidator(new DelayedRejectValidator("admin", "Already taken.", 20));
     }
 
-    protected override Component? HeadAssets => new Title()["async-validation"];
+    protected override Component? HeadAssets => Markup.Title["async-validation"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>

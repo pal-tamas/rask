@@ -30,7 +30,7 @@ public sealed class Signaling : ISignaling
 
         // Register before connecting: the relay answers a join immediately, and a handler registered after
         // the fact would miss the peer list it replies with.
-        var id = SignalingInterop.Register(handlers);
+        var id = SignalingInterop.Register(_js, handlers);
         try
         {
             await _js.InvokeVoidAsync("__raskSignal.open", id, path);

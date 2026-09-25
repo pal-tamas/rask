@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace Rask.DevTools.Browser;
 
 /// <summary>The devtools' browser scripts, embedded in this assembly by the build.</summary>

@@ -35,7 +35,7 @@ public sealed partial class UiToast : Component
     public Ui.Tone? Tone { get; set; }
 
     /// <summary>Runs when the reader acknowledges it. Without one the toast has no dismiss button.</summary>
-    public Callback? OnDismiss { get; set; }
+    public Callback OnDismiss { get; set; }
 
     /// <summary>
     ///     Something to do about it — an Undo, a link to what was created. One control, at the end of the row.
@@ -87,7 +87,7 @@ public sealed partial class UiToast : Component
                 stacked ? "w-full" : "fixed z-40 mx-auto max-w-lg " + UiClassNames.ToastCorner(Position, Align),
                 Class));
 
-        if (Duration is { } duration && OnDismiss is not null)
+        if (Duration is { } duration && OnDismiss.HasValue)
         {
             // The runtime dismisses it by clicking the control below, so the PAGE's handler runs — see the
             // remarks on Duration.
@@ -111,7 +111,7 @@ public sealed partial class UiToast : Component
                 ]
                 : Span.Class("min-w-0 grow break-words")[Message],
             Action,
-            OnDismiss is null
+            !OnDismiss.HasValue
                 ? null
                 : Button
                     .Type("button")

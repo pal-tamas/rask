@@ -168,6 +168,28 @@ public class CodeFixProviderTests
     }
 
     [Fact]
+    public async Task The_RASK014_fix_rewrites_an_element_to_its_tag_entry_not_its_type_name()
+    {
+        // An element type is named after its DOM interface, and its entry after its tag.
+        var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
+            new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
+            Caller("var x = new Rask.Core.Components.HTMLDivElement();"));
+
+        Assert.Contains("var x = Div;", fixhed);
+    }
+
+    [Fact]
+    public async Task The_RASK014_fix_is_withheld_for_a_type_several_tags_share()
+    {
+        // HTMLElement is em, section, nav and thirty more: there is no one entry to rewrite it to.
+        var offered = await CodeFixHarness.IsAnalyzerFixOfferedAsync(
+            new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
+            Caller("var x = new Rask.Core.Components.HTMLElement();"));
+
+        Assert.False(offered);
+    }
+
+    [Fact]
     public async Task The_RASK014_fix_is_withheld_outside_a_markup_host()
     {
         // Entries are protected static members on RaskMarkup, so `Widget` in a plain class names the TYPE

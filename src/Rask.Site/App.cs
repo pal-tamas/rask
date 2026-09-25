@@ -30,7 +30,7 @@ public partial class App : Component
     // Preloading the local files instead means the face is there for the first paint: no swap, no
     // reflow, nothing for a morph to revert, and no cross-origin round trip (802ms of a 2.9s first
     // paint, measured). It also means the site no longer tells a font CDN who reads its docs.
-    private static Rask.Core.Components.Link FontPreload(string path) =>
+    private static Rask.Core.Components.HTMLLinkElement FontPreload(string path) =>
         Link
             .Rel("preload")
             .Type("font/woff2")
@@ -99,7 +99,7 @@ public partial class App : Component
     // and UiStylesheet.Path's app-root default is now simply correct. Worth stating because the
     // failure is invisible either way round: a 404 stylesheet renders the page unstyled and fails
     // nothing.
-    private static Rask.Core.Components.Link KitStylesheet() =>
+    private static Rask.Core.Components.HTMLLinkElement KitStylesheet() =>
         Link
             .Rel("stylesheet")
             .Href(UiStylesheet.Href(LiveOptions.PathBase));

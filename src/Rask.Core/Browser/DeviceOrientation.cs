@@ -31,7 +31,7 @@ public sealed class DeviceOrientation : IDeviceOrientation
     {
         ArgumentNullException.ThrowIfNull(onReading);
 
-        var id = DeviceOrientationInterop.Register(onReading);
+        var id = DeviceOrientationInterop.Register(_js, onReading);
         try
         {
             await _js.InvokeVoidAsync("__raskDeviceOrientation.watch", id);

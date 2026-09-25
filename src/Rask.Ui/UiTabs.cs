@@ -86,7 +86,7 @@ public sealed partial class UiTabs : Component
         return -1;
     }
 
-    private Nav TabRow() =>
+    private HTMLElement TabRow() =>
         // role=tablist on a <nav> of links: daisyUI's own markup for the link form, and what tells
         // assistive technology these are alternatives rather than an arbitrary run of links.
         Nav.Role("tablist")

@@ -9,12 +9,12 @@ public sealed partial class ThrowingApp : Component
 {
     public int Counter;
 
-    protected override Component? HeadAssets => new Title()["throw"];
+    protected override Component? HeadAssets => Markup.Title["throw"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new P()[$"count={Counter}"],
+        Markup.P[$"count={Counter}"],
         Button.OnClick(() => throw new InvalidOperationException("boom"))["throw"],
         Button.OnClick(() => Counter++)["bump"]
     ];

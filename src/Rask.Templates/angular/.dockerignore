@@ -24,6 +24,18 @@ obj/
 appsettings.Development.json
 appsettings.Local.json
 
+# Secrets and data that must never enter an image: the env files `rask deploy --env-file` reads, SQLite
+# databases and their WAL, `rask db backup` archives, and the folders the batteries write beside the app.
+.env
+.env.*
+*.db
+*.db-shm
+*.db-wal
+*.tgz
+mail-pickup/
+snapshots/
+storage/
+
 .git/
 .gitignore
 .vs/

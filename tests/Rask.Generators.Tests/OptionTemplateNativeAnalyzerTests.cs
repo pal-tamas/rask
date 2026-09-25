@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Rask.Generators.Analyzers;
-using Xunit;
 
 namespace Rask.Generators.Tests;
 
@@ -41,10 +37,10 @@ public class OptionTemplateNativeAnalyzerTests
                 public string? Class { get; set; }
                 public Rask.Core.Fn<T, Rask.Core.Component>? OptionTemplate { get; set; }
                 public T? Value { get; set; }
-                public Rask.Core.Callback<T>? OnChange { get; set; }
+                public Rask.Core.Callback<T> OnChange { get; set; }
                 public System.Linq.Expressions.Expression<System.Func<T>>? Bind { get; set; }
                 public Rask.Core.Validator<T>? Validate { get; set; }
-                public Rask.Core.Callback<T>? AfterBind { get; set; }
+                public Rask.Core.Callback<T> AfterBind { get; set; }
             }
 
             public sealed partial class UiMultiSelect<T> : Rask.Core.Component, Rask.Core.Forms.IFormControl<T>
@@ -54,10 +50,10 @@ public class OptionTemplateNativeAnalyzerTests
                 public Rask.Core.Fn<T, Rask.Core.Component>? OptionTemplate { get; set; }
                 public Rask.Core.Fn<T, Rask.Core.Component>? ChipTemplate { get; set; }
                 public T? Value { get; set; }
-                public Rask.Core.Callback<T>? OnChange { get; set; }
+                public Rask.Core.Callback<T> OnChange { get; set; }
                 public System.Linq.Expressions.Expression<System.Func<T>>? Bind { get; set; }
                 public Rask.Core.Validator<T>? Validate { get; set; }
-                public Rask.Core.Callback<T>? AfterBind { get; set; }
+                public Rask.Core.Callback<T> AfterBind { get; set; }
             }
         }
 

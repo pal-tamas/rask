@@ -5,7 +5,6 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Rask.Caching;
-using Rask.SqlServer;
 
 namespace Rask.Providers.E2E.Tests;
 

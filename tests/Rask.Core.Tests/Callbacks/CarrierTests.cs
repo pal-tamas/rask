@@ -25,79 +25,80 @@ public class CarrierTests
         Assert.False(typeof(Validator<string>).IsSubclassOf(typeof(Delegate)));
     }
 
-    // A synchronous handler must not acquire an asynchronous hop it did not have: no new Task, no closure,
-    // no state machine. It hands back the cached completed task, so a caller's plain `await cb.Invoke();`
-    // never yields.
+    // A synchronous handler must not acquire an asynchronous hop it did not have: no Task, no closure,
+    // no state machine. It has run by the time Invoke returns, and what comes back is the DEFAULT
+    // ValueTask — already complete and wrapping nothing — so `await OnClick.Invoke();` costs nothing.
     [Fact]
-    public void A_sync_handler_runs_and_hands_back_the_cached_completed_task()
+    public void A_sync_handler_runs_inline_and_hands_back_a_completed_value_task()
     {
         var ran = false;
         var cb = new Callback(() => ran = true);
 
         var pending = cb.Invoke();
 
-        Assert.Same(Task.CompletedTask, pending);
         Assert.True(ran);
+        Assert.True(pending.IsCompletedSuccessfully);
+        Assert.Equal(default, pending);
     }
 
     [Fact]
-    public async Task An_async_handler_hands_back_the_task_to_await()
+    public async Task An_async_handler_is_awaited_through_invoke()
     {
         var ran = false;
-        var cb = new Callback(async () =>
+        var gate = new TaskCompletionSource();
+        var cb = new Callback<int>(async n =>
         {
-            await Task.Yield();
-            ran = true;
+            await gate.Task;
+            ran = n == 7;
         });
 
-        var pending = cb.Invoke();
-
+        var pending = cb.Invoke(7);
+        var waitedBeforeRelease = !pending.IsCompleted;
+        gate.SetResult();
         await pending;
+
+        Assert.True(waitedBeforeRelease);
         Assert.True(ran);
     }
 
-    // An unset slot is inert rather than throwing, so a component can call its optional callbacks
-    // unconditionally.
+    // An unset slot is inert rather than throwing, so a component declares its event non-nullable and
+    // fires it unconditionally: `await OnRate.Invoke(n);` with nothing wired simply completes.
     [Fact]
-    public void An_unset_carrier_is_inert()
+    public async Task An_unset_callback_completes_without_doing_anything()
     {
-        Assert.Same(Task.CompletedTask, default(Callback).Invoke());
-        Assert.Same(Task.CompletedTask, default(Callback<int>).Invoke(1));
-        Assert.Same(Task.CompletedTask, default(Callback<int, int>).Invoke(1, 2));
-        Assert.False(default(Callback).HasValue);
-        Assert.False(default(Fn<string>).HasValue);
-        Assert.Null(default(Fn<string>).Invoke());
+        var unset = default(Callback<int>);
+
+        var pending = unset.Invoke(1);
+        await pending;
+
+        Assert.False(unset.HasValue);
+        Assert.True(pending.IsCompletedSuccessfully);
+        Assert.Equal(default, default(Callback).Invoke());
+        Assert.Equal(default, default(Callback<int, int>).Invoke(1, 2));
+    }
+
+    [Fact]
+    public void An_unset_value_carrier_is_inert()
+    {
+        var unset = default(Fn<string>);
+
+        var value = unset.Invoke();
+
+        Assert.False(unset.HasValue);
+        Assert.Null(value);
         Assert.Null(default(Fn<int, string>).Invoke(1));
     }
 
-    // An event PROPERTY is `Callback?`, and it answers Invoke itself — so firing and forwarding need no `?.`
-    // and no `?? Task.CompletedTask`.
     [Fact]
-    public async Task An_event_property_invokes_whether_or_not_it_was_set()
-    {
-        Callback? unset = null;
-        Callback<int>? unsetOne = null;
-        var seen = 0;
-        Callback<int>? set = new Callback<int>(v => seen = v);
-
-        var none = unset.Invoke();
-        var noneWithArg = unsetOne.Invoke(1);
-        await set.Invoke(7);
-
-        Assert.Same(Task.CompletedTask, none);
-        Assert.Same(Task.CompletedTask, noneWithArg);
-        Assert.Equal(7, seen);
-    }
-
-    [Fact]
-    public void Argument_carrying_callbacks_pass_their_arguments()
+    public async Task Argument_carrying_callbacks_pass_their_arguments()
     {
         var seen = 0;
-        Assert.Same(Task.CompletedTask, new Callback<int>(v => seen = v).Invoke(42));
-        Assert.Equal(42, seen);
-
         var sum = 0;
-        Assert.Same(Task.CompletedTask, new Callback<int, int>((a, b) => sum = a + b).Invoke(3, 4));
+
+        await new Callback<int>(v => seen = v).Invoke(42);
+        await new Callback<int, int>((a, b) => sum = a + b).Invoke(3, 4);
+
+        Assert.Equal(42, seen);
         Assert.Equal(7, sum);
     }
 

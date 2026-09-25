@@ -3,7 +3,6 @@ using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Globalization;
 using Rask.Core.Live;
-using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Live;
 
@@ -89,6 +88,33 @@ public class LiveSessionDirectTests
         await view.StateHasChangedAsync();
     }
 
+    [Fact]
+    public async Task A_script_callback_waits_behind_the_handler_already_running()
+    {
+        // A scoped script's callback arrives on the socket reader; it must not run beside a click being handled.
+        using var session = NewSession(new BasicComponent());
+        var handler = new TaskCompletionSource();
+        var order = new List<string>();
+        session.EnqueueOnHandlerChain(async previous =>
+        {
+            await previous;
+            await handler.Task;
+            order.Add("handler");
+        });
+
+        ((IRenderHandle)session).RunInOrder(() =>
+        {
+            order.Add("callback");
+            return Task.CompletedTask;
+        });
+        var ranEarly = order.Count;
+        handler.SetResult();
+        await session.LastHandlerTask;
+
+        Assert.Equal(0, ranEarly);
+        Assert.Equal(["handler", "callback"], order);
+    }
+
     private static LiveSession NewSession(Component view)
     {
         var sp = new ServiceCollection().BuildServiceProvider();
@@ -98,14 +124,14 @@ public class LiveSessionDirectTests
 
     private sealed class BasicComponent : Component
     {
-        protected override Component? Render() => new Span();
+        protected override Component? Render() => Markup.Span;
     }
 
     private sealed class TrackingDisposable : Component, IDisposable
     {
         public int Disposes;
         public void Dispose() => Disposes++;
-        protected override Component? Render() => new Span();
+        protected override Component? Render() => Markup.Span;
     }
 
     private sealed class TrackingAsyncDisposable : Component, IAsyncDisposable
@@ -118,6 +144,6 @@ public class LiveSessionDirectTests
             return ValueTask.CompletedTask;
         }
 
-        protected override Component? Render() => new Span();
+        protected override Component? Render() => Markup.Span;
     }
 }

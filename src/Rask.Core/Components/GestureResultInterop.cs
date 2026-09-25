@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
@@ -19,19 +19,15 @@ public static class GestureResultInterop
     // handler is never evicted before its click, yet it bounds the static map instead of leaking per-render.
     private const int Capacity = 65536;
 
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<string?, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<string?, Task>> Handlers = new(Capacity);
 
-    internal static int Register(Func<string?, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        Handlers.TryRemove(id - Capacity, out _);
-        return id;
-    }
+    // Registered mid-render, where no runtime is in hand: the render's own session supplies it, so only
+    // that session's socket can post the result.
+    internal static int Register(Func<string?, Task> handler) =>
+        Handlers.Register(AmbientServices.Current?.GetService(typeof(IJSRuntime)) as IJSRuntime, handler);
 
     /// <summary>Infrastructure. Invoked by the client with a gesture's result (one-shot); do not call.</summary>
     [JSInvokable("RaskGestureResult")]
     public static Task Result(int id, string? value) =>
-        Handlers.TryRemove(id, out var handler) ? handler(value) : Task.CompletedTask;
+        Handlers.TryTake(id, out var handler) ? handler(value) : Task.CompletedTask;
 }

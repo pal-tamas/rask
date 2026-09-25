@@ -135,6 +135,16 @@ public sealed class RaskAppOptions
     /// </summary>
     public Battery<RaskLoggingOptions> Logs { get; } = new();
 
+    /// <summary>
+    /// The UI kit, applied to the whole document: its stylesheet first in <c>&lt;head&gt;</c> and its theme
+    /// scope on <c>&lt;html&gt;</c>, so an <c>App</c> is a title and a router.
+    /// </summary>
+    /// <remarks>
+    /// The charset, the viewport and the app's own compiled <c>css/app.css</c> are written either way. Off
+    /// leaves the kit out; an <c>App</c> that overrides <c>Shell</c> writes its own <c>&lt;html&gt;</c> regardless.
+    /// </remarks>
+    public Battery Ui { get; } = new();
+
     /// <summary>The operator dashboard at <c>/_rask</c>, over every battery's table.</summary>
     public Battery Ops { get; } = new();
 

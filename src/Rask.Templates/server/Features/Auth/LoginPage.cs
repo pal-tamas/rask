@@ -1,7 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Core.Authentication;
-using Rask.Core.Browser;
-using Rask.Core.Routing;
 using Rask.Wire;
 
 namespace Company.RaskServer.Features.Auth;

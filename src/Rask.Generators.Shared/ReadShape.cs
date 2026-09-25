@@ -1,5 +1,5 @@
 using Microsoft.CodeAnalysis;
-using Rask.Cqrs.Generators;
+using Rask.Batteries.Generators;
 
 namespace Rask.Generators.Shared;
 

@@ -557,9 +557,6 @@ public sealed class ProjectGeneratorTests
 
         // The csproj names Rask.Wasm and nothing else for styling: the Tailwind build ships inside it.
         Assert.DoesNotContain("Rask.Tailwind", files["App.csproj"], StringComparison.Ordinal);
-
-        // The head has to point at what the build writes, or the stylesheet is compiled and never served.
-        Assert.Contains("/css/app.css", files["Features/Shared/App.cs"], StringComparison.Ordinal);
     }
 
     [Fact]

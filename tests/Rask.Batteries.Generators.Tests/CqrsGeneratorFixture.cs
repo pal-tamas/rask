@@ -1,4 +1,4 @@
-namespace Rask.Cqrs.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// Runs <see cref="CqrsDispatchGenerator"/> over a source string. The driver plumbing lives in the shared

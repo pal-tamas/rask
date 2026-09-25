@@ -14,7 +14,7 @@ public sealed partial class HangingApp : Component
     // without a handle to the DI-constructed instance; reset per test before the host starts.
     public static TaskCompletionSource Gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? HeadAssets => new Title()["hang"];
+    protected override Component? HeadAssets => Markup.Title["hang"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() => Button.OnClick(async () => await Gate.Task)["hang"];

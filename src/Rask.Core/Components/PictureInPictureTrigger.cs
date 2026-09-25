@@ -14,5 +14,5 @@ public sealed class PictureInPictureTrigger : Component
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template!(GestureBridge.Attr("pip.request", null, el: For.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("pip.request", default, el: For.Id));
 }

@@ -131,12 +131,16 @@ internal static class BlazorParameters
     // would otherwise look like an override of an entry it has nothing to do with and be dropped
     // silently: no step, no diagnostic, no way to pass a value the component plainly declares.
     //
+    // Declared maps each name to what a hand-declared property is typed as: `Callback<T>?` and `Callback<T>` are
+    // both fine, and the parameter writer has to reach the carrier the way the island's own declaration allows.
+    //
     // Inherited is everything reachable, static included. A generated property whose name matches an
     // inherited entry HIDES it, which is CS0108 and fatal here — so it has to say `new`, exactly as
     // Element does for its own Title.
-    private static (HashSet<string> Declared, HashSet<string> Inherited) IslandMemberNames(INamedTypeSymbol island)
+    private static (Dictionary<string, string?> Declared, HashSet<string> Inherited) IslandMemberNames(
+        INamedTypeSymbol island)
     {
-        var declared = new HashSet<string>(StringComparer.Ordinal);
+        var declared = new Dictionary<string, string?>(StringComparer.Ordinal);
         var inherited = new HashSet<string>(StringComparer.Ordinal);
         for (var t = island; t is not null; t = t.BaseType)
         {
@@ -151,7 +155,9 @@ internal static class BlazorParameters
             {
                 if (isIsland && !m.IsStatic)
                 {
-                    declared.Add(m.Name);
+                    declared[m.Name] = m is IPropertySymbol declaredProp
+                        ? declaredProp.Type.ToDisplayString(TypeFormat)
+                        : null;
                 }
 
                 if (!isIsland)
@@ -165,7 +171,7 @@ internal static class BlazorParameters
     }
 
     private static BlazorParam? ToParam(
-        IPropertySymbol prop, string name, HashSet<string> declared, HashSet<string> inherited)
+        IPropertySymbol prop, string name, Dictionary<string, string?> declared, HashSet<string> inherited)
     {
         var typeFqn = prop.Type.ToDisplayString(TypeFormat);
 
@@ -183,7 +189,7 @@ internal static class BlazorParameters
         // produce a chain step that accepted a value and never passed it on: the step existed
         // (the factory generator sees the real property) but nothing wrote it into the
         // parameter dictionary. It is emitted as a WRITE without a declaration.
-        var declaredByUser = declared.Contains(name);
+        var declaredByUser = declared.TryGetValue(name, out var ownType);
 
         var isCallback = typeFqn.StartsWith("global::" + EventCallbackName, StringComparison.Ordinal);
         var eventArg = isCallback && prop.Type is INamedTypeSymbol { TypeArguments.Length: 1 } named
@@ -202,7 +208,7 @@ internal static class BlazorParameters
         return new BlazorParam(
             prop.Name,
             name,
-            ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
+            ownType ?? ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
             eventArg,
             isCallback,
             isRequired,
@@ -237,10 +243,11 @@ internal static class BlazorParameters
             // pointed at the island's call site and mentioning nothing about the island.
             //
             // The carrier also widens what the island accepts: an EventCallback is asynchronous at heart,
-            // and a bare Action could only ever take the synchronous half of it.
+            // and a bare Action could only ever take the synchronous half of it. Non-nullable, like every
+            // Rask event: an unset `Callback` is its default, which is optional and omitted when written.
             return eventArg is null
-                ? "global::Rask.Core.Callback?"
-                : $"global::Rask.Core.Callback<{eventArg}>?";
+                ? "global::Rask.Core.Callback"
+                : $"global::Rask.Core.Callback<{eventArg}>";
         }
 
         if (isRequired)

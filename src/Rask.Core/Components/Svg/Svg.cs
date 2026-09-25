@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     container.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/svg">MDN</see>
 /// </summary>
+[Tag("svg")]
 public sealed partial class Svg : SvgElement
 {
-    protected override string TagName => "svg";
-
     /// <summary>
     ///     The rendered width. Omit it, with a <c>ViewBox</c> set, to let CSS size the graphic.
     /// </summary>

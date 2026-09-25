@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
-using Rask.Data.Generators.Analyzers;
+using Rask.Batteries.Generators.Analyzers;
 
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>RASK084: an entity's or a value object's state can be changed from outside the type.</summary>
 public class ModelStateMutationAnalyzerTests

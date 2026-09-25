@@ -45,7 +45,7 @@ internal sealed partial class DevToolsFlashEmitter : Component
     public required bool On { get; set; }
 
     /// <summary>Raised with the setting the page remembered, when the panel's script reports it.</summary>
-    public Callback<bool>? OnChange { get; set; }
+    public Callback<bool> OnChange { get; set; }
 
     /// <inheritdoc />
     protected override Task OnMount()
@@ -114,17 +114,19 @@ internal sealed partial class DevToolsFlashEmitter : Component
 
     private Task Reported(string? key)
     {
-        if (key is null || !key.StartsWith(SettingKeyPrefix, StringComparison.Ordinal) || OnChange is not { } changed)
+        if (key is null || !key.StartsWith(SettingKeyPrefix, StringComparison.Ordinal))
         {
             return Task.CompletedTask;
         }
 
-        return key.AsSpan(SettingKeyPrefix.Length) switch
+        bool? on = key.AsSpan(SettingKeyPrefix.Length) switch
         {
-            "on" => changed.Invoke(true),
-            "off" => changed.Invoke(false),
+            "on" => true,
+            "off" => false,
             _ => null,
-        } ?? Task.CompletedTask;
+        };
+
+        return on is { } value ? OnChange.Invoke(value).AsTask() : Task.CompletedTask;
     }
 
     /// <summary>

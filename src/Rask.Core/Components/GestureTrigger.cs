@@ -27,7 +27,7 @@ public sealed class GestureTrigger : Component
     ///     Optional callback for capabilities that return a value (the eyedropper's hex, the install outcome).
     ///     When set, the client posts the result back to it; leave <c>null</c> for fire-and-forget capabilities.
     /// </summary>
-    public Callback<string?>? OnResult { get; set; }
+    public Callback<string?> OnResult { get; set; }
 
     /// <summary>Renders your trigger element, given the attribute bundle to apply via its <c>Data</c> prop.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }

@@ -107,12 +107,25 @@ internal sealed partial class AccountService<TUser>(
 
         await GrantRoleAsync(user, cancellationToken).ConfigureAwait(false);
 
+        return await WelcomeAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Mails the confirmation link, then signs the new account in — unless the gate says it has to be proved first.
+    private async Task<AccountOutcome> WelcomeAsync(TUser user, CancellationToken cancellationToken)
+    {
         // Sent whether or not RequireConfirmedEmail is on. With the gate off it is an invitation rather than a barrier — and an
         // app that turns the gate on later finds its existing accounts already confirmed, instead of locking all of them out.
         await mail
             .SendConfirmationAsync(
                 user.Email, user.Id.ToString(), tokens.ForConfirmation(user, options.TokenLifetime), cancellationToken)
             .ConfigureAwait(false);
+
+        // The account exists, but with the gate on nobody is signed in to it until the address is proved: otherwise
+        // registering would be a way round the very check sign-in makes.
+        if (options.RequireConfirmedEmail && !user.IsEmailConfirmed)
+        {
+            return Fail(AuthError.EmailNotConfirmed);
+        }
 
         return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
     }
@@ -344,6 +357,15 @@ internal sealed partial class AccountService<TUser>(
             // somebody read mail sent to that address.
             user.ConfirmEmail(now);
 
+            // A reset recovers the account, so it takes back every way in, not just the password: a passkey added by
+            // whoever registered this address first, or by whoever knew the old password, would still sign them in.
+            foreach (var passkey in await db.Set<Passkey>().Where(p => p.UserId == user.Id).ToListAsync(cancellationToken)
+                         .ConfigureAwait(false))
+            {
+                passkey.Removed();
+                db.Remove(passkey);
+            }
+
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await sessions.EndAllAsync(user.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -410,8 +432,11 @@ internal sealed partial class AccountService<TUser>(
         await using (db.ConfigureAwait(false))
         {
             if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
-                    .ConfigureAwait(false) is not { } user)
+                    .ConfigureAwait(false) is not { } user
+                || !user.IsEmailConfirmed)
             {
+                // An unconfirmed address may not be this user's at all: a passkey added now would outlive the real owner
+                // taking the account back.
                 return null;
             }
 
@@ -439,6 +464,19 @@ internal sealed partial class AccountService<TUser>(
                 user.Email,
                 [.. existing.Select(WebEncoders.Base64UrlEncode)],
                 (int)PasskeyChallenges.Lifetime.TotalMilliseconds);
+        }
+    }
+
+    public async Task<AuthError> PasskeyRefusalAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            var confirmed = await db.Set<TUser>().AsNoTracking()
+                .AnyAsync(u => u.Id == userId && u.EmailConfirmedAt != null, cancellationToken)
+                .ConfigureAwait(false);
+
+            return options.Passkeys && !confirmed ? AuthError.EmailNotConfirmed : AuthError.NotAllowed;
         }
     }
 

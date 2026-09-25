@@ -9,7 +9,7 @@ GitHub is the source of truth — keep docs, examples, and these guides up to da
 ## Repo workflows (`.claude/skills/`)
 Apply the matching playbook automatically:
 - **rask-ship** — definition-of-done gate before any commit.
-- **add-html-tag** / **add-diagnostic** / **add-codefix** — scaffolding (component+test / RASK0xx+docs+test /
+- **add-html-tag** / **add-diagnostic** / **add-codefix** — elements from MDN (refresh + hand partial) / RASK0xx+docs+test /
   IDE quick-fix+test). **run-benchmarks** — hot-path Allocated delta.
 - **run-rask** / **run-rask-wasm** / **run-rask-cli** — build, launch and drive the real thing (Server
   showcase, WASM showcase, the `rask` CLI) when a test passing isn't the same as it working.

@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 public sealed class EyeDropperTrigger : Component
 {
     /// <summary>Invoked with the picked colour as <c>#rrggbb</c>, or <c>null</c> when the user cancels.</summary>
-    public Callback<string?>? OnColor { get; set; }
+    public Callback<string?> OnColor { get; set; }
 
     /// <summary>Renders your trigger element; its click opens the eyedropper.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }

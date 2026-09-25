@@ -1,6 +1,4 @@
-using Microsoft.CodeAnalysis;
-
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// Drives <see cref="ReadModelGenerator"/> over hand-written entities.

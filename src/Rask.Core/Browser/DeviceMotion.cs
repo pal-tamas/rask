@@ -31,7 +31,7 @@ public sealed class DeviceMotion : IDeviceMotion
     {
         ArgumentNullException.ThrowIfNull(onReading);
 
-        var id = DeviceMotionInterop.Register(onReading);
+        var id = DeviceMotionInterop.Register(_js, onReading);
         try
         {
             await _js.InvokeVoidAsync("__raskDeviceMotion.watch", id);

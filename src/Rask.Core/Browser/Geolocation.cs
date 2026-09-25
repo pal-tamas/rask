@@ -34,7 +34,7 @@ public sealed class Geolocation(IJSRuntime js) : IGeolocation
         ArgumentNullException.ThrowIfNull(onPosition);
         options ??= new GeolocationOptions();
 
-        var id = GeolocationWatchInterop.Register(onPosition);
+        var id = GeolocationWatchInterop.Register(js, onPosition);
         try
         {
             await js.InvokeVoidAsync(

@@ -8,7 +8,7 @@ internal sealed partial class DashboardParked : Component
 {
     public bool Parked { get; set; }
 
-    public Callback? Resume { get; set; }
+    public Callback Resume { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -19,5 +19,5 @@ internal sealed partial class DashboardParked : Component
             ]
             : null;
 
-    private Task ResumeAsync() => Resume.Invoke();
+    private Task ResumeAsync() => Resume.Invoke().AsTask();
 }

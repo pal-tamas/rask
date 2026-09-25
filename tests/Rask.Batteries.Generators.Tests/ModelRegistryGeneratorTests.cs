@@ -1,8 +1,6 @@
 using System.Globalization;
-using Microsoft.CodeAnalysis;
-using Rask.Data.Generators;
 
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// Drives <see cref="ModelRegistryGenerator"/> over hand-written entities.

@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Rask.Core.Forms;
 
 namespace Rask;
@@ -38,7 +37,7 @@ public sealed partial class UiFileInput : UiFormField<string>
     ///         Re-check them on the server before storing anything.
     ///     </para>
     /// </summary>
-    public Callback<IReadOnlyList<IRaskFile>>? OnFiles { get; set; }
+    public Callback<IReadOnlyList<IRaskFile>> OnFiles { get; set; }
 
 
     /// <summary>Lets the reader choose more than one file. The value reports the first.</summary>

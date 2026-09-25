@@ -138,7 +138,7 @@ mistake, the rule notes the ID.
   installs its own write-back, so `Value`/`Checked`/`OnInput`/`OnChange` are not offered on a bound
   chain (and `AfterBind` is not offered on a controlled one) — reach for `AfterBind` when you want a
   side effect on each bound write. See [forms §1](forms.md#1-two-way-binding).
-- **Wrap inputs in `Form<TModel>` and let it validate.** The form owns the `EditContext`
+- **Wrap inputs in `HTMLFormElement<TModel>` and let it validate.** The form owns the `EditContext`
   (touched/modified state + the validator pipeline) and registers the built-in passes itself, so
   the model's attributes and the `AbstractValidator<T>` you wrote both cover the whole reachable
   object graph — including nested sub-objects and collections — with nothing declared. Reach for an

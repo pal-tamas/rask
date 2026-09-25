@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -12,20 +12,14 @@ namespace Rask.Core.Browser;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class GamepadInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<GamepadReading, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<GamepadReading, Task>> Handlers = new();
 
-    internal static int Register(Func<GamepadReading, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<GamepadReading, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge when a polled gamepad's state changes; do not call.</summary>
     [JSInvokable("RaskGamepadReading")]
     public static Task Reading(int id, GamepadReading reading) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(reading) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(reading) : Task.CompletedTask;
 }

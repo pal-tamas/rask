@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Rask.SQLite;
 
 /// <summary>
 /// <c>UseRaskSqlite</c> reads its connection string from <c>Rask:ConnectionStrings:App</c>. These tests point every

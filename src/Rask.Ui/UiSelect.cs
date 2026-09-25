@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Linq.Expressions;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
@@ -82,7 +81,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     ///     With one, nothing is filtered locally: the page runs its own query and hands back new
     ///     <see cref="Options" />, showing <see cref="Loading" /> while it waits. Implies <see cref="Searchable" />.
     /// </remarks>
-    public Callback<string>? OnSearch { get; set; }
+    public Callback<string> OnSearch { get; set; }
 
     /// <summary>Whether the options are still being fetched — shows "Searching…" in place of the list.</summary>
     public bool? Loading { get; set; }
@@ -170,10 +169,10 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         ? !native
         // Every one of these needs somewhere to put markup the platform's control has no room for: templated
         // options, a search box, a clear button.
-        : OptionTemplate is not null || Searchable == true || Filter is not null || OnSearch is not null
+        : OptionTemplate is not null || Searchable == true || Filter is not null || OnSearch.HasValue
           || Clearable == true;
 
-    private bool HasSearch => Searchable == true || Filter is not null || OnSearch is not null;
+    private bool HasSearch => Searchable == true || Filter is not null || OnSearch.HasValue;
 
     private string SearchId => Prefix + "-search";
 
@@ -395,7 +394,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
     // A listbox of buttons submits nothing. Without this a control inside a plain <form> would silently drop its
     // field, which is the kind of failure nobody sees until the data is wrong.
-    private Input<string>? HiddenField(T? current)
+    private HTMLInputElement<string>? HiddenField(T? current)
     {
         if (Name is not { } name)
         {
@@ -409,7 +408,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     // the query, so what it handed back IS the answer and filtering it again would narrow it twice.
     private IReadOnlyList<(T Value, string Text)> Shown()
     {
-        if (!HasSearch || OnSearch is not null || string.IsNullOrEmpty(_filter))
+        if (!HasSearch || OnSearch.HasValue || string.IsNullOrEmpty(_filter))
         {
             return Options;
         }
@@ -532,10 +531,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                     // Back to the top of the narrowed list, which Normalize snaps onto the first option a reader
                     // can actually land on.
                     _cursor = 0;
-                    if (OnSearch is { } onSearch)
-                    {
-                        await onSearch.Invoke(raw ?? string.Empty).ConfigureAwait(false);
-                    }
+                    await OnSearch.Invoke(raw ?? string.Empty).ConfigureAwait(false);
                 })
                 .OnKeyDown(e => OnKeyAsync(e, view, fromSearch: true))
         ];

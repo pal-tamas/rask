@@ -40,6 +40,7 @@
         <Project Path="src/Rask.Tailwind/Rask.Tailwind.csproj" />
         <Project Path="src/Rask.Tailwind.Tasks/Rask.Tailwind.Tasks.csproj" />
         <Project Path="src/Rask.TypeScript.Tasks/Rask.TypeScript.Tasks.csproj" />
+        <Project Path="src/Rask.Dom.Tasks/Rask.Dom.Tasks.csproj" />
         <Project Path="src/Rask.SQLite/Rask.SQLite.csproj" />
         <Project Path="src/Rask.SQLite.EntityFrameworkCore/Rask.SQLite.EntityFrameworkCore.csproj" />
         <Project Path="src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj" />

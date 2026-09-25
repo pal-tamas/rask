@@ -38,6 +38,9 @@ internal interface IAccounts
     Task<PasskeyCreationChallenge?> BeginAddPasskeyAsync(
         Guid userId, string? origin, CancellationToken cancellationToken = default);
 
+    /// <summary>Why <see cref="BeginAddPasskeyAsync" /> gave no challenge, for the message a person sees.</summary>
+    Task<AuthError> PasskeyRefusalAsync(Guid userId, CancellationToken cancellationToken = default);
+
     Task<AuthResult> CompleteAddPasskeyAsync(
         Guid userId, PasskeyRegistrationRequest request, string? origin, CancellationToken cancellationToken = default);
 

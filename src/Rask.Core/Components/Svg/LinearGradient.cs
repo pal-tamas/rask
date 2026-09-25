@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     "url(#id)"</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/linearGradient">MDN</see>
 /// </summary>
+[Tag("linearGradient")]
 public sealed partial class LinearGradient : SvgElement
 {
-    protected override string TagName => "linearGradient";
-
     /// <summary>The gradient vector's start x. Defaults to 0%.</summary>
     public string? X1 { get; set; }
 

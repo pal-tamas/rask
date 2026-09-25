@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Rask.Generators.Shared;
 
-namespace Rask.Data.Generators.Analyzers;
+namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
 ///     The Rask.Data types the model-state analyzers key on, resolved once per compilation.

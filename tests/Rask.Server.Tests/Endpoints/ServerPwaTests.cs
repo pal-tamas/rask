@@ -1,5 +1,4 @@
 using System.Net;
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Browser;
 using Rask.Core.Components;
@@ -138,6 +137,6 @@ public sealed class ServerPwaTests
     {
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => new H1()["hi"];
+        protected override Component? Render() => Markup.H1["hi"];
     }
 }

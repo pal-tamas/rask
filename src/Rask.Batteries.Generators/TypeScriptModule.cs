@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Rask.Generators.Shared;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 ///     Renders the two TypeScript files a front end consumes: the types, and the message factories

@@ -1,5 +1,4 @@
 using Rask.Core.Routing;
-using Rask.Site;
 using Rask.Site.Tests.Infrastructure;
 
 namespace Rask.Site.Tests.Layout;

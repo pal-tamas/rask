@@ -67,10 +67,23 @@ public static partial class ScopedAssetRegistry
     // Strips the leading `export ` (and an optional `default `) from a declaration so the
     // module body can run inside the IIFE. The lookahead lists `async function` alongside
     // the bare forms — without it an `export async function` keeps its `export` keyword and
-    // throws a SyntaxError inside the (non-module) wrapper.
-    [GeneratedRegex(@"(?<lead>^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|const|let|var)\b)",
+    // throws a SyntaxError inside the (non-module) wrapper. `class` for the same reason: an exported
+    // class kept its keyword and took the component's whole script down with it.
+    [GeneratedRegex(@"(?<lead>^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|class|const|let|var)\b)",
         RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ExportStrip();
+
+    // Exported classes, exposed through a factory — `__new_Chart(...)` — because a call from C# can
+    // invoke a function but has no `new`. The generated `NewChart(...)` on the component calls it.
+    [GeneratedRegex(@"(^|\n)\s*export\s+(default\s+)?class\s+(?<name>\w+)\b",
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExportedClassNames();
+
+    // `export const double = (x) => x * 2` — a function held in a binding. Collected with the functions, and
+    // exposed only when the value really is one (the same typeof guard), so `export const PI = 3.14` stays private.
+    [GeneratedRegex(@"(^|\n)\s*export\s+(const|let|var)\s+(?<name>\w+)\s*[=:]",
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExportedBindingNames();
 
     // Collects the names of exported function declarations (sync or async) so they can be
     // re-exposed on the returned object. The `async` modifier is optional; the name is the `name` group.
@@ -873,14 +886,10 @@ public static partial class ScopedAssetRegistry
     private static string WrapModule(string typeName, string source, bool preserveLayout = false)
     {
         var exportedNames = new List<string>();
-        foreach (Match m in ExportedFunctionNames().Matches(source))
-        {
-            var name = m.Groups["name"].Value;
-            if (!exportedNames.Contains(name, StringComparer.Ordinal))
-            {
-                exportedNames.Add(name);
-            }
-        }
+        CollectNames(ExportedFunctionNames(), source, exportedNames);
+        CollectNames(ExportedBindingNames(), source, exportedNames);
+        var exportedClasses = new List<string>();
+        CollectNames(ExportedClassNames(), source, exportedClasses);
 
         // With a source map every line and column of the source must stay where the map says it is, so the stripped
         // `export ` becomes blanks, and any newline the match took is kept, rather than being removed.
@@ -898,28 +907,56 @@ public static partial class ScopedAssetRegistry
         }
 
         sb.Append("    return {");
-        if (exportedNames.Count == 0)
+        if (exportedNames.Count == 0 && exportedClasses.Count == 0)
         {
             sb.Append("};\n})();\n})();\n");
             return sb.ToString();
         }
 
         sb.Append('\n');
-        for (var i = 0; i < exportedNames.Count; i++)
+        AppendMembers(sb, exportedNames, exportedClasses);
+        sb.Append("    };\n})();\n})();\n");
+        return sb.ToString();
+    }
+
+    // Each distinct `name` group of the pattern, in source order.
+    private static void CollectNames(Regex pattern, string source, List<string> names)
+    {
+        foreach (Match m in pattern.Matches(source))
         {
-            var name = exportedNames[i];
-            sb.Append("        ").Append(name).Append(": typeof ").Append(name)
-                .Append(" === 'function' ? ").Append(name).Append(" : undefined");
-            if (i < exportedNames.Count - 1)
+            var name = m.Groups["name"].Value;
+            if (!names.Contains(name, StringComparer.Ordinal))
+            {
+                names.Add(name);
+            }
+        }
+    }
+
+    // A function is exposed only when the value really is one; a class also gets a `__new_` factory.
+    private static void AppendMembers(StringBuilder sb, List<string> exportedNames, List<string> exportedClasses)
+    {
+        var members = new List<string>(exportedNames.Count + (exportedClasses.Count * 2));
+        foreach (var name in exportedNames)
+        {
+            members.Add(name + ": typeof " + name + " === 'function' ? " + name + " : undefined");
+        }
+
+        foreach (var name in exportedClasses)
+        {
+            members.Add(name + ": " + name);
+            members.Add("__new_" + name + ": function () { return new " + name + "(...arguments); }");
+        }
+
+        for (var i = 0; i < members.Count; i++)
+        {
+            sb.Append("        ").Append(members[i]);
+            if (i < members.Count - 1)
             {
                 sb.Append(',');
             }
 
             sb.Append('\n');
         }
-
-        sb.Append("    };\n})();\n})();\n");
-        return sb.ToString();
     }
 
     public readonly record struct EnumeratedEntry(string Hash, AssetKind Kind, ReadOnlyMemory<byte> Utf8);

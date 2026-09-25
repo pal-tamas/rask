@@ -21,7 +21,7 @@ public class DiagnosticDescriptorTests
         foreach (var assembly in new[]
                  {
                      typeof(RoutesGenerator).Assembly,
-                     typeof(Rask.Cqrs.Generators.CqrsDispatchGenerator).Assembly,
+                     typeof(Rask.Batteries.Generators.CqrsDispatchGenerator).Assembly,
                      typeof(Rask.Api.Generators.ApiClientGenerator).Assembly,
                  })
         {
@@ -75,7 +75,7 @@ public class DiagnosticDescriptorTests
         foreach (var assembly in new[]
                  {
                      typeof(RoutesGenerator).Assembly,
-                     typeof(Rask.Cqrs.Generators.CqrsDispatchGenerator).Assembly,
+                     typeof(Rask.Batteries.Generators.CqrsDispatchGenerator).Assembly,
                      typeof(Rask.Api.Generators.ApiClientGenerator).Assembly,
                  })
         {

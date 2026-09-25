@@ -82,13 +82,13 @@ The `server` template is deliberately small — a handful of files, no example p
   battery's tables — those are what the first migration created — so there is no `DbSet` property or
   configuration class to add as you go. Code that needs the context itself injects
   `IDbContextFactory<RaskAppDbContext>`; you'll meet that in [Chapter 4](04-background-jobs.md).
-- **`Features/Shared/App.cs`** — the **root component**: it renders into `<body>` (Rask builds the
-  document around it, filling `<head>` from every component's `Head` override) and drops a `Router()`
-  where the current page appears. It lives in `Features/Shared/` — the bucket for cross-cutting code the
+- **`Features/Shared/App.cs`** — the **root component**: a `Title` and `Render() => Router`, which is where
+  the current page appears. Rask builds the document around it — the charset, the viewport, the UI kit's
+  stylesheet and theme, your `Styles/app.css` — and fills `<head>` from every component's `HeadAssets`. It lives in `Features/Shared/` — the bucket for cross-cutting code the
   whole app shares.
 - **`Features/Home/HomePage.cs`** — the `/` welcome page, its own feature slice. Edit or replace it.
 - **The [Rask.Ui](../ui-kit.md) kit** — it comes with `Rask.Server`, is imported everywhere by the
-  `global using Rask;` line in `GlobalUsings.cs`, and its stylesheet is linked first in `App.cs`. Every page in this
+  `global using Rask;` line in `GlobalUsings.cs`, and RaskApp links its stylesheet first on every page. Every page in this
   tutorial is built from its components — `Ui.Input`, `Ui.Button`, `Ui.Card`, `Ui.DataGrid` — rather than from
   raw tags and class strings.
 - **`Features/Auth/`** — the sign-in, registration, sign-out, confirmation, password-reset and devices pages,

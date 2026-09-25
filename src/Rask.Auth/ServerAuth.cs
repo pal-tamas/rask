@@ -92,7 +92,7 @@ internal sealed class ServerAuth<TUser>(
         // travel: on this host the browser half is a call over the live socket rather than a second HTTP request.
         if (await accounts.BeginAddPasskeyAsync(userId, Origin()).ConfigureAwait(false) is not { } challenge)
         {
-            return AuthResult.Fail(AuthError.NotAllowed);
+            return AuthResult.Fail(await accounts.PasskeyRefusalAsync(userId).ConfigureAwait(false));
         }
 
         var created = await webAuthn

@@ -31,6 +31,14 @@ internal static class AssetPairing
     /// </remarks>
     public static string NormalizeDirectory(string path)
     {
+        // A LINKED source (`<Compile Include="..\..\src\App\**\*.cs"/>`) reaches the compiler with its `..`
+        // segments intact, while MSBuild's %(FullPath) tag on a scoped script is already collapsed — two
+        // spellings of one folder. GetFullPath on a rooted path only rewrites the string; it reads nothing.
+        if (Path.IsPathRooted(path))
+        {
+            path = Path.GetFullPath(path);
+        }
+
         var dir = Path.GetDirectoryName(path) ?? string.Empty;
         dir = dir.Replace('\\', '/');
 

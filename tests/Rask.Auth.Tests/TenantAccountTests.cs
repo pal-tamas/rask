@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Authentication;
 using Rask.Data;
 using Rask.Wire;
 

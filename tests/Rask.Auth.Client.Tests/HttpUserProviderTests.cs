@@ -1,8 +1,6 @@
 using System.Net;
 using System.Security.Claims;
 using System.Text;
-using Rask.Core.Authentication;
-using Rask.Wire;
 
 namespace Rask.Auth.Client.Tests;
 

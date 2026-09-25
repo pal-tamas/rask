@@ -9,4 +9,5 @@ namespace Rask.Outbox;
 /// so the same <see cref="INotificationHandler{TNotification}"/> handles it whether it is delivered
 /// in-process (Rask.Data) or via the outbox.
 /// </summary>
+[LocalOnly]
 public interface IOutboxEvent : INotification;

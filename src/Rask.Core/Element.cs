@@ -9,6 +9,12 @@ namespace Rask.Core;
 // HTML-only concerns.
 public abstract partial class Element : Component
 {
+    // A [Tag] element's tag and void-ness come from the generated table, by the id its entry (or its
+    // constructor, for a type with one tag) stamped. Id 0 is "no tag", for an element that names its own.
+    protected override string? TagName => RaskTags.Names[TagId];
+
+    protected override bool SelfClosing => RaskTags.Void[TagId];
+
     // An element's children are walked at serialization time (RenderChildren), never embedded in its
     // cached render result, so they never invalidate it.
     private protected override bool BakesChildrenIntoRender => false;
@@ -74,7 +80,7 @@ public abstract partial class Element : Component
     /// <summary>
     ///     The ARIA <c>role</c> — what this element *is* to assistive technology, when the tag alone does
     ///     not say it. A <c>div</c> wired up as a tab strip needs <c>.Role("tablist")</c>; a
-    ///     <see cref="Components.Button" /> already reports itself as a button and needs nothing.
+    ///     <see cref="Components.HTMLButtonElement" /> already reports itself as a button and needs nothing.
     ///     <para>
     ///         Prefer the native element over a role every time one exists. A role changes only what is
     ///         announced — it does not bring the keyboard behaviour, focus handling or state the real

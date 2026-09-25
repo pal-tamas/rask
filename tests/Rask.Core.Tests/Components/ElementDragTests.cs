@@ -99,9 +99,9 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
         // Ref/Role/Aria), so an element that wires none of them keeps every slot null and pays no
         // per-instance footprint.
         var div = Div;
-        Assert.Null(div.OnDragStart);
-        Assert.Null(div.OnDragOver);
-        Assert.Null(div.OnDrop);
-        Assert.Null(div.OnDragEnd);
+        Assert.False(div.OnDragStart.HasValue);
+        Assert.False(div.OnDragOver.HasValue);
+        Assert.False(div.OnDrop.HasValue);
+        Assert.False(div.OnDragEnd.HasValue);
     }
 }

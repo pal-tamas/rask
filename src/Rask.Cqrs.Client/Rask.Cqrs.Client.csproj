@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
-    <!-- For the file bridge: RaskFile -> RemoteFile, and Navigator.Download(FileDownload). The transport
+    <!-- For the file bridge: IRaskFile -> RemoteFile, and Navigator.Download(FileDownload). The transport
          only ever ships inside a Rask app, so the dependency costs nothing a consumer did not already
          have — and without it every upload and download call site grows a four-line adapter.
 

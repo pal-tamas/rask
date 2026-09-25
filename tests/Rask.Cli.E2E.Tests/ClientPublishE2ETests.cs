@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
-using Xunit;
 
 namespace Rask.Cli.E2E.Tests;
 

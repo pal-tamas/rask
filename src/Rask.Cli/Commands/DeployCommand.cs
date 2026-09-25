@@ -486,6 +486,16 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             await Console.Error.WriteLineAsync("    Turn on continuous backup:  rask deploy --env \"Rask__Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)").ConfigureAwait(false);
         }
 
+        // With --domain the deploy names the public origin itself. On a bare port it cannot know the address people
+        // use (an ssh alias is not one), and the app will not guess it from a request, so emailed links stay off.
+        if (plan.Domain is null && !env.Any(e => e.StartsWith("Rask__Auth__PublicOrigin=", StringComparison.Ordinal)))
+        {
+            Console.WriteErrorLine(
+                "  ! No public address set — confirm and reset emails will not be sent until there is one.",
+                ConsoleStyle.Warning);
+            await Console.Error.WriteLineAsync("    Name it:  rask deploy --env \"Rask__Auth__PublicOrigin=http://your-host:" + plan.Port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)").ConfigureAwait(false);
+        }
+
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
         if (await Run(BuildBuildArguments(host, slug, plan.Dockerfile, plan.ContextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
@@ -714,8 +724,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // Regenerate the whole Caddyfile from the live routes, forcing this app to its NEW container, then
         // hot-reload — Caddy drains in-flight requests to the old color.
         var routes = BuildRoutingMap(apps, slug, domain, target);
-        var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}.Caddyfile");
-        _fileSystem.WriteAllText(caddyfilePath, BuildCaddyfile(routes));
+        // Unguessable and owner-only: on a shared machine a predictable name in the temp dir is one another user can
+        // create first, and whatever it held would be copied into the proxy that fronts every app on the box.
+        var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.Caddyfile");
+        _fileSystem.WriteSecretText(caddyfilePath, BuildCaddyfile(routes));
         await Console.Out.WriteLineAsync($"Routing {domain} → {target.Container} (auto-HTTPS via Caddy)…").ConfigureAwait(false);
         await Run(BuildCaddyCopyArguments(host, caddyfilePath), cancellationToken).ConfigureAwait(false);
 
@@ -963,8 +975,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return null;
         }
 
+        // Owner-only: it holds the app's secrets, and the temp dir is shared with every other user of the machine.
         var path = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.env");
-        _fileSystem.WriteAllText(path, string.Join('\n', carriable) + "\n");
+        _fileSystem.WriteSecretText(path, string.Join('\n', carriable) + "\n");
         return path;
     }
 
@@ -1080,26 +1093,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         //  • no-new-privileges stops a compromised process gaining rights via setuid binaries. It costs
         //    nothing here: nothing a Rask app does needs to escalate.
         args.AddRange(["--log-opt", "max-size=10m", "--log-opt", "max-file=3", "--security-opt", "no-new-privileges"]);
-        if (domain is null)
-        {
-            args.AddRange(["--name", slug, "--restart", "unless-stopped", "-p", $"{port}:{containerPort}"]);
-
-            // Labelled like a domain-mode container (minus a domain, so BuildRoutingMap skips it): without
-            // this a port-mode deploy is invisible to the host inventory, so switching an app to --domain
-            // would strand its old container running forever.
-            args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
-        }
-        else
-        {
-            args.AddRange(["--name", $"{slug}-{color}", "--restart", "unless-stopped", "--network", Network]);
-            args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.domain={domain}", "--label", $"rask.color={color}"]);
-            args.AddRange(["--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
-
-            // Caddy terminates TLS in front of this container, so the app trusts its forwarded headers — without
-            // this Request.Scheme is "http", HSTS never emits and every visitor has the proxy's address. Only in
-            // this mode: a port-mode container is reached directly, where trusting them lets a client forge its IP.
-            args.AddRange(["-e", "Rask__BehindProxy=true"]);
-        }
+        AddPlacementArguments(args, slug, domain, color, port, containerPort);
 
         // Persist the SQLite database on a per-app named volume so it survives container replacement — every
         // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
@@ -1131,6 +1125,36 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         args.Add($"{slug}:{tag}");
         return args;
+    }
+
+    // Port mode publishes the container straight to the host; domain mode puts it on the proxy's network as
+    // one color of a blue/green pair, labelled so the Caddyfile can be regenerated from the live containers.
+    private static void AddPlacementArguments(List<string> args, string slug, string? domain, string? color, int port, int containerPort)
+    {
+        if (domain is null)
+        {
+            args.AddRange(["--name", slug, "--restart", "unless-stopped", "-p", $"{port}:{containerPort}"]);
+
+            // Labelled like a domain-mode container (minus a domain, so BuildRoutingMap skips it): without
+            // this a port-mode deploy is invisible to the host inventory, so switching an app to --domain
+            // would strand its old container running forever.
+            args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
+        }
+        else
+        {
+            args.AddRange(["--name", $"{slug}-{color}", "--restart", "unless-stopped", "--network", Network]);
+            args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.domain={domain}", "--label", $"rask.color={color}"]);
+            args.AddRange(["--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
+
+            // Caddy terminates TLS in front of this container, so the app trusts its forwarded headers — without
+            // this Request.Scheme is "http", HSTS never emits and every visitor has the proxy's address. Only in
+            // this mode: a port-mode container is reached directly, where trusting them lets a client forge its IP.
+            args.AddRange(["-e", "Rask__BehindProxy=true"]);
+
+            // The address emailed links (confirm, reset) point at. Outside Development the app will not take it
+            // from the request, whose Host header anyone can set, so without this no such email goes out.
+            args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{domain}"]);
+        }
     }
 
     /// <summary>

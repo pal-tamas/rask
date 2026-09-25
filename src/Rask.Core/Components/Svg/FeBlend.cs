@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     Blends two inputs using a Porter-Duff or separable blend mode.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feBlend">MDN</see>
 /// </summary>
+[Tag("feBlend")]
 public sealed partial class FeBlend : SvgElement
 {
-    protected override string TagName => "feBlend";
-
     /// <summary>The first input.</summary>
     public string? In { get; set; }
 

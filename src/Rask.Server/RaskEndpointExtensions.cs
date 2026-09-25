@@ -6,7 +6,6 @@ using System.Net.WebSockets;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -424,7 +423,11 @@ public static partial class RaskEndpointExtensions
         // through. RASK014's reason to exist is absent here.
 #pragma warning disable RASK014
         Func<IServiceProvider, Component> appFactory =
-            sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp));
+            sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp))
+            {
+                // RaskApp's document defaults, on the App's own root only — a mounted app below keeps its own.
+                Defaults = sp.GetService<RaskDocumentDefaults>(),
+            };
 #pragma warning restore RASK014
 
         // Applications mounted under their own prefix — the operator console at /_rask is the one that
@@ -682,6 +685,7 @@ public static partial class RaskEndpointExtensions
             dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
 
         httpContext.Response.ContentType = "text/html; charset=utf-8";
+        ApplyPageSecurityHeaders(httpContext.Response.Headers);
         // A page that crashed is not a 200, a page may set its own status, and the not-found page
         // answers 404 once it was actually mounted — PageStatus.Of says why each wins where it
         // does (#607). The body is unchanged whatever the status, and a live session still attaches,
@@ -2665,6 +2669,17 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    // A page is never framed by another site (clickjacking a signed-in user into a click they did not mean) and
+    // never sniffed into another type. Added only where the app has not set its own, so middleware that runs
+    // earlier — an app meant to be embedded, a full CSP — keeps the last word.
+    internal static void ApplyPageSecurityHeaders(IHeaderDictionary headers)
+    {
+        headers.TryAdd("X-Frame-Options", "SAMEORIGIN");
+        headers.TryAdd("Content-Security-Policy", "frame-ancestors 'self'");
+        headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
+        headers.TryAdd("X-Content-Type-Options", "nosniff");
+    }
+
     private static void HandleDotNetInvoke(LiveSession session, JsonElement root)
     {
         // Expected payload: { type: "dotNetInvoke", callId: <string>,
@@ -2704,6 +2719,9 @@ public static partial class RaskEndpointExtensions
         var invocationInfo = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
         try
         {
+            // Names this session as the caller, so a framework callback registry answers only ids its own
+            // session registered — a static [JSInvokable] is otherwise reachable from every socket.
+            using var caller = JsCaller.Enter(runtime);
             DotNetDispatcher.BeginInvokeDotNet(runtime, invocationInfo, argsJson);
         }
         catch (Exception ex)

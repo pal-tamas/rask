@@ -15,11 +15,11 @@ reaches its handler. There is no package to add for DataAnnotations and nothing 
 
 | Where | What runs | Guide |
 | --- | --- | --- |
-| A `Form<T>` | The model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
+| A `Form.Model(m)` | The model's DataAnnotations attributes, then the `AbstractValidator<T>` for it | [forms-validation.md](forms-validation.md) |
 | A dispatched query or command | The request's attributes, then its `AbstractValidator<T>`, then any `IRequestValidator<T>` you registered | below |
 | A controller action or a minimal API endpoint | The bound body's attributes, then the `AbstractValidator<T>` for it — asynchronous rules included | [HTTP endpoints](#http-endpoints) |
 
-All three share one validator: an `AbstractValidator<Order>` validates a `Form<Order>` while the user
+All three share one validator: an `AbstractValidator<Order>` validates a `Form.Model(order)` while the user
 types, an `Order` command when it is dispatched, **and** an `Order` posted to `/api/orders`. Write the
 rules once.
 
@@ -148,7 +148,7 @@ public sealed class NewOrderValidator : AbstractValidator<NewOrder>
 }
 ```
 
-That validator now runs in three places: in a `Form<NewOrder>` as the user types, on a `NewOrder`
+That validator now runs in three places: in a `Form.Model(newOrder)` as the user types, on a `NewOrder`
 command when it is dispatched, and on both of these:
 
 ```csharp

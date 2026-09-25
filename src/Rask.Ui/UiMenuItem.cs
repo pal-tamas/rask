@@ -44,7 +44,7 @@ public sealed partial class UiMenuItem : Component
     /// <summary>The page this entry leads to is the page being shown. Writes <c>aria-current="page"</c>.</summary>
     public bool? Active { get; set; }
 
-    public Callback? OnClick { get; set; }
+    public Callback OnClick { get; set; }
 
     public string? Class { get; set; }
 

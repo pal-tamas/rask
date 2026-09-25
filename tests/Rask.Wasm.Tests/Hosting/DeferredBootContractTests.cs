@@ -1,5 +1,3 @@
-using Rask.Wasm;
-
 namespace Rask.Wasm.Tests.Hosting;
 
 /// <summary>

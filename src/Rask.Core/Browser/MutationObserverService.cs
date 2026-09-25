@@ -26,7 +26,7 @@ public sealed class MutationObserverService : IMutationObserver
         ArgumentNullException.ThrowIfNull(onChange);
 
         options ??= new MutationOptions();
-        var id = MutationInterop.Register(onChange);
+        var id = MutationInterop.Register(_js, onChange);
         try
         {
             await _js.InvokeVoidAsync(

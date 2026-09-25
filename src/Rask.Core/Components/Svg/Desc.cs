@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 ///     which supplies the short name.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/desc">MDN</see>
 /// </summary>
+[Tag("desc")]
 public sealed partial class Desc : SvgElement
 {
-    protected override string TagName => "desc";
 }

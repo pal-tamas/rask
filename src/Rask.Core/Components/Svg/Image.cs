@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     coordinates and participates in SVG transforms and clipping.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/image">MDN</see>
 /// </summary>
+[Tag("image")]
 public sealed partial class Image : SvgElement
 {
-    protected override string TagName => "image";
-
     /// <summary>The left edge's x coordinate.</summary>
     public string? X { get; set; }
 

@@ -39,7 +39,7 @@ the token cancels the in-flight check on the next keystroke:
 ## DataAnnotations
 
 Put the attributes on the model. That is the whole setup — there is no package to add and nothing to
-declare in the form. `Form<TModel>` registers the pass itself, and one registration covers the whole
+declare in the form. `HTMLFormElement<TModel>` registers the pass itself, and one registration covers the whole
 reachable model graph.
 
 ```csharp
@@ -97,7 +97,7 @@ The global off wins — a form cannot opt back in.
 ## FluentValidation
 
 Writing the validator is the registration. A generator finds every `AbstractValidator<T>` in your app
-at compile time, and a `Form<T>` asks for the one that validates its model — so there is nothing to
+at compile time, and a `HTMLFormElement<T>` asks for the one that validates its model — so there is nothing to
 declare in the form and nothing to wire in `Program.cs`. It is wrapped as an `IAsyncFieldValidator`,
 so async `MustAsync` rules work exactly like synchronous ones.
 

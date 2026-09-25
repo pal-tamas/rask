@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Rask.Site;
 using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
 

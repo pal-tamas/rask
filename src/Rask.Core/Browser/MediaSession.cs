@@ -37,7 +37,7 @@ public sealed class MediaSession : IMediaSession
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        var id = MediaSessionInterop.Register(handler);
+        var id = MediaSessionInterop.Register(_js, handler);
         try
         {
             await _js.InvokeVoidAsync("__raskMediaSession.setActionHandler", id, ToToken(action));

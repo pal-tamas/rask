@@ -13,13 +13,13 @@ public sealed partial class TestApp : Component
 
     public TestApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Component? HeadAssets => new Title()["test"];
+    protected override Component? HeadAssets => Markup.Title["test"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new H1()[$"path={_routeState.Path}"],
-        new P()[$"count={Counter}"],
+        Markup.H1[$"path={_routeState.Path}"],
+        Markup.P[$"count={Counter}"],
         Button.OnClick(() => Counter++)["bump"]
     ];
 }

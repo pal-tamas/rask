@@ -2,7 +2,6 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using Rask.Core;
 using Rask.Server.Tests.Infrastructure;
-using Rask.TestSupport;
 
 namespace Rask.Server.Tests.WebSockets;
 

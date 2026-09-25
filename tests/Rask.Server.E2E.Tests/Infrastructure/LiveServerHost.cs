@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Rask.Core;
-using Rask.Server;
 
 namespace Rask.Server.E2E.Tests.Infrastructure;
 

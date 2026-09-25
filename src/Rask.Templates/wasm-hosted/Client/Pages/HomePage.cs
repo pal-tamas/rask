@@ -1,5 +1,3 @@
-using Rask.Core.Routing;
-
 namespace Company.RaskServer.Client.Pages;
 
 [Route("/")]

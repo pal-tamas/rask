@@ -28,7 +28,7 @@ public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMar
     [Fact]
     public void The_form_binding_guard_names_the_form_and_shows_both_ways_to_give_it_one()
     {
-        var form = new Form<object> { Model = null!, Id = "signup" };
+        var form = new HTMLFormElement<object> { Model = null!, Id = "signup" };
 
         var ex = Assert.Throws<InvalidOperationException>(() => form.ResolveContext());
 
@@ -42,7 +42,7 @@ public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMar
     [Fact]
     public void The_form_binding_guard_invents_no_label_when_there_is_nothing_to_name()
     {
-        var ex = Assert.Throws<InvalidOperationException>(() => new Form<object> { Model = null! }.ResolveContext());
+        var ex = Assert.Throws<InvalidOperationException>(() => new HTMLFormElement<object> { Model = null! }.ResolveContext());
 
         Assert.Contains("Form has neither", ex.Message, StringComparison.Ordinal);
     }

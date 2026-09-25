@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -12,20 +12,14 @@ namespace Rask.Core.Browser;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class MediaSessionInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<Task>> Handlers = new();
 
-    internal static int Register(Func<Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge when a registered media action fires; do not call.</summary>
     [JSInvokable("RaskMediaSessionAction")]
     public static Task Invoke(int id) =>
-        Handlers.TryGetValue(id, out var handler) ? handler() : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler() : Task.CompletedTask;
 }

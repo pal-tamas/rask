@@ -11,5 +11,5 @@ public sealed class FullscreenTrigger : Component
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template!(GestureBridge.Attr("fullscreen.request", null, el: For?.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("fullscreen.request", default, el: For?.Id));
 }

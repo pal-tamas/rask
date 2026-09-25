@@ -83,6 +83,20 @@ public partial class PackageIslandRenderTests : global::Rask.Core.RaskMarkup
         Assert.Equal(1, Assert.Single(forwarded.EnumerateArray()).GetInt32());
     }
 
+    // An unset callback is the carrier's default, and it is omitted — never sent as a handler that does nothing,
+    // which the package would treat as wired.
+    [Fact]
+    public void An_unset_callback_is_omitted_from_the_props()
+    {
+        using var props = IslandHtml.Props(MuiButton.Disabled(true).OnChange(null));
+
+        var root = props.RootElement;
+
+        Assert.False(root.TryGetProperty("onClick", out _));
+        Assert.False(root.TryGetProperty("onChange", out _));
+        Assert.True(root.GetProperty("disabled").GetBoolean());
+    }
+
     [Fact]
     public async Task A_forwarded_number_reaches_the_callback_as_a_double()
     {

@@ -10,15 +10,15 @@ internal static class GestureBridge
     // DotNet dispatcher (reflection), so without this the Result method could be trimmed away.
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(GestureResultInterop))]
     public static IReadOnlyDictionary<string, string?> Attr(
-        string capability, Callback<string?>? onResult, string? arg = null, string? el = null)
+        string capability, Callback<string?> onResult, string? arg = null, string? el = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(capability);
 
         // Adapted once, here, rather than at each of the six call sites: the interop registry
         // dispatches a task-returning delegate, and the carrier may be holding either shape.
-        var rid = onResult is null
-            ? (int?)null
-            : GestureResultInterop.Register(v => onResult.Value.Invoke(v));
+        var rid = onResult.HasValue
+            ? GestureResultInterop.Register(v => onResult.Invoke(v).AsTask())
+            : (int?)null;
         var json = JsonSerializer.Serialize(
             new GesturePayload(capability, rid, arg, el), RaskBrowserJsonContext.Default.GesturePayload);
         return new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-gesture"] = json };

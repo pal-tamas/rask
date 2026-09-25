@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Rask.Generators.Shared;
 
-namespace Rask.Background.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Discovers every <c>Rask.Background.IJob</c> type in the compilation and emits a per-assembly

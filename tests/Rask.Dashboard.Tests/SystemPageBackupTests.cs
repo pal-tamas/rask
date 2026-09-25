@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Dashboard.Pages;
-using Rask.Dashboard.Panels;
 using Rask.Testing;
 
 namespace Rask.Dashboard.Tests;

@@ -76,6 +76,15 @@ public static partial class BuilderRuntime
     /// <summary>Clears the callback record, once the eager reset that read it has run.</summary>
     public static void ClearCallbacks(Component target) => target.ClearCallbackAssignedInternal();
 
+    // Stamps the tag a [Tag] entry builds. Every call, not just the first: positional reuse is keyed by
+    // TYPE, so an `em` from the last render can come back as this render's `strong`.
+    internal static T Tag<T>(T element, ushort tagId)
+        where T : Element
+    {
+        element.TagId = tagId;
+        return element;
+    }
+
     /// <summary>
     ///     The bit a folding prop of the shared <see cref="Element" />/<see cref="Component" /> surface
     ///     may claim. Own (per-component) props are numbered from here up.

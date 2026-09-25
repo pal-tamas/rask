@@ -199,7 +199,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             ]
         ];
 
-    private static Rask.Core.Components.Div Swatch(string key, string colour) =>
+    private static Rask.Core.Components.HTMLDivElement Swatch(string key, string colour) =>
         Div.Key(key).Class($"h-full w-full {colour}");
 
     private static Component Section(string heading, string blurb, Component body) =>

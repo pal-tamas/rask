@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
-using Rask.Data.Generators.Analyzers;
+using Rask.Batteries.Generators.Analyzers;
 
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>RASK085: an entity exposes a mutable collection of other entities.</summary>
 public class EntityCollectionExposureAnalyzerTests

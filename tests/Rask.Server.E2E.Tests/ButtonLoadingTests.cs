@@ -107,7 +107,7 @@ public sealed partial class SlowSavePage : Component
     private int _bumps;
     private int _steps;
 
-    protected override Component? HeadAssets => new Title()["loading"];
+    protected override Component? HeadAssets => Markup.Title["loading"];
     protected override string? HtmlLang => "en";
 
     protected override Component? Render() =>

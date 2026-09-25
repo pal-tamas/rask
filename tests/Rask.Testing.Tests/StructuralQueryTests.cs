@@ -1,7 +1,5 @@
 #pragma warning disable RASK014 // test-local components have no generated factories
 
-using Rask.Core;
-
 namespace Rask.Testing.Tests;
 
 /// <summary>

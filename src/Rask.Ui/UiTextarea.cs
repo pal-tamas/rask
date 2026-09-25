@@ -1,6 +1,3 @@
-using System.Linq.Expressions;
-using Rask.Core.Forms;
-
 namespace Rask;
 
 /// <summary>
@@ -27,7 +24,7 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
     public int? Rows { get; set; }
 
     /// <inheritdoc cref="UiInput{T}.OnInput" />
-    public Callback<string>? OnInput { get; set; }
+    public Callback<string> OnInput { get; set; }
 
     /// <inheritdoc cref="UiInput{T}.Name" />
     public string? Name { get; set; }

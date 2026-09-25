@@ -1,5 +1,3 @@
-using Rask.Testing;
-
 namespace Rask.Site.Tests;
 
 // The landing page's install block is the project's front door: for most people it is the first and only

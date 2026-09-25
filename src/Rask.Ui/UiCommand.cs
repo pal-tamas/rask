@@ -109,7 +109,7 @@ public sealed partial class UiCommand : Component
         ];
     }
 
-    private Input<string> SearchBox(int active) =>
+    private HTMLInputElement<string> SearchBox(int active) =>
         Input
             .Value(_query)
             .Type(InputType.Text)
@@ -130,7 +130,7 @@ public sealed partial class UiCommand : Component
             })
             .OnKeyDown(OnKey);
 
-    private Component Palette(Input<string> box, UiMenuScope scope)
+    private Component Palette(HTMLInputElement<string> box, UiMenuScope scope)
     {
         (string, string?)[] closes =
             [("command", "close"), ("commandfor", DialogId), ("popovertarget", DialogId), ("popovertargetaction", "hide")];

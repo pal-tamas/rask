@@ -1,7 +1,5 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core;
-using Rask.Testing;
 using Rask.Wasm.Browser;
 
 namespace Rask.Site.Tests.Pages;

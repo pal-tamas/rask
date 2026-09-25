@@ -1,4 +1,4 @@
-namespace Rask.Background.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// Drives <see cref="JobRegistryGenerator"/> over hand-written sources.

@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 ///     them at once.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/g">MDN</see>
 /// </summary>
+[Tag("g")]
 public sealed partial class G : SvgElement
 {
-    protected override string TagName => "g";
 }

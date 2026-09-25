@@ -48,6 +48,11 @@ public abstract partial class Component : RaskMarkup
     //   bit 3 — a chain assigned a callback prop (below)
     private byte _flags;
 
+    // Which tag an element renders, as an index into the generated RaskTags table: a type several tags
+    // share (h1–h6) is told apart per instance. Packed beside _flags, it sits in padding the object
+    // already has. Zero for everything that is not a [Tag] element.
+    internal ushort TagId { get; set; }
+
     // Set the first time this component reads untracked ambient state during Render: a context value
     // (Context.Get/Required/Has-via-Get) OR EditContext state (validation messages / validating flags,
     // via EditContext.MarkReader). Such a component depends on state the framework doesn't diff, so —
@@ -464,7 +469,11 @@ public abstract partial class Component : RaskMarkup
     // Reads go through `_live?.Globals?.X`, so an element that names none pays two null checks and no
     // allocation — and Element.WriteAttributes fetches the object ONCE via GlobalAttrsInternal rather
     // than re-walking it per attribute, which makes the common element cheaper than a field each.
-    internal sealed class GlobalAttrs
+    //
+    // The build adds the rest of MDN's global attributes (accesskey, nonce, slot, …) to this same object, in
+    // a generated partial (Rask.Dom.targets), for the same reason: they are rare, and HTMLElement is the base
+    // of every HTML element.
+    internal sealed partial class GlobalAttrs
     {
         public string? Lang;
         public string? Dir;
@@ -478,6 +487,9 @@ public abstract partial class Component : RaskMarkup
     internal GlobalAttrs? GlobalAttrsInternal => _live?.Globals;
 
     private GlobalAttrs Globals => Live.Globals ??= new GlobalAttrs();
+
+    // For the generated globals' setters: the side object, allocated on first write.
+    internal GlobalAttrs GlobalAttrsForWrite => Globals;
 
     // Each setter mirrors the Role/Aria shape: assigning null to an element that never set one is a
     // no-op, so neither the LiveState nor the side object is forced into existence by a null write.
@@ -697,7 +709,10 @@ public abstract partial class Component : RaskMarkup
     ///     </para>
     /// </summary>
     protected virtual Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang).Dir(HtmlDir)[head, Body.Class(BodyClass)[body]];
+        // The host's own attributes ride on the default shell — RaskApp and the WASM host put the UI kit's
+        // theme scope here, so an app that draws with the kit is not grey. An override writes its own.
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes(LiveRenderContext.Current?.DocumentAttributes)[
+            head, Body.Class(BodyClass)[body]];
 
     // The host's entry into the escape hatch above: RootErrorBoundary composes the document around the
     // App, so it needs to reach the App's override. Kept internal because Shell is a user-facing
@@ -1148,6 +1163,57 @@ public abstract partial class Component : RaskMarkup
             "Rask.Lifecycle",
             $"Rask unmount hook on {comp.GetType().Name} threw",
             ex);
+
+    // A scoped-script callback arriving from the browser (ScopedScript.Callback): runs like a lifecycle
+    // hook — a render after each await — and a synchronous one paints once it returns, which a hook does
+    // not need because the render walk that called it is already painting.
+    //
+    // It runs in order with the session's event handlers (IRenderHandle.RunInOrder), so a timer's callback cannot
+    // change state underneath a click being handled.
+    internal void RunFromScript(Func<Task?> invoke)
+    {
+        if (IsTornDown)
+        {
+            return;
+        }
+
+        if (RenderHandle is { } handle)
+        {
+            handle.RunInOrder(() => RunScriptCallback(invoke));
+        }
+        else
+        {
+            _ = RunScriptCallback(invoke);
+        }
+    }
+
+    /// <summary>Unmounted or disposed — what a script-side registration made now would never be released from.</summary>
+    internal bool IsTornDown => _live is { IsUnmounted: true } or { IsDisposed: true };
+
+    private Task RunScriptCallback(Func<Task?> invoke)
+    {
+        if (IsTornDown)
+        {
+            return Task.CompletedTask;
+        }
+
+        Task? running = null;
+        InvokeAsyncLifecycleWithRendering(() =>
+        {
+            try { running = invoke(); }
+            catch (Exception ex) { running = Task.FromException(ex); }
+
+            if (running is null || running.IsCompletedSuccessfully)
+            {
+                StateHasChanged();
+                return Task.CompletedTask;
+            }
+
+            return running;
+        });
+
+        return running ?? Task.CompletedTask;
+    }
 
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
     {

@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 ///     <c>systemLanguage</c> all pass, and skips the rest.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/switch">MDN</see>
 /// </summary>
+[Tag("switch")]
 public sealed partial class Switch : SvgElement
 {
-    protected override string TagName => "switch";
 }

@@ -27,7 +27,7 @@ public sealed class SpeechRecognition : ISpeechRecognition
         ArgumentNullException.ThrowIfNull(onResult);
 
         // Register before starting so a first result can't race ahead of the handler.
-        var id = SpeechRecognitionInterop.Register(onResult);
+        var id = SpeechRecognitionInterop.Register(_js, onResult);
         try
         {
             await _js.InvokeVoidAsync("__raskSpeechRecognition.start", id, options ?? new SpeechRecognitionOptions());

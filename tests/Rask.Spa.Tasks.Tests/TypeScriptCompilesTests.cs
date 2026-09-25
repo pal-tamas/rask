@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Xml.Linq;
 using Microsoft.Build.Framework;
-using Rask.Spa.Tasks;
 using Rask.TypeScript.Tasks;
 
 namespace Rask.Spa.Tasks.Tests;

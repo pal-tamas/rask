@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Rask.Generators.Shared;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Emits a reflection-free dispatch table for Rask.Cqrs. For every handler

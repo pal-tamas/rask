@@ -24,6 +24,11 @@ internal sealed partial class PushStore<TContext>(
             throw new ArgumentException("A push subscription needs an endpoint.", nameof(subscription));
         }
 
+        if (WebPushSender.Problem(subscription) is { } problem)
+        {
+            throw new ArgumentException(problem, nameof(subscription));
+        }
+
         var now = time.GetUtcNow().UtcDateTime;
         var userId = Current.UserId;
 
@@ -98,7 +103,11 @@ internal sealed partial class PushStore<TContext>(
 
             foreach (var subscriber in subscribers)
             {
-                var result = await sender.Send(subscriber.Subscription, message, cancellationToken).ConfigureAwait(false);
+                if (await TrySend(sender, subscriber, message, gone, cancellationToken).ConfigureAwait(false)
+                    is not { } result)
+                {
+                    continue;
+                }
 
                 if (result.IsSuccess)
                 {
@@ -128,6 +137,32 @@ internal sealed partial class PushStore<TContext>(
         }
     }
 
+    // One subscriber can never stop the rest: a row stored before subscriptions were validated can never be sent to,
+    // so it goes; a push service that times out is skipped like any other transient failure. Null when skipped.
+    private async Task<WebPushResult?> TrySend(
+        IWebPush sender,
+        PushSubscriber subscriber,
+        WebPushMessage message,
+        List<Guid> gone,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await sender.Send(subscriber.Subscription, message, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ArgumentException ex)
+        {
+            MalformedRemoved(logger, ex.Message);
+            gone.Add(subscriber.Id);
+            return null;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            TimedOut(logger, subscriber.Endpoint);
+            return null;
+        }
+    }
+
     // Resolved per send, not in the constructor: the store has to exist — and the subscribe endpoints answer — on
     // an app that has no key pair yet, which a fresh clone of a scaffolded app is. Sending is what needs the keys,
     // and the sender checks them as it is built.
@@ -149,4 +184,10 @@ internal sealed partial class PushStore<TContext>(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A push to {Endpoint} was not delivered ({Status}, HTTP {StatusCode}).")]
     private static partial void NotDelivered(ILogger logger, string endpoint, WebPushStatus status, int? statusCode);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A malformed push subscription was removed: {Problem}")]
+    private static partial void MalformedRemoved(ILogger logger, string problem);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A push to {Endpoint} timed out.")]
+    private static partial void TimedOut(ILogger logger, string endpoint);
 }

@@ -25,7 +25,7 @@ public sealed class BroadcastChannelService : IBroadcastChannel
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(onMessage);
 
-        var id = BroadcastInterop.Register(onMessage);
+        var id = BroadcastInterop.Register(_js, onMessage);
         try
         {
             await _js.InvokeVoidAsync("__raskBroadcast.open", id, name);

@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     the default fill paints the shape as if it were closed.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/polyline">MDN</see>
 /// </summary>
+[Tag("polyline")]
 public sealed partial class Polyline : SvgElement
 {
-    protected override string TagName => "polyline";
-
     /// <summary>The vertices, as space- or comma-separated <c>x,y</c> pairs.</summary>
     public string? Points { get; set; }
 

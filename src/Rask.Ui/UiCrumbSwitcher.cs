@@ -26,7 +26,7 @@ public sealed partial class UiCrumbSwitcher : Component
 
     public required IReadOnlyList<(string Value, string Text)> Choices { get; set; }
 
-    public Callback<string>? OnSelect { get; set; }
+    public Callback<string> OnSelect { get; set; }
 
     public Ui.IconName? Icon { get; set; }
 
@@ -53,9 +53,9 @@ public sealed partial class UiCrumbSwitcher : Component
                 + "focus-visible:outline-offset-2 focus-visible:outline-primary sm:min-h-0 "
                 + (Icon is null ? "pl-2" : "pl-8"));
 
-        if (OnSelect is { } select_)
+        if (OnSelect.HasValue)
         {
-            select = select.OnChange(select_);
+            select = select.OnChange(OnSelect);
         }
 
         return Div.Class("relative flex min-w-0 max-w-[9rem] items-center sm:max-w-[16rem]")[

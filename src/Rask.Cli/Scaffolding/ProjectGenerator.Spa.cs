@@ -1,7 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace Rask.Cli.Scaffolding;
 

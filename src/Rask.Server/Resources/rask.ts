@@ -425,8 +425,11 @@ import "../../Rask.Core/Resources/rask-events.js";
         // request builds that application's root. `replace` mirrors the navigation it answers: a popstate
         // is already at that entry, a link click is not.
         if (data.type === "location" && typeof data.url === "string") {
-            const target = prependBase(data.url);
-            if (data.replace) location.replace(target); else location.assign(target);
+            // Only ever a page on this host: the frame names a path here, and nothing it carries may take the
+            // visitor to another site or run as script (a javascript: URL has an opaque origin, so it fails too).
+            const target = new URL(prependBase(data.url), location.href);
+            if (target.origin !== location.origin) return;
+            if (data.replace) location.replace(target.href); else location.assign(target.href);
             return;
         }
         // Dev-only: the coordinator finished applying an edit and every session has repainted.
@@ -1987,9 +1990,12 @@ import "../../Rask.Core/Resources/rask-events.js";
         // side with the live JS object. Skips other shapes.
         if (value && typeof value === "object") {
             // Tested before it is trusted: the reviver runs on server-supplied JSON.
-            const shape = value as { __jsObjectId?: number; __raskRef__?: string };
+            const shape = value as { __jsObjectId?: number; __raskRef__?: string; __raskCb__?: number };
             if (typeof shape.__jsObjectId === "number") {
                 return jsObjectRefs.get(shape.__jsObjectId);
+            }
+            if (typeof shape.__raskCb__ === "number") {
+                return scopedCallback(shape.__raskCb__);
             }
             // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).
             // CSS.escape the id so a value carrying a quote/bracket can't break out of the
@@ -2000,6 +2006,15 @@ import "../../Rask.Core/Resources/rask-events.js";
             }
         }
         return value;
+    }
+
+    // A C# Callback handed to a component's scoped script (ScopedScript.Callback): each call goes back to
+    // .NET with its arguments. Nothing awaits it — the script called a function, not a query.
+    function scopedCallback(id: number): (...args: unknown[]) => void {
+        return (...args: unknown[]) => {
+            window.DotNet.invokeMethodAsync("Rask.Core", "RaskScopedCallback", id, args)
+                .catch((e: unknown) => console.error("[Rask] scoped-script callback failed", e));
+        };
     }
 
     /**
@@ -2046,6 +2061,9 @@ import "../../Rask.Core/Resources/rask-events.js";
                     argsJson: JSON.stringify(args)
                 });
             });
+        },
+        disposeJSObjectReferenceById(id: number) {
+            jsObjectRefs.delete(id);
         },
         _endInvokeDotNet(msg: { callId: string; success: boolean; result?: unknown; error?: string }) {
             const pending = dotNetPending.get(msg.callId);

@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Rask;
 
 namespace Rask.UiTests;
 

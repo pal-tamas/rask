@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Server.Authentication;
 using Rask.Server.Tests.Infrastructure;
-using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Authentication;
 

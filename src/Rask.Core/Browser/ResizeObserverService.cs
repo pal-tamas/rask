@@ -24,7 +24,7 @@ public sealed class ResizeObserverService : IResizeObserver
         ArgumentNullException.ThrowIfNull(element);
         ArgumentNullException.ThrowIfNull(onChange);
 
-        var id = ResizeInterop.Register(onChange);
+        var id = ResizeInterop.Register(_js, onChange);
         try
         {
             await _js.InvokeVoidAsync("__raskResize.observe", id, element);

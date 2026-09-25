@@ -95,6 +95,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- MDN is the source of truth for the element surface: the generator reads the snapshot
+         scripts/mdn/refresh.sh writes. It is Rask.Core's alone, so it is not in build/Rask.Core.targets. -->
+    <AdditionalFiles Include="Dom\mdn.snapshot.json"/>
+
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
@@ -115,6 +119,11 @@
       nupkg dependency on a netstandard2.0 build-only assembly.
     -->
     <ProjectReference Include="..\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
+
+    <!-- The same ordering edge for the MDN element emitter Dom\Rask.Dom.targets runs; never shipped. -->
+    <ProjectReference Include="..\Rask.Dom.Tasks\Rask.Dom.Tasks.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"/>
   </ItemGroup>
@@ -149,5 +158,6 @@
 
   <!-- The analyzers, generator and IDE code-fixes, into analyzers/dotnet/cs/. -->
   <Import Project="..\RaskAnalyzerPack.targets"/>
+  <Import Project="Dom\Rask.Dom.targets"/>
 
 </Project>

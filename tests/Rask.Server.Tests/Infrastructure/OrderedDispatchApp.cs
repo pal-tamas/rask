@@ -19,12 +19,12 @@ public sealed partial class OrderedDispatchApp : Component
 
     public string Sequence { get; private set; } = "";
 
-    protected override Component? HeadAssets => new Title()["ordered-dispatch"];
+    protected override Component? HeadAssets => Markup.Title["ordered-dispatch"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new P()[$"Sequence={Sequence}"],
+        Markup.P[$"Sequence={Sequence}"],
         Buttons()
     ];
 

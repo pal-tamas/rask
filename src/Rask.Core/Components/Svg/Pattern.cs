@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     A tile repeated across a fill or stroke. Reference it as <c>Fill: "url(#id)"</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/pattern">MDN</see>
 /// </summary>
+[Tag("pattern")]
 public sealed partial class Pattern : SvgElement
 {
-    protected override string TagName => "pattern";
-
     /// <summary>The tile's x offset.</summary>
     public string? X { get; set; }
 

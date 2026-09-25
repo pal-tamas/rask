@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Rask.Background;
 
 namespace Rask.Background.Tests;
 

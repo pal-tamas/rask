@@ -38,7 +38,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm`. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
 | [Prerendering](prerendering.md) | Render a standalone WASM app's pages to real HTML at publish (`<RaskPrerender>true</RaskPrerender>`), so a crawler gets the page instead of the boot spinner: what is written, which routes are skipped and why, and why a route that throws is deliberately left out. |
-| [Forms & validation](forms.md) | Two-way binding, `Form<T>`/`EditContext`, inline / DataAnnotations / FluentValidation / async validators, radio & checkbox groups. |
+| [Forms & validation](forms.md) | Two-way binding, `Form.Model(m)`/`EditContext`, inline / DataAnnotations / FluentValidation / async validators, radio & checkbox groups. |
 | [Validation](validation.md) | Built in and on: `[Required]` and `AbstractValidator<T>` run in a form and on every dispatched request, with nothing declared. The off switch, validators that need services, and what a rejected request looks like on the wire. |
 | [Live pages](render-modes.md) | How a Server page reaches the browser: every page live with a session of its own, waiting for async data before the first byte, cache headers, and setting a status or redirecting on load. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnUpdated` / `OnFirstRendered` / `OnRendered` / `OnUnmount` — one hook per moment, cancellation, common gotchas. |

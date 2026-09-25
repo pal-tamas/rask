@@ -7,7 +7,88 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+
+- **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
+  `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
+  run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
+  went through `console.error`'s format string, so a title carrying `%c`/`%o` was read as a directive; it is now
+  passed as `%s`. (CodeQL `js/xss`, `js/client-side-unvalidated-url-redirection`, `js/tainted-format-string`.)
+- **Scaffolded front ends no longer lock vulnerable transitive packages.** The analog template locked `uuid`
+  8.3.2, `esbuild` 0.27.7 and `qs` ≤ 6.15.3, and the sveltekit template `cookie` 0.6.0; npm `overrides` now pin
+  the patched releases, and every template lockfile audits clean.
+- **Pages can no longer be framed by another site.** Neither a live page nor a hosted SPA sent any
+  anti-framing header, so a hostile page could frame the app and trick a signed-in user (or an admin on
+  `/_rask`) into clicks they did not mean. Every page and SPA response now carries `X-Frame-Options:
+  SAMEORIGIN`, `Content-Security-Policy: frame-ancestors 'self'`, `Referrer-Policy:
+  strict-origin-when-cross-origin` and `X-Content-Type-Options: nosniff`, each added only when the app has not
+  set its own, so an app meant to be embedded sets the header in its own middleware and keeps it.
+- **`rask deploy` no longer leaves its secrets readable in the shared temp directory.** The env file handed to
+  `docker --env-file` (SMTP passwords, S3 keys…) was written with the default mode, usually world-readable, and
+  the Caddyfile went to a predictable `/tmp/rask-<app>.Caddyfile` another local user could create first. Both
+  are now owner-only (0600), and the Caddyfile's name is unguessable.
+- **A scaffolded app keeps production secrets and data out of git and out of its image.** `.gitignore` covered
+  `.env` but not the `.env.production` the docs tell you to write, nor the `*.files.tgz` `rask db backup` leaves
+  beside its copy; `.dockerignore` excluded none of `.env*`, `*.db` or `storage/`, so `COPY . .` could put them
+  in an image layer and `rask deploy` sent them to the remote daemon as build context. Both lists now do.
+- **A scaffolded front-end app no longer lets anonymous callers run every command.** The 13 SPA and meta
+  templates (React, Vue, Angular, Next.js, Nuxt, SvelteKit…) set `Rask:Cqrs:Server:RequireAuthenticatedUser`
+  to `false` unconditionally, so the starter greeting could answer an anonymous landing page, and with it any
+  command added later, such as a `DeleteProject`, answered anyone. With `--data` they now keep the secure
+  default and mark only the greeting's two handlers `[AllowAnonymous]`; without a database (no accounts to
+  require) dispatch stays open as before, with a note to delete the key once accounts exist.
+- **A reset link can no longer be pointed at another domain through the `Host` header.** With
+  `Rask:Auth:PublicOrigin` unset, emailed links were built from the request, so `POST /api/auth/forgot-password`
+  with `Host: evil.example` mailed the victim a working reset token on the attacker's domain. Outside Development
+  the request is no longer consulted: with no `PublicOrigin`, confirm and reset emails are not sent and an error
+  is logged naming the setting (never thrown, so registration still succeeds). `rask deploy --domain` now sets
+  `Rask__Auth__PublicOrigin=https://<domain>`, and a `--port` deploy warns until one is given. **Upgrading:** a
+  production app not deployed with `--domain` must set `Rask:Auth:PublicOrigin` or its auth emails stop.
+- **A password reset takes the account back, passkeys included.** Registering signs you in before the address is
+  confirmed, and adding a passkey only needed a session, so someone who registered your address first could add
+  their own passkey and keep signing in after you reset the password. A reset now removes every passkey on the
+  account, and adding a passkey needs a confirmed address (`EmailNotConfirmed` says why when it is refused).
+- **`RequireConfirmedEmail` is no longer bypassed by registering.** With the gate on, registering used to hand
+  back a signed-in session for an address nobody had proved. It now creates the account and answers
+  `EmailNotConfirmed`, the same as signing in does, until the emailed link is followed.
+- **One bad push subscription can no longer stop every broadcast.** `/_rask/push/subscribe` is anonymous and
+  checked only that the endpoint was not blank, so one `POST` with an `http://` endpoint or a junk key made every
+  later `Push.Send` throw partway through the subscriber list. A subscription is now refused (400, or
+  `ArgumentException` from `IPush.Subscribe`) unless it has an https endpoint, a 65-byte P-256 key and a 16-byte
+  auth secret; a malformed row already stored is removed at the next send, and a push service that times out is
+  skipped instead of ending the send.
+- **A Server socket can only answer its own session's browser callbacks.** A gesture's result, a geolocation,
+  battery, sensor, observer, speech, media-session, broadcast-channel, signaling or WebRTC push reaches C#
+  through a static `[JSInvokable]` keyed by an id that counted up across the whole process, so any connected
+  socket could post another visitor's id and feed their callback forged data (or swallow a one-shot gesture
+  result). Each registry now remembers the session that registered an id and ignores every other caller.
+- **Jobs, outbox events and the account events can no longer be sent over HTTP.** `IJob`, `IOutboxEvent` and
+  every `Rask.Auth` event (`UserRegistered`, `PasswordReset`, `SignedIn`, …) are now `[LocalOnly]`, as
+  `LocalOnlyAttribute`'s own docs always said. Before, the codec generator gave each one an endpoint, so anyone
+  could `POST /_rask/cqrs/request/<Name>` a job and run its handler at once (a welcome-mail job became an open
+  mail relay), forge an outbox event such as `OrderPaid`, or watch another user's sign-ins. Jobs and outbox
+  events keep their own serializers, so persistence is unchanged.
+
 ### Added
+
+- **A scoped script's tuples and arrow functions reach C# too.** `export function pair(): [number, string]` is
+  `ValueTask<(double, string)> Pair()` (labels name the elements: `[x: number, y: string]` → `(double X, string Y)`),
+  a tuple parameter crosses as the array the script expects, and `export const double = (x: number) => x * 2` is
+  `Double(double x)` like any function. A tuple inside other data, one with an optional or rest element, and a plain
+  value export (`export const PI = 3.14`) are still RASK094, with the reason.
+- **A component calls its scoped TypeScript like its own private methods.** `export function width(el: HTMLElement
+  | null): number` in `Card.ts` is `await Width(_box)` on `Card` — no `IJSRuntime` to inject, no
+  `"Rask.Card.width"` to spell, and a renamed or retyped export is a compile error. The build's tsgo compile now
+  also writes a `.d.ts`, and a generator turns each export into a typed `private` member. An `export class`
+  becomes a nested proxy created by `NewChart(…)` and released when the component unmounts. An `export interface`
+  becomes a nested record, `any` goes in as `object?` and comes back as `JsonElement`, and `number` is always
+  `double`. A callback parameter (`onTick: (n: number) => void`) takes a sync or an async lambda, re-renders
+  the component after it runs, and is released on unmount. An export with no C# shape is left out with the new
+  **RASK094** warning naming why. A name the component only inherits, such as SVG's `Stop`, is hidden with
+  `new`. The component must be `partial`, as `rask new` writes it. Before:
+  `js.InvokeAsync<double>("Rask.Card.width", _box)`. An `export interface` in a component's script now declares
+  a nested type of that name, so a C# type of the same simple name that the component uses elsewhere needs
+  qualifying.
 
 - **Web Push keeps its subscribers, so a send is one line.** `await Push.Send(WebPushMessage.Text("Order shipped",
   "#1042 is on its way", "/orders/1042"))` reaches every browser that asked, `.To(userId)` one person's devices, and
@@ -21,11 +102,6 @@ them until tagged releases begin.
 
 ### Changed
 
-- **Firing an event is `await OnPick.Invoke();`.** `Callback.Invoke()` (and `Callback<T>`, `Callback<T1, T2>`) returns
-  a non-null `Task` — the cached, already-completed one for a synchronous or unset handler, so awaiting it never
-  yields — and the event property answers `Invoke` itself, so forwarding one is `.OnClick(() => OnRate.Invoke(i))`.
-  Before: `if (OnPick?.Invoke() is { } t) await t;` and `OnRate?.Invoke(i) ?? Task.CompletedTask`. Both old forms
-  still compile.
 - **BREAKING — framework events are standard `EventHandler`s.** `IUserProvider.Changed`, `IToaster.Changed`,
   `IRaskCulture.Changed`, `RouteState.Changed` and `EditContext.ValidationStateChanged` are `EventHandler`,
   `EditContext.FieldChanged` is `EventHandler<FieldChangedEventArgs>` and `ScopedAssetRegistry.AssetChanged` is
@@ -73,12 +149,30 @@ them until tagged releases begin.
   the few the code cannot satisfy are silenced at their one site with the reason on the line. None of these analyzers
   reaches an app's dependency graph. See [Code analysis](docs/code-analysis.md).
 
+- **An event is `Callback<T>`, not `Callback<T>?`, and fires with `await OnRate.Invoke(n)`.** A component declares
+  `public Callback<int> OnRate { get; set; }` and calls it back with one await, where it used to write
+  `if (OnRate?.Invoke(n) is { } t) await t;`. An unset callback is a no-op, and a non-nullable `Callback`,
+  `Callback<T>` or `Callback<T1, T2>` is never a required chain step (never RASK001): `RatingStars.OnRate(…)` and
+  leaving it off both compile, and `.OnRate(null)` still means "no handler". `Invoke` now returns a `ValueTask`
+  instead of `Task?` — already complete, with nothing allocated, for a synchronous or unset handler. Every event the
+  framework declares (the DOM events on `Element`, the media events, `Form`, the form controls, `IFormControl<T>`,
+  the UI kit, package islands and Blazor islands) is non-nullable now, so ask `.HasValue` where you used to ask
+  `is not null`. A `Callback<T>?` of your own still works; its `Invoke` just returns `ValueTask` too.
 - **`rask new` scaffolds onto `RaskApp`.** A server app's `Program.cs` is `RaskApp.Create(args).Run<App>();`, its
   csproj references `Rask.Server` (plus the dev-only `Rask.DevTools`), and there is no `AppDbContext.cs` — RaskApp's
   own context maps your aggregates and every battery's tables. A `--no-<battery>` flag writes `c.Jobs.Off()` into
   `Program.cs` instead of dropping a package, and the scaffold's in-memory push store is gone: Web Push is the
   battery. `rask deploy` sets `Rask__BehindProxy=true` behind its Caddy proxy, RaskApp's `/health` reports the
   live-session pool, and its default PWA manifest carries `wwwroot/icon.svg` when the app has one.
+- **`App.cs` is a title and a router.** `RaskApp` and the WASM host write the document around it: the charset and
+  viewport, the UI kit's stylesheet first (it declares the `@layer` order), the app's `css/app.css` (the build
+  records it as the assembly's `Rask.Stylesheet` metadata) and the kit's theme scope on `<html>` through the default
+  `Shell`. `app.Configure(c => c.Ui.Off())` and `host.Configure(c => c.Ui.Off())` leave the kit out; a hand-wired
+  `MapRask<App>()` host, a mounted app and an App that overrides `Shell` keep writing their own. An App that still
+  links the kit or the charset emits each once.
+- **A scaffolded page needs no `using` for routing, forms, browser APIs, the live context or the signed-in user.**
+  `rask new`'s `GlobalUsings.cs` (server, wasm and the wasm-hosted client) carries `Rask.Core.Routing`, `.Forms`,
+  `.Browser`, `.Live` and `.Authentication`, so `[Route]`, `IWebPush` and `IAuth` resolve with no import.
 - **`PushSubscription` is one record, in `Rask.Wire`.** The browser API (`IWebPush.SubscribeAsync`) and the server
   sender each declared their own, so a component on the server host could not hand one to the other. An app that named
   `Rask.Core.Browser.PushSubscription` or `Rask.WebPush.PushSubscription` names `Rask.Wire.PushSubscription`; the
@@ -98,12 +192,26 @@ them until tagged releases begin.
   rode along: the browser battery-status implementation behind `IBattery` is `BrowserBattery`, so the name
   `Battery` means one thing — the on/off switch on `RaskAppOptions`.
 
+- **Unused usings are gone solution-wide, and the battery generators share one namespace.** About 375 `using`
+  lines that nothing needed are removed across `src/` and `tests/` — the site's source view shows the demos
+  without them. `Rask.Batteries.Generators` still declared the namespaces of the assemblies it replaced
+  (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
+  `.Analyzers`), matching the project. Nothing an app names changes.
+
 ### Fixed
 
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
   its ids per item type, so two trees of different row types both rendered `uitree-1`; the counter is shared now.
+- **An `export class` in a scoped `.ts` no longer breaks the component's whole script.** The wrapper stripped
+  `export` from functions and variables but not classes, so the keyword was left inside a non-module wrapper and
+  the script threw a SyntaxError. Classes are now exposed too.
+- **Disposing an `IJSObjectReference` frees the object in the browser.** Neither host defined
+  `DotNet.disposeJSObjectReferenceById`, so every disposed handle stayed in the host's map for the life of the page.
+- **A React/Vue/… host with `--data` builds again.** Its batteries bring Rask.Core's build hooks, whose scoped CSS
+  and TypeScript globs reached into `client/` and failed on the front end's own `App.css` and `vite.config.ts`
+  (RASK015/017). `Rask.Spa.Hosting` now leaves the client directory out of those globs.
 - **An app that references only `Rask.Server` or `Rask.Wasm` draws with the kit again.** `Rask.Ui`'s build hooks —
   the kit's stylesheet in `wwwroot` and daisyUI's plugin beside `Styles/app.css` — recognised a direct `Rask.Ui`
   reference or the removed meta-package, so an app naming only its host got neither, and Tailwind stopped on

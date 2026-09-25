@@ -12,7 +12,7 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
     public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
-            "<textarea id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"n\" rows=\"4\" cols=\"80\" placeholder=\"p\" required disabled readonly maxlength=\"100\" minlength=\"1\" wrap=\"soft\" autofocus autocomplete=\"off\" form=\"f\" dirname=\"d\"></textarea>",
+            "<textarea id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" autofocus autocomplete=\"off\" cols=\"80\" dirname=\"d\" disabled form=\"f\" maxlength=\"100\" minlength=\"1\" placeholder=\"p\" readonly required rows=\"4\" wrap=\"soft\" name=\"n\"></textarea>",
             Textarea.Value<string>(null)
                 .Name("n")
                 .Rows(4)
@@ -27,7 +27,7 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
                 .Autofocus(true)
                 .Autocomplete("off")
                 .Form("f")
-                .Dirname("d")
+                .DirName("d")
                 .Id("i")
                 .Class("c")
                 .Style("s")

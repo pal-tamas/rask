@@ -72,6 +72,6 @@ public sealed partial class VirtualizeItemsDemo : Component
         Tr
             .Style($"height:{height}px;")
             .Data("rask-key", key)[
-            Td.Colspan(4)
+            Td.ColSpan(4)
         ];
 }

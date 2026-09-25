@@ -12,12 +12,12 @@ public sealed partial class ThrowingHandlerApp : Component
 {
     public int Counter;
 
-    protected override Component? HeadAssets => new Title()["throw"];
+    protected override Component? HeadAssets => Markup.Title["throw"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new P()[$"count={Counter}"],
+        Markup.P[$"count={Counter}"],
         Button.OnClick(() => throw new InvalidOperationException("boom in handler"))["boom"],
         Button.OnClick(() => Counter++)["bump"]
     ];

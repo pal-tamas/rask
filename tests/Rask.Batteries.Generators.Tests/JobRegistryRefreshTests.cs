@@ -1,4 +1,4 @@
-namespace Rask.Background.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 ///     The registry is populated by a <c>[ModuleInitializer]</c>, which the runtime never re-runs after

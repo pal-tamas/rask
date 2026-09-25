@@ -20,7 +20,7 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class HeadChildrenAnalyzer : DiagnosticAnalyzer
 {
-    private const string HeadFullName = "Rask.Core.Components.Head";
+    private const string HeadFullName = "Rask.Core.Components.HTMLHeadElement";
     private const string RaskCoreAssembly = "Rask.Core";
 
     private static readonly DiagnosticDescriptor Rask019 = new(

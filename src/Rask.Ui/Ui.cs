@@ -1,5 +1,3 @@
-using Rask.Core;
-
 [assembly: RaskChainGroup(typeof(Rask.Ui))]
 
 namespace Rask;

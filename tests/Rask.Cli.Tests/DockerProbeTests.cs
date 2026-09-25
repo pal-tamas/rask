@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using Rask.Cli;
 
 namespace Rask.Cli.Tests;
 

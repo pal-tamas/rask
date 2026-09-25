@@ -143,11 +143,70 @@ public class RaskPrerenderTests
         Assert.Contains("/docs/{**rest}", plan.Skipped);
     }
 
-    private static IServiceProvider Services()
+    [Fact]
+    public async Task The_hosts_document_defaults_lead_the_head_and_scope_the_html()
+    {
+        var defaults = new RaskDocumentDefaults(
+            pathBase => pathBase + "/css/kit.css",
+            "css/app.css",
+            new Dictionary<string, string?> { ["data-kit"] = "" });
+
+        var html = (await RaskPrerender.RenderDocumentAsync(
+            new TitledPage(), Services(defaults), TimeSpan.FromSeconds(5))).Html;
+
+        Assert.Contains("<html lang=\"en\" data-kit=\"\">", html, StringComparison.Ordinal);
+        var order = new[] { "charset=\"utf-8\"", "name=\"viewport\"", "/css/kit.css", "/css/app.css", "page</title>" }
+            .Select(tag => html.IndexOf(tag, StringComparison.Ordinal))
+            .ToArray();
+        Assert.True(order[0] >= 0 && order.SequenceEqual(order.Order()), $"head out of order:\n{html}");
+    }
+
+    [Fact]
+    public async Task An_App_that_writes_its_own_shell_keeps_its_own_html_element()
+    {
+        var defaults = new RaskDocumentDefaults(null, null, new Dictionary<string, string?> { ["data-kit"] = "" });
+
+        var html = (await RaskPrerender.RenderDocumentAsync(
+            new OwnShellPage(), Services(defaults), TimeSpan.FromSeconds(5))).Html;
+
+        Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-kit", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_host_with_no_defaults_writes_only_what_the_App_writes()
+    {
+        var html = (await RaskPrerender.RenderDocumentAsync(
+            new PlainPage(), Services(), TimeSpan.FromSeconds(5))).Html;
+
+        Assert.DoesNotContain("charset", html, StringComparison.Ordinal);
+        Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);
+    }
+
+    private static IServiceProvider Services(RaskDocumentDefaults? defaults = null)
     {
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
+        if (defaults is not null)
+        {
+            services.AddSingleton(defaults);
+        }
+
         return services.BuildServiceProvider();
+    }
+
+    private sealed class TitledPage : Component
+    {
+        protected override Component? HeadAssets => Title["page"];
+
+        protected override Component? Render() => Div["hello"];
+    }
+
+    private sealed class OwnShellPage : Component
+    {
+        protected override Component? Render() => Div["hello"];
+
+        protected override Component Shell(Component head, Component body) => Html.Lang("fr")[head, Body[body]];
     }
 
     private sealed class PlainPage : Component

@@ -3,10 +3,7 @@ using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Diagnostics;
@@ -397,6 +394,29 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         lock (_handlerChainGate)
         {
             LastHandlerTask = link(LastHandlerTask);
+        }
+    }
+
+    // A scoped script's callback arrives on the socket reader like a dotNetInvoke, not as an event, so it is queued
+    // behind the handlers already on the chain rather than run beside them on whatever thread read it. Its faults
+    // are reported by the component that ran it; the chain is for ordering only.
+    protected override void RunInOrderCore(Func<Task> work) =>
+        EnqueueOnHandlerChain(async previous =>
+        {
+            await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await Started(work).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        });
+
+    // The work's task, with a synchronous throw carried in it like an asynchronous one.
+    private static Task Started(Func<Task> work)
+    {
+        try
+        {
+            return work();
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException(ex);
         }
     }
 

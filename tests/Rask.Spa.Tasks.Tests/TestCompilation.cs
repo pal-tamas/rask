@@ -3,7 +3,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rask.Cqrs.Generators;
+using Rask.Batteries.Generators;
 
 namespace Rask.Spa.Tasks.Tests;
 

@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Reflection;
-using Rask.Site;
 using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
 

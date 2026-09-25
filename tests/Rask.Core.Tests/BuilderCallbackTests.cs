@@ -78,7 +78,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 
         var div = Div.OnClick(stat);
 
-        Assert.Same(stat, div.OnClick!.Value.Handler);
+        Assert.Same(stat, div.OnClick.Handler);
     }
 
     // …and the argument-taking half.
@@ -104,19 +104,18 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
 
         var div = Div.OnClick(raw);
 
-        Assert.Same(raw, div.OnClick!.Value.Handler);
+        Assert.Same(raw, div.OnClick.Handler);
     }
 
-    // An unset handler reads back as null. This was a real hazard while a callback was a carrier struct:
-    // its implicit conversion accepted the null literal, so an omitted handler landed as a NON-null
-    // carrier wrapping null and every `is not null` test a component made about its own callback flipped.
+    // An unset handler reads back as the unset carrier, and a null handed to the step is how a call site
+    // says "none" — so every `HasValue` a component asks about its own callback stays honest.
     [Fact]
-    public void An_unset_element_event_reads_back_as_null()
+    public void An_unset_element_event_reads_back_as_unset()
     {
         var div = Div.OnClick(null);
 
-        Assert.Null(div.OnClick);
-        Assert.Null(div.OnMouseDown);
+        Assert.False(div.OnClick.HasValue);
+        Assert.False(div.OnMouseDown.HasValue);
     }
 
     // The distinction that must not blur.
@@ -132,9 +131,9 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
         var dropped = (Action<DragDropMove>)host.Dropped;
         var changed = (Action<string>)host.Named;
 
-        Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).OnDrop!.Value.Handler);
+        Assert.NotSame(dropped, DragDrop.Body(_ => Div).OnDrop(dropped).OnDrop.Handler);
 
-        Assert.Same(changed, Input.Of<string>().OnChange(changed).OnChange!.Value.Handler);
+        Assert.Same(changed, Input.Of<string>().OnChange(changed).OnChange.Handler);
     }
 
     // A null argument reads back as null — which every `is not null` a component asks about its own
@@ -164,7 +163,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
         var div = Div.OnClick(() => Task.CompletedTask).OnClick(sync);
 #pragma warning restore RASK044
 
-        Assert.Same(sync, div.OnClick!.Value.Handler);
+        Assert.Same(sync, div.OnClick.Handler);
     }
 
     [Fact]
@@ -175,7 +174,7 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
         var div = Div.OnClick(Noop).OnClick(async);
 #pragma warning restore RASK044
 
-        Assert.Same(async, div.OnClick!.Value.Handler);
+        Assert.Same(async, div.OnClick.Handler);
     }
 
     // The case the old `On`-dropping rule could never reach: a delegate prop whose name does not start

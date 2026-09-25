@@ -26,7 +26,7 @@ public sealed class Gamepad : IGamepad
     {
         ArgumentNullException.ThrowIfNull(onReading);
 
-        var id = GamepadInterop.Register(onReading);
+        var id = GamepadInterop.Register(_js, onReading);
         try
         {
             await _js.InvokeVoidAsync("__raskGamepad.watch", id);
