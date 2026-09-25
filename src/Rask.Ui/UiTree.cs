@@ -82,7 +82,7 @@ public sealed partial class UiTree<T, TKey> : Component
     public IReadOnlyList<TKey>? Expanded { get; set; }
 
     /// <summary>Raised with the whole expanded set after every expand or collapse.</summary>
-    public Callback<IReadOnlyList<TKey>>? OnExpandedChange { get; set; }
+    public Callback<IReadOnlyList<TKey>> OnExpandedChange { get; set; }
 
     /// <summary>
     ///     How deep the tree opens the first time it renders: 1 for the roots, 0 (the default) for none.
@@ -101,7 +101,7 @@ public sealed partial class UiTree<T, TKey> : Component
     public IReadOnlyList<TKey>? Selected { get; set; }
 
     /// <summary>Raised with the whole selection after every change.</summary>
-    public Callback<IReadOnlyList<TKey>>? OnSelectionChange { get; set; }
+    public Callback<IReadOnlyList<TKey>> OnSelectionChange { get; set; }
 
     /// <summary>A node's text for type-ahead. Unset and typing letters does nothing.</summary>
     public Fn<T, string>? NodeText { get; set; }
@@ -113,7 +113,7 @@ public sealed partial class UiTree<T, TKey> : Component
     public int? Height { get; set; }
 
     /// <summary>The node under the pointer, and <c>default</c> once it leaves the tree.</summary>
-    public Callback<T?>? OnHover { get; set; }
+    public Callback<T?> OnHover { get; set; }
 
     /// <summary>The row density, as on a menu.</summary>
     public Ui.Size? Size { get; set; }
@@ -149,7 +149,7 @@ public sealed partial class UiTree<T, TKey> : Component
     }
 
     private Ui.TreeSelection Mode =>
-        Selection ?? (Selected is not null || OnSelectionChange is not null ? Ui.TreeSelection.Single : Ui.TreeSelection.None);
+        Selection ?? (Selected is not null || OnSelectionChange.HasValue ? Ui.TreeSelection.Single : Ui.TreeSelection.None);
 
     private string Prefix => "uitree-" + _instance.ToString(CultureInfo.InvariantCulture);
 
@@ -196,7 +196,7 @@ public sealed partial class UiTree<T, TKey> : Component
             tree = tree.Style("max-height:" + Px(height) + ";overflow-y:auto");
         }
 
-        if (OnHover is not null)
+        if (OnHover.HasValue)
         {
             tree = tree.OnPointerLeave(LeaveAsync);
         }
@@ -253,7 +253,7 @@ public sealed partial class UiTree<T, TKey> : Component
                     .OnScroll(ctx.OnScroll)
                     .OnKeyDown(e => OnKeyAsync(e, rows));
 
-                if (OnHover is not null)
+                if (OnHover.HasValue)
                 {
                     tree = tree.OnPointerLeave(LeaveAsync);
                 }
@@ -298,7 +298,7 @@ public sealed partial class UiTree<T, TKey> : Component
         // On the row's own box rather than on the <li>: the runtime drops an enter whose pointer came from inside the
         // handler's element, and a child row sits inside its parent's <li> — so a parent would never hear the pointer
         // come back to it. The boxes do not nest.
-        if (OnHover is not null)
+        if (OnHover.HasValue)
         {
             content = content.OnPointerEnter(e => HoverAsync(e, row));
         }
@@ -671,7 +671,7 @@ public sealed partial class UiTree<T, TKey> : Component
         return Raise(OnHover, default(T?));
     }
 
-    private static Task Raise<TArg>(Callback<TArg>? handler, TArg arg) => handler?.Invoke(arg) ?? Task.CompletedTask;
+    private static Task Raise<TArg>(Callback<TArg> handler, TArg arg) => handler.Invoke(arg).AsTask();
 
     private static string Px(int value) => value.ToString(CultureInfo.InvariantCulture) + "px";
 

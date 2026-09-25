@@ -28,7 +28,7 @@ public sealed partial class UiNavGroup : Component
     public bool? Expanded { get; set; }
 
     /// <summary>Runs when the reader opens or closes an expandable group, with the state it is now in.</summary>
-    public Callback<bool>? OnToggle { get; set; }
+    public Callback<bool> OnToggle { get; set; }
 
     public string? Class { get; set; }
 
@@ -52,9 +52,9 @@ public sealed partial class UiNavGroup : Component
         }
 
         var details = Details.Open(Expanded != false);
-        if (OnToggle is { } onToggle)
+        if (OnToggle.HasValue)
         {
-            details = details.OnToggle(e => onToggle.Invoke(e.IsOpen) ?? Task.CompletedTask);
+            details = details.OnToggle(e => OnToggle.Invoke(e.IsOpen).AsTask());
         }
 
         return Li.Class(Class)[

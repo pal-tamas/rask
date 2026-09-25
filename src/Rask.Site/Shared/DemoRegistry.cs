@@ -172,7 +172,7 @@ public static partial class DemoRegistry
                 .Files(["TierStaticHelperDemo.cs", "TierStatelessGreetingDemo.cs", "TierStatefulCounterDemo.cs"])
                 .Result(ComponentTiersDemo),
             ["context-theme"] = () => CodeSample.Files(["ContextThemeDemo.cs"]).Result(ContextThemeDemo),
-            ["callback-rating"] = () => CodeSample.Files(["CallbackRatingDemo.cs"]).Result(CallbackRatingDemo),
+            ["callback-rating"] = () => CodeSample.Files(["RatingStars.cs", "CallbackRatingDemo.cs"]).Result(CallbackRatingDemo),
             ["virtualize-items"] = () => CodeSample.Files(["VirtualizeItemsDemo.cs"]).Result(VirtualizeItemsDemo),
             ["virtualize-provider"] = () => CodeSample.Files(["VirtualizeProviderDemo.cs"]).Result(VirtualizeProviderDemo),
             ["keyed-lists-reorder"] = () => CodeSample.Files(["KeyedListsReorderDemo.cs"]).Result(KeyedListsReorderDemo),

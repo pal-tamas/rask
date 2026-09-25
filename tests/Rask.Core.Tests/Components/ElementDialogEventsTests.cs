@@ -41,8 +41,8 @@ public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
     public void Unset_dialog_handlers_add_no_footprint()
     {
         var dialog = Dialog;
-        Assert.Null(dialog.OnCancel);
-        Assert.Null(dialog.OnClose);
+        Assert.False(dialog.OnCancel.HasValue);
+        Assert.False(dialog.OnClose.HasValue);
     }
 
     [Fact]

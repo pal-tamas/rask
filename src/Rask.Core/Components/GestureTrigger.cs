@@ -36,7 +36,7 @@ public sealed class GestureTrigger : Component
     ///     Optional callback for capabilities that return a value (the eyedropper's hex, the install outcome).
     ///     When set, the client posts the result back to it; leave <c>null</c> for fire-and-forget capabilities.
     /// </summary>
-    public Callback<string?>? OnResult { get; set; }
+    public Callback<string?> OnResult { get; set; }
 
     /// <summary>Renders your trigger element, given the attribute bundle to apply via its <c>Data</c> prop.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
@@ -56,7 +56,7 @@ public sealed class FullscreenTrigger : Component
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template!(GestureBridge.Attr("fullscreen.request", null, el: For?.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("fullscreen.request", default, el: For?.Id));
 }
 
 /// <summary>Open the eyedropper from a click gesture and receive the picked colour (hex, or <c>null</c> if cancelled).</summary>
@@ -64,7 +64,7 @@ public sealed class FullscreenTrigger : Component
 public sealed class EyeDropperTrigger : Component
 {
     /// <summary>Invoked with the picked colour as <c>#rrggbb</c>, or <c>null</c> when the user cancels.</summary>
-    public Callback<string?>? OnColor { get; set; }
+    public Callback<string?> OnColor { get; set; }
 
     /// <summary>Renders your trigger element; its click opens the eyedropper.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
@@ -89,7 +89,7 @@ public sealed class ScreenOrientationTrigger : Component
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template!(GestureBridge.Attr("orientation.lock", null, arg: Orientation));
+    protected override Component Render() => Template!(GestureBridge.Attr("orientation.lock", default, arg: Orientation));
 }
 
 /// <summary>
@@ -106,7 +106,7 @@ public sealed class PictureInPictureTrigger : Component
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
 
     /// <inheritdoc />
-    protected override Component Render() => Template!(GestureBridge.Attr("pip.request", null, el: For.Id));
+    protected override Component Render() => Template!(GestureBridge.Attr("pip.request", default, el: For.Id));
 }
 
 /// <summary>
@@ -119,7 +119,7 @@ public sealed class PictureInPictureTrigger : Component
 public sealed class InstallTrigger : Component
 {
     /// <summary>Invoked with the install outcome: <c>"accepted"</c>, <c>"dismissed"</c>, or <c>"unavailable"</c>.</summary>
-    public Callback<string?>? OnOutcome { get; set; }
+    public Callback<string?> OnOutcome { get; set; }
 
     /// <summary>Renders your trigger element; its click shows the browser's install prompt.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
@@ -151,7 +151,7 @@ public sealed class MediaCaptureTrigger : Component
     public string? FacingMode { get; set; }
 
     /// <summary>Invoked with <c>"granted"</c> when the stream starts, or <c>"denied"</c> if the user refuses.</summary>
-    public Callback<string?>? OnResult { get; set; }
+    public Callback<string?> OnResult { get; set; }
 
     /// <summary>
     ///     Invoked with the started stream's <see cref="MediaStreamId" />, so the stream stays reachable
@@ -160,7 +160,7 @@ public sealed class MediaCaptureTrigger : Component
     ///     Not invoked when the user refuses. This is the only way a <b>Server</b>-hosted app can hold on to
     ///     a captured stream.
     /// </summary>
-    public Callback<MediaStreamId>? OnStream { get; set; }
+    public Callback<MediaStreamId> OnStream { get; set; }
 
     /// <summary>Renders your trigger element; its click starts the capture and attaches it to <see cref="For" />.</summary>
     public required Func<IReadOnlyDictionary<string, string?>, Component> Template { get; set; }
@@ -173,9 +173,9 @@ public sealed class MediaCaptureTrigger : Component
             RaskBrowserJsonContext.Default.GestureMediaConstraints);
         // Stay fire-and-forget when the app wants no result: passing a non-null sink would register a
         // callback id on every render for nobody to consume.
-        var sink = OnResult is null && OnStream is null
-            ? (Callback<string?>?)null
-            : new Callback<string?>(Dispatch);
+        var sink = OnResult.HasValue || OnStream.HasValue
+            ? new Callback<string?>(Dispatch)
+            : default;
         return Template!(GestureBridge.Attr("media.start", sink, arg: constraints, el: For.Id));
     }
 
@@ -188,15 +188,12 @@ public sealed class MediaCaptureTrigger : Component
         var started = int.TryParse(
             result, NumberStyles.Integer, CultureInfo.InvariantCulture, out var streamId);
 
-        if (started && OnStream?.Invoke(new MediaStreamId(streamId)) is { } stream)
+        if (started)
         {
-            await stream.ConfigureAwait(false);
+            await OnStream.Invoke(new MediaStreamId(streamId)).ConfigureAwait(false);
         }
 
-        if (OnResult?.Invoke(started ? "granted" : "denied") is { } outcome)
-        {
-            await outcome.ConfigureAwait(false);
-        }
+        await OnResult.Invoke(started ? "granted" : "denied").ConfigureAwait(false);
     }
 }
 
@@ -227,15 +224,15 @@ internal static class GestureBridge
     // DotNet dispatcher (reflection), so without this the Result method could be trimmed away.
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(GestureResultInterop))]
     public static IReadOnlyDictionary<string, string?> Attr(
-        string capability, Callback<string?>? onResult, string? arg = null, string? el = null)
+        string capability, Callback<string?> onResult, string? arg = null, string? el = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(capability);
 
         // Adapted once, here, rather than at each of the six call sites: the interop registry
         // dispatches a task-returning delegate, and the carrier may be holding either shape.
-        var rid = onResult is null
-            ? (int?)null
-            : GestureResultInterop.Register(v => onResult.Value.Invoke(v) ?? Task.CompletedTask);
+        var rid = onResult.HasValue
+            ? GestureResultInterop.Register(v => onResult.Invoke(v).AsTask())
+            : (int?)null;
         var json = JsonSerializer.Serialize(
             new GesturePayload(capability, rid, arg, el), RaskBrowserJsonContext.Default.GesturePayload);
         return new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-gesture"] = json };

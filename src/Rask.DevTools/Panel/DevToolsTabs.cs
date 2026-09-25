@@ -52,7 +52,7 @@ internal sealed partial class DevToolsTabs : Component
     public required DevToolsErrorLog AppErrors { get; set; }
 
     /// <summary>Raised with the tab a developer picked, or the Errors tab when the page asks for it.</summary>
-    public Callback<string>? OnSelect { get; set; }
+    public Callback<string> OnSelect { get; set; }
 
     // What has been seen is a field, which the render cache cannot see.
     /// <inheritdoc />
@@ -122,7 +122,7 @@ internal sealed partial class DevToolsTabs : Component
     private void OnChanged() => _gate?.Notify();
 
     private Task Requested(string? key) =>
-        key == DevToolsTabIds.ShowErrorsKey && OnSelect is { } select ? select.Invoke(Errors) ?? Task.CompletedTask : Task.CompletedTask;
+        key == DevToolsTabIds.ShowErrorsKey ? OnSelect.Invoke(Errors).AsTask() : Task.CompletedTask;
 
     private Component TabButton(string id, string label, int count) =>
         Ui.Button
@@ -132,7 +132,7 @@ internal sealed partial class DevToolsTabs : Component
             // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
             .Class(Current == id ? "btn-active" : null)
             .Aria(new Dictionary<string, string?> { ["selected"] = Current == id ? "true" : "false" })
-            .OnClick(() => OnSelect?.Invoke(id) ?? Task.CompletedTask)[
+            .OnClick(() => OnSelect.Invoke(id).AsTask())[
                 label,
                 count > 0 ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Error)[count.ToString(CultureInfo.InvariantCulture)] : null
             ];

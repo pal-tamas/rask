@@ -78,11 +78,11 @@ public abstract partial class Element
     //
     // Reading is total now rather than partial: a slot holding "the other kind" used to read back as null
     // through the `as` cast, and there is no other kind left.
-    private protected Callback? Handler(string name) =>
-        GetDomEvent(name) is { } d ? new Callback(d) : null;
+    //
+    // An empty slot reads back as the unset `Callback` — its default — rather than as null.
+    private protected Callback Handler(string name) => new(GetDomEvent(name));
 
-    private protected Callback<TArgs>? Handler<TArgs>(string name) =>
-        GetDomEvent(name) is { } d ? new Callback<TArgs>(d) : null;
+    private protected Callback<TArgs> Handler<TArgs>(string name) => new(GetDomEvent(name));
 
     // One writer, and a write is simply a write. There used to be two — a sync one that always won and an
     // async one that deferred to it — because an event was two properties over this one slot and the
@@ -109,28 +109,28 @@ public abstract partial class Element
     ///     nothing drops nothing. The element must also set <c>Draggable</c>.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragstart_event">MDN</see>
     /// </summary>
-    public Callback? OnDragStart { get => Handler("dragstart"); set => SetHandler("dragstart", value?.Handler); }
+    public Callback OnDragStart { get => Handler("dragstart"); set => SetHandler("dragstart", value.Handler); }
 
     /// <summary>
     ///     Fires continuously while a dragged item is over this element. The default has to be prevented on
     ///     <em>every</em> one of them, not just the first, or the drop never happens.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragover_event">MDN</see>
     /// </summary>
-    public Callback? OnDragOver { get => Handler("dragover"); set => SetHandler("dragover", value?.Handler); }
+    public Callback OnDragOver { get => Handler("dragover"); set => SetHandler("dragover", value.Handler); }
 
     /// <summary>
     ///     A dragged item was released on this element. Read the transferred data here — and only reached if the
     ///     <c>dragover</c> default was prevented.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drop_event">MDN</see>
     /// </summary>
-    public Callback? OnDrop { get => Handler("drop"); set => SetHandler("drop", value?.Handler); }
+    public Callback OnDrop { get => Handler("drop"); set => SetHandler("drop", value.Handler); }
 
     /// <summary>
     ///     The drag finished — dropped or cancelled, this fires either way, on the element the drag started from.
     ///     The place to clear drag state, since a cancelled drag reaches no drop handler.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragend_event">MDN</see>
     /// </summary>
-    public Callback? OnDragEnd { get => Handler("dragend"); set => SetHandler("dragend", value?.Handler); }
+    public Callback OnDragEnd { get => Handler("dragend"); set => SetHandler("dragend", value.Handler); }
 
     // ---- Keyboard (KeyboardEventArgs: key/code/modifiers/repeat; the client never preventDefaults) ----
 
@@ -139,14 +139,14 @@ public abstract partial class Element
     ///     default worth cancelling — Escape to close, Enter to submit, arrows to move a selection.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event">MDN</see>
     /// </summary>
-    public Callback<KeyboardEventArgs>? OnKeyDown { get => Handler<KeyboardEventArgs>("keydown"); set => SetHandler("keydown", value?.Handler); }
+    public Callback<KeyboardEventArgs> OnKeyDown { get => Handler<KeyboardEventArgs>("keydown"); set => SetHandler("keydown", value.Handler); }
 
     /// <summary>
     ///     A key was released. Not the one to use for shortcuts: a held key does not reach it until the user lets
     ///     go, so the response feels late.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/keyup_event">MDN</see>
     /// </summary>
-    public Callback<KeyboardEventArgs>? OnKeyUp { get => Handler<KeyboardEventArgs>("keyup"); set => SetHandler("keyup", value?.Handler); }
+    public Callback<KeyboardEventArgs> OnKeyUp { get => Handler<KeyboardEventArgs>("keyup"); set => SetHandler("keyup", value.Handler); }
 
     // ---- Open state (ToggleEventArgs: the platform's oldState/newState) ----
 
@@ -160,7 +160,7 @@ public abstract partial class Element
     ///         <c>aria-expanded</c> goes on saying so over a closed panel.
     ///     </para>
     /// </summary>
-    public Callback<ToggleEventArgs>? OnToggle { get => Handler<ToggleEventArgs>("toggle"); set => SetHandler("toggle", value?.Handler); }
+    public Callback<ToggleEventArgs> OnToggle { get => Handler<ToggleEventArgs>("toggle"); set => SetHandler("toggle", value.Handler); }
 
     /// <summary>
     ///     The same transition, just before it happens. Use it to prepare what is about to be shown — loading
@@ -171,70 +171,70 @@ public abstract partial class Element
     ///         notification and not a veto.
     ///     </para>
     /// </summary>
-    public Callback<ToggleEventArgs>? OnBeforeToggle { get => Handler<ToggleEventArgs>("beforetoggle"); set => SetHandler("beforetoggle", value?.Handler); }
+    public Callback<ToggleEventArgs> OnBeforeToggle { get => Handler<ToggleEventArgs>("beforetoggle"); set => SetHandler("beforetoggle", value.Handler); }
 
     // ---- Mouse events (MouseEventArgs: button/buttons, client/screen/page/offset/movement coords, modifiers) ----
 
     /// <summary>Click. Parameterless (modifier/coordinate-free) for source compatibility — use the mouse
     /// events below for geometry. The client still <c>preventDefault</c>s anchor navigation on click.</summary>
-    public Callback? OnClick { get => Handler("click"); set => SetHandler("click", value?.Handler); }
+    public Callback OnClick { get => Handler("click"); set => SetHandler("click", value.Handler); }
 
     /// <summary>
     ///     The element was double-clicked. A click handler still fires — twice — before this does, so the two must
     ///     not both act, or the single-click action runs on the way to the double-click one.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/dblclick_event">MDN</see>
     /// </summary>
-    public Callback<MouseEventArgs>? OnDoubleClick { get => Handler<MouseEventArgs>("dblclick"); set => SetHandler("dblclick", value?.Handler); }
+    public Callback<MouseEventArgs> OnDoubleClick { get => Handler<MouseEventArgs>("dblclick"); set => SetHandler("dblclick", value.Handler); }
 
     /// <summary>
     ///     A mouse button went down over this element. Fires before any click, and is what a drag or press-and-hold
     ///     gesture starts from.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/mousedown_event">MDN</see>
     /// </summary>
-    public Callback<MouseEventArgs>? OnMouseDown { get => Handler<MouseEventArgs>("mousedown"); set => SetHandler("mousedown", value?.Handler); }
+    public Callback<MouseEventArgs> OnMouseDown { get => Handler<MouseEventArgs>("mousedown"); set => SetHandler("mousedown", value.Handler); }
 
     /// <summary>
     ///     A mouse button was released over this element. A click only follows if the matching <c>mousedown</c>
     ///     happened on this same element.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseup_event">MDN</see>
     /// </summary>
-    public Callback<MouseEventArgs>? OnMouseUp { get => Handler<MouseEventArgs>("mouseup"); set => SetHandler("mouseup", value?.Handler); }
+    public Callback<MouseEventArgs> OnMouseUp { get => Handler<MouseEventArgs>("mouseup"); set => SetHandler("mouseup", value.Handler); }
 
     /// <summary>
     ///     The pointer moved over this element. Fires at pointer rate — do no layout reads here without throttling,
     ///     or scrolling stutters.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event">MDN</see>
     /// </summary>
-    public Callback<MouseEventArgs>? OnMouseMove { get => Handler<MouseEventArgs>("mousemove"); set => SetHandler("mousemove", value?.Handler); }
+    public Callback<MouseEventArgs> OnMouseMove { get => Handler<MouseEventArgs>("mousemove"); set => SetHandler("mousemove", value.Handler); }
 
     /// <summary>Pointer entered this element (does not fire for descendants). Simulated client-side via
     /// <c>mouseover</c> + relatedTarget boundary, since <c>mouseenter</c> itself does not delegate.</summary>
-    public Callback<MouseEventArgs>? OnMouseEnter { get => Handler<MouseEventArgs>("mouseenter"); set => SetHandler("mouseenter", value?.Handler); }
+    public Callback<MouseEventArgs> OnMouseEnter { get => Handler<MouseEventArgs>("mouseenter"); set => SetHandler("mouseenter", value.Handler); }
 
     /// <summary>
     ///     The pointer left this element. Does not bubble and does not fire for descendants, so it pairs cleanly
     ///     with <c>mouseenter</c> for hover state.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseleave_event">MDN</see>
     /// </summary>
-    public Callback<MouseEventArgs>? OnMouseLeave { get => Handler<MouseEventArgs>("mouseleave"); set => SetHandler("mouseleave", value?.Handler); }
+    public Callback<MouseEventArgs> OnMouseLeave { get => Handler<MouseEventArgs>("mouseleave"); set => SetHandler("mouseleave", value.Handler); }
 
     /// <summary>
     ///     The pointer entered this element <em>or any descendant</em>. It bubbles, so it fires again every time
     ///     the pointer crosses into a child — use <c>mouseenter</c> for plain hover.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseover_event">MDN</see>
     /// </summary>
-    public Callback<MouseEventArgs>? OnMouseOver { get => Handler<MouseEventArgs>("mouseover"); set => SetHandler("mouseover", value?.Handler); }
+    public Callback<MouseEventArgs> OnMouseOver { get => Handler<MouseEventArgs>("mouseover"); set => SetHandler("mouseover", value.Handler); }
 
     /// <summary>
     ///     The pointer left this element <em>or any descendant</em>. It bubbles, so moving between two children
     ///     fires it — use <c>mouseleave</c> for plain hover.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseout_event">MDN</see>
     /// </summary>
-    public Callback<MouseEventArgs>? OnMouseOut { get => Handler<MouseEventArgs>("mouseout"); set => SetHandler("mouseout", value?.Handler); }
+    public Callback<MouseEventArgs> OnMouseOut { get => Handler<MouseEventArgs>("mouseout"); set => SetHandler("mouseout", value.Handler); }
 
     /// <summary>Right-click / context menu. The client <c>preventDefault</c>s so the browser menu is
     /// suppressed when you handle it.</summary>
-    public Callback<MouseEventArgs>? OnContextMenu { get => Handler<MouseEventArgs>("contextmenu"); set => SetHandler("contextmenu", value?.Handler); }
+    public Callback<MouseEventArgs> OnContextMenu { get => Handler<MouseEventArgs>("contextmenu"); set => SetHandler("contextmenu", value.Handler); }
 
     // ---- Wheel ----
 
@@ -243,7 +243,7 @@ public abstract partial class Element
     ///     not stop momentum scrolling that is already running.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event">MDN</see>
     /// </summary>
-    public Callback<WheelEventArgs>? OnWheel { get => Handler<WheelEventArgs>("wheel"); set => SetHandler("wheel", value?.Handler); }
+    public Callback<WheelEventArgs> OnWheel { get => Handler<WheelEventArgs>("wheel"); set => SetHandler("wheel", value.Handler); }
 
     // ---- Pointer events (PointerEventArgs: mouse geometry + pointerId/pressure/tilt/pointerType/isPrimary) ----
 
@@ -252,50 +252,50 @@ public abstract partial class Element
     ///     touch pairs: one handler covers all three input kinds.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerdown_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerDown { get => Handler<PointerEventArgs>("pointerdown"); set => SetHandler("pointerdown", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerDown { get => Handler<PointerEventArgs>("pointerdown"); set => SetHandler("pointerdown", value.Handler); }
 
     /// <summary>
     ///     A pointer was released over this element.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerup_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerUp { get => Handler<PointerEventArgs>("pointerup"); set => SetHandler("pointerup", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerUp { get => Handler<PointerEventArgs>("pointerup"); set => SetHandler("pointerup", value.Handler); }
 
     /// <summary>
     ///     A pointer moved over this element. Fires at pointer rate, so keep the handler cheap.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointermove_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerMove { get => Handler<PointerEventArgs>("pointermove"); set => SetHandler("pointermove", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerMove { get => Handler<PointerEventArgs>("pointermove"); set => SetHandler("pointermove", value.Handler); }
 
     /// <summary>
     ///     A pointer entered this element. Does not bubble, so descendants do not re-fire it.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerenter_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerEnter { get => Handler<PointerEventArgs>("pointerenter"); set => SetHandler("pointerenter", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerEnter { get => Handler<PointerEventArgs>("pointerenter"); set => SetHandler("pointerenter", value.Handler); }
 
     /// <summary>
     ///     A pointer left this element. Does not bubble.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerleave_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerLeave { get => Handler<PointerEventArgs>("pointerleave"); set => SetHandler("pointerleave", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerLeave { get => Handler<PointerEventArgs>("pointerleave"); set => SetHandler("pointerleave", value.Handler); }
 
     /// <summary>
     ///     A pointer entered this element or any descendant. Bubbles, unlike <c>pointerenter</c>.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerover_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerOver { get => Handler<PointerEventArgs>("pointerover"); set => SetHandler("pointerover", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerOver { get => Handler<PointerEventArgs>("pointerover"); set => SetHandler("pointerover", value.Handler); }
 
     /// <summary>
     ///     A pointer left this element or any descendant. Bubbles, unlike <c>pointerleave</c>.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerout_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerOut { get => Handler<PointerEventArgs>("pointerout"); set => SetHandler("pointerout", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerOut { get => Handler<PointerEventArgs>("pointerout"); set => SetHandler("pointerout", value.Handler); }
 
     /// <summary>
     ///     The browser took the pointer away — a touch became a scroll, or the gesture was interrupted. Handle it
     ///     wherever you handle <c>pointerup</c>, or a cancelled gesture leaves the element stuck mid-drag.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/pointercancel_event">MDN</see>
     /// </summary>
-    public Callback<PointerEventArgs>? OnPointerCancel { get => Handler<PointerEventArgs>("pointercancel"); set => SetHandler("pointercancel", value?.Handler); }
+    public Callback<PointerEventArgs> OnPointerCancel { get => Handler<PointerEventArgs>("pointercancel"); set => SetHandler("pointercancel", value.Handler); }
 
     // ---- Touch events (TouchEventArgs: active touch count + first-touch coords + modifiers) ----
 
@@ -304,27 +304,27 @@ public abstract partial class Element
     ///     pointer events cover touch as well and cost one handler instead of two.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/touchstart_event">MDN</see>
     /// </summary>
-    public Callback<TouchEventArgs>? OnTouchStart { get => Handler<TouchEventArgs>("touchstart"); set => SetHandler("touchstart", value?.Handler); }
+    public Callback<TouchEventArgs> OnTouchStart { get => Handler<TouchEventArgs>("touchstart"); set => SetHandler("touchstart", value.Handler); }
 
     /// <summary>
     ///     A finger left the screen.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/touchend_event">MDN</see>
     /// </summary>
-    public Callback<TouchEventArgs>? OnTouchEnd { get => Handler<TouchEventArgs>("touchend"); set => SetHandler("touchend", value?.Handler); }
+    public Callback<TouchEventArgs> OnTouchEnd { get => Handler<TouchEventArgs>("touchend"); set => SetHandler("touchend", value.Handler); }
 
     /// <summary>
     ///     A finger moved across this element. Cancelling it stops the page scrolling with the finger, so cancel
     ///     only when the gesture really is yours.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/touchmove_event">MDN</see>
     /// </summary>
-    public Callback<TouchEventArgs>? OnTouchMove { get => Handler<TouchEventArgs>("touchmove"); set => SetHandler("touchmove", value?.Handler); }
+    public Callback<TouchEventArgs> OnTouchMove { get => Handler<TouchEventArgs>("touchmove"); set => SetHandler("touchmove", value.Handler); }
 
     /// <summary>
     ///     The browser took over the touch — typically because it became a scroll. Undo whatever the gesture had
     ///     started, the same way a cancelled pointer is handled.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/touchcancel_event">MDN</see>
     /// </summary>
-    public Callback<TouchEventArgs>? OnTouchCancel { get => Handler<TouchEventArgs>("touchcancel"); set => SetHandler("touchcancel", value?.Handler); }
+    public Callback<TouchEventArgs> OnTouchCancel { get => Handler<TouchEventArgs>("touchcancel"); set => SetHandler("touchcancel", value.Handler); }
 
     // ---- Focus events (parameterless; focus/blur reach Element via capture-phase delegation) ----
 
@@ -333,21 +333,21 @@ public abstract partial class Element
     ///     <c>focusin</c>.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/focus_event">MDN</see>
     /// </summary>
-    public Callback? OnFocus { get => Handler("focus"); set => SetHandler("focus", value?.Handler); }
+    public Callback OnFocus { get => Handler("focus"); set => SetHandler("focus", value.Handler); }
 
     /// <summary>
     ///     This element lost focus. The natural moment to validate a field: on blur the user has finished typing,
     ///     whereas validating per keystroke shouts at them mid-word. Does not bubble — see <c>focusout</c>.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/blur_event">MDN</see>
     /// </summary>
-    public Callback? OnBlur { get => Handler("blur"); set => SetHandler("blur", value?.Handler); }
+    public Callback OnBlur { get => Handler("blur"); set => SetHandler("blur", value.Handler); }
 
     /// <summary>
     ///     Focus arrived at this element or anything inside it. The bubbling form of <c>focus</c>, so one handler
     ///     on a container covers every control in it.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/focusin_event">MDN</see>
     /// </summary>
-    public Callback? OnFocusIn { get => Handler("focusin"); set => SetHandler("focusin", value?.Handler); }
+    public Callback OnFocusIn { get => Handler("focusin"); set => SetHandler("focusin", value.Handler); }
 
     /// <summary>
     ///     Focus left this element or anything inside it. The bubbling form of <c>blur</c>. Careful: it fires while
@@ -355,7 +355,7 @@ public abstract partial class Element
     ///     went.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/focusout_event">MDN</see>
     /// </summary>
-    public Callback? OnFocusOut { get => Handler("focusout"); set => SetHandler("focusout", value?.Handler); }
+    public Callback OnFocusOut { get => Handler("focusout"); set => SetHandler("focusout", value.Handler); }
 
     // ---- Drag events that complete the set (dragstart/over/drop/end already exist on Element) ----
 
@@ -364,21 +364,21 @@ public abstract partial class Element
     ///     cheap and drive visuals from CSS where you can.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drag_event">MDN</see>
     /// </summary>
-    public Callback? OnDrag { get => Handler("drag"); set => SetHandler("drag", value?.Handler); }
+    public Callback OnDrag { get => Handler("drag"); set => SetHandler("drag", value.Handler); }
 
     /// <summary>
     ///     A dragged item entered this element. Cancel the event to advertise this element as a drop target — an
     ///     element that never cancels is not one.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragenter_event">MDN</see>
     /// </summary>
-    public Callback? OnDragEnter { get => Handler("dragenter"); set => SetHandler("dragenter", value?.Handler); }
+    public Callback OnDragEnter { get => Handler("dragenter"); set => SetHandler("dragenter", value.Handler); }
 
     /// <summary>
     ///     A dragged item left this element. Pairs with <c>dragenter</c> to undo whatever hover styling that turned
     ///     on.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragleave_event">MDN</see>
     /// </summary>
-    public Callback? OnDragLeave { get => Handler("dragleave"); set => SetHandler("dragleave", value?.Handler); }
+    public Callback OnDragLeave { get => Handler("dragleave"); set => SetHandler("dragleave", value.Handler); }
 
     // ---- Clipboard events (ClipboardEventArgs: the plain-text payload read during the event) ----
 
@@ -386,19 +386,19 @@ public abstract partial class Element
     ///     The user copied from this element.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/copy_event">MDN</see>
     /// </summary>
-    public Callback<ClipboardEventArgs>? OnCopy { get => Handler<ClipboardEventArgs>("copy"); set => SetHandler("copy", value?.Handler); }
+    public Callback<ClipboardEventArgs> OnCopy { get => Handler<ClipboardEventArgs>("copy"); set => SetHandler("copy", value.Handler); }
 
     /// <summary>
     ///     The user cut from this element.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/cut_event">MDN</see>
     /// </summary>
-    public Callback<ClipboardEventArgs>? OnCut { get => Handler<ClipboardEventArgs>("cut"); set => SetHandler("cut", value?.Handler); }
+    public Callback<ClipboardEventArgs> OnCut { get => Handler<ClipboardEventArgs>("cut"); set => SetHandler("cut", value.Handler); }
 
     /// <summary>
     ///     The user pasted into this element. The place to sanitise or reformat pasted content before it lands.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event">MDN</see>
     /// </summary>
-    public Callback<ClipboardEventArgs>? OnPaste { get => Handler<ClipboardEventArgs>("paste"); set => SetHandler("paste", value?.Handler); }
+    public Callback<ClipboardEventArgs> OnPaste { get => Handler<ClipboardEventArgs>("paste"); set => SetHandler("paste", value.Handler); }
 
     // ---- Remaining form-ish events (beforeinput carries the inserted text; select/invalid/reset are bare) ----
 
@@ -407,27 +407,27 @@ public abstract partial class Element
     ///     inspected, and rejected, while the old value is still in place.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/beforeinput_event">MDN</see>
     /// </summary>
-    public Callback<string>? OnBeforeInput { get => Handler<string>("beforeinput"); set => SetHandler("beforeinput", value?.Handler); }
+    public Callback<string> OnBeforeInput { get => Handler<string>("beforeinput"); set => SetHandler("beforeinput", value.Handler); }
 
     /// <summary>
     ///     The user selected text inside this control.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/select_event">MDN</see>
     /// </summary>
-    public Callback? OnSelect { get => Handler("select"); set => SetHandler("select", value?.Handler); }
+    public Callback OnSelect { get => Handler("select"); set => SetHandler("select", value.Handler); }
 
     /// <summary>
     ///     Constraint validation failed for this control. Fires per control when a submit is blocked, which is the
     ///     hook for replacing the browser's default bubble with your own message.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/invalid_event">MDN</see>
     /// </summary>
-    public Callback? OnInvalid { get => Handler("invalid"); set => SetHandler("invalid", value?.Handler); }
+    public Callback OnInvalid { get => Handler("invalid"); set => SetHandler("invalid", value.Handler); }
 
     /// <summary>
     ///     The form was reset. Any state you keep outside the model has to be rolled back here too, or the visible
     ///     form and your state disagree.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/reset_event">MDN</see>
     /// </summary>
-    public Callback? OnReset { get => Handler("reset"); set => SetHandler("reset", value?.Handler); }
+    public Callback OnReset { get => Handler("reset"); set => SetHandler("reset", value.Handler); }
 
     /// <summary>
     ///     A <c>&lt;dialog&gt;</c> is being DISMISSED — Escape, or a light dismiss (<c>closedby="any"</c>) — as opposed
@@ -439,14 +439,14 @@ public abstract partial class Element
     ///         the client never <c>preventDefault</c>s, so this is a notification and not a veto.
     ///     </para>
     /// </summary>
-    public Callback? OnCancel { get => Handler("cancel"); set => SetHandler("cancel", value?.Handler); }
+    public Callback OnCancel { get => Handler("cancel"); set => SetHandler("cancel", value.Handler); }
 
     /// <summary>
     ///     A <c>&lt;dialog&gt;</c> closed, by any path: a <c>method="dialog"</c> form, <c>command="close"</c>, a
     ///     script's <c>close()</c>, or a dismissal (which raises <see cref="OnCancel" /> first).
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/close_event">MDN</see>
     /// </summary>
-    public Callback? OnClose { get => Handler("close"); set => SetHandler("close", value?.Handler); }
+    public Callback OnClose { get => Handler("close"); set => SetHandler("close", value.Handler); }
 
     // ---- Scroll (ScrollEvent: scrollTop/clientHeight/scrollHeight; rAF-coalesced client-side) ----
 
@@ -455,7 +455,7 @@ public abstract partial class Element
     ///     layout, or you get a scroll-jank feedback loop.
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/Element/scroll_event">MDN</see>
     /// </summary>
-    public Callback<ScrollEvent>? OnScroll { get => Handler<ScrollEvent>("scroll"); set => SetHandler("scroll", value?.Handler); }
+    public Callback<ScrollEvent> OnScroll { get => Handler<ScrollEvent>("scroll"); set => SetHandler("scroll", value.Handler); }
 
     // Emits every wired GlobalEventHandlers hook as data-rask-on-{event}, in GlobalEventOrder, so the
     // serialized attribute sequence is deterministic. Early-outs in one null check for a plain element.

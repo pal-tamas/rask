@@ -18,15 +18,15 @@ The chain step wraps the handler so that **invoking it re-renders the parent tha
 public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
-    public Callback<int>? OnRate { get; set; }
+    public Callback<int> OnRate { get; set; }
 
     protected override Component? Render() =>
         Div.Class("inline-flex gap-1")[
             Enumerable.Range(1, 5).Select(i => Button.Key(i).OnClick(() => Rate(i))[i <= Value ? "★" : "☆"])
         ];
 
-    // Raise the event. Invoke returns null for a synchronous handler — nothing to await.
-    private Task Rate(int n) => OnRate?.Invoke(n) ?? Task.CompletedTask;
+    // Raise the event. Unset, it does nothing; a synchronous handler completes without a Task.
+    private async Task Rate(int n) => await OnRate.Invoke(n);
 }
 
 // Parent: passes a lambda that mutates its own state.
@@ -61,9 +61,13 @@ holds for a value the framework *asks* a component for rather than an event: a t
 (`Ui.DataGrid`'s `RowClass`, `Ui.Select`'s `OptionTemplate`) is an `Fn<…>`, called during the render and
 never auto-wrapped.
 
-Calling one back: `if (OnRate?.Invoke(i) is { } t) await t;` — `Invoke` returns `null` for a synchronous
-handler, so the sync path never acquires a `Task`. **Wrapping is unchanged:** a component callback is
-auto-wrapped, a DOM handler is not.
+Declare the event non-nullable — `public Callback<int> OnRate { get; set; }` — and call it back with
+`await OnRate.Invoke(i);`. An unset callback is a no-op, so there is nothing to null-check, and it is never a
+required step: leaving `.OnRate(…)` off the chain is how a caller says it does not care. `Invoke` returns a
+`ValueTask` that is already complete for a synchronous handler, so the sync path never acquires a `Task`.
+Ask `OnRate.HasValue` only when *whether* anyone listens changes what you render. A `Callback<int>?` you
+already wrote still works. **Wrapping is unchanged:** a component callback is auto-wrapped, a DOM handler
+is not.
 
 **DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
 **every** element (not a hand-picked few) carries the complete event set, just like the real DOM
@@ -109,7 +113,7 @@ Pass a **bare lambda or method group** — `.OnMouseMove(e => { _x = e.OffsetX; 
 You never name the `Callback`: you pass the lambda or method group and the step does the rest. It exists
 so a property and its builder setter can share a name — a delegate-typed property *is* invocable, which would make
 `.OnClick(Save)` try to call the handler (CS1593). Reading a handler back off an element is the one
-place it shows: `el.OnClick?.Invoke()`. DOM handlers are **never** auto-wrapped — they go straight to the
+place it shows: `await el.OnClick.Invoke()`. DOM handlers are **never** auto-wrapped — they go straight to the
 DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module

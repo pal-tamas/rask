@@ -26,58 +26,79 @@ public class CarrierTests
     }
 
     // A synchronous handler must not acquire an asynchronous hop it did not have: no Task, no closure,
-    // no state machine. `null` is how the slot says "nothing to await", which is what lets a caller
-    // write `if (cb?.Invoke() is { } t) await t;` and stay off the async path entirely.
+    // no state machine. It has run by the time Invoke returns, and what comes back is the DEFAULT
+    // ValueTask — already complete and wrapping nothing — so `await OnClick.Invoke();` costs nothing.
     [Fact]
-    public void A_sync_handler_runs_and_hands_back_nothing_to_await()
+    public void A_sync_handler_runs_inline_and_hands_back_a_completed_value_task()
     {
         var ran = false;
         var cb = new Callback(() => ran = true);
 
-        Assert.Null(cb.Invoke());
-        Assert.True(ran);
-    }
-
-    [Fact]
-    public async Task An_async_handler_hands_back_the_task_to_await()
-    {
-        var ran = false;
-        var cb = new Callback(async () =>
-        {
-            await Task.Yield();
-            ran = true;
-        });
-
         var pending = cb.Invoke();
 
-        Assert.NotNull(pending);
+        Assert.True(ran);
+        Assert.True(pending.IsCompletedSuccessfully);
+        Assert.Equal(default, pending);
+    }
+
+    [Fact]
+    public async Task An_async_handler_is_awaited_through_invoke()
+    {
+        var ran = false;
+        var gate = new TaskCompletionSource();
+        var cb = new Callback<int>(async n =>
+        {
+            await gate.Task;
+            ran = n == 7;
+        });
+
+        var pending = cb.Invoke(7);
+        var waitedBeforeRelease = !pending.IsCompleted;
+        gate.SetResult();
         await pending;
+
+        Assert.True(waitedBeforeRelease);
         Assert.True(ran);
     }
 
-    // An unset slot is inert rather than throwing, so a component can call its optional callbacks
-    // unconditionally.
+    // An unset slot is inert rather than throwing, so a component declares its event non-nullable and
+    // fires it unconditionally: `await OnRate.Invoke(n);` with nothing wired simply completes.
     [Fact]
-    public void An_unset_carrier_is_inert()
+    public async Task An_unset_callback_completes_without_doing_anything()
     {
-        Assert.Null(default(Callback).Invoke());
-        Assert.Null(default(Callback<int>).Invoke(1));
-        Assert.Null(default(Callback<int, int>).Invoke(1, 2));
-        Assert.False(default(Callback).HasValue);
-        Assert.False(default(Fn<string>).HasValue);
-        Assert.Null(default(Fn<string>).Invoke());
+        var unset = default(Callback<int>);
+
+        var pending = unset.Invoke(1);
+        await pending;
+
+        Assert.False(unset.HasValue);
+        Assert.True(pending.IsCompletedSuccessfully);
+        Assert.Equal(default, default(Callback).Invoke());
+        Assert.Equal(default, default(Callback<int, int>).Invoke(1, 2));
+    }
+
+    [Fact]
+    public void An_unset_value_carrier_is_inert()
+    {
+        var unset = default(Fn<string>);
+
+        var value = unset.Invoke();
+
+        Assert.False(unset.HasValue);
+        Assert.Null(value);
         Assert.Null(default(Fn<int, string>).Invoke(1));
     }
 
     [Fact]
-    public void Argument_carrying_callbacks_pass_their_arguments()
+    public async Task Argument_carrying_callbacks_pass_their_arguments()
     {
         var seen = 0;
-        Assert.Null(new Callback<int>(v => seen = v).Invoke(42));
-        Assert.Equal(42, seen);
-
         var sum = 0;
-        Assert.Null(new Callback<int, int>((a, b) => sum = a + b).Invoke(3, 4));
+
+        await new Callback<int>(v => seen = v).Invoke(42);
+        await new Callback<int, int>((a, b) => sum = a + b).Invoke(3, 4);
+
+        Assert.Equal(42, seen);
         Assert.Equal(7, sum);
     }
 

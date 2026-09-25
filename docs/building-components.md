@@ -106,8 +106,8 @@ On a component you write, an event is a `Callback` (or `Callback<T>` when it car
 value the framework asks you for — a template, a selector — is an `Fn<…>`:
 
 ```csharp
-public Callback? OnPick { get; set; }              // Pick or PickAsync — one property, either shape
-public Callback<int>? OnRate { get; set; }
+public Callback OnPick { get; set; }               // Pick or PickAsync — one property, either shape
+public Callback<int> OnRate { get; set; }
 public Fn<Product, Component>? Template { get; set; }
 ```
 
@@ -115,8 +115,10 @@ The chain's receiver is the component itself, and both are **structs**, not dele
 `.OnPick(fn)` a setter: a delegate-typed property on the receiver would be *invocable*, and C# would read
 the call as invoking it (CS1593) and never reach the step. There is no `OnPickAsync` twin to declare.
 
-Fire an event with `if (OnPick?.Invoke() is { } t) await t;` — `Invoke` returns `null` for a synchronous
-handler, so the sync path never picks up a `Task` — and call a template with `Template?.Invoke(item)`.
+Fire an event with `await OnPick.Invoke();`. An unset event does nothing, so there is no null check, and a
+non-nullable `Callback` is never a required step — leave it off the chain and it stays unset. `Invoke` returns a
+`ValueTask` already complete for a synchronous handler, so the sync path never picks up a `Task`. Call a template
+with `Template?.Invoke(item)`.
 
 ## Where the names come from
 
@@ -155,7 +157,7 @@ public sealed partial class ProductCard : Component
 {
     public required string Title { get; set; }   // a step
     public string? Subtitle { get; set; }        // a setter
-    public Callback? OnPick { get; set; }
+    public Callback OnPick { get; set; }         // a setter too — an event is never required
 
     protected override Component? Render() => …;
 }

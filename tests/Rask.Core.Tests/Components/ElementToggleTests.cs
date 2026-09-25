@@ -47,8 +47,8 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
     public void Unset_toggle_handlers_add_no_footprint()
     {
         var div = Div;
-        Assert.Null(div.OnToggle);
-        Assert.Null(div.OnBeforeToggle);
+        Assert.False(div.OnToggle.HasValue);
+        Assert.False(div.OnBeforeToggle.HasValue);
     }
 
     [Fact]

@@ -194,13 +194,13 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     ///     reads this, so it is neither a step on a bound chain nor a parameter of the bound factory. Use
     ///     <see cref="AfterBind" /> for a side effect on each bound write.
     /// </remarks>
-    public Callback<string>? OnInput { get; set; }
+    public Callback<string> OnInput { get; set; }
 
     /// <summary>
     ///     Called with the parsed value once the user commits a change, in controlled mode. Store it and
     ///     pass it back through <c>Value</c>.
     /// </summary>
-    public Callback<T>? OnChange { get; set; }
+    public Callback<T> OnChange { get; set; }
 
 
 
@@ -212,7 +212,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
     ///         Re-check them on the server before storing anything.
     ///     </para>
     /// </summary>
-    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public Callback<IReadOnlyList<RaskFileType>> OnFiles { get; set; }
 
 
     // IFormControl<T> — bound mode (excluded from the controlled factory by the generator).
@@ -229,7 +229,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
 
 
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
-    public Callback<T>? AfterBind { get; set; }
+    public Callback<T> AfterBind { get; set; }
 
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -492,7 +492,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
         else
         {
             // Plain / controlled.
-            var input = OnInput?.Handler;
+            var input = OnInput.Handler;
             if (input is not null)
             {
                 AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
@@ -505,7 +505,7 @@ public sealed partial class Input<T> : Element, IFormControl<T>
             }
         }
 
-        var files = OnFiles?.Handler;
+        var files = OnFiles.Handler;
         if (files is not null)
         {
             AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));

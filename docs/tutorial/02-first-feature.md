@@ -274,7 +274,8 @@ public sealed partial class DeleteProduct : Component
     // at the call site binds to the property being called rather than to the generated chain setter,
     // and the compiler reports CS1593 on a delegate that "does not take 1 arguments". Callback is a
     // struct with no invocation, so lookup finds nothing applicable and falls through to the setter.
-    public Callback? OnDeleted { get; set; }
+    // Non-nullable, and still optional: a caller that leaves it off gets an unset callback that does nothing.
+    public Callback OnDeleted { get; set; }
 
     protected override Component? Render()
     {
@@ -289,12 +290,8 @@ public sealed partial class DeleteProduct : Component
                 // list below shows the reader what happened either way.
                 await delete.Send(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
 
-                // Invoke() hands back the Task for an async handler and null for a synchronous one, which is
-                // what keeps a sync handler off the async path.
-                if (OnDeleted?.Invoke() is { } pending)
-                {
-                    await pending;
-                }
+                // Tell the caller. Unset, this does nothing; a synchronous handler completes without a Task.
+                await OnDeleted.Invoke();
             })[delete.IsPending ? "Deleting…" : "Delete"];
     }
 }

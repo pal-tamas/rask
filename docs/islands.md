@@ -360,7 +360,7 @@ plugin would have to be confined to folders a package does not have — and the 
 | `T[]`, `Record<string, T>` | `IReadOnlyList<T>?`, `IReadOnlyDictionary<string, T>?` | an array, an object |
 | an object type | a generated `sealed record` | an object, unset members left out |
 | `Date` | `DateTimeOffset?` | tagged, so the browser gets a `Date` |
-| a callback | `Callback?`, or `Callback<T>?` when it passes a value | a handler reference |
+| a callback | `Callback`, or `Callback<T>` when it passes a value — unset, it is left out | a handler reference |
 
 A required prop in the package is a required step. Everything else is optional, and **an unset prop is left out
 of the JSON** rather than sent as `null`, so the package's own default applies — `Variant` unset means `'text'`,
@@ -518,8 +518,8 @@ keeps a property out of the props entirely.
 A callback prop becomes a function on the front end, and calling it re-enters C#:
 
 ```csharp
-public Callback<int>? OnPointClick { get; set; }
-public Callback<Range>? OnZoom { get; set; }
+public Callback<int> OnPointClick { get; set; }
+public Callback<Range> OnZoom { get; set; }
 ```
 
 ```tsx

@@ -49,7 +49,7 @@ public sealed partial class UiRadio : Component, IFormControl<bool>
     ///     it deselected, so the browser never tells that one it was turned off. A handler that treats
     ///     <see langword="false" /> as meaningful will wait forever for it.
     /// </remarks>
-    public Callback<bool>? OnChange { get; set; }
+    public Callback<bool> OnChange { get; set; }
 
 
     /// <inheritdoc />
@@ -60,7 +60,7 @@ public sealed partial class UiRadio : Component, IFormControl<bool>
 
 
     /// <inheritdoc />
-    public Callback<bool>? AfterBind { get; set; }
+    public Callback<bool> AfterBind { get; set; }
 
 
     /// <inheritdoc />

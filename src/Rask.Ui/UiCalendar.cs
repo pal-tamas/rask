@@ -51,7 +51,7 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
     public DateOnly? Month { get; set; }
 
     /// <summary>Runs with the first day of the month the reader asked for.</summary>
-    public Callback<DateOnly>? OnMonth { get; set; }
+    public Callback<DateOnly> OnMonth { get; set; }
 
     /// <summary>The earliest selectable day. Days before it are disabled rather than hidden.</summary>
     public DateOnly? Min { get; set; }
@@ -73,7 +73,7 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
     public DateOnly Value { get; set; }
 
     /// <inheritdoc />
-    public Callback<DateOnly>? OnChange { get; set; }
+    public Callback<DateOnly> OnChange { get; set; }
 
 
     /// <inheritdoc />
@@ -84,7 +84,7 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
 
 
     /// <inheritdoc />
-    public Callback<DateOnly>? AfterBind { get; set; }
+    public Callback<DateOnly> AfterBind { get; set; }
 
     // The view month is a FIELD when the page leaves it unset, which the render cache cannot see.
     /// <inheritdoc />
@@ -111,6 +111,6 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
     private Task PageAsync(DateOnly month)
     {
         _month = month;
-        return OnMonth?.Invoke(month) ?? Task.CompletedTask;
+        return OnMonth.Invoke(month).AsTask();
     }
 }

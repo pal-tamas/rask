@@ -31,7 +31,7 @@ public sealed class DevToolsErrorsTabTests
         {
             PageErrors = page,
             AppErrors = app,
-            OnShowInTree = show is null ? null : new Callback<long>(show),
+            OnShowInTree = show is null ? default : new Callback<long>(show),
             ReportEnvironment = new DevToolsBugReport.Environment("Server", "0.22.0", ".NET 10", "macOS", "Chrome 131"),
         });
 
@@ -41,7 +41,7 @@ public sealed class DevToolsErrorsTabTests
             Current = current,
             PageErrors = page,
             AppErrors = app,
-            OnSelect = select is null ? null : new Callback<string>(select),
+            OnSelect = select is null ? default : new Callback<string>(select),
         });
 #pragma warning restore RASK014
 

@@ -116,12 +116,25 @@ public class PackageIslandGeneratorTests
     {
         var generated = Run(IslandSource, Snapshot).GeneratedSource("MuiButton.External");
 
-        Assert.Contains("global::Rask.Core.Callback<double>? OnChange", generated, StringComparison.Ordinal);
+        Assert.Contains("global::Rask.Core.Callback<double> OnChange", generated, StringComparison.Ordinal);
         Assert.Contains("__ArgOnChange", generated, StringComparison.Ordinal);
-        Assert.Contains("global::Rask.Core.Callback? OnClick", generated, StringComparison.Ordinal);
+        Assert.Contains("global::Rask.Core.Callback OnClick", generated, StringComparison.Ordinal);
 
         // Every package callback carries $a, so the client never tries to serialize an event object.
         Assert.Equal(2, CountOf(generated, "writer.WriteStartArray(\"$a\")"));
+    }
+
+    // Generated non-nullable, like every Rask event: an unset callback is its default, and it is left out of the
+    // props exactly as a null one was, so the package sees `undefined`.
+    [Fact]
+    public void An_unset_callback_is_omitted_by_asking_whether_it_holds_a_handler()
+    {
+        var generated = Run(IslandSource, Snapshot).GeneratedSource("MuiButton.External");
+
+        var guards = CountOf(generated, "if (this.OnClick.HasValue)") + CountOf(generated, "if (this.OnChange.HasValue)");
+
+        Assert.Equal(2, guards);
+        Assert.DoesNotContain("this.OnClick!.Value", generated, StringComparison.Ordinal);
     }
 
     [Fact]

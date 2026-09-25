@@ -38,7 +38,7 @@ public sealed class DragDrop : Component
     // `OnDrop?.Invoke(move)`, which hands back null when there is nothing to await.
 
     /// <summary>Called with what was dropped once the drop completes.</summary>
-    public Callback<DragDropMove>? OnDrop { get; set; }
+    public Callback<DragDropMove> OnDrop { get; set; }
 
     // DragDrop reads mutable internal drag state (source / hover target) that the framework can't
     // observe through props, so every render must re-execute — same reasoning as VirtualizeModel.
@@ -80,9 +80,9 @@ public sealed class DragDrop : Component
         TargetIndexInternal = -1;
     }
 
-    // Routes a drop to the consumer's handler in whatever shape they wrote it. `Invoke` hands back null
-    // for a synchronous handler — it has already run, and there is nothing to await — so the sync path
-    // never acquires a Task it did not need.
+    // Routes a drop to the consumer's handler in whatever shape they wrote it. `Invoke` hands back a
+    // completed ValueTask for a synchronous handler — it has already run — and `AsTask()` turns that into
+    // the cached completed task, so the sync path never acquires a Task it did not need.
     internal Task CommitDropAsync(string zone, int index)
     {
         if (TryTakeMove(zone, index) is not { } move)
@@ -90,7 +90,7 @@ public sealed class DragDrop : Component
             return Task.CompletedTask;
         }
 
-        return OnDrop?.Invoke(move) ?? Task.CompletedTask;
+        return OnDrop.Invoke(move).AsTask();
     }
 
     // Snapshots the source, clears all drag state, and returns the move — or null if no drag was

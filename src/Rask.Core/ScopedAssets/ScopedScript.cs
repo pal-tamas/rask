@@ -64,17 +64,17 @@ public static class ScopedScript
     /// <summary>Hands a parameterless callback to the browser as a JS function.</summary>
     [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     public static object Callback(Component owner, Callback callback) =>
-        Register(owner, (_, _) => callback.Invoke());
+        Register(owner, (_, _) => callback.Invoke().AsTask());
 
     /// <summary>Hands a one-argument callback to the browser as a JS function.</summary>
     [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     public static object Callback<T>(Component owner, Callback<T> callback) =>
-        Register(owner, (args, options) => callback.Invoke(Arg<T>(args, 0, options)));
+        Register(owner, (args, options) => callback.Invoke(Arg<T>(args, 0, options)).AsTask());
 
     /// <summary>Hands a two-argument callback to the browser as a JS function.</summary>
     [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     public static object Callback<T1, T2>(Component owner, Callback<T1, T2> callback) =>
-        Register(owner, (args, options) => callback.Invoke(Arg<T1>(args, 0, options), Arg<T2>(args, 1, options)));
+        Register(owner, (args, options) => callback.Invoke(Arg<T1>(args, 0, options), Arg<T2>(args, 1, options)).AsTask());
 
     /// <summary>Infrastructure. Invoked by the browser when a script calls a callback it was handed; do not call.</summary>
     [JSInvokable("RaskScopedCallback")]

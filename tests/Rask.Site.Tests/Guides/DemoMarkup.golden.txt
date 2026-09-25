@@ -1353,7 +1353,9 @@ div .italic .text-sm .text-ui-muted
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path

@@ -293,7 +293,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 }
 
                 // Carriers count as delegates here for the same reason as the per-component pass: a
-                // `Callback?` is a struct, so the TypeKind test alone would fold it and defeat the render
+                // `Callback` (or `Callback?`) is a struct, so the TypeKind test alone would fold it and defeat the render
                 // cache for every element that carries a handler.
                 var isDelegate = p.Type.TypeKind == TypeKind.Delegate
                                  || CarrierDelegates(TypeName(p.Type, FullyQualifiedNullable, compilation))
@@ -1033,7 +1033,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // One post-bind hook taking either shape. Typed as the CARRIER, which is what gives it the
             // sync and async step overloads (see EmitCarrierOverloads) in place of the sibling that used
             // to sit beside it here.
-            ("AfterBind", CallbackFqn + "<" + t + ">?"),
+            ("AfterBind", CallbackFqn + "<" + t + ">"),
         };
 
         foreach (var (name, typeFqn) in members)
@@ -1362,6 +1362,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             : "value";
         var assigned = value;
 
+        // A non-nullable `Callback` still takes `null` at its pass-through — the spelling for "no handler"
+        // that every other step accepts, and which the bare-delegate overloads beside it would otherwise
+        // make ambiguous (CS0121). A null is the unset slot, which is what `default` already is.
+        if (IsNonNullableCallback(typeFqn))
+        {
+            paramType = typeFqn + "?";
+            assigned = "value.GetValueOrDefault()";
+        }
+
         // The propsChanged fold, one prop at a time. The factory can snapshot every prop, assign them
         // all and diff once, because it knows where the assignments end; a setter chain does not, so
         // each folding setter accumulates its own delta and the parent fires the single notification
@@ -1433,6 +1442,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     private const string CallbackFqn = "global::Rask.Core.Callback";
+
+    private static bool IsNonNullableCallback(string typeFqn) =>
+        !typeFqn.EndsWith("?", StringComparison.Ordinal)
+        && (typeFqn == CallbackFqn || typeFqn.StartsWith(CallbackFqn + "<", StringComparison.Ordinal));
 
     private const string FnFqn = "global::Rask.Core.Fn";
 
@@ -5817,9 +5830,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     }
                 }
 
+                // A non-nullable `Callback` counts: its default is an unset slot, so it is optional rather
+                // than a required step (see CallbackCarrier).
                 var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
                                  || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
-                                     SpecialType.System_Nullable_T);
+                                     SpecialType.System_Nullable_T)
+                                 || CallbackCarrier.IsNonNullable(prop.Type);
 
                 var typeFqn = TypeName(prop.Type, FullyQualifiedNullable, compilation);
 
@@ -5854,7 +5870,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 // isAutoRerenderDelegate, which ALSO drives the parent re-render wrapping that element
                 // props must NOT get.
                 // A CARRIER counts too, and missing that is the quietest regression in this file: a
-                // `Callback?` is `Nullable<Callback>`, a STRUCT, so the TypeKind test alone says false and
+                // `Callback` — or `Callback?`, `Nullable<Callback>` — is a STRUCT, so the TypeKind test alone says false and
                 // every carrier-typed handler starts folding. Nothing fails — every element carrying a
                 // handler simply reports propsChanged: true on every frame, and the render cache is
                 // defeated tree-wide. Only the allocation benchmarks would notice.
@@ -6031,7 +6047,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         var isNullable = p.Type.NullableAnnotation == NullableAnnotation.Annotated
                          || (p.Type.IsValueType
-                             && p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T);
+                             && p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+                         || CallbackCarrier.IsNonNullable(p.Type);
         // A struct reached through an annotated `T?` (a generic base closed over DateOnly) is optional, but holds no
         // null — see the PropInfo overload above.
         var holdsNull = !p.Type.IsValueType

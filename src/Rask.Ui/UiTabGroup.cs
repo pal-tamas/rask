@@ -51,7 +51,7 @@ public sealed partial class UiTabGroup : Component
     public string? Selected { get; set; }
 
     /// <summary>Runs when a tab is chosen, with the name of the tab now shown.</summary>
-    public Callback<string>? OnSelect { get; set; }
+    public Callback<string> OnSelect { get; set; }
 
     public string? Class { get; set; }
 
@@ -75,9 +75,6 @@ public sealed partial class UiTabGroup : Component
         // Uncontrolled: the group remembers it itself, so a page that does not care about the tab does not have
         // to hold a field for it. Controlled: Selected is the answer and this only reports the ask.
         _selected = name;
-        if (OnSelect is { } onSelect)
-        {
-            await (onSelect.Invoke(name) ?? Task.CompletedTask).ConfigureAwait(false);
-        }
+        await OnSelect.Invoke(name).ConfigureAwait(false);
     }
 }

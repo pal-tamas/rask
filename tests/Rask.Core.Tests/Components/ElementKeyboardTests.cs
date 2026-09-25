@@ -69,8 +69,8 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
         // forces a LiveState allocation just by leaving them unset (the allocation-pin tests guard
         // the per-render cost; this asserts the property contract directly).
         var div = Div;
-        Assert.Null(div.OnKeyDown);
-        Assert.Null(div.OnKeyUp);
+        Assert.False(div.OnKeyDown.HasValue);
+        Assert.False(div.OnKeyUp.HasValue);
     }
 
     [Fact]

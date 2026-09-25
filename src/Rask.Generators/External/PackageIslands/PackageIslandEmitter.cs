@@ -105,18 +105,17 @@ internal sealed class PackageIslandEmitter
     }
 
     /// <summary>The statements that write one callback prop's handler reference into <c>writer</c>.</summary>
-    /// <param name="clrName">The property holding the callback.</param>
+    /// <param name="isSet">The condition under which a handler was supplied and the key is written.</param>
     /// <param name="wire">The JSON key.</param>
     /// <param name="argIndex">The argument position the client forwards, or -1 for none.</param>
     /// <param name="registered">
     ///     The expression registered as the handler: a bridge that reads the argument, the delegate a
     ///     <c>Callback</c> carries, or a hand-declared delegate itself.
     /// </param>
-    public static string WriteCallback(string clrName, string wire, int argIndex, string registered)
+    public static string WriteCallback(string isSet, string wire, int argIndex, string registered)
     {
-        var access = "this." + clrName;
         var sb = new StringBuilder();
-        sb.AppendLine($"        if ({access} is not null)");
+        sb.AppendLine($"        if ({isSet})");
         sb.AppendLine("        {");
         sb.AppendLine($"            writer.WritePropertyName({Literal(wire)});");
         sb.AppendLine("            writer.WriteStartObject();");
@@ -142,7 +141,7 @@ internal sealed class PackageIslandEmitter
     {
         var callback = prop.Callback!;
         var argType = callback.ArgType!;
-        var invoke = $"this.{prop.ClrName}!.Value.Invoke(__v) ?? {Task}.CompletedTask";
+        var invoke = $"this.{prop.ClrName}.Invoke(__v).AsTask()";
 
         var sb = new StringBuilder();
         sb.AppendLine($"    /// <summary>Feeds the package's argument to <c>{prop.ClrName}</c> from the dispatched frame.</summary>");
@@ -164,7 +163,7 @@ internal sealed class PackageIslandEmitter
             sb.AppendLine($"        if (__e.ValueKind == {ValueKind}.Null)");
             sb.AppendLine("        {");
             sb.AppendLine($"            {fqn} __n = null;");
-            sb.AppendLine($"            return this.{prop.ClrName}!.Value.Invoke(__n) ?? {Task}.CompletedTask;");
+            sb.AppendLine($"            return this.{prop.ClrName}.Invoke(__n).AsTask();");
             sb.AppendLine("        }");
             sb.AppendLine();
         }

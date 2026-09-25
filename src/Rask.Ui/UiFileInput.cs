@@ -37,7 +37,7 @@ public sealed partial class UiFileInput : UiFormField<string>
     ///         Re-check them on the server before storing anything.
     ///     </para>
     /// </summary>
-    public Callback<IReadOnlyList<RaskFile>>? OnFiles { get; set; }
+    public Callback<IReadOnlyList<RaskFile>> OnFiles { get; set; }
 
 
     /// <summary>Lets the reader choose more than one file. The value reports the first.</summary>
@@ -88,10 +88,7 @@ public sealed partial class UiFileInput : UiFormField<string>
             .Id(FieldId)
             .OnFiles(async files =>
             {
-                if (OnFiles?.Invoke(files) is { } handler)
-                {
-                    await handler.ConfigureAwait(false);
-                }
+                await OnFiles.Invoke(files).ConfigureAwait(false);
 
                 var name = files.Count > 0 ? files[0].Name : string.Empty;
                 await UiFormCommit.CommitAsync(this, acc, ctx, name).ConfigureAwait(false);

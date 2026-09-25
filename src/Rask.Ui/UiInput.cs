@@ -87,7 +87,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
     ///     <c>string</c> rather than <typeparamref name="T" /> on purpose: mid-word input is very often not
     ///     yet a valid <typeparamref name="T" />, so parsing it per keystroke would either throw or lie.
     /// </remarks>
-    public Callback<string>? OnInput { get; set; }
+    public Callback<string> OnInput { get; set; }
 
     /// <summary>The lowest accepted value, for a number or a date. The attribute, verbatim.</summary>
     /// <remarks>

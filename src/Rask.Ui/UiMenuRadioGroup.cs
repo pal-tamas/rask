@@ -37,7 +37,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     public T? Value { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.OnChange" />
-    public Callback<T>? OnChange { get; set; }
+    public Callback<T> OnChange { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.Bind" />
     public Expression<Func<T>>? Bind { get; set; }
@@ -46,7 +46,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     public Validator<T>? Validate { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
-    public Callback<T>? AfterBind { get; set; }
+    public Callback<T> AfterBind { get; set; }
 
     // Registration happens in Render; see Ui.MenuItem.
     /// <inheritdoc />
