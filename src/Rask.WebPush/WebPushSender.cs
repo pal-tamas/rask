@@ -58,13 +58,10 @@ public sealed partial class WebPushSender : IWebPush
         ArgumentNullException.ThrowIfNull(subscription);
         ArgumentNullException.ThrowIfNull(message);
 
-        // Real Web Push endpoints are always absolute https URLs. Enforcing that rejects malformed
-        // subscriptions and denies the obvious SSRF vectors (http:// to a metadata/loopback host) a
-        // caller might otherwise relay an attacker-supplied subscription into.
-        if (!Uri.TryCreate(subscription.Endpoint, UriKind.Absolute, out Uri? endpoint) ||
-            endpoint.Scheme != Uri.UriSchemeHttps)
-            throw new ArgumentException("Push subscription endpoint must be an absolute https URL.", nameof(subscription));
+        if (Problem(subscription) is { } problem)
+            throw new ArgumentException(problem, nameof(subscription));
 
+        var endpoint = new Uri(subscription.Endpoint);
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
 
         string? payload = BuildPayload(message);
@@ -122,6 +119,40 @@ public sealed partial class WebPushSender : IWebPush
                     subscription.Endpoint, code, response.ReasonPhrase);
 
             return new WebPushResult(status, code, response.ReasonPhrase);
+        }
+    }
+
+    /// <summary>
+    /// Why a subscription could never be sent to, or <c>null</c> when it is well-formed. Asked when one is stored, so
+    /// a malformed one is refused at the door instead of failing every send that reaches it.
+    /// </summary>
+    internal static string? Problem(PushSubscription subscription)
+    {
+        // Real Web Push endpoints are always absolute https URLs. Enforcing that rejects malformed
+        // subscriptions and denies the obvious SSRF vectors (http:// to a metadata/loopback host) a
+        // caller might otherwise relay an attacker-supplied subscription into.
+        if (!Uri.TryCreate(subscription.Endpoint, UriKind.Absolute, out var endpoint) || endpoint.Scheme != Uri.UriSchemeHttps)
+            return "Push subscription endpoint must be an absolute https URL.";
+
+        // RFC 8291: the browser's key is an uncompressed P-256 point, and its auth secret is 16 bytes.
+        if (Decoded(subscription.P256dh) is not { Length: 65 } key || key[0] != 0x04)
+            return "Push subscription p256dh must be a base64url uncompressed P-256 public key (65 bytes).";
+
+        if (Decoded(subscription.Auth) is not { Length: 16 })
+            return "Push subscription auth must be a base64url 16-byte secret.";
+
+        return null;
+    }
+
+    private static byte[]? Decoded(string? value)
+    {
+        try
+        {
+            return string.IsNullOrEmpty(value) ? null : Base64Url.Decode(value);
+        }
+        catch (FormatException)
+        {
+            return null;
         }
     }
 

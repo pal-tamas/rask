@@ -176,5 +176,58 @@ public sealed class PushBatteryTests
         File.Delete(database);
     }
 
+    [Theory]
+    [InlineData("http://push.example/browser", "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", "tBHItJI5svbpez7KI4CCXg")]
+    [InlineData("https://push.example/browser", "!", "tBHItJI5svbpez7KI4CCXg")]
+    [InlineData("https://push.example/browser", "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", "c2hvcnQ")]
+    public async Task A_subscription_no_push_could_ever_reach_is_refused_and_not_stored(string endpoint, string p256dh, string auth)
+    {
+        await using var harness = new PushHarness();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => harness.Push.Subscribe(new PushSubscription(endpoint, p256dh, auth)));
+
+        Assert.Equal(0, harness.Rows());
+    }
+
+    [Fact]
+    public async Task A_malformed_subscription_already_stored_is_removed_and_does_not_stop_the_others()
+    {
+        await using var harness = new PushHarness();
+        await using (var db = await harness.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContextAsync())
+        {
+            db.Add(PushSubscriber.For(new PushSubscription("http://x", "!", "!"), null, DateTime.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        await harness.Push.Subscribe(PushHarness.Browser("phone"));
+
+        var delivered = await harness.Push.Send(WebPushMessage.Text("Order shipped"));
+
+        Assert.Equal(1, delivered);
+        Assert.Equal(["https://push.example/phone"], harness.Sender.Reached);
+        Assert.Equal(1, harness.Rows());
+    }
+
+    [Fact]
+    public async Task The_subscribe_endpoint_answers_400_to_a_subscription_with_a_malformed_key()
+    {
+        var database = Path.Combine(Path.GetTempPath(), $"rask-push-endpoint-{Guid.NewGuid():N}.db");
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddRaskWebPush<PushDbContext>();
+        builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={database}"));
+        await using var app = builder.Build();
+        app.MapRaskPush();
+        await app.StartAsync();
+        using var http = app.GetTestClient();
+
+        var subscribed = await http.PostAsJsonAsync("/_rask/push/subscribe", new { endpoint = "https://push.example/x", p256dh = "!", auth = "!" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, subscribed.StatusCode);
+        await app.StopAsync();
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        File.Delete(database);
+    }
+
     public sealed class UnmappedContext(DbContextOptions<UnmappedContext> options) : DbContext(options);
 }

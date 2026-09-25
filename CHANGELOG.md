@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Security
 
+- **One bad push subscription can no longer stop every broadcast.** `/_rask/push/subscribe` is anonymous and
+  checked only that the endpoint was not blank, so one `POST` with an `http://` endpoint or a junk key made every
+  later `Push.Send` throw partway through the subscriber list. A subscription is now refused (400, or
+  `ArgumentException` from `IPush.Subscribe`) unless it has an https endpoint, a 65-byte P-256 key and a 16-byte
+  auth secret; a malformed row already stored is removed at the next send, and a push service that times out is
+  skipped instead of ending the send.
 - **A Server socket can only answer its own session's browser callbacks.** A gesture's result, a geolocation,
   battery, sensor, observer, speech, media-session, broadcast-channel, signaling or WebRTC push reaches C#
   through a static `[JSInvokable]` keyed by an id that counted up across the whole process, so any connected
