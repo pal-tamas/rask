@@ -425,8 +425,11 @@ import "../../Rask.Core/Resources/rask-events.js";
         // request builds that application's root. `replace` mirrors the navigation it answers: a popstate
         // is already at that entry, a link click is not.
         if (data.type === "location" && typeof data.url === "string") {
-            const target = prependBase(data.url);
-            if (data.replace) location.replace(target); else location.assign(target);
+            // Only ever a page on this host: the frame names a path here, and nothing it carries may take the
+            // visitor to another site or run as script (a javascript: URL has an opaque origin, so it fails too).
+            const target = new URL(prependBase(data.url), location.href);
+            if (target.origin !== location.origin) return;
+            if (data.replace) location.replace(target.href); else location.assign(target.href);
             return;
         }
         // Dev-only: the coordinator finished applying an edit and every session has repainted.

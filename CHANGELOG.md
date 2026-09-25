@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Security
 
+- **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
+  `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
+  run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
+  went through `console.error`'s format string, so a title carrying `%c`/`%o` was read as a directive; it is now
+  passed as `%s`. (CodeQL `js/xss`, `js/client-side-unvalidated-url-redirection`, `js/tainted-format-string`.)
+- **Scaffolded front ends no longer lock vulnerable transitive packages.** The analog template locked `uuid`
+  8.3.2, `esbuild` 0.27.7 and `qs` ≤ 6.15.3, and the sveltekit template `cookie` 0.6.0; npm `overrides` now pin
+  the patched releases, and every template lockfile audits clean.
 - **Pages can no longer be framed by another site.** Neither a live page nor a hosted SPA sent any
   anti-framing header, so a hostile page could frame the app and trick a signed-in user (or an admin on
   `/_rask`) into clicks they did not mean. Every page and SPA response now carries `X-Frame-Options:

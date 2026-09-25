@@ -35,5 +35,10 @@
   },
   "dependencies": {
     "daisyui": "^5.7.0"
+  },
+  "overrides": {
+    "@sveltejs/kit": {
+      "cookie": "^0.7.0"
+    }
   }
 }
