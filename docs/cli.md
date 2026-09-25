@@ -127,12 +127,28 @@ what it can do:
   refused before any file is written.
 
 Languages are **not** on that list, and not on the command line at all: a scaffolded server app ships
-English registered in `Program.cs`, and adding another is a line in the block that is already there.
+English in `appsettings.json` (`Rask:Culture:SupportedCultures`), and adding another is an entry in that list.
 See [localization](localization.md).
 
 Everything else has a `--no-` to leave it out: `--no-jobs`, `--no-push`, `--no-ops`, and so on. There is
 no `--minimal`; taking three things out reads as three flags, and you can see from the command line
-exactly which three.
+exactly which three. On `server` a `--no-` removes no package — `Rask.Server` carries every battery — it
+writes the off-switch into `Program.cs` instead, so the file says what the app does without:
+
+```csharp
+var app = RaskApp.Create(args);
+
+// Every other battery is on, and every setting lives in appsettings.json under "Rask" (docs/configuration.md).
+app.Configure(c =>
+{
+    c.Jobs.Off();
+    c.Push.Off();
+});
+
+app.Run<App>();
+```
+
+Turning a battery back on is deleting its line.
 
 Run `rask` (or `rask new`) with no project name and — on a terminal — it walks you through a short
 wizard: the project name, an arrow-key **project type** picker, **styling**, whether to add **auth**,
@@ -227,25 +243,26 @@ everything it scaffolds follows the vertical-slice layout the guides build on: f
 ```
 MyApp/
   MyApp.csproj
-  Program.cs                      every battery composed, in the order that works
+  Program.cs                      RaskApp.Create(args).Run<App>() — every battery on
   Dockerfile  .dockerignore       a production image
   appsettings.json                every Rask setting, under "Rask"; logging levels
   appsettings.Production.json     overrides applied when deployed
   Features/
     Shared/App.cs                 the root component every page renders through
-    Shared/AppDbContext.cs        your features' entities map through this
+    Shared/User.cs                the account type
     Shared/ErrorPage.cs           what a visitor sees when something outside a component throws
     Home/HomePage.cs              a [Route("/")] welcome page that teaches the CLI
-    Push/PushSubscriptions.cs     the Web Push subscribe endpoints
+    Auth/                         sign-in, registration, sign-out, password reset — your pages to restyle
   Migrations/                     the first migration, already created and applied
   Resources/Strings.en.json       the text of the UI, compiled into typed members
   wwwroot/                        manifest.webmanifest, icon.svg, offline.html
   Properties/launchSettings.json
 ```
 
-The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice. Sign-in,
-registration and sign-out need no slice at all — they are [built in](authentication.md), routed at
-`/login`, `/register` and `/logout`, and replaced by declaring your own page at the same route. Add
+The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice. The account
+flows come from [the auth battery](authentication.md); the pages in `Features/Auth/` that drive them —
+routed at `/login`, `/register`, `/logout` and so on — are yours. There is no database context to write:
+`RaskAppDbContext` maps every aggregate you declare and every battery's tables. Add
 pages and components to taste — the [tutorial](tutorial/00-overview.md) shows the shapes.
 
 ### It runs before you touch it
@@ -274,13 +291,13 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages read through the [model surface](data.md) without it, but they write through it: a save is a command whose handler loads the entity and calls `SaveChangesAsync`. The scaffold's plumbing needs it too — background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `wasm-hosted` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
-| `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
-| `--no-jobs` | Leave out durable background jobs (`AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`). |
+| `--no-data` | Leave out the SQLite database (`c.Data.Off()`): no `RaskAppDbContext`, no WAL + `busy_timeout` connection, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
+| `--no-jobs` | Leave out durable background jobs (`c.Jobs.Off()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
 | `--no-cache` | Leave out the database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. |
 | `--no-storage` | Leave out [file storage](file-storage.md) for uploads — a `StoredFile` row per file on the database, the bytes on disk (or in S3 or Azure, by configuration), and the routes that serve public and temporary links. |
 | `--no-outbox` | Leave out the transactional outbox for durable domain-event delivery. With it on, the outbox claims delivery and the in-process publisher stands down, so events aren't delivered twice. |
-| `--no-push` | Leave out server-sent Web Push (VAPID) with `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` and a subscription store. The PWA stays. |
+| `--no-push` | Leave out server-sent [Web Push](webpush.md) (`c.Push.Off()`): the subscriber table, `Push.Send(…)`, and the `/_rask/push/key`, `/_rask/push/subscribe` and `/_rask/push/unsubscribe` endpoints. The PWA stays. |
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. It is gated on the `admin` role — the one the first account to register holds — because it shows job payloads, stored email bodies and log lines. |
@@ -325,7 +342,7 @@ default list: the default set *is* the column.
 | PWA | ✅ | ✅ | ✅ | ✅ | — |
 | Web Push | ✅ | — | ✅ | ✅ | — |
 | Docker | ✅ | ✅ | ✅ | ✅ | ✅ |
-| localization *(in `Program.cs`, not a flag)* | ✅ | —² | —² | — | — |
+| localization *(in `appsettings.json`, not a flag)* | ✅ | —² | —² | — | — |
 | `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | ✅ | —³ | —³ |
 
 ³ Islands put a front-end component **inside a C# host**, so they are for the templates whose markup is
@@ -366,9 +383,9 @@ either `--no-cqrs` is refused rather than ignored. A sign-in flow used to be lef
 in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
 scaffolded on a front-end template (not yet on a meta framework one) — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
-² Languages are configured in `Program.cs`, never on the command line — there is no `--culture` and no
-`--no-localization`. On `server` a scaffolded app already registers English there, because ICU is in
-the runtime regardless and it costs nothing.
+² Languages are configured, never chosen on the command line — there is no `--culture` and no
+`--no-localization`. On `server` a scaffolded app already lists English in `Rask:Culture:SupportedCultures`,
+because ICU is in the runtime regardless and it costs nothing.
 
 A browser-WASM app scaffolds no registration, because there it is not free: culture data is roughly **a
 megabyte of extra download** — on the WASM showcase a published trimmed bundle goes from 3.28 MB to
@@ -389,8 +406,7 @@ Template 'wasm' has nothing to change for: --no-data. It supports: docker, pwa.
 The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is
 and the ASP.NET host of a front-end template is too — a pure browser-WASM SPA has neither.
 
-Turning one off takes its dependents with it, so you never end up with a registration naming a
-`DbContext` that isn't there:
+Turning one off takes its dependents with it, so you never end up with a battery whose database isn't there:
 
 ```bash
 rask new Shop --no-data     # …and no jobs, mail, cache, storage, outbox, snapshots or dashboard
@@ -399,10 +415,9 @@ rask new Shop --no-pwa      # …and no Web Push, which subscribes through the s
 rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own
 ```
 
-The generated `Program.cs` composes them in an order that is load-bearing rather than stylistic — the
-outbox registered before the `DbContext` factory (so its interceptor joins the `SaveChanges` pipeline),
-`ApplyRaskConventions(this)` after the entity configurations (it walks the model as it stands), and the
-Litestream restore before anything opens the database. Those are pinned by tests, not left to chance.
+On `server`, the order they are wired in — load-bearing rather than stylistic, like the Litestream restore
+before anything opens the database, or authentication before `MapRask` — lives in `RaskApp`, not in your
+`Program.cs`, and is pinned by tests rather than left to chance.
 
 Turning off a battery a template doesn't have (for example `--no-cqrs` on `wasm`) fails fast with the
 list of what that template *does* support, rather than passing an unknown option through.

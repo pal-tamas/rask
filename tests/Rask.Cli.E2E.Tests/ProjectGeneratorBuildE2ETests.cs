@@ -111,10 +111,9 @@ public sealed class ProjectGeneratorBuildE2ETests
     }
 
     /// <summary>
-    /// <c>--data</c> pre-wires the AppDbContext + AddRaskData + a UseRaskSqlite DbContext factory, and pulls
-    /// Rask.Data / Rask.SQLite.EntityFrameworkCore into the csproj. Only a real compile proves the generated
-    /// Program.cs (the config-driven connection string, the ISaveChangesInterceptor injection) and the
-    /// AppDbContext resolve — including the account tables the auth battery maps onto it.
+    /// <c>--data</c> leaves the database to RaskApp: no context file, one <c>Rask.Server</c> reference. Only a
+    /// real compile proves the scaffold's pages, its <c>User</c> and the Program.cs off-switches resolve
+    /// against the package as shipped.
     /// </summary>
     [SkippableFact]
     public async Task Generated_data_server_project_builds()
@@ -420,10 +419,8 @@ public sealed class ProjectGeneratorBuildE2ETests
 
 
     /// <summary>
-    /// A default project: every One Person Framework pillar wired into one app. Only a real compile
-    /// proves the composed <c>Program.cs</c> — a dozen registrations, their usings, the config-gated
-    /// Litestream block, the <c>await</c> in top-level statements, the push endpoints — and the
-    /// <c>AppDbContext</c> that carries four framework schemas actually resolve together.
+    /// A default project: every battery on, and a one-line <c>Program.cs</c>. Only a real compile proves the
+    /// scaffold's pages, accounts and <c>RaskApp.Create(args).Run&lt;App&gt;()</c> resolve together.
     /// </summary>
     [SkippableFact]
     public async Task Generated_default_server_project_builds()

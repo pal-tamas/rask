@@ -46,17 +46,18 @@ public sealed class NewCommandTests
     }
 
     [Fact]
-    public async Task A_bare_new_scaffolds_the_app_db_context()
+    public async Task A_bare_new_leaves_the_database_to_RaskApp()
     {
         var (console, fs, runner, command) = Build();
 
         var exit = await command.ExecuteAsync(["Blog"], CancellationToken.None);
 
+        // RaskApp maps the app's entities and every battery's tables itself, so there is no context to write.
         Assert.Equal(0, exit);
         Assert.Empty(console.ErrorText);
         Assert.True(fs.FileExists("/proj/Blog/Blog.csproj"));
-        Assert.True(fs.FileExists("/proj/Blog/Features/Shared/AppDbContext.cs")); // --data
-        Assert.Contains("AddDbContextFactory<AppDbContext>", fs.ReadAllText("/proj/Blog/Program.cs"), StringComparison.Ordinal);
+        Assert.False(fs.FileExists("/proj/Blog/Features/Shared/AppDbContext.cs"));
+        Assert.True(fs.FileExists("/proj/Blog/Features/Shared/User.cs")); // the database is on
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
     }
 
@@ -431,8 +432,7 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         var program = fs.ReadAllText("/proj/Shop/Program.cs");
-        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskDashboard<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("var app =", program, StringComparison.Ordinal);
         Assert.True(fs.FileExists("/proj/Shop/Dockerfile"));
         Assert.False(fs.FileExists("/proj/Shop/Features/Auth/CredentialStore.cs"));
     }
@@ -456,8 +456,7 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         var program = fs.ReadAllText("/proj/Shop/Program.cs");
-        Assert.DoesNotContain("AddRaskDashboard", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("app.Configure(c => c.Ops.Off());", program, StringComparison.Ordinal);
     }
 
     /// <summary>The wizard asks nothing about styling, because there is nothing to ask.</summary>
@@ -541,16 +540,8 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         var program = fs.ReadAllText("/proj/MyApp/Program.cs");
-        Assert.Contains("UseRaskSqlite", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskMail<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskCache<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskStorage<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains("app.MapRaskStorage();", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskOutbox<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskDashboard<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskLogging", program, StringComparison.Ordinal);
+        Assert.Contains("RaskApp.Create(args).Run<App>();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("var app =", program, StringComparison.Ordinal);
         Assert.True(fs.FileExists("/proj/MyApp/Dockerfile"));
         Assert.True(fs.FileExists("/proj/MyApp/wwwroot/icon.svg"));
 
@@ -567,9 +558,7 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         var program = fs.ReadAllText("/proj/MyApp/Program.cs");
-        Assert.DoesNotContain("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
-        Assert.Contains("UseRaskSqlite", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskJobs<AppDbContext>", program, StringComparison.Ordinal);
+        Assert.Contains("app.Configure(c => c.Snapshots.Off());", program, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -580,14 +569,13 @@ public sealed class NewCommandTests
         var exit = await command.ExecuteAsync(["MyApp", "--no-data", "--no-restore"], CancellationToken.None);
 
         Assert.Equal(0, exit);
+        // One line: the tables the database carried go with it, so none of them is named.
         var program = fs.ReadAllText("/proj/MyApp/Program.cs");
-        Assert.DoesNotContain("AddDbContextFactory<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("AddRaskJobs", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("AddRaskDashboard", program, StringComparison.Ordinal);
-        Assert.False(fs.FileExists("/proj/MyApp/Features/Shared/AppDbContext.cs"));
+        Assert.Contains("app.Configure(c => c.Data.Off());", program, StringComparison.Ordinal);
+        Assert.False(fs.FileExists("/proj/MyApp/Features/Shared/User.cs"));
 
         // The log store keeps a database of its own, so it survives.
-        Assert.Contains("AddRaskLogging", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Logs.Off()", program, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -667,14 +655,14 @@ public sealed class NewCommandTests
         var command = new NewCommand(console, new FakeFileSystem(), runner, WorkingDirectory)
         {
             Feed = new PackageFeed((id, _) => Task.FromResult<IReadOnlyCollection<string>?>(
-                id == "Rask.Storage" ? [] : null)),
+                id == "Rask.DevTools" ? [] : null)),
         };
 
         await command.ExecuteAsync(["MyApp"], CancellationToken.None);
 
-        Assert.Contains("Rask.Storage", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Rask.DevTools", console.ErrorText, StringComparison.Ordinal);
         Assert.Contains("NU1103", console.ErrorText, StringComparison.Ordinal);
-        Assert.DoesNotContain("Rask.Server ", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Server", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -708,7 +696,7 @@ public sealed class NewCommandTests
         Assert.False(fs.FileExists("/proj/MyApp/MyApp.csproj"));
 
         Assert.Contains("--auth is gone", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("AddRaskAuth", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("c.Auth.Off()", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]

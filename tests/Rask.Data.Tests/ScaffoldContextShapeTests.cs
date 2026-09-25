@@ -3,9 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data.Tests;
 
-// Mirrors exactly what `rask new --data` writes into Features/Shared/AppDbContext.cs: a context over
-// plain DbContext whose OnModelCreating applies configurations, the battery tables and the Rask
-// conventions. Nothing here reaches ModelRegistry, which is the point of the test.
+// The shape an app writes when it outgrows RaskAppDbContext and keeps its own context: plain DbContext whose
+// OnModelCreating applies configurations, the battery tables and the Rask conventions. Nothing here reaches
+// ModelRegistry, which is the point of the test.
 internal sealed class ScaffoldShapedContext(DbContextOptions<ScaffoldShapedContext> options)
     : DbContext(options), ITenantScoped
 {

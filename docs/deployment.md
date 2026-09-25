@@ -198,8 +198,9 @@ Beyond your own `--env` values, every deployed container gets:
 > way round — either way the database lands inside the container, and the next deploy deletes it. See
 > [migrating from the old keys](configuration.md#raskapps-development-defaults).
 
-The scaffolded app is set up to match: it honours forwarded headers (so `Request.Scheme` and the client
-IP are the visitor's, not the proxy's), reports live-session capacity and readiness on `/health` (so a host
+The scaffolded app is set up to match. With `--domain` the deploy sets `Rask__BehindProxy=true`, so `RaskApp`
+honours forwarded headers (`Request.Scheme` and the client IP are the visitor's, not the proxy's); a port-mode
+container is reached directly and leaves them untrusted. It also reports live-session capacity and readiness on `/health` (so a host
 that is refusing sessions with `503` — because it is full, or because it is draining — says so rather than
 answering a bare "up"), and gives itself a **15 s shutdown budget**, inside the 20 s the deploy allows
 before `SIGKILL`.

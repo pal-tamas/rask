@@ -14,36 +14,24 @@ SQLite's defaults are tuned for a single embedded process — no WAL, no `busy_t
 so concurrent web requests hit `database is locked`. `Rask.SQLite` applies a tuned pragma set (WAL, a
 busy-timeout, `foreign_keys=ON`, and more) to **every** connection.
 
-You already have this. `rask new` writes `UseRaskSqlite` rather than `UseSqlite`:
+You already have this. `RaskApp` opens the database with `UseRaskSqlite` rather than `UseSqlite`, because
+`Rask:Database:Provider` is `sqlite` unless you say otherwise. The file is `Rask:ConnectionStrings:App` in
+`appsettings.json` — `Data Source=app.db` while you develop — and there is nothing about it in `Program.cs`.
 
-```csharp
-builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(sp)
-    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-```
-
-There is no connection string in `Program.cs`: `UseRaskSqlite` reads `Rask:ConnectionStrings:App` from
-`appsettings.json` — `Data Source=app.db` while you develop — which is why it takes the service provider.
-
-It is a drop-in for `UseSqlite` that also installs the pragma interceptor — one word, and every background
+`UseRaskSqlite` is a drop-in for `UseSqlite` that also installs the pragma interceptor, so every background
 processor (jobs, mail, outbox), every page, and every `Product.Read.Where(…)` and every command handler shares a
 connection that won't spuriously fail under load. `StrictTables` makes SQLite enforce each column's declared
 type rather than quietly storing the text `"lots"` in an `INTEGER` column — see
-[STRICT tables](../sqlite.md#strict-tables--making-the-store-enforce-your-types). Retrofitting an existing app
-is the same one-word change — the package is already there, since `Rask` brings it.
+[STRICT tables](../sqlite.md#strict-tables--making-the-store-enforce-your-types). An app that writes its own
+context gets the same by registering it with `UseRaskDatabase(sp)` ([Rask.Data](../data.md#choosing-the-database)).
 
 See [production SQLite](../sqlite.md) for the full pragma table, the load-test numbers, and the
 non-blocking write-retry story.
 
 ## 2. Snapshots — the cheap half
 
-`rask new` wires scheduled point-in-time backups:
-
-```csharp
-builder.Services.AddRaskSqliteSnapshots();
-```
-
-…tuned in `appsettings.json`, beside the connection string:
+Scheduled point-in-time backups are a battery, on like the rest, and tuned in `appsettings.json` beside the
+connection string:
 
 ```jsonc
 "Rask": {
@@ -66,41 +54,21 @@ live database. No external binary, no credentials.
 ## 3. Litestream — the off-box half
 
 Snapshots on the same disk protect you from a bad migration, not from losing the disk. That's what
-continuous backup is for, and `rask new` already wired it in Chapter 1 — `Rask.SQLite.Litestream` runs
-[Litestream](https://litestream.io) as a managed background service that **streams every change off the
-box** to object storage (S3, GCS, Azure Blob, or a file target):
+continuous backup is for: [Litestream](https://litestream.io), run as a managed background service that
+**streams every change off the box** to object storage (S3, GCS, Azure Blob, or a file target). It is off
+until `Rask:Litestream:ReplicaUrl` names a replica — the scaffolded `appsettings.json` leaves it empty — so
+`rask dev` works on a laptop with no `litestream` binary and no cloud credentials.
 
-```csharp
-var replicaUrl = builder.Configuration["Rask:Litestream:ReplicaUrl"];
-if (!string.IsNullOrWhiteSpace(replicaUrl))
-{
-    builder.Services.AddRaskSqliteLitestream();
-}
+Set it, and `RaskApp` does two things:
 
-var app = builder.Build();
+- **It restores first**, before anything opens the database — a no-op when `app.db` is already there. Restore
+  is skipped once the file exists, so doing it any later means a fresh machine quietly starts with an empty
+  database instead of your data. This is the ordering that is easy to get wrong by hand.
+- **It replicates** the database behind `Rask:ConnectionStrings:App`, reading the rest of `Rask:Litestream`
+  for its settings.
 
-// (Db.Configure and the first middleware sit here — nothing that touches the database.)
-
-if (!string.IsNullOrWhiteSpace(replicaUrl))
-{
-    // Restore BEFORE anything opens the database — a no-op when app.db is already there.
-    await app.Services.RestoreSqliteFromLitestreamAsync();
-}
-```
-
-Two details the scaffold gets right and are easy to get wrong by hand:
-
-- **The restore runs first**, before the schema is created or any pillar's processor starts. Restore is
-  skipped once the file exists, so putting it later means a fresh machine quietly starts with an empty
-  database instead of your data.
-- **Both halves are gated on the same key.** `AddRaskSqliteLitestream` reads the rest of `Rask:Litestream`
-  itself, and replicates the database behind `Rask:ConnectionStrings:App`; the scaffolded
-  `appsettings.json` leaves `ReplicaUrl` empty. Litestream stays off until you set a replica URL, so
-  `dotnet run` works on a laptop with no `litestream` binary and no cloud credentials. (The restore call
-  throws when Litestream was never registered — useful for a real wiring mistake, fatal for a fresh
-  scaffold, hence the guard.) The csproj also sets `RaskLitestreamDownload=false`: the binary belongs in
-  the Docker image, which the scaffolded `Dockerfile` copies it into, rather than being fetched during
-  everyone's build.
+The csproj sets `RaskLitestreamDownload=false`: the binary belongs in the Docker image, which the scaffolded
+`Dockerfile` copies it into, rather than being fetched during everyone's build.
 
 Set the replica when you deploy:
 

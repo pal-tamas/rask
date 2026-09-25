@@ -61,13 +61,13 @@ internal static partial class ProjectGenerator
 
     /// <summary>The host's package list — the server's, plus the two this lane adds.</summary>
     /// <remarks>
-    ///     Appended to <see cref="ServerPackages" /> rather than listed afresh, so the batteries' packages
+    ///     Appended to <see cref="BatteryPackages" /> rather than listed afresh, so the batteries' packages
     ///     are decided in one place. The order matches the csproj, which emits these last, so
     ///     <c>rask new</c>'s summary reads as the file does.
     /// </remarks>
     private static List<string> WasmHostedPackages(ServerBatteries batteries)
     {
-        var packages = ServerPackages(batteries);
+        var packages = BatteryPackages(batteries);
 
         // Serves the browser app in Client/: its build output in Development, its published bundle
         // otherwise.
@@ -76,6 +76,97 @@ internal static partial class ProjectGenerator
         // The endpoint half. Its counterpart, Rask.Cqrs.Client, is declared as a browser-only reference
         // so it never reaches this process.
         packages.Add("Rask.Cqrs.Server");
+
+        return packages;
+    }
+
+    // The wasm-hosted host's package list, one per battery, in the order its csproj emits them.
+    private static List<string> BatteryPackages(ServerBatteries batteries)
+    {
+        // No Rask.Tailwind here: the Tailwind build ships INSIDE Rask.Server (RaskTailwindBuildPack),
+        // so a scaffolded csproj naming it would be a second copy of the same targets, imported twice.
+        //
+        // Rask.Ui IS named, and directly rather than through the meta-package, because a package's
+        // build/ hooks are imported for a DIRECT reference only — and those hooks are what put daisyUI's
+        // plugin next to Styles/app.css and the kit's sheet in wwwroot. It also brings the ~110 Ui*
+        // components, which is a bonus here rather than the reason: the starter page writes daisyUI's
+        // own class names, so it needs the plugin whether or not it ever names a component.
+        //
+        // Rask.DevTools is named directly for the same build/-hooks reason: its targets are what keep the
+        // devtools out of a Release publish, and an app that does not reference the `Rask` meta-package —
+        // which is every scaffolded one — would otherwise never get them.
+        var packages = new List<string> { "Rask.Server", "Rask.Ui", "Rask.DevTools" };
+
+        if (batteries.Cqrs)
+        {
+            packages.Add("Rask.Cqrs");
+
+            // Not a flag of its own. A dispatcher without a cache means every render refetches, and the
+            // first thing anyone building a page over IDispatcher needs is the thing that stops that —
+            // so it arrives wired rather than as something to discover in the docs later.
+            packages.Add("Rask.Query");
+        }
+
+        if (batteries.Data)
+        {
+            packages.Add("Rask.Data");
+            packages.Add("Rask.SQLite.EntityFrameworkCore");
+
+            // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
+            // inert until Rask:Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
+            // one-env-var path from "single copy on one disk" to "the box is disposable".
+            packages.Add("Rask.SQLite.Litestream");
+
+            // Accounts. Paired with the database rather than with a flag, because AppDbContextCs maps
+            // the account tables whenever there is a context — the two have to move together or the
+            // generated `using Rask.Auth;` does not compile.
+            packages.Add("Rask.Auth");
+        }
+
+        if (batteries.Outbox)
+        {
+            packages.Add("Rask.Outbox");
+        }
+
+        if (batteries.Jobs)
+        {
+            packages.Add("Rask.Jobs");
+        }
+
+        if (batteries.Mail)
+        {
+            packages.Add("Rask.Mail");
+        }
+
+        if (batteries.Cache)
+        {
+            packages.Add("Rask.Cache");
+        }
+
+        if (batteries.Storage)
+        {
+            packages.Add("Rask.Storage");
+        }
+
+        if (batteries.AnySqliteOps)
+        {
+            packages.Add("Rask.SQLite.Snapshots");
+        }
+
+        if (batteries.Logs)
+        {
+            packages.Add("Rask.Logging");
+        }
+
+        if (batteries.Push)
+        {
+            packages.Add("Rask.WebPush");
+        }
+
+        if (batteries.Ops)
+        {
+            packages.Add("Rask.Dashboard");
+        }
 
         return packages;
     }

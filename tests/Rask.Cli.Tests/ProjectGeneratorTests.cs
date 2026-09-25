@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -50,7 +51,7 @@ public sealed class ProjectGeneratorTests
         // Just the framework -- and the framework is all a styled app needs. Tailwind is built INTO
         // Rask.Server (RaskTailwindBuildPack), so a scaffolded csproj names no styling package at all:
         // naming one would import the same targets a second time and run the compiler twice.
-        Assert.Equal(["Rask.Server", "Rask.Ui", "Rask.DevTools"], result.Packages);
+        Assert.Equal(["Rask.Server", "Rask.DevTools"], result.Packages);
         // No opt-in artifacts leak in.
         Assert.DoesNotContain("Features/Auth/CredentialStore.cs", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
@@ -58,36 +59,24 @@ public sealed class ProjectGeneratorTests
     }
 
     /// <summary>
-    /// The endpoint `rask deploy` gates its blue-green swap on has to be able to say "full". A bare
-    /// AddHealthChecks() answers 200 while the host is refusing new sessions with 503, so a deploy would
-    /// happily switch traffic onto a server that can't take it.
+    /// Health checks, forwarded headers, the exception handler, HSTS, auth and every battery's endpoints are
+    /// RaskApp's, where every app gets them — and a scaffold that wired any of them again would wire it twice.
     /// </summary>
     [Fact]
-    public void Health_checks_report_live_session_capacity()
+    public void Program_cs_leaves_the_pipeline_to_RaskApp()
     {
-        var (files, _) = Generate();
+        var everyBattery = Full();
 
-        Assert.Contains("AddHealthChecks().AddRaskLiveSessions()", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("using Rask.Server.Diagnostics;", files["Program.cs"], StringComparison.Ordinal);
-    }
+        var on = Index(ProjectGenerator.GenerateServer(Root, "App", everyBattery, Version))["Program.cs"];
+        var off = Generate().Files["Program.cs"];
 
-    /// <summary>
-    /// Behind the proxy `rask deploy` runs, without this the app sees plain HTTP from the proxy's own
-    /// address — so UseHsts never emits and every client IP is the proxy's.
-    /// </summary>
-    [Fact]
-    public void Forwarded_headers_are_honoured_before_anything_reads_the_request()
-    {
-        var (files, _) = Generate();
-        var program = files["Program.cs"];
-
-        Assert.Contains("ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto", program, StringComparison.Ordinal);
-        Assert.Contains("options.KnownIPNetworks.Clear();", program, StringComparison.Ordinal);
-
-        // Must run before UseHsts, which only emits when the request already looks like HTTPS.
-        Assert.True(
-            program.IndexOf("app.UseForwardedHeaders();", StringComparison.Ordinal) < program.IndexOf("app.UseHsts();", StringComparison.Ordinal),
-            "UseForwardedHeaders must come before UseHsts, or the scheme it corrects is read too late.");
+        foreach (var program in new[] { on, off })
+        {
+            Assert.DoesNotContain("builder.", program, StringComparison.Ordinal);
+            Assert.DoesNotContain("app.Use", program, StringComparison.Ordinal);
+            Assert.DoesNotContain("app.Map", program, StringComparison.Ordinal);
+            Assert.DoesNotContain("AddRask", program, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>
@@ -170,37 +159,18 @@ public sealed class ProjectGeneratorTests
     }
 
     /// <summary>
-    /// A database-backed app gets continuous backup wired in, inert until a replica URL is configured.
-    /// The framework's own deploy comments already assumed a replicator was running; before this, nothing
-    /// scaffolded ever started one.
+    /// A database-backed app gets continuous backup, inert until a replica URL is configured — RaskApp only
+    /// starts the replicator (and restores from it) once one is named, so an app without one still starts.
     /// </summary>
     [Fact]
-    public void A_database_app_is_wired_for_continuous_backup()
+    public void A_database_app_leaves_continuous_backup_inert_until_a_replica_is_named()
     {
-        var (files, result) = Generate(data: true);
-        var program = files["Program.cs"];
+        var (files, _) = Generate(data: true);
 
-        Assert.Contains("Rask.SQLite.Litestream", result.Packages);
-        Assert.Contains("Rask.SQLite.Litestream", files["App.csproj"], StringComparison.Ordinal);
+        var settings = files["appsettings.json"];
 
-        // Inert by default: no replica URL, no replicator, and the app still starts.
-        Assert.Contains("""builder.Configuration["Rask:Litestream:ReplicaUrl"]""", program, StringComparison.Ordinal);
-        Assert.Contains("\"ReplicaUrl\": \"\"", files["appsettings.json"], StringComparison.Ordinal);
-        Assert.Contains("AddRaskSqliteLitestream", program, StringComparison.Ordinal);
-
-        // The restore must be guarded — RestoreSqliteFromLitestreamAsync throws when nothing is registered,
-        // so an unguarded call would stop every app without a replica from starting at all.
-        var restore = program.IndexOf("RestoreSqliteFromLitestreamAsync", StringComparison.Ordinal);
-        Assert.True(restore > 0, "the restore call is missing.");
-        Assert.Contains(
-            "if (!string.IsNullOrWhiteSpace(replicaUrl))",
-            program[..restore],
-            StringComparison.Ordinal);
-
-        // ...and it must run before anything opens the database.
-        Assert.True(
-            restore < program.IndexOf("app.MapRask<App>()", StringComparison.Ordinal),
-            "the restore must happen before the app starts serving.");
+        Assert.Contains("\"ReplicaUrl\": \"\"", settings, StringComparison.Ordinal);
+        Assert.Contains("Rask__Litestream__ReplicaUrl", settings, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -283,72 +253,40 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void Csproj_pins_every_package_to_the_supplied_version()
     {
-        // With --cqrs, so the pin is checked on an opt-in package rather than only on the framework —
-        // the version has to be stamped on every reference the template emits, not most.
-        var (files, _) = Generate(cqrs: true);
-        var csproj = files["App.csproj"];
+        // With every battery on, so the pin is checked on the whole reference list the template can emit —
+        // the version has to be stamped on every reference, not most.
+        var result = ProjectGenerator.GenerateServer(Root, "App", Full(), Version);
 
-        Assert.Contains("<PackageReference Include=\"Rask.Server\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
-        Assert.Contains("<PackageReference Include=\"Rask.Cqrs\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
+        var references = Regex.Matches(
+            Index(result)["App.csproj"], """<PackageReference Include="([^"]+)" Version="([^"]+)"/>""");
 
-        // And nothing pins a Tailwind package, because there is no Tailwind package to pin.
-        Assert.DoesNotContain("Rask.Tailwind", Generate().Files["App.csproj"], StringComparison.Ordinal);
+        Assert.Equal(["Rask.Server", "Rask.DevTools"], references.Select(m => m.Groups[1].Value));
+        Assert.All(references, m => Assert.Equal(Version, m.Groups[2].Value));
+        Assert.Equal(["Rask.Server", "Rask.DevTools"], result.Packages);
     }
 
     [Fact]
-    public void Data_flag_pre_wires_the_app_db_context_and_sqlite()
+    public void Data_flag_keeps_the_database_on_and_names_its_file_in_appsettings()
     {
-        var (on, result) = Generate(data: true);
+        var (on, _) = Generate(data: true, cqrs: true);
 
-        // The AppDbContext file, applying Rask conventions so generated feature configs are picked up.
-        // Over RaskDbContext, not DbContext: that base is what maps the models the app declares. See
-        // ServerBatteryScaffoldTests for the dedicated assertion on the base type and the call order.
-        Assert.True(on.ContainsKey("Features/Shared/AppDbContext.cs"));
-        var context = on["Features/Shared/AppDbContext.cs"];
-        Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskDbContext(options)", context, StringComparison.Ordinal);
-        Assert.Contains("modelBuilder.ApplyRaskConventions(this);", context, StringComparison.Ordinal);
-
-        // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that reads Rask:ConnectionStrings:App,
-        // which appsettings.json carries and `rask deploy` redirects to a mounted volume.
         var program = on["Program.cs"];
-        // The GENERIC overload: it is what names the context to the model surface. The non-generic one
-        // registers only the interceptors, and Db.Configure then has nothing to bind.
-        Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
 
-        // …and the one call that points the model surface at it, after the container is built. Without
-        // this the app boots and serves, and throws on the first Product.Read.Where(…).
-        Assert.Contains("Db.Configure(app.Services);", program, StringComparison.Ordinal);
-        Assert.True(
-            program.IndexOf("var app = builder.Build();", StringComparison.Ordinal)
-            < program.IndexOf("Db.Configure(app.Services);", StringComparison.Ordinal),
-            "Db.Configure must come after the container is built.");
-        Assert.Contains("AddDbContextFactory<AppDbContext>", program, StringComparison.Ordinal);
-        Assert.Contains(".UseRaskSqlite(sp)", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetConnectionString(", program, StringComparison.Ordinal);
+        // RaskApp maps the app's entities and every battery's tables in a context of its own, so the scaffold
+        // writes no AppDbContext; the file the database lives in is a setting `rask deploy` redirects.
+        Assert.DoesNotContain("c.Data.Off()", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("Features/Shared/AppDbContext.cs", on.Keys);
         Assert.Contains("\"App\": \"Data Source=app.db\"", on["appsettings.json"], StringComparison.Ordinal);
-
-        // --data implies --cqrs (feature handlers dispatch through the mediator).
-        Assert.Contains("builder.Services.AddRaskCqrs();", program, StringComparison.Ordinal);
-
-        // The packages the generated csproj needs, pinned to the supplied version.
-        Assert.Contains("Rask.Data", result.Packages);
-        Assert.Contains("Rask.SQLite.EntityFrameworkCore", result.Packages);
-        Assert.Contains("Rask.Cqrs", result.Packages);
-        var csproj = on["App.csproj"];
-        Assert.Contains("<PackageReference Include=\"Rask.Data\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
-        Assert.Contains("<PackageReference Include=\"Rask.SQLite.EntityFrameworkCore\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Data_flag_off_leaves_no_database_wiring()
     {
-        var (off, result) = Generate(data: false);
+        var (off, _) = Generate(data: false);
 
-        Assert.DoesNotContain("Features/Shared/AppDbContext.cs", off.Keys);
-        Assert.DoesNotContain("AddRaskData", off["Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("UseRaskSqlite", off["Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("Rask.Data", result.Packages);
-        Assert.DoesNotContain("Rask.SQLite.EntityFrameworkCore", result.Packages);
+        Assert.Contains("c.Data.Off();", off["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Features/Shared/User.cs", off.Keys);
+        Assert.DoesNotContain("\"App\": \"Data Source=app.db\"", off["appsettings.json"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -358,45 +296,28 @@ public sealed class ProjectGeneratorTests
 
         Assert.True(on.ContainsKey("wwwroot/icon.svg"));
         Assert.True(on.ContainsKey("wwwroot/offline.html"));
-        Assert.Contains("AddRaskPwa", on["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Pwa.Off()", on["Program.cs"], StringComparison.Ordinal);
 
         var (off, _) = Generate(pwa: false);
 
         Assert.DoesNotContain("wwwroot/icon.svg", off.Keys);
-        Assert.DoesNotContain("AddRaskPwa", off["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("c.Pwa.Off();", off["Program.cs"], StringComparison.Ordinal);
     }
 
-    // Every server app ships a /health endpoint so `rask deploy` can probe readiness out of the box. It must
-    // be mapped BEFORE UseHttpsRedirection so the deploy probe (plain HTTP inside the container) gets a 200,
-    // not a 307 to a dead HTTPS port.
+    // --cqrs is a switch, not a package: Rask.Server carries the mediator, and no sample slice is scaffolded.
     [Fact]
-    public void Health_endpoint_is_always_wired_before_https_redirection()
-    {
-        var (files, _) = Generate();
-        var program = files["Program.cs"];
-
-        Assert.Contains("AddHealthChecks()", program, StringComparison.Ordinal);
-        var health = program.IndexOf("UseHealthChecks(\"/health\")", StringComparison.Ordinal);
-        var redirect = program.IndexOf("UseHttpsRedirection()", StringComparison.Ordinal);
-        Assert.True(health >= 0, "the /health endpoint is mapped");
-        Assert.True(redirect >= 0 && health < redirect, "/health precedes UseHttpsRedirection so the probe gets plain-HTTP 200");
-    }
-
-    // --cqrs is wiring-only: the mediator call + the package ref, and no sample slice to delete.
-    [Fact]
-    public void Cqrs_flag_toggles_the_wiring_and_package_but_scaffolds_no_sample()
+    public void Cqrs_flag_toggles_the_off_switch_but_scaffolds_no_sample()
     {
         var (on, onResult) = Generate(cqrs: true);
 
-        Assert.Contains("AddRaskCqrs", on["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("Rask.Cqrs", onResult.Packages);
+        Assert.DoesNotContain("c.Cqrs.Off()", on["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs", onResult.Packages);
         Assert.DoesNotContain("Cqrs/GreetingQuery.cs", on.Keys);
         Assert.DoesNotContain("Cqrs/GreetingPage.cs", on.Keys);
 
-        var (off, offResult) = Generate(cqrs: false);
+        var (off, _) = Generate(cqrs: false);
 
-        Assert.DoesNotContain("AddRaskCqrs", off["Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("Rask.Cqrs", offResult.Packages);
+        Assert.Contains("c.Cqrs.Off();", off["Program.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -430,8 +351,8 @@ public sealed class ProjectGeneratorTests
             Assert.True(files.ContainsKey(expected), $"[{pwa},{cqrs},{docker}] missing {expected}");
         }
 
-        Assert.Contains("Rask.Server", result.Packages);
-        Assert.Equal(cqrs, result.Packages.Contains("Rask.Cqrs"));
+        Assert.Equal(["Rask.Server", "Rask.DevTools"], result.Packages);
+        Assert.Equal(!cqrs, files["Program.cs"].Contains("c.Cqrs.Off();", StringComparison.Ordinal));
 
         // Tailwind is built in, so no combination REFERENCES it and every combination still gets it --
         // it rides inside Rask.Server. This assertion has now been all four things in turn: Bootstrap
@@ -478,6 +399,103 @@ public sealed class ProjectGeneratorTests
         Assert.False(profile.GetProperty("launchBrowser").GetBoolean());
     }
 
+    // ---- Program.cs: the batteries an app does without ----
+
+    [Fact]
+    public void An_app_with_every_battery_on_is_one_line_of_Program_cs()
+    {
+        var everyBattery = Full();
+
+        var program = Index(ProjectGenerator.GenerateServer(Root, "App", everyBattery, Version))["Program.cs"];
+
+        Assert.Empty(ProjectGenerator.OffSwitches(everyBattery));
+        Assert.Contains("RaskApp.Create(args).Run<App>();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("var app =", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_battery_turned_off_is_one_Configure_line_in_Program_cs()
+    {
+        var withoutJobs = Full() with { Jobs = false };
+
+        var program = Index(ProjectGenerator.GenerateServer(Root, "App", withoutJobs, Version))["Program.cs"];
+
+        Assert.Contains("var app = RaskApp.Create(args);", program, StringComparison.Ordinal);
+        Assert.Contains("app.Configure(c => c.Jobs.Off());", program, StringComparison.Ordinal);
+        Assert.Contains("app.Run<App>();", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Several_batteries_turned_off_share_one_Configure_block()
+    {
+        var withoutJobsOrMail = Full() with { Jobs = false, Mail = false };
+
+        var program = Index(ProjectGenerator.GenerateServer(Root, "App", withoutJobsOrMail, Version))["Program.cs"];
+
+        Assert.Contains(
+            "app.Configure(c =>\n{\n    c.Jobs.Off();\n    c.Mail.Off();\n});",
+            program.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Turning_the_database_off_does_not_list_the_batteries_it_takes_with_it()
+    {
+        var withoutData = Full() with { Data = false, Jobs = false, Mail = false, Storage = false };
+
+        var off = ProjectGenerator.OffSwitches(withoutData);
+
+        Assert.Equal(["Data"], off);
+    }
+
+    [Fact]
+    public void Turning_the_PWA_off_does_not_list_push()
+    {
+        var withoutPwa = Full() with { Pwa = false, Push = false };
+
+        var off = ProjectGenerator.OffSwitches(withoutPwa);
+
+        Assert.Equal(["Pwa"], off);
+    }
+
+    [Fact]
+    public void Off_switches_are_listed_outermost_first()
+    {
+        var nothing = new ServerBatteries();
+
+        var off = ProjectGenerator.OffSwitches(nothing);
+
+        Assert.Equal(["Cqrs", "Data", "Logs", "Pwa"], off);
+    }
+
+    [Fact]
+    public void The_generated_Program_cs_names_the_apps_namespace()
+    {
+        var withoutJobs = Full() with { Jobs = false };
+
+        var program = Index(ProjectGenerator.GenerateServer(Root, "Shop", withoutJobs, Version))["Program.cs"];
+
+        Assert.StartsWith("using Shop.Features.Shared;", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("Company.RaskServer", program, StringComparison.Ordinal);
+    }
+
+    private static ServerBatteries Full() => new()
+    {
+        Pwa = true,
+        Cqrs = true,
+        Data = true,
+        Docker = true,
+        Jobs = true,
+        Mail = true,
+        Cache = true,
+        Storage = true,
+        Outbox = true,
+        Push = true,
+        Snapshots = true,
+        Logs = true,
+        Ops = true,
+    };
+
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(
         bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
     {
@@ -522,47 +540,6 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain("Features/Auth/Auth.cs", files.Keys);
         Assert.DoesNotContain("wwwroot/icon.svg", files.Keys);
         Assert.DoesNotContain("Dockerfile", files.Keys);
-    }
-
-    /// <summary>The styling axis reaches the browser-WASM template, all three answers.</summary>
-    /// <remarks>
-    ///     It did not until #838: this generator took a <c>bool bootstrap</c> beside a ServerBatteries that
-    ///     already carried Styling, so <c>--tailwind</c> scaffolded a plain project and reported success.
-    ///     One parameter now, read off the batteries — two sources for one decision is the bug.
-    /// </remarks>
-    /// <summary>The query cache arrives with the dispatcher, not behind a flag of its own.</summary>
-    /// <remarks>
-    ///     <para>
-    ///         A dispatcher without a cache means every render refetches, so the first thing anyone
-    ///         building a page over <c>IDispatcher</c> needs is the thing that stops that. Shipping it as
-    ///         an opt-in made it discoverable only by reading the docs — which is how a package ends up
-    ///         written, tested, documented and unused.
-    ///     </para>
-    ///     <para>
-    ///         Tied to <c>--cqrs</c> rather than always-on because it wraps a dispatcher: with no messages
-    ///         to send there is nothing for it to cache.
-    ///     </para>
-    /// </remarks>
-    [Fact]
-    public void The_query_cache_rides_along_with_cqrs()
-    {
-        var with = ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries { Cqrs = true }, Version);
-        var files = Index(with);
-
-        Assert.Contains("Rask.Query", with.Packages);
-        Assert.Contains("<PackageReference Include=\"Rask.Query\"", files["App.csproj"], StringComparison.Ordinal);
-
-        // Registered as well as referenced: a package reference with no AddRaskQuery() is a dependency
-        // the app carries and cannot use.
-        Assert.Contains("builder.Services.AddRaskQuery();", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("using Rask.Query;", files["Program.cs"], StringComparison.Ordinal);
-
-        // And not otherwise — an app with no dispatcher has nothing to wrap.
-        var without = ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version);
-
-        Assert.DoesNotContain("Rask.Query", without.Packages);
-        Assert.DoesNotContain(
-            "AddRaskQuery", Index(without)["Program.cs"], StringComparison.Ordinal);
     }
 
     // The browser template compiles its own stylesheet like every other host. It was the one worth

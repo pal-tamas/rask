@@ -928,8 +928,8 @@ That gives the table a `TenantId` column, a query filter no read can compose awa
 every index. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant` claim — so the
 read above filters with nothing passed to it; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
 A tenant-scoped read with no tenant **throws** rather than return nothing, `IgnoreQueryFilters()` never
-crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants. The
-context calls `modelBuilder.ApplyRaskConventions(this)`, which `rask new` writes.
+crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants.
+`RaskAppDbContext` applies it; a context of your own calls `modelBuilder.ApplyRaskConventions(this)`.
 
 Where the tenant comes from, administrators, what it means for jobs, mail, the outbox, the cache, file storage
 and accounts, and how each provider behaves: **[Multi-tenancy](multi-tenancy.md)**.
@@ -945,9 +945,9 @@ unit of work to learn.
 
 `RaskAppDbContext` (namespace `Rask`) is the context the host builds: every entity you declared, plus every
 battery's tables. It has no `DbSet` properties, so an entity is reached with `db.Set<Order>()`. An app that
-[registered its own context](#using-ef-core-the-usual-way) uses that one the same way — which includes every
-app `rask new` scaffolds: it writes `Features/Shared/AppDbContext.cs`, so there the factory below is
-`IDbContextFactory<AppDbContext>`.
+[registered its own context](#using-ef-core-the-usual-way) uses that one the same way, with
+`IDbContextFactory<TheirContext>` in place of the one below. An app `rask new` scaffolds writes no context, so
+it takes `IDbContextFactory<RaskAppDbContext>` as shown.
 
 **Take the factory, and make one context per change.** `IDbContextFactory<RaskAppDbContext>` is registered
 for you. A context is short-lived and not thread-safe, and the places a write runs from are not: a live page
@@ -1639,11 +1639,9 @@ Moving an existing app is more than the setting:
 - **A context of your own** follows the setting through `UseRaskDatabase(sp)`, and on a server database it also maps
   the log table — `modelBuilder.AddRaskLogging()` — because that is where `RaskApp` keeps the log. A context that
   does not is told the line at start.
-- **An app scaffolded by `rask new`** wires each battery by hand in `Program.cs`, references the packages one by
-  one rather than `Rask`, and does not read the setting yet. Switch it there: reference `Rask.Postgres` or
-  `Rask.SqlServer`, and `UseRaskSqlite(sp)` becomes `UseRaskPostgres(sp)` or `UseRaskSqlServer(sp)`.
-  `AddRaskLogging()` becomes `AddRaskLogging<AppDbContext>()`, with the model line above. The snapshot and
-  Litestream lines go.
+- **An app scaffolded by `rask new`** is a `RaskApp` on `RaskAppDbContext`, so the setting and a connection string
+  are the whole switch — `Rask.Server` already carries both server providers. Its `appsettings.json` has a
+  `Rask:Snapshots` section, so delete that, as above, and regenerate the migrations against the new provider.
 - **`rask deploy` does not know about providers yet.** It points `Rask:ConnectionStrings:App` at a SQLite file on its
   volume, so deploy a server-database app another way for now.
 

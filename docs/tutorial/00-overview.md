@@ -40,8 +40,8 @@ whole product.
 | 5 | [Transactional email](05-email.md) | Mail | an email component + `IMail` |
 | 6 | [Caching the catalog](06-cache.md) | Cache | a cached read accessor |
 | 7 | [Domain events + the outbox](07-outbox-events.md) | Outbox | an `IOutboxEvent` + a handler |
-| 8 | [Production SQLite](08-production-sqlite.md) | SQLite | `UseRaskSqlite()` · snapshots · Litestream |
-| 9 | [Push notifications](09-web-push.md) | Web Push · PWA | `VapidKeys.Generate()` · `IWebPush` |
+| 8 | [Production SQLite](08-production-sqlite.md) | SQLite | WAL pragmas · snapshots · Litestream |
+| 9 | [Push notifications](09-web-push.md) | Web Push · PWA | `Push.Subscribe` · `Push.Send(…).To(customer)` |
 | 10 | [Watching it run](10-ops.md) | Observability | an `/ops` page over every pillar's table |
 | 11 | [Deploy to one box](11-deploy.md) | Deploy | `rask deploy --host … --domain …` |
 

@@ -7,24 +7,16 @@ Shop can email. Email is right for a receipt and wrong for "your driver is two m
 delivers to a device whose browser isn't even open — and you can send it from your own server, on your own
 keys, with no notification service in the middle.
 
-Every `rask new` app has this wired (`--no-push` leaves it out). It rides on the installable PWA, because a
-browser will only accept a push subscription through a **service worker**, which is what the PWA registration
-installs — so `--no-pwa` takes push with it.
+Web Push is a battery, on like the rest. It rides on the installable PWA, because a browser will only accept
+a push subscription through a **service worker**, which the PWA battery serves — so turning the PWA off
+(`c.Pwa.Off()`, or `--no-pwa`) takes push with it.
 
-## 1. What the scaffold gave you
+## 1. What the battery gives you
 
-```csharp
-if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:WebPush:VapidKeys:PublicKey"])
-    && !string.IsNullOrWhiteSpace(builder.Configuration["Rask:WebPush:VapidKeys:PrivateKey"]))
-{
-    builder.Services.AddRaskWebPush();
-}
-
-builder.Services.AddSingleton<PushSubscriptionStore>();
-```
-
-`AddRaskWebPush()` reads `Rask:WebPush` itself — the key pair, and the contact address the scaffold puts in
-`appsettings.json`:
+Nothing to register, and nothing in `Program.cs`. The battery keeps every browser that subscribed in a
+`PushSubscriber` table in `app.db` — mapped by `RaskAppDbContext`, created by the first migration — and it
+remembers who was signed in when each one subscribed, so you can reach one person's phone and laptop at once.
+It reads `Rask:WebPush` from `appsettings.json`: the key pair, and the contact address the scaffold put there:
 
 ```jsonc
 "Rask": {
@@ -34,13 +26,13 @@ builder.Services.AddSingleton<PushSubscriptionStore>();
 }
 ```
 
-…plus `Features/Push/PushSubscriptions.cs`: an in-memory store of subscribed browsers and three endpoints —
-`/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` — mapped by `app.MapPushSubscriptions()` **before**
-`MapRask<App>()`, since its catch-all serves the app for anything unmatched.
+It also maps three endpoints, for a WebAssembly client or a SPA that can't call C# on the server —
+`GET /_rask/push/key`, `POST /_rask/push/subscribe` and `POST /_rask/push/unsubscribe`. This app renders on
+the server, so it won't need them.
 
-Note what is and isn't gated. Sending needs keys, so `AddRaskWebPush` is behind the config check — an app
-whose keys are missing still starts. The store and its endpoints are always registered, so `/_push/key`
-answers with an empty key rather than 500-ing, and the UI can say "push isn't set up yet".
+Note what is and isn't gated. Sending needs keys; the table and the endpoints don't. An app whose keys are
+missing still starts, `/_rask/push/key` answers with an empty key rather than a 500, and a send is what fails,
+naming the settings to set.
 
 ## 2. Your VAPID keys
 
@@ -75,69 +67,97 @@ rask deploy --env "Rask__WebPush__VapidKeys__PublicKey=<public>" \
 ```
 
 The **public** key is handed to the browser to subscribe with. The **private** key signs the request and
-must never be served — which is why `/_push/key` returns only the public one.
+must never be served — which is why `Push.PublicKey` and `/_rask/push/key` hand out only the public one.
 
 ## 3. Subscribe a browser
 
-From a page, ask for permission and subscribe. `IWebPush` (in `Rask.Core.Browser`) wraps the browser API:
+From a page, ask the browser, then keep the answer. `IWebPush` wraps the browser's side; `Push` is the
+battery's:
 
 ```csharp
-public sealed partial class EnablePushButton(IWebPush push, HttpClient http) : Component
+using Rask.Core.Browser;   // IWebPush
+using Rask.WebPush;        // Push
+
+namespace Shop.Features.Orders;
+
+public sealed partial class NotifyMe(IWebPush browser) : Component
 {
     protected override Component? Render() =>
         Ui.Button.OnClick(Subscribe)["Notify me about my orders"];
 
     private async Task Subscribe()
     {
-        var key = await http.GetFromJsonAsync<PushKey>("/_push/key");
-        var subscription = await push.Subscribe(key!.PublicKey);
-        await http.PostAsJsonAsync("/_push/subscribe", subscription);
+        var subscription = await browser.SubscribeAsync(Push.PublicKey!);   // the browser's permission prompt
+        await Push.Subscribe(subscription);                                // one row, for the signed-in user
     }
-
-    private sealed record PushKey(string PublicKey);
 }
 ```
 
 Browsers only show the permission prompt in response to a real user gesture, so this belongs on a button —
 not in `OnMount`. Asking on page load is also how you get permanently denied.
 
-## 4. Send from the outbox handler
+## 4. Know whose order it is
 
-Chapter 7's handler already reacts to an order being placed. Shipping has the same shape: give `Order` a
-`Ship()` method that raises an `OrderShipped` event — an `IOutboxEvent`, like `OrderPlaced` — and save it
-through `IDbContextFactory<AppDbContext>` the way chapter 7's `PlaceOrder` saves `Place`. Push is then one
-more handler hanging off that event:
+To tell *the customer*, the order has to say who that is — and chapter 3's `Order` doesn't. Give it one more
+property, filled in by `Place` from whoever is signed in:
 
 ```csharp
-public sealed class OrderShippedHandler(IWebPush sender, PushSubscriptionStore store)
-    : INotificationHandler<OrderShipped>
+public Guid? CustomerId { get; private set; }
+```
+
+…and in `Place`, beside the other fields: `CustomerId = Current.UserId`. `Current.UserId` is the signed-in
+user, or `null` for a visitor. A new column is a new migration:
+
+```bash
+rask db add AddOrderCustomer
+rask db update
+```
+
+## 5. Send from the outbox handler
+
+Chapter 7's handler already reacts to an order being placed. Shipping has the same shape: give `Order` a
+`Ship()` method that raises an `OrderShipped` event — an `IOutboxEvent`, like `OrderPlaced` — and call it with
+`Order.UpdateAsync(id, o => o.Ship())`, which saves the change and the event in one transaction. Push is then one more handler hanging
+off that event:
+
+```csharp
+using Rask.WebPush;
+
+namespace Shop.Features.Orders;
+
+public sealed class OrderShippedHandler : INotificationHandler<OrderShipped>
 {
     public async Task Handle(OrderShipped notification)
     {
-        var message = WebPushMessage.Text(
-            "Your order shipped",
-            $"Order {notification.Id} is on its way.",
-            url: $"/orders/{notification.Id}");
+        var order = await Order.Read.Where(o => o.Id == notification.Id).FirstOrDefaultAsync(Current.Cancellation);
+        if (order?.CustomerId is not { } customer) return;
 
-        foreach (var subscription in store.All)
-        {
-            var result = await sender.Send(subscription, message, Current.Cancellation);
-
-            // A subscription that has expired (404/410) will never work again — drop it rather than
-            // retrying forever. `ShouldDelete` and `ShouldRetry` map the status to the action, so the
-            // typical loop never has to match on `WebPushStatus` directly.
-            if (result.ShouldDelete)
-            {
-                store.Remove(subscription.Endpoint);
-            }
-        }
+        await Push.Send(WebPushMessage.Text("Order shipped", $"Order {order.Id} is on its way.", $"/orders/{order.Id}"))
+            .To(customer);
     }
 }
 ```
 
+`.To(customer)` reaches every browser that customer subscribed from; leave it off and the push goes to
+everyone. A subscription the push service says is gone — the browser unsubscribed, the app was uninstalled — is
+dropped as the send finds it, so the table never fills with dead endpoints.
+
 Sending from the **outbox** handler rather than inline is deliberate, for the same reason as the email: the
 notification is derived from the order committing, so it should not be able to go missing because the push
 service was slow.
+
+## 6. Test it
+
+No browser and no push service: `Push.Fake()` stands in for the battery for this test alone, and records
+what would have been sent.
+
+```csharp
+using var push = Push.Fake();
+
+await new OrderShippedHandler().Handle(new OrderShipped(order.Id));
+
+push.Sent().To(customerId).WithTitle("Order shipped").Once();
+```
 
 > **Server vs WASM.** A Rask **Server** app is installable and push-capable, but not an offline app — it
 > renders over a live WebSocket, so offline navigations show `wwwroot/offline.html`. A **WASM** app is a full
@@ -145,9 +165,9 @@ service was slow.
 
 ## Verify
 
-- `GET /_push/key` returns your public key as JSON — and returns an empty string before you configure one,
+- `GET /_rask/push/key` returns your public key as JSON — and an empty string before you configure one,
   rather than failing.
-- Clicking the subscribe button prompts, then `POST /_push/subscribe` stores the subscription.
+- Clicking **Notify me** prompts, then a row appears in the `PushSubscriber` table, with your user id on it.
 - Shipping an order shows a system notification, with the app closed.
 - Real delivery needs a browser push service, so a local run can only take you as far as the subscription.
 

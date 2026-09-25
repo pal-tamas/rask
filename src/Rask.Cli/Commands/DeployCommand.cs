@@ -936,6 +936,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             args.AddRange(["--name", $"{slug}-{color}", "--restart", "unless-stopped", "--network", Network]);
             args.AddRange(["--label", "rask.managed=true", "--label", $"rask.app={slug}", "--label", $"rask.domain={domain}", "--label", $"rask.color={color}"]);
             args.AddRange(["--label", $"rask.port={containerPort.ToString(CultureInfo.InvariantCulture)}"]);
+
+            // Caddy terminates TLS in front of this container, so the app trusts its forwarded headers — without
+            // this Request.Scheme is "http", HSTS never emits and every visitor has the proxy's address. Only in
+            // this mode: a port-mode container is reached directly, where trusting them lets a client forge its IP.
+            args.AddRange(["-e", "Rask__BehindProxy=true"]);
         }
 
         // Persist the SQLite database on a per-app named volume so it survives container replacement — every

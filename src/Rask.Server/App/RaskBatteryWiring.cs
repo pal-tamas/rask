@@ -547,11 +547,15 @@ internal static class RaskBatteryWiring
     // A manifest an app gets without asking: named after the app, standalone display, Rask's own icon.
     // Name is `required`, so there is no such thing as a manifest with nothing filled in — the question
     // is only whether the default is the app's name or a placeholder, and the app's name is always better.
+    // An app with a wwwroot/icon.svg — every scaffolded one — installs with that icon rather than none.
     private static WebAppManifest DefaultManifest(IWebHostEnvironment environment) => new()
     {
         Name = environment.ApplicationName,
         ShortName = environment.ApplicationName,
         Display = DisplayMode.Standalone,
+        Icons = environment.WebRootFileProvider?.GetFileInfo("icon.svg").Exists == true
+            ? [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")]
+            : [],
     };
 
     // Web Push is configured either through the block or through Rask:WebPush:VapidKeys; either is enough, and

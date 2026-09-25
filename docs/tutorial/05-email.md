@@ -46,15 +46,8 @@ purpose: a mail client never loads the kit's stylesheet, so kit components would
 
 ## 2. It's already wired
 
-Chapter 1's `rask new` already registered mail and mapped its table (`modelBuilder.AddRaskMail()` in
-`AppDbContext`), and the first migration created it — so there is nothing to add and nothing to migrate. The
-registration it wrote in `Program.cs` is:
-
-```csharp
-builder.Services.AddRaskMail<AppDbContext>();
-```
-
-All that's left is your real sender address and, for production, an SMTP server. Both are settings rather
+The mail battery is on, its queue table is mapped by `RaskAppDbContext`, and the first migration created it —
+so there is nothing to add and nothing to migrate. All that's left is your real sender address and, for production, an SMTP server. Both are settings rather
 than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.json`:
 
 ```jsonc

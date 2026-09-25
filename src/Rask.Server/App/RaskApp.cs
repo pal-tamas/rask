@@ -15,6 +15,7 @@ using Rask.Auth;
 using Rask.Core;
 using Rask.Data;
 using Rask.Server;
+using Rask.Server.Diagnostics;
 
 namespace Rask;
 
@@ -87,7 +88,9 @@ public sealed class RaskApp
         // wins and a second one is silently discarded (RASK056). Calling it here would freeze the culture
         // list and the render-mode ceiling before Configure had a chance to say anything, and the app
         // would ship with no languages while its Program.cs plainly listed some.
-        builder.Services.AddHealthChecks();
+        // The live-session pool reports on it: Degraded at 80% of MaxSessions, Unhealthy once new sessions are
+        // refused, so a full host says so instead of answering a bare "up".
+        builder.Services.AddHealthChecks().AddRaskLiveSessions();
 
         // The app is whoever wrote this line. Its migrations live there, and Rask's own context has to be
         // told so: EF looks for them in the context's assembly by default, which is this package. The entry
@@ -193,7 +196,7 @@ public sealed class RaskApp
         // FIRST: rewrite Request.Scheme and RemoteIpAddress from the proxy's headers, so everything below
         // — HSTS, redirects, the app's own logging — sees the request the visitor actually made. Opt-in,
         // because trusting these from an arbitrary client lets it forge its own IP.
-        if (_options.BehindProxy)
+        if (_options.BehindProxy || app.Configuration.GetValue<bool>("Rask:BehindProxy"))
         {
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {

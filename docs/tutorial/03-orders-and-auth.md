@@ -46,7 +46,7 @@ changed to `Total`, `ProductId` and `Placed`. Copy them and change the names.
 `ProductId` is a `Guid`, not a `Product`. One aggregate refers to another **by id**: each is loaded and saved on
 its own, so an order never drags a product along with it.
 
-What ties the slice to the existing database: nothing you write. `AppDbContext`'s base maps `Order` exactly
+What ties the slice to the existing database: nothing you write. `RaskAppDbContext` maps `Order` exactly
 as it maps `Product`, with no `DbSet` to add. That's the whole of "sharing a database": one context, one
 connection string, one migration history, however many features you add. Nothing else in the slice knows
 or cares.

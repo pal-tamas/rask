@@ -77,6 +77,10 @@ app.Configure(c => c.Jobs.Off());   // this app has no background work
 app.Run<App>();
 ```
 
+`rask new` writes it for you: `RaskApp.Create(args).Run<App>();` with every battery on, and the
+`Configure` line above when you scaffold with `--no-jobs`. There is no `DbContext` to write either —
+`RaskAppDbContext` maps every aggregate you declare and every battery's tables.
+
 **The batteries, one by one** — each is also a package of its own, for a host assembled by hand: an
 `AddRaskX<AppDbContext>()` call plus a `modelBuilder.AddRaskX()` schema line:
 

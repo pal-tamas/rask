@@ -21,6 +21,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`rask new` scaffolds onto `RaskApp`.** A server app's `Program.cs` is `RaskApp.Create(args).Run<App>();`, its
+  csproj references `Rask.Server` (plus the dev-only `Rask.DevTools`), and there is no `AppDbContext.cs` — RaskApp's
+  own context maps your aggregates and every battery's tables. A `--no-<battery>` flag writes `c.Jobs.Off()` into
+  `Program.cs` instead of dropping a package, and the scaffold's in-memory push store is gone: Web Push is the
+  battery. `rask deploy` sets `Rask__BehindProxy=true` behind its Caddy proxy, RaskApp's `/health` reports the
+  live-session pool, and its default PWA manifest carries `wwwroot/icon.svg` when the app has one.
 - **`PushSubscription` is one record, in `Rask.Wire`.** The browser API (`IWebPush.SubscribeAsync`) and the server
   sender each declared their own, so a component on the server host could not hand one to the other. An app that named
   `Rask.Core.Browser.PushSubscription` or `Rask.WebPush.PushSubscription` names `Rask.Wire.PushSubscription`; the
@@ -48,6 +54,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An app that references only `Rask.Server` or `Rask.Wasm` draws with the kit again.** `Rask.Ui`'s build hooks —
+  the kit's stylesheet in `wwwroot` and daisyUI's plugin beside `Styles/app.css` — recognised a direct `Rask.Ui`
+  reference or the removed meta-package, so an app naming only its host got neither, and Tailwind stopped on
+  `@plugin "./vendor/daisyui.mjs"`. Both hosts count now; the core `Rask` package, which carries no kit, does not.
 - **An app that carries the operator console without registering it no longer answers `/_rask/…` with a
   500.** Every routed page registers itself into a process-wide table when its assembly loads, and
   `Rask.Dashboard` now loads with every server app; an app with `c.Ops.Off()`, or a host assembled by hand

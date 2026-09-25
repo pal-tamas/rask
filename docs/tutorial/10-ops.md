@@ -20,10 +20,9 @@ query**. Queue depth is `SELECT count(*)`.
 | `Rask.Mail` | `QueuedMail` | Is mail going out, or piling up? |
 | `Rask.Cache` | `CacheEntry` | How much is cached right now? |
 
-They're ordinary EF entities, mapped into the same `AppDbContext` as your products. They aren't `Model`s, so
-there's no `OutboxMessage.CountAsync(…)` — you reach them through the context, exactly as chapter 7's
-`PlaceOrder` did. Inject `IDbContextFactory<AppDbContext>` into the page as `dbFactory` and open one per
-refresh:
+They're ordinary EF entities, mapped into the same `RaskAppDbContext` as your products. They aren't
+aggregates, so there's no `OutboxMessage.Read` — you reach them through the context itself. Inject
+`IDbContextFactory<RaskAppDbContext>` into the page as `dbFactory` and open one per refresh:
 
 ```csharp
 await using var db = await dbFactory.CreateDbContextAsync(ct);
@@ -85,7 +84,7 @@ Three things in that loop are deliberate:
 ## 4. Prove the pragmas
 
 While you're here, read the connection settings back from the live database, rather than trusting that
-`UseRaskSqlite` did what Chapter 8 said:
+the database was opened the way Chapter 8 said:
 
 ```csharp
 JournalMode = await ScalarAsync(db, "PRAGMA journal_mode"),   // → wal
@@ -99,9 +98,8 @@ ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys"),   // → 1
 - Outbox failed stays at `0`.
 - `journal_mode` reads `wal` and `foreign_keys` reads `1`.
 
-> **Beyond counters.** Rask also exposes a live-session health check
-> (`AddHealthChecks().AddRaskLiveSessions()`) that `rask deploy` probes to gate a zero-downtime swap, and
-> standard `ILogger` output goes wherever you point it. See [observability](../observability.md).
+> **Beyond counters.** `RaskApp` also answers `/health`, including whether the live-session pool has room, and
+> `rask deploy` probes it to gate a zero-downtime swap. Standard `ILogger` output goes wherever you point it. See [observability](../observability.md).
 
 ## 5. You don't have to write this one
 
@@ -110,18 +108,10 @@ table you can `SELECT` from, and now you've proved it.
 
 For the parts you'd rather not hand-roll, `Rask.Dashboard` ships the same idea finished: `/_rask` with the
 queue rows behind each counter, the error that caused each dead letter, a one-click retry, a log tail, and
-the pragmas you read above. `rask new` wires it in by default (`--no-ops` leaves it out), so your Shop already
-has these two lines in `Program.cs`:
+the pragmas you read above. It is a battery like the others, so your Shop already has it — nothing in
+`Program.cs`, and `app.Configure(c => c.Ops.Off())` (or `--no-ops`) leaves it out.
 
-```csharp
-builder.Services.AddRaskDashboard<AppDbContext>();
-
-builder.Services.AddAuthorization(o =>
-    o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin)));
-```
-
-That second line is not optional decoration. The dashboard shows job payloads, stored email bodies and log
-lines, so it is gated on the **admin** role — the one the first account to register holds — rather than on
+The dashboard shows job payloads, stored email bodies and log lines, so it is gated on the **admin** role — the one the first account to register holds — rather than on
 merely being signed in, which on an app with open registration would mean everyone. Sign in as that first
 account and visit [https://localhost:5001/_rask](https://localhost:5001/_rask) to compare it with the page
 you just built.

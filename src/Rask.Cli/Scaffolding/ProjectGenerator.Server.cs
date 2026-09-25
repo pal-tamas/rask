@@ -22,106 +22,104 @@ internal static partial class ProjectGenerator
         // that describes it, which is only correct if implications have already been applied here.
         batteries = batteries.Normalized();
 
-        return new ScaffoldResult(
-            TemplateMaterializer.Files(
-                targetDirectory, "server", name, batteries, version, dotnet ?? DotnetTarget.Default, islands,
-                vsCode: VsCodeSetup.Host),
-            ServerNextSteps(name, batteries))
+        var files = TemplateMaterializer.Files(
+            targetDirectory, "server", name, batteries, version, dotnet ?? DotnetTarget.Default, islands,
+            vsCode: VsCodeSetup.Host);
+
+        // The committed Program.cs is the default app — every battery on, one line. A battery turned off is a
+        // line in it rather than a missing package, so the file is written here when there is one to say.
+        var program = Path.Combine(targetDirectory, "Program.cs");
+        if (ServerProgramCs(name, batteries) is { } text)
         {
-            Packages = ServerPackages(batteries),
+            files = [.. files.Select(f => string.Equals(f.Path, program, StringComparison.Ordinal) ? f with { Content = text } : f)];
+        }
+
+        return new ScaffoldResult(files, ServerNextSteps(name, batteries))
+        {
+            Packages = ServerPackages(),
         };
     }
 
-    // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
-    private static List<string> ServerPackages(ServerBatteries batteries)
+    /// <summary>
+    ///     The <c>c.X.Off()</c> lines for the batteries this app does without, outermost first: turning the
+    ///     database off takes every table-backed battery with it, and turning the PWA off takes push, so
+    ///     neither lists what it already implies.
+    /// </summary>
+    internal static List<string> OffSwitches(ServerBatteries batteries)
     {
-        // No Rask.Tailwind here: the Tailwind build ships INSIDE Rask.Server (RaskTailwindBuildPack),
-        // so a scaffolded csproj naming it would be a second copy of the same targets, imported twice.
-        //
-        // Rask.Ui IS named, and directly rather than through the meta-package, because a package's
-        // build/ hooks are imported for a DIRECT reference only — and those hooks are what put daisyUI's
-        // plugin next to Styles/app.css and the kit's sheet in wwwroot. It also brings the ~110 Ui*
-        // components, which is a bonus here rather than the reason: the starter page writes daisyUI's
-        // own class names, so it needs the plugin whether or not it ever names a component.
-        //
-        // Rask.DevTools is named directly for the same build/-hooks reason: its targets are what keep the
-        // devtools out of a Release publish, and an app that does not reference the `Rask` meta-package —
-        // which is every scaffolded one — would otherwise never get them.
-        var packages = new List<string> { "Rask.Server", "Rask.Ui", "Rask.DevTools" };
-
-        if (batteries.Cqrs)
+        var off = new List<string>();
+        if (!batteries.Cqrs)
         {
-            packages.Add("Rask.Cqrs");
-
-            // Not a flag of its own. A dispatcher without a cache means every render refetches, and the
-            // first thing anyone building a page over IDispatcher needs is the thing that stops that —
-            // so it arrives wired rather than as something to discover in the docs later.
-            packages.Add("Rask.Query");
+            off.Add("Cqrs");
         }
 
-        if (batteries.Data)
+        if (!batteries.Data)
         {
-            packages.Add("Rask.Data");
-            packages.Add("Rask.SQLite.EntityFrameworkCore");
-
-            // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
-            // inert until Rask:Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
-            // one-env-var path from "single copy on one disk" to "the box is disposable".
-            packages.Add("Rask.SQLite.Litestream");
-
-            // Accounts. Paired with the database rather than with a flag, because AppDbContextCs maps
-            // the account tables whenever there is a context — the two have to move together or the
-            // generated `using Rask.Auth;` does not compile.
-            packages.Add("Rask.Auth");
+            off.Add("Data");
+        }
+        else
+        {
+            AddIfOff(batteries.Outbox, "Outbox");
+            AddIfOff(batteries.Jobs, "Jobs");
+            AddIfOff(batteries.Mail, "Mail");
+            AddIfOff(batteries.Cache, "Cache");
+            AddIfOff(batteries.Storage, "Storage");
+            AddIfOff(batteries.Snapshots, "Snapshots");
+            AddIfOff(batteries.Ops, "Ops");
         }
 
-        if (batteries.Outbox)
+        AddIfOff(batteries.Logs, "Logs");
+
+        if (!batteries.Pwa)
         {
-            packages.Add("Rask.Outbox");
+            off.Add("Pwa");
+        }
+        else
+        {
+            AddIfOff(batteries.Push, "Push");
         }
 
-        if (batteries.Jobs)
-        {
-            packages.Add("Rask.Jobs");
-        }
+        return off;
 
-        if (batteries.Mail)
+        void AddIfOff(bool on, string battery)
         {
-            packages.Add("Rask.Mail");
+            if (!on)
+            {
+                off.Add(battery);
+            }
         }
-
-        if (batteries.Cache)
-        {
-            packages.Add("Rask.Cache");
-        }
-
-        if (batteries.Storage)
-        {
-            packages.Add("Rask.Storage");
-        }
-
-        if (batteries.AnySqliteOps)
-        {
-            packages.Add("Rask.SQLite.Snapshots");
-        }
-
-        if (batteries.Logs)
-        {
-            packages.Add("Rask.Logging");
-        }
-
-        if (batteries.Push)
-        {
-            packages.Add("Rask.WebPush");
-        }
-
-        if (batteries.Ops)
-        {
-            packages.Add("Rask.Dashboard");
-        }
-
-        return packages;
     }
+
+    // Null when every battery is on: the committed one-liner is then the file.
+    private static string? ServerProgramCs(string name, ServerBatteries batteries)
+    {
+        var off = OffSwitches(batteries);
+        if (off.Count == 0)
+        {
+            return null;
+        }
+
+        var configure = off.Count == 1
+            ? $"app.Configure(c => c.{off[0]}.Off());"
+            : "app.Configure(c =>\n{\n" + string.Concat(off.Select(b => $"    c.{b}.Off();\n")) + "});";
+
+        return $$"""
+            using {{name}}.Features.Shared;
+
+            var app = RaskApp.Create(args);
+
+            // Every other battery is on, and every setting lives in appsettings.json under "Rask" (docs/configuration.md).
+            {{configure}}
+
+            app.Run<App>();
+
+            """;
+    }
+
+    // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
+    // Rask.Server carries every battery; one turned off is a line in Program.cs, never a missing reference.
+    // Rask.DevTools is named directly because its build/ hooks are what keep it out of a Release publish.
+    private static List<string> ServerPackages() => ["Rask.Server", "Rask.DevTools"];
 
     private static string ServerNextSteps(string name, ServerBatteries batteries)
     {
@@ -187,81 +185,6 @@ internal static partial class ProjectGenerator
             steps.Append("  (VapidKeys.Generate() returns a fresh pair. Replacing a pair unsubscribes\n");
             steps.Append("   everyone already subscribed to the old one.)\n");
         }
-    }
-
-    private static string AppDbContextCs(ServerBatteries batteries)
-    {
-        var usings = new StringBuilder("using Microsoft.EntityFrameworkCore;\nusing Rask.Data;\n");
-        var schema = new StringBuilder();
-
-        // Each pillar owns a table (or two) in the app's own database. These calls only add the framework
-        // entities to the model; `rask db add` then writes the migration that creates them.
-        if (batteries.Outbox)
-        {
-            usings.Append("using Rask.Outbox;\n");
-            schema.Append("\n        modelBuilder.AddRaskOutbox();");
-        }
-
-        if (batteries.Jobs)
-        {
-            usings.Append("using Rask.Jobs;\n");
-            schema.Append("\n        modelBuilder.AddRaskJobs();");
-        }
-
-        if (batteries.Mail)
-        {
-            usings.Append("using Rask.Mail;\n");
-            schema.Append("\n        modelBuilder.AddRaskMail();");
-        }
-
-        if (batteries.Cache)
-        {
-            usings.Append("using Rask.Cache;\n");
-            schema.Append("\n        modelBuilder.AddRaskCache();");
-        }
-
-        if (batteries.Storage)
-        {
-            usings.Append("using Rask.Storage;\n");
-            schema.Append("\n        modelBuilder.AddRaskStorage();");
-        }
-
-        // Accounts, unconditionally: the auth battery is ON by default, so every app with a database
-        // has one. Mapping these is not optional the way the pillars above are — AddRaskAuth reads and
-        // writes the user and its sessions through this context, so without them the app boots happily and
-        // then fails at the first registration.
-        //
-        // Mapped even when an app writes c.Auth.Off(), which is the documented behaviour for every
-        // database-backed battery: turning one off must not produce a destructive migration.
-        usings.Append("using Rask.Auth;\n");
-        schema.Append("\n        modelBuilder.AddRaskAuth();");
-
-        return $$"""
-        {{usings.ToString().TrimEnd('\n')}}
-
-        namespace Company.RaskServer.Features.Shared;
-
-        public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskDbContext(options)
-        {
-            protected override void OnModelCreating(ModelBuilder modelBuilder)
-            {
-                // RaskDbContext, not DbContext: the base maps every class deriving from Aggregate<TId>, which
-                // is what lets you declare an entity and nothing else — no DbSet property, no
-                // IEntityTypeConfiguration, no registration. It also brings the value converters for
-                // strongly-typed ids, which EF reads before the model is built. Over plain DbContext this
-                // file still compiles and every model you declare is silently absent from the database.
-                base.OnModelCreating(modelBuilder);
-
-                // ApplyRaskConventions walks the model as it stands, giving every entity its audit stamps, every
-                // aggregate its concurrency token, and a soft-delete query filter to an aggregate that declares
-                // `Deletes = Deletion.Soft` — so it has to come LAST, after the models, the configurations AND
-                // every battery's tables. Anything mapped after it silently misses out.
-                modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);{{schema}}
-                modelBuilder.ApplyRaskConventions();
-            }
-        }
-
-        """;
     }
 
     // ---- server-only template files ----

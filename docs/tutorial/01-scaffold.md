@@ -28,16 +28,22 @@ Two things you might expect to choose are not choices:
 - The pages are styled with **Tailwind**, which every project gets — the compiler ships inside the host
   package, so there is no flag, no package to add, and nothing to turn on or off.
 
-These are **scaffold-time** choices — they wire into `Program.cs` and `AppDbContext` as the project is
-created, so you pick them up front rather than bolting them on later.
-
 > **Want less?** Every battery has a `--no-` — `rask new Shop --no-push --no-ops` leaves those two out.
-> Turning one off takes its dependents with it (`--no-data` also drops jobs, mail, cache, outbox,
-> snapshots and the dashboard), so you can never end up with half a wiring. See [the CLI guide](../cli.md).
+> It doesn't drop a package: it writes the off-switch into `Program.cs` (`app.Configure(c => c.Ops.Off())`),
+> so turning one back on later is deleting a line. Turning one off takes its dependents with it
+> (`--no-data` also drops jobs, mail, cache, outbox, snapshots and the dashboard). See [the CLI guide](../cli.md).
 
-Open `Program.cs` and skim it. It's long — a dozen commented registrations — but the comments explain
-*why* each one sits where it does, and a few of those orderings are load-bearing rather than stylistic. We
-come back to the sharpest one in [Chapter 7](07-outbox-events.md).
+Open `Program.cs`. Past a `using` and a comment, it is one line:
+
+```csharp
+using Shop.Features.Shared;
+
+RaskApp.Create(args).Run<App>();
+```
+
+That line is the whole host: every battery, the middleware in the order that works, health checks, the
+database, sign-in, the dashboard. Nothing you add in this tutorial goes here — each chapter's pillar is
+already on, and its settings live in `appsettings.json` under `"Rask"`.
 
 > **Other hosts.** `--template wasm` builds the same components as a browser-WebAssembly SPA instead,
 > and `rask new Shop --template wasm-hosted` keeps the server for the API and data while the pages run in WebAssembly from
@@ -67,29 +73,15 @@ also have a working **`/login`** page and a protected **`/members`** page.
 
 The `server` template is deliberately small — a handful of files, no example pages to clean up:
 
-- **`Program.cs`** — host setup. `builder.Services.AddRask()` registers the framework and
-  `app.MapRask<App>()` mounts your root component. Between them, one commented registration per battery,
-  each naming the app's context — `AddRaskAuth<AppDbContext>()`, `AddRaskJobs<AppDbContext>()`,
-  `AddRaskMail<AppDbContext>()` and so on. None of them carries settings: each reads its own section of
+- **`Program.cs`** — `RaskApp.Create(args).Run<App>()`, which builds the host with every battery on and
+  mounts your root component. None of the batteries needs code: each reads its own section of
   `appsettings.json` (`Rask:Mail`, `Rask:Jobs`, …), so when a later chapter tunes a pillar, that section is
-  what it edits. The database part is these lines, plus `Db.Configure(app.Services)` after the app is built:
-
-  ```csharp
-  builder.Services.AddRaskData<AppDbContext>();
-  builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-      .UseRaskSqlite(sp)
-      .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-  ```
-
-  `UseRaskSqlite(sp)` reads the connection string from `Rask:ConnectionStrings:App` — `Data Source=app.db`
-  in the scaffolded `appsettings.json` — which is why it takes the service provider.
-
-  You'll also see `builder.Services.AddRaskCqrs()`. It's plumbing: the jobs and outbox batteries hand their
-  work to your handlers through it. Nothing in this tutorial calls it.
-- **`Features/Shared/AppDbContext.cs`** — the app's one database context. It derives from `RaskDbContext`,
-  whose base maps every entity you declare, so there is no `DbSet` property or configuration class to add as
-  you go. Its `OnModelCreating` maps the batteries' tables (`modelBuilder.AddRaskJobs()` and friends) — those
-  are what the first migration created.
+  what it edits. The database is SQLite at `Rask:ConnectionStrings:App` — `Data Source=app.db` while you
+  develop.
+- **No database context.** Rask's own, `RaskAppDbContext`, maps every aggregate you declare plus every
+  battery's tables — those are what the first migration created — so there is no `DbSet` property or
+  configuration class to add as you go. Code that needs the context itself injects
+  `IDbContextFactory<RaskAppDbContext>`; you'll meet that in [Chapter 4](04-background-jobs.md).
 - **`Features/Shared/App.cs`** — the **root component**: it renders into `<body>` (Rask builds the
   document around it, filling `<head>` from every component's `Head` override) and drops a `Router()`
   where the current page appears. It lives in `Features/Shared/` — the bucket for cross-cutting code the
@@ -103,7 +95,7 @@ The `server` template is deliberately small — a handful of files, no example p
   as your own code: the flows come from `Rask.Auth`, the pages are yours to restyle.
 
 Everything the CLI generates lands under `Features/`: a screen is its own `Features/<Name>/` slice, and
-cross-cutting code (the app root, components, jobs, emails, `AppDbContext`) sits in `Features/Shared/`.
+cross-cutting code (the app root, the `User` account, components, jobs, emails) sits in `Features/Shared/`.
 You'll add your first `Features/<Name>/` slice in the next chapter.
 
 For the component model itself — state, event handlers, the chain, routing — see

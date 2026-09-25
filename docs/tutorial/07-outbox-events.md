@@ -111,21 +111,10 @@ PlaceOrder.ProductId(p.Id).Price(p.Price)
 **Receipts follow sales now.** Take chapter 4's enqueue back out of `CreateOrder` — the handler in
 section 3 queues the receipt from the event instead, durably.
 
-## 2. One line, and nothing to remember
+## 2. Nothing to remember
 
-Look at what the scaffold wrote into `Program.cs`:
-
-```csharp
-builder.Services.AddRaskData<AppDbContext>();
-builder.Services.AddRaskOutbox<AppDbContext>();
-builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(sp)
-    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-```
-
-Registering the outbox is what hands it delivery. `AddRaskData` needs no *options* argument to match — its
-type argument is the unrelated one that names the context to the model surface, from Chapter 2 — and the two
-calls work in either order: the handover is settled when the container is built, not when either line runs.
+There is nothing to register: the outbox battery is on, and being on is what hands it delivery. Its table
+is mapped by `RaskAppDbContext` and was created by the first migration, so there is nothing to migrate either.
 
 That is worth a sentence, because the alternative is a bug you would never see. `DomainEventInterceptor`
 drains and **clears** every entity's events during `SaveChanges`. Were it still running alongside the outbox,
@@ -134,15 +123,11 @@ stops being durable, and **nothing fails**, because the handlers still run in-pr
 find out when a crash loses an order confirmation. A framework that makes you opt out of that by hand is
 asking you to remember something on pain of silent data loss, so Rask decides it for you.
 
-The factory call's `.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())` is what puts both
-interceptors in the `SaveChanges` pipeline — which is why `PlaceOrder`'s `Order.CreateAsync` gets the
-outbox, the timestamps and the version bump exactly as chapter 2's form saves do. Where `AddDbContextFactory`
-sits relative to the other two lines does not matter: that callback runs when the factory is first resolved,
-by which point the container holds every registration.
+Both interceptors sit in every context's `SaveChanges` pipeline — which is why `PlaceOrder`'s
+`Order.CreateAsync` gets the outbox, the timestamps and the version bump exactly as chapter 2's form saves do.
 
-The outbox table is mapped in `AppDbContext` (`modelBuilder.AddRaskOutbox()`) and was created by the first
-migration, so there is nothing to migrate. If losing an event on a crash is acceptable, plain in-process
-domain events need no outbox at all — without `AddRaskOutbox`, `AddRaskData` alone dispatches them.
+If losing an event on a crash is acceptable, plain in-process domain events need no outbox at all:
+`app.Configure(c => c.Outbox.Off())` in `Program.cs`, and the data battery dispatches them itself.
 
 ## 3. React to the event
 
