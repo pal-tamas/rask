@@ -17,8 +17,8 @@ namespace Rask.Data;
 ///     </example>
 ///     <para>
 ///         <b>It reaches the form surface and nothing else.</b> The behaviour writes —
-///         <c>CreateAsync(p =&gt; …)</c>, <c>UpdateAsync(id, p =&gt; …)</c> and <c>DeleteAsync(id)</c> — are
-///         always generated, because none of them takes a model — except <c>DeleteAsync</c> under
+///         <c>Create(p =&gt; …)</c>, <c>Update(id, p =&gt; …)</c> and <c>Delete(id)</c> — are
+///         always generated, because none of them takes a model — except <c>Delete</c> under
 ///         <c>Deletes = </c><see cref="Deletion.None" />, for an aggregate that is never removed. So is the read face (<c>Passkey.Read</c>),
 ///         which is not negotiable: querying works through read models, so an aggregate that could switch its
 ///         read face off would be an aggregate nothing can read.
@@ -36,8 +36,8 @@ namespace Rask.Data;
 public enum ModelWrites
 {
     /// <summary>
-    ///     No form model and no write that takes one. <c>Passkey.CreateAsync(model)</c>,
-    ///     <c>UpdateAsync(id, model)</c>, <c>ModelAsync(id)</c>, <c>ToModel()</c> and the
+    ///     No form model and no write that takes one. <c>Passkey.Create(model)</c>,
+    ///     <c>Update(id, model)</c>, <c>Model(id)</c>, <c>ToModel()</c> and the
     ///     <c>PasskeyModel</c> type itself are not generated.
     /// </summary>
     /// <remarks>
@@ -46,11 +46,11 @@ public enum ModelWrites
     /// </remarks>
     None = 0,
 
-    /// <summary>The model, and <c>CreateAsync(model)</c> — a row a form may make but never edit.</summary>
+    /// <summary>The model, and <c>Create(model)</c> — a row a form may make but never edit.</summary>
     Create = 1,
 
     /// <summary>
-    ///     The model, and <c>UpdateAsync(id, model)</c> — a row a form may edit but never make, because
+    ///     The model, and <c>Update(id, model)</c> — a row a form may edit but never make, because
     ///     something else decides when one exists.
     /// </summary>
     Update = 2,

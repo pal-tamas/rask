@@ -7,10 +7,10 @@ public static class ClaimsPrincipalExtensions
 {
     /// <summary>The signed-in user's id, or <see langword="null" /> when nobody is signed in.</summary>
     /// <param name="principal">The principal, such as <c>IUserProvider.Current</c>.</param>
-    /// <returns>The id of the app's <c>User</c>, ready for <c>User.FindAsync(id)</c>.</returns>
+    /// <returns>The id of the app's <c>User</c>, ready for <c>User.Read.Where(u =&gt; u.Id == id)</c>.</returns>
     /// <example>
     /// <code>
-    /// var me = users.Current.UserId() is { } id ? await User.FindAsync(id, CancellationToken) : null;
+    /// var me = users.Current.UserId() is { } id ? await User.Read.Where(u =&gt; u.Id == id).FirstOrDefaultAsync(CancellationToken) : null;
     /// </code>
     /// </example>
     public static Guid? UserId(this ClaimsPrincipal principal)

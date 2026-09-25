@@ -64,7 +64,7 @@ public interface IAuth
         where TUser : class =>
         throw new NotSupportedException(
             "This host cannot set values on the new user while registering. Register, then change the user with "
-            + "User.UpdateAsync once the user is signed in.");
+            + "User.Update once the user is signed in.");
 
     /// <summary>Ends every other session of the signed-in user, leaving this one signed in.</summary>
     Task SignOutOtherDevicesAsync();

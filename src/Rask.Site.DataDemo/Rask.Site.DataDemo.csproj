@@ -2,7 +2,7 @@
 
   <!--
     The full-stack demo on rask.sh: a Rask.Data aggregate in a real SQLite database INSIDE the browser tab, written
-    through Note.CreateAsync, listed and searched through Rask.Query and Note.Read.Search, kept across reloads by
+    through Note.Create, listed and searched through Rask.Query and Note.Read.Search, kept across reloads by
     Rask.SQLite.Browser. Served at https://rask.sh/demos/data/ and embedded as an iframe on the data, full-text-search
     and query guides (src/Rask.Site, demo key `data-notes`).
 
@@ -79,7 +79,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
     <!-- The patched SQLitePCLRaw bundle, and what supplies the browser-wasm e_sqlite3.a and its NativeFileReference. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
-    <!-- Note.Read, NoteModel and Note.CreateAsync are generated from the aggregate. -->
+    <!-- Note.Read, NoteModel and Note.Create are generated from the aggregate. -->
     <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

@@ -13,7 +13,7 @@ All five are `protected virtual` on `Component`:
 
 ```csharp
 protected override async Task OnMount()       => _items = await LoadItems();          // once, before the first render
-protected override async Task OnUpdated()     => _product = await Product.Find(Id);   // new props arrived (and on mount)
+protected override async Task OnUpdated()     => _product = await Product.Read.Where(p => p.Id == Id).FirstOrDefaultAsync();   // new props arrived (and on mount)
 protected override async Task OnFirstRendered() => await _map.Init(_center);            // once, after the first render
 protected override async Task OnRendered()    => await _map.Refresh(_markers);        // after every render
 protected override async Task OnUnmount()     => await _socket.Close();               // once, on the way out

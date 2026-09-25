@@ -7,7 +7,7 @@ namespace Rask.Auth;
 /// <remarks>
 /// Two, deliberately: the first account to register is an <see cref="Admin"/> and every account after it is a
 /// <see cref="User"/>. Anything richer is the app's own: a role is just a name a user holds, so granting a new one is
-/// <c>User.UpdateAsync(id, u =&gt; u.GrantRole("editor"))</c>.
+/// <c>User.Update(id, u =&gt; u.GrantRole("editor"))</c>.
 /// </remarks>
 public static class RaskRoles
 {

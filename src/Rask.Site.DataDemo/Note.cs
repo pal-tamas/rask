@@ -5,7 +5,7 @@ namespace Rask.Site.DataDemo;
 
 /// <summary>
 ///     The one aggregate: a note with a title and a body. That is the whole declaration — the generator writes
-///     <c>NoteModel</c> for the form, <c>Note.CreateAsync(model)</c> to save it and <c>Note.Read</c> to query it.
+///     <c>NoteModel</c> for the form, <c>Note.Create(model)</c> to save it and <c>Note.Read</c> to query it.
 /// </summary>
 public sealed class Note : Aggregate<Guid>
 {

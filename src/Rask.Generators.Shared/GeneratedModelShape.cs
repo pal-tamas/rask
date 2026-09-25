@@ -231,7 +231,7 @@ internal sealed class ModelShape(
     /// <remarks>
     ///     A model is what a form posts back, so a key on it is a key the client chooses: an edit could be
     ///     re-pointed at any row by changing one field (overposting). The id travels beside the model instead —
-    ///     <c>UpdateAsync(id, model)</c> — and a create never takes one. It is exposed here only for the generated
+    ///     <c>Update(id, model)</c> — and a create never takes one. It is exposed here only for the generated
     ///     create to assign a key EF Core would not generate.
     /// </remarks>
     public IPropertySymbol? Key { get; } = key;

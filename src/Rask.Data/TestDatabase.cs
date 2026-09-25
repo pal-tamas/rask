@@ -111,7 +111,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
     /// <remarks>
     ///     One long-lived, tracking context for the fixture's lifetime, so an entity added through it stays
-    ///     tracked here. The model surface (<c>Product.Where(…)</c>, <c>Product.FindAsync(id)</c>) opens contexts of
+    ///     tracked here. The model surface (<c>Product.Read.Where(…)</c>, <c>Product.Create(model)</c>) opens contexts of
     ///     its own and sees only what was saved.
     /// </remarks>
     public RaskDbContext Context => _schemaOwner;
@@ -125,8 +125,8 @@ public sealed class TestDatabase : IAsyncDisposable
     ///     </para>
     ///     <para>
     ///         <b>Deliberately a fixture member and not an aggregate one.</b> An application does not need
-    ///         this: it shows rows with <c>Product.Read</c>, fills a form with <c>Product.ModelAsync(id)</c>
-    ///         and changes one with <c>Product.UpdateAsync(id, …)</c> or a context it saves. Asserting that a
+    ///         this: it shows rows with <c>Product.Read</c>, fills a form with <c>Product.Model(id)</c>
+    ///         and changes one with <c>Product.Update(id, …)</c> or a context it saves. Asserting that a
     ///         save really happened is a test's need, so it lives on the test fixture.
     ///     </para>
     /// </remarks>

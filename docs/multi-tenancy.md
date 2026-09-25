@@ -74,7 +74,7 @@ A user with no tenant — an administrator — carries no claim, and is covered 
 ```csharp
 using (Tenant.Use(acmeId))          // work as this tenant
 {
-    await Invoice.CreateAsync(model);
+    await Invoice.Create(model);
 }
 
 using (Tenant.Across())             // deliberately span tenants — an admin tool, a migration

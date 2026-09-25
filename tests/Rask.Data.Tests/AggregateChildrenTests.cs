@@ -93,7 +93,7 @@ public sealed class AggregateChildrenTests : IDisposable
         _clock.UtcNow = _clock.UtcNow.AddHours(1);
 
         // The root's own columns are untouched: only the line changes.
-        await Basket.UpdateAsync(id, o => o.Lines.First(l => l.Product == "apple").SetQuantity(9));
+        await Basket.Update(id, o => o.Lines.First(l => l.Product == "apple").SetQuantity(9));
 
         var after = (await database.LoadAsync<Basket>(id))!;
 
@@ -112,7 +112,7 @@ public sealed class AggregateChildrenTests : IDisposable
         var id = await OpenBasketAsync(database);
         var before = (await database.LoadAsync<Basket>(id))!.Version;
 
-        await Basket.UpdateAsync(id, o => o.Add("plum", 2));
+        await Basket.Update(id, o => o.Add("plum", 2));
 
         Assert.Equal(before + 1, (await database.LoadAsync<Basket>(id))!.Version);
     }
@@ -127,7 +127,7 @@ public sealed class AggregateChildrenTests : IDisposable
         var id = await OpenBasketAsync(database);
         var before = (await database.LoadAsync<Basket>(id))!.Version;
 
-        await Basket.UpdateAsync(id, o => o.Remove(o.Lines.First(l => l.Product == "pear")));
+        await Basket.Update(id, o => o.Remove(o.Lines.First(l => l.Product == "pear")));
 
         var after = (await database.LoadAsync<Basket>(id))!;
 
@@ -149,7 +149,7 @@ public sealed class AggregateChildrenTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await OpenBasketAsync(database);
 
-        await Basket.UpdateAsync(id, b => b.Remove(b.Lines.First(l => l.Product == "pear")));
+        await Basket.Update(id, b => b.Remove(b.Lines.First(l => l.Product == "pear")));
 
         await using var context = new RaskDbContext(
             new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
@@ -169,10 +169,10 @@ public sealed class AggregateChildrenTests : IDisposable
         var id = await OpenBasketAsync(database);
         var stale = (await database.LoadAsync<Basket>(id))!.Version;
 
-        await Basket.UpdateAsync(id, o => o.Lines.First().SetQuantity(4));
+        await Basket.Update(id, o => o.Lines.First().SetQuantity(4));
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
-            () => GeneratedModelWrites.UpdateAsync<Basket>(
+            () => GeneratedModelWrites.Update<Basket>(
                 id, stale, o => o.Lines.First().SetQuantity(5)));
     }
 
@@ -185,7 +185,7 @@ public sealed class AggregateChildrenTests : IDisposable
         var before = (await database.LoadAsync<Basket>(id))!.Version;
 
         // Loads the whole aggregate and saves without changing anything.
-        await Basket.UpdateAsync(id, _ => { });
+        await Basket.Update(id, _ => { });
 
         Assert.Equal(before, (await database.LoadAsync<Basket>(id))!.Version);
     }

@@ -14,7 +14,7 @@ namespace Rask.Data;
 ///     <para>
 ///         Shared because two callers need exactly this and must not disagree about it:
 ///         <see cref="TestDatabase.LoadAsync{TEntity}(object, CancellationToken)" />, which is what a test
-///         asserts a write with, and the generated <c>Product.ModelAsync(id)</c>, which is what an edit form
+///         asserts a write with, and the generated <c>Product.Model(id)</c>, which is what an edit form
 ///         is filled from. A test that loaded a row the application could not would be a test of nothing.
 ///     </para>
 ///     <para>

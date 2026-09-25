@@ -23,9 +23,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   its DataAnnotations and `Version` carried and the key left out, so `Form.Model(model)` validates by the
   aggregate's own rules. `new ProductModel()` holds the aggregate's defaults and `product.ToModel()` fills an edit
   form.
-- **Writes off the type**: creates read like their updates: `Product.CreateAsync(model)` /
-  `Product.UpdateAsync(id, model)`, `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)`, plus
-  `Product.CreateAsync(entity)` for one built by a factory and `Product.DeleteAsync(id)`, which removes the row (or stamps `DeletedAt` under
+- **Writes off the type**: creates read like their updates: `Product.Create(model)` /
+  `Product.Update(id, model)`, `Product.Create(p => …)` / `Product.Update(id, p => …)`, plus
+  `Product.Create(entity)` for one built by a factory and `Product.Delete(id)`, which removes the row (or stamps `DeletedAt` under
   `Deletion.Soft`; `Deletion.None` generates no delete at all). A save
   writes what the form holds; values that do not come from the form go in an optional `p => …`; the id is always
   the caller's, never the form's; a stale `Version` is refused. Each takes an optional `DbContext` to join a
@@ -64,9 +64,9 @@ public sealed record Money(decimal Amount, string Currency);
 var products = await Product.Read.OrderBy(p => p.Name).ToListAsync();
 
 // write: off the type too; the form model carries the values, the id is yours
-var product = await Product.CreateAsync(model);
-await Product.UpdateAsync(product.Id, edit);   // only changed columns; a stale Version throws
-await Product.DeleteAsync(product.Id);         // removes the row
+var product = await Product.Create(model);
+await Product.Update(product.Id, edit);        // only changed columns; a stale Version throws
+await Product.Delete(product.Id);              // removes the row
 
 // anything richer: plain EF Core, one context, one transaction (the writes above join it with db: db)
 await using var db = await contexts.CreateDbContextAsync(ct);

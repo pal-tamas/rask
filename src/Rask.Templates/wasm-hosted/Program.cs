@@ -275,7 +275,7 @@ builder.Services.AddAuthorization(o =>
 var app = builder.Build();
 // rask:if cqrs data
 // Point the model surface at the context registered above. This is what lets a model be read
-// from anywhere — Product.Read.Where(…), Product.CreateAsync(model) — with no DbContext injected.
+// from anywhere — Product.Read.Where(…), Product.Create(model) — with no DbContext injected.
 Db.Configure(app.Services);
 // rask:end
 // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below

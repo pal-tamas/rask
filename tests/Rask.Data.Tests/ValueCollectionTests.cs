@@ -141,7 +141,7 @@ public sealed class ValueCollectionTests : IDisposable
         await database.Context.SaveChangesAsync();
 
         // The edit shape, as a form reads it: plain values as themselves, value objects as nested models.
-        var model = await Journey.ModelAsync(journey.Id);
+        var model = await Journey.Model(journey.Id);
         Assert.NotNull(model);
         Assert.Equal(["urgent"], model.Tags);
         Assert.Equal([("Vienna", 1)], model.Waypoints.Select(w => (w.City, w.Day)));
@@ -151,7 +151,7 @@ public sealed class ValueCollectionTests : IDisposable
         model.Tags = ["calm", "slow"];
         model.Waypoints.Add(new JourneyModel.WaypointModel { City = "Prague", Day = 2 });
 
-        await Journey.UpdateAsync(journey.Id, model);
+        await Journey.Update(journey.Id, model);
 
         await using var fresh = new RaskDbContext(Options());
         var saved = await fresh.Set<Journey>().SingleAsync();
@@ -171,11 +171,11 @@ public sealed class ValueCollectionTests : IDisposable
         database.Context.Add(journey);
         await database.Context.SaveChangesAsync();
 
-        var model = await Journey.ModelAsync(journey.Id);
+        var model = await Journey.Model(journey.Id);
         model!.Tags = [];
         model.Waypoints = [];
 
-        await Journey.UpdateAsync(journey.Id, model);
+        await Journey.Update(journey.Id, model);
 
         await using var fresh = new RaskDbContext(Options());
         var saved = await fresh.Set<Journey>().SingleAsync();

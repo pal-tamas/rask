@@ -102,6 +102,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask.Data's verbs drop `Async`: `Product.Create(model)`, `Update`, `Delete`, `Model`.** An aggregate is
+  written with `await Product.Create(model)`, `await Product.Update(id, model)`, `await Product.Delete(id, version)`
+  and its edit form filled with `await Product.Model(id)`, where it used to be `CreateAsync`/`UpdateAsync`/
+  `DeleteAsync`/`ModelAsync` — the same parameters (`db:`, `cancellationToken:` included), return types and
+  behaviour, now named like the rest of the framework (`Mail.Send`, `Cache.Remember`). It is a rename with no alias:
+  the old names are gone, so replace them at each call site. `Product.Create(entity)` for an aggregate its own
+  factory built is renamed the same way; a static `CreateAsync`/`DeleteAsync` you declared on an aggregate to replace
+  the generated write must be renamed too, or the generated one is what every call site now reaches. EF
+  Core's own `…Async` methods (`SaveChangesAsync`, `FindAsync`, `ToListAsync`, `FirstOrDefaultAsync`) are unchanged.
 - **An event is `Callback<T>`, not `Callback<T>?`, and fires with `await OnRate.Invoke(n)`.** A component declares
   `public Callback<int> OnRate { get; set; }` and calls it back with one await, where it used to write
   `if (OnRate?.Invoke(n) is { } t) await t;`. An unset callback is a no-op, and a non-nullable `Callback`,

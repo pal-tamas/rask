@@ -43,7 +43,7 @@ public sealed class ChildFormSyncTests : IDisposable
         var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.Single(l => l.Product == "apple").Quantity = 9;
 
-        await Basket.UpdateAsync(id, model);
+        await Basket.Update(id, model);
 
         var after = (await database.LoadAsync<Basket>(id))!;
         Assert.Equal(9, after.Lines.Single(l => l.Product == "apple").Quantity);
@@ -59,7 +59,7 @@ public sealed class ChildFormSyncTests : IDisposable
         var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.Add(new BasketLineModel { Product = "plum", Quantity = 4 });
 
-        await Basket.UpdateAsync(id, model);
+        await Basket.Update(id, model);
 
         var after = (await database.LoadAsync<Basket>(id))!;
         Assert.Equal(["apple", "pear", "plum"], after.Lines.Select(l => l.Product).Order(StringComparer.Ordinal));
@@ -75,7 +75,7 @@ public sealed class ChildFormSyncTests : IDisposable
         var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.RemoveAll(l => l.Product == "pear");
 
-        await Basket.UpdateAsync(id, model);
+        await Basket.Update(id, model);
 
         Assert.Equal(["apple"], (await database.LoadAsync<Basket>(id))!.Lines.Select(l => l.Product));
     }
@@ -90,7 +90,7 @@ public sealed class ChildFormSyncTests : IDisposable
         var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.Clear();
 
-        await Basket.UpdateAsync(id, model);
+        await Basket.Update(id, model);
 
         Assert.Empty((await database.LoadAsync<Basket>(id))!.Lines);
     }
@@ -112,7 +112,7 @@ public sealed class ChildFormSyncTests : IDisposable
         model.Lines.Clear();
         model.Lines.Add(new BasketLineModel { Id = stolen, Product = "forged", Quantity = 1 });
 
-        await Basket.UpdateAsync(mine, model);
+        await Basket.Update(mine, model);
 
         var updated = (await database.LoadAsync<Basket>(mine))!;
         var untouched = (await database.LoadAsync<Basket>(theirs))!;
@@ -136,7 +136,7 @@ public sealed class ChildFormSyncTests : IDisposable
         var model = before.ToModel();
         model.Lines.Single(l => l.Product == "pear").Quantity = 7;
 
-        await Basket.UpdateAsync(id, model);
+        await Basket.Update(id, model);
 
         Assert.Equal(before.Version + 1, (await database.LoadAsync<Basket>(id))!.Version);
     }

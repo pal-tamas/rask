@@ -80,7 +80,7 @@
         and ModelRegistry.Apply maps every contribution — so Session and Passkey would map into every app
         that merely references the package, `c.Auth.Off()` included, and a second time for one that calls
         AddRaskAuth;
-      * the form surface would ship a public PasskeyModel and Passkey.CreateAsync(model) — a form-shaped way
+      * the form surface would ship a public PasskeyModel and Passkey.Create(model) — a form-shaped way
         to mint a passkey, beside the WebAuthn ceremony that exists to prevent exactly that.
 
     What is left is SessionRead/PasskeyRead and Session.Read/Passkey.Read, which map into the READ context

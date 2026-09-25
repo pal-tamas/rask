@@ -157,7 +157,7 @@ internal static class RaskBatteryWiring
             services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
 
             // A write refreshes the queries about what it wrote, on the screen of the session that made it:
-            // Person.CreateAsync(model) refetches QueryKey.For<Person> queries with no invalidation to write.
+            // Person.Create(model) refetches QueryKey.For<Person> queries with no invalidation to write.
             // Rask.Query is always here with data — both need the mediator — and the scope is the same one
             // SessionDataScope makes ambient.
             services.AddScoped<IDataChanges, QueryDataChanges>();

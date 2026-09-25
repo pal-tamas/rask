@@ -15,9 +15,9 @@ namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
-/// the writes that take it: <c>Product.CreateAsync(id, model)</c>, <c>Product.CreateAsync(model)</c> where a key
-/// can be produced without the caller, <c>Product.UpdateAsync(id, model)</c>, <c>Product.UpdateAsync(id, apply)</c>
-/// and <c>Product.DeleteAsync(id, version)</c> — unless the aggregate declares <c>Deletes = Deletion.None</c>. Every write takes an optional <c>apply</c> (values that do not come
+/// the writes that take it: <c>Product.Create(id, model)</c>, <c>Product.Create(model)</c> where a key
+/// can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
+/// and <c>Product.Delete(id, version)</c> — unless the aggregate declares <c>Deletes = Deletion.None</c>. Every write takes an optional <c>apply</c> (values that do not come
 /// from the form) where it builds or edits a row, and an optional <c>db</c> to join a caller's context.
 /// </summary>
 /// <remarks>
@@ -28,7 +28,7 @@ namespace Rask.Batteries.Generators;
 /// </para>
 /// <para>
 /// <b>The model carries no key.</b> It is what a form posts back, so a key on it would be one the client
-/// chooses. The id travels beside it — <c>UpdateAsync(id, model)</c> — and a create takes none.
+/// chooses. The id travels beside it — <c>Update(id, model)</c> — and a create takes none.
 /// </para>
 /// <para>
 /// <b>An entity keeps its private setters and needs no <c>partial</c>.</b> Values are written through
@@ -65,17 +65,17 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     // RASK081 said this before the writes were dropped; a retired id is never recycled, so the rule returned as RASK086.
     internal static readonly DiagnosticDescriptor Rask086 = new(
         "RASK086",
-        "Aggregate has no parameterless constructor, so CreateAsync is not generated",
+        "Aggregate has no parameterless constructor, so Create is not generated",
         "'{0}' declares a constructor that takes arguments, so it has no parameterless one and no generated "
-        + "'{0}.CreateAsync' — from a '{0}Model' or a 'p => …' — exists; declare no constructor and build it in a "
-        + "static factory instead, or insert one you built with '{0}.CreateAsync(entity)'",
+        + "'{0}.Create' — from a '{0}Model' or a 'p => …' — exists; declare no constructor and build it in a "
+        + "static factory instead, or insert one you built with '{0}.Create(entity)'",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "Every generated CreateAsync — and a new form model's defaults — starts from an empty aggregate, "
+        description: "Every generated Create — and a new form model's defaults — starts from an empty aggregate, "
                      + "which needs a constructor that takes nothing. An aggregate that declares no constructor has "
                      + "one for free; domain creation belongs in a static factory. Everything that works on a row that "
-                     + "already exists — the model itself, UpdateAsync and DeleteAsync — is still generated.",
+                     + "already exists — the model itself, Update and Delete — is still generated.",
         helpLinkUri: DiagnosticHelp.Link("RASK086"));
 
     internal static readonly DiagnosticDescriptor Rask087 = new(
@@ -115,7 +115,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         "RASK082",
         "A type already has the generated model's name",
         "'{1}' already exists beside the entity '{0}', so Rask cannot generate its form model or the "
-        + "CreateAsync, UpdateAsync and DeleteAsync that take it; rename the existing type, declare it "
+        + "Create, Update and Delete that take it; rename the existing type, declare it "
         + "'partial' to extend the generated one",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
@@ -247,7 +247,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
     /// <summary>
     ///     False when the aggregate declares <c>public const Deletion Deletes = Deletion.None</c> — a row that is
-    ///     corrected by a new one or retired by a state change, never removed, and so gets no <c>DeleteAsync</c>.
+    ///     corrected by a new one or retired by a state change, never removed, and so gets no <c>Delete</c>.
     /// </summary>
     private static bool DeletableOf(INamedTypeSymbol symbol)
     {
@@ -368,13 +368,13 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             + "|" + kind;
     }
 
-    // Who can produce the key of a row inserted WITHOUT one — which decides whether CreateAsync(model) exists.
+    // Who can produce the key of a row inserted WITHOUT one — which decides whether Create(model) exists.
     //  * A Guid: this code, as a version-7 Guid (time-ordered, so the primary-key index stays append-only), and
     //    the same inside a strongly-typed id over a Guid.
     //  * An integer: the store's identity column. Rask.Data's key convention leaves integer keys store-generated
     //    and marks every other Entity<TId> key never-generated, so EF produces nothing else.
     //  * Anything else — a string, a strongly-typed id over an integer or a string — has no value the row could
-    //    be keyed by that the caller did not choose, so only CreateAsync(id, model) is generated for it.
+    //    be keyed by that the caller did not choose, so only Create(id, model) is generated for it.
     private static (KeySource Source, string? Factory) KeySourceOf(ITypeSymbol? idType)
     {
         if (idType is null)
@@ -746,7 +746,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             .AppendLine("\" />, generated by Rask from its mapped properties.</summary>");
         s.AppendLine("/// <remarks>");
         // Names only the writes this entity actually got — a model without a parameterless constructor has
-        // no CreateAsync at all, one whose key only the caller can supply has no id-less one, and one without
+        // no Create at all, one whose key only the caller can supply has no id-less one, and one without
         // no id has none to create or update by.
         // A child is created, changed and removed as part of the aggregate that holds it — never off its own
         // type — so it gets the model and the plumbing, and none of the writes.
@@ -755,17 +755,17 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         var writes = new List<string>();
         if (idLessCreate)
         {
-            writes.Add("<c>" + entity.Name + ".CreateAsync(model)</c>");
+            writes.Add("<c>" + entity.Name + ".Create(model)</c>");
         }
 
         if (createWithId)
         {
-            writes.Add("<c>" + entity.Name + ".CreateAsync(id, model)</c>");
+            writes.Add("<c>" + entity.Name + ".Create(id, model)</c>");
         }
 
         if (!entity.IsChild && entity.IdTypeName is not null)
         {
-            writes.Add("<c>" + entity.Name + ".UpdateAsync(id, model)</c>");
+            writes.Add("<c>" + entity.Name + ".Update(id, model)</c>");
         }
 
         s.Append("/// Bind it with <c>Form.Model(model)</c>")
@@ -899,8 +899,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.Append("    extension(").Append(entityType).AppendLine(")");
         s.AppendLine("    {");
 
-        // Creates mirror the updates: `CreateAsync(model, apply?)` beside `UpdateAsync(id, model, apply?)`, and
-        // `CreateAsync(apply)` beside `UpdateAsync(id, apply)` for a row with no form behind it.
+        // Creates mirror the updates: `Create(model, apply?)` beside `Update(id, model, apply?)`, and
+        // `Create(apply)` beside `Update(id, apply)` for a row with no form behind it.
         if (idLessCreate)
         {
             var createMark = s.Length;
@@ -912,7 +912,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
             s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
             AppendKeyRemarks(s, entity);
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> CreateAsync(")
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(")
                 .Append(modelType).Append(" model, ").Append(applyParameter).Append(DbParameter).Append(Token)
                 .AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
@@ -920,7 +920,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             AppendNewEntity(s, entity, withId: false);
             s.AppendLine("            __Apply(entity, model);");
             s.AppendLine("            apply?.Invoke(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
+            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
 
@@ -933,13 +933,13 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
             s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
             AppendKeyRemarks(s, entity);
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> CreateAsync(global::System.Action<")
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(global::System.Action<")
                 .Append(entityType).Append("> apply, ").Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
             s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
             AppendNewEntity(s, entity, withId: false);
             s.AppendLine("            apply(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
+            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
         }
@@ -955,7 +955,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine(DbDoc);
             s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
             s.AppendLine("        /// <returns>The inserted entity.</returns>");
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> CreateAsync(")
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(")
                 .Append(entity.IdTypeName).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
                 .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
@@ -963,7 +963,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             AppendNewEntity(s, entity, withId: true);
             s.AppendLine("            __Apply(entity, model);");
             s.AppendLine("            apply?.Invoke(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
+            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
 
@@ -976,14 +976,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine(DbDoc);
             s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
             s.AppendLine("        /// <returns>The inserted entity.</returns>");
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> CreateAsync(")
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(")
                 .Append(entity.IdTypeName).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ")
                 .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
             s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
             AppendNewEntity(s, entity, withId: true);
             s.AppendLine("            apply(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
+            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
         }
@@ -1011,12 +1011,12 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 s.AppendLine(ConflictDoc);
             }
 
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> UpdateAsync(")
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Update(")
                 .Append(idType).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
                 .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
             s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-            s.Append("            return ").Append(Writes).Append(".UpdateAsync<").Append(entityType)
+            s.Append("            return ").Append(Writes).Append(".Update<").Append(entityType)
                 .Append(">(id!, ").Append(version)
                 .AppendLine(", entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);");
             s.AppendLine("        }");
@@ -1024,7 +1024,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
             Keep(formUpdate, updateMark);
 
-            // The write with no form behind it: `Product.UpdateAsync(id, p => p.ShippedAt = now)`.
+            // The write with no form behind it: `Product.Update(id, p => p.ShippedAt = now)`.
             s.Append("        /// <summary>Loads the stored <see cref=\"").Append(entityType)
                 .AppendLine("\" /> with <paramref name=\"id\" />, applies <paramref name=\"apply\" /> and saves — only the values that changed.</summary>");
             s.AppendLine("        /// <param name=\"id\">The id of the row to update.</param>");
@@ -1043,7 +1043,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 s.AppendLine(ConflictDoc);
             }
 
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> UpdateAsync(")
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Update(")
                 .Append(idType).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ");
             if (entity.Versioned)
             {
@@ -1051,7 +1051,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             }
 
             s.Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default) =>");
-            s.Append("            ").Append(Writes).Append(".UpdateAsync<").Append(entityType).Append(">(id!, ")
+            s.Append("            ").Append(Writes).Append(".Update<").Append(entityType).Append(">(id!, ")
                 .Append(entity.Versioned ? "version" : "null").AppendLine(", apply, db, cancellationToken);");
             s.AppendLine();
 
@@ -1069,19 +1069,19 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine(DbDoc);
             s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
             s.AppendLine(NotFoundDoc);
-            s.Append("        public static ").Append(Task).Append(" DeleteAsync(").Append(idType).Append(" id, ");
+            s.Append("        public static ").Append(Task).Append(" Delete(").Append(idType).Append(" id, ");
             if (entity.Versioned)
             {
                 s.Append("int? version = null, ");
             }
 
             s.Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default) =>");
-            s.Append("            ").Append(Writes).Append(".DeleteAsync<").Append(entityType).Append(">(id!, ")
+            s.Append("            ").Append(Writes).Append(".Delete<").Append(entityType).Append(">(id!, ")
                 .Append(entity.Versioned ? "version" : "null").AppendLine(", db, cancellationToken);");
             s.AppendLine();
             Keep(entity.Deletable, deleteMark);
 
-            var modelAsyncMark = s.Length;
+            var modelFillMark = s.Length;
 
             // The form loop's fill. Deliberately not a read-face query: the read face is flat primitives and
             // the form model keeps value objects nested, so this loads the aggregate and reuses __Fill rather
@@ -1099,15 +1099,15 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine("        ///     row is not found, exactly as it is not found by a query.");
             s.AppendLine("        /// </remarks>");
             s.Append("        public static async ").Append(Task).Append('<').Append(modelType)
-                .Append("?> ModelAsync(").Append(idType).Append(" id, ").Append(DbParameter).Append(Token)
+                .Append("?> Model(").Append(idType).Append(" id, ").Append(DbParameter).Append(Token)
                 .AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
-            s.Append("            var entity = await ").Append(Writes).Append(".ModelSourceAsync<").Append(entityType)
+            s.Append("            var entity = await ").Append(Writes).Append(".ModelSource<").Append(entityType)
                 .AppendLine(">(id!, db, cancellationToken).ConfigureAwait(false);");
             s.AppendLine("            return entity?.ToModel();");
             s.AppendLine("        }");
 
-            Keep(formModel, modelAsyncMark);
+            Keep(formModel, modelFillMark);
         }
 
         s.AppendLine("    }");
@@ -1346,7 +1346,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         }
     }
 
-    // CreateAsync(model) exists only where a key can be produced without the caller (see KeySourceOf); the Guid
+    // Create(model) exists only where a key can be produced without the caller (see KeySourceOf); the Guid
     // case needs a way into Entity<TId>.Id to put it there.
     private static bool IdLessCreate(Entity entity) =>
         entity.Constructible && entity.KeySource switch
@@ -1682,7 +1682,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         Clash,
     }
 
-    // Who produces the key of a row CreateAsync(model) inserts. See KeySourceOf.
+    // Who produces the key of a row Create(model) inserts. See KeySourceOf.
     private enum KeySource
     {
         None,

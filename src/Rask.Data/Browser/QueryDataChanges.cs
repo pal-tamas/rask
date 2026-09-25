@@ -3,7 +3,7 @@ using Rask.Query;
 namespace Rask.Data;
 
 /// <summary>
-///     Refreshes the session's queries about whatever a save wrote: <c>Person.CreateAsync(model)</c>
+///     Refreshes the session's queries about whatever a save wrote: <c>Person.Create(model)</c>
 ///     refetches every <c>QueryKey.For&lt;Person&gt;(…)</c> query on this session's screen.
 /// </summary>
 /// <remarks>

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data;
 
 /// <summary>
-///     Puts the writes on the model type itself, so <c>Product.CreateAsync(entity)</c> needs no
+///     Puts the writes on the model type itself, so <c>Product.Create(entity)</c> needs no
 ///     <see cref="DbContext" /> in scope to reach it through.
 /// </summary>
 /// <remarks>
@@ -34,27 +34,27 @@ namespace Rask.Data;
 ///         </item>
 ///         <item>
 ///             <description>
-///                 <b>Fill a form</b> — <c>Product.ModelAsync(id)</c>, which is the edit shape the generated
+///                 <b>Fill a form</b> — <c>Product.Model(id)</c>, which is the edit shape the generated
 ///                 model declares, nested value objects and children included.
 ///             </description>
 ///         </item>
 ///         <item>
 ///             <description>
-///                 <b>Load it to change it</b> — <c>Product.UpdateAsync(id, p =&gt; p.Rename(name))</c>, or a
+///                 <b>Load it to change it</b> — <c>Product.Update(id, p =&gt; p.Rename(name))</c>, or a
 ///                 context when the decision needs the row in hand first.
 ///             </description>
 ///         </item>
 ///     </list>
 ///     <para>
-///         <b>Writes stay on the type.</b> <c>Product.CreateAsync(entity)</c> is here; the source generator
-///         adds the form-model writes beside the entity — <c>Product.CreateAsync(ProductModel)</c>,
-///         <c>Product.UpdateAsync(id, ProductModel)</c>, <c>Product.DeleteAsync(id)</c>. Each goes through the
+///         <b>Writes stay on the type.</b> <c>Product.Create(entity)</c> is here; the source generator
+///         adds the form-model writes beside the entity — <c>Product.Create(ProductModel)</c>,
+///         <c>Product.Update(id, ProductModel)</c>, <c>Product.Delete(id)</c>. Each goes through the
 ///         change tracker, so the interceptors always run, and each takes an optional context to join. Plain
 ///         EF Core through an injected context stays available for anything richer.
 ///     </para>
 ///     <para>
 ///         A member declared on the entity itself always wins over one of these, so an entity with its own
-///         static <c>CreateAsync</c> keeps it.
+///         static <c>Create</c> keeps it.
 ///     </para>
 /// </remarks>
 public static class ModelSet
@@ -65,7 +65,7 @@ public static class ModelSet
         /// <summary>Inserts an entity the caller built — through its own factory and methods — and saves.</summary>
         /// <remarks>
         ///     The domain-operation form of create: the entity's constructor keeps its invariants, and Rask only
-        ///     persists it. A form's values go through the generated <c>Product.CreateAsync(ProductModel)</c>
+        ///     persists it. A form's values go through the generated <c>Product.Create(ProductModel)</c>
         ///     instead.
         /// </remarks>
         /// <param name="entity">The entity to insert.</param>
@@ -75,10 +75,10 @@ public static class ModelSet
         /// </param>
         /// <param name="cancellationToken">Cancels the save.</param>
         /// <returns>The inserted entity, with any store-generated key filled in.</returns>
-        public static Task<TEntity> CreateAsync(
+        public static Task<TEntity> Create(
             TEntity entity,
             DbContext? db = null,
             CancellationToken cancellationToken = default) =>
-            GeneratedModelWrites.CreateAsync(entity, db, cancellationToken);
+            GeneratedModelWrites.Create(entity, db, cancellationToken);
     }
 }

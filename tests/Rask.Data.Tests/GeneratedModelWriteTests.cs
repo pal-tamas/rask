@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-// GeneratedModelWrites is the persistence half that the generated Product.CreateAsync / UpdateAsync /
-// DeleteAsync call into. These drive it directly, against a real SQLite file with the interceptors the
+// GeneratedModelWrites is the persistence half that the generated Product.Create / Update /
+// Delete call into. These drive it directly, against a real SQLite file with the interceptors the
 // fixture wires, so what is pinned is what every generated write inherits: one context per call, the
 // change tracker in the middle (stamps, versions, soft delete), and the optimistic-concurrency check a
 // caller's version turns on.
@@ -24,7 +24,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("anvil"));
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"));
 
         Assert.Equal(Start.UtcDateTime, widget.CreatedAt);
 
@@ -41,10 +41,10 @@ public sealed class GeneratedModelWriteTests : IDisposable
     public async Task Update_writes_the_change_and_bumps_Version_and_UpdatedAt()
     {
         await using var database = await StartDatabaseAsync();
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("anvil"));
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"));
 
         _clock.UtcNow = Start.AddHours(2);
-        var updated = await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: 0, w => w.Rename("hammer"));
+        var updated = await GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("hammer"));
 
         Assert.Equal(1, updated.Version);
 
@@ -61,9 +61,9 @@ public sealed class GeneratedModelWriteTests : IDisposable
         // Another writer renames the order between this write's load and its save. Writing only what
         // `apply` changed is what keeps their rename; writing the whole loaded row back would undo it.
         await using var database = await StartDatabaseAsync();
-        var order = await GeneratedModelWrites.CreateAsync(Order.Place("A-1"));
+        var order = await GeneratedModelWrites.Create(Order.Place("A-1"));
 
-        await GeneratedModelWrites.UpdateAsync<Order>(order.Id, version: null, loaded =>
+        await GeneratedModelWrites.Update<Order>(order.Id, version: null, loaded =>
         {
             database.Context.Set<Order>()
                 .Where(o => o.Id == order.Id)
@@ -81,12 +81,12 @@ public sealed class GeneratedModelWriteTests : IDisposable
     public async Task Update_at_a_stale_version_is_refused_and_leaves_the_other_writers_row()
     {
         await using var database = await StartDatabaseAsync();
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("original"));
-        await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: 0, w => w.Rename("first-edit"));
+        var widget = await GeneratedModelWrites.Create(Widget.Create("original"));
+        await GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("first-edit"));
 
         // Still holding version 0, from before the first edit.
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
-            GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: 0, w => w.Rename("stale-edit")));
+            GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("stale-edit")));
 
         var stored = await database.LoadAsync<Widget>(widget.Id);
         Assert.Equal("first-edit", stored!.Name);
@@ -97,10 +97,10 @@ public sealed class GeneratedModelWriteTests : IDisposable
     public async Task Update_without_a_version_skips_the_check()
     {
         await using var database = await StartDatabaseAsync();
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("original"));
-        await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: 0, w => w.Rename("first-edit"));
+        var widget = await GeneratedModelWrites.Create(Widget.Create("original"));
+        await GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("first-edit"));
 
-        await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: null, w => w.Rename("last-edit"));
+        await GeneratedModelWrites.Update<Widget>(widget.Id, version: null, w => w.Rename("last-edit"));
 
         var stored = await database.LoadAsync<Widget>(widget.Id);
         Assert.Equal("last-edit", stored!.Name);
@@ -113,20 +113,20 @@ public sealed class GeneratedModelWriteTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            GeneratedModelWrites.UpdateAsync<Widget>(Guid.NewGuid(), version: null, _ => { }));
+            GeneratedModelWrites.Update<Widget>(Guid.NewGuid(), version: null, _ => { }));
     }
 
     [Fact]
     public async Task A_soft_deleted_row_is_not_there_to_update_or_delete_again()
     {
         await using var database = await StartDatabaseAsync();
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("doomed"));
-        await GeneratedModelWrites.DeleteAsync<Widget>(widget.Id, version: null);
+        var widget = await GeneratedModelWrites.Create(Widget.Create("doomed"));
+        await GeneratedModelWrites.Delete<Widget>(widget.Id, version: null);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: null, w => w.Rename("revived")));
+            GeneratedModelWrites.Update<Widget>(widget.Id, version: null, w => w.Rename("revived")));
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            GeneratedModelWrites.DeleteAsync<Widget>(widget.Id, version: null));
+            GeneratedModelWrites.Delete<Widget>(widget.Id, version: null));
     }
 
     // ---- delete -----------------------------------------------------------------------------------
@@ -135,10 +135,10 @@ public sealed class GeneratedModelWriteTests : IDisposable
     public async Task Delete_soft_deletes_an_aggregate()
     {
         await using var database = await StartDatabaseAsync();
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("doomed"));
+        var widget = await GeneratedModelWrites.Create(Widget.Create("doomed"));
 
         _clock.UtcNow = Start.AddHours(1);
-        await GeneratedModelWrites.DeleteAsync<Widget>(widget.Id, version: 0);
+        await GeneratedModelWrites.Delete<Widget>(widget.Id, version: 0);
 
         Assert.Equal(0, await Widget.Read.CountAsync());
 
@@ -152,11 +152,11 @@ public sealed class GeneratedModelWriteTests : IDisposable
     public async Task Delete_at_a_stale_version_is_refused_and_the_row_stays()
     {
         await using var database = await StartDatabaseAsync();
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("contested"));
-        await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: 0, w => w.Rename("edited"));
+        var widget = await GeneratedModelWrites.Create(Widget.Create("contested"));
+        await GeneratedModelWrites.Update<Widget>(widget.Id, version: 0, w => w.Rename("edited"));
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
-            GeneratedModelWrites.DeleteAsync<Widget>(widget.Id, version: 0));
+            GeneratedModelWrites.Delete<Widget>(widget.Id, version: 0));
 
         Assert.Equal(1, await Widget.Read.CountAsync());
     }
@@ -164,9 +164,9 @@ public sealed class GeneratedModelWriteTests : IDisposable
     [Fact]
     public async Task Delete_of_a_Deletion_None_aggregate_is_refused_before_anything_is_opened()
     {
-        // The generated JournalLine.DeleteAsync does not exist; this is the direct call into the write half.
+        // The generated JournalLine.Delete does not exist; this is the direct call into the write half.
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            GeneratedModelWrites.DeleteAsync<JournalLine>(Guid.NewGuid(), version: null));
+            GeneratedModelWrites.Delete<JournalLine>(Guid.NewGuid(), version: null));
 
         Assert.Contains("Deletion.None", refused.Message, StringComparison.Ordinal);
     }

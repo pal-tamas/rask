@@ -120,7 +120,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
 | [RASK084](#rask084) | Error | Model state can be changed from outside the type |
 | [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
-| [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `CreateAsync` is not generated |
+| [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `Create` is not generated |
 | [RASK087](#rask087) | Error | Aggregate reaches across a boundary instead of holding an id |
 | [RASK088](#rask088) | Warning | Child collection cannot be synced, so a save cannot add or remove one |
 | [RASK089](#rask089) | Warning | Id looks like a reference but no navigation was inferred |
@@ -1853,7 +1853,7 @@ public sealed partial class MuiToggle : ReactComponent
 ```
 
 ## RASK081
-*Retired.* It warned that an entity with no parameterless constructor got no generated `CreateAsync(model)`.
+*Retired.* It warned that an entity with no parameterless constructor got no generated `Create(model)`.
 The generated writes were dropped, and the id retired with them; when the writes came back, the same rule
 returned as [RASK086](#rask086). The id is retired, not reused.
 
@@ -1867,7 +1867,7 @@ Every aggregate gets a generated form model emitted beside it, in the same names
 hand-written, non-`partial` type of that name, often a request model written before the generator existed,
 would collide with it as `CS0101`, a message that names neither the generator nor the way out. So the
 generator stands down for that aggregate and says why: no `ProductModel` is generated, and neither are the
-`CreateAsync`, `UpdateAsync` and `DeleteAsync` that take it.
+`Create`, `Update` and `Delete` that take it.
 
 ```csharp
 public sealed class Product : Aggregate<Guid> { /* … */ }
@@ -1927,7 +1927,7 @@ public sealed class Product : Aggregate<Guid> { }      // ✓ gets ProductModel
 An aggregate, an entity and every value object they hold change only through their own methods, so their
 rules and their domain events stay in one place. A public setter lets any caller skip those methods. Nothing
 in Rask needs one: EF Core materialises through private setters, and the generated form model writes through
-them too (`Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`). So it is an error, not a hint.
+them too (`Product.Create(model)`, `Product.Update(id, model)`). So it is an error, not a hint.
 
 Checked: every class deriving from `Rask.Data.Entity<TId>` (and so every `Aggregate<TId>`), including your own
 abstract bases between them, and every value object one of them holds. A value object carries no marker: it
@@ -2042,11 +2042,11 @@ type split across several files, or a member that already has the field's name.
 
 ## RASK086
 
-**Aggregate has no parameterless constructor, so `CreateAsync` is not generated** · Warning
+**Aggregate has no parameterless constructor, so `Create` is not generated** · Warning
 
 Every `Aggregate<TId>` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
-([data guide](data.md#writing-create-update-delete)). `Product.CreateAsync(model)` and
-`Product.CreateAsync(p => …)` both start from a new, empty aggregate, and so does `new ProductModel()`, which
+([data guide](data.md#writing-create-update-delete)). `Product.Create(model)` and
+`Product.Create(p => …)` both start from a new, empty aggregate, and so does `new ProductModel()`, which
 holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
 no constructor has one for free. Declaring one that takes arguments removes it.
 
@@ -2070,9 +2070,9 @@ public sealed class Product : Aggregate<Guid>
 }
 ```
 
-An aggregate built by its factory is inserted with `Product.CreateAsync(Product.Create("Anvil"))`. Until the
+An aggregate built by its factory is inserted with `Product.Create(Product.Create("Anvil"))`. Until the
 constructor goes, everything that works on a row that already exists is still generated: `ProductModel`,
-`Product.UpdateAsync(id, model)`, `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`.
+`Product.Update(id, model)`, `Product.Update(id, p => …)` and `Product.Delete(id)`.
 
 This rule was RASK081 before the generated writes were dropped and brought back; a retired id is never
 recycled, so it returned under a new one.

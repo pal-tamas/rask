@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data;
 
 /// <summary>
-///     The persistence half of the writes on every model — <c>Product.CreateAsync(…)</c>,
-///     <c>Product.UpdateAsync(id, …)</c> and <c>Product.DeleteAsync(id)</c>.
+///     The persistence half of the writes on every model — <c>Product.Create(…)</c>,
+///     <c>Product.Update(id, …)</c> and <c>Product.Delete(id)</c>.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -36,7 +36,7 @@ public static class GeneratedModelWrites
     ///     <paramref name="db" /> given an integer key is still 0 until the caller saves; a Guid key was
     ///     assigned before the insert and is already there.
     /// </returns>
-    public static Task<TEntity> CreateAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+    public static Task<TEntity> Create<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         TEntity entity,
         DbContext? db = null,
         CancellationToken cancellationToken = default)
@@ -69,7 +69,7 @@ public static class GeneratedModelWrites
     /// <returns>The updated entity.</returns>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
-    public static Task<TEntity> UpdateAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+    public static Task<TEntity> Update<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         int? version,
         Action<TEntity> apply,
@@ -108,7 +108,7 @@ public static class GeneratedModelWrites
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
     /// <exception cref="InvalidOperationException">The aggregate declares <see cref="Deletion.None" />.</exception>
-    public static Task DeleteAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+    public static Task Delete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         int? version,
         DbContext? db = null,
@@ -117,7 +117,7 @@ public static class GeneratedModelWrites
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        // The generated Product.DeleteAsync is not emitted for such an aggregate; this closes the direct call.
+        // The generated Product.Delete is not emitted for such an aggregate; this closes the direct call.
         if (ConventionRegistry.DeletesFor(typeof(TEntity)) == Deletion.None)
         {
             throw new InvalidOperationException(
@@ -138,7 +138,7 @@ public static class GeneratedModelWrites
 
     /// <summary>
     ///     Loads the aggregate with <paramref name="key" /> whole and untracked — what
-    ///     <c>Product.ModelAsync(id)</c> fills a form from.
+    ///     <c>Product.Model(id)</c> fills a form from.
     /// </summary>
     /// <param name="key">The primary key of the row to load.</param>
     /// <param name="db">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>
@@ -149,7 +149,7 @@ public static class GeneratedModelWrites
     ///     while the read face is flat primitives. This loads the aggregate itself so the generated fill can
     ///     be reused verbatim, which is also why there is exactly one mapping to keep right.
     /// </remarks>
-    public static async Task<TEntity?> ModelSourceAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+    public static async Task<TEntity?> ModelSource<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         DbContext? db = null,
         CancellationToken cancellationToken = default)

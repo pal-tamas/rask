@@ -177,7 +177,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     /// <para>
     /// A line's quantity changing IS the order changing: the root's <c>UpdatedAt</c> becomes true again, and its
     /// <c>Version</c> moves, so a caller holding the version it read is refused — which is what makes
-    /// <c>UpdateAsync(id, version, …)</c> protect the whole aggregate rather than only the root's own columns.
+    /// <c>Update(id, version, …)</c> protect the whole aggregate rather than only the root's own columns.
     /// </para>
     /// <para>
     /// Only those two columns are flagged, never <c>State = Modified</c>. Marking the entry modified marks EVERY

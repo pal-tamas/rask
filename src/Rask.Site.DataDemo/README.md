@@ -3,7 +3,7 @@
 A small browser-WASM app that shows the whole Rask data stack running **inside the browser tab**:
 
 - a `Note : Aggregate<Guid>` (Rask.Data) in a real SQLite database, through EF Core;
-- `Note.CreateAsync(model)` from a kit form, and a list that refreshes itself because the save tells
+- `Note.Create(model)` from a kit form, and a list that refreshes itself because the save tells
   `Rask.Query` it wrote a `Note`;
 - `Note.Read.Search(text)` with `FullText.Highlight` / `FullText.Snippet`, rendered by `Ui.Highlight`;
 - `Rask.SQLite.Browser` keeping the database across reloads (IndexedDB snapshots every two seconds).
@@ -38,5 +38,5 @@ scripts/run-data-demo-e2e-local.sh                            # publish + Playwr
 
 `Program.cs` registers `AddRaskData<NotesDb>()` plus the two context factories, and `AddRaskQuery()`. Rask.Data's
 browser build does the rest, as a Rask server host does: it points `Db` at `NotesDb` before the first render, and a
-save inside the page's work refreshes the `QueryKey.For<Note>` queries — `App.cs` calls `Note.CreateAsync(note)`
+save inside the page's work refreshes the `QueryKey.For<Note>` queries — `App.cs` calls `Note.Create(note)`
 and nothing else ([#1137](https://github.com/pal-tamas/rask/issues/1137)).

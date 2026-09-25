@@ -26,7 +26,7 @@ public sealed class Order : Aggregate<Guid>
 }
 ```
 
-`Order` reads and writes the way `Product` does (`Order.Read.Where(…)`, `Order.CreateAsync(model)`,
+`Order` reads and writes the way `Product` does (`Order.Read.Where(…)`, `Order.Create(model)`,
 `Order.Read.AsQueryable()`) and gets its own generated `OrderModel`, with nothing to build.
 
 Look at `ProductId`. That is how an aggregate points at another one — an **id, never a navigation**, which is

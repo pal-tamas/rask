@@ -23,7 +23,7 @@ host.Services.AddRaskBrowserSqlite("notes", o =>
     o.RequestPersistentStorage = false;
 });
 
-// Rask.Data over it: the interceptors, NotesDb named as the context Note.CreateAsync writes through, and — in the
+// Rask.Data over it: the interceptors, NotesDb named as the context Note.Create writes through, and — in the
 // browser — a save that refreshes the Rask.Query queries about what it wrote.
 host.Services.AddRaskData<NotesDb>();
 host.Services.AddDbContextFactory<NotesDb>((sp, o) => o

@@ -68,7 +68,7 @@ public static partial class RaskDataServiceCollectionExtensions
     /// <summary>
     ///     Registers the interceptors as <see cref="AddRaskData" /> does, and binds
     ///     <typeparamref name="TContext" /> as the context the model surface opens — the one behind
-    ///     <c>Product.Where(…)</c> and <c>Product.FindAsync(id)</c>.
+    ///     <c>Product.Read.Where(…)</c> and <c>Product.Create(model)</c>.
     /// </summary>
     /// <remarks>
     ///     <para>

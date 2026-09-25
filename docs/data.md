@@ -7,7 +7,7 @@ all**. No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`,
 no `IDbContextFactory` injected into every page that reads a row.
 
 Underneath it is ordinary EF Core, and nothing is hidden from you. **The aggregate type writes**:
-`Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)`
+`Product.Create(model)`, `Product.Update(id, model)`, `Product.Delete(id)`
 ([below](#writing-create-update-delete)). **Its read face queries**: `Product.Read.Where(…)`
 ([below](#reading-the-read-face)). Anything richer is EF Core exactly as you know it, a domain method
 saved through a context ([below](#writing-plain-ef-core)), and an app that outgrows the conventions writes its
@@ -66,13 +66,13 @@ the rules.
 And to write it, from a form, from code, or inside a transaction you already hold:
 
 ```csharp
-var product = await Product.CreateAsync(model);                                // ProductModel from a form
-await Product.UpdateAsync(product.Id, edit);                                   // stale Version throws
+var product = await Product.Create(model);                                     // ProductModel from a form
+await Product.Update(product.Id, edit);                                        // stale Version throws
 
-var other = await Product.CreateAsync(p => p.Reprice(new(9.90m, "EUR")));      // no form at all …
-await Product.UpdateAsync(other.Id, p => p.Reprice(new(12.50m, "EUR")));       // … and the same shape to change it
+var other = await Product.Create(p => p.Reprice(new(9.90m, "EUR")));           // no form at all …
+await Product.Update(other.Id, p => p.Reprice(new(12.50m, "EUR")));            // … and the same shape to change it
 
-await Product.DeleteAsync(product.Id);                                         // removes the row
+await Product.Delete(product.Id);                                              // removes the row
 ```
 
 A source generator finds every aggregate at build time and hands it to `RaskAppDbContext`; the host points
@@ -110,7 +110,7 @@ var recent = await Product.Read.OrderByDescending(p => p.CreatedAt).Take(10).ToL
 published after the save commits ([below](#what-the-interceptors-do)).
 
 **Aggregates declare no constructor.** The implicit parameterless one is what EF Core materialises rows
-through, what `Product.CreateAsync(model)` starts from, and what gives `new ProductModel()` the aggregate's
+through, what `Product.Create(model)` starts from, and what gives `new ProductModel()` the aggregate's
 defaults. Domain creation goes in a static factory, as `Product.Create` does above; a constructor that takes
 arguments turns off the generated creates ([RASK086](diagnostics.md#rask086)).
 
@@ -166,7 +166,7 @@ does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary na
 when you want them — listing a thousand orders should not drag in every line each of them holds:
 
 ```csharp
-await Order.UpdateAsync(id, o => o.Add("anvil", 1));                 // loaded whole, changed, saved
+await Order.Update(id, o => o.Add("anvil", 1));                      // loaded whole, changed, saved
 
 var open = await Order.Read.Where(o => o.Reference.StartsWith("2026")).ToListAsync();   // Lines EMPTY
 var withLines = await Order.Read.QueryAsync((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
@@ -181,7 +181,7 @@ bumps its `Version`, so the version a caller read stops being current — which 
 not the row, the unit of concurrency:
 
 ```csharp
-await Order.UpdateAsync(id, o => o.Lines.First().SetQuantity(5));
+await Order.Update(id, o => o.Lines.First().SetQuantity(5));
 // UPDATE OrderLine SET Quantity = 5 …
 // UPDATE Order     SET Version = Version + 1, UpdatedAt = @now WHERE Id = @id AND Version = @read
 ```
@@ -196,13 +196,13 @@ model.Lines.Single(l => l.Product == "anvil").Quantity = 9;    // edits that lin
 model.Lines.Add(new OrderLineModel { Product = "rope", Quantity = 2 });   // no Id: a new line
 model.Lines.RemoveAll(l => l.Product == "spring");             // not posted: that line is DELETED
 
-await Order.UpdateAsync(id, model);
+await Order.Update(id, model);
 ```
 
 > **What the posted list holds is what the aggregate holds afterwards.** A row with no `Id` is added, a row
 > whose `Id` matches a stored child updates it, and **a stored child whose id is in none of the posted rows is
 > removed** — so a form that renders only some of the lines deletes the rest, and an empty list deletes them
-> all. Bind the whole collection, or apply the change through a domain method (`Order.UpdateAsync(id, o =>
+> all. Bind the whole collection, or apply the change through a domain method (`Order.Update(id, o =>
 > o.Add(…))`) instead of a partial model.
 
 An `Id` that matches nothing in *this* aggregate is never followed: it lands as a new child with an id of its
@@ -213,14 +213,14 @@ line out of the collection deletes the row. Left to EF Core's own convention the
 and severing a child would set that key to `NULL` and leave the row in the table — invisible through the
 navigation, unreachable through the aggregate, and impossible to delete through it either.
 
-Deleting the aggregate follows the same rule: `Order.DeleteAsync(id)` removes the order and its lines with it.
+Deleting the aggregate follows the same rule: `Order.Delete(id)` removes the order and its lines with it.
 An order that declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carries) is different, and deliberately
 so: `DeletedAt` is stamped rather than the row removed, so nothing cascades and the lines are still there if the
 order comes back.
 
 The child gets a table, `CreatedAt` and `UpdatedAt`, a model so its parent's form can carry it, and a read
 face of its own — `OrderLine.Read` — because the read side has no borders. It gets no **writes** of its own:
-there is no `OrderLine.CreateAsync`, no version and no soft delete, because it is not a thing you save on its
+there is no `OrderLine.Create`, no version and no soft delete, because it is not a thing you save on its
 own. A collection of another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a
 collection Rask cannot write is [RASK088](diagnostics.md#rask088).
 
@@ -277,7 +277,7 @@ filter over *any* element of the collection is a scan. If that filter is hot on 
 `Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
 so is any collection that `Configure` already mapped.
 
-Here is a whole model running — a `Note` aggregate, read through `Note.Read`, written with `Note.CreateAsync`, and
+Here is a whole model running — a `Note` aggregate, read through `Note.Read`, written with `Note.Create`, and
 searched with `Note.Read.Search`, in a SQLite database that lives in this browser tab and survives a reload:
 
 <!-- demo:data-notes -->
@@ -447,20 +447,20 @@ update just names the row first:
 
 | Create | Update | From |
 | --- | --- | --- |
-| `Product.CreateAsync(model)` | `Product.UpdateAsync(id, model)` | a form: the generated `ProductModel` |
-| `Product.CreateAsync(model, p => …)` | `Product.UpdateAsync(id, model, p => …)` | a form, plus values it does not carry |
-| `Product.CreateAsync(p => …)` | `Product.UpdateAsync(id, p => …)` | code, with no form behind it |
+| `Product.Create(model)` | `Product.Update(id, model)` | a form: the generated `ProductModel` |
+| `Product.Create(model, p => …)` | `Product.Update(id, model, p => …)` | a form, plus values it does not carry |
+| `Product.Create(p => …)` | `Product.Update(id, p => …)` | code, with no form behind it |
 
 - **A create** builds an empty `Product`, applies the model and then the lambda, and inserts it. The key is a new
   version-7 `Guid` (or the store's identity for an integer key).
-- **`Product.CreateAsync(id, model)` / `Product.CreateAsync(id, p => …)`** do the same under a key you give. They
+- **`Product.Create(id, model)` / `Product.Create(id, p => …)`** do the same under a key you give. They
   are the only creates for a key nothing can produce, such as a strongly-typed id over a `string`. They are not
   generated for an integer key the database produces: an explicit identity value fails on SQL Server and leaves
   PostgreSQL's sequence behind.
-- **`Product.CreateAsync(entity)`** inserts an aggregate you built with its own factory:
-  `Product.CreateAsync(Product.Create("Anvil", new(30m, "EUR")))`.
+- **`Product.Create(entity)`** inserts an aggregate you built with its own factory:
+  `Product.Create(Product.Create("Anvil", new(30m, "EUR")))`.
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
-- **`Product.DeleteAsync(id)`** loads the row and **removes** it. An aggregate that declares
+- **`Product.Delete(id)`** loads the row and **removes** it. An aggregate that declares
   `public const Deletion Deletes = Deletion.Soft;` keeps the row instead: `DeletedAt` is stamped and every read
   stops seeing it.
 
@@ -472,11 +472,11 @@ published after the commit.
 - **The id is always yours.** The model carries none; the row is addressed by the `id` you pass, never by anything
   a form posted.
 - **Values that do not come from the form** go in an optional lambda, which runs after the model's values are
-  written, so it has the last word: `Product.CreateAsync(model, p => p.AssignTo(user.Id))`. With private setters
+  written, so it has the last word: `Product.Create(model, p => p.AssignTo(user.Id))`. With private setters
   the lambda calls the aggregate's methods, and so the rules in those methods run.
-- **A stale edit is refused.** `UpdateAsync(id, model)` checks the `Version` the model carries and throws
+- **A stale edit is refused.** `Update(id, model)` checks the `Version` the model carries and throws
   `DbUpdateConcurrencyException` when someone saved since; a model whose `Version` is `null` skips the check.
-  `UpdateAsync(id, p => …)` and `DeleteAsync(id)` take an optional `version:` for the same check.
+  `Update(id, p => …)` and `Delete(id)` take an optional `version:` for the same check.
 - **A missing row**, never created or soft-deleted, is `KeyNotFoundException`, naming the aggregate and the key.
 
 A write refreshes what is on screen: once it commits, every `Rask.Query` query about that aggregate —
@@ -484,8 +484,8 @@ A write refreshes what is on screen: once it commits, every `Rask.Query` query a
 with no invalidation to write. See [Writes refresh queries by themselves](query.md#writes-refresh-queries-by-themselves).
 
 A create needs the parameterless constructor an aggregate has when it declares none. One that declares a
-constructor with arguments still gets `UpdateAsync` and `DeleteAsync`, and the build says why it has no
-`CreateAsync` ([RASK086](diagnostics.md#rask086)).
+constructor with arguments still gets `Update` and `Delete`, and the build says why it has no
+`Create` ([RASK086](diagnostics.md#rask086)).
 
 ### Changing two aggregates together: `db:`
 
@@ -495,8 +495,8 @@ saves and disposes it. Pass `db:` and it **stages** its change in that context a
 ```csharp
 await using var db = await contexts.CreateDbContextAsync(ct);
 
-var order = await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);          // staged
-await StockItem.UpdateAsync(stockId, s => s.Reserve(quantity), db: db, cancellationToken: ct);   // staged
+var order = await Order.Create(orderModel, db: db, cancellationToken: ct);               // staged
+await StockItem.Update(stockId, s => s.Reserve(quantity), db: db, cancellationToken: ct);        // staged
 
 await db.SaveChangesAsync(ct);   // both rows, or neither
 ```
@@ -511,9 +511,9 @@ eventual consistency is genuinely what you want.
 
 Two things to know:
 
-- **A staged `CreateAsync` returns an entity that is not yet persisted.** A `Guid` key is already set (the
+- **A staged `Create` returns an entity that is not yet persisted.** A `Guid` key is already set (the
   factory assigned it); a store-generated `int` key is `0` until you save.
-- **The concurrency check still works and is still automatic.** `UpdateAsync(id, model)` pins the original
+- **The concurrency check still works and is still automatic.** `Update(id, model)` pins the original
   `Version` from `model.Version`, and EF compares it at *your* save.
 
 A row that context already tracks is the one updated, not a second copy.
@@ -570,7 +570,7 @@ public sealed partial class NewProductPage(Navigator nav) : Component
 
     private async Task CreateAsync(ProductModel product)
     {
-        await Product.CreateAsync(product, cancellationToken: CancellationToken);
+        await Product.Create(product, cancellationToken: CancellationToken);
         nav.NavigateTo(Routes.ProductsPage());
     }
 }
@@ -588,7 +588,7 @@ public sealed partial class EditProductPage(Navigator nav) : Component
     private string? _conflict;
 
     protected override async Task OnMount() =>
-        _product = await Product.ModelAsync(Id, cancellationToken: CancellationToken);
+        _product = await Product.Model(Id, cancellationToken: CancellationToken);
 
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
@@ -604,7 +604,7 @@ public sealed partial class EditProductPage(Navigator nav) : Component
     {
         try
         {
-            await Product.UpdateAsync(Id, edit, cancellationToken: CancellationToken);   // Version checked
+            await Product.Update(Id, edit, cancellationToken: CancellationToken);        // Version checked
             nav.NavigateTo(Routes.ProductsPage());
         }
         catch (DbUpdateConcurrencyException)
@@ -629,7 +629,7 @@ default, so an entity that says nothing is unchanged.
 |---|---|---|---|
 | `Writes` | `ModelWrites` | `All` | the form model, and the writes that take one |
 | `Stamps` | `Timestamps` | `All` | `CreatedAt` and `UpdatedAt` |
-| `Deletes` | `Deletion` | `Hard` | whether `DeleteAsync` removes the row, stamps `DeletedAt`, or [is not generated at all](#behaviour-rich-aggregates) (`None`) |
+| `Deletes` | `Deletion` | `Hard` | whether `Delete` removes the row, stamps `DeletedAt`, or [is not generated at all](#behaviour-rich-aggregates) (`None`) |
 | `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
 | `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](multi-tenancy.md) |
 | `Broadcast` | `Broadcasts` | `Never` | whether a save is announced to the whole process — see [Announcing a save](#announcing-a-save) |
@@ -642,7 +642,7 @@ public sealed class Order : Aggregate<Guid>
 
 public sealed class Invoice : Aggregate<Guid>
 {
-    public const Deletion Deletes = Deletion.None;   // never deleted: Invoice.DeleteAsync does not exist
+    public const Deletion Deletes = Deletion.None;   // never deleted: Invoice.Delete does not exist
 }
 
 public sealed class Reading : Aggregate<Guid>
@@ -737,16 +737,16 @@ public sealed class Passkey : Aggregate<Guid>
 | `Writes` | What is generated |
 |---|---|
 | *(no const)* — same as `All` | everything, as always |
-| `ModelWrites.Create` | `PasskeyModel`, `CreateAsync(model)`, `ModelAsync(id)`, `ToModel()` |
-| `ModelWrites.Update` | `PasskeyModel`, `UpdateAsync(id, model)`, `ModelAsync(id)`, `ToModel()` |
+| `ModelWrites.Create` | `PasskeyModel`, `Create(model)`, `Model(id)`, `ToModel()` |
+| `ModelWrites.Update` | `PasskeyModel`, `Update(id, model)`, `Model(id)`, `ToModel()` |
 | `ModelWrites.None` | no `PasskeyModel` at all, and nothing that takes one |
 
 **It reaches the form surface and nothing else.** These are always generated, whatever the const says:
 
 ```csharp
-await Passkey.CreateAsync(p => p.Rename("laptop"));       // behaviour — takes no model
-await Passkey.UpdateAsync(id, p => p.Rename("desktop"));  // behaviour
-await Passkey.DeleteAsync(id);                            // never took a model (gone under Deletes = Deletion.None)
+await Passkey.Create(p => p.Rename("laptop"));            // behaviour — takes no model
+await Passkey.Update(id, p => p.Rename("desktop"));       // behaviour
+await Passkey.Delete(id);                                 // never took a model (gone under Deletes = Deletion.None)
 await Passkey.Read.Where(p => p.UserId == me).ToListAsync();   // the read face is not negotiable
 ```
 
@@ -799,10 +799,10 @@ public sealed class Order : Aggregate<Guid>
 ```
 
 ```csharp
-var order = await Order.CreateAsync(Order.Place("A-1001"));          // the factory decides what a new order is
-await Order.UpdateAsync(order.Id, o => o.Pay());                     // load whole, run the rule, save
-await Order.UpdateAsync(order.Id, o => o.Ship("1Z999"), version: v); // stale version throws
-await Order.UpdateAsync(order.Id, o => o.Cancel());
+var order = await Order.Create(Order.Place("A-1001"));               // the factory decides what a new order is
+await Order.Update(order.Id, o => o.Pay());                          // load whole, run the rule, save
+await Order.Update(order.Id, o => o.Ship("1Z999"), version: v); // stale version throws
+await Order.Update(order.Id, o => o.Cancel());
 ```
 
 - **Only the methods are callable.** The properties have private setters, so `o => o.Status = OrderStatus.Shipped`
@@ -813,8 +813,8 @@ await Order.UpdateAsync(order.Id, o => o.Cancel());
   onto the private setters directly, which is right for a product and wrong here: a posted form could set
   `Status` without going through `Ship`. Use `ModelWrites.Create` instead if a form may place an order but
   never edit one.
-- **`Deletes = Deletion.None` removes `DeleteAsync`.** `Order.DeleteAsync(id)` is then a compile error, and
-  the underlying `GeneratedModelWrites.DeleteAsync<Order>` throws. Retiring an order is `Cancel`, which keeps
+- **`Deletes = Deletion.None` removes `Delete`.** `Order.Delete(id)` is then a compile error, and
+  the underlying `GeneratedModelWrites.Delete<Order>` throws. Retiring an order is `Cancel`, which keeps
   the row, its history and everything that refers to it.
 
 ### How a form save writes
@@ -831,7 +831,7 @@ A save writes **what the form holds**, property by property:
 
 So a model from `new ProductModel()` or `product.ToModel()` saves exactly what the form shows, and a model a
 command built with only some properties set leaves the non-nullable rest alone. To change a few properties from
-code, `Product.UpdateAsync(id, p => p.Reprice(price))` says so directly.
+code, `Product.Update(id, p => p.Reprice(price))` says so directly.
 
 A form save writes properties through the aggregate's private setters, with generated `[UnsafeAccessor]`s and no
 reflection. **It does not call the aggregate's methods**, so a rule that must hold for form input belongs in a
@@ -840,13 +840,13 @@ a method in the lambda.
 
 **Or send it in a command.** A command, a query, an API endpoint or an island prop can carry a `ProductModel`
 (`public sealed record AddProduct(ProductModel Product) : ICommand<Guid>`), and the generators that build their
-codecs recognise it although it is itself generated; the handler calls `Product.CreateAsync(command.Product)`. The
+codecs recognise it although it is itself generated; the handler calls `Product.Create(command.Product)`. The
 model carries every mapped property, so input from outside your own pages is best a command of its own that says
 what may change.
 
-**Your own write wins.** A static `CreateAsync(ProductModel, …)` or `DeleteAsync(Guid, …)` declared on `Product`
+**Your own write wins.** A static `Create(ProductModel, …)` or `Delete(Guid, …)` declared on `Product`
 replaces the generated one at every call site (a member on the type beats an extension member), and the
-generated one stays reachable as `ProductModelExtensions.CreateAsync(…)` for an override that only adds to it.
+generated one stays reachable as `ProductModelExtensions.Create(…)` for an override that only adds to it.
 
 ### What the model carries
 
@@ -1361,7 +1361,7 @@ host.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 host.Services.AddRaskCqrs();
 host.Services.AddRaskQuery();
 
-.OnSubmit(note => Note.CreateAsync(note))   // the QueryKey.For<Note> list refetches
+.OnSubmit(note => Note.Create(note))        // the QueryKey.For<Note> list refetches
 ```
 
 ## What the interceptors do
@@ -1386,9 +1386,9 @@ host.Services.AddRaskQuery();
 
 ## Optimistic concurrency
 
-Every aggregate's `Version` is an EF Core concurrency token, bumped on every save. `Product.UpdateAsync(id, model)`
-does the rest for you — it checks the `Version` the model carries — and `UpdateAsync(id, p => …)` and
-`DeleteAsync(id)` take a `version:`. A hand-written save does it itself. The edit form carries the
+Every aggregate's `Version` is an EF Core concurrency token, bumped on every save. `Product.Update(id, model)`
+does the rest for you — it checks the `Version` the model carries — and `Update(id, p => …)` and
+`Delete(id)` take a `version:`. A hand-written save does it itself. The edit form carries the
 version it was loaded at, and the handler compares against **that** version rather than the one it just
 read — a freshly loaded row's original `Version` is whatever the database holds now, which would make every
 check pass. So pin the caller's version as the tracked original value before saving:

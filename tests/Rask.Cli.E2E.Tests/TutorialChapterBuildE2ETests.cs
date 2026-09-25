@@ -26,7 +26,7 @@ namespace Rask.Cli.E2E.Tests;
 /// </para>
 /// <para>
 /// The pages read through the generated read face — <c>Product.Read.AsQueryable()</c> — write through the
-/// aggregate type — <c>Product.CreateAsync(model)</c> — and fill a form with <c>Product.ModelAsync(id)</c>,
+/// aggregate type — <c>Product.Create(model)</c> — and fill a form with <c>Product.Model(id)</c>,
 /// binding the generated <c>ProductModel</c>, which only exists once the
 /// model generator has run over the chapter's <c>Product</c>. So this walk is what proves the generated form
 /// model binds to the Ui kit's controls the way the chapter types it.
@@ -131,7 +131,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // it — a fragment could not replace the file chapter 3 wrote.
             //
             // PlaceOrder is a whole component precisely so it is compiled here: it is the chapter's one
-            // create from an aggregate built by its own factory — Order.Place, then Order.CreateAsync(order).
+            // create from an aggregate built by its own factory — Order.Place, then Order.Create(order).
             Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderPlaced", "7"));
             Write(fs, orders, "Order.cs", Pick(ch7, "Raise(new OrderPlaced", "7"));
             Write(fs, orders, "PlaceOrder.cs", Pick(ch7, "Order.Place(ProductId", "7"));

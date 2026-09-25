@@ -178,8 +178,8 @@ and a deleted account has to free its address for the person to sign up again, s
 var me = users.Current.UserId() is { } id
     ? await User.Read.Where(u => u.Id == id).FirstOrDefaultAsync(CancellationToken)
     : null;
-await User.UpdateAsync(id, u => u.Rename(name));
-await User.UpdateAsync(id, u => u.GrantRole("editor"));
+await User.Update(id, u => u.Rename(name));
+await User.Update(id, u => u.GrantRole("editor"));
 ```
 
 Other aggregates refer to a user by id — `public Guid OwnerId { get; private set; }` — rather than holding one.

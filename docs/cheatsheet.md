@@ -47,9 +47,9 @@ A vertical slice under `Features/<Plural>/` is one aggregate and the components 
 | File | What it is |
 |---|---|
 | `Product.cs` | the aggregate — `Aggregate<Guid>`, `private set` properties, validation attributes, no constructor |
-| `CreateProduct.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.CreateAsync(model)` |
-| `UpdateProduct.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.ModelAsync(id)` through `QueryClient.Query`, saves with `Product.UpdateAsync(id, model)` |
-| `DeleteProduct.cs` | a button per row — `Product.DeleteAsync(id, version)` behind a command |
+| `CreateProduct.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.Create(model)` |
+| `UpdateProduct.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.Model(id)` through `QueryClient.Query`, saves with `Product.Update(id, model)` |
+| `DeleteProduct.cs` | a button per row — `Product.Delete(id, version)` behind a command |
 | `ProductsPage.cs` | `[Route("/products")]` — a `Ui.DataGrid` over `Product.Read.OrderBy(…).AsQueryable()` |
 
 Nothing else is written: the build generates `ProductModel`, the read face (`Product.Read`, rows of
@@ -114,7 +114,7 @@ public sealed class Product : Aggregate<Guid> { public string Name { get; privat
 
 // What a table carries — a const on the aggregate, each optional (Rask.Data):
 public const Deletion Deletes = Deletion.Soft;      // keep the row as DeletedAt (default: Hard — the row goes)
-public const Deletion Deletes = Deletion.None;      // never deleted: no DeleteAsync is generated
+public const Deletion Deletes = Deletion.None;      // never deleted: no Delete is generated
 public const Tenancy Scope = Tenancy.PerTenant;     // a TenantId, a filter, tenant-prefixed indexes — docs/multi-tenancy.md
 
 // Who is signed in, from a static factory or anything with no constructor to inject into:
@@ -129,10 +129,10 @@ var hits = await Product.Read.Search(query).Take(20).ToListAsync(CancellationTok
 
 // Read and write it — no context injected; or send a command whose handler does the save:
 var products = await Product.Read.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
-var product  = await Product.CreateAsync(model, cancellationToken: CancellationToken);          // ProductModel from a form
+var product  = await Product.Create(model, cancellationToken: CancellationToken);               // ProductModel from a form
 var edit     = product.ToModel();                                                               // fills an edit form
-await Product.UpdateAsync(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);   // + values not from the form
-await Product.DeleteAsync(id, db: db, cancellationToken: CancellationToken);                   // join a context you hold
+await Product.Update(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);        // + values not from the form
+await Product.Delete(id, db: db, cancellationToken: CancellationToken);                        // join a context you hold
 await dispatcher.Send(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
 Ui.DataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 

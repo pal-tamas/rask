@@ -121,7 +121,7 @@ Who may open it is a **watch policy**, and *that* is where the database goes:
 public sealed class WatchingOrders : IWatchPolicy<WatchOrder>
 {
     public async Task<bool> CanWatchAsync(WatchOrder watch, CancellationToken ct) =>
-        (await Order.Find(watch.OrderId)).CustomerId == Current.UserId || Current.Principal?.IsInRole("Admin") == true;
+        (await Order.Read.Where(o => o.Id == watch.OrderId).FirstOrDefaultAsync())?.CustomerId == Current.UserId || Current.Principal?.IsInRole("Admin") == true;
 }
 ```
 
