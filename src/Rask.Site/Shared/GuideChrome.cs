@@ -13,17 +13,13 @@ namespace Rask.Site;
 // server round-trips — so it costs nothing on either transport.
 public sealed partial class GuideChrome : Component
 {
-    private readonly IJSRuntime _js;
-
     // A ref to the whole guide root so the scoped JS can scope its heading/anchor queries to this
     // component's subtree (and tear the observer down when the guide unmounts on SPA nav).
     private readonly ElementRef _root = ElementRef.New();
 
     // Slug is a required factory param (non-nullable, no initializer) assigned by Rask after
-    // construction, so the CS8618s on the ctor and the property are expected — same shape as CodeSample.
+    // construction, so the CS8618 on the property is expected — same shape as CodeSample.
 #pragma warning disable CS8618
-    public GuideChrome(IJSRuntime js) => _js = js;
-
     // Required positional param: the guide slug, e.g. "routing".
     public string Slug { get; set; }
 #pragma warning restore CS8618
@@ -35,7 +31,7 @@ public sealed partial class GuideChrome : Component
         // guide can render a not-found state (no headings) and JS may be gone on a torn-down transport.
         try
         {
-            await _js.InvokeVoidAsync("Rask.GuideChrome.spy", _root);
+            await Spy(_root);
         }
         catch (JSDisconnectedException)
         {
@@ -63,7 +59,7 @@ public sealed partial class GuideChrome : Component
     {
         try
         {
-            await _js.InvokeVoidAsync("Rask.GuideChrome.stop", _root);
+            await Stop(_root);
         }
         catch (JSDisconnectedException)
         {

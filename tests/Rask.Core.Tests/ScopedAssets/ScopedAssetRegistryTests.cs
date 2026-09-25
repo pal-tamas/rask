@@ -87,6 +87,36 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
+    public void An_exported_class_is_exposed_with_a_factory_and_loses_its_export_keyword()
+    {
+        ScopedAssetRegistry.RegisterJs(
+            typeof(WidgetA),
+            "export class Chart { constructor(el) { this.el = el; } draw() {} }\n" +
+            "export function size() { return 1; }");
+
+        Assert.True(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash));
+        var content = Encoding.UTF8.GetString(ScopedAssetRegistry.GetByHash(hash, AssetKind.Js)!.Value.Utf8.Span);
+
+        Assert.DoesNotContain("export ", content);
+        Assert.Contains("class Chart {", content);
+        Assert.Contains("Chart: Chart", content);
+        Assert.Contains("__new_Chart: function () { return new Chart(...arguments); }", content);
+        Assert.Contains("size: typeof size === 'function'", content);
+    }
+
+    [Fact]
+    public void An_export_default_class_is_exposed_with_a_factory_too()
+    {
+        ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export default class Chart { draw() {} }");
+
+        Assert.True(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash));
+        var content = Encoding.UTF8.GetString(ScopedAssetRegistry.GetByHash(hash, AssetKind.Js)!.Value.Utf8.Span);
+
+        Assert.DoesNotContain("export ", content);
+        Assert.Contains("__new_Chart: function () { return new Chart(...arguments); }", content);
+    }
+
+    [Fact]
     public void Registering_both_gives_the_type_independent_css_and_js_hashes()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");

@@ -20,6 +20,12 @@ public interface IRenderHandle
     internal Task RenderInScopeAsync() => Task.CompletedTask;
 
     /// <summary>
+    ///     Runs work that arrived from the browser outside an event (a scoped script's callback) in order with the
+    ///     session's event handlers. The Server session queues it on its handler chain; a single-threaded host runs it.
+    /// </summary>
+    internal void RunInOrder(Func<Task> work) => _ = work();
+
+    /// <summary>
     ///     Records a development fault to paint <em>over</em> the app, reported by
     ///     <c>RootErrorBoundary</c> during the render walk that follows it.
     /// </summary>

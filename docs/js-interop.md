@@ -94,9 +94,70 @@ export async function copy(text: string): Promise<void> {
 }
 ```
 
-becomes callable as `Rask.ElementRefDemo.width`. Two scoped components that share a
+becomes callable as `Rask.ElementRefDemo.width` — and, from the component that owns the file, as a
+typed private method (next section). Two scoped components that share a
 simple type name collide at `window.Rask[Name]` — **RASK020** warns about this
 (RASK017 / RASK018 cover orphan / ambiguous `.ts`).
+
+### Calling your script from C#
+
+The component that owns a scoped `.ts` calls its exports like its own private methods — no
+`IJSRuntime` to inject, no string to spell, and a renamed or retyped export is a compile error:
+
+```csharp
+// before
+public ElementRefDemo(IJSRuntime js) => _js = js;
+var width = await _js.InvokeAsync<double>("Rask.ElementRefDemo.width", _box);
+
+// after — Width is generated from `export function width(el: HTMLElement | null): number`
+var width = await Width(_box);
+```
+
+Each call returns a `ValueTask` (it crosses to the browser), and the export's JSDoc becomes the method's
+IntelliSense. The component must be `partial`, which `rask new` components already are.
+
+| TypeScript | C# |
+|---|---|
+| `string` · `number` · `boolean` · `Date` | `string` · `double` · `bool` · `DateTimeOffset` |
+| `T \| null`, `x?: T` | `T?`, `T? x = null` |
+| `T[]`, `Record<string, T>` | `IReadOnlyList<T>`, `IReadOnlyDictionary<string, T>` |
+| `"a" \| "b"` | `string` |
+| `HTMLElement` and every other element, as a parameter | `ElementRef?` |
+| `void`, `Promise<T>` | `ValueTask`, `ValueTask<T>` |
+| `any` / `unknown` | `object?` in, `JsonElement` out |
+| `(n: number) => void` | a sync *and* an async overload — `OnTick(n => _n = n)` or `OnTick(async n => …)` |
+| `export interface Point { … }` | a nested `record Point`, with `required` members |
+| `export class Chart { … }` | a nested `Chart` proxy with its methods, created by `NewChart(…)` |
+
+`number` is always `double`: TypeScript has one numeric type, and a value that crosses as JSON keeps no
+trace of being whole.
+
+A **callback** re-enters the component and repaints it after it runs, in order with its event handlers. It lives
+until the component unmounts, so hand one over once (from `OnFirstRendered`, or a start button) rather than on
+every render. An optional argument you leave unset reaches the script as `undefined`, so its defaults apply. A **class
+instance** lives in the browser; the proxy calls its methods and is released when the component unmounts
+(or on `await chart.DisposeAsync()`), as is every callback it was handed:
+
+```ts
+// ScriptCallsDemo.ts
+export class Countdown {
+    constructor(private seconds: number) {}
+    start(onTick: (left: number) => void, onDone: () => void): void { … }
+    stop(): void { … }
+}
+```
+
+```csharp
+_countdown ??= await NewCountdown(5);
+await _countdown.Start(left => _status = $"{left} left", () => _status = "Done!");
+```
+
+<!-- demo:js-interop-script-calls -->
+
+An export that has no C# shape — a tuple, a generic, an element returned — is left out with
+[RASK094](diagnostics.md#rask094) naming the reason; the others still generate, and the string call
+reaches it. A name the component only inherits is hidden, not refused: `export function stop()` gives
+`Stop()`, and `Markup.Stop` still writes the SVG tag.
 
 **A `.js` sibling is a build error — [RASK055](diagnostics.md#rask055).** TypeScript is a superset of
 JavaScript, so migrating an existing scoped script is the rename and nothing else; add annotations at
