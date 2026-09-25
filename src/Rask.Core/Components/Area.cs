@@ -7,11 +7,9 @@ namespace Rask.Core.Components;
 ///     references through <c>UseMap</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area">MDN</see>
 /// </summary>
+[Tag("area")]
 public sealed partial class Area : Element
 {
-    protected override string TagName => "area";
-    protected override bool SelfClosing => true;
-
     /// <summary>
     ///     The text shown in place of the region when images are unavailable. Required whenever the area
     ///     has an <c>Href</c>.

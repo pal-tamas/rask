@@ -7,11 +7,9 @@ namespace Rask.Core.Components;
 ///     file must be WebVTT, and cross-origin tracks need CORS.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track">MDN</see>
 /// </summary>
+[Tag("track")]
 public sealed partial class Track : Element
 {
-    protected override string TagName => "track";
-    protected override bool SelfClosing => true;
-
     /// <summary>
     ///     What the track is: <c>subtitles</c>, <c>captions</c>, <c>descriptions</c>, <c>chapters</c>, or
     ///     <c>metadata</c>. Captions include non-speech sound; subtitles are translation only.

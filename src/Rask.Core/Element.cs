@@ -9,6 +9,12 @@ namespace Rask.Core;
 // HTML-only concerns.
 public abstract partial class Element : Component
 {
+    // A [Tag] element's tag and void-ness come from the generated table, by the id its entry (or its
+    // constructor, for a type with one tag) stamped. Id 0 is "no tag", for an element that names its own.
+    protected override string? TagName => RaskTags.Names[TagId];
+
+    protected override bool SelfClosing => RaskTags.Void[TagId];
+
     /// <summary>
     ///     The global <c>id</c> attribute — this element's unique identifier in the document. It is what a
     ///     <c>#fragment</c> link scrolls to, what a <c>label</c>'s <c>for</c> points at, and what

@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     enters the document outline.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/hgroup">MDN</see>
 /// </summary>
+[Tag("hgroup")]
 public sealed partial class Hgroup : Element
 {
-    protected override string TagName => "hgroup";
 }

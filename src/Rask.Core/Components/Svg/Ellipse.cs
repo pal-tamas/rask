@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     An ellipse, positioned by its centre and given two radii.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/ellipse">MDN</see>
 /// </summary>
+[Tag("ellipse")]
 public sealed partial class Ellipse : SvgElement
 {
-    protected override string TagName => "ellipse";
-
     /// <summary>The centre's x coordinate.</summary>
     public string? Cx { get; set; }
 

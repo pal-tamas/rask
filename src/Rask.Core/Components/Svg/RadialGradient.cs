@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     A gradient radiating from a focal point out to a circle, defined by <c>stop</c> children.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/radialGradient">MDN</see>
 /// </summary>
+[Tag("radialGradient")]
 public sealed partial class RadialGradient : SvgElement
 {
-    protected override string TagName => "radialGradient";
-
     /// <summary>The end circle's centre x. Defaults to 50%.</summary>
     public string? Cx { get; set; }
 

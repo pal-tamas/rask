@@ -7,11 +7,9 @@ namespace Rask.Core.Components;
 ///     browser takes the first it can use, so order matters.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source">MDN</see>
 /// </summary>
+[Tag("source")]
 public sealed partial class Source : Element
 {
-    protected override string TagName => "source";
-    protected override bool SelfClosing => true;
-
     /// <summary>
     ///     The resource's URL. For <c>audio</c>/<c>video</c> only — inside a <c>picture</c>, use
     ///     <c>Srcset</c>.

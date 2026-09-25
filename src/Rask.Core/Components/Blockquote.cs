@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     <c>figcaption</c>, typically), not inside it.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/blockquote">MDN</see>
 /// </summary>
+[Tag("blockquote")]
 public sealed partial class Blockquote : HtmlQuoteElement
 {
-    protected override string TagName => "blockquote";
 }

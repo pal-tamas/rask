@@ -5,8 +5,7 @@ namespace Rask.Core.Components;
 ///     Not a spacing tool: for space between blocks, use CSS margins.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/br">MDN</see>
 /// </summary>
+[Tag("br")]
 public sealed partial class Br : Element
 {
-    protected override string TagName => "br";
-    protected override bool SelfClosing => true;
 }

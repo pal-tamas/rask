@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     the parser.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/p">MDN</see>
 /// </summary>
-public sealed class P : Element
+[Tag("p")]
+public sealed partial class P : Element
 {
-    protected override string TagName => "p";
 }

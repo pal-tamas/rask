@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     A named group of <c>option</c> elements inside a <c>select</c>. Groups cannot nest.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/optgroup">MDN</see>
 /// </summary>
+[Tag("optgroup")]
 public sealed partial class Optgroup : Element
 {
-    protected override string TagName => "optgroup";
-
     /// <summary>Disables every option in the group.</summary>
     public bool? Disabled { get; set; }
 

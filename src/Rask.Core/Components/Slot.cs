@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     composition is the <c>[...]</c> children indexer.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/slot">MDN</see>
 /// </summary>
+[Tag("slot")]
 public sealed partial class Slot : Element
 {
-    protected override string TagName => "slot";
-
     /// <summary>
     ///     The slot's name, matched by a child's <c>slot</c> attribute. Unnamed, it is the default slot.
     /// </summary>

@@ -9,10 +9,9 @@ namespace Rask.Core.Components;
 ///     <c>style</c> element or with the universal <c>Style</c> attribute.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/style">MDN</see>
 /// </summary>
+[Tag("style", Entry = "SvgStyle")]
 public sealed partial class SvgStyle : SvgElement
 {
-    protected override string TagName => "style";
-
     /// <summary>The stylesheet language. Omit it — the only valid value is the default.</summary>
     public string? Type { get; set; }
 

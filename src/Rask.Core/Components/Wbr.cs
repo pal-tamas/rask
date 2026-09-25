@@ -5,8 +5,7 @@ namespace Rask.Core.Components;
 ///     otherwise.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/wbr">MDN</see>
 /// </summary>
+[Tag("wbr")]
 public sealed partial class Wbr : Element
 {
-    protected override string TagName => "wbr";
-    protected override bool SelfClosing => true;
 }

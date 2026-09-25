@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     business. Not a general-purpose element for postal addresses.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/address">MDN</see>
 /// </summary>
+[Tag("address")]
 public sealed partial class Address : Element
 {
-    protected override string TagName => "address";
 }

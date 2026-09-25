@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     <c>img</c> child is both the fallback and the element that actually renders.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/picture">MDN</see>
 /// </summary>
+[Tag("picture")]
 public sealed partial class Picture : Element
 {
-    protected override string TagName => "picture";
 }

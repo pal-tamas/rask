@@ -10,7 +10,7 @@ namespace Rask.Core.Components;
 ///     </para>
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/bdo">MDN</see>
 /// </summary>
+[Tag("bdo")]
 public sealed partial class Bdo : Element
 {
-    protected override string TagName => "bdo";
 }

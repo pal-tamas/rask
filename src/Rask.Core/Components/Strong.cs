@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     text with neither meaning, use CSS.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/strong">MDN</see>
 /// </summary>
+[Tag("strong")]
 public sealed partial class Strong : Element
 {
-    protected override string TagName => "strong";
 }

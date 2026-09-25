@@ -5,8 +5,7 @@ namespace Rask.Core.Components;
 ///     CSS properties apply to a column — border, background, width and visibility.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/col">MDN</see>
 /// </summary>
+[Tag("col")]
 public sealed partial class Col : HtmlTableColElement
 {
-    protected override string TagName => "col";
-    protected override bool SelfClosing => true;
 }

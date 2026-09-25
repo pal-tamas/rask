@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     rendered italic by default. Not for emphasis (<c>em</c>) and not for literal code (<c>code</c>).
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/var">MDN</see>
 /// </summary>
+[Tag("var")]
 public sealed partial class Var : Element
 {
-    protected override string TagName => "var";
 }

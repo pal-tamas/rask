@@ -48,6 +48,17 @@ public abstract partial class Component : RaskMarkup
     //   bit 3 — a chain assigned a callback prop (below)
     private byte _flags;
 
+    // Which tag an element renders, as an index into the generated RaskTags table: a type several tags
+    // share (h1–h6) is told apart per instance. Packed beside _flags, it sits in padding the object
+    // already has. Zero for everything that is not a [Tag] element.
+    private ushort _tagId;
+
+    internal ushort TagId
+    {
+        get => _tagId;
+        set => _tagId = value;
+    }
+
     // Set the first time this component reads untracked ambient state during Render: a context value
     // (Context.Get/Required/Has-via-Get) OR EditContext state (validation messages / validating flags,
     // via EditContext.MarkReader). Such a component depends on state the framework doesn't diff, so —

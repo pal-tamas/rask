@@ -26,11 +26,9 @@ namespace Rask.Core.Components;
 ///     and writes back the value for you. Every input needs a <c>label</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input">MDN</see>
 /// </summary>
+[Tag("input")]
 public sealed partial class Input<T> : Element, IFormControl<T>
 {
-    protected override string TagName => "input";
-    protected override bool SelfClosing => true;
-
     /// <summary>
     ///     Which control this is — text, checkbox, date, file, and so on. Choosing the right one gets you
     ///     the right mobile keyboard and the browser's own validation for free.

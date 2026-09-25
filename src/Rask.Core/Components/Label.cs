@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     reader name it.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/label">MDN</see>
 /// </summary>
+[Tag("label")]
 public sealed partial class Label : Element
 {
-    protected override string TagName => "label";
-
     /// <summary>
     ///     The <c>id</c> of the control this labels. The label and the control must be in the same
     ///     document.

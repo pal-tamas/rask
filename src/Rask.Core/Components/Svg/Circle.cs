@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     A circle, positioned by its centre.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/circle">MDN</see>
 /// </summary>
+[Tag("circle")]
 public sealed partial class Circle : SvgElement
 {
-    protected override string TagName => "circle";
-
     /// <summary>The centre's x coordinate.</summary>
     public string? Cx { get; set; }
 

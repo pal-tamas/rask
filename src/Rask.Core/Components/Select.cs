@@ -17,6 +17,7 @@ namespace Rask.Core.Components;
 ///     the bound value's type, so <c>Bind</c> writes the chosen value straight back to your model.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select">MDN</see>
 /// </summary>
+[Tag("select")]
 public sealed partial class Select<T> : Element, IFormControl<T>
 {
     // Set in WriteAttributes (bound/controlled); a plain select leaves _bound false and skips marking.
@@ -26,9 +27,6 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     // Non-null only for a multi-select bound to a collection, where the render has to mark every picked
     // option rather than the one _selectedValue names.
     private IReadOnlySet<string>? _selectedValues;
-
-    protected override string TagName => "select";
-
     /// <summary>The name submitted with the form.</summary>
     public string? Name { get; set; }
 

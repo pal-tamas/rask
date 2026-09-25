@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     placeholder.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a">MDN</see>
 /// </summary>
-public sealed class A : Element
+[Tag("a")]
+public sealed partial class A : Element
 {
-    protected override string TagName => "a";
-
     /// <summary>
     ///     Where the link goes: a URL, a <c>#fragment</c>, or a <c>mailto:</c>/<c>tel:</c> scheme.
     /// </summary>

@@ -9,10 +9,9 @@ namespace Rask.Core.Components;
 ///     <c>script</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/script">MDN</see>
 /// </summary>
+[Tag("script", Entry = "SvgScript")]
 public sealed partial class SvgScript : SvgElement
 {
-    protected override string TagName => "script";
-
     /// <summary>The URL of an external script.</summary>
     public string? Href { get; set; }
 

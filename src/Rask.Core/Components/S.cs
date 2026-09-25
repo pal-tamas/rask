@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     records who changed what and when.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/s">MDN</see>
 /// </summary>
+[Tag("s")]
 public sealed partial class S : Element
 {
-    protected override string TagName => "s";
 }

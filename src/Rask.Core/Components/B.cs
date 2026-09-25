@@ -6,7 +6,7 @@ namespace Rask.Core.Components;
 ///     CSS.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/b">MDN</see>
 /// </summary>
+[Tag("b")]
 public sealed partial class B : Element
 {
-    protected override string TagName => "b";
 }

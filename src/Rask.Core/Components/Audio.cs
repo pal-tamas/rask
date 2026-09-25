@@ -6,7 +6,7 @@ namespace Rask.Core.Components;
 ///     the user has interacted with the page.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio">MDN</see>
 /// </summary>
+[Tag("audio")]
 public sealed partial class Audio : HtmlMediaElement
 {
-    protected override string TagName => "audio";
 }

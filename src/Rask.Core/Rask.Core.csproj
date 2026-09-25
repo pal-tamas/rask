@@ -95,6 +95,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- MDN is the source of truth for the element surface: the generator reads the snapshot
+         scripts/mdn/refresh.sh writes. It is Rask.Core's alone, so it is not in build/Rask.Core.targets. -->
+    <AdditionalFiles Include="Dom\mdn.snapshot.json"/>
+
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     Shifts its input by a fixed amount — the displacement half of a hand-built drop shadow.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feOffset">MDN</see>
 /// </summary>
+[Tag("feOffset")]
 public sealed partial class FeOffset : SvgElement
 {
-    protected override string TagName => "feOffset";
-
     /// <summary>The input for this primitive.</summary>
     public string? In { get; set; }
 

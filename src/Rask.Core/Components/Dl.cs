@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     and glossaries.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dl">MDN</see>
 /// </summary>
+[Tag("dl")]
 public sealed partial class Dl : Element
 {
-    protected override string TagName => "dl";
 }

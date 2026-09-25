@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     An ordered list, where the sequence carries meaning. Reordering the items changes what it says.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ol">MDN</see>
 /// </summary>
+[Tag("ol")]
 public sealed partial class Ol : Element
 {
-    protected override string TagName => "ol";
-
     /// <summary>
     ///     The numbering style: <c>1</c>, <c>a</c>, <c>A</c>, <c>i</c>, or <c>I</c>. Unlike the CSS
     ///     equivalent, this one is copied when the reader copies the text.

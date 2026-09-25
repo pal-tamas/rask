@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     One choice in a <c>select</c>, <c>optgroup</c>, or <c>datalist</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/option">MDN</see>
 /// </summary>
+[Tag("option")]
 public sealed partial class Option : Element
 {
-    protected override string TagName => "option";
-
     /// <summary>The value submitted when this option is chosen. Defaults to the option's text.</summary>
     public string? Value { get; set; }
 

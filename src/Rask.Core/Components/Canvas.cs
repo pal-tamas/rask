@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     attributes — they are the drawing buffer's real size, which CSS dimensions only scale.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/canvas">MDN</see>
 /// </summary>
+[Tag("canvas")]
 public sealed partial class Canvas : Element
 {
-    protected override string TagName => "canvas";
-
     /// <summary>
     ///     The drawing buffer's width in pixels (default 300). Distinct from the CSS width, which merely
     ///     scales the result.

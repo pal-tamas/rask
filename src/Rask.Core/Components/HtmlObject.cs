@@ -11,10 +11,9 @@ namespace Rask.Core.Components;
 ///     Prefer <c>img</c>, <c>video</c> or <c>iframe</c> where they fit.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object">MDN</see>
 /// </summary>
+[Tag("object", Entry = "HtmlObject")]
 public sealed partial class HtmlObject : Element
 {
-    protected override string TagName => "object";
-
     /// <summary>
     ///     The URL of the resource, rendered as the <c>data</c> attribute. Named to avoid colliding with
     ///     the universal <c>Data</c> dictionary that emits <c>data-*</c>.

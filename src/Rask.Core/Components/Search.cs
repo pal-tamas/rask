@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     it needs no <c>Role</c> of its own.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/search">MDN</see>
 /// </summary>
+[Tag("search")]
 public sealed partial class Search : Element
 {
-    protected override string TagName => "search";
 }

@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     hostile: give it a <c>Sandbox</c>, and grant capabilities through <c>Allow</c> one at a time.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe">MDN</see>
 /// </summary>
+[Tag("iframe")]
 public sealed partial class Iframe : Element
 {
-    protected override string TagName => "iframe";
-
     /// <summary>The URL of the document to embed.</summary>
     public string? Src { get; set; }
 
