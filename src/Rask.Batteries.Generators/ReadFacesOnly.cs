@@ -19,7 +19,7 @@ namespace Rask.Batteries.Generators;
 ///         merely references the package — auth switched off included — because the registry's contribution
 ///         is registered by a <c>[ModuleInitializer]</c> that runs when the assembly loads, and
 ///         <c>ModelRegistry.Apply</c> maps every contribution it has. It would also ship a public
-///         <c>PasskeyModel</c> and <c>Passkey.CreateAsync(model)</c>: a form-shaped way to mint a passkey,
+///         <c>PasskeyModel</c> and <c>Passkey.Create(model)</c>: a form-shaped way to mint a passkey,
 ///         beside the WebAuthn ceremony that exists to prevent exactly that.
 ///     </para>
 ///     <para>

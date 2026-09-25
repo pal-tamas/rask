@@ -16,7 +16,7 @@ namespace Rask.WebPush;
 /// </remarks>
 public sealed class PushSubscriber : Entity<Guid>
 {
-    /// <summary>Written by the battery alone: no form model, no <c>CreateAsync</c>.</summary>
+    /// <summary>Written by the battery alone: no form model, no <c>Create</c>.</summary>
     public const ModelWrites Writes = ModelWrites.None;
 
     /// <summary>The push service URL a message is POSTed to. Unique: a browser that subscribes again replaces its row.</summary>

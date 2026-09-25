@@ -781,7 +781,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         string? SingleValue,
         string? ColumnPrefix = null);
 
-    // Internal so the model generator's CreateAsync asks "is this a strongly-typed id, and over what" of the same
+    // Internal so the model generator's Create asks "is this a strongly-typed id, and over what" of the same
     // definition the registry registers the value converter from.
     internal readonly record struct StronglyTypedId(string? TypeName, string? ValueTypeName, string? ValueMember, string? Problem)
     {

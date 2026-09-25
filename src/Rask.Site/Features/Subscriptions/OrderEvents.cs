@@ -17,7 +17,7 @@ public sealed record WatchOrder(int Number) : ISubscription<OrderShipped>
 }
 
 // Who may open it. A demo lets anyone; an app checks the signed-in user, for instance
-// (await Order.Find(watch.Number)).CustomerId == Current.UserId. With no policy at all, nobody may.
+// (await Order.Read.Where(o => o.Number == watch.Number).FirstOrDefaultAsync())?.CustomerId == Current.UserId. With no policy at all, nobody may.
 public sealed class WatchingOrders : IWatchPolicy<WatchOrder>
 {
     public Task<bool> CanWatchAsync(WatchOrder subscription, CancellationToken cancellationToken) =>

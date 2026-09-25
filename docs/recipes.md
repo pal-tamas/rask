@@ -30,7 +30,7 @@ open alongside.
 
 Declare the aggregate under `Features/Orders/` and its pages beside it. Nothing goes on the context — no
 `DbSet`, no configuration class: `RaskDbContext` maps every aggregate you declare, and the build generates
-its form model (`OrderModel`), read face (`Order.Read`) and writes (`Order.CreateAsync(model)`).
+its form model (`OrderModel`), read face (`Order.Read`) and writes (`Order.Create(model)`).
 
 ```csharp
 public sealed class Order : Aggregate<Guid>
@@ -67,8 +67,8 @@ through the root; loading the root by id loads it whole. Many-to-many between ag
 A delete removes the row. Declare a `const` on the aggregate to say otherwise:
 
 ```csharp
-public const Deletion Deletes = Deletion.Soft;   // Order.DeleteAsync stamps DeletedAt; reads hide the row
-public const Deletion Deletes = Deletion.None;   // no Order.DeleteAsync at all — cancel it instead
+public const Deletion Deletes = Deletion.Soft;   // Order.Delete stamps DeletedAt; reads hide the row
+public const Deletion Deletes = Deletion.None;   // no Order.Delete at all — cancel it instead
 ```
 
 Then `rask db add OrderDeletes && rask db update`. `Order.Read.IgnoreQueryFilters()` brings soft-deleted rows

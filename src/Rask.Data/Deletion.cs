@@ -1,7 +1,7 @@
 namespace Rask.Data;
 
 /// <summary>
-///     What <c>DeleteAsync</c> does to an aggregate's row.
+///     What <c>Delete</c> does to an aggregate's row.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -31,7 +31,7 @@ namespace Rask.Data;
 ///         <code>
 ///         public sealed class Invoice : Aggregate&lt;Guid&gt;
 ///         {
-///             public const Deletion Deletes = Deletion.None;   // Invoice.DeleteAsync does not exist
+///             public const Deletion Deletes = Deletion.None;   // Invoice.Delete does not exist
 ///         }
 ///         </code>
 ///     </example>
@@ -52,7 +52,7 @@ public enum Deletion
     Soft,
 
     /// <summary>
-    ///     The aggregate is never deleted: no <c>DeleteAsync</c> is generated for it. For a record the domain
+    ///     The aggregate is never deleted: no <c>Delete</c> is generated for it. For a record the domain
     ///     corrects by adding another (a refund, a reversal) or retires through a method of its own
     ///     (<c>Cancel</c>, <c>Archive</c>) — an invoice, a payment, a ledger entry.
     /// </summary>
