@@ -176,6 +176,21 @@ public sealed class AccountRecoveryTests
     }
 
     [Fact]
+    public async Task RequireConfirmedEmail_makes_registering_create_the_account_without_signing_anybody_in()
+    {
+        // Otherwise registering an address you do not own would hand you the session sign-in refuses.
+        await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
+        using var scope = harness.NewScope();
+
+        var outcome = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>()
+            .RegisterAsync("someone@example.com", Password, firstRunToken: null, client: null);
+
+        Assert.Equal(AuthError.EmailNotConfirmed, outcome.Result.Error);
+        Assert.Null(outcome.Principal);
+        Assert.NotNull(await harness.UserAsync("someone@example.com"));
+    }
+
+    [Fact]
     public async Task A_wrong_password_on_an_unconfirmed_account_still_reads_as_a_wrong_password()
     {
         await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
@@ -221,7 +236,11 @@ public sealed class AccountRecoveryTests
         await harness.StartAsync();
 
         var owner = await RegisterAsync(harness, Owner, AuthHarness.FirstRunTokenValue);
-        Assert.True(owner.Succeeded, $"harness setup failed: {owner.Error} {owner.Message}");
+
+        // With RequireConfirmedEmail on, registering makes the account but signs nobody in to it.
+        Assert.True(
+            owner.Succeeded || owner.Error == AuthError.EmailNotConfirmed,
+            $"harness setup failed: {owner.Error} {owner.Message}");
 
         return harness;
     }

@@ -166,6 +166,12 @@ public sealed class AuthEndpointTests
         });
 
         var userId = (await registered.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+        await using (var confirming = app.NewContext())
+        {
+            // Only a confirmed address may add a passkey; the emailed link is not what this test is about.
+            (await confirming.Set<TestUser>().SingleAsync(u => u.Email == "owner@example.com")).ConfirmEmail(DateTime.UtcNow);
+            await confirming.SaveChangesAsync();
+        }
 
         var options = await Post(client, "/api/auth/passkeys/register-options", null);
         Assert.Equal(HttpStatusCode.OK, options.StatusCode);

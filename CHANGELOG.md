@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Security
 
+- **A password reset takes the account back, passkeys included.** Registering signs you in before the address is
+  confirmed, and adding a passkey only needed a session, so someone who registered your address first could add
+  their own passkey and keep signing in after you reset the password. A reset now removes every passkey on the
+  account, and adding a passkey needs a confirmed address (`EmailNotConfirmed` says why when it is refused).
+- **`RequireConfirmedEmail` is no longer bypassed by registering.** With the gate on, registering used to hand
+  back a signed-in session for an address nobody had proved. It now creates the account and answers
+  `EmailNotConfirmed`, the same as signing in does, until the emailed link is followed.
 - **One bad push subscription can no longer stop every broadcast.** `/_rask/push/subscribe` is anonymous and
   checked only that the endpoint was not blank, so one `POST` with an `http://` endpoint or a junk key made every
   later `Push.Send` throw partway through the subscriber list. A subscription is now refused (400, or

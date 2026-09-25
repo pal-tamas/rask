@@ -236,7 +236,9 @@ public static class RaskAuthEndpointExtensions
             .ConfigureAwait(false);
 
         return challenge is null
-            ? Refuse(AuthResult.Fail(AuthError.NotAllowed), StatusCodes.Status400BadRequest)
+            ? Refuse(
+                AuthResult.Fail(await accounts.PasskeyRefusalAsync(userId, cancellationToken).ConfigureAwait(false)),
+                StatusCodes.Status400BadRequest)
             : Results.Ok(challenge);
     }
 
