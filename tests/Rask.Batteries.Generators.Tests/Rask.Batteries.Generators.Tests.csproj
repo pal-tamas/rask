@@ -51,6 +51,8 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Outbox\Rask.Outbox.csproj"/>
+    <!-- Its account events must stay [LocalOnly]; a test reads them off the assembly. -->
+    <ProjectReference Include="..\..\src\Rask.Auth.Api\Rask.Auth.Api.csproj"/>
   </ItemGroup>
 
 </Project>

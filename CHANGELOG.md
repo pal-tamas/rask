@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+
+- **Jobs, outbox events and the account events can no longer be sent over HTTP.** `IJob`, `IOutboxEvent` and
+  every `Rask.Auth` event (`UserRegistered`, `PasswordReset`, `SignedIn`, …) are now `[LocalOnly]`, as
+  `LocalOnlyAttribute`'s own docs always said. Before, the codec generator gave each one an endpoint, so anyone
+  could `POST /_rask/cqrs/request/<Name>` a job and run its handler at once (a welcome-mail job became an open
+  mail relay), forge an outbox event such as `OrderPaid`, or watch another user's sign-ins. Jobs and outbox
+  events keep their own serializers, so persistence is unchanged.
+
 ### Added
 
 - **Web Push keeps its subscribers, so a send is one line.** `await Push.Send(WebPushMessage.Text("Order shipped",
