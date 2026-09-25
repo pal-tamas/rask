@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     <c>progress</c> instead; a meter is a gauge, not a completion bar.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter">MDN</see>
 /// </summary>
+[Tag("meter")]
 public sealed partial class Meter : Element
 {
-    protected override string TagName => "meter";
-
     /// <summary>
     ///     The current measurement. Required, and clamped into the <c>Min</c>–<c>Max</c> range.
     /// </summary>

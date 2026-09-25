@@ -5,8 +5,7 @@ namespace Rask.Core.Components;
 ///     use a CSS border.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/hr">MDN</see>
 /// </summary>
+[Tag("hr")]
 public sealed partial class Hr : Element
 {
-    protected override string TagName => "hr";
-    protected override bool SelfClosing => true;
 }

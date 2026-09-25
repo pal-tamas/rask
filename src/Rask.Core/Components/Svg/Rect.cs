@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     A rectangle, optionally with rounded corners.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect">MDN</see>
 /// </summary>
+[Tag("rect")]
 public sealed partial class Rect : SvgElement
 {
-    protected override string TagName => "rect";
-
     /// <summary>The left edge's x coordinate.</summary>
     public string? X { get; set; }
 

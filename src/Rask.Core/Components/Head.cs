@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     of it renders. Rask appends its runtime <c>script</c> to the page automatically.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/head">MDN</see>
 /// </summary>
-public sealed class Head : Element
+[Tag("head")]
+public sealed partial class Head : Element
 {
-    protected override string TagName => "head";
 }

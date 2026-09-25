@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     An image map: a set of <c>area</c> children an <c>img</c> references through its <c>UseMap</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/map">MDN</see>
 /// </summary>
+[Tag("map")]
 public sealed partial class Map : Element
 {
-    protected override string TagName => "map";
-
     /// <summary>
     ///     The map's name, which an image references as <c>UseMap: "#name"</c>. Required, and must be
     ///     unique.

@@ -9,11 +9,9 @@ namespace Rask.Core.Components;
 ///     is purely decorative.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img">MDN</see>
 /// </summary>
+[Tag("img")]
 public sealed partial class Img : Element
 {
-    protected override string TagName => "img";
-    protected override bool SelfClosing => true;
-
     /// <summary>The image's URL. Required.</summary>
     public string? Src { get; set; }
 

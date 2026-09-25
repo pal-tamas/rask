@@ -6880,6 +6880,8 @@ Rask.Battery<TOptions>.Battery() -> void
 Rask.Battery<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Battery<TOptions!>!
 Rask.Core.Routing.MountOnlyRoutesAttribute
 Rask.Core.Routing.MountOnlyRoutesAttribute.MountOnlyRoutesAttribute() -> void
+override Rask.Core.Element.SelfClosing.get -> bool
+override Rask.Core.Element.TagName.get -> string?
 Rask.Core.ScopedAssets.ScopedScript
 Rask.Core.ScopedAssets.ScriptObject
 Rask.Core.ScopedAssets.ScriptObject.DisposeAsync() -> System.Threading.Tasks.ValueTask

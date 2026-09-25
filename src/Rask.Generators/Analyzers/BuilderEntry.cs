@@ -66,7 +66,7 @@ internal static class BuilderEntry
         // An entry hands back the component itself, so the name test is direct. It used to hand back a
         // `Build<T>` over it, which had to be unwrapped first — `Build` being a name no author writes.
         return produced is INamedTypeSymbol named
-               && string.Equals(member.Name, named.Name, StringComparison.Ordinal)
+               && NamesEntryOf(member.Name, named)
                && DerivesFromComponent(named, component)
             ? named
             : null;
@@ -279,7 +279,7 @@ internal static class BuilderEntry
         // something that could have taken a key.
         if (property.Type is not INamedTypeSymbol produced
             || !property.IsStatic
-            || !(string.Equals(produced.Name, name.Identifier.ValueText, StringComparison.Ordinal)
+            || !(NamesEntryOf(name.Identifier.ValueText, produced)
                  || IsGroupedEntry(property, produced))
             || model.Compilation.GetTypeByMetadataName(ComponentMetadataName) is not { } component
             || !DerivesFromComponent(produced, component))
@@ -290,6 +290,44 @@ internal static class BuilderEntry
         entry = name;
         built = produced;
         return true;
+    }
+
+    private const string TagFullName = "Rask.Core.TagAttribute";
+
+    // Whether `name` is an entry of `type`: its own name, or — for an element — one its [Tag]s give it, since
+    // an element type is named after its DOM interface while its entries are named after its tags.
+    public static bool NamesEntryOf(string name, INamedTypeSymbol type)
+    {
+        if (string.Equals(name, type.Name, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        foreach (var attribute in type.GetAttributes())
+        {
+            if (!string.Equals(attribute.AttributeClass?.ToDisplayString(), TagFullName, StringComparison.Ordinal)
+                || attribute.ConstructorArguments.Length != 1
+                || attribute.ConstructorArguments[0].Value is not string { Length: > 0 } tag)
+            {
+                continue;
+            }
+
+            string? entry = null;
+            foreach (var named in attribute.NamedArguments)
+            {
+                if (named.Key == "Entry")
+                {
+                    entry = named.Value.Value as string;
+                }
+            }
+
+            if (string.Equals(name, entry ?? char.ToUpperInvariant(tag[0]) + tag.Substring(1), StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";

@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     Blurs its input with a Gaussian kernel.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feGaussianBlur">MDN</see>
 /// </summary>
+[Tag("feGaussianBlur")]
 public sealed partial class FeGaussianBlur : SvgElement
 {
-    protected override string TagName => "feGaussianBlur";
-
     /// <summary>
     ///     The input for this primitive: <c>SourceGraphic</c>, <c>SourceAlpha</c>, or the <c>Result</c>
     ///     name of an earlier one.

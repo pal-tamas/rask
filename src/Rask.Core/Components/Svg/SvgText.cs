@@ -10,10 +10,9 @@ namespace Rask.Core.Components;
 ///     primitive.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/text">MDN</see>
 /// </summary>
+[Tag("text", Entry = "SvgText")]
 public sealed partial class SvgText : SvgElement
 {
-    protected override string TagName => "text";
-
     /// <summary>The x coordinate of the text's starting point.</summary>
     public string? X { get; set; }
 

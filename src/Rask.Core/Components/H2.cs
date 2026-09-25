@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     style it with CSS instead.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/Heading_Elements">MDN</see>
 /// </summary>
+[Tag("h2")]
 public sealed partial class H2 : HtmlHeadingElement
 {
-    protected override string TagName => "h2";
 }

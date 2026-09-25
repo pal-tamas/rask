@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     by default.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/pre">MDN</see>
 /// </summary>
-public sealed class Pre : Element
+[Tag("pre")]
+public sealed partial class Pre : Element
 {
-    protected override string TagName => "pre";
 }

@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     as an unordered list.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/menu">MDN</see>
 /// </summary>
+[Tag("menu")]
 public sealed partial class Menu : Element
 {
-    protected override string TagName => "menu";
 }

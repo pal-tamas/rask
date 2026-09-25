@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     to it without any extra ARIA.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/output">MDN</see>
 /// </summary>
+[Tag("output")]
 public sealed partial class Output : Element
 {
-    protected override string TagName => "output";
-
     /// <summary>Space-separated <c>id</c>s of the elements this result was computed from.</summary>
     public string? For { get; set; }
 

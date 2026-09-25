@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     A closed shape through a list of points; the last point is joined back to the first automatically.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/polygon">MDN</see>
 /// </summary>
+[Tag("polygon")]
 public sealed partial class Polygon : SvgElement
 {
-    protected override string TagName => "polygon";
-
     /// <summary>The vertices, as space- or comma-separated <c>x,y</c> pairs.</summary>
     public string? Points { get; set; }
 

@@ -4,7 +4,7 @@ namespace Rask.Core.Components;
 ///     A term in a description list, described by the <c>dd</c> elements that follow it.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dt">MDN</see>
 /// </summary>
+[Tag("dt")]
 public sealed partial class Dt : Element
 {
-    protected override string TagName => "dt";
 }

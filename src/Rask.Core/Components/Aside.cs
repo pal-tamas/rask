@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     nav links to related reading.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/aside">MDN</see>
 /// </summary>
+[Tag("aside")]
 public sealed partial class Aside : Element
 {
-    protected override string TagName => "aside";
 }

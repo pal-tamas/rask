@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     Lays text along the shape of a referenced <c>path</c> instead of a straight baseline.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/textPath">MDN</see>
 /// </summary>
+[Tag("textPath")]
 public sealed partial class TextPath : SvgElement
 {
-    protected override string TagName => "textPath";
-
     /// <summary>The <c>#id</c> of the path to lay the text along.</summary>
     public string? Href { get; set; }
 

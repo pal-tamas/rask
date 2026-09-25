@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     a static fallback or an explanation belongs.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/noscript">MDN</see>
 /// </summary>
+[Tag("noscript")]
 public sealed partial class Noscript : Element
 {
-    protected override string TagName => "noscript";
 }

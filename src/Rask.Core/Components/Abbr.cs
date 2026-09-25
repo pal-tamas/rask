@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     — and repeat it in the text on first use, since <c>title</c> never reaches touch users.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/abbr">MDN</see>
 /// </summary>
+[Tag("abbr")]
 public sealed partial class Abbr : Element
 {
-    protected override string TagName => "abbr";
 }

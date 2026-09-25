@@ -8,11 +8,9 @@ namespace Rask.Core.Components;
 ///     <c>iframe</c> for anything new.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/embed">MDN</see>
 /// </summary>
+[Tag("embed")]
 public sealed partial class Embed : Element
 {
-    protected override string TagName => "embed";
-    protected override bool SelfClosing => true;
-
     /// <summary>The URL of the resource to embed.</summary>
     public string? Src { get; set; }
 

@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     grouping related rows.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tbody">MDN</see>
 /// </summary>
+[Tag("tbody")]
 public sealed partial class Tbody : HtmlTableSectionElement
 {
-    protected override string TagName => "tbody";
 }

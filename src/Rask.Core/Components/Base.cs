@@ -7,11 +7,9 @@ namespace Rask.Core.Components;
 ///     document, and it must precede any URL it is meant to affect.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/base">MDN</see>
 /// </summary>
+[Tag("base")]
 public sealed partial class Base : Element
 {
-    protected override string TagName => "base";
-    protected override bool SelfClosing => true;
-
     /// <summary>The base URL that relative URLs in the document resolve against.</summary>
     public string? Href { get; set; }
 

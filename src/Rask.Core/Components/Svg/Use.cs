@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     defined once in a <c>defs</c> or a <c>symbol</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/use">MDN</see>
 /// </summary>
+[Tag("use")]
 public sealed partial class Use : SvgElement
 {
-    protected override string TagName => "use";
-
     /// <summary>The element to clone, as <c>#id</c>. Cross-origin references are not allowed.</summary>
     public string? Href { get; set; }
 

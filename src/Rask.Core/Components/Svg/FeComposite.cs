@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     four coefficients.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feComposite">MDN</see>
 /// </summary>
+[Tag("feComposite")]
 public sealed partial class FeComposite : SvgElement
 {
-    protected override string TagName => "feComposite";
-
     /// <summary>The first input.</summary>
     public string? In { get; set; }
 

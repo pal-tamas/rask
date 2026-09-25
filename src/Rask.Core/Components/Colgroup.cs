@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     after any <c>caption</c> and before every row.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/colgroup">MDN</see>
 /// </summary>
+[Tag("colgroup")]
 public sealed partial class Colgroup : HtmlTableColElement
 {
-    protected override string TagName => "colgroup";
 }

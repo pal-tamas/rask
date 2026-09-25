@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     text. The inline counterpart of <c>div</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/span">MDN</see>
 /// </summary>
+[Tag("span")]
 public sealed partial class Span : Element
 {
-    protected override string TagName => "span";
 }

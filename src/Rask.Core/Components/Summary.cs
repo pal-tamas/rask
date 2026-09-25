@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     child.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/summary">MDN</see>
 /// </summary>
-public sealed class Summary : Element
+[Tag("summary")]
+public sealed partial class Summary : Element
 {
-    protected override string TagName => "summary";
 }

@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     this is for your own additions.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script">MDN</see>
 /// </summary>
+[Tag("script")]
 public sealed partial class Script : Element
 {
-    protected override string TagName => "script";
-
     /// <summary>
     ///     The URL of an external script. An element with <c>Src</c> must have no inline content.
     /// </summary>

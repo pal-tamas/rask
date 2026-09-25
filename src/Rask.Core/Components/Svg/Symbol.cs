@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     right container for an icon sprite.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/symbol">MDN</see>
 /// </summary>
+[Tag("symbol")]
 public sealed partial class Symbol : SvgElement
 {
-    protected override string TagName => "symbol";
-
     /// <summary>
     ///     The user-coordinate rectangle this symbol maps onto whatever viewport a <c>use</c> gives it.
     /// </summary>

@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     so this is for your own rules.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/style">MDN</see>
 /// </summary>
+[Tag("style")]
 public sealed partial class Style : Element
 {
-    protected override string TagName => "style";
-
     /// <summary>
     ///     The stylesheet language. Omit it — the only valid value is the default, <c>text/css</c>.
     /// </summary>

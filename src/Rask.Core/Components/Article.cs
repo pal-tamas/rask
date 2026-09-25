@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     a product card. Give it a heading.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/article">MDN</see>
 /// </summary>
+[Tag("article")]
 public sealed partial class Article : Element
 {
-    protected override string TagName => "article";
 }

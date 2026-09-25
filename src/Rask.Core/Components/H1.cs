@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     the heading levels as the page's outline.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/Heading_Elements">MDN</see>
 /// </summary>
-public sealed class H1 : HtmlHeadingElement
+[Tag("h1")]
+public sealed partial class H1 : HtmlHeadingElement
 {
-    protected override string TagName => "h1";
 }
