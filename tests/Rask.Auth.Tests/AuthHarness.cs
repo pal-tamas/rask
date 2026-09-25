@@ -108,8 +108,13 @@ public sealed class AuthHarness : IAsyncDisposable
     ///     Passing <c>true</c> registers <see cref="MailSpy" />, which captures what would have been sent.
     /// </param>
     /// <param name="clock">The clock sessions and tokens read, when a test needs to move time.</param>
+    /// <param name="extraServices">Registrations a test adds last, such as a host environment.</param>
     public AuthHarness(
-        Action<AuthOptions>? configure = null, string? dbPath = null, bool mail = false, TimeProvider? clock = null)
+        Action<AuthOptions>? configure = null,
+        string? dbPath = null,
+        bool mail = false,
+        TimeProvider? clock = null,
+        Action<IServiceCollection>? extraServices = null)
     {
         _ownsFile = dbPath is null;
         DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"rask-auth-test-{Guid.NewGuid():N}.db");
@@ -152,6 +157,8 @@ public sealed class AuthHarness : IAsyncDisposable
             Mail = new MailSpy();
             services.AddSingleton<IMail>(Mail);
         }
+
+        extraServices?.Invoke(services);
 
         _provider = services.BuildServiceProvider();
 

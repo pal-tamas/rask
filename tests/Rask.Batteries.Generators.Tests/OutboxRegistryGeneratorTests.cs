@@ -1,4 +1,4 @@
-namespace Rask.Outbox.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// Drives <see cref="OutboxRegistryGenerator"/> over hand-written sources.

@@ -102,9 +102,6 @@ just pages.
 `Features/Products/CreateProduct.cs`:
 
 ```csharp
-using Rask.Core.Routing;
-using Rask.Query;
-
 namespace Shop.Features.Products;
 
 [Route("/products/new")]
@@ -172,8 +169,6 @@ Same shape, and the list page in the next step links to both — so write them n
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using Rask.Core.Routing;
-using Rask.Query;
 
 namespace Shop.Features.Products;
 
@@ -264,8 +259,6 @@ Four things in that page are doing more than they look:
 `Features/Products/DeleteProduct.cs` is a small reusable button the list page drops next to each row:
 
 ```csharp
-using Rask.Query;
-
 namespace Shop.Features.Products;
 
 // A reusable delete button: removes the product, then invokes OnDeleted so the caller (the list page)
@@ -317,8 +310,6 @@ table behind a `DeletedAt` stamp instead.
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
-using Rask.Core.Routing;
-using Rask.Query;
 
 namespace Shop.Features.Products;
 

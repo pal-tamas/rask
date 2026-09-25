@@ -922,7 +922,7 @@ function jsResolveIdentifier(target: unknown, identifier: string): [Record<strin
 
 // A C# Callback handed to a component's scoped script (ScopedScript.Callback): each call goes back to
 // .NET with its arguments. Nothing awaits it — the script called a function, not a query.
-function scopedCallback(id: string): (...args: unknown[]) => void {
+function scopedCallback(id: number): (...args: unknown[]) => void {
     return (...args: unknown[]) => {
         window.DotNet.invokeMethodAsync("Rask.Core", "RaskScopedCallback", id, args)
             .catch((e: unknown) => console.error("[Rask] scoped-script callback failed", e));
@@ -931,11 +931,11 @@ function scopedCallback(id: string): (...args: unknown[]) => void {
 
 function jsReviver(_key: string, value: unknown): unknown {
     if (value && typeof value === "object") {
-        const shape = value as { __jsObjectId?: number; __raskRef__?: string; __raskCb__?: string };
+        const shape = value as { __jsObjectId?: number; __raskRef__?: string; __raskCb__?: number };
         if (typeof shape.__jsObjectId === "number") {
             return jsObjectRefs.get(shape.__jsObjectId);
         }
-        if (typeof shape.__raskCb__ === "string") {
+        if (typeof shape.__raskCb__ === "number") {
             return scopedCallback(shape.__raskCb__);
         }
         // ElementRef: {"__raskRef__":"id"} -> the live DOM element (or null if not in the DOM).

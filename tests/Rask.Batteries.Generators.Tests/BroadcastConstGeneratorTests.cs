@@ -1,6 +1,4 @@
-using Rask.Data.Generators;
-
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 ///     The <c>Broadcast</c> const, which is what makes a save announce itself to pages that did not make it.

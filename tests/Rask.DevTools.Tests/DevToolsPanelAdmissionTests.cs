@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Diagnostics.DevTools;
 using Rask.DevTools.Endpoints;

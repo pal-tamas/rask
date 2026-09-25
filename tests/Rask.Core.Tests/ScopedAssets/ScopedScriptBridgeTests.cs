@@ -19,7 +19,7 @@ public class ScopedScriptBridgeTests
 
         var bridge = source.Substring(source.IndexOf("function scopedCallback", StringComparison.Ordinal));
 
-        Assert.Contains("typeof shape.__raskCb__ === \"string\"", source);
+        Assert.Contains("typeof shape.__raskCb__ === \"number\"", source);
         Assert.Contains("return scopedCallback(shape.__raskCb__)", source);
         Assert.Contains("invokeMethodAsync(\"Rask.Core\", \"RaskScopedCallback\", id, args)", bridge);
     }

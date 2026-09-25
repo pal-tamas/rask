@@ -1,8 +1,7 @@
 using Microsoft.CodeAnalysis;
-using Rask.Cqrs.Generators;
 using Rask.Generators.Shared;
 
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// A Rask.Data entity's generated model, as the OTHER battery generators meet it.

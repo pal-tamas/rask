@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-
 namespace Rask.Dashboard.Panels;
 
 /// <summary>

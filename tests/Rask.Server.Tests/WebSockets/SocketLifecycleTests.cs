@@ -3,7 +3,6 @@ using System.Net.WebSockets;
 using System.Text.RegularExpressions;
 using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
-using Rask.TestSupport;
 
 namespace Rask.Server.Tests.WebSockets;
 

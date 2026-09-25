@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using System.Runtime.InteropServices;
-using Rask.Tailwind.Tasks;
 
 namespace Rask.Tailwind.Tasks.Tests;
 

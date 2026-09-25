@@ -3,7 +3,6 @@
 // …). The base type moves with the EF Core version this package pins; the FullTextSearch migration tests re-verify it.
 #pragma warning disable EF1001
 
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Sqlite.Metadata.Internal;

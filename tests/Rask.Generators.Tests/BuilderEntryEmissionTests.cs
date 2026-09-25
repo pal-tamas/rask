@@ -1,4 +1,3 @@
-using System.IO;
 using Microsoft.CodeAnalysis;
 
 namespace Rask.Generators.Tests;

@@ -6890,7 +6890,7 @@ static Rask.Core.ScopedAssets.ScopedScript.Call<T>(Rask.Core.Component! owner, s
 static Rask.Core.ScopedAssets.ScopedScript.Callback(Rask.Core.Component! owner, Rask.Core.Callback callback) -> object!
 static Rask.Core.ScopedAssets.ScopedScript.Callback<T1, T2>(Rask.Core.Component! owner, Rask.Core.Callback<T1, T2> callback) -> object!
 static Rask.Core.ScopedAssets.ScopedScript.Callback<T>(Rask.Core.Component! owner, Rask.Core.Callback<T> callback) -> object!
-static Rask.Core.ScopedAssets.ScopedScript.Invoke(string! id, System.Text.Json.JsonElement args) -> System.Threading.Tasks.Task!
+static Rask.Core.ScopedAssets.ScopedScript.Invoke(int id, System.Text.Json.JsonElement args) -> System.Threading.Tasks.Task!
 static Rask.Core.ScopedAssets.ScopedScript.Object<T>(Rask.Core.Component! owner, string! identifier, System.Func<Microsoft.JSInterop.IJSObjectReference!, T!>! wrap, params object?[]! args) -> System.Threading.Tasks.ValueTask<T!>
 Rask.Core.ScopedAssets.ScriptObject.CallScript(string! method, params object?[]! args) -> System.Threading.Tasks.ValueTask
 Rask.Core.ScopedAssets.ScriptObject.CallScript<T>(string! method, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>

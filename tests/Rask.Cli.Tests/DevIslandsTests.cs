@@ -1,4 +1,3 @@
-using Rask.Cli;
 using Rask.Cli.Commands;
 
 namespace Rask.Cli.Tests;

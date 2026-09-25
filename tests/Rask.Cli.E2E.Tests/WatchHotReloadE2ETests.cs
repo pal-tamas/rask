@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 

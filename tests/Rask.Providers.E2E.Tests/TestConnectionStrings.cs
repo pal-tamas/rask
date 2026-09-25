@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Rask.Postgres;
 using Rask.SqlServer;
 
 /// <summary>

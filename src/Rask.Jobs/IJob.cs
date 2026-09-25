@@ -9,4 +9,5 @@ namespace Rask.Jobs;
 /// executed off the request thread, persisted durably, and retried on failure — so you write an ordinary
 /// <c>ICommandHandler&lt;TJob&gt;</c> to handle it.
 /// </summary>
+[LocalOnly]
 public interface IJob : ICommand;

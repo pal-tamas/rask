@@ -47,7 +47,7 @@ public class ScopedScriptTests
         var marker = ScopedScript.Callback(probe, new Callback(() => { }));
 
         var json = JsonSerializer.Serialize(marker, marker.GetType(), ScopedScriptJsonContext.Default.Options);
-        Assert.Matches("""^\{"__raskCb__":"[0-9a-f]{32}"\}$""", json);
+        Assert.Matches("""^\{"__raskCb__":\d+\}$""", json);
     }
 
     [Fact]
@@ -64,20 +64,32 @@ public class ScopedScriptTests
     }
 
     [Fact]
-    public async Task A_callback_cannot_be_reached_by_counting_from_another_ones_id()
+    public async Task A_callback_answers_only_the_session_that_handed_it_over()
     {
-        // RaskScopedCallback is callable by any script, and on the Server host the table is shared by every
-        // session — so a neighbouring id must not name anyone else's callback.
+        // RaskScopedCallback is callable from any socket, and on the Server host the registry is shared by every
+        // session — so another session posting this id must not reach the callback.
+        var mine = new FakeJsRuntime();
         var probe = new Probe();
         var calls = 0;
-        var first = (ScopedScript.ScriptCallback)ScopedScript.Callback(probe, new Callback(() => calls++));
-        var second = (ScopedScript.ScriptCallback)ScopedScript.Callback(probe, new Callback(() => calls++));
+        ScopedScript.ScriptCallback marker;
+        using (DispatchServicesScope.Push(Services(mine)))
+        {
+            marker = (ScopedScript.ScriptCallback)ScopedScript.Callback(probe, new Callback(() => calls++));
+        }
 
-        await ScopedScript.Invoke(first.Id + "0", JsonDocument.Parse("[]").RootElement);
-        await ScopedScript.Invoke("1", JsonDocument.Parse("[]").RootElement);
+        using (JsCaller.Enter(new FakeJsRuntime()))
+        {
+            await ScopedScript.Invoke(marker.Id, JsonDocument.Parse("[]").RootElement);
+        }
 
-        Assert.Equal(0, calls);
-        Assert.NotEqual(first.Id[..8], second.Id[..8]);
+        var fromAnotherSession = calls;
+        using (JsCaller.Enter(mine))
+        {
+            await ScopedScript.Invoke(marker.Id, JsonDocument.Parse("[]").RootElement);
+        }
+
+        Assert.Equal(0, fromAnotherSession);
+        Assert.Equal(1, calls);
     }
 
     [Fact]

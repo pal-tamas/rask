@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Rask.Generators.Shared;
 
-namespace Rask.Jobs.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Discovers every <c>Rask.Jobs.IJob</c> type in the compilation and emits a per-assembly

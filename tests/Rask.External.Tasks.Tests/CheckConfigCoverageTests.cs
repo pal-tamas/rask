@@ -1,6 +1,5 @@
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-using Rask.External.Tasks;
 
 namespace Rask.External.Tasks.Tests;
 

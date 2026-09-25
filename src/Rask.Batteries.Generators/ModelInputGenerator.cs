@@ -9,10 +9,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Rask.Cqrs.Generators;
 using Rask.Generators.Shared;
 
-namespace Rask.Data.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and

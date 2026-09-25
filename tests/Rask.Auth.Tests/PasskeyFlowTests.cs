@@ -297,6 +297,48 @@ public sealed class PasskeyFlowTests
         Assert.Null(accounts.BeginPasskeySignIn(AuthHarness.Origin));
     }
 
+    [Fact]
+    public async Task A_password_reset_takes_back_every_passkey_on_the_account()
+    {
+        // Whoever registered the address first, or knew the old password, may have added a passkey of their own.
+        // The real owner resetting is taking the account back, so none of them may still sign in afterwards.
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        using var authenticator = new TestAuthenticator();
+        Assert.True((await AddAsync(harness, owner.Id, authenticator)).Succeeded);
+
+        using (var scope = harness.NewScope())
+        {
+            var token = scope.ServiceProvider.GetRequiredService<AuthTokens>().ForReset(owner, TimeSpan.FromHours(1));
+            var reset = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>()
+                .ResetPasswordAsync(owner.Id.ToString(), token, "NewPassword1");
+            Assert.True(reset.Succeeded, $"reset failed: {reset.Error}");
+        }
+
+        authenticator.SignCount = 1;
+        var outcome = await SignInAsync(harness, authenticator, owner.Id);
+
+        Assert.False(outcome.Result.Succeeded);
+        await using var db = harness.NewContext();
+        Assert.False(await db.Set<Passkey>().AnyAsync(p => p.UserId == owner.Id));
+    }
+
+    [Fact]
+    public async Task An_account_whose_address_is_unconfirmed_cannot_add_a_passkey()
+    {
+        await using var harness = await ClaimedAsync();
+        await RegisterAsync(harness, "squatter@example.com");
+        var squatter = (await harness.UserAsync("squatter@example.com"))!;
+
+        using var scope = harness.NewScope();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+
+        var challenge = await accounts.BeginAddPasskeyAsync(squatter.Id, AuthHarness.Origin);
+
+        Assert.Null(challenge);
+        Assert.Equal(AuthError.EmailNotConfirmed, await accounts.PasskeyRefusalAsync(squatter.Id));
+    }
+
     private static async Task<AuthResult> AddAsync(
         AuthHarness harness, Guid userId, TestAuthenticator authenticator, string? name = null)
     {
@@ -348,6 +390,12 @@ public sealed class PasskeyFlowTests
 
         var owner = await RegisterAsync(harness, Owner, AuthHarness.FirstRunTokenValue);
         Assert.True(owner.Succeeded, $"harness setup failed: {owner.Error} {owner.Message}");
+
+        // Only a confirmed address may add a passkey, so the owner proves theirs first.
+        await using var db = harness.NewContext();
+        var user = await db.Set<TestUser>().SingleAsync(u => u.Email == Owner);
+        user.ConfirmEmail(DateTime.UtcNow);
+        await db.SaveChangesAsync();
 
         return harness;
     }

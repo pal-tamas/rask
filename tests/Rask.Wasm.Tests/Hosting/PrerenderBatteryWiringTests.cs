@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Wasm;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated chain entries
 

@@ -1,7 +1,7 @@
 using System.Web;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Authentication;
-using Rask.Testing;
+using Microsoft.Extensions.Hosting;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -178,6 +178,21 @@ public sealed class AccountRecoveryTests
     }
 
     [Fact]
+    public async Task RequireConfirmedEmail_makes_registering_create_the_account_without_signing_anybody_in()
+    {
+        // Otherwise registering an address you do not own would hand you the session sign-in refuses.
+        await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
+        using var scope = harness.NewScope();
+
+        var outcome = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>()
+            .RegisterAsync("someone@example.com", Password, firstRunToken: null, client: null);
+
+        Assert.Equal(AuthError.EmailNotConfirmed, outcome.Result.Error);
+        Assert.Null(outcome.Principal);
+        Assert.NotNull(await harness.UserAsync("someone@example.com"));
+    }
+
+    [Fact]
     public async Task A_wrong_password_on_an_unconfirmed_account_still_reads_as_a_wrong_password()
     {
         await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
@@ -199,6 +214,47 @@ public sealed class AccountRecoveryTests
         // Absolute, and on the origin the operator named — never a forwarded host header, which is
         // attacker-controlled and would send a working token to a domain of their choosing.
         Assert.StartsWith("https://app.example.com/confirm-email?", link, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Production", null)]
+    [InlineData("Development", "https://evil.example/")]
+    public async Task Outside_development_a_reset_link_is_never_built_from_the_request_s_host(
+        string environment, string? expectedLinkStart)
+    {
+        // Host: evil.example on a reset request would mail the victim a working token on the attacker's domain.
+        var request = new DefaultHttpContext();
+        request.Request.Scheme = "https";
+        request.Request.Host = new HostString("evil.example");
+        await using var harness = new AuthHarness(
+            o => o.PublicOrigin = null,
+            mail: true,
+            extraServices: s =>
+            {
+                s.AddSingleton<IHostEnvironment>(new Environment(environment));
+                s.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor { HttpContext = request });
+            });
+        await harness.StartAsync();
+        await RegisterAsync(harness, Owner, AuthHarness.FirstRunTokenValue);
+
+        await SendResetAsync(harness, Owner);
+
+        if (expectedLinkStart is null)
+        {
+            Assert.Empty(harness.Mail!.Sent);
+        }
+        else
+        {
+            Assert.StartsWith(expectedLinkStart, harness.Mail!.LastTo(Owner)!.Link, StringComparison.Ordinal);
+        }
+    }
+
+    private sealed class Environment(string name) : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = name;
+        public string ApplicationName { get; set; } = "Rask.Auth.Tests";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = null!;
     }
 
     [Fact]
@@ -223,7 +279,11 @@ public sealed class AccountRecoveryTests
         await harness.StartAsync();
 
         var owner = await RegisterAsync(harness, Owner, AuthHarness.FirstRunTokenValue);
-        Assert.True(owner.Succeeded, $"harness setup failed: {owner.Error} {owner.Message}");
+
+        // With RequireConfirmedEmail on, registering makes the account but signs nobody in to it.
+        Assert.True(
+            owner.Succeeded || owner.Error == AuthError.EmailNotConfirmed,
+            $"harness setup failed: {owner.Error} {owner.Message}");
 
         return harness;
     }

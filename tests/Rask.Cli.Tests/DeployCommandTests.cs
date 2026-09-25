@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Rask.Cli;
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 
@@ -59,6 +58,8 @@ public sealed partial class DeployCommandTests
             "--label", "rask.port=8080",
             // Behind Caddy, so the app trusts its forwarded headers — port mode (below) is reached directly.
             "-e", "Rask__BehindProxy=true",
+            // Emailed links point at the public domain, never at whatever Host a request claimed.
+            "-e", "Rask__Auth__PublicOrigin=https://shop.example.com",
             // The environment, DB volume and connection string all come before the user env, so --env wins.
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
             "-v", "shop-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db",

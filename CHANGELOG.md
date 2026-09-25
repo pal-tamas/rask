@@ -7,6 +7,40 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+
+- **A reset link can no longer be pointed at another domain through the `Host` header.** With
+  `Rask:Auth:PublicOrigin` unset, emailed links were built from the request, so `POST /api/auth/forgot-password`
+  with `Host: evil.example` mailed the victim a working reset token on the attacker's domain. Outside Development
+  the request is no longer consulted: with no `PublicOrigin`, confirm and reset emails are not sent and an error
+  is logged naming the setting (never thrown, so registration still succeeds). `rask deploy --domain` now sets
+  `Rask__Auth__PublicOrigin=https://<domain>`, and a `--port` deploy warns until one is given. **Upgrading:** a
+  production app not deployed with `--domain` must set `Rask:Auth:PublicOrigin` or its auth emails stop.
+- **A password reset takes the account back, passkeys included.** Registering signs you in before the address is
+  confirmed, and adding a passkey only needed a session, so someone who registered your address first could add
+  their own passkey and keep signing in after you reset the password. A reset now removes every passkey on the
+  account, and adding a passkey needs a confirmed address (`EmailNotConfirmed` says why when it is refused).
+- **`RequireConfirmedEmail` is no longer bypassed by registering.** With the gate on, registering used to hand
+  back a signed-in session for an address nobody had proved. It now creates the account and answers
+  `EmailNotConfirmed`, the same as signing in does, until the emailed link is followed.
+- **One bad push subscription can no longer stop every broadcast.** `/_rask/push/subscribe` is anonymous and
+  checked only that the endpoint was not blank, so one `POST` with an `http://` endpoint or a junk key made every
+  later `Push.Send` throw partway through the subscriber list. A subscription is now refused (400, or
+  `ArgumentException` from `IPush.Subscribe`) unless it has an https endpoint, a 65-byte P-256 key and a 16-byte
+  auth secret; a malformed row already stored is removed at the next send, and a push service that times out is
+  skipped instead of ending the send.
+- **A Server socket can only answer its own session's browser callbacks.** A gesture's result, a geolocation,
+  battery, sensor, observer, speech, media-session, broadcast-channel, signaling or WebRTC push reaches C#
+  through a static `[JSInvokable]` keyed by an id that counted up across the whole process, so any connected
+  socket could post another visitor's id and feed their callback forged data (or swallow a one-shot gesture
+  result). Each registry now remembers the session that registered an id and ignores every other caller.
+- **Jobs, outbox events and the account events can no longer be sent over HTTP.** `IJob`, `IOutboxEvent` and
+  every `Rask.Auth` event (`UserRegistered`, `PasswordReset`, `SignedIn`, …) are now `[LocalOnly]`, as
+  `LocalOnlyAttribute`'s own docs always said. Before, the codec generator gave each one an endpoint, so anyone
+  could `POST /_rask/cqrs/request/<Name>` a job and run its handler at once (a welcome-mail job became an open
+  mail relay), forge an outbox event such as `OrderPaid`, or watch another user's sign-ins. Jobs and outbox
+  events keep their own serializers, so persistence is unchanged.
+
 ### Added
 
 - **A component calls its scoped TypeScript like its own private methods.** `export function width(el: HTMLElement
@@ -41,6 +75,9 @@ them until tagged releases begin.
   `Program.cs` instead of dropping a package, and the scaffold's in-memory push store is gone: Web Push is the
   battery. `rask deploy` sets `Rask__BehindProxy=true` behind its Caddy proxy, RaskApp's `/health` reports the
   live-session pool, and its default PWA manifest carries `wwwroot/icon.svg` when the app has one.
+- **A scaffolded page needs no `using` for routing, forms, browser APIs, the live context or the signed-in user.**
+  `rask new`'s `GlobalUsings.cs` (server, wasm and the wasm-hosted client) carries `Rask.Core.Routing`, `.Forms`,
+  `.Browser`, `.Live` and `.Authentication`, so `[Route]`, `IWebPush` and `IAuth` resolve with no import.
 - **`PushSubscription` is one record, in `Rask.Wire`.** The browser API (`IWebPush.SubscribeAsync`) and the server
   sender each declared their own, so a component on the server host could not hand one to the other. An app that named
   `Rask.Core.Browser.PushSubscription` or `Rask.WebPush.PushSubscription` names `Rask.Wire.PushSubscription`; the
@@ -60,6 +97,12 @@ them until tagged releases begin.
   rode along: the browser battery-status implementation behind `IBattery` is `BrowserBattery`, so the name
   `Battery` means one thing — the on/off switch on `RaskAppOptions`.
 
+- **Unused usings are gone solution-wide, and the battery generators share one namespace.** About 375 `using`
+  lines that nothing needed are removed across `src/` and `tests/` — the site's source view shows the demos
+  without them. `Rask.Batteries.Generators` still declared the namespaces of the assemblies it replaced
+  (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
+  `.Analyzers`), matching the project. Nothing an app names changes.
+
 ### Fixed
 
 - **An `export class` in a scoped `.ts` no longer breaks the component's whole script.** The wrapper stripped
@@ -67,6 +110,9 @@ them until tagged releases begin.
   the script threw a SyntaxError. Classes are now exposed too.
 - **Disposing an `IJSObjectReference` frees the object in the browser.** Neither host defined
   `DotNet.disposeJSObjectReferenceById`, so every disposed handle stayed in the host's map for the life of the page.
+- **A React/Vue/… host with `--data` builds again.** Its batteries bring Rask.Core's build hooks, whose scoped CSS
+  and TypeScript globs reached into `client/` and failed on the front end's own `App.css` and `vite.config.ts`
+  (RASK015/017). `Rask.Spa.Hosting` now leaves the client directory out of those globs.
 - **An app that references only `Rask.Server` or `Rask.Wasm` draws with the kit again.** `Rask.Ui`'s build hooks —
   the kit's stylesheet in `wwwroot` and daisyUI's plugin beside `Styles/app.css` — recognised a direct `Rask.Ui`
   reference or the removed meta-package, so an app naming only its host got neither, and Tailwind stopped on

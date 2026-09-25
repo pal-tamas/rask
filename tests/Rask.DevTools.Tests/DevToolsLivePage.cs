@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Diagnostics.DevTools;

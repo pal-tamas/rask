@@ -1,10 +1,7 @@
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Rask.Generators.External;
-using Xunit;
 
 namespace Rask.Generators.Tests;
 

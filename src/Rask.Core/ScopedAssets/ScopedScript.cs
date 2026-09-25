@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -32,10 +31,9 @@ public static class ScopedScript
         | DynamicallyAccessedMemberTypes.PublicFields
         | DynamicallyAccessedMemberTypes.PublicProperties;
 
-    // Keyed by an unguessable id, never a counter: RaskScopedCallback is a [JSInvokable] any script on any page can
-    // call, and on the Server host this dictionary is shared by every live session — with a sequential id one
-    // visitor could fire another's callbacks by counting. Holding the id is what proves the callback is yours.
-    private static readonly ConcurrentDictionary<string, Func<JsonElement, JsonSerializerOptions, Task?>> Callbacks = new();
+    // RaskScopedCallback is a [JSInvokable] any socket can call, and on the Server host this registry is shared by
+    // every live session — so each entry answers only the session that registered it (JsCallbacks, JsCaller).
+    private static readonly JsCallbacks<Func<JsonElement, JsonSerializerOptions, Task?>> Callbacks = new();
 
     // No cancellation token on the calls: the component's lifetime token is cancelled on unmount, and a script's
     // teardown is exactly what OnUnmount and Dispose call — it has to go out after the token has fired.
@@ -80,11 +78,11 @@ public static class ScopedScript
 
     /// <summary>Infrastructure. Invoked by the browser when a script calls a callback it was handed; do not call.</summary>
     [JSInvokable("RaskScopedCallback")]
-    public static Task Invoke(string id, JsonElement args)
+    public static Task Invoke(int id, JsonElement args)
     {
-        if (!Callbacks.TryGetValue(id, out var callback))
+        if (!Callbacks.TryGet(id, out var callback))
         {
-            // Released: the owning component unmounted while the script still held the function.
+            // Released (the component unmounted while the script still held the function), or not this session's.
             return Task.CompletedTask;
         }
 
@@ -125,19 +123,18 @@ public static class ScopedScript
 
     private static ScriptCallback Register(Component owner, Func<JsonElement, JsonSerializerOptions, Task?> invoke)
     {
-        var id = RandomNumberGenerator.GetHexString(32, lowercase: true);
         if (owner.IsTornDown)
         {
-            // Nothing would release it, and nothing would run it: the component is gone.
-            return new ScriptCallback(id);
+            // Nothing would release it, and nothing would run it: the component is gone. Id 0 is never issued.
+            return new ScriptCallback(0);
         }
 
-        Callbacks[id] = (args, options) =>
+        var id = Callbacks.Register(TryRuntime(owner), (args, options) =>
         {
             owner.RunFromScript(() => invoke(args, options));
             return null;
-        };
-        owner.LifetimeTokenInternal.Register(static state => Callbacks.TryRemove((string)state!, out _), id);
+        });
+        owner.LifetimeTokenInternal.Register(static state => Callbacks.Unregister((int)state!), id);
         return new ScriptCallback(id);
     }
 
@@ -157,10 +154,12 @@ public static class ScopedScript
     // WASM), which is what the scripts wrote the arguments for.
     private static JsonSerializerOptions Options { get; set; } = ScopedScriptJsonContext.Default.Options;
 
+    private static IJSRuntime? TryRuntime(Component owner) =>
+        ((owner.RenderHandle as LiveSessionBase)?.Services ?? AmbientServices.Current)?.GetService<IJSRuntime>();
+
     private static IJSRuntime Runtime(Component owner)
     {
-        var services = (owner.RenderHandle as LiveSessionBase)?.Services ?? AmbientServices.Current;
-        var runtime = services?.GetService<IJSRuntime>()
+        var runtime = TryRuntime(owner)
             ?? throw new InvalidOperationException(
                 $"{owner.GetType().Name} called its scoped TypeScript before it was on a page. Call it from an event "
                 + "handler or from OnRendered, once the component is live.");
@@ -174,9 +173,9 @@ public static class ScopedScript
 
     /// <summary>A C# callback on its way to the browser, which revives <c>{"__raskCb__": id}</c> into a function.</summary>
     [JsonConverter(typeof(ScriptCallbackConverter))]
-    internal sealed class ScriptCallback(string id)
+    internal sealed class ScriptCallback(int id)
     {
-        public string Id { get; } = id;
+        public int Id { get; } = id;
     }
 
     internal sealed class ScriptCallbackConverter : JsonConverter<ScriptCallback>
@@ -187,7 +186,7 @@ public static class ScopedScript
         public override void Write(Utf8JsonWriter writer, ScriptCallback value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            writer.WriteString("__raskCb__", value.Id);
+            writer.WriteNumber("__raskCb__", value.Id);
             writer.WriteEndObject();
         }
     }

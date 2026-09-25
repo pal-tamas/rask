@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
 

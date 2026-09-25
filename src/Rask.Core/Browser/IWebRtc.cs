@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
 using Rask.Core.Diagnostics;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -301,14 +302,14 @@ public static class WebRtcInterop
     /// <summary>Infrastructure. Invoked by the JS bridge with a batch of local ICE candidates; do not call.</summary>
     [JSInvokable("RaskRtcIce")]
     public static Task Ice(int id, RtcIceCandidate[] candidates) =>
-        Connections.TryGetValue(id, out var r) && r.Handlers.OnIceCandidates is not null
+        TryOwned(id, out var r) && r.Handlers.OnIceCandidates is not null
             ? r.Handlers.OnIceCandidates(candidates)
             : Task.CompletedTask;
 
     /// <summary>Infrastructure. Invoked by the JS bridge when the connection state changes; do not call.</summary>
     [JSInvokable("RaskRtcState")]
     public static Task State(int id, string state) =>
-        Connections.TryGetValue(id, out var r) && r.Handlers.OnConnectionStateChanged is not null
+        TryOwned(id, out var r) && r.Handlers.OnConnectionStateChanged is not null
             ? r.Handlers.OnConnectionStateChanged(Parse(state))
             : Task.CompletedTask;
 
@@ -316,7 +317,7 @@ public static class WebRtcInterop
     [JSInvokable("RaskRtcChannel")]
     public static Task Channel(int connectionId, int channelId, string label)
     {
-        if (!Connections.TryGetValue(connectionId, out var r) || r.Handlers.OnDataChannel is null)
+        if (!TryOwned(connectionId, out var r) || r.Handlers.OnDataChannel is null)
         {
             return Task.CompletedTask;
         }
@@ -334,7 +335,7 @@ public static class WebRtcInterop
     [JSInvokable("RaskRtcMessages")]
     public static Task Messages(int connectionId, int channelId, RtcMessageWire[] messages, int dropped)
     {
-        if (!Channels.TryGetValue((connectionId, channelId), out var handler))
+        if (!TryOwned(connectionId, out _) || !Channels.TryGetValue((connectionId, channelId), out var handler))
         {
             return Task.CompletedTask;
         }
@@ -360,7 +361,7 @@ public static class WebRtcInterop
     /// <summary>Infrastructure. Invoked by the JS bridge when the peer's media arrives; do not call.</summary>
     [JSInvokable("RaskRtcTrack")]
     public static Task Track(int id, int streamId) =>
-        Connections.TryGetValue(id, out var r) && r.Handlers.OnTrack is not null
+        TryOwned(id, out var r) && r.Handlers.OnTrack is not null
             ? r.Handlers.OnTrack(new MediaStreamId(streamId))
             : Task.CompletedTask;
 
@@ -368,8 +369,20 @@ public static class WebRtcInterop
     [JSInvokable("RaskRtcChannelClosed")]
     public static Task ChannelClosed(int connectionId, int channelId)
     {
+        if (!TryOwned(connectionId, out _))
+        {
+            return Task.CompletedTask;
+        }
+
         UnregisterChannel(connectionId, channelId);
         return Task.CompletedTask;
+    }
+
+    // Only the session that opened the connection may push into it (see JsCallbacks).
+    private static bool TryOwned(int id, [NotNullWhen(true)] out Registration? registration)
+    {
+        registration = Connections.TryGetValue(id, out var r) && JsCaller.Owns(r.Js) ? r : null;
+        return registration is not null;
     }
 
     private static RtcConnectionState Parse(string state) => state switch
