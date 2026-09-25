@@ -21,10 +21,10 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
-            "<form id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" enctype=\"multipart/form-data\" target=\"_blank\" accept-charset=\"utf-8\" autocomplete=\"off\" novalidate name=\"n\"></form>",
+            "<form id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" accept-charset=\"utf-8\" autocomplete=\"off\" enctype=\"multipart/form-data\" name=\"n\" novalidate target=\"_blank\"></form>",
             Form.Model(Empty)
                 .Enctype("multipart/form-data").Target("_blank").AcceptCharset("utf-8")
-                .Autocomplete("off").Novalidate(true).Name("n")
+                .Autocomplete("off").NoValidate(true).Name("n")
                 .Id("i").Class("c").Style("s")
                 .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
     }
@@ -254,9 +254,9 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Rel_emits_after_the_name() =>
+    public void Rel_emits_after_the_target_in_IDL_order() =>
         Assert.Contains(
-            "name=\"f\" rel=\"noopener\"",
+            "name=\"f\" target=\"_blank\" rel=\"noopener\"",
             Form.Model(Empty).Name("f").Target("_blank").Rel("noopener").ToHtml());
 
 }

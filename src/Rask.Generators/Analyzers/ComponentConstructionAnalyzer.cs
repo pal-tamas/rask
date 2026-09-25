@@ -71,7 +71,32 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
 
         var location = GetNewKeywordLocation(op.Syntax) ?? op.Syntax.GetLocation();
         var namespacePrefix = GetNamespacePrefix(type);
-        context.ReportDiagnostic(Diagnostic.Create(Rask014, location, type.Name, namespacePrefix));
+        context.ReportDiagnostic(Diagnostic.Create(Rask014, location, EntryOf(type), namespacePrefix));
+    }
+
+    // What the chain is written with: the type's name, or for an element its tag's entry (HTMLDivElement is
+    // built by `Div`; a type several tags share is named by its first).
+    private static string EntryOf(INamedTypeSymbol type)
+    {
+        foreach (var attribute in type.GetAttributes())
+        {
+            if (string.Equals(attribute.AttributeClass?.ToDisplayString(), "Rask.Core.TagAttribute", StringComparison.Ordinal)
+                && attribute.ConstructorArguments.Length == 1
+                && attribute.ConstructorArguments[0].Value is string { Length: > 0 } tag)
+            {
+                foreach (var named in attribute.NamedArguments)
+                {
+                    if (named.Key == "Entry" && named.Value.Value is string entry)
+                    {
+                        return entry;
+                    }
+                }
+
+                return char.ToUpperInvariant(tag[0]) + tag.Substring(1);
+            }
+        }
+
+        return type.Name;
     }
 
     private static bool InheritsFrom(INamedTypeSymbol type, INamedTypeSymbol target)

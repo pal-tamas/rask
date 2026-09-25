@@ -15,12 +15,12 @@ public sealed partial class GatedCounterApp : Component
 
     public int Counter;
 
-    protected override Component? HeadAssets => new Title()["gated"];
+    protected override Component? HeadAssets => Markup.Title["gated"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new P()[$"count={Counter}"],
+        Markup.P[$"count={Counter}"],
         Button.OnClick(async () => await Gate.Task)["hang"],
         Button.OnClick(() => Counter++)["bump"]
     ];

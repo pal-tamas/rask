@@ -18,8 +18,11 @@ const elementsPkg = require("@webref/elements");
 const bcd = require("@mdn/browser-compat-data");
 const version = name => JSON.parse(readFileSync(resolve(process.argv[2], "node_modules", name, "package.json"), "utf8")).version;
 
-// An element, attribute or member ships when two of the three engines have it unflagged.
-const ENGINES = ["chrome", "firefox", "safari"];
+// An element, attribute or member ships when two of the three engines have it unflagged, on desktop or
+// mobile: `<input capture>` exists only on phones, and that is where it matters.
+const ENGINES = { chrome: ["chrome", "chrome_android"], firefox: ["firefox", "firefox_android"], safari: ["safari", "safari_ios"] };
+// IDL types a content attribute can reflect directly.
+const PLAIN = new Set(["DOMString", "USVString", "DOMString?", "boolean", "long", "unsigned long", "double", "unrestricted double"]);
 // https://html.spec.whatwg.org/multipage/syntax.html#void-elements
 const VOID = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"];
 // Specs whose elements are HTML or SVG. MathML is out of scope.
@@ -30,11 +33,10 @@ function ships(compat) {
   const s = compat.status ?? {};
   if (s.deprecated || s.standard_track === false) return false;
   let engines = 0;
-  for (const browser of ENGINES) {
-    const entries = [compat.support?.[browser]].flat().filter(Boolean);
-    const ok = entries.some(e =>
+  for (const browsers of Object.values(ENGINES)) {
+    const ok = browsers.some(browser => [compat.support?.[browser]].flat().filter(Boolean).some(e =>
       typeof e.version_added === "string" && e.version_added !== "preview" &&
-      !e.version_removed && !e.flags && !e.prefix && !e.alternative_name && !e.partial_implementation);
+      !e.version_removed && !e.flags && !e.prefix && !e.alternative_name && !e.partial_implementation));
     if (ok) engines++;
   }
   return engines >= 2;
@@ -46,15 +48,39 @@ const specUrl = compat => [compat?.spec_url].flat()[0];
 // The first unflagged, unprefixed version each engine shipped it in: the doc comment's support line and
 // the targets analyzer's table. Runtime checks never read it; they detect the feature itself.
 function support(compat) {
+  // Keyed by the browser that ships it: the desktop one, or the mobile one where only that does.
   const out = {};
-  for (const browser of ENGINES) {
-    const e = [compat?.support?.[browser]].flat().filter(Boolean).find(x =>
-      typeof x.version_added === "string" && !x.version_removed && !x.flags && !x.prefix && !x.alternative_name);
-    if (e) out[browser] = e.version_added.replace(/^≤/, "");
+  for (const browsers of Object.values(ENGINES)) {
+    for (const browser of browsers) {
+      const e = [compat?.support?.[browser]].flat().filter(Boolean).find(x =>
+        typeof x.version_added === "string" && x.version_added !== "preview" && !x.version_removed && !x.flags && !x.prefix && !x.alternative_name);
+      if (e) { out[browser] = e.version_added.replace(/^≤/, ""); break; }
+    }
   }
   return out;
 }
 const meta = compat => ({ experimental: experimental(compat), support: support(compat), mdn: mdnUrl(compat), spec: specUrl(compat) });
+
+// ---- The spec's own index of content attributes per element --------------------------------------
+// webref publishes it from the specs MDN is written from; not on npm, so it comes from webref's curated
+// branch, pinned to the commit it was read at so a refresh is reproducible.
+const WEBREF = "https://api.github.com/repos/w3c/webref/commits/curated";
+const webrefSha = process.env.RASK_MDN_WEBREF
+  || (await (await fetch(WEBREF, { headers: { accept: "application/vnd.github+json" } })).json()).sha;
+if (!webrefSha) throw new Error(`could not resolve webref's curated branch at ${WEBREF}`);
+const specAttrs = { html: new Map(), svg: new Map() }; // tag -> Set(attr), conforming only
+const specAttrNames = new Set();
+for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1", "svg"], ["css-masking-1", "svg"]]) {
+  const res = await fetch(`https://raw.githubusercontent.com/w3c/webref/${webrefSha}/ed/dfns/${file}.json`);
+  if (!res.ok) throw new Error(`webref dfns ${file}: HTTP ${res.status}`);
+  for (const d of (await res.json()).dfns) {
+    if (d.type !== "element-attr" || d.heading?.id === "non-conforming-features") continue;
+    for (const tag of d.for) {
+      if (!specAttrs[ns].has(tag)) specAttrs[ns].set(tag, new Set());
+      for (const name of d.linkingText) { specAttrs[ns].get(tag).add(name); specAttrNames.add(name.toLowerCase()); }
+    }
+  }
+}
 
 // ---- IDL: merge partials and mixins -------------------------------------------------------------
 const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map();
@@ -74,7 +100,8 @@ for (const ast of Object.values(await idlPkg.parseAll())) {
 }
 for (const inc of includes) {
   const target = interfaces.get(inc.target), mixin = mixins.get(inc.includes);
-  if (target && mixin) target.members.push(...mixin.members.map(m => ({ ...m, mixin: inc.includes })));
+  // webidl2 exposes a member's name and type as prototype getters, which a spread would drop.
+  if (target && mixin) target.members.push(...mixin.members.map(m => Object.assign(Object.create(m), { mixin: inc.includes })));
 }
 
 function typeOf(t) {
@@ -86,7 +113,8 @@ function typeOf(t) {
   return s + (t.nullable ? "?" : "");
 }
 const ext = (m, name) => m.extAttrs?.find(a => a.name === name);
-const extValue = a => a?.rhs ? (Array.isArray(a.rhs.value) ? a.rhs.value.map(v => v.value ?? v) : a.rhs.value) : undefined;
+const unquote = v => typeof v === "string" ? v.replace(/^"(.*)"$/, "$1") : v;
+const extValue = a => a?.rhs ? (Array.isArray(a.rhs.value) ? a.rhs.value.map(v => unquote(v.value ?? v)) : unquote(a.rhs.value)) : undefined;
 
 // ---- Elements ------------------------------------------------------------------------------------
 const all = await elementsPkg.listAll();
@@ -101,6 +129,14 @@ for (const [spec, ns] of Object.entries(SPECS)) {
   }
 }
 elements.sort((a, b) => a.namespace.localeCompare(b.namespace) || a.tag.localeCompare(b.tag));
+
+// ---- Global attributes ---------------------------------------------------------------------------
+const globals = {};
+for (const ns of ["html", "svg"]) {
+  globals[ns] = Object.entries(bcd[ns].global_attributes ?? {})
+    .filter(([name, d]) => name !== "data_attributes" && ships(d.__compat))
+    .map(([name]) => name).sort();
+}
 
 // ---- Interfaces: every element interface plus its ancestors ---------------------------------------
 const wanted = new Set();
@@ -143,24 +179,56 @@ for (const name of [...wanted].sort()) {
   const compat = bcd.api[name]?.__compat;
   const tags = elements.filter(e => e.interface === name);
   const { members } = membersOf(name);
-  // Content attributes this interface's tags carry, per BCD, in IDL order: that order is the render order.
+  // Content attributes this interface's tags carry, in IDL order (the render order). A tag's attributes are
+  // the spec's conforming ones, BCD's, and the IDL attributes that reflect one; global attributes are
+  // Element's, not a tag's. Where BCD knows the attribute, it has to ship.
   const attributes = [];
   const ns = tags[0]?.namespace;
   for (const tag of tags) {
     const bcdEl = bcd[tag.namespace].elements[tag.tag];
-    for (const [attr, data] of Object.entries(bcdEl)) {
-      if (attr === "__compat" || !ships(data.__compat)) continue;
-      if (attributes.some(a => a.attr === attr)) { attributes.find(a => a.attr === attr).tags.push(tag.tag); continue; }
+    const names = new Set(specAttrs[tag.namespace].get(tag.tag) ?? []);
+    for (const attr of Object.keys(bcdEl)) if (attr !== "__compat" && !attr.includes("_")) names.add(attr);
+    for (const attr of reflectedNames(name)) names.add(attr);
+    for (const attr of [...names].sort()) {
+      const data = bcdEl[attr];
+      if ((data && !ships(data.__compat)) || globals[tag.namespace].includes(attr)) continue;
+      const known = attributes.find(a => a.attr === attr);
+      if (known) { known.tags.push(tag.tag); continue; }
       const idl = findReflecting(name, attr);
-      attributes.push({ attr, property: idl?.name, type: idl?.type, readonly: idl?.readonly, reflect: idl?.reflect !== undefined || undefined,
-        on: idl?.on, tags: [tag.tag], ...meta(data.__compat) });
+      // webref scopes some shared definitions too widely (form's `action` onto button); an attribute only
+      // the spec index names is kept when the element's own IDL has it too.
+      if (!data && !idl) continue;
+      attributes.push({ attr, property: idl?.name, type: idl?.type, url: idl?.url, readonly: idl?.readonly, reflect: idl?.reflect,
+        reflectDefault: idl?.reflectDefault, reflectRange: idl?.reflectRange,
+        on: idl?.on, tags: [tag.tag], ...(data ? meta(data.__compat) : {}) });
     }
   }
-  const order = a => { const i = members.findIndex(m => m.name === a.property); return i < 0 ? 1e6 : i; };
+  // IDL order, in the interface that DECLARES the attribute: an inherited one (video's `src`, declared on
+  // HTMLMediaElement) keeps its place there rather than falling to the end of the tag's own list.
+  const order = a => {
+    const declaring = a.on ? (interfaces.get(a.on)?.members ?? []) : members;
+    const i = declaring.findIndex(m => m.name === a.property);
+    return i < 0 ? 1e6 : i;
+  };
   attributes.sort((a, b) => order(a) - order(b) || a.attr.localeCompare(b.attr));
   for (const a of attributes) if (a.tags.length === tags.length) delete a.tags; // on every tag of the interface
   interfaceOut[name] = { parent: def.inheritance, abstract: tags.length === 0 || undefined, namespace: ns,
     ...meta(compat), attributes: attributes.length ? attributes : undefined, members };
+}
+
+// The content attributes an interface's own IDL reflects: [Reflect], or a writable, plainly typed attribute
+// named after an attribute the spec defines (input's `width` reflects `width`; `valueAsNumber` reflects none).
+function reflectedNames(iface) {
+  const out = [];
+  for (let n = iface; n && n !== "HTMLElement" && n !== "SVGElement" && n !== "Element"; n = interfaces.get(n)?.inheritance) {
+    for (const m of interfaces.get(n)?.members ?? []) {
+      if (m.type !== "attribute" || !m.name || m.special === "static" || !ships(bcd.api[n]?.[m.name]?.__compat)) continue;
+      const r = ext(m, "Reflect");
+      if (r) out.push(extValue(r) ?? m.name.toLowerCase());
+      else if (!m.readonly && PLAIN.has(typeOf(m.idlType)) && specAttrNames.has(m.name.toLowerCase())) out.push(m.name.toLowerCase());
+    }
+  }
+  return out;
 }
 
 // The IDL attribute that reflects a content attribute, searched up the interface chain.
@@ -169,22 +237,23 @@ function findReflecting(iface, attr) {
   for (let n = iface; n; n = interfaces.get(n)?.inheritance) {
     const def = interfaces.get(n);
     if (!def) break;
-    for (const m of def.members) {
-      if (m.type !== "attribute" || !m.name) continue;
-      const r = ext(m, "Reflect");
-      const reflects = r ? (extValue(r) ?? m.name.toLowerCase()) === attr : m.name.toLowerCase() === flat;
-      if (reflects) return { name: m.name, type: typeOf(m.idlType), readonly: m.readonly || undefined, reflect: r ? true : undefined, on: n === iface ? undefined : n };
+    const reflecting = x => ext(x, "Reflect") && (extValue(ext(x, "Reflect")) ?? x.name.toLowerCase()) === attr;
+    const plain = def.members.filter(x => x.type === "attribute" && x.name && PLAIN.has(typeOf(x.idlType)));
+    // The member named after the attribute wins (`checked`, not `defaultChecked`, sets the checked
+    // attribute from markup); otherwise the one whose [Reflect] names it (`colSpan` for colspan).
+    const m = plain.find(x => x.name.toLowerCase() === flat) ?? plain.find(reflecting)
+      ?? def.members.find(x => x.type === "attribute" && x.name && reflecting(x))
+      ?? def.members.find(x => x.type === "attribute" && x.name && x.name.toLowerCase() === flat);
+    if (m) {
+      const type = typeOf(m.idlType);
+      // A URL attribute: [ReflectURL], or typed USVString, which the HTML IDL keeps for URLs.
+      const url = ext(m, "ReflectURL") || type.startsWith("USVString") ? true : undefined;
+      const range = extValue(ext(m, "ReflectRange"));
+      return { name: m.name, type, url, readonly: m.readonly || undefined, reflect: ext(m, "Reflect") ? true : undefined,
+        reflectDefault: extValue(ext(m, "ReflectDefault")), reflectRange: range?.map(Number), on: n === iface ? undefined : n };
     }
   }
   return undefined;
-}
-
-// ---- Global attributes ---------------------------------------------------------------------------
-const globals = {};
-for (const ns of ["html", "svg"]) {
-  globals[ns] = Object.entries(bcd[ns].global_attributes ?? {})
-    .filter(([name, d]) => name !== "data_attributes" && ships(d.__compat))
-    .map(([name]) => name).sort();
 }
 
 // ---- Enums and dictionaries the members reach (for typed refs) -----------------------------------
@@ -205,10 +274,15 @@ const sortObj = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.l
 
 const snapshot = {
   schema: 1,
-  sources: Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/idl"].map(p => [p, version(p)])),
-  engines: ENGINES,
+  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/idl", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha },
+  engines: Object.keys(ENGINES),
   elements,
-  globalAttributes: globals,
+  // Each global attribute with the IDL attribute that reflects it, searched from HTMLElement / SVGElement up.
+  globalAttributes: Object.fromEntries(Object.entries(globals).map(([ns, names]) => [ns, names.map(attr => {
+    const idl = findReflecting(ns === "html" ? "HTMLElement" : "SVGElement", attr);
+    const compat = bcd[ns].global_attributes[attr]?.__compat;
+    return { attr, property: idl?.name, type: idl?.type, url: idl?.url, reflect: idl?.reflect, on: idl?.on, ...meta(compat) };
+  })])),
   interfaces: interfaceOut,
   enums: sortObj(reachedEnums),
   dictionaries: sortObj(reachedDicts),

@@ -47,7 +47,7 @@ derives everything from the bound property:
   `Text`, `Search`, `Tel`, `Url`, `Email`, `Password`, `Number`, `Checkbox`, `Radio`, `File`, `Range`,
   `Color`, `Date`, `DatetimeLocal` (renders `datetime-local`), `Time`, `Week`, `Month`, `Hidden`,
   `Button`, `Submit`, `Reset`, `Image`. The *string-only* family (`Text`/`Search`/`Tel`/`Url`/`Email`/
-  `Password`) only makes sense on an `Input<string>`; setting one on a non-string bound input is
+  `Password`) only makes sense on an `HTMLInputElement<string>`; setting one on a non-string bound input is
   [RASK025](diagnostics.md#rask025).
 - **Update timing** — `string` fields update on every keystroke (`OnInput`); every other type
   updates on `OnChange` (blur). `Textarea(() => …)` always streams on `OnInput`.
@@ -96,7 +96,7 @@ Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/
 `MaxLength`/`MinLength`/`Multiple`/`Accept`/`List`/`Autocomplete`/`Autofocus`), the core `Input` also
 carries the mobile & accessibility hints `InputMode` (on-screen keyboard), `EnterKeyHint` (action-key
 label), `Spellcheck` (the enumerated `spellcheck="true|false"`), `Capture` (camera/mic for a file
-input), and `Dirname`. A control of your own forwards them the same way (see
+input), and `DirName`. A control of your own forwards them the same way (see
 [building-form-controls.md](building-form-controls.md)).
 
 > **Fractional numbers get `step="any"` automatically.** A `decimal`/`double`/`float`/`Half` binding

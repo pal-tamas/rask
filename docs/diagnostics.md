@@ -61,7 +61,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `MapRask()` |
-| [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
+| [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `HTMLInputElement<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
 | [RASK027](#rask027) | — | *Retired* — both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
@@ -262,11 +262,14 @@ reconciles across renders — and what wires keys, children, and DI consistently
 and can also produce a component whose required properties were never set.
 
 ```csharp
-// ✗ new Div
+// ✗ new HTMLDivElement()
 // ✓ Div.Class("panel")[ ... ]
 ```
 
-**Fix:** name it and chain onto it — `Counter.Start(3)`, or `Counter` alone when it needs nothing. In
+**Fix:** name it and chain onto it — `Counter.Start(3)`, or `Counter` alone when it needs nothing. An element
+is named by its tag, not its type: the message and the quick fix turn `new HTMLDivElement()` into `Div`, and a
+type several tags share (`new HTMLElement()`) gets no quick fix, since only you know whether it was an `Em` or a
+`Section`. In
 test files that deliberately construct components directly, opt out per file with
 `#pragma warning disable RASK014`.
 
@@ -412,11 +415,11 @@ warning fires only when both calls are present and `UseAuthentication` is positi
 an app with no authentication middleware is left alone. See [authentication](authentication.md).
 
 ## RASK025
-**`InputType` conflicts with the bound `Input<T>` value type** · Warning
+**`InputType` conflicts with the bound `HTMLInputElement<T>` value type** · Warning
 
-A generic `Input<T>` derives its HTML input `type` from `T` (`bool`→checkbox, `int`/`decimal`→number,
+A generic `HTMLInputElement<T>` derives its HTML input `type` from `T` (`bool`→checkbox, `int`/`decimal`→number,
 `DateOnly`→date, …). The *string-only* `InputType`s — `Text`, `Search`, `Tel`, `Url`, `Email`,
-`Password` — only apply to `Input<string>`; pairing one with `Input<int>`/`Input<bool>`/… is a mistake
+`Password` — only apply to `HTMLInputElement<string>`; pairing one with `HTMLInputElement<int>`/`HTMLInputElement<bool>`/… is a mistake
 (the entered value could never round-trip to `T`).
 
 ```csharp
@@ -429,8 +432,7 @@ Input.Bind(() => model.Email).Type(InputType.Email)
 ```
 
 **Fix:** drop the explicit `Type` (it's inferred from `T`), or bind a `string`. The warning fires only
-for a statically-known string-family `InputType` on a non-`string` `Input<T>`; `Input<int>(Type:
-InputType.Number)` and any `Input<string>` are left alone. Suppressible like any analyzer.
+for a statically-known string-family `InputType` on a non-`string` `HTMLInputElement<T>`; `HTMLInputElement<int>` with `Type(InputType.Number)` and any `HTMLInputElement<string>` are left alone. Suppressible like any analyzer.
 
 ## RASK026
 **Redundant `StateHasChanged` in a Rask callback** · Warning
@@ -444,9 +446,9 @@ or the `AfterBind` hook is dead weight. The tell-tale anti-pattern is reaching f
 
 ```csharp
 // ✗ redundant — the framework re-renders this component after OnChange runs:
-Select<string>().Value(_pick).OnChange(v => { _pick = v; StateHasChanged(); })
+Select.Of<string>().Value(_pick).OnChange(v => { _pick = v; StateHasChanged(); })
 // ✓ just update state; the render is automatic:
-Select<string>().Value(_pick).OnChange(v => _pick = v)
+Select.Of<string>().Value(_pick).OnChange(v => _pick = v)
 
 // ✗ AfterBind only to force a re-render of a sibling readout:
 RadioGroup(() => model.Plan, options, AfterBind: _ => StateHasChanged())
@@ -776,7 +778,7 @@ Suppress with `#pragma warning disable RASK039` / `.editorconfig`
 **Two components share a simple name, so neither can have a builder entry** · Warning
 
 A member name has no namespace, so the two do not separate the way the types themselves do. An
-entry is keyed by **simple name**: it is a single member named after its type, and one name can only
+entry is keyed by **simple name**: it is a single member named after its type (an element's after its tag), and one name can only
 stand for one type.
 
 ```csharp
@@ -837,14 +839,14 @@ a member of the enclosing type wins. A component is such a type; so is anything 
 nothing else; and so is anything marked **`[RaskMarkup]`**, which is the same opt-in for a type that
 has no base slot to spend.
 
-In a type that is none of those, the simple name binds to the component **type** instead:
+In a type that is none of those, the simple name binds to the component **type** instead (CS0119) — or, for an
+element, whose type is named after its DOM interface (`HTMLDivElement`), to nothing at all (CS0103). Neither
+compiler error says why; RASK043 does:
 
 ```csharp
-using Rask.Core.Components;
-
 internal static class Parts
 {
-    public static Component Loading() => Div.Class("spinner")["…"];   // ✗ RASK043 — CS0119
+    public static Component Loading() => Div.Class("spinner")["…"];   // ✗ RASK043 — CS0103
 }
 ```
 
@@ -903,8 +905,8 @@ public class Wide : Panel { public int Count => 2; }   // ✗ CS0108 still fires
 ```
 
 Hiding a real member of your own base type is an ordinary hiding mistake and still warns, inside a
-component or outside one. Only entries are silenced. Generic components (`Form<T>`, `Select<T>`,
-`Input<T>`) open the chain through a `RaskSeed_*` field rather than a member typed as the component; both
+component or outside one. Only entries are silenced. Generic components (`HTMLFormElement<T>`, `HTMLSelectElement<T>`,
+`HTMLInputElement<T>`) open the chain through a `RaskSeed_*` field rather than a member typed as the component; both
 shapes are recognised.
 
 > **`dotnet format` does not honour `DiagnosticSuppressor`s.** It surfaces the diagnostic itself and

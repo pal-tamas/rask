@@ -148,7 +148,7 @@ the field, rather than in a placeholder), and the field's own validation message
 `Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
 the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
 
-Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form<T>`
+Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form.Model(m)`
 validates its model on its own, with no package to add and nothing to declare, and the save only runs for a
 valid one. See [forms](../forms.md) and [validation](../validation.md).
 

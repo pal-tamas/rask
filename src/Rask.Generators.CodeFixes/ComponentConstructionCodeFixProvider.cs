@@ -43,8 +43,13 @@ public sealed class ComponentConstructionCodeFixProvider : RaskCodeFixProvider<O
     protected override async Task<bool> CanFixAsync(CodeFixContext context, ObjectCreationExpressionSyntax node)
     {
         if (node.Initializer is not null
-            || (node.ArgumentList is not null && node.ArgumentList.Arguments.Count != 0)
-            || FactoryName(node) is null)
+            || (node.ArgumentList is not null && node.ArgumentList.Arguments.Count != 0))
+        {
+            return false;
+        }
+
+        var semantic = await context.Document.GetSemanticModelAsync(context.CancellationToken).ConfigureAwait(false);
+        if (semantic is null || EntryName(node, semantic, context.CancellationToken) is null)
         {
             return false;
         }
@@ -96,7 +101,8 @@ public sealed class ComponentConstructionCodeFixProvider : RaskCodeFixProvider<O
         ObjectCreationExpressionSyntax node,
         CancellationToken cancellationToken)
     {
-        if (FactoryName(node) is not { } name)
+        var semantic = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        if (semantic is null || EntryName(node, semantic, cancellationToken) is not { } name)
         {
             return document;
         }
@@ -108,13 +114,48 @@ public sealed class ComponentConstructionCodeFixProvider : RaskCodeFixProvider<O
             cancellationToken).ConfigureAwait(false);
     }
 
-    // The entry is a property named after the type, injected into every markup host by the generator. So
-    // the bare simple name IS the chain: carrying a qualified name over would name the TYPE, which is
-    // exactly what RASK014 is complaining about.
-    private static string? FactoryName(ObjectCreationExpressionSyntax node) => node.Type switch
+    // The entry is a property injected into every markup host by the generator, named after the type — or,
+    // for an element, after its tag: `new HTMLDivElement()` is built by `Div`. A type several tags share
+    // (HTMLElement is em, section, nav, …) has no one entry to rewrite to, so it gets no fix and the message
+    // stands. Only the simple name is carried: a qualified one would name the TYPE, which is exactly what
+    // RASK014 is complaining about.
+    private static string? EntryName(ObjectCreationExpressionSyntax node, SemanticModel model, CancellationToken cancellationToken)
     {
-        QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
-        SimpleNameSyntax simple => simple.Identifier.Text,
-        _ => null,
-    };
+        if (model.GetTypeInfo(node, cancellationToken).Type is INamedTypeSymbol type)
+        {
+            string? entry = null;
+            var tags = 0;
+            foreach (var attribute in type.GetAttributes())
+            {
+                if (!string.Equals(attribute.AttributeClass?.ToDisplayString(), "Rask.Core.TagAttribute", StringComparison.Ordinal)
+                    || attribute.ConstructorArguments.Length != 1
+                    || attribute.ConstructorArguments[0].Value is not string { Length: > 0 } tag)
+                {
+                    continue;
+                }
+
+                tags++;
+                entry = char.ToUpperInvariant(tag[0]) + tag.Substring(1);
+                foreach (var named in attribute.NamedArguments)
+                {
+                    if (named.Key == "Entry" && named.Value.Value is string explicitEntry)
+                    {
+                        entry = explicitEntry;
+                    }
+                }
+            }
+
+            if (tags > 0)
+            {
+                return tags == 1 ? entry : null;
+            }
+        }
+
+        return node.Type switch
+        {
+            QualifiedNameSyntax qualified => qualified.Right.Identifier.Text,
+            SimpleNameSyntax simple => simple.Identifier.Text,
+            _ => null,
+        };
+    }
 }

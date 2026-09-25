@@ -60,7 +60,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
             .Label("Country")
             .ToHtml();
 
-        Assert.Contains("value=\"gb\" selected", html, StringComparison.Ordinal);
+        Assert.Contains("selected value=\"gb\"", html, StringComparison.Ordinal);
     }
 
     [Theory]

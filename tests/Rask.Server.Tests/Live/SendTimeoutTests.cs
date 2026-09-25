@@ -23,7 +23,7 @@ public sealed class SendTimeoutTests
     {
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => new H1()["hi"];
+        protected override Component? Render() => Markup.H1["hi"];
     }
 
     private static LiveSessionStore NewStore(TimeSpan sendTimeout)

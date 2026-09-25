@@ -54,12 +54,12 @@ public sealed partial class KeyedNavApp : Component
         StateHasChanged();
     }
 
-    protected override Component? HeadAssets => new Title()["keyed-nav"];
+    protected override Component? HeadAssets => Markup.Title["keyed-nav"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new H1()[$"path={_route.Path} count={_items.Count}"],
+        Markup.H1[$"path={_route.Path} count={_items.Count}"],
         Ul[
             _items.Select(i => Li
                 .Class("line")

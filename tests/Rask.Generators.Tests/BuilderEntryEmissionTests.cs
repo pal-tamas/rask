@@ -737,7 +737,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("partial class CardTests\n", entries.Replace("\r\n", "\n", StringComparison.Ordinal),
             StringComparison.Ordinal);
         Assert.Contains(
-            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
+            "private static global::Rask.Core.Components.HTMLDivElement Div => global::RaskEntriesRask_Core.Div;", entries,
             StringComparison.Ordinal);
         // The consumer's own components come the usual way, alongside them.
         Assert.Equal(1, Count(entries, "private static global::Demo.Card Card =>"));
@@ -760,7 +760,7 @@ public class BuilderEntryEmissionTests
         Assert.Contains("static partial class Demos", entries, StringComparison.Ordinal);
         Assert.DoesNotContain("static partial class Demos : ", entries, StringComparison.Ordinal);
         Assert.Contains(
-            "private static global::Rask.Core.Components.Div Div => global::RaskEntriesRask_Core.Div;", entries,
+            "private static global::Rask.Core.Components.HTMLDivElement Div => global::RaskEntriesRask_Core.Div;", entries,
             StringComparison.Ordinal);
     }
 

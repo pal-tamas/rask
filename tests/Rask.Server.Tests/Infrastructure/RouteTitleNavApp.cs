@@ -29,8 +29,8 @@ public sealed partial class RouteTitleNavApp : Component
         return Task.CompletedTask;
     }
 
-    protected override Component? HeadAssets => new Title()[$"t-{_routeState.Path}"];
+    protected override Component? HeadAssets => Markup.Title[$"t-{_routeState.Path}"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => new H1()[$"path={_routeState.Path}"];
+    protected override Component? Render() => Markup.H1[$"path={_routeState.Path}"];
 }

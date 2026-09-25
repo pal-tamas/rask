@@ -24,9 +24,9 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
 
         var html = view.RenderAsLiveRoot();
 
-        Assert.Contains("<option value=\"red\" selected>", html);
-        Assert.DoesNotContain("<option value=\"\" selected>", html);
-        Assert.DoesNotContain("<option value=\"blue\" selected>", html);
+        Assert.Contains("<option selected value=\"red\">", html);
+        Assert.DoesNotContain("<option selected value=\"\">", html);
+        Assert.DoesNotContain("<option selected value=\"blue\">", html);
     }
 
     [Fact]
@@ -39,8 +39,8 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
 
         var html = view.RenderAsLiveRoot();
 
-        Assert.Contains("<option value=\"\" selected>", html);
-        Assert.DoesNotContain("<option value=\"red\" selected>", html);
+        Assert.Contains("<option selected value=\"\">", html);
+        Assert.DoesNotContain("<option selected value=\"red\">", html);
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
 
         var html = view.RenderAsLiveRoot();
 
-        Assert.Contains("data-rask-key=\"r\" value=\"red\" selected", html);
+        Assert.Contains("data-rask-key=\"r\" selected value=\"red\"", html);
         // The unselected keyed siblings still carry their keys too.
         Assert.Contains("data-rask-key=\"e\"", html);
         Assert.Contains("data-rask-key=\"b\"", html);
@@ -184,7 +184,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
-            "<select id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"n\" multiple required disabled size=\"5\" form=\"f\" autofocus autocomplete=\"off\"></select>",
+            "<select id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" autofocus autocomplete=\"off\" disabled form=\"f\" multiple required size=\"5\" name=\"n\"></select>",
             Select.Of<string>().Name("n").Multiple(true).Required(true).Disabled(true).Size(5).Form("f")
                 .Autofocus(true).Autocomplete("off").Id("i").Class("c").Style("s")
                 .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
@@ -286,9 +286,9 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
 
         var html = view.RenderAsLiveRoot();
 
-        Assert.Contains("<option value=\"a\" selected>", html);
-        Assert.Contains("<option value=\"c\" selected>", html);
-        Assert.DoesNotContain("<option value=\"b\" selected>", html);
+        Assert.Contains("<option selected value=\"a\">", html);
+        Assert.Contains("<option selected value=\"c\">", html);
+        Assert.DoesNotContain("<option selected value=\"b\">", html);
     }
 
     [Fact]

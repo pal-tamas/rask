@@ -14,7 +14,7 @@ public sealed partial class ElementsTablesDemo : Component
             Tr[Th.Scope("row")["South"], Td["8"], Td["15"]]
         ],
         Tfoot[
-            Tr[Th.Scope("row")["Total"], Td.Colspan(2).Class("text-right font-bold")["45"]]
+            Tr[Th.Scope("row")["Total"], Td.ColSpan(2).Class("text-right font-bold")["45"]]
         ]
     ];
 }

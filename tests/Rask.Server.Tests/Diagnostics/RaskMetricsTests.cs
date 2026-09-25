@@ -79,6 +79,6 @@ public class RaskMetricsTests
 
     private sealed class BasicComponent : Component
     {
-        protected override Component? Render() => new Span();
+        protected override Component? Render() => Markup.Span;
     }
 }

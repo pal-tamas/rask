@@ -56,7 +56,7 @@ narrower than it looks: choosing a mode is still enforced, because the openings 
 no longer enforced is which steps *follow* one — a `Validate` on a controlled control compiles and does
 nothing, as an unread property always could.
 
-Both spellings infer the type from what you passed, so `Input<string>()` is never needed. Where the value
+Both spellings infer the type from what you passed, so `Input.Of<string>()` is never needed. Where the value
 alone cannot say — `null` names no type — write it once:
 
 ```csharp
@@ -146,7 +146,7 @@ Div.Class("panel")[                          // an element: bare
   inside that component, and `Markup.Footer` still reaches the element.
 - **Outside a component, don't also import `Rask.Core.Components`.** That namespace holds the element TYPES, so
   beside `using static Rask.Markup` a bare `P[…]` names both the type and the member (CS0229). Name a type in a
-  signature with `Rask.Core.Components.P`, or write `Markup.P` in that file. The templates never import it.
+  signature with `Rask.Core.Components.HTMLParagraphElement`, or write `Markup.P` in that file. The templates never import it.
 
 ## Your own components
 

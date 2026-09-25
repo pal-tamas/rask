@@ -68,7 +68,7 @@ public sealed partial class CounterPage : Component
 {
     private int _count;
 
-    protected override Component? HeadAssets => new Title()["counter"];
+    protected override Component? HeadAssets => Markup.Title["counter"];
     protected override string? HtmlLang => "en";
 
     protected override Component? Render() =>

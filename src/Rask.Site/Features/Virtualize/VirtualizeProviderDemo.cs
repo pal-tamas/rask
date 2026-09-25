@@ -80,7 +80,7 @@ public sealed partial class VirtualizeProviderDemo : Component
         Tr
             .Style($"height:{height}px;")
             .Data(new Dictionary<string, string?> { ["rask-key"] = key })[
-            Td.Colspan(4)
+            Td.ColSpan(4)
         ];
 
     private static async ValueTask<ItemsProviderResult<VirtualizeRow>> FetchRowsAsync(ItemsProviderRequest req)

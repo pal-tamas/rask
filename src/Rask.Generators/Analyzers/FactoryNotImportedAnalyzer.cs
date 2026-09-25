@@ -34,7 +34,7 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask043 = new(
         "RASK043",
         "A component name is used in a type that has no builder entries",
-        "'{0}' names the component TYPE here, not a call, so this does not compile (CS0119). '{0}' is only a builder entry inside a component or a markup host — entries are members of the enclosing type — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup', or mark it '[Rask.Core.RaskMarkup]' when its base is already taken or it is a 'static class'.",
+        "'{0}' is not a builder entry here, so this does not compile (CS0119 when it names a type, CS0103 when nothing does). '{0}' is a builder entry only inside a component or a markup host — entries are members of the enclosing type — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup', or mark it '[Rask.Core.RaskMarkup]' when its base is already taken or it is a 'static class'.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -89,7 +89,7 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (Bound(context, name) is not { } type
+        if ((Bound(context, name) ?? FrameworkEntry(context, name)) is not { } type
             || !BuilderEntry.DerivesFromComponent(type, component)
             || type.ContainingNamespace is not { IsGlobalNamespace: false } ns)
         {
@@ -111,6 +111,29 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
             type.Name,
             enclosing.ToDisplayString(),
             ns.ToDisplayString() + "." + FactoryClassName));
+    }
+
+    // A name that resolved to nothing but is one of the framework's entries: an element's type is named
+    // after its DOM interface (HTMLDivElement), so outside a host `Div` no longer loses to a type — it simply
+    // does not exist (CS0103), and says just as little about why.
+    private static INamedTypeSymbol? FrameworkEntry(SyntaxNodeAnalysisContext context, SimpleNameSyntax name)
+    {
+        var info = context.SemanticModel.GetSymbolInfo(name, context.CancellationToken);
+        if (info.Symbol is not null || info.CandidateSymbols.Length != 0
+            || context.SemanticModel.Compilation.GetTypeByMetadataName("Rask.Markup") is not { } markup)
+        {
+            return null;
+        }
+
+        foreach (var member in markup.GetMembers(name.Identifier.ValueText))
+        {
+            if (member is IPropertySymbol { IsStatic: true, Type: INamedTypeSymbol produced })
+            {
+                return produced;
+            }
+        }
+
+        return null;
     }
 
     // The component type the name resolved to, or null. The expression does not compile, so the symbol

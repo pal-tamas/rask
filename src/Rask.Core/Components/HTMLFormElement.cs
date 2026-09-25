@@ -1,0 +1,390 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using Rask.Core.Diagnostics;
+using Rask.Core.Forms;
+using Rask.Core.Live;
+
+namespace Rask.Core.Components;
+
+// The typed layer over MDN's HTMLFormElement (generated, abstract, every plain attribute): a <form>
+// bound to a model. Generic over TModel, which is what types everything downstream: the
+// submit handlers receive the model itself rather than a Delegate the component has to DynamicInvoke,
+// and the cross-field validator is a `Validate<TModel>` rather than something checked at runtime.
+//
+// It used to be non-generic, with the typing supplied by a [FactoryGeneric] overload that narrowed
+// `object?`/`Delegate?` down per call. That worked only while the factory existed — a chain has no
+// overloads to narrow through — so the generics moved onto the component, and the attribute and its
+// whole generator path went with them. The three-way validator fan-out went too: it existed so a sync
+// and an async validator could each be a required, correctly-typed PARAMETER, and as two setters they
+// simply coexist.
+//
+// TModel is DAM-annotated because the built-in DataAnnotations pass reflects over the model's public
+// properties, and so does the graph walk that reaches its sub-objects. Without the annotation the
+// trimmer removes those properties from a published WebAssembly build and the form validates NOTHING —
+// silently, with a green build and no IL warning. Same annotation, same reason, as BlazorComponent<T>'s
+// type parameter; the difference is that this one has to travel through the generated chain, which is
+// why ComponentFactoryGenerator repeats it on every declaration it emits.
+/// <summary>
+///     A form over a model of type <c>TModel</c>. Submission is handled in-process — the bound fields
+///     are parsed and validated, then <c>OnSubmit</c> or <c>OnInvalidSubmit</c> runs — so there is
+///     no <c>action</c> or <c>method</c> to set: the page reacts rather than navigating away.
+/// </summary>
+public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
+    : HTMLFormElement
+{
+    private EditContext? _context;
+
+    private Func<FormSubmit, IEnumerable<Component?>>? _childrenFactory;
+    private bool _submitting;
+    private Exception? _submitError;
+
+    private TModel _model = default!;
+
+
+
+
+
+    /// <summary>
+    ///     Called on every submit with the raw posted fields, whether validation passed or not. The
+    ///     low-level hook: prefer <see cref="OnSubmit" />, which hands you the typed model and only
+    ///     runs once the form is actually valid.
+    /// </summary>
+    // Calling it back is `OnAnySubmit?.Invoke(data)`, which hands back null when there is nothing to await.
+    public Callback<FormData> OnAnySubmit { get; set; }
+
+    // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
+    // walks the model graph so descendant sub-objects also resolve to the same context. Without
+    // this, a nested binding like Input.Bind(() => model.Address.Street) — whose acc.Target is
+    // model.Address — would GetOrCreateEditContext(model.Address) at factory time and end up
+    // writing field events into a separate empty EditContext, never reaching the validators
+    // that self-registered into the form's context. Setter runs every render (generated factory
+    // re-applies properties on cached instances), keeping the registration fresh when sub-
+    // object references are swapped between renders.
+
+    /// <summary>The model this form binds to. Every field inside it resolves against this object.</summary>
+    public required TModel Model
+    {
+        get => _model;
+        set
+        {
+            _model = value;
+            if (value is not null && LiveRenderContext.CurrentSync is { } live)
+            {
+                var ctx = live.GetOrCreateEditContext(value);
+                RegisterSubGraph(live, ctx, value);
+            }
+        }
+    }
+
+    /// <summary>Runs on submit when every field passes validation.</summary>
+    [AutoCallback]
+    public Callback<TModel> OnSubmit { get; set; }
+
+    /// <summary>Runs on submit when validation fails, so the page can react rather than sit silent.</summary>
+    [AutoCallback]
+    public Callback<TModel> OnInvalidSubmit { get; set; }
+
+    /// <summary>
+    ///     Cross-field validation for the form as a whole. Messages attach to the model rather than to a
+    ///     field, so they surface in Validation.Summary and any field-less Validation.Message.
+    /// </summary>
+    public Validator<TModel>? Validate { get; set; }
+
+
+    /// <summary>
+    ///     Whether this form validates its model with no validator declared — its
+    ///     <c>System.ComponentModel.DataAnnotations</c> attributes, plus any validator discovered for
+    ///     <c>TModel</c>. <see langword="true" /> by default.
+    ///     <para>
+    ///         Set it to <see langword="false" /> to take this one form out while leaving the rest of the
+    ///         app alone; <see cref="RaskValidation.AutoValidate" /> is the same switch for every form at
+    ///         once, and the global off wins — a form cannot opt back in.
+    ///     </para>
+    /// </summary>
+    public bool AutoValidate { get; set; } = true;
+
+
+    /// <summary>
+    ///     The validation context this form drives. Leave it unset and the form creates and owns one, which
+    ///     is what almost every form wants; supply one to share validation state with something outside the
+    ///     form, or to inspect it from the page.
+    /// </summary>
+    public EditContext? Context
+    {
+        get => _context;
+        set
+        {
+            _context = value;
+            // Pre-register the user-supplied context so sibling Input/Select/Textarea bound
+            // factories — which run inside the same parent Render() pass, before this Form's
+            // EnterChildrenScope pushes the scope — resolve to this exact instance through
+            // LiveRenderContext.GetOrCreateEditContext(model). Walk the model graph so nested
+            // bindings (acc.Target = a sub-object) also land on this context rather than
+            // auto-creating a separate one keyed by the sub-object reference.
+            if (value is not null && LiveRenderContext.CurrentSync is { } live)
+            {
+                live.RegisterEditContext(value);
+                RegisterSubGraph(live, value, value.Model);
+            }
+        }
+    }
+
+    private static void RegisterSubGraph(LiveRenderContext live, EditContext ctx, object root)
+    {
+        foreach (var node in ModelGraphWalker.Walk(root))
+        {
+            if (!ReferenceEquals(node, root))
+            {
+                live.RegisterEditContextForKey(node, ctx);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Gives the form children that depend on how its submit is going, ending the chain:
+    ///     <c>Form.Model(m)[f =&gt; [ Button.Disabled(f.Submitting)[ … ] ]]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         This lived on a chain type of its own (<c>FormBuild&lt;T&gt;</c>) for exactly one reason: an
+    ///         indexer cannot be constrained, so offering it on a form and nowhere else meant giving the
+    ///         form's chain a different TYPE. The chain receives on the component now, so the indexer can
+    ///         simply be declared on the only component it was ever meant for, and the third chain shape is
+    ///         gone.
+    ///     </para>
+    ///     <para>
+    ///         The factory is stored, not called: it runs on every render, inside the render walk, so a
+    ///         component it builds keeps its identity — and its state — across the two renders a submit
+    ///         causes. Building the children here instead would freeze them at the state the chain was
+    ///         written in, which is always <see langword="false" />, and then rebuild them from scratch
+    ///         every render.
+    ///     </para>
+    ///     <para>
+    ///         It binds without ambiguity beside the three inherited fixed-list indexers because a lambda
+    ///         whose parameter is untyped and whose body is a collection expression has NO natural type,
+    ///         so it is not a candidate for the <c>params object?[]</c> overload that would otherwise take
+    ///         anything.
+    ///     </para>
+    /// </remarks>
+    /// <param name="children">Builds the children, given what the submit is doing — see <see cref="FormSubmit" />.</param>
+    public Component this[Func<FormSubmit, IEnumerable<Component?>> children]
+    {
+        get
+        {
+            _childrenFactory = children;
+            return this;
+        }
+    }
+
+    // The factory IS the children when one was given. Materialised the same way the IEnumerable indexer
+    // does it, so a `yield`/LINQ body runs here rather than later during serialization.
+    protected override IEnumerable<Component?> RenderChildren()
+    {
+        if (_childrenFactory is not { } factory)
+        {
+            return base.RenderChildren();
+        }
+
+        var built = factory(new FormSubmit(_submitting, _submitError));
+        return built is IReadOnlyCollection<Component?> ? built : built.ToArray();
+    }
+
+    protected override IDisposable? EnterChildrenScope()
+    {
+        if (Model is null && Context is null)
+        {
+            return null;
+        }
+
+        var ctx = ResolveContext();
+        return EditContextScope.Push(ctx);
+    }
+
+    internal EditContext ResolveContext()
+    {
+        EditContext ctx;
+        if (Context is not null)
+        {
+            ctx = Context;
+        }
+        else
+        {
+            if (Model is null)
+            {
+                // Defensive, and worth saying so: both of today's callers already gate on
+                // `Model is not null || Context is not null`, so this cannot fire from a render — a Form
+                // with neither is a plain <form>, deliberately. It is kept for the next caller, and
+                // reworded because the old text ("Form requires Model or Context.") named neither the
+                // form nor the API shape, and "Context" is ambiguous between the Context<T> component
+                // and the EditContext this actually wants.
+                throw new InvalidOperationException(
+                    $"Form{Describe()} has neither a model nor an EditContext, so there is nothing for "
+                    + "its fields to bind to. Open the chain with the model — Form.Model(model)[ … ] — "
+                    + "or hand it an existing EditContext with Form.Model(model).Context(editContext)[ … ].");
+            }
+
+            ctx = LiveRenderContext.CurrentSync is { } live
+                ? live.GetOrCreateEditContext(Model)
+                : new EditContext(Model);
+        }
+
+        RegisterBuiltInValidators(ctx);
+
+        // Whichever shape was given; null clears a prior registration so a re-render that drops the
+        // validator does not leave a stale callback behind.
+        ctx.RegisterFormValidator(Validate?.Rule);
+        return ctx;
+    }
+
+    // The built-in pass. This is what replaced writing `DataAnnotationsValidator,` inside every form:
+    // the attributes are already on the model, so there was never anything for that line to say that
+    // the model had not said already.
+    //
+    // Registering on every render is deliberate and free — EditContext.AddValidator dedups by runtime
+    // type, so the second and later calls are discarded. That is the same property the old component
+    // relied on to survive re-rendering.
+    //
+    // Order matters and is the decided one: DataAnnotations is an IFieldValidator (the sync stage) and a
+    // discovered validator is an IAsyncFieldValidator (the async stage), so EditContext's existing
+    // pipeline order already runs attributes first, and its per-field first-error-wins gating means an
+    // attribute message shadows a discovered one on the same field. Nothing here reorders anything.
+    private void RegisterBuiltInValidators(EditContext ctx)
+    {
+        if (!RaskValidation.AutoValidate || !AutoValidate)
+        {
+            return;
+        }
+
+        var services = LiveRenderContext.CurrentSync?.Services;
+
+        // Ask before building. AddValidator would dedup either way, but only after this method had
+        // allocated on every render of every form, and a form re-renders on every keystroke.
+        //
+        // The two passes are checked SEPARATELY rather than letting the first answer for both: a
+        // validator can appear after the first render (hot reload, or a RaskValidators.Register at
+        // runtime), and a single combined check would leave an already-mounted form permanently
+        // without it.
+        if (!ctx.HasValidator(typeof(DataAnnotationsFieldValidator)))
+        {
+            ctx.AddValidator(new DataAnnotationsFieldValidator(services));
+        }
+
+        // Ask whether one EXISTS; do not build it. Building here threw out of Render() for a validator
+        // with constructor dependencies when the render had no scope, and it froze the rules at the
+        // first render — the registered instance survived every later render, so a hot-reloaded RuleFor
+        // repainted the page with the old rules while the pill said it applied.
+        //
+        // Registering only when one exists also matters: a DiscoveredFieldValidator is an
+        // IAsyncFieldValidator, and one of those on the context makes the synchronous
+        // EditContext.Validate() throw. Every form would have paid that for a validator it never had.
+        if (!ctx.HasAsyncValidator(typeof(DiscoveredFieldValidator))
+            && RaskValidation.HasValidatorFor(typeof(TModel)))
+        {
+            ctx.AddValidator(new DiscoveredFieldValidator(typeof(TModel), services));
+        }
+    }
+
+    // Which form, when a page has several. Nothing identifies a Form intrinsically, so this leans on
+    // whatever the author already wrote — an id, a name, a class — and says nothing when there is none,
+    // rather than inventing a label that would not help anyone find it.
+    private string Describe() =>
+        Id is { Length: > 0 } id ? $" '#{id}'"
+        : Name is { Length: > 0 } name ? $" '{name}'"
+        : Class is { Length: > 0 } cls ? $" '.{cls}'"
+        : string.Empty;
+
+    private Func<FormData, Task> BuildSubmitBridge(EditContext ctx) =>
+        async formData =>
+        {
+            // In flight from here until the handler returns. Both edges repaint, so children built from
+            // the flag can disable a button and say "Saving…" for exactly as long as the await lasts.
+            // StateHasChanged rather than a props change: the flag is the form's own state, and nothing
+            // above it passed it down. A synchronous handler completes before a frame exists, so this
+            // pair is only observable for the async ones — which is exactly when it is wanted.
+            _submitting = true;
+
+            // Cleared as the next submit starts, not as it ends: a form showing "something went wrong"
+            // beside a spinner for the retry would be reporting the attempt before the one running.
+            _submitError = null;
+            StateHasChanged();
+            try
+            {
+                await ctx.ValidateAsync().ConfigureAwait(false);
+                ctx.TouchAllRegisteredFields();
+                var isValid = !ctx.HasValidationMessages();
+                var onModel = isValid ? OnSubmit : OnInvalidSubmit;
+                if (!onModel.HasValue)
+                {
+                    // No model-shaped handler: fall back to the raw FormData one, which is what a form that
+                    // only wants the posted values uses.
+                    await OnAnySubmit.Invoke(formData).ConfigureAwait(false);
+                    return;
+                }
+
+                // Typed, so the model goes straight to the handler — the non-generic Form had to
+                // DynamicInvoke here, because all it held was a Delegate.
+                var model = (TModel)ctx.Model;
+                await onModel.Invoke(model).ConfigureAwait(false);
+            }
+#pragma warning disable CA1031 // Any failure of the app's own save is the page's to render, not the framework's to choose between.
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                // Held for the children to render — `f.Error` — INSTEAD of leaving the handler to fault.
+                // A save that fails is an ordinary thing for a form to show, and a page that says nothing
+                // about it is the one bug this cannot fix.
+                _submitError = ex;
+
+                // And still reported, so catching it here does not cost the dev overlay or the log entry.
+                // A cancelled submit is not a failure to report: the work was called off, usually because
+                // the component went away, and there is no one left to read a log line about it.
+                if (ex is not OperationCanceledException)
+                {
+                    ReportSubmitFault(ex);
+                }
+            }
+            finally
+            {
+                // Cleared however the handler left — a throwing handler must not strand the form
+                // showing a submit that is no longer running.
+                _submitting = false;
+                StateHasChanged();
+            }
+        };
+
+    protected override void WriteAttributes(StringBuilder sb)
+    {
+        base.WriteAttributes(sb);
+        Delegate? submit;
+        if (Model is not null || Context is not null)
+        {
+            var ctx = ResolveContext();
+            submit = BuildSubmitBridge(ctx);
+        }
+        else
+        {
+            submit = OnAnySubmit.Handler;
+        }
+
+        if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)
+        {
+            AppendAttr(sb, "data-rask-on-submit", liveCtx.RegisterHandler(submit));
+        }
+    }
+
+    /// <summary>
+    ///     Tells the tooling about a submit the form caught, so holding it on <c>f.Error</c> costs neither
+    ///     the development error overlay nor the log entry. An error boundary is deliberately NOT tripped:
+    ///     the page asked for this failure by rendering <c>f.Error</c>, and replacing it with the
+    ///     boundary's fallback would take away the very thing it wrote.
+    /// </summary>
+    private void ReportSubmitFault(Exception ex)
+    {
+        RaskDevToolsHook.Active?.ComponentFaulted(this, ex, ErrorSource.Action, caught: true);
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error,
+            "Rask.Forms",
+            $"A form submit on {GetType().Name} failed",
+            ex);
+    }
+}

@@ -9,14 +9,13 @@ public partial class DocumentTests : global::Rask.Core.RaskMarkup
     public void A_documents_attributes_render_in_the_order_the_serializer_fixes()
     {
         Assert.Equal(
-            // lang/dir are the GLOBAL attributes inherited from Element now (#693) rather than <html>'s
-            // own, so they emit with the plain globals — before data-* — leaving xmlns as the only
-            // html-specific attribute after it.
-            "<html id=\"i\" class=\"c\" style=\"s\" lang=\"en\" dir=\"ltr\" data-k=\"v\" xmlns=\"http://www.w3.org/1999/xhtml\"></html>",
+            // lang/dir are the GLOBAL attributes inherited from Element (#693), so they emit with the plain
+            // globals — before data-*. <html> has no attribute of its own left: MDN lists no xmlns, which only
+            // an XML parser reads, and Rask serves text/html.
+            "<html id=\"i\" class=\"c\" style=\"s\" lang=\"en\" dir=\"ltr\" data-k=\"v\"></html>",
             Html
                 .Lang("en")
                 .Dir("ltr")
-                .Xmlns("http://www.w3.org/1999/xhtml")
                 .Id("i")
                 .Class("c")
                 .Style("s")

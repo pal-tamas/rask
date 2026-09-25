@@ -11,7 +11,7 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 `.claude/skills/` holds the committed playbooks; apply the matching one without being asked.
 - **rask-ship** — definition-of-done gate before any commit: `dotnet format` (.editorconfig) →
   `dotnet build -warnaserror` (analyzers clean) → tests → benchmarks → CHANGELOG → review → land on main.
-- **add-html-tag** · **add-diagnostic** · **add-codefix** — scaffolding (component+test / RASK0xx+docs+test / IDE quick-fix+test).
+- **add-html-tag** · **add-diagnostic** · **add-codefix** — elements from MDN (refresh + hand partial) / RASK0xx+docs+test / IDE quick-fix+test.
 - **run-benchmarks** — before/after `Allocated` delta for render-hotpath changes (required evidence).
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
 - **rask-seo** — search + AI-assistant discoverability of rask.sh and the packages (page/guide copy, JSON-LD, sitemap, llms.txt); on EVERY site/docs/package-metadata change.
@@ -40,7 +40,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 
 ## Projects
 - `src/Rask.Core` — **the `Rask` package** (assembly stays `Rask.Core`): rendering, live context, routing, scoped
-  CSS/TypeScript, lifecycle, AND the whole HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Core.Components`;
+  CSS/TypeScript, lifecycle, AND the whole HTML/SVG element family (HTML generated from MDN by `src/Rask.Dom.Tasks`) in `Rask.Core.Components`;
   ships the analyzers and the build hooks (`build/Rask.props|targets`, twinned into `buildTransitive/`). Both hosts
   depend on it `PrivateAssets="none"`; a component library references it alone. The tags live HERE so their entries
   land on `RaskMarkup` and reach every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
@@ -146,7 +146,8 @@ started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
-- **New HTML tag** → `add-html-tag` skill (`src/Rask.Core/Components/{Tag}.cs` + `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`).
+- **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, refreshed daily by the local build): MDN type names
+  (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–094 are documented in `docs/diagnostics.md`
   (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK095). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space

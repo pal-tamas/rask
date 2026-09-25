@@ -42,7 +42,7 @@ unmount, so navigating away mid-fetch aborts the in-flight request instead of wr
 
 ## Uploading files
 
-`Input<string>().Type(InputType.File).Files(…)` wires a file picker to a typed handler. Each change event
+`Input.Of<string>().Type(InputType.File).Files(…)` wires a file picker to a typed handler. Each change event
 hands the handler an `IReadOnlyList<RaskFile>`; `RaskFile` carries the metadata (name, size, content type,
 last-modified) and `OpenReadStream` gives you a `Stream` for the bytes — over a multipart POST on the
 Server, via JS chunked reads on WASM. The same component code runs unchanged on both hosts:
@@ -88,4 +88,4 @@ counter); both ship in the same render:
 ---
 
 See also: [Data access](data-access.md) for EF Core persistence, [Forms & validation](forms.md) for the
-`Form<T>` pipeline and typed inputs, and [Lifecycle](lifecycle.md) for `OnMount` and cancellation.
+`HTMLFormElement<T>` pipeline and typed inputs, and [Lifecycle](lifecycle.md) for `OnMount` and cancellation.

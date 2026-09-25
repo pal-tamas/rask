@@ -121,6 +121,11 @@
     <ProjectReference Include="..\Rask.TypeScript.Tasks\Rask.TypeScript.Tasks.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"/>
+
+    <!-- The same ordering edge for the MDN element emitter Dom\Rask.Dom.targets runs; never shipped. -->
+    <ProjectReference Include="..\Rask.Dom.Tasks\Rask.Dom.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"/>
   </ItemGroup>
 
   <!-- This package's own readme, in place of the framework overview Directory.Build.props packs by default. -->
@@ -153,5 +158,6 @@
 
   <!-- The analyzers, generator and IDE code-fixes, into analyzers/dotnet/cs/. -->
   <Import Project="..\RaskAnalyzerPack.targets"/>
+  <Import Project="Dom\Rask.Dom.targets"/>
 
 </Project>

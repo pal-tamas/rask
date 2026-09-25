@@ -325,7 +325,7 @@ public static class GuideCatalog
             SearchTitle = "Live server-rendered pages without hydration in C#",
             Description = "Server-rendered HTML with no hydration, a live session per page over a WebSocket or an automatic HTTP fallback, async data, status codes and redirects.",
         },
-        new("forms", "Forms & validation", "Two-way binding, Form<T>, inline/DataAnnotations/Fluent.", "Frontend")
+        new("forms", "Forms & validation", "Two-way binding, Form.Model(m), inline/DataAnnotations/Fluent.", "Frontend")
         {
             SearchTitle = "Forms and two-way data binding in C#",
             Description = "Bind inputs two-way with typed Bind expressions, build forms on an EditContext, track touched and modified fields, and show accessible validation messages.",
