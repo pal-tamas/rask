@@ -49,7 +49,7 @@
     <ProjectReference Include="..\Rask.Auth.Api\Rask.Auth.Api.csproj"/>
 
     <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
 
     <!-- The confirmation and reset links go out through the app's own mail queue. A REAL package
          dependency, not PrivateAssets: Rask.Mail is its own package rather than something a host

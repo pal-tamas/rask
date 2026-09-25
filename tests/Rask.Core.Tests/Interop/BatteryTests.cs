@@ -8,7 +8,7 @@ public class BatteryTests
     public async Task Asking_whether_the_battery_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
-        await new Battery(js).IsSupportedAsync();
+        await new BrowserBattery(js).IsSupportedAsync();
 
         Assert.Equal("__raskBattery.isSupported", js.Calls.Single().Identifier);
     }
@@ -19,21 +19,21 @@ public class BatteryTests
         var js = new FakeJsRuntime();
         js.SetResponse("__raskBattery.getStatus", new BatteryStatus(0.42, true, 1800, null));
 
-        var status = await new Battery(js).GetStatusAsync();
+        var status = await new BrowserBattery(js).GetStatusAsync();
 
         Assert.Equal(new BatteryStatus(0.42, true, 1800, null), status);
     }
 
     [Fact]
     public async Task Getting_the_status_when_unsupported_gives_null() =>
-        Assert.Null(await new Battery(new FakeJsRuntime()).GetStatusAsync());
+        Assert.Null(await new BrowserBattery(new FakeJsRuntime()).GetStatusAsync());
 
     [Fact]
     public async Task Watching_registers_the_handler_and_starts_watching_under_an_id()
     {
         var js = new FakeJsRuntime();
 
-        var watch = await new Battery(js).WatchAsync(_ => Task.CompletedTask);
+        var watch = await new BrowserBattery(js).WatchAsync(_ => Task.CompletedTask);
 
         Assert.NotNull(watch);
         Assert.IsType<int>(js.ArgsFor("__raskBattery.watch")![0]);
@@ -44,7 +44,7 @@ public class BatteryTests
     {
         var js = new FakeJsRuntime();
         BatteryStatus? got = null;
-        await new Battery(js).WatchAsync(s =>
+        await new BrowserBattery(js).WatchAsync(s =>
         {
             got = s;
             return Task.CompletedTask;
@@ -61,7 +61,7 @@ public class BatteryTests
     {
         var js = new FakeJsRuntime();
         var received = 0;
-        var watch = await new Battery(js).WatchAsync(_ =>
+        var watch = await new BrowserBattery(js).WatchAsync(_ =>
         {
             received++;
             return Task.CompletedTask;
@@ -82,5 +82,5 @@ public class BatteryTests
     [Fact]
     public async Task Watching_with_a_null_arg_throws() =>
         await Assert.ThrowsAsync<ArgumentNullException>(
-            async () => await new Battery(new FakeJsRuntime()).WatchAsync(null!));
+            async () => await new BrowserBattery(new FakeJsRuntime()).WatchAsync(null!));
 }

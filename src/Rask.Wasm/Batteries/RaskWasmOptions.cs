@@ -5,7 +5,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Every battery the <c>Rask</c> package brings to the browser is on, so an app that configures nothing
+/// Every battery <c>Rask.Wasm</c> brings is on, so an app that configures nothing
 /// is a complete app. What is written here is the exceptions.
 /// </para>
 /// <para>

@@ -18,7 +18,7 @@ public class DashboardRouteCompositionTests
         // initializer) is definitely loaded before the tree is built.
         Assert.NotNull(typeof(DashboardLayout).FullName);
 
-        var tree = RouteRegistry.BuildTree();
+        var tree = RouteRegistry.BuildTree(typeof(DashboardLayout).Assembly);
         var layout = tree.FirstOrDefault(r => r.PageType == typeof(DashboardLayout));
 
         Assert.True(layout is not null,

@@ -1,12 +1,12 @@
 using Rask.Core;
 using Rask.Core.Components;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>The smallest root a <see cref="RaskApp"/> can serve.</summary>
-public sealed partial class TestApp : Component
+public sealed partial class MinimalApp : Component
 {
-    protected override Component? HeadAssets => Title["rask-tests"];
+    protected override Component? HeadAssets => Title["rask-server-tests"];
 
     protected override Component? Render() => H1["ok"];
 }

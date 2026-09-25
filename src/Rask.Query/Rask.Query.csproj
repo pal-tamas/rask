@@ -24,7 +24,7 @@
     <!-- PrivateAssets="all" — Rask.Core is IsPackable=false, so without it the nuspec would list a
          dependency on a package that exists on no feed and every restore would fail with NU1101.
          Consumers get Core.dll from whichever host package they already reference. -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

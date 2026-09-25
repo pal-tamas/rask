@@ -4,7 +4,7 @@ Validation is built in. Put `[Required]` on a model, or write an `AbstractValida
 the rules run — in a form as the user types, and again on the server before a dispatched request
 reaches its handler. There is no package to add for DataAnnotations and nothing to declare anywhere.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does
+> Included in [`Rask.Server`](../README.md) and [`Rask.Wasm`](../README.md) — nothing to install. It is **on**; an app that does
 > without it says so:
 >
 > ```csharp
@@ -25,13 +25,13 @@ rules once.
 
 ## The two sources
 
-**DataAnnotations** lives in `Rask.Core`, which every host already bundles, so it costs no reference
+**DataAnnotations** lives in `Rask`, the core every host depends on, so it costs no reference
 at all. It covers `[Required]`, `[Range]`, `[StringLength]`, `[EmailAddress]`,
 `[RegularExpression]`, custom `ValidationAttribute` subclasses and `IValidatableObject`, across the
 whole reachable object graph.
 
-**FluentValidation** is the `Rask.Validation.FluentValidation` package, referenced for you by the
-`Rask` package on both the server and the browser. Declaring the validator is the registration — a
+**FluentValidation** is the `Rask.Validation.FluentValidation` package, referenced for you by
+`Rask.Server` and `Rask.Wasm` alike. Declaring the validator is the registration — a
 generator finds every `AbstractValidator<T>` at compile time and emits a `[ModuleInitializer]`. There
 is no assembly scan, which is what lets a WebAssembly app use it and still publish trimmed.
 

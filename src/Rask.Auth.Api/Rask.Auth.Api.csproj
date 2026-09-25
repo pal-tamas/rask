@@ -117,6 +117,7 @@
        app that swaps one package for the other changes its PackageReference and nothing else. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
   </ItemGroup>
 
 </Project>

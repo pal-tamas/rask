@@ -13,7 +13,7 @@ var rates = await Cache.Remember("rates", LoadRates).For(10.Minutes);
 
 Entries carry **absolute** and **sliding** expirations; a background worker sweeps expired rows.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Cache.Off());

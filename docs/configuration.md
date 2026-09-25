@@ -174,7 +174,7 @@ alone.
 
 ## `RaskApp`'s development defaults
 
-An app built with the `Rask` package's `RaskApp` turns every battery on, and a few of them cannot start
+An app built with `RaskApp` (in `Rask.Server`) turns every battery on, and a few of them cannot start
 without a value. `RaskApp` supplies those as the **lowest-precedence** configuration source, beneath
 `appsettings.json`, so every one of them is overridden by the same key set anywhere else:
 

@@ -524,3 +524,9 @@ static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
 static Rask.Wasm.WasmHostBuilder.CreateDefault() -> Rask.Wasm.WasmHostBuilder!
 static Rask.Wasm.WasmHostBuilder.CreateDefault(System.Action<Rask.Core.Live.RaskLiveOptions!>? configureLive) -> Rask.Wasm.WasmHostBuilder!
 Rask.Wasm.Authentication.WasmAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
+Rask.RaskWasmOptions
+Rask.RaskWasmOptions.Cqrs.get -> Rask.Battery!
+Rask.RaskWasmOptions.Query.get -> Rask.Battery!
+Rask.RaskWasmOptions.RaskWasmOptions() -> void
+Rask.WasmHostBuilderExtensions
+static Rask.WasmHostBuilderExtensions.Configure(this Rask.Wasm.WasmHostBuilder! host, System.Action<Rask.RaskWasmOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!

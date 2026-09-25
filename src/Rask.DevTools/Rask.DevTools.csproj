@@ -38,7 +38,7 @@
   <ItemGroup>
     <!-- PrivateAssets="all": Rask.Core is IsPackable=false and ships transitively inside the host
          packages, so naming it as a nuspec dependency would reference a package on no feed. -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -183,44 +183,6 @@ public class PackageDependencyTests
     // Every project under src/, packable or not, keyed by its file name. Both invariants above need the whole set:
     // one to tell a reference to an unpackable project from a reference to a shipped one, the other to pick the
     // packable ones out.
-    /// <summary>
-    ///     The <c>Rask</c> package must ship the props that keep its own assembly out of the trimmer.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         The browser half hands its battery wiring to the host from a <c>[ModuleInitializer]</c>, so
-    ///         nothing in the application references it statically — which is the point, and also exactly
-    ///         what the trimmer removes. Measured on the WASM showcase before this existed:
-    ///         <c>Rask.dll</c> and <c>Rask.Query</c> were absent from the published bundle entirely and the
-    ///         batteries silently did nothing, while every test still passed, because a test host is never
-    ///         trimmed. Only publishing and reading the bundle back showed it.
-    ///     </para>
-    ///     <para>
-    ///         Asserted on the file and the pack item rather than by packing: unlike the generated task
-    ///         assembly of #852, this props file is committed source and is therefore always on disk when
-    ///         the glob runs, so the silently-packs-nothing failure mode does not apply. The built
-    ///         <c>.nupkg</c> was checked by hand once and does contain <c>build/Rask.props</c>.
-    ///     </para>
-    /// </remarks>
-    [Fact]
-    public void The_Rask_package_roots_itself_for_the_trimmer()
-    {
-        var project = SourceProjects()["Rask"];
-        var directory = Path.GetDirectoryName(project)!;
-        var props = Path.Combine(directory, "build", "Rask.props");
-
-        Assert.True(File.Exists(props), $"{props} is missing — the browser batteries would be trimmed away");
-        Assert.Contains("TrimmerRootAssembly", File.ReadAllText(props), StringComparison.Ordinal);
-
-        // Present but unpacked reaches no consumer, which is the same outcome as absent.
-        var xml = XDocument.Load(project);
-        var packsBuild = xml.Descendants("None").Any(n =>
-            (n.Attribute("Include")?.Value ?? "").StartsWith("build", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(n.Attribute("Pack")?.Value, "true", StringComparison.OrdinalIgnoreCase));
-
-        Assert.True(packsBuild, "Rask.csproj does not pack build\\** — the props would never reach a consumer");
-    }
-
     [Fact]
     public void Exactly_one_package_ships_the_batteries_analyzer()
     {
@@ -311,11 +273,8 @@ public class PackageDependencyTests
             }
         }
 
-        // A guard that finds no bundled DLL checks nothing and passes. Moving the bundling out of the csproj
-        // did exactly that once, so the hosts that ship Core have to be seen doing it.
-        Assert.Contains("Rask.Server", bundlers);
-        Assert.Contains("Rask.Wasm", bundlers);
-
+        // Nothing bundles Rask.Core any more — it is the `Rask` package, an ordinary dependency — so an empty
+        // set is the expected reading today. The guard stays for the next project that packs a DLL by hand.
         Assert.True(
             offenders.Count == 0,
             "A bundled DLL must ship its XML docs beside it, or the package's IntelliSense is blank: "
@@ -347,18 +306,13 @@ public class PackageDependencyTests
     {
         var projects = SourceProjects();
         var offenders = new List<string>();
-        var coreBundlers = new List<string>();
 
         foreach (var (name, path) in projects.Where(p => IsPackable(p.Value)).OrderBy(p => p.Key, StringComparer.Ordinal))
         {
             var document = XDocument.Load(path);
 
-            // Imports included: the hosts bundle Core through src/RaskCoreBundle.targets, not in their csproj.
+            // Imports included: a project may bundle through a shared .targets rather than in its csproj.
             var bundled = BundledProjects(ProjectAndImports(path), projects);
-            if (bundled.Contains("Rask.Core", StringComparer.OrdinalIgnoreCase))
-            {
-                coreBundlers.Add(name);
-            }
 
             if (bundled.Count == 0)
             {
@@ -406,14 +360,8 @@ public class PackageDependencyTests
             }
         }
 
-        // Found nothing bundled means checked nothing. The two hosts that ship Core must be seen doing it, or the
-        // bundling moved somewhere this guard no longer looks — which is how it passed on everything once.
-        Assert.True(
-            coreBundlers.Contains("Rask.Server") && coreBundlers.Contains("Rask.Wasm"),
-            "Rask.Server and Rask.Wasm bundle Rask.Core.dll into their lib/ folders, but this guard found Core bundled by: "
-            + (coreBundlers.Count == 0 ? "(nothing)" : string.Join(", ", coreBundlers))
-            + ". The bundling has moved out of sight of BundledProjects/ProjectAndImports, so nothing below was checked.");
-
+        // Rask.Core is the `Rask` package now, so nothing bundles it and an empty set is the expected reading;
+        // the guard stays for the next project that copies a DLL into its lib/ by hand.
         Assert.True(
             offenders.Count == 0,
             "A bundled assembly's package dependencies do not flow to consumers — PrivateAssets=\"all\" is what "

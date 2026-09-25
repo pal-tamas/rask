@@ -33,7 +33,7 @@
          nuspec: Rask.Testing is consumed alongside a host that already bundles Rask.Core.dll, so it
          resolves transitively — same pattern as Rask.Bootstrap. Core still resolves at compile time
          (and its InternalsVisibleTo grants the live-render/handler-dispatch access this wraps). -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
     <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
          so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"

@@ -1514,7 +1514,9 @@ public IActionResult Get(int id) => ...;               // typed client method
 ```
 
 An action that answers **nothing** does not need either: return `Task` or `void` and the client method
-returns a bare `Task`.
+returns a bare `Task`. An endpoint that is not part of the app's API — plumbing its own pages call — is
+taken out of the client with `.ExcludeFromDescription()`, the same call that keeps it out of OpenAPI, and
+this diagnostic does not fire for it.
 
 ---
 ## RASK071

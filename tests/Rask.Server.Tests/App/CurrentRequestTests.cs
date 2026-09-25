@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     <see cref="Current" /> inside a plain HTTP request — a minimal API, a controller, a CQRS endpoint — where
@@ -19,6 +19,7 @@ namespace Rask.Tests;
 ///     that the request's own principal is the one read, and that it is read LATE: whatever the pipeline put on
 ///     <c>HttpContext.User</c> by the time the code asks.
 /// </remarks>
+[Collection(RaskAppCollection.Name)]
 public sealed class CurrentRequestTests
 {
     private static readonly Guid Alice = Guid.NewGuid();
@@ -78,7 +79,7 @@ public sealed class CurrentRequestTests
             return $"{Current.UserId?.ToString() ?? "nobody"}|{Current.Tenant?.ToString() ?? "none"}";
         }));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
         await built.StartAsync();
         return built;
     }

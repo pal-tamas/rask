@@ -44,7 +44,7 @@ await using var connection = await factory.CreateOpenAsync(ct);   // pragmas alr
 
 ### Entity Framework Core — `Rask.SQLite.EntityFrameworkCore`
 
-> Included in the [`Rask`](../README.md) package — nothing to install.
+> Included in [`Rask.Server`](../README.md) — nothing to install.
 
 `UseRaskSqlite` is a drop-in replacement for `UseSqlite` — it configures the provider *and* registers
 the pragma interceptor:
@@ -542,7 +542,7 @@ continuously replicate a SQLite database to object storage. The companion packag
 **`Rask.SQLite.Litestream`** supervises the Litestream sidecar from inside your app — no separate
 container to orchestrate:
 
-> Included in the [`Rask`](../README.md) package — nothing to install.
+> Included in [`Rask.Server`](../README.md) — nothing to install.
 
 ```csharp
 builder.Services.AddRaskSqliteLitestream();
@@ -718,7 +718,7 @@ backup: a **periodic, consistent full copy** you can grab without a sidecar or o
 last night's database." The **`Rask.SQLite.Snapshots`** package does exactly that, using SQLite's
 **Online Backup API** (never an unsafe `File.Copy` of a live WAL database):
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Snapshots.Off());

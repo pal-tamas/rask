@@ -30,7 +30,7 @@
          a nonexistent "Rask.Core" package and every restore fails with NU1101. Core.dll reaches consumers
          from the Rask.Wasm / Rask.Server package this add-on sits alongside, which bundle it
          into lib/; re-packing it here would ship a duplicate assembly instead. -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
   <!-- The dispatch/codec generator, as an analyzer only: consumers get the code generation without a

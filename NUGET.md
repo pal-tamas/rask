@@ -48,25 +48,26 @@ rask dev                                  # run with hot reload — the first mi
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
 ```
 
-Or add to an existing project. **Pick a host:**
+Or add to an existing project. **Pick a host** — each brings `Rask`, the shared core, and its batteries:
 
 ```bash
-dotnet add package Rask                   # batteries included — the host plus every battery, all on
-dotnet add package Rask.Server            # the lean host on its own: server-rendered over WebSockets
-dotnet add package Rask.Wasm              # client-side WebAssembly
+dotnet add package Rask.Server            # ASP.NET: live pages over WebSockets plus every battery, all on
+dotnet add package Rask.Wasm              # client-side WebAssembly, with the client halves of the batteries
 dotnet add package Rask.Spa.Hosting       # host a built SPA on ASP.NET: a Rask WASM app or a TypeScript bundle
 dotnet add package Rask.Meta.Hosting      # host Nuxt/Next/SvelteKit/Start/SolidStart/Analog beside your C# (needs Node)
 dotnet add package Rask.External           # a .tsx/.vue/.svelte/Lit component as a Rask component (needs Node)
 dotnet add package Rask.Blazor             # a real Blazor component (MudBlazor, an RCL) as a Rask component
 ```
 
-Tailwind is not on that list because it is not a package: the compiler ships inside `Rask` /
-`Rask.Server` / `Rask.Wasm`, so any of them puts it in your build. Add a `Styles/app.css` holding
+A library of components used by either host references the core alone: `dotnet add package Rask`.
+
+Tailwind is not on that list because it is not a package: the compiler ships inside `Rask.Server` and
+`Rask.Wasm`, so either puts it in your build. Add a `Styles/app.css` holding
 `@import "tailwindcss";`, link `/css/app.css` from your shell, and `dotnet build` compiles it — no
 npm, no config file, nothing to switch on.
 
-With `Rask`, that is the whole of `Program.cs` — every battery is on, and the file says only what this
-app does *without*:
+With `Rask.Server`, this is the whole of `Program.cs` — every battery is on, and the file says only what
+this app does *without*:
 
 ```csharp
 var app = RaskApp.Create(args);
@@ -76,11 +77,8 @@ app.Configure(c => c.Jobs.Off());   // this app has no background work
 app.Run<App>();
 ```
 
-Reference `Rask.Server` instead when you want the host with no database: it carries no EF Core and no
-SQLite native bundles.
-
-**Then the batteries you want** — each is opt-in, and every one is a `AddRaskX<AppDbContext>()` call plus
-a `modelBuilder.AddRaskX()` schema line:
+**The batteries, one by one** — each is also a package of its own, for a host assembled by hand: an
+`AddRaskX<AppDbContext>()` call plus a `modelBuilder.AddRaskX()` schema line:
 
 ```bash
 dotnet add package Rask.Data              # declare a model and that is the data layer (no DbContext to write)

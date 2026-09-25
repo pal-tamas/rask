@@ -9,7 +9,7 @@
 
     <PackageId>Rask.Wasm</PackageId>
     <Title>Rask — Browser WASM Runtime</Title>
-    <Description>The Rask browser runtime: runs a Rask app's C# components client-side on .NET WebAssembly. Ships the JS boot scripts, the page shell, and the MSBuild integration that stages them into the published bundle — and, opted in, prerenders every route to static HTML with a sitemap.xml at publish, so a static host serves real pages to visitors and crawlers. Includes Rask.Core and the Rask source generators.</Description>
+    <Description>The Rask browser host: runs a Rask app's C# components client-side on .NET WebAssembly, with the client halves of the batteries — the mediator and query cache, remote dispatch, accounts, validation and the component kit — on by default. Ships the JS boot scripts, the page shell, and the MSBuild integration that stages them into the published bundle — and, opted in, prerenders every route to static HTML with a sitemap.xml at publish, so a static host serves real pages to visitors and crawlers. Depends on Rask, the shared core.</Description>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -30,9 +30,33 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-    <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
-         so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
+    <!--
+      The shared core, as an ordinary dependency — the `Rask` package. PrivateAssets="none" so the nuspec
+      dependency carries its analyzers and build hooks to the app: the default excludes both, and an app
+      referencing this package alone would then compile with no chain generator and no scoped CSS.
+    -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!--
+      THE CLIENT HALVES, on by default (Batteries/WasmHostBuilderExtensions wires them; host.Configure(o => o.Cqrs.Off())
+      is how an app does without). What is deliberately NOT here: Rask.Data, Rask.SQLite.Browser and Rask.Jobs all
+      need EF Core, and EF Core survives the browser trimmer only with its three assemblies rooted — about 2 MB
+      brotli on top of an app, measured. A local-first app references them itself and roots EF knowingly
+      (docs/sqlite.md). Everything here is source-generated and reflection-free, so the bundle stays trimmed;
+      validation is the one measured exception (the showcase has published FluentValidation at TrimMode=full with
+      zero IL warnings since before it was a battery), because a form is the same component on both hosts.
+    -->
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Auth.Client\Rask.Auth.Client.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- The client runtime, but NOT Rask.Api: that one carries MVC and the generator, which belong to the half
+         that answers endpoints rather than the half that calls them. -->
+    <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- The kit is on both hosts: this is markup, and the browser is where the surfaces that need it most run. -->
+    <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- The request validators the mediator runs, on both hosts: the same rules a Form applies, again at dispatch. -->
+    <Compile Include="..\Rask.Hosting.Shared\Batteries\RequestValidators.cs" Link="Shared\Batteries\RequestValidators.cs"/>
     <!--
       Build-order-only dependency on the MSBuild task project. Rask.Wasm.Tasks compiles
       Rask.Wasm.Tasks.dll and (via its CopyTaskAssemblyToRaskWasmBuild target) drops it into
@@ -225,13 +249,8 @@
     <Touch Files="$(IntermediateOutputPath)rask-bundles\rask-sw.stamp" AlwaysCreate="true"/>
   </Target>
 
-  <!-- Analyzer + generator + IDE code-fix payload packed into analyzers/dotnet/cs/ (shared with Rask.Server). -->
-  <Import Project="..\RaskAnalyzerPack.targets"/>
-  <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Wasm.targets. -->
-  <Import Project="..\RaskCoreBuildPack.targets"/>
+  <!-- Tailwind's build integration, packed beside this package's own targets and imported from them. The core's
+       integration and the analyzers arrive through the `Rask` dependency. -->
   <Import Project="..\RaskTailwindBuildPack.targets"/>
-
-  <!-- Rask.Core.dll and its XML docs into each lib/ folder, next to Rask.Wasm.dll (shared with Rask.Server). -->
-  <Import Project="..\RaskCoreBundle.targets"/>
 
 </Project>

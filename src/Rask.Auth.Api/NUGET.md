@@ -51,8 +51,8 @@ Reference one of the first two, never both: `Rask.Auth` already contains this pa
 
 ## Why it is separate
 
-`Rask.Core` — the renderer — is not a package of its own. It travels inside the host packages that
-render components (`Rask.Server`, `Rask.Wasm`), so a host that renders nothing ships no copy of it.
+`Rask` — the core, with the renderer — is a dependency of the hosts that render components
+(`Rask.Server`, `Rask.Wasm`) and of nothing else, so a host that renders nothing ships no copy of it.
 A battery that needed Core could therefore not run on `Rask.Spa.Hosting` or `Rask.Meta.Hosting` at
 all: the assembly is simply absent and the app aborts before `Main`.
 

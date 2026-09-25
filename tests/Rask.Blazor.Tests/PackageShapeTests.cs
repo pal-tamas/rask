@@ -58,12 +58,15 @@ public sealed class PackageShapeTests
         Assert.True(File.Exists(Path.Combine(api, "net10.0-browser", "PublicAPI.Unshipped.txt")));
     }
 
-    [Fact]
-    public void The_Rask_meta_package_references_Rask_Blazor_from_neither_framework()
+    [Theory]
+    [InlineData("Rask.Server")]
+    [InlineData("Rask.Wasm")]
+    public void Neither_host_package_brings_Rask_Blazor_with_it(string host)
     {
-        // Referencing it from the net10.0 group would pull the Blazor renderer into every server app
-        // that wants nothing to do with it; from the browser group it would not restore at all.
-        var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Rask", "Rask.csproj"));
+        // The hosts carry every battery, and this is deliberately not one of them: from the server host it
+        // would pull the Blazor renderer into every app that wants nothing to do with it; from the browser
+        // host it would not restore at all.
+        var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "src", host, host + ".csproj"));
 
         Assert.DoesNotContain("Rask.Blazor", csproj, StringComparison.Ordinal);
     }

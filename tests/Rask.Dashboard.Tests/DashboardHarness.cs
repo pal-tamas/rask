@@ -93,7 +93,14 @@ public sealed class DashboardHarness : IAsyncDisposable
         // AddRask registers these for a real host; the harness builds its own container, so the pages'
         // routing dependencies have to be named here. LogsPage takes a Navigator because its category
         // filter is a <select> that navigates on change rather than a list of links.
-        services.AddScoped<RouteState>();
+        //
+        // Resolving against the console's OWN table, the way its mount does: the console's pages are
+        // [assembly: MountOnlyRoutes], so the main table — what a RouteState resolves against by default —
+        // no longer carries them.
+        services.AddScoped(_ => new RouteState
+        {
+            Table = static () => RouteRegistry.BuildTree(typeof(RaskDashboardShell).Assembly),
+        });
         services.AddScoped<Navigator>();
 
         if (registered.HasFlag(Batteries.Jobs))

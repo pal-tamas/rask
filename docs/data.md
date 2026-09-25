@@ -20,7 +20,7 @@ would be that border failing. So reading moves to a generated **read face** — 
 the write context — which carries the navigations the aggregate is not allowed to have. **The border is on
 the write side only; the read side has none.**
 
-> Included in the [`Rask`](../README.md) package, so there is nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md), so there is nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Data.Off());

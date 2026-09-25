@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Globalization;
 
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     <see cref="RaskApp"/> drives a real host over real HTTP.
@@ -22,6 +22,7 @@ namespace Rask.Tests;
 ///     So each test starts the app on a real port and asks it a question.
 /// </remarks>
 
+[Collection(RaskAppCollection.Name)]
 public sealed class RaskAppTests
 {
     // Port 0 lets the OS choose, and the bound address is read back off the server feature. A fixed port
@@ -48,7 +49,7 @@ public sealed class RaskAppTests
     public async Task An_app_with_no_configuration_at_all_serves_its_root()
     {
         // The headline: this is the entire Program.cs of a working Rask app.
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -71,7 +72,7 @@ public sealed class RaskAppTests
         // nothing called before the Pwa battery existed. All four injected fine and then failed on a 404,
         // and a test asserting the REGISTRATIONS would have passed throughout. This one asks the running
         // server for the file.
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -100,7 +101,7 @@ public sealed class RaskAppTests
     {
         // Name is `required` on WebAppManifest, so the default cannot be empty -- it is the app's own
         // name, which makes a freshly created app installable without configuring anything.
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -123,7 +124,7 @@ public sealed class RaskAppTests
     {
         // Off means off: the battery is on by default, so the only evidence that `c.Pwa.Off()` does
         // anything is that the file stops being served.
-        var app = NewApp(a => a.Configure(c => c.Pwa.Off())).Build<TestApp>();
+        var app = NewApp(a => a.Configure(c => c.Pwa.Off())).Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -146,7 +147,7 @@ public sealed class RaskAppTests
         // The seam again: AddRaskStorage registers IFiles, but files.Url(...) and temporary links only work if the
         // routes are mapped too, and an app built on RaskApp writes no MapRaskStorage line. An unreadable token is
         // asked for because it is answered before the database is touched — a fresh app has no migrated table.
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -169,7 +170,7 @@ public sealed class RaskAppTests
     [Fact]
     public async Task Turning_storage_off_unmaps_its_routes()
     {
-        var app = NewApp(a => a.Configure(c => c.Storage.Off())).Build<TestApp>();
+        var app = NewApp(a => a.Configure(c => c.Storage.Off())).Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -192,7 +193,7 @@ public sealed class RaskAppTests
         // It has to short-circuit BEFORE UseHttpsRedirection. `rask deploy` probes it internally over
         // plain HTTP with no X-Forwarded-Proto, so a redirected endpoint 307s to a port nothing listens
         // on and the blue-green swap is gated on a probe that can never succeed.
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -212,7 +213,7 @@ public sealed class RaskAppTests
     {
         // The seam works. What it is NOT is a fix for an ordering bug — see the test below, which maps
         // the same endpoint on the other side of the catch-all and gets the same answer.
-        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<TestApp>();
+        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -249,7 +250,7 @@ public sealed class RaskAppTests
     {
         // The batteries claim: referencing Rask is what turns a battery on. The app below configures
         // nothing — no AddRaskApi, no MapRaskApi, no AddControllers — and the controller answers.
-        var app = NewApiApp().Build<TestApp>();
+        var app = NewApiApp().Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -271,7 +272,7 @@ public sealed class RaskAppTests
         // The half of the battery that is easy to get wrong by hand. Without it this request reaches
         // the catch-all and renders the app with a 200, and the caller's JSON parse fails a long way
         // from the cause.
-        var app = NewApiApp().Build<TestApp>();
+        var app = NewApiApp().Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -290,7 +291,7 @@ public sealed class RaskAppTests
     [Fact]
     public async Task The_API_battery_can_be_turned_off_like_any_other()
     {
-        var app = NewApiApp(a => a.Configure(c => c.Api.Off())).Build<TestApp>();
+        var app = NewApiApp(a => a.Configure(c => c.Api.Off())).Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -321,7 +322,7 @@ public sealed class RaskAppTests
         // endpoints AFTER Build<TApp>() has already run MapRask, and all three answer.
         //
         // It exists to keep the false version from coming back into the docs.
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
 
         app.MapGet("/ping", () => "pong");
         app.MapGet("/api/items/{id}", (int id) => Results.Json(new { id }));
@@ -358,7 +359,7 @@ public sealed class RaskAppTests
     {
         // The other half of the ordering: user endpoints go first, but they must not swallow the
         // catch-all. If they did, every page in the app would 404.
-        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<TestApp>();
+        var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -385,7 +386,7 @@ public sealed class RaskAppTests
         {
             scheme = ctx.Request.Scheme;
             return ctx.Request.Scheme;
-        }))).Build<TestApp>();
+        }))).Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -415,7 +416,7 @@ public sealed class RaskAppTests
                 scheme = ctx.Request.Scheme;
                 return ctx.Request.Scheme;
             }));
-        }).Build<TestApp>();
+        }).Build<MinimalApp>();
         await app.StartAsync();
 
         try
@@ -444,7 +445,7 @@ public sealed class RaskAppTests
         {
             c.Cultures.Add("en");
             c.Cultures.Add("hu");
-        })).Build<TestApp>();
+        })).Build<MinimalApp>();
 
         var cultures = app.Services.GetRequiredService<RaskCultureOptions>().SupportedCultures;
 
@@ -454,7 +455,7 @@ public sealed class RaskAppTests
     [Fact]
     public void An_app_that_names_no_culture_leaves_localization_off()
     {
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
 
         Assert.Empty(app.Services.GetRequiredService<RaskCultureOptions>().SupportedCultures);
     }
@@ -463,7 +464,7 @@ public sealed class RaskAppTests
     public void The_host_defaults_still_apply_through_the_facade()
     {
         // RaskApp.Create calls AddRask, so everything Phase A moved into the framework comes with it.
-        var app = NewApp().Build<TestApp>();
+        var app = NewApp().Build<MinimalApp>();
 
         var options = app.Services
             .GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.Extensions.Hosting.HostOptions>>()

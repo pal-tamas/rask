@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Forms;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     Validation on the two HTTP seams: a controller action and a minimal API endpoint.
@@ -28,6 +28,7 @@ namespace Rask.Tests;
 ///         the second, and that difference is the whole issue.
 ///     </para>
 /// </remarks>
+[Collection(RaskAppCollection.Name)]
 public sealed class ApiValidationTests
 {
     private const string DocumentedProblemType =
@@ -67,7 +68,7 @@ public sealed class ApiValidationTests
 
     private static async Task<WebApplication> StartAsync(Action<RaskApp>? arrange = null)
     {
-        var app = NewApp(arrange).Build<TestApp>();
+        var app = NewApp(arrange).Build<MinimalApp>();
         await app.StartAsync();
         return app;
     }

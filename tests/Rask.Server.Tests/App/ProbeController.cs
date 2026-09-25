@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>What an app's own API controller looks like: ordinary ASP.NET, nothing Rask-specific.</summary>
 /// <remarks>

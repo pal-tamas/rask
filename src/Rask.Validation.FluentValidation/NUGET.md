@@ -1,8 +1,8 @@
 # Rask.Validation.FluentValidation
 
 **FluentValidation for Rask forms and requests**, in [Rask](https://rask.sh/), a full-stack .NET web
-framework for teams of any size. The `Rask` package references it for you on both the server and the
-browser.
+framework for teams of any size. `Rask.Server` and `Rask.Wasm` reference it for you, so an app has nothing
+to add.
 
 - **Writing the validator is the registration.** A generator finds every `AbstractValidator<T>` in the app
   at compile time, and a form asks for the one that validates its model — nothing to declare in the form,

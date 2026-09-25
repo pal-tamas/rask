@@ -7,7 +7,7 @@ using Rask.Wasm;
 namespace Rask;
 
 /// <summary>
-/// The browser half of the <c>Rask</c> package: every battery it brings is on, and this is where an app
+/// The browser batteries: every one this host brings is on, and this is where an app
 /// says which it does without.
 /// </summary>
 /// <remarks>
@@ -20,17 +20,6 @@ public static class WasmHostBuilderExtensions
     // Keyed on the builder, not a static field: a browser process hosts exactly one app, so a static
     // would work in production and quietly fail in a test that builds two.
     private static readonly ConditionalWeakTable<WasmHostBuilder, RaskWasmOptions> Options = new();
-
-    // Runs before Main, so the host finds the wiring already waiting.
-    //
-    // CA2255 warns off module initializers in libraries, and is usually right: a library that runs code
-    // on load surprises whoever loaded it. This is the case the rule names as the exception — handing a
-    // hook to a host that cannot reference back. It registers a delegate and touches nothing else, and
-    // the alternative is asking every app to write a line whose only purpose is to say "yes, really".
-#pragma warning disable CA2255
-    [ModuleInitializer]
-#pragma warning restore CA2255
-    internal static void Register() => RaskWasmBatteryRegistry.Use(Wire);
 
     /// <summary>Says which batteries this app does without.</summary>
     /// <example>
@@ -53,7 +42,7 @@ public static class WasmHostBuilderExtensions
 
     // Applied by the host just before it builds the provider, so everything Program.cs said has been said.
     // An app that never called Configure has no entry here and gets the defaults — every battery on.
-    private static void Wire(WasmHostBuilder host, IServiceCollection services)
+    internal static void Wire(WasmHostBuilder host, IServiceCollection services)
     {
         var options = Options.TryGetValue(host, out var configured) ? configured : new RaskWasmOptions();
 

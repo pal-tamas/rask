@@ -358,7 +358,7 @@ Generated files under `obj/` are rewritten on every publish; edit the app, never
 
 The companion builds with **warnings-as-errors off**, for the same reason its analyzers are off and
 one stronger one: *its reference closure is not the app's*. Targeting the app's server framework makes a multi-targeted
-dependency resolve its non-browser face — the `Rask` metapackage's server face carries the
+dependency resolve its non-browser face — `Rask.Server` carries the
 server-only pieces a browser app never saw — so two components that never met in the app can meet
 here. That is a fact about the companion, not about your code, and the real build is what judges your
 code.

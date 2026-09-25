@@ -78,7 +78,7 @@
     <!-- PrivateAssets="all" — Rask.Core is IsPackable=false, so without it the nuspec
          would list dependencies on packages that exist on no feed and every restore fails NU1101.
          Consumers get both from whichever host package they already reference. -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
     <!--
       The generator has to RUN here, not merely be available to consumers. A referenced library's
       components cannot be reached from a chain unless that library publishes its own

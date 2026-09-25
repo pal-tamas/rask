@@ -30,8 +30,8 @@ Reference one or the other, never both: `Rask.Auth` already contains `Rask.Auth.
 types in the `Rask.Auth` namespace and both call the battery `AddRaskAuth` / `MapRaskAuth`, so moving an
 app from one lane to the other changes a `PackageReference` and nothing else.
 
-The split exists because `Rask.Core` — the renderer — is not a package. It travels *inside* the host
-packages that render components (`Rask.Server`, `Rask.Wasm`), so `Rask.Spa.Hosting` and
+The split exists because `Rask` — the core, with the renderer — is a dependency of the hosts that render
+components (`Rask.Server`, `Rask.Wasm`) and of nothing else, so `Rask.Spa.Hosting` and
 `Rask.Meta.Hosting` ship no copy of it. Until #1069 the accounts battery reached for Core on every lane,
 which meant a scaffolded SPA or meta app could not start at all: the assembly was simply absent and the
 process aborted before `Main`, after a build that succeeded. `Rask.Auth.Api` is the battery with that

@@ -28,10 +28,10 @@ internal static class CliBuildE2E
     /// </summary>
     internal static readonly string[] FeedPackages =
     [
-        "Rask",                             // the server template's one reference: the host and every battery
-        "Rask.Postgres",                    // Rask depends on it — the provider Rask:Database:Provider=postgres picks
+        "Rask",                             // the shared core every host depends on — the chain, routing, forms, the generators
+        "Rask.Postgres",                    // Rask.Server depends on it — the provider Rask:Database:Provider=postgres picks
         "Rask.SqlServer",                   // and sqlserver
-        "Rask.Server",                      // the lean host, and wasm-hosted's server half
+        "Rask.Server",                      // server template: the host and every battery, RaskApp included
         "Rask.Wasm",                        // the wasm template, and wasm-hosted's browser half
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Wire",                        // Rask.Cqrs depends on it: the wire primitives its codecs call
@@ -80,6 +80,24 @@ internal static class CliBuildE2E
     /// <summary>True when the build-the-output gates are opted into (they restore + build, needing the SDK and network).</summary>
     internal static bool Enabled => Environment.GetEnvironmentVariable("RASK_CLI_BUILD_E2E") == "1";
 
+    /// <summary>
+    ///     The project that publishes <paramref name="packageId"/>: <c>src/&lt;id&gt;/&lt;id&gt;.csproj</c> for every
+    ///     package but one — <c>Rask</c>, the shared core, is <c>src/Rask.Core</c> under its own PackageId.
+    /// </summary>
+    internal static string ProjectFor(string repoRoot, string packageId)
+    {
+        var byName = Path.Combine(repoRoot, "src", packageId, packageId + ".csproj");
+        if (File.Exists(byName))
+        {
+            return byName;
+        }
+
+        var declared = Directory.GetFiles(Path.Combine(repoRoot, "src"), "*.csproj", SearchOption.AllDirectories)
+            .FirstOrDefault(path => File.ReadAllText(path).Contains($"<PackageId>{packageId}</PackageId>", StringComparison.Ordinal));
+
+        return declared ?? throw new FileNotFoundException($"No project under src/ publishes the package '{packageId}'.");
+    }
+
     /// <summary>Packs <see cref="FeedPackages"/> to a temp feed; returns its directory and the packed version.</summary>
     private static async Task<(string Feed, string Version)> PackLocalFeedAsync()
     {
@@ -87,11 +105,11 @@ internal static class CliBuildE2E
         var feed = Path.Combine(Path.GetTempPath(), "rask-cli-e2e-feed", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(feed);
 
-        foreach (var project in FeedPackages)
+        foreach (var package in FeedPackages)
         {
-            var csproj = Path.Combine(repoRoot, "src", project, project + ".csproj");
+            var csproj = ProjectFor(repoRoot, package);
             var (exit, output) = await RunDotnet($"pack \"{csproj}\" -c Release -o \"{feed}\" -m:1");
-            Assert.True(exit == 0, $"failed to pack {project} for the build gate.{Diagnostics(output)}");
+            Assert.True(exit == 0, $"failed to pack {package} for the build gate.{Diagnostics(output)}");
         }
 
         // Read the packed version off a nupkg filename (MinVer stamps a prerelease off the current commit).
@@ -178,8 +196,15 @@ internal static class CliBuildE2E
             }
         }
 
+        // The core is the `Rask` package: `Rask.<version>.nupkg`, the one whose name has a digit right after the id.
+        var core = Directory.GetFiles(feed, "Rask.*.nupkg")
+            .Single(path => char.IsDigit(Path.GetFileName(path)["Rask.".Length]));
+        using var coreZip = System.IO.Compression.ZipFile.OpenRead(core);
+        Assert.Contains(coreZip.Entries, e => e.FullName == "lib/net11.0/Rask.Core.dll");
+
+        // And the hosts no longer bundle it: one copy per process, from one package.
         using var server = System.IO.Compression.ZipFile.OpenRead(serverPackage);
-        Assert.Contains(server.Entries, e => e.FullName == "lib/net11.0/Rask.Core.dll");
+        Assert.DoesNotContain(server.Entries, e => e.FullName.EndsWith("/Rask.Core.dll", StringComparison.Ordinal));
     }
 
     /// <summary>

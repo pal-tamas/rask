@@ -32,5 +32,5 @@ app.MapGet("/invoices/{id}", (Guid id) => Files.Download(id));       // behind y
   it by id are scoped to the tenant in flight, so another tenant holding the id cannot reach it.
   `StoredFile.Read` lists uploads with no context of your own.
 
-Included in the [`Rask`](https://www.nuget.org/packages/Rask) package and on by default. See the
+Included in [`Rask.Server`](https://www.nuget.org/packages/Rask.Server) and on by default. See the
 [file storage guide](https://rask.sh/docs/guides/file-storage).

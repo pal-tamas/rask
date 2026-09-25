@@ -39,12 +39,16 @@ prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, `do
 no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
 
 ## Projects
-- `src/Rask.Core` — rendering, live context, routing, scoped CSS/TypeScript, lifecycle, AND the whole
-  HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Core.Components`. `IsPackable=false`,
-  bundled into every host package. The tags live HERE so their entries land on `RaskMarkup` and reach
-  every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
-- `src/Rask.Generators` — `Generated.{Type}(...)` factories, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
-- `src/Rask.Server` — ASP.NET host (`AddRask()`/`MapRask<TApp>()`, WS dispatcher). `src/Rask.Wasm` — browser host.
+- `src/Rask.Core` — **the `Rask` package** (assembly stays `Rask.Core`): rendering, live context, routing, scoped
+  CSS/TypeScript, lifecycle, AND the whole HTML/SVG element family (`Div`…`Svg`, `Doctype`) in `Rask.Core.Components`;
+  ships the analyzers and the build hooks (`build/Rask.props|targets`, twinned into `buildTransitive/`). Both hosts
+  depend on it `PrivateAssets="none"`; a component library references it alone. The tags live HERE so their entries
+  land on `RaskMarkup` and reach every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
+- `src/Rask.Generators` — the chain entries, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
+- `src/Rask.Server` — ASP.NET host + EVERY server battery + `RaskApp` (`App/`: `RaskApp.Create(args).Run<App>()`,
+  `RaskBatteryWiring`, `RaskAppDbContext`). `AddRask()`/`MapRask<TApp>()` stay for a hand-wired host.
+  `src/Rask.Wasm` — browser host + the client halves (`Batteries/`: Cqrs, Query, Auth.Client, Cqrs.Client, validation, Ui).
+  There is NO meta-package any more: `Rask` = shared core, `Rask.Server`/`Rask.Wasm` = host + batteries.
 - `src/Rask.Spa.Hosting` — `MapRaskSpa()`: serves a built SPA, a TypeScript bundle OR a Rask WASM app (WASM is a SPA, never a render mode). `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.

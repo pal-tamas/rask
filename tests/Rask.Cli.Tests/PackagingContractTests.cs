@@ -177,7 +177,8 @@ public sealed class PackagingContractTests
         // SpaTailwindBuildE2E case at once, and only showed up on the far side of an opt-in gate that
         // packs the feed, queues for a machine-wide lane and then builds real projects. This assertion
         // reads the same list and answers the same question with no packing at all.
-        var projects = SourceProjects();
+        // Keyed by PACKAGE id, which is what the feed and a nuspec name: Rask.Core ships as `Rask`.
+        var projects = SourceProjects().ToDictionary(p => PackageIdOf(p.Value), p => p.Value, StringComparer.Ordinal);
         var feed = CliBuildE2E.FeedPackages.ToHashSet(StringComparer.Ordinal);
         var missing = new SortedSet<string>(StringComparer.Ordinal);
 
@@ -197,7 +198,10 @@ public sealed class PackagingContractTests
                     continue;
                 }
 
-                var target = Path.GetFileNameWithoutExtension(include.Replace('\\', '/'));
+                var referenced = Path.Combine(Path.GetDirectoryName(path)!, include.Replace('\\', Path.DirectorySeparatorChar));
+                var target = File.Exists(referenced)
+                    ? PackageIdOf(referenced)
+                    : Path.GetFileNameWithoutExtension(include.Replace('\\', '/'));
 
                 // A reference that contributes no nuspec dependency cannot break a restore: analyzers
                 // (ReferenceOutputAssembly="false") and PrivateAssets="all" are both invisible to
@@ -240,17 +244,13 @@ public sealed class PackagingContractTests
         // import every hook straight off disk. Only a consumer restoring the real package can, and the
         // failure is silent — the app builds, and scoped CSS does nothing (#544, the same shape).
         var projects = SourceProjects();
-        var meta = XDocument.Load(projects["Rask"]);
         var offenders = new SortedSet<string>(StringComparer.Ordinal);
 
-        var dependencies = meta.Descendants("ProjectReference")
-            .Select(r => Path.GetFileNameWithoutExtension((r.Attribute("Include")?.Value ?? string.Empty).Replace('\\', '/')))
-            .Where(name => name.Length > 0)
-            .Distinct(StringComparer.Ordinal);
-
-        foreach (var package in dependencies)
+        // Every packable project: Rask.Server and Rask.Wasm each bring the core and a dozen batteries, so any
+        // package's hook may be reached transitively.
+        foreach (var (package, csproj) in projects.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            if (!projects.TryGetValue(package, out var csproj) || !IsPackableProject(csproj))
+            if (!IsPackableProject(csproj))
             {
                 continue;
             }
@@ -273,11 +273,19 @@ public sealed class PackagingContractTests
                         Path: path.Replace('\\', '/'))))
                 .ToList();
 
+            // A project that keeps a buildTransitive/ folder of its own (Rask.Wire: the two props files differ on
+            // purpose) has answered the question for every hook it packs.
+            if (packed.Any(p => p.Include.StartsWith("buildTransitive\\", StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
             // The twin names its destination FILE (a folder path would land at buildTransitive//<file>, NU5129),
-            // so only the folder is compared: the same Include and Exclude, packed under buildTransitive/.
+            // so only the folder is compared: the same Include, packed under buildTransitive/. Its Exclude may
+            // be wider — a Razor-SDK project's twin leaves out the .props the SDK already ships a shim for.
             foreach (var item in packed.Where(p => p.Path.StartsWith("build/", StringComparison.Ordinal)))
             {
-                if (!packed.Any(p => p.Include == item.Include && p.Exclude == item.Exclude
+                if (!packed.Any(p => p.Include == item.Include
                                      && p.Path.StartsWith("buildTransitive/", StringComparison.Ordinal)))
                 {
                     offenders.Add($"{package}: <None Include=\"{item.Include}\" … PackagePath=\"{item.Path}\"> has no buildTransitive twin");
@@ -287,14 +295,23 @@ public sealed class PackagingContractTests
 
         Assert.True(
             offenders.Count == 0,
-            "These hooks reach a direct reference only. An app that names just `Rask` never imports them, so "
-            + "the feature they carry silently does nothing there. Pack each one a second time with "
-            + "PackagePath=\"buildTransitive\\\":\n  " + string.Join("\n  ", offenders));
+            "These hooks reach a direct reference only. An app that reaches the package through Rask.Server or "
+            + "Rask.Wasm never imports them, so the feature they carry silently does nothing there. Pack each one a "
+            + "second time under buildTransitive\\:\n  " + string.Join("\n  ", offenders));
     }
 
     private static Dictionary<string, string> SourceProjects() =>
         RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src")).Where(f => f.EndsWith(".csproj", StringComparison.Ordinal))
             .ToDictionary(path => Path.GetFileNameWithoutExtension(path), path => path, StringComparer.Ordinal);
+
+    // The id a project publishes under: its <PackageId>, or its file name when it declares none.
+    private static string PackageIdOf(string csprojPath)
+    {
+        var declared = XDocument.Load(csprojPath).Descendants("PackageId").FirstOrDefault()?.Value.Trim();
+        return string.IsNullOrEmpty(declared) || declared.Contains('$', StringComparison.Ordinal)
+            ? Path.GetFileNameWithoutExtension(csprojPath)
+            : declared;
+    }
 
     private static bool IsPackableProject(string csprojPath) =>
         XDocument.Load(csprojPath).Descendants("IsPackable").LastOrDefault()?.Value
@@ -311,58 +328,33 @@ public sealed class PackagingContractTests
         Assert.True(File.Exists(entry), $"{package} has no build/{package}.targets, so NuGet will never import its build integration.");
     }
 
-    [Theory]
-    [MemberData(nameof(HostPackages))]
-    public void The_entry_point_imports_the_shared_core_build_integration(string package)
+    [Fact]
+    public void The_core_package_s_entry_point_imports_its_build_integration()
     {
-        var entry = XDocument.Load(Path.Combine(_repoRoot, "src", package, "build", $"{package}.targets"));
-
-        var import = entry.Descendants("Import")
-            .SingleOrDefault(e => (e.Attribute("Project")?.Value ?? string.Empty)
-                .EndsWith("Rask.Core.targets", StringComparison.Ordinal));
-
-        Assert.True(import is not null, $"build/{package}.targets does not import Rask.Core.targets.");
-
-        // The guard is load-bearing, not cosmetic: in the source tree there is no Rask.Core.targets
-        // sibling (it is packed from Rask.Core's own build/ folder), and for Rask.Wasm — which
-        // Directory.Build.targets imports in-repo — an unguarded import of a missing file is MSB4019
-        // across every project in the repo.
-        Assert.Contains("Exists(", import!.Attribute("Condition")?.Value ?? string.Empty, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [MemberData(nameof(HostPackages))]
-    public void Each_host_package_packs_the_shared_core_build_integration(string package)
-    {
-        var csproj = XDocument.Load(Path.Combine(_repoRoot, "src", package, $"{package}.csproj"));
+        // NuGet auto-imports build/<PackageId>.{props,targets} and nothing else. Rask.Core is the `Rask`
+        // package, so build/Rask.targets is what pulls Rask.Core.targets in for a consumer.
+        var entry = XDocument.Load(Path.Combine(_repoRoot, "src", "Rask.Core", "build", "Rask.targets"));
 
         Assert.Contains(
-            csproj.Descendants("Import"),
-            e => (e.Attribute("Project")?.Value ?? string.Empty).EndsWith("RaskCoreBuildPack.targets", StringComparison.Ordinal));
-
-        // build/** is what carries the <PackageId>.targets entry point into the package.
-        Assert.Contains(
-            csproj.Descendants("None"),
-            e => (e.Attribute("Include")?.Value ?? string.Empty).StartsWith("build\\", StringComparison.Ordinal)
-                 && e.Attribute("Pack")?.Value == "true");
+            entry.Descendants("Import"),
+            e => (e.Attribute("Project")?.Value ?? string.Empty).EndsWith("Rask.Core.targets", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void The_shared_pack_fragment_ships_core_targets_into_the_build_folder()
+    public void The_core_package_packs_its_build_integration_for_direct_and_transitive_consumers()
     {
-        var pack = XDocument.Load(Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets"));
+        // An app references Rask.Server or Rask.Wasm, never `Rask` itself, so the integration has to reach it
+        // through buildTransitive/ — a build/ copy alone would be imported by nothing an app ever writes.
+        var csproj = XDocument.Load(Path.Combine(_repoRoot, "src", "Rask.Core", "Rask.Core.csproj"));
 
-        var items = pack.Descendants("None")
-            .Where(e => (e.Attribute("Include")?.Value ?? string.Empty)
-                .EndsWith(@"Rask.Core\build\Rask.Core.targets", StringComparison.Ordinal))
+        var packed = csproj.Descendants("None")
+            .Where(e => e.Attribute("Pack")?.Value == "true"
+                        && (e.Attribute("Include")?.Value ?? string.Empty).StartsWith("build\\", StringComparison.Ordinal))
+            .Select(e => (e.Attribute("PackagePath")?.Value ?? string.Empty).Replace('\\', '/'))
             .ToList();
 
-        Assert.True(items.Count > 0, "RaskCoreBuildPack.targets does not pack Rask.Core.targets.");
-        Assert.All(items, item => Assert.Equal("true", item.Attribute("Pack")?.Value));
-
-        // Once for a direct reference, once for the `Rask` meta-package's transitive consumers.
-        Assert.Contains(items, item => item.Attribute("PackagePath")?.Value == @"build\");
-        Assert.Contains(items, item => item.Attribute("PackagePath")?.Value == @"buildTransitive\Rask.Core.targets");
+        Assert.Contains(packed, p => p.StartsWith("build/", StringComparison.Ordinal));
+        Assert.Contains(packed, p => p.StartsWith("buildTransitive/", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -557,14 +549,26 @@ public sealed class PackagingContractTests
     }
 
     [Fact]
-    public void Rask_Core_does_not_pretend_to_pack_its_own_build_integration()
+    public void Rask_Core_is_the_Rask_package_and_ships_the_analyzers()
     {
-        // IsPackable=false makes any Pack="true" item here inert. Re-adding one would restore exactly
-        // the false signal that hid #544 for a year — it looks like the file ships, and it does not.
+        // For a year Core was IsPackable=false and its Pack="true" items were inert — which is how #544 hid.
+        // It is the `Rask` package now, so the items are live and the analyzer payload ships from here, once:
+        // a second package carrying the same generator hands csc two copies and the app fails with CS0101.
         var csproj = XDocument.Load(Path.Combine(_repoRoot, "src", "Rask.Core", "Rask.Core.csproj"));
 
-        Assert.Equal("false", csproj.Descendants("IsPackable").Single().Value);
-        Assert.DoesNotContain(csproj.Descendants("None"), e => e.Attribute("Pack")?.Value == "true");
+        Assert.Equal("Rask", csproj.Descendants("PackageId").Single().Value);
+        Assert.DoesNotContain(csproj.Descendants("IsPackable"), e => e.Value == "false");
+        Assert.Contains(
+            csproj.Descendants("Import"),
+            e => (e.Attribute("Project")?.Value ?? string.Empty).EndsWith("RaskAnalyzerPack.targets", StringComparison.Ordinal));
+
+        var otherShippers = SourceProjects()
+            .Where(p => p.Key != "Rask.Core")
+            .Where(p => TryLoad(p.Value)?.Descendants("Import")
+                .Any(e => (e.Attribute("Project")?.Value ?? string.Empty).EndsWith("RaskAnalyzerPack.targets", StringComparison.Ordinal)) == true)
+            .Select(p => p.Key)
+            .ToList();
+        Assert.Empty(otherShippers);
     }
 
     [Fact]
@@ -634,15 +638,17 @@ public sealed class PackagingContractTests
     [Fact]
     public void The_typescript_compiler_task_ships_with_the_build_integration()
     {
-        var pack = XDocument.Load(Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets"));
+        var pack = XDocument.Load(Path.Combine(_repoRoot, "src", "Rask.Core", "Rask.Core.csproj"));
 
         var packed = pack.Descendants("None")
             .Where(e => e.Attribute("Pack")?.Value == "true")
             .Select(e => e.Attribute("Include")?.Value ?? string.Empty)
             .ToList();
 
+        // The task DLL by name; the ambient declarations ride in the build\** glob, which is what the
+        // Exclude on that glob leaves in.
         Assert.Contains(packed, p => p.EndsWith("Rask.TypeScript.Tasks.dll", StringComparison.Ordinal));
-        Assert.Contains(packed, p => p.EndsWith("rask-globals.d.ts", StringComparison.Ordinal));
+        Assert.True(File.Exists(Path.Combine(_repoRoot, "src", "Rask.Core", "build", "rask-globals.d.ts")));
 
         // And the guard that turns a missing one into an error at pack time rather than at a
         // consumer's first build.

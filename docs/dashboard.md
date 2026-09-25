@@ -4,7 +4,7 @@ Every DB-backed pillar keeps its state in a table in your application's own data
 `Rask.Dashboard` possible: one package reference and one line mounts an operator dashboard at `/_rask` over
 the outbox, background jobs, queued mail, cache and stored files — no exporter, no second datastore, no agent.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Ops.Off());
@@ -289,6 +289,11 @@ stylesheet, its reset and its theme reach nothing of yours. The same goes for it
 your app never renders one of the console's routes in place, and the console never renders one of yours.
 A link or a back-button step from one to the other loads the destination as a full page, so each
 application's own root always draws it.
+
+The console's assembly carries `[assembly: MountOnlyRoutes]` (from `Rask.Core.Routing`), which is what keeps
+its pages out of your app's own route table even though every server app now carries the assembly: an app
+that turned the battery off answers `/_rask/…` with its 404, not with a page whose policy was never
+registered. A package that ships a mounted surface of its own marks its assembly the same way.
 
 ## Related
 

@@ -7,8 +7,8 @@
     <RootNamespace>Rask.Server</RootNamespace>
 
     <PackageId>Rask.Server</PackageId>
-    <Title>Rask — ASP.NET Server Host</Title>
-    <Description>Rask server host. Renders Rask components from ASP.NET with live updates over a WebSocket. Includes Rask.Core and the Rask source generators.</Description>
+    <Title>Rask — ASP.NET server host, batteries included</Title>
+    <Description>The ASP.NET host for Rask, a full-stack .NET web framework, with every battery: database (SQLite, PostgreSQL or SQL Server, picked by Rask:Database:Provider), mediator and query cache, accounts, background jobs, transactional email, cache, file storage, outbox, operator dashboard, durable logs, Web Push, SQLite snapshots and continuous backup. Renders Rask components with live updates over a WebSocket. RaskApp.Create(args).Run&lt;App&gt;() is the whole Program.cs; app.Configure(c => c.Jobs.Off()) is how an app does without one. Depends on Rask, the shared core.</Description>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -24,11 +24,54 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-    <!-- The HTML/SVG element family, split out of Rask.Core.Components. Every host renders HTML,
-         so every host carries it; bundled into lib/ next to Rask.Core.dll below. -->
+    <!--
+      The shared core, as an ordinary dependency — the `Rask` package. PrivateAssets="none" so the nuspec
+      dependency carries its analyzers to the app: the default excludes them, and an app referencing this
+      package alone would then compile with no chain generator. ExcludeAssets="build" keeps the dependency's
+      build/ folder out — its hooks reach the app through buildTransitive/, and importing both would run the
+      scoped-asset globs twice.
+    -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!--
+    THE BATTERIES. Declaring them here rather than in every scaffolded csproj is what makes "batteries
+    included" a property of the package instead of a property of whatever `rask new` happened to write — it
+    stays true for an app somebody assembled by hand. RaskApp (App/) wires every one of them and turns off the
+    ones the app says it does without. PrivateAssets="none" throughout, so each battery's implicit `using`
+    reaches the app.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- The other databases Rask:Database:Provider can name. Bundled rather than left to the app so switching is a
+         configuration edit and nothing else: UseRaskDatabase(sp) calls these directly, with no reflection. -->
+    <ProjectReference Include="..\Rask.Postgres\Rask.Postgres.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.SqlServer\Rask.SqlServer.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Auth\Rask.Auth.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- HTTP endpoints: Rask.Api carries the hosting and the client generator, Rask.Api.Client the runtime the
+         generated client calls — a component that calls its own API renders on the server too. -->
+    <ProjectReference Include="..\Rask.Api\Rask.Api.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Api.Client\Rask.Api.Client.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Jobs\Rask.Jobs.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Cache\Rask.Cache.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Storage\Rask.Storage.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Outbox\Rask.Outbox.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Dashboard\Rask.Dashboard.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- The kit is the framework's own component vocabulary; an app builds with it, not merely the console. -->
+    <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.WebPush\Rask.WebPush.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- DataAnnotations is in the core; this is the other half — an AbstractValidator&lt;T&gt; in the app is
+         discovered and wired by the generator. -->
+    <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.SQLite.Litestream\Rask.SQLite.Litestream.csproj" PrivateAssets="none" ExcludeAssets="build"/>
   </ItemGroup>
 
   <!--
@@ -66,6 +109,11 @@
     <Compile Include="..\Rask.Hosting.Shared\RaskDataProtectionSetup.cs" Link="Shared\RaskDataProtectionSetup.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskShutdownDefaults.cs" Link="Shared\RaskShutdownDefaults.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <!-- The request validators the mediator runs, on both hosts: the same rules a Form applies, again at dispatch. -->
+    <Compile Include="..\Rask.Hosting.Shared\Batteries\RequestValidators.cs" Link="Shared\Batteries\RequestValidators.cs"/>
+    <!-- One file, two hosts: Rask.Data's browser build registers it from AddRaskData; the server build does not
+         reference Rask.Query, so the server host compiles the same file in and registers it itself (RaskBatteryWiring). -->
+    <Compile Include="..\Rask.Data\Browser\QueryDataChanges.cs" Link="App\QueryDataChanges.cs"/>
     <!-- An app VS Code's F5 launched starts its islands' Vite dev server itself (Dev/IslandDevServer). -->
     <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\Dev\IslandDevPointer.cs" Link="Shared\Dev\IslandDevPointer.cs"/>
@@ -172,17 +220,8 @@
     <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
   </ItemGroup>
 
-  <!--
-    Rask.Core.dll and its XML docs into lib/, next to Rask.Server.dll. PrivateAssets="all" on the Core
-    ProjectReference keeps a Rask.Core "package" out of the nuspec, so this is the only thing that ships it;
-    Microsoft.AspNetCore.App (the FrameworkReference) covers Core's runtime needs at consume time. Shared
-    with Rask.Wasm. The analyzer/generator/code-fix payload is packed by RaskAnalyzerPack.targets below.
-  -->
-  <Import Project="..\RaskCoreBundle.targets"/>
-
-  <Import Project="..\RaskAnalyzerPack.targets"/>
-  <!-- Rask.Core's build integration packed to build/, imported by build/Rask.Server.targets. -->
-  <Import Project="..\RaskCoreBuildPack.targets"/>
+  <!-- Tailwind's build integration, packed beside this package's own targets and imported from them. The core's
+       integration and the analyzers arrive through the `Rask` dependency. -->
   <Import Project="..\RaskTailwindBuildPack.targets"/>
 
 </Project>

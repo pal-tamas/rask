@@ -11,7 +11,16 @@
     <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
+
+    <!--
+      The `Rask` package: everything the server and the browser share — components, the element chain,
+      routing, forms, the typed browser APIs, scoped CSS/TypeScript — plus the source generators and the
+      build integration. Rask.Server and Rask.Wasm depend on it; a component library references it alone.
+      The assembly keeps its name, Rask.Core, which the analyzers key on.
+    -->
+    <PackageId>Rask</PackageId>
+    <Title>Rask — the shared core</Title>
+    <Description>The core of Rask, a full-stack .NET web framework: C# components and the element chain, routing, forms, the typed browser APIs and scoped CSS/TypeScript, with the source generators and build integration that make them work. Shared by the server host (Rask.Server) and the browser host (Rask.Wasm); reference it on its own from a library of components.</Description>
     <IsAotCompatible Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">true</IsAotCompatible>
   </PropertyGroup>
 
@@ -63,6 +72,9 @@
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
     <InternalsVisibleTo Include="Rask.Benchmarks.VsBlazor"/>
     <InternalsVisibleTo Include="Rask.Site.Tests"/>
+    <!-- The dashboard's harness renders the console the way its mount does: against the console's own route
+         table (RouteState.Table), which the main table no longer carries ([assembly: MountOnlyRoutes]). -->
+    <InternalsVisibleTo Include="Rask.Dashboard.Tests"/>
   </ItemGroup>
 
   <!--
@@ -107,11 +119,35 @@
                       PrivateAssets="all"/>
   </ItemGroup>
 
+  <!-- This package's own readme, in place of the framework overview Directory.Build.props packs by default. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md"/>
+    <None Remove="NUGET.md"/>
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false"/>
+  </ItemGroup>
+
   <!--
-    build\Rask.Core.targets is deliberately NOT packed from here — IsPackable=false above makes any
-    Pack="true" item on this project inert, which is exactly how it went unnoticed that consumers were
-    getting no scoped CSS/JS (#544). It is packed into each host package's build/ folder by
-    src\RaskCoreBuildPack.targets instead, and imported by that package's build/<PackageId>.targets.
+    The build integration, packed from here into build/ (a direct reference) and buildTransitive/ (an app
+    that reaches this package through Rask.Server or Rask.Wasm, which is every app). build/Rask.targets is
+    the entry point NuGet auto-imports; Rask.Core.targets is the payload it pulls in.
+
+    The task DLL is named literally, not left to the glob: a glob is expanded at evaluation, before the
+    ProjectReference that produces the DLL has built, so on a clean tree the glob packs nothing and pack
+    still exits 0 (#852). The Error below makes a missing one fail the pack instead of a consumer's build.
   -->
+  <ItemGroup>
+    <None Include="build\**" Exclude="build\Rask.TypeScript.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Exclude="build\Rask.TypeScript.Tasks.dll" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <None Include="build\Rask.TypeScript.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\Rask.TypeScript.Tasks.dll" Pack="true" PackagePath="buildTransitive\Rask.TypeScript.Tasks.dll"/>
+  </ItemGroup>
+
+  <Target Name="_RaskVerifyBuildIntegrationPacked" BeforeTargets="GenerateNuspec">
+    <Error Condition="!Exists('build\Rask.TypeScript.Tasks.dll')"
+           Text="build\Rask.TypeScript.Tasks.dll is missing — build Rask.TypeScript.Tasks before packing, or every consumer's scoped TypeScript silently never compiles."/>
+  </Target>
+
+  <!-- The analyzers, generator and IDE code-fixes, into analyzers/dotnet/cs/. -->
+  <Import Project="..\RaskAnalyzerPack.targets"/>
 
 </Project>

@@ -58,7 +58,7 @@
        Rask.Mail is always consumed alongside a Rask.Server host, which already bundles it into lib/ (the same
        arrangement as Rask.Bootstrap). Enforced by PackageDependencyTests. -->
   <ItemGroup>
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
 
     <!-- The table is an Entity<TId> so it has a read face, which is what this brings. -->
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>

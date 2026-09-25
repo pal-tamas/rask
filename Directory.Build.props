@@ -214,6 +214,10 @@
     <_RaskInRepoCqrsUsings>$(_RaskInRepoImplicitUsings)</_RaskInRepoCqrsUsings>
   </PropertyGroup>
 
+  <!-- The `Rask` package's own props (the Rask.Core using and the Virtualize alias), which a consumer gets
+       from the package and an in-repo app has to be handed — the hosts' props no longer carry them. -->
+  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.props"
+          Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Core\build\Rask.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props"

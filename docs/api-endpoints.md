@@ -70,7 +70,7 @@ app.Configure(c =>
 });
 ```
 
-An app assembled by hand, without the `Rask` meta-package, calls `AddRaskApi()` and `MapRaskApi()`
+An app assembled by hand, without `RaskApp`, calls `AddRaskApi()` and `MapRaskApi()`
 itself. `MapRaskApi()` returns the endpoint group, so rate limiting, CORS or output caching attach to
 the whole API in one line: `app.MapEndpoints(e => e.MapRaskApi().RequireRateLimiting("api"));`
 
@@ -248,6 +248,9 @@ e.MapDelete("/api/widgets/{id:int}/tag", (int id) => TypedResults.NoContent())
 **`TypedResults` is read properly.** `Ok<T>`, `NoContent` and `Results<Ok<T>, NotFound>` all carry the
 response type in the signature, and the alternative carrying a body supplies the client's return type.
 `Results.Ok(x)` — the untyped `IResult` — does not, and reports [RASK070](diagnostics.md#rask070).
+
+**An endpoint that is not part of the app's API says so** with `.ExcludeFromDescription()` — the same call
+that keeps it out of OpenAPI — and the client leaves it out: no method, and no RASK070 about one.
 
 ---
 

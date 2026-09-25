@@ -407,8 +407,8 @@ as the app that hosts it, so the site cannot carry a replacement without a secon
 a Blazor component in a trimmed publish, verify it renders content yourself; a green build proves
 nothing here.
 
-It is deliberately **not** in the `Rask` meta-package on either framework. Everything there is
-referenced by every app on that framework, and an app that wants nothing to do with Blazor should not
+It is deliberately **not** among the batteries `Rask.Server` or `Rask.Wasm` bring. Everything there is
+referenced by every app on that host, and an app that wants nothing to do with Blazor should not
 carry its renderer.
 
 ## What is not here yet

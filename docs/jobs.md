@@ -7,7 +7,7 @@ broker, no Redis. Enqueue a job and a hosted worker runs it later, **at-least-on
 retries; it also runs **delayed** and durable **interval-recurring** jobs. [Tutorial chapter
 4](tutorial/04-background-jobs.md) builds one end to end.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Jobs.Off());

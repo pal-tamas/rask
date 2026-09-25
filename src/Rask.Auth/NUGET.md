@@ -75,7 +75,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuild
 
 Then `rask db add AddAuth && rask db update`.
 
-In an app that references the `Rask` meta-package this is already wired — auth is on by default, and
+In an app on `Rask.Server` this is already wired — auth is on by default, and
 `app.Configure(c => c.Auth.Off())` is how an app does without it.
 
 Full documentation: [rask.sh](https://rask.sh) · `docs/authentication.md`

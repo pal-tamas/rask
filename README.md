@@ -47,10 +47,11 @@ On Windows, in PowerShell: `irm https://rask.sh/rask.ps1 | iex`.
 workload, Node — all under `$HOME`, no `sudo`. Already have the SDK and want only the tool?
 `dotnet tool install -g Rask.Cli`. See [installation](docs/installation.md).
 
-Adding Rask to a project you already have is one package:
+Adding Rask to a project you already have is one package — the host, with every battery:
 
 ```bash
-dotnet add package Rask
+dotnet add package Rask.Server   # an ASP.NET app: live pages, database, auth, jobs, mail, …
+dotnet add package Rask.Wasm     # a browser app on .NET WebAssembly
 ```
 
 ## Four front ends, one back end

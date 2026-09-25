@@ -10,7 +10,7 @@ keep the returned id on your own entity, and later hand the file back as a publi
 download behind your own authorization check. No cloud SDK is referenced: S3 requests are signed in-process
 with SigV4, Azure requests with Shared Key or a service SAS.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Storage.Off());

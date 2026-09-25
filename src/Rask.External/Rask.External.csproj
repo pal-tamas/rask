@@ -54,7 +54,7 @@
     <!-- PrivateAssets="all" — Rask.Core is IsPackable=false, so without it the nuspec
          would list dependencies on packages that exist on no feed and every restore fails NU1101.
          Consumers get both from whichever host package they already reference. -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
     <!--
       The generator has to RUN here, not merely be available to consumers. A referenced library's
       components cannot be reached from a chain unless that library publishes its own
@@ -98,9 +98,14 @@
       quietly shipping without it.
     -->
     <None Include="build\**" Exclude="build\Rask.External.Tasks.dll;build\rask-extract-props.mjs" Pack="true" PackagePath="build\"/>
+    <!-- The transitive twin leaves out the .props: the Static Web Assets SDK already packs a buildTransitive/
+         shim for it that imports our build/ file, and a second copy is NU5118. -->
+    <None Include="build\**" Exclude="build\Rask.External.Tasks.dll;build\rask-extract-props.mjs;build\Rask.External.props" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
     <None Include="build\Rask.External.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\Rask.External.Tasks.dll" Pack="true" PackagePath="buildTransitive\Rask.External.Tasks.dll"/>
     <!-- Named explicitly for the same reason as the task assembly: it is written by a target, after the glob. -->
     <None Include="build\rask-extract-props.mjs" Pack="true" PackagePath="build\"/>
+    <None Include="build\rask-extract-props.mjs" Pack="true" PackagePath="buildTransitive\rask-extract-props.mjs"/>
     <!-- The adapters, shipped as source the way Rask.Spa.Hosting ships its client. Vendored into obj/
          on every build, so upgrading this package upgrades both halves together. -->
     <None Include="client\**" Pack="true" PackagePath="client\"/>

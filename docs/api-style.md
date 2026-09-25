@@ -4,9 +4,9 @@ Rask's promise is that you can read a Rask program aloud. That is a property of 
 the engine, and names drift unless something holds them. This page is what holds them, and
 [the public-API gate](#the-gate) is what makes it stick.
 
-It governs every public member of a shipped package, plus `Rask.Core` — which is `IsPackable=false`
-only because it is bundled into the host packages, and whose surface (the engine and the whole HTML/SVG
-element family) is the one every component author writes against. It does **not** govern the source generators, their code fixes,
+It governs every public member of a shipped package — `Rask` (the `Rask.Core` assembly) above all, whose
+surface (the engine and the whole HTML/SVG element family) is the one every component author writes
+against. It does **not** govern the source generators, their code fixes,
 or the MSBuild tasks: the compiler and MSBuild construct those by name, and nobody writes code against
 them.
 

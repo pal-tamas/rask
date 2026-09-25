@@ -30,19 +30,22 @@ public static class PushEndpoints
             Results.Json(new
             {
                 publicKey = services.GetService<WebPushOptions>()?.VapidKeys?.PublicKey ?? "",
-            }));
+            }))
+            .ExcludeFromDescription();
 
         endpoints.MapPost("/_push/subscribe", (PushSubscription subscription, PushSubscriptionStore store) =>
         {
             store.Add(subscription);
             return Results.NoContent();
-        });
+        })
+            .ExcludeFromDescription();
 
         endpoints.MapPost("/_push/unsubscribe", (PushSubscription subscription, PushSubscriptionStore store) =>
         {
             store.Remove(subscription.Endpoint);
             return Results.NoContent();
-        });
+        })
+            .ExcludeFromDescription();
 
         return endpoints;
     }

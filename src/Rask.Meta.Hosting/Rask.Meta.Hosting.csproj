@@ -91,6 +91,8 @@
     -->
     <None Include="build\**" Exclude="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="build\"/>
     <None Include="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Exclude="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <None Include="build\Rask.Spa.Tasks.dll" Pack="true" PackagePath="buildTransitive\Rask.Spa.Tasks.dll"/>
 
     <!--
       Rask's browser layer, packed FROM Rask.Core rather than copied into this project, exactly as

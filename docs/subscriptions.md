@@ -5,7 +5,7 @@ every `OrderPlaced` published afterwards — by a command handler, a background 
 server — lands in it and re-renders it. It is what tRPC calls a subscription, built on the CQRS notification Rask already
 has, so one record reaches both the code that reacts to it and the screens that show it.
 
-> Included in the [`Rask`](../README.md) package, with [CQRS](cqrs.md) and [Rask.Query](query.md). In a separate
+> Included in [`Rask.Server`](../README.md) and [`Rask.Wasm`](../README.md), with [CQRS](cqrs.md) and [Rask.Query](query.md). In a separate
 > front end, [`Rask.Cqrs.Client`](cqrs.md#remote-dispatch--a-client-and-a-server-raskcqrsclient--raskcqrsserver) opens it on
 > the server.
 

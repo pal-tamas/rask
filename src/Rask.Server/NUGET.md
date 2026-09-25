@@ -1,14 +1,18 @@
 # Rask.Server
 
 The **ASP.NET Core host** for [Rask](https://rask.sh/), a full-stack .NET web framework for teams of any
-size. Pages and components are plain C#; this package renders them into the first HTTP response and keeps
-every page live over a WebSocket, sending only the DOM changes a click or a timer produced — with an HTTP
-fallback where a socket cannot open.
+size — with every battery. Pages and components are plain C#; this package renders them into the first
+HTTP response and keeps every page live over a WebSocket, sending only the DOM changes a click or a timer
+produced, with an HTTP fallback where a socket cannot open.
 
-- Includes **Rask.Core** (components, the element chain, routing, forms, scoped CSS/TypeScript) and the
-  Rask **source generators**, so one reference is the whole framework on the server.
+- **Batteries included, all on:** a database (SQLite by default; PostgreSQL or SQL Server by
+  `Rask:Database:Provider`), the mediator and query cache, accounts, background jobs, transactional email,
+  cache, file storage, the outbox, an operator dashboard at `/_rask`, durable logs, Web Push, SQLite
+  snapshots and continuous backup. Referencing this package is what turns them on.
+- Depends on [`Rask`](https://www.nuget.org/packages/Rask), the shared core (components, the chain,
+  routing, forms, scoped CSS/TypeScript, the generators) and on the [`Rask.Ui`](https://www.nuget.org/packages/Rask.Ui) kit.
 - Event handlers, data access and secrets stay on the server; the browser receives HTML and diffs.
-- Settings bind from `appsettings.json` under `Rask:` (`Rask:Server`, `Rask:Culture`, …).
+- Settings bind from `appsettings.json` under `Rask:` (`Rask:Server`, `Rask:Mail`, `Rask:Database`, …).
 
 ## Install
 
@@ -22,14 +26,22 @@ Or scaffold a complete app with the CLI — `rask new Shop` — see
 ## Use
 
 ```csharp
-// Program.cs
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddRask();
+// Program.cs — the whole file
+RaskApp.Create(args).Run<App>();
+```
 
-var app = builder.Build();
-app.MapStaticAssets();
-app.MapRask<App>();   // App is your root component; its Render() returns Router
-app.Run();
+The file says only what this app does *without*, or configures differently:
+
+```csharp
+var app = RaskApp.Create(args);
+
+app.Configure(c =>
+{
+    c.Jobs.Off();                                            // no background work here
+    c.Mail.Configure(o => o.From = "no-reply@example.com");
+});
+
+app.Run<App>();
 ```
 
 ```csharp
@@ -46,8 +58,9 @@ public sealed partial class Home : Component
 }
 ```
 
-Put `UseAuthentication()` and `UseAuthorization()` before `MapRask<App>()` so the page and its live socket
-see the signed-in user.
+`RaskApp` wraps `WebApplicationBuilder` rather than replacing it: `app.Services` is the same collection, and
+`AddRask()` / `MapRask<App>()` stay public for a host assembled by hand.
 
 Guides: [getting started](https://rask.sh/docs/guides/getting-started) ·
-[live pages](https://rask.sh/docs/guides/render-modes) · [routing](https://rask.sh/docs/guides/routing)
+[live pages](https://rask.sh/docs/guides/render-modes) · [routing](https://rask.sh/docs/guides/routing) ·
+[configuration](https://rask.sh/docs/guides/configuration)

@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    The `Rask` package's auto-imported targets. NuGet imports only build/<PackageId>.{props,targets}, so
+    this is what pulls in Rask.Core.targets — the scoped-CSS/TypeScript globs and the compile task — for a
+    package consumer. Without it an app gets no scoped CSS at all, with a build that still succeeds (#544).
+
+    Not guarded: the file is packed from this same folder, so it is always beside this one. In the repo
+    nothing imports this file — Directory.Build.targets imports Rask.Core.targets straight off disk — so the
+    integration is only ever imported once per project.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"/>
+</Project>

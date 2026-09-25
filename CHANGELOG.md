@@ -7,6 +7,36 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING — three packages, and each means one thing.** `Rask` is now the **shared core**: what the server
+  and the browser have in common — components and the element chain, routing, forms, the typed browser APIs,
+  scoped CSS/TypeScript, the source generators and the build integration. It was `Rask.Core`, an assembly
+  bundled into each host and never a package; a library of components now references `Rask` alone.
+  `Rask.Server` is the ASP.NET host **plus every battery** and `RaskApp` (`RaskApp.Create(args).Run<App>()`),
+  and `Rask.Wasm` is the browser host plus the client halves — the mediator and query cache, remote dispatch,
+  accounts, validation and the kit — on by default, `host.Configure(c => c.Query.Off())` to do without one.
+  The `Rask` meta-package that bundled the server host and its batteries is gone; an app that referenced it
+  references `Rask.Server` (or `Rask.Wasm`) instead and changes nothing else. A hand-wired lean host is still
+  `AddRask()`/`MapRask<App>()` with every battery `Off()`. The analyzers, the scoped-asset build hooks and
+  the framework's implicit usings ship in `Rask` and reach an app through either host. One plumbing rename
+  rode along: the browser battery-status implementation behind `IBattery` is `BrowserBattery`, so the name
+  `Battery` means one thing — the on/off switch on `RaskAppOptions`.
+
+### Fixed
+
+- **An app that carries the operator console without registering it no longer answers `/_rask/…` with a
+  500.** Every routed page registers itself into a process-wide table when its assembly loads, and
+  `Rask.Dashboard` now loads with every server app; an app with `c.Ops.Off()`, or a host assembled by hand
+  without `AddRaskDashboard`, routed those URLs to pages whose authorization policy did not exist. A new
+  assembly-level `[MountOnlyRoutes]` marks pages that are served only through the app that mounts them, and
+  the console carries it, so such an app answers 404 there as it should.
+
+- **A minimal API excluded from the description gets no typed client and no [RASK070](docs/diagnostics.md#rask070).**
+  `.ExcludeFromDescription()` — the call that already keeps an endpoint out of OpenAPI — now keeps it out of
+  the generated client too. Before, an `IResult`-returning endpoint an app's own pages call (the scaffold's
+  `/_push/…`) warned about a client method it was never meant to have.
+
 ### Added
 
 - **An app that names only one Rask package gets every build hook.** Each package's MSBuild hooks — the

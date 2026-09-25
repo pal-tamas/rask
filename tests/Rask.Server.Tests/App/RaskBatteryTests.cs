@@ -16,7 +16,7 @@ using Rask.Mail;
 using Rask.Outbox;
 using Rask.Storage;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     The user type this app declares. Rask ships none — a generator finds the one
@@ -79,6 +79,7 @@ internal sealed class CapturingLoggerProvider : Microsoft.Extensions.Logging.ILo
 ///     is a direct reading of what was actually wired — and it fails the same way a user would notice, with
 ///     a processor that is or is not running.
 /// </remarks>
+[Collection(RaskAppCollection.Name)]
 public sealed class RaskBatteryTests
 {
     private sealed class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options);
@@ -121,7 +122,7 @@ public sealed class RaskBatteryTests
             app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
         }
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
         return built.Services.GetServices<IHostedService>()
             .Select(s => s.GetType().Name)
             .ToHashSet(StringComparer.Ordinal);
@@ -131,7 +132,7 @@ public sealed class RaskBatteryTests
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
-        return app.Build<TestApp>();
+        return app.Build<MinimalApp>();
     }
 
     [Fact]
@@ -183,7 +184,7 @@ public sealed class RaskBatteryTests
             });
             app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-            app.Build<TestApp>();
+            app.Build<MinimalApp>();
 
             Assert.Contains(logs.Messages, m => m.Contains("declares no user type", StringComparison.Ordinal));
         }
@@ -206,7 +207,7 @@ public sealed class RaskBatteryTests
         app.Configure(c => c.Auth.Off());
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-        using var scope = app.Build<TestApp>().Services.CreateScope();
+        using var scope = app.Build<MinimalApp>().Services.CreateScope();
 
         Assert.Null(scope.ServiceProvider.GetService<Core.Authentication.IAuth>());
     }
@@ -264,7 +265,7 @@ public sealed class RaskBatteryTests
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.NotNull(built.Services.GetService<IDbContextFactory<TestDbContext>>());
         Assert.Null(built.Services.GetService<IDbContextFactory<RaskAppDbContext>>());
@@ -278,7 +279,7 @@ public sealed class RaskBatteryTests
         // out of the one AddDbContextFactory registration the Data battery makes.
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.NotNull(built.Services.GetService<IDbContextFactory<RaskAppDbContext>>());
 
@@ -293,7 +294,7 @@ public sealed class RaskBatteryTests
         // none — on every `rask db update`, and at every start. The app is whoever called Create.
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
         using var context = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
 
         Assert.Equal(typeof(RaskBatteryTests).Assembly, context.GetService<IMigrationsAssembly>().Assembly);
@@ -307,7 +308,7 @@ public sealed class RaskBatteryTests
         // be one of them, or `rask db add` needs a --context on every app.
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.DoesNotContain(
             built.Services.GetServices<DbContextOptions>(),
@@ -323,7 +324,7 @@ public sealed class RaskBatteryTests
         // that to anyone who registered. The scaffold used to write this policy by hand.
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
         var policy = built.Services.GetRequiredService<IOptions<AuthorizationOptions>>().Value
             .GetPolicy(RaskDashboardPolicies.Access);
 
@@ -338,7 +339,7 @@ public sealed class RaskBatteryTests
         app.Services.AddAuthorization(o =>
             o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
         var policy = built.Services.GetRequiredService<IOptions<AuthorizationOptions>>().Value
             .GetPolicy(RaskDashboardPolicies.Access);
 
@@ -354,7 +355,7 @@ public sealed class RaskBatteryTests
         app.Configure(c => c.Mail.Configure(o => o.From = "no-reply@example.test"));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.Equal(
             "no-reply@example.test",
@@ -371,7 +372,7 @@ public sealed class RaskBatteryTests
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
         app.Services.AddRaskMail<TestDbContext>(o => o.From = "chosen-by-hand@example.test");
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.Equal(
             "chosen-by-hand@example.test",
@@ -388,7 +389,7 @@ public sealed class RaskBatteryTests
         app.Configure(c => c.Storage.Off());
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.Null(built.Services.GetService<IFiles>());
         Assert.DoesNotContain(built.Services.GetServices<IHostedService>(), s => s.GetType().Name == Files);
@@ -401,7 +402,7 @@ public sealed class RaskBatteryTests
         app.Configure(c => c.Storage.Configure(o => o.MaxFileSize = 1234));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.NotNull(built.Services.GetService<IFiles>());
         Assert.Equal(1234, built.Services.GetRequiredService<StorageOptions>().MaxFileSize);
@@ -433,7 +434,7 @@ public sealed class RaskBatteryTests
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
         var checks = ModelChecks(built.Services);
 
         // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache, Storage. Asserted as a count rather
@@ -476,7 +477,7 @@ public sealed class RaskBatteryTests
         app.Services.AddDbContextFactory<MappedDbContext>(
             o => o.UseSqlite($"Data Source={Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))}.db"));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
         var checks = ModelChecks(built.Services);
 
         Assert.Equal(6, checks.Count);

@@ -7,12 +7,13 @@ using Microsoft.Extensions.Options;
 using Rask.Mail;
 using Rask.WebPush;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     Where a <c>RaskApp</c>'s settings come from: its own development defaults, then appsettings (and the
 ///     environment), then code — each battery reading its own <c>Rask:&lt;Area&gt;</c> section.
 /// </summary>
+[Collection(RaskAppCollection.Name)]
 public sealed class RaskConfigurationTests
 {
     private sealed class ConfiguredDbContext(DbContextOptions<ConfiguredDbContext> options) : DbContext(options);
@@ -72,7 +73,7 @@ public sealed class RaskConfigurationTests
     {
         // No DbContext of the app's own, so RaskAppDbContext is the context wired through UseRaskSqlite(sp).
         // Creating a context does not open the database, so nothing is written to disk.
-        var built = CreateApp(settings).Build<TestApp>();
+        var built = CreateApp(settings).Build<MinimalApp>();
         using var db = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
         return Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions
             .GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrationsSqlGenerator>(db);
@@ -82,7 +83,7 @@ public sealed class RaskConfigurationTests
     {
         var app = CreateApp(settings);
         app.Services.AddDbContextFactory<ConfiguredDbContext>(o => o.UseSqlite("Data Source=:memory:"));
-        app.Build<TestApp>();
+        app.Build<MinimalApp>();
 
         return app.Services.Any(d => d.ServiceType == typeof(Rask.Cqrs.IPipelineBehavior<,>)
             && d.ImplementationType is { Name: "ValidationBehavior`2" });
@@ -163,6 +164,6 @@ public sealed class RaskConfigurationTests
         var app = CreateApp(settings);
         arrange?.Invoke(app);
         app.Services.AddDbContextFactory<ConfiguredDbContext>(o => o.UseSqlite("Data Source=:memory:"));
-        return app.Build<TestApp>();
+        return app.Build<MinimalApp>();
     }
 }

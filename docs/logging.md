@@ -9,7 +9,7 @@ hosted log service. It registers a standard **`ILoggerProvider`**, so it capture
 through a bounded channel that never blocks the caller, and writes them in batches on a background service.
 Retention is enforced by **age** and by **row count**.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Logs.Off());

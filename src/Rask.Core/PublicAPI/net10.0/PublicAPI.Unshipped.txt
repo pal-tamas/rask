@@ -157,11 +157,11 @@ Rask.Core.Browser.Badge.Badge(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.Badge.ClearAsync() -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.Badge.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.Badge.SetAsync(int? count = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.Battery
-Rask.Core.Browser.Battery.Battery(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.Battery.GetStatusAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.BatteryStatus?>
-Rask.Core.Browser.Battery.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.Battery.WatchAsync(System.Func<Rask.Core.Browser.BatteryStatus!, System.Threading.Tasks.Task!>! onChange) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Core.Browser.BrowserBattery
+Rask.Core.Browser.BrowserBattery.BrowserBattery(Microsoft.JSInterop.IJSRuntime! js) -> void
+Rask.Core.Browser.BrowserBattery.GetStatusAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.BatteryStatus?>
+Rask.Core.Browser.BrowserBattery.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Browser.BrowserBattery.WatchAsync(System.Func<Rask.Core.Browser.BatteryStatus!, System.Threading.Tasks.Task!>! onChange) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.BatteryInterop
 Rask.Core.Browser.BatteryStatus
 Rask.Core.Browser.BatteryStatus.<Clone>$() -> Rask.Core.Browser.BatteryStatus!
@@ -6888,3 +6888,13 @@ virtual Rask.Core.Component.OnUpdated() -> System.Threading.Tasks.Task!
 ~override Rask.Core.Components.FormSubmit.ToString() -> string
 static RaskBuilderSettersRask_Core.__RaskResetEager_Rask_Core_Components_Html(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Html(Rask.Core.Component! __c0, ulong __p) -> void
+Rask.Battery
+Rask.Battery.Battery() -> void
+Rask.Battery.Enabled.get -> bool
+Rask.Battery.Off() -> void
+Rask.Battery.On() -> void
+Rask.Battery<TOptions>
+Rask.Battery<TOptions>.Battery() -> void
+Rask.Battery<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Battery<TOptions!>!
+Rask.Core.Routing.MountOnlyRoutesAttribute
+Rask.Core.Routing.MountOnlyRoutesAttribute.MountOnlyRoutesAttribute() -> void

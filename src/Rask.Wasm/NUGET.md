@@ -6,7 +6,10 @@ markup and router as the server host — and publishes to a static folder any we
 
 - Ships the JS boot scripts, the page shell, and the MSBuild integration that stages them into the
   published bundle.
-- Includes **Rask.Core** and the Rask **source generators**.
+- Depends on [`Rask`](https://www.nuget.org/packages/Rask), the shared core (components, the chain, routing,
+  forms, scoped CSS/TypeScript, the generators), and brings the trim-safe client batteries on by default:
+  the mediator and query cache, remote dispatch, accounts, validation and the `Rask.Ui` kit.
+  `host.Configure(c => c.Query.Off())` is how an app does without one.
 - Opt in with `<RaskPrerender>true</RaskPrerender>` and every route is prerendered to real HTML at publish,
   with a `sitemap.xml`, so visitors and crawlers get the page instead of a boot spinner.
 

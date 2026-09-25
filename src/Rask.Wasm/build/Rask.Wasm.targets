@@ -21,22 +21,12 @@
     <RaskWasm> so non-WASM consumers pay nothing.
   -->
 
-  <!--
-    Rask.Core's build integration (scoped-CSS/JS globs + CompilerVisibleProperty), packed alongside this
-    file by src\RaskCoreBuildPack.targets. NuGet auto-imports only build/<PackageId>.{props,targets}, so
-    it has to be pulled in from here — without it a consuming WASM app gets no scoped CSS/JS at all (#544).
+  <!-- The core's build integration (scoped CSS/TypeScript) ships in the `Rask` package this one depends on. -->
 
-    The Exists guard is NOT cosmetic: this file is also imported in-repo by Directory.Build.targets, where
-    Rask.Core.targets has no sibling here (it is packed from Rask.Core's own build/ folder), and an
-    unguarded import of a missing file is MSB4019 across every project in the repo.
-  -->
   <!-- Build-time prerendering. Gates itself on RaskPrerender, so importing it always costs an app
        that has not opted in nothing. -->
   <Import Project="$(MSBuildThisFileDirectory)Rask.Wasm.Prerender.targets"
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Wasm.Prerender.targets') "/>
-
-  <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"
-          Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Core.targets') "/>
 
   <!--
     Contribute the framework boot JS (main.js, rask.wasm.js) as computed static web assets

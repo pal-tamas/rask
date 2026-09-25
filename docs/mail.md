@@ -7,7 +7,7 @@ broker, no Redis. Compose an email whose body is a **Rask component rendered to 
 `Mail.Send`, and a hosted worker delivers it later over SMTP, **at-least-once**, with exponential-backoff
 retries. It also sends **delayed** email and works with **zero configuration** in development.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Mail.Off());

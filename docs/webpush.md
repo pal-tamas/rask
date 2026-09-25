@@ -9,7 +9,7 @@ server library: no UI, no transport dependency, no reference to the rest of Rask
 ASP.NET app, a Rask Server app, or the ASP.NET host of a WASM PWA. It pairs with the browser-side
 [`IWebPush`](pwa.md#push-notifications-iwebpush) that produces the subscription.
 
-> Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
+> Included in [`Rask.Server`](../README.md) — nothing to install. It is **on**; an app that does without it says so:
 >
 > ```csharp
 > app.Configure(c => c.Push.Off());

@@ -88,14 +88,14 @@ public static class BatteryInterop
 ///     <c>levelchange</c>/<c>chargingchange</c> listeners under the C#-minted id and pushes each update into
 ///     <see cref="BatteryInterop" />.
 /// </summary>
-public sealed class Battery : IBattery
+public sealed class BrowserBattery : IBattery
 {
     private readonly IJSRuntime _js;
 
     // Root BatteryInterop's [JSInvokable] for the WASM trimmer — it's reached only via the JS
     // DotNetDispatcher (reflection), so without this the Changed method could be trimmed away.
     [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(BatteryInterop))]
-    public Battery(IJSRuntime js) => _js = js;
+    public BrowserBattery(IJSRuntime js) => _js = js;
 
     /// <inheritdoc />
     public ValueTask<bool> IsSupportedAsync() => _js.InvokeAsync<bool>("__raskBattery.isSupported");

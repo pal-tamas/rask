@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     The one model <see cref="ApiValidationTests" /> sends everywhere: to a controller, to a minimal

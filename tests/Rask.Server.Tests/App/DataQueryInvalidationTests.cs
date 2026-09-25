@@ -5,12 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Data;
 using Rask.Query;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     A write refreshes the queries about what it wrote, in the session that made it — with nothing wired by
 ///     the app.
 /// </summary>
+[Collection(RaskAppCollection.Name)]
 public sealed class DataQueryInvalidationTests
 {
     private sealed record Person;
@@ -23,7 +24,7 @@ public sealed class DataQueryInvalidationTests
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
-        return app.Build<TestApp>();
+        return app.Build<MinimalApp>();
     }
 
     [Fact]
@@ -90,7 +91,7 @@ public sealed class DataQueryInvalidationTests
         app.Services.AddDbContextFactory<NotesContext>((sp, o) => o
             .UseSqlite($"Data Source={file};Pooling=False")
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-        var services = app.Build<TestApp>().Services;
+        var services = app.Build<MinimalApp>().Services;
         using var session = services.CreateScope();
         var loads = 0;
         using var notes = session.ServiceProvider.GetRequiredService<IQueryClient>()

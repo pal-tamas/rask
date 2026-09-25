@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    The `Rask` package's auto-imported props. Every Rask app and component library gets these, whether it
+    names `Rask` itself or reaches it through Rask.Server / Rask.Wasm — the same file is packed to
+    buildTransitive/ for that case. Deliberately only what no app would write differently: the namespace
+    `Component` lives in, and one alias. Everything else an app imports is a line in its own GlobalUsings.cs,
+    where a person can read and change it.
+  -->
+  <ItemGroup>
+    <Using Include="Rask.Core"/>
+    <!-- The one hand-written generic entry point, VirtualizeModel's typed opener. Aliased rather
+         than static-imported so the call site reads Virtualize.Items&lt;T&gt;(...): importing it
+         statically would put a bare `Items` in scope, which is far too general a simple name to
+         hand every markup host, and importing the NAMESPACE is what the note below rules out.
+         An alias puts exactly one type in scope and nothing else (#684). -->
+    <Using Include="Rask.Core.Components.Virtualize" Alias="Virtualize"/>
+    <!-- Rask.Core.Components — the HTML/SVG element family — is deliberately NOT imported as a
+         NAMESPACE: that would put the tag TYPES in scope, and a type beats a same-named builder-entry
+         property (CS0119). The entries reach every component by inheritance from RaskMarkup instead,
+         and the tags' types by the entry. -->
+  </ItemGroup>
+</Project>

@@ -350,6 +350,37 @@ public sealed class ApiClientGeneratorTests
     }
 
     [Fact]
+    public void An_endpoint_excluded_from_the_description_gets_no_client_method_and_no_RASK070()
+    {
+        // An app's own plumbing — the scaffold's /_push endpoints answer with IResult and are called by its
+        // pages, never by a typed client. What .ExcludeFromDescription() hides from OpenAPI the client leaves
+        // out too, without a warning about a method it was never meant to have.
+        var run = Run("""
+            using Microsoft.AspNetCore.Builder;
+            using Microsoft.AspNetCore.Routing;
+
+            namespace Microsoft.AspNetCore.Http { public interface IResult { } }
+
+            public static class Conventions
+            {
+                public static object ExcludeFromDescription(this object builder) => builder;
+            }
+
+            public static class Endpoints
+            {
+                public static void Map(IEndpointRouteBuilder app)
+                {
+                    app.MapGet("/_push/key", (int id) => (Microsoft.AspNetCore.Http.IResult)null!)
+                        .ExcludeFromDescription();
+                }
+            }
+            """ + Routing);
+
+        Assert.False(Reported(run, "RASK070"));
+        Assert.False(run.HasGeneratedSource("__RaskApiClients"));
+    }
+
+    [Fact]
     public void A_route_token_this_generator_does_not_substitute_is_refused()
     {
         // [area] used to survive into the emitted URL as literal text — matched by nothing, 404 at run

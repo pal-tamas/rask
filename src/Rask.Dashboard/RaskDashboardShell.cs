@@ -4,8 +4,7 @@ namespace Rask.Dashboard;
 /// A root component for a host that serves the dashboard and nothing else of its own.
 /// <para>
 /// A <c>server</c>-template app never needs this: its own <c>App</c> is already the root, it already
-/// renders the router, and the dashboard's pages join that app's route chain through the module
-/// initializer <c>Rask.Dashboard</c> ships. A host serving a single-page app is the case this exists for —
+/// renders the router, and <c>AddRaskDashboard</c> mounts the console beside it. A host serving a single-page app is the case this exists for —
 /// a WebAssembly app or a TypeScript front end served by <c>MapRaskSpa</c>, where the ASP.NET host runs no
 /// components at all, and mounting the operator dashboard on it means naming a root for
 /// <c>MapRaskServer&lt;TApp&gt;</c> to render. Without this, every such host would hand-roll the same four

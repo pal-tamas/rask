@@ -24,7 +24,7 @@ namespace Rask;
 ///     Validates a dispatched request with its <c>System.ComponentModel.DataAnnotations</c> attributes.
 /// </summary>
 /// <typeparam name="TRequest">The request being dispatched.</typeparam>
-public sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValidator<TRequest>
+internal sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValidator<TRequest>
 {
     private readonly IServiceProvider _services;
 
@@ -70,7 +70,7 @@ public sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValidato
 ///     there is one — the same validator a <c>Form</c> over that type would use.
 /// </summary>
 /// <typeparam name="TRequest">The request being dispatched.</typeparam>
-public sealed class FluentValidationRequestValidator<TRequest> : IRequestValidator<TRequest>
+internal sealed class FluentValidationRequestValidator<TRequest> : IRequestValidator<TRequest>
 {
     private readonly IServiceProvider _services;
 
@@ -123,7 +123,7 @@ public sealed class FluentValidationRequestValidator<TRequest> : IRequestValidat
 ///     generic validator from it would mean <c>MakeGenericType</c>, and reflection is exactly what
 ///     <c>Rask.Cqrs.Client</c> has none of. Both passes take an object anyway.
 /// </remarks>
-public sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
+internal sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
 {
     private readonly IServiceScopeFactory _scopes;
 
@@ -179,7 +179,7 @@ public sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
 /// <summary>
 ///     Registers the built-in request validators.
 /// </summary>
-public static class RaskRequestValidation
+internal static class RaskRequestValidation
 {
     /// <summary>
     ///     Adds the DataAnnotations and FluentValidation request validators, so every dispatched

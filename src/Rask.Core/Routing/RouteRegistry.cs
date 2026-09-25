@@ -213,7 +213,7 @@ public static class RouteRegistry
             foreach (var group in _groups)
             {
                 var owner = (group.Key as Type)?.Assembly;
-                if (owner is null || !assemblies.Any(a => ReferenceEquals(a, owner)))
+                if (owner is null || (!assemblies.Any(a => ReferenceEquals(a, owner)) && !IsMountOnly(owner)))
                 {
                     all.AddRange(group.Items);
                 }
@@ -265,7 +265,7 @@ public static class RouteRegistry
         foreach (var group in _groups)
         {
             var owner = (group.Key as Type)?.Assembly;
-            if (ReferenceEquals(owner, assembly) == only)
+            if (ReferenceEquals(owner, assembly) == only && (only || owner is null || !IsMountOnly(owner)))
             {
                 all.AddRange(group.Items);
             }
@@ -350,10 +350,32 @@ public static class RouteRegistry
         all.AddRange(_manual);
         foreach (var group in _groups)
         {
+            // The main tree: a mount-only assembly's pages are reachable through its mount alone.
+            if ((group.Key as Type)?.Assembly is { } owner && IsMountOnly(owner))
+            {
+                continue;
+            }
+
             all.AddRange(group.Items);
         }
 
         return all;
+    }
+
+    // An assembly that says its pages are served only where it is mounted ([assembly: MountOnlyRoutes]) is
+    // left out of every tree but its own. Asked once per assembly: the answer cannot change, and the main
+    // tree is rebuilt on every hot reload. Caller holds _lock.
+    private static readonly Dictionary<Assembly, bool> _mountOnly = new();
+
+    private static bool IsMountOnly(Assembly assembly)
+    {
+        if (!_mountOnly.TryGetValue(assembly, out var mountOnly))
+        {
+            mountOnly = assembly.IsDefined(typeof(MountOnlyRoutesAttribute), inherit: false);
+            _mountOnly[assembly] = mountOnly;
+        }
+
+        return mountOnly;
     }
 
     private static bool HasCatchAll(List<RouteRegistration> registrations)

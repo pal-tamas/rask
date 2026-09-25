@@ -7,12 +7,13 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Rask.Logging;
 
-namespace Rask.Tests;
+namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     <c>Rask:Database:Provider</c> picks the application database, and <c>RaskApp</c> wires the batteries for the
 ///     database it picked. Nothing here opens a connection: building options, a model and a service graph is offline.
 /// </summary>
+[Collection(RaskAppCollection.Name)]
 public sealed class RaskDatabaseProviderTests
 {
     private const string PostgresApp = "Host=localhost;Database=rask;Username=rask;Password=rask";
@@ -72,8 +73,10 @@ public sealed class RaskDatabaseProviderTests
     [Fact]
     public void A_RaskApp_on_sqlite_is_unchanged()
     {
+        // A replica configured means RaskApp restores from it before the database opens; this test is about
+        // what gets WIRED, so the restore step is stood down with the knob an app uses for the same purpose.
         var settings = new Dictionary<string, string?> { ["Rask:Litestream:ReplicaUrl"] = "s3://bucket/app" };
-        var built = Build(settings);
+        var built = Build(settings, app => app.Configure(c => c.RunBeforeDatabaseOpensAsync = _ => Task.CompletedTask));
 
         using var db = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
 
@@ -83,6 +86,36 @@ public sealed class RaskDatabaseProviderTests
         Assert.Equal("Data Source=app.db", built.Services.GetRequiredService<IConfiguration>()["Rask:ConnectionStrings:App"]);
         Assert.Contains(HostedServices(built), name => name == "SqliteSnapshotService");
         Assert.Contains(HostedServices(built), name => name == "LitestreamReplicationService");
+    }
+
+    [Fact]
+    public void A_configured_replica_is_restored_before_the_database_opens()
+    {
+        // The other half of the Litestream promise: a fresh box pulls the database back before anything opens
+        // it. The scaffold used to write this restore by hand; RaskApp runs it on its own when a replica is
+        // configured. Proven by the attempt: the executable is pointed at a path that does not exist, so the
+        // restore fails at Build — and a run that failed to restore must not start on an empty database as if
+        // it had. (A real binary would be tried against a bucket this machine cannot reach, with an answer that
+        // depends on the network.)
+        // A database that does not exist yet: the restore is skipped for a file that is already there, and the
+        // other tests in this process leave an app.db behind.
+        var database = Path.Combine(Path.GetTempPath(), "rask-restore-probe", Guid.NewGuid().ToString("N"), "app.db");
+        var settings = new Dictionary<string, string?>
+        {
+            ["Rask:ConnectionStrings:App"] = $"Data Source={database}",
+            ["Rask:Litestream:ReplicaUrl"] = "s3://bucket/app",
+            ["Rask:Litestream:ExecutablePath"] = "/nonexistent/litestream",
+        };
+
+        var error = Assert.ThrowsAny<Exception>(() => Build(settings));
+
+        var messages = new List<string>();
+        for (Exception? e = error; e is not null; e = e.InnerException)
+        {
+            messages.Add(e.Message);
+        }
+
+        Assert.Contains(messages, m => m.Contains("litestream", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -188,7 +221,7 @@ public sealed class RaskDatabaseProviderTests
         var app = CreateApp(ServerSettings());
         app.Services.AddRaskLogging();
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.Equal("SqliteLogStore", built.Services.GetRequiredService<ILogs>().GetType().Name);
         Assert.DoesNotContain(HostedServices(built), name => name == "LogsModelCheck`1");
@@ -200,7 +233,7 @@ public sealed class RaskDatabaseProviderTests
         var app = CreateApp(ServerSettings());
         app.Services.AddDbContextFactory<LoggedContext>((sp, o) => o.UseRaskDatabase(sp));
 
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.Equal("DbContextLogStore`1", built.Services.GetRequiredService<ILogs>().GetType().Name);
         Assert.Contains(HostedServices(built), name => name == "LogsModelCheck`1");
@@ -212,7 +245,7 @@ public sealed class RaskDatabaseProviderTests
     {
         var app = CreateApp(ServerSettings());
         app.Services.AddDbContextFactory<PlainContext>((sp, o) => o.UseRaskDatabase(sp));
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         var check = built.Services.GetServices<IHostedService>().Single(s => s.GetType().Name == "LogsModelCheck`1");
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => check.StartAsync(CancellationToken.None));
@@ -225,7 +258,7 @@ public sealed class RaskDatabaseProviderTests
     {
         var app = CreateApp(ServerSettings());
         app.Services.AddDbContextFactory<PlainContext>(o => o.UseSqlite("Data Source=:memory:"));
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         var error = Assert.Throws<InvalidOperationException>(() => VerifyProvider<PlainContext>(built));
 
@@ -238,7 +271,7 @@ public sealed class RaskDatabaseProviderTests
     {
         var app = CreateApp(settings: null);
         app.Services.AddDbContextFactory<PlainContext>(o => o.UseSqlite("Data Source=:memory:"));
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         Assert.Null(Record.Exception(() => VerifyProvider<PlainContext>(built)));
     }
@@ -253,7 +286,7 @@ public sealed class RaskDatabaseProviderTests
     {
         var app = CreateApp(settings: null);
         app.Services.AddDbContextFactory<PlainContext>(o => o.UseNpgsql(PostgresApp));
-        var built = app.Build<TestApp>();
+        var built = app.Build<MinimalApp>();
 
         // IStartupValidator is obsolete on .NET 11 (SYSLIB0066) but is still what the host runs on both targets, and
         // IAsyncStartupValidator does not exist on .NET 10, which this project also builds for (#1103).
@@ -302,7 +335,7 @@ public sealed class RaskDatabaseProviderTests
     {
         var app = CreateApp(settings);
         arrange?.Invoke(app);
-        return app.Build<TestApp>();
+        return app.Build<MinimalApp>();
     }
 
     private static ServiceProvider Services(string? provider, string connectionString)

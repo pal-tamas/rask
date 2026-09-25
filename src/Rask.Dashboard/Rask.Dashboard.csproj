@@ -30,7 +30,7 @@
     <!-- PrivateAssets="all": Rask.Core is IsPackable=false and ships transitively from the host
          packages (Rask.Server), so listing it as a nuspec dependency would reference a package that
          exists on no feed and make Rask.Dashboard unrestorable. Guarded by PackageDependencyTests. -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
 
     <!-- The component kit the console is drawn with — every page, and the only stylesheet: the console writes no
          classes of its own, so it compiles no sheet of its own. A real package dependency, not PrivateAssets:
