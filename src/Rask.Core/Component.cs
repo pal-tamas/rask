@@ -725,7 +725,10 @@ public abstract partial class Component : RaskMarkup
     ///     </para>
     /// </summary>
     protected virtual Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang).Dir(HtmlDir)[head, Body.Class(BodyClass)[body]];
+        // The host's own attributes ride on the default shell — RaskApp and the WASM host put the UI kit's
+        // theme scope here, so an app that draws with the kit is not grey. An override writes its own.
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes(LiveRenderContext.Current?.DocumentAttributes)[
+            head, Body.Class(BodyClass)[body]];
 
     // The host's entry into the escape hatch above: RootErrorBoundary composes the document around the
     // App, so it needs to reach the App's override. Kept internal because Shell is a user-facing

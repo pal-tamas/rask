@@ -193,6 +193,10 @@ public sealed class WasmHostBuilder
     public async Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {
+        // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
+        // Registered before either path below builds the container, so the boot and the baked pages agree.
+        Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, WasmHostBuilderExtensions.UiEnabled(this)));
+
         // Publish-time prerendering, driven from the app's OWN entry point. Program.cs is where the
         // services are registered, so a generated entry point compiled without it would leave every
         // page that injects anything with nothing to inject. Reusing the real one costs the author
@@ -295,7 +299,7 @@ public sealed class WasmHostBuilder
         // no parent render context whose GetOrCreate a chain would route through. RASK014's reason to
         // exist is absent here.
 #pragma warning disable RASK014
-        var root = new RootErrorBoundary(app);
+        var root = new RootErrorBoundary(app) { Defaults = provider.GetService<RaskDocumentDefaults>() };
 #pragma warning restore RASK014
 
         var routeState = provider.GetRequiredService<RouteState>();

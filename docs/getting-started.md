@@ -116,7 +116,9 @@ WASM templates differ mainly in `Program.cs`):
   background jobs, transactional email, cache, outbox, file storage, operator dashboard, durable logs, Web
   Push, snapshots and continuous backup (inert until `Rask:Litestream:ReplicaUrl` is set) — plus the host
   work every app repeats: health checks at `/health`, the exception handler and HSTS outside Development,
-  HTTPS redirection, static assets, authentication, and `App` mounted as the whole site. An app that does
+  HTTPS redirection, static assets, authentication, `App` mounted as the whole site, and the document
+  around it — charset, viewport, the UI kit's stylesheet and theme, your `Styles/app.css` — so `App.cs` is a
+  title and `Render() => Router`. An app that does
   without a battery says so here, and a scaffold made with `--no-<battery>`
   ([`rask new`](cli.md#rask-new--scaffold-a-project)) has that line written for it:
 

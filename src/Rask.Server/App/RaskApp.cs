@@ -8,11 +8,13 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Api;
 using Rask.Auth;
 using Rask.Core;
+using Rask.Core.Live;
 using Rask.Data;
 using Rask.Server;
 using Rask.Server.Diagnostics;
@@ -167,6 +169,10 @@ public sealed class RaskApp
         // itself. Both halves matter: the off-switches are only known now, and every AddRaskX is
         // idempotent, so an app that called one directly has already won.
         RaskBatteryWiring.Apply(_builder, _options);
+
+        // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
+        // Only here, not in AddRask: a hand-wired host writes its own document and keeps it.
+        _builder.Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, _options.Ui.Enabled));
 
         var app = _builder.Build();
 
