@@ -533,7 +533,7 @@ internal static class BuilderEntry
     // The filter the setter emission uses: a public settable instance property that is not the Children
     // slot, not opted out, and not init-only (an init-only prop can only be assigned in an object
     // initializer — CS8852 — so no setter exists for a chain to call).
-    private static bool IsSettableByAChain(IPropertySymbol prop)
+    public static bool IsSettableByAChain(IPropertySymbol prop)
     {
         if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared || prop.IsOverride)
         {
