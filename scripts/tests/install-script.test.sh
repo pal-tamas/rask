@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# gate-inputs: rask\.(sh|ps1)$|README\.md$|NUGET\.md$|llms\.txt$|docs/|src/Rask\.Cli/NUGET\.md$|src/Rask\.Site/Features/(Home/InstallTabs|Guides/GuidesIndexPage)\.cs$|\.github/workflows/pages\.yml$
 # Table test for rask.sh — the public installer served at https://rask.sh/rask.sh.
 #
 # Two halves, and the second is the point.

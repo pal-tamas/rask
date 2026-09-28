@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# gate-inputs: .*\.csproj$
 # Tests for scripts/lib/affected_projects.py — the graph that decides whether a pre-commit run may
 # narrow to a few projects or must do the whole solution.
 #
@@ -161,6 +162,41 @@ else
   echo "  FAIL RaskTestReads outside an <ItemGroup Condition=\"false\">:$unguarded" >&2
   failures=$((failures + 1))
 fi
+
+# --- which gate-script tests a scoped run executes (the `# gate-inputs:` header) ------------------
+# Mirrors rask_gate_test_applies in scripts/run-unit-local.sh: scripts/ and .githooks/ run every test,
+# anything else runs a test only when its header names it.
+gate_test_runs() {
+  inputs="$(sed -n 's/^# gate-inputs: //p' "$root/scripts/tests/$1.test.sh" | head -1)"
+  if printf '%s\n' "$2" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null; then
+    printf yes
+  else
+    printf no
+  fi
+}
+
+gate_expect() {
+  checks=$((checks + 1))
+  got="$(gate_test_runs "$2" "$3")"
+  if [ "$got" = "$4" ]; then
+    echo "  ok   $1"
+  else
+    echo "  FAIL $1: expected $4, got $got" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+gate_expect "the public-API prober runs for its probe project"   public-api-gate "src/Rask.Cache/CacheEntry.cs"       yes
+gate_expect "the public-API prober runs for a nested MSBuild import" public-api-gate "src/Directory.Build.targets"    yes
+gate_expect "the public-API prober runs for the analyzer severity" public-api-gate ".editorconfig"                    yes
+gate_expect "the public-API prober skips an unrelated component" public-api-gate "src/Rask.Ui/Components/UiSelect.cs" no
+gate_expect "the installer test runs for the installer"          install-script  "rask.ps1"                           yes
+gate_expect "the installer test runs for the install docs"       install-script  "docs/installation.md"               yes
+gate_expect "the front-doors test runs for the site hero"        front-doors     "src/Rask.Site/Features/Home/HomePage.cs" yes
+gate_expect "the graph test runs for a project file"             affected-projects "tests/Rask.Ui.Tests/Rask.Ui.Tests.csproj" yes
+gate_expect "a pure-script test runs for its script"             machine-lane    "scripts/lib/machine-lane.sh"        yes
+gate_expect "a pure-script test skips a source change"           machine-lane    "src/Rask.Core/Component.cs"         no
+gate_expect "every test runs for a hook change"                  push-verdict    ".githooks/pre-push"                 yes
 
 echo "affected-projects: $checks checks, $failures failed."
 [ "$failures" -eq 0 ]

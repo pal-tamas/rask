@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# gate-inputs: README\.md$|NUGET\.md$|src/Rask\.Site/Features/Home/HomePage\.cs$
 # Table test for the Counter sample — the first Rask code almost anyone reads.
 #
 # It is written in three places, and each of them is somebody's front door:
