@@ -36,7 +36,12 @@ internal static class ModelStateAnalyzerHarness
     public static string Flagged(this Diagnostic diagnostic) =>
         diagnostic.Location.SourceTree!.GetText().ToString(diagnostic.Location.SourceSpan);
 
-    private static ImmutableArray<MetadataReference> References()
+    // Once per process: Roslyn shares loaded metadata only between compilations handed the SAME reference instances.
+    private static readonly ImmutableArray<MetadataReference> CachedReferences = CreateReferences();
+
+    private static ImmutableArray<MetadataReference> References() => CachedReferences;
+
+    private static ImmutableArray<MetadataReference> CreateReferences()
     {
         var trusted = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);

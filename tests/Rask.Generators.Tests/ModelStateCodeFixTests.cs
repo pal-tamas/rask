@@ -1,4 +1,3 @@
-using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Rask.Batteries.Generators.Analyzers;
@@ -214,8 +213,7 @@ public class ModelStateCodeFixTests
     private static void AssertCompiles(string source)
     {
         var references = GeneratorDriverFixture.BuildReferences().AddRange(
-            new[] { "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore" }.Select(static name =>
-                (MetadataReference)MetadataReference.CreateFromFile(Assembly.Load(name).Location)));
+            new[] { "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore" }.Select(GeneratorDriverFixture.AssemblyReference));
         var compilation = CSharpCompilation.Create(
             "Check",
             [CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest))],
