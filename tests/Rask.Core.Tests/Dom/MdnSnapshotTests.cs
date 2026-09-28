@@ -24,6 +24,23 @@ public class MdnSnapshotTests
     }
 
     [Fact]
+    public void Every_element_MDN_ships_is_a_tag_Rask_renders()
+    {
+        // Read from the [Tag]s, which a type several tags share (HTMLElement, SVG's none) carries once per tag.
+        var rask = typeof(Element).Assembly.GetTypes()
+            .SelectMany(t => t.GetCustomAttributes(typeof(TagAttribute), false).Cast<TagAttribute>()
+                .Select(a => (typeof(SVGElement).IsAssignableFrom(t) ? "svg:" : "html:") + a.Name))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var missing = Snapshot.GetProperty("elements").EnumerateArray()
+            .Select(e => $"{e.GetProperty("namespace").GetString()}:{e.GetProperty("tag").GetString()}")
+            .Where(tag => !rask.Contains(tag))
+            .ToList();
+
+        Assert.Empty(missing);
+    }
+
+    [Fact]
     public void Every_element_names_an_interface_the_snapshot_describes()
     {
         var interfaces = Snapshot.GetProperty("interfaces");
@@ -59,7 +76,7 @@ public class MdnSnapshotTests
                 continue;
             if (((Element)Activator.CreateInstance(concrete)!).TagNameInternal is not { } tag)
                 continue;
-            yield return (typeof(SvgElement).IsAssignableFrom(type) ? "svg:" : "html:") + tag;
+            yield return (typeof(SVGElement).IsAssignableFrom(type) ? "svg:" : "html:") + tag;
         }
     }
 

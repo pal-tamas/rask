@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Routing;
 using Rask.Dashboard.Panels;
 
@@ -78,12 +79,12 @@ public sealed partial class CachePage(
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
             Ui.MetricRow.Columns(3)[
-                Ui.Metric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
+                Ui.Metric.Key("entries").Label("Entries").Value(_stats.Entries.ToString(CultureInfo.CurrentCulture)),
                 Ui.Metric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
                 Ui.Metric
                     .Key("expired")
                     .Label("Expired, not swept")
-                    .Value(_stats.Expired.ToString())
+                    .Value(_stats.Expired.ToString(CultureInfo.CurrentCulture))
                     .Caption("removed by the purge sweep")
             ],
             KeyGrid(now),
@@ -164,7 +165,7 @@ public sealed partial class CachePage(
             ]
             : null;
 
-    private Component? ResultToast() =>
+    private UiToast? ResultToast() =>
         _message is { } message ? Ui.Toast.Message(message).OnDismiss(Dismiss) : null;
 
     private void Confirm(bool pending)
@@ -197,13 +198,13 @@ public sealed partial class CachePage(
     private async Task RefreshAsync()
     {
         await LoadAsync(CancellationToken).ConfigureAwait(false);
-        StateHasChanged();
+        await StateHasChangedAsync().ConfigureAwait(false);
     }
 
     private async Task GoAsync(int page)
     {
         _page = Math.Max(0, page);
         await LoadAsync(CancellationToken).ConfigureAwait(false);
-        StateHasChanged();
+        await StateHasChangedAsync().ConfigureAwait(false);
     }
 }

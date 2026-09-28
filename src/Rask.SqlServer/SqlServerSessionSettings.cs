@@ -82,7 +82,8 @@ internal static class SqlServerSessionSettings
             return;
         }
 
-        await using var command = connection.CreateCommand();
+        var command = connection.CreateCommand();
+        await using var _ = command.ConfigureAwait(false);
         command.CommandText = script;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }

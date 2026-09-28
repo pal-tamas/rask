@@ -79,6 +79,19 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
             return;
         }
 
+        var found = FindValidators(spc, compilation, abstractValidator);
+
+        if (found.Count == 0)
+        {
+            return;
+        }
+
+        spc.AddSource("__RaskValidatorRegistry.g.cs", SourceText.From(Build(found), Encoding.UTF8));
+    }
+
+    private static List<(INamedTypeSymbol Validator, string ModelFqn, IMethodSymbol? Ctor)> FindValidators(
+        SourceProductionContext spc, Compilation compilation, INamedTypeSymbol abstractValidator)
+    {
         var found = new List<(INamedTypeSymbol Validator, string ModelFqn, IMethodSymbol? Ctor)>();
         var byModel = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
 
@@ -121,17 +134,8 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var ctors = type.InstanceConstructors
-                .Where(static c => c.DeclaredAccessibility == Accessibility.Public)
-                .ToList();
-
-            // Prefer a parameterless constructor; otherwise there must be exactly one to choose from.
-            var ctor = ctors.FirstOrDefault(static c => c.Parameters.Length == 0)
-                       ?? (ctors.Count == 1 ? ctors[0] : null);
-
-            if (ctor is null)
+            if (ChooseConstructor(spc, type) is not { } ctor)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(RaskVal002, type.Locations.FirstOrDefault(), type.Name));
                 continue;
             }
 
@@ -139,12 +143,25 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
             found.Add((type, key, ctor));
         }
 
-        if (found.Count == 0)
+        return found;
+    }
+
+    private static IMethodSymbol? ChooseConstructor(SourceProductionContext spc, INamedTypeSymbol type)
+    {
+        var ctors = type.InstanceConstructors
+            .Where(static c => c.DeclaredAccessibility == Accessibility.Public)
+            .ToList();
+
+        // Prefer a parameterless constructor; otherwise there must be exactly one to choose from.
+        var ctor = ctors.FirstOrDefault(static c => c.Parameters.Length == 0)
+                   ?? (ctors.Count == 1 ? ctors[0] : null);
+
+        if (ctor is null)
         {
-            return;
+            spc.ReportDiagnostic(Diagnostic.Create(RaskVal002, type.Locations.FirstOrDefault(), type.Name));
         }
 
-        spc.AddSource("__RaskValidatorRegistry.g.cs", SourceText.From(Build(found), Encoding.UTF8));
+        return ctor;
     }
 
     private static string Build(List<(INamedTypeSymbol Validator, string ModelFqn, IMethodSymbol? Ctor)> found)

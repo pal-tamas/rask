@@ -91,7 +91,11 @@ came from `appsettings.json`, the environment or a callback:
 
 ```text
 Microsoft.Extensions.Options.OptionsValidationException: Rask:Server: SessionGracePeriod must be positive. …
+Microsoft.Extensions.Options.OptionsValidationException: Rask:Jobs:PollInterval must be positive. …
 ```
+
+A battery (Jobs, Mail, Outbox, Cache, Logging, the dashboard) reports every bad value in its section in that one
+exception, not just the first.
 
 A value the binder cannot convert at all — `"five"` for a `TimeSpan` — is reported the same way. Before this,
 most `AddRaskX` calls threw from the registration line itself; now nothing is read until the options are

@@ -69,7 +69,7 @@ internal static class HandlerFrameShape
         {
             // A DOM event frame: a DOM event handler (or a parameterless one) is judged by its interface; a handler
             // for a control's value, a form or files is provably the wrong one; anything else is not ours to refuse.
-            return shape == Shape.None ? DomEventDispatch.Accepts(dom, handler) || !DomEventDispatch.IsDomHandler(handler) : false;
+            return shape == Shape.None && (DomEventDispatch.Accepts(dom, handler) || !DomEventDispatch.IsDomHandler(handler));
         }
 
         if (Contains(Feeders[(int)shape], type))
@@ -77,7 +77,9 @@ internal static class HandlerFrameShape
             return true;
         }
 
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var row in Feeders)
+#pragma warning restore S3267
         {
             if (Contains(row, type))
             {
@@ -94,7 +96,9 @@ internal static class HandlerFrameShape
 
     private static bool Contains(byte[][] types, JsonElement type)
     {
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var candidate in types)
+#pragma warning restore S3267
         {
             if (type.ValueEquals(candidate))
             {
@@ -111,7 +115,7 @@ internal static class HandlerFrameShape
     {
         Action<string> or Func<string, Task> => Shape.Value,
         Action<FormData> or Func<FormData, Task> => Shape.Form,
-        Action<IReadOnlyList<RaskFile>> or Func<IReadOnlyList<RaskFile>, Task> => Shape.Files,
+        Action<IReadOnlyList<IRaskFile>> or Func<IReadOnlyList<IRaskFile>, Task> => Shape.Files,
         Action<IReadOnlyList<string>> or Func<IReadOnlyList<string>, Task> => Shape.Values,
         _ => Shape.None,
     };

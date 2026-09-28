@@ -1,14 +1,14 @@
 namespace Rask.Core.Tests.Components;
 
 // A `[...]` collection expression targeting Component builds a tagless container (internally a
-// Fragment) via Component.__Fragment. These pin the container's rendering: no children => empty string,
+// Fragment) via Component.RaskFragment. These pin the container's rendering: no children => empty string,
 // single/multiple children => concatenated with no wrapping element, text children HTML-encoded.
 public partial class FragmentTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void A_fragment_with_no_children_renders_an_empty_string()
     {
-        Component empty = Component.__Fragment([]);
+        Component empty = Component.RaskFragment([]);
         Assert.Equal("", empty.ToHtml());
     }
 

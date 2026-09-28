@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -107,45 +108,7 @@ public sealed class BakeScopedAssetsTask : Task
             Log.LogMessage(MessageImportance.High,
                 $"Rask asset bake: wrote {written} file(s) under '{Path.Combine(BundleDir, "_rask", "a")}'.");
 
-            // The bake produced nothing, we skipped an assembly because this process had already loaded one
-            // by that name, AND the registry itself was never read. That combination is the MSBuild
-            // node-reuse race (#650): LoadFrom throws on a reused worker, the registry is never reached, and
-            // the bake quietly writes an empty bundle. Measured at roughly one publish in three, and silent —
-            // the app then boots with every /_rask/a/ URL 404ing, which reads as a broken app rather than a
-            // broken build. Failing here is what stops that shipping.
-            //
-            // !registryResolved is load-bearing, and was missing. Without it this fires on a project that
-            // legitimately has NO scoped assets the moment ANY assembly is
-            // skipped — and the skip need not be one that could ever hold a scoped asset. A Microsoft
-            // .Extensions bump was enough: the app then carries a DependencyModel newer than the one MSBuild
-            // already has loaded, LoadFrom throws on identity, and a build that was entirely correct failed
-            // on an assembly that cannot contain a registration. If the registry WAS read, "zero files" is
-            // an answer, not a failure — and the FailOnEmpty check below is what speaks for the projects
-            // that assert they should have produced some.
-            //
-            // Still conditioned on written == 0: a bake that produced its files despite skipping something
-            // is not known to be wrong, and failing it would turn a real fix into a new source of false
-            // build breaks.
-            if (IsNodeReuseBakeFailure(written, _skippedAlreadyLoaded.Count, registryResolved))
-            {
-                Log.LogError(
-                    "Rask asset bake: zero /_rask/a/ files were written because " +
-                    $"{string.Join(", ", _skippedAlreadyLoaded)} could not be loaded — this MSBuild worker " +
-                    "had already loaded an assembly of that name (node reuse), so the scoped-asset registry " +
-                    "was never read. The published app would 404 on every scoped CSS/JS URL. Re-run the " +
-                    "publish with -nodeReuse:false, or from a fresh MSBuild process.");
-                return false;
-            }
-
-            if (FailOnEmpty && registryResolved && written == 0)
-            {
-                Log.LogError("Rask asset bake: the Rask registry resolved but zero /_rask/a/ files " +
-                             $"were written under '{BundleDir}'. The standalone WASM app would 404 on every " +
-                             "scoped-asset URL. Failing the build (FailOnEmpty=true).");
-                return false;
-            }
-
-            return true;
+            return Verdict(written, registryResolved);
         }
         catch (Exception ex)
         {
@@ -157,6 +120,49 @@ public sealed class BakeScopedAssetsTask : Task
                            "WASM hosting may 404 on /_rask/a/ URLs until the bake succeeds.");
             return true;
         }
+    }
+
+    private bool Verdict(int written, bool registryResolved)
+    {
+        // The bake produced nothing, we skipped an assembly because this process had already loaded one
+        // by that name, AND the registry itself was never read. That combination is the MSBuild
+        // node-reuse race (#650): LoadFrom throws on a reused worker, the registry is never reached, and
+        // the bake quietly writes an empty bundle. Measured at roughly one publish in three, and silent —
+        // the app then boots with every /_rask/a/ URL 404ing, which reads as a broken app rather than a
+        // broken build. Failing here is what stops that shipping.
+        //
+        // !registryResolved is load-bearing, and was missing. Without it this fires on a project that
+        // legitimately has NO scoped assets the moment ANY assembly is
+        // skipped — and the skip need not be one that could ever hold a scoped asset. A Microsoft
+        // .Extensions bump was enough: the app then carries a DependencyModel newer than the one MSBuild
+        // already has loaded, LoadFrom throws on identity, and a build that was entirely correct failed
+        // on an assembly that cannot contain a registration. If the registry WAS read, "zero files" is
+        // an answer, not a failure — and the FailOnEmpty check below is what speaks for the projects
+        // that assert they should have produced some.
+        //
+        // Still conditioned on written == 0: a bake that produced its files despite skipping something
+        // is not known to be wrong, and failing it would turn a real fix into a new source of false
+        // build breaks.
+        if (IsNodeReuseBakeFailure(written, _skippedAlreadyLoaded.Count, registryResolved))
+        {
+            Log.LogError(
+                "Rask asset bake: zero /_rask/a/ files were written because " +
+                $"{string.Join(", ", _skippedAlreadyLoaded)} could not be loaded — this MSBuild worker " +
+                "had already loaded an assembly of that name (node reuse), so the scoped-asset registry " +
+                "was never read. The published app would 404 on every scoped CSS/JS URL. Re-run the " +
+                "publish with -nodeReuse:false, or from a fresh MSBuild process.");
+            return false;
+        }
+
+        if (FailOnEmpty && registryResolved && written == 0)
+        {
+            Log.LogError("Rask asset bake: the Rask registry resolved but zero /_rask/a/ files " +
+                         $"were written under '{BundleDir}'. The standalone WASM app would 404 on every " +
+                         "scoped-asset URL. Failing the build (FailOnEmpty=true).");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -174,19 +180,33 @@ public sealed class BakeScopedAssetsTask : Task
 
     private int BakeFromAssemblies(out bool registryResolved)
     {
-        registryResolved = false;
+        InstallAssemblyResolver();
+
+        var registrationTypes = new List<Type>();
+        var registryType = LoadAssemblies(registrationTypes);
+        if (registryType is null)
+        {
+            Log.LogMessage(MessageImportance.Low,
+                "Rask asset bake: Rask.Core not found in bundle. Skipping (not a Rask WASM project).");
+            registryResolved = false;
+            return 0;
+        }
+
+        registryResolved = true;
+        RefreshRegistrations(registryType, registrationTypes);
+        return WriteBundles(registryType);
+    }
+
+    private void InstallAssemblyResolver()
+    {
         // Track every directory we see assemblies in, so the AssemblyResolve fallback
         // can satisfy late-bound references (e.g. one assembly's [ModuleInitializer]
         // touching a type from another) without us having to load every dep upfront.
-        var searchDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var item in Assemblies)
-        {
-            var dir = Path.GetDirectoryName(item.ItemSpec);
-            if (!string.IsNullOrEmpty(dir))
-            {
-                searchDirs.Add(dir);
-            }
-        }
+        var searchDirs = new HashSet<string>(
+            Assemblies
+                .Select(item => Path.GetDirectoryName(item.ItemSpec))
+                .Where(dir => !string.IsNullOrEmpty(dir)),
+            StringComparer.OrdinalIgnoreCase);
 
         AppDomain.CurrentDomain.AssemblyResolve += (_, args) =>
         {
@@ -204,57 +224,35 @@ public sealed class BakeScopedAssetsTask : Task
                     try { return Assembly.LoadFrom(candidate); }
                     catch
                     {
-                        /* ignore */
+                        // A dependency that will not load from here is left to the next directory, or to
+                        // the runtime's own failure, which names it.
                     }
                 }
             }
 
             return null;
         };
+    }
 
+    /// <summary>Loads every assembly, collecting the generated registrations; returns the registry type.</summary>
+    private Type? LoadAssemblies(List<Type> registrationTypes)
+    {
         Type? registryType = null;
-        var registrationTypes = new List<Type>();
-        foreach (var item in Assemblies)
+        foreach (var dllPath in Assemblies.Select(item => item.ItemSpec))
         {
-            var dllPath = item.ItemSpec;
-            if (!File.Exists(dllPath))
+            var assembly = TryLoad(dllPath);
+            if (assembly is null)
             {
-                Log.LogMessage(MessageImportance.Low,
-                    $"Rask asset bake: skipping missing assembly '{dllPath}'");
                 continue;
             }
 
-            Assembly? assembly;
-            try
-            {
-                assembly = Assembly.LoadFrom(dllPath);
-            }
-            catch (Exception ex)
-            {
-                Log.LogMessage(MessageImportance.Low,
-                    $"Rask asset bake: skipping {Path.GetFileName(dllPath)} — {ex.GetType().Name}: {ex.Message}");
-
-                // Remember the ones that were already loaded into this process. MSBuild reuses its worker
-                // nodes, so a publish can land on a node that loaded an assembly of the same simple name
-                // during an earlier build — LoadFrom then throws and we skip an assembly whose scoped
-                // assets we needed. Skipping is the right local behaviour (recovering the loaded instance
-                // would bake a PREVIOUS build's state, which is worse than baking none), but it must not
-                // pass silently when it costs us the whole bundle: see the check in Execute.
-                if (ex is FileLoadException)
-                {
-                    _skippedAlreadyLoaded.Add(Path.GetFileName(dllPath));
-                }
-
-                continue;
-            }
-
-            if (registryType is null && assembly.GetName().Name == "Rask.Core")
+            if (registryType is null && string.Equals(assembly.GetName().Name, "Rask.Core", StringComparison.Ordinal))
             {
                 registryType = assembly.GetType("Rask.Core.ScopedAssets.ScopedAssetRegistry", false);
             }
 
-            // Source-generator-emitted registration classes are top-level (no namespace);
-            // collect them so we can re-fire RefreshAll after invalidating the registry.
+            // The generator emits its registration classes at the top level, with no namespace. They are
+            // collected so RefreshAll can be re-fired once the registry is invalidated.
             foreach (var name in new[] { "__RaskScopedCssRegistration", "__RaskScopedJsRegistration" })
             {
                 var t = assembly.GetType(name, false);
@@ -265,15 +263,44 @@ public sealed class BakeScopedAssetsTask : Task
             }
         }
 
-        if (registryType is null)
+        return registryType;
+    }
+
+    private Assembly? TryLoad(string dllPath)
+    {
+        if (!File.Exists(dllPath))
         {
             Log.LogMessage(MessageImportance.Low,
-                "Rask asset bake: Rask.Core not found in bundle. Skipping (not a Rask WASM project).");
-            return 0;
+                $"Rask asset bake: skipping missing assembly '{dllPath}'");
+            return null;
         }
 
-        registryResolved = true;
+        try
+        {
+            return Assembly.LoadFrom(dllPath);
+        }
+        catch (Exception ex)
+        {
+            Log.LogMessage(MessageImportance.Low,
+                $"Rask asset bake: skipping {Path.GetFileName(dllPath)} — {ex.GetType().Name}: {ex.Message}");
 
+            // Remember the ones that were already loaded into this process. MSBuild reuses its worker
+            // nodes, so a publish can land on a node that loaded an assembly of the same simple name
+            // during an earlier build — LoadFrom then throws and we skip an assembly whose scoped
+            // assets we needed. Skipping is the right local behaviour (recovering the loaded instance
+            // would bake a PREVIOUS build's state, which is worse than baking none), but it must not
+            // pass silently when it costs us the whole bundle: see the check in Execute.
+            if (ex is FileLoadException)
+            {
+                _skippedAlreadyLoaded.Add(Path.GetFileName(dllPath));
+            }
+
+            return null;
+        }
+    }
+
+    private void RefreshRegistrations(Type registryType, List<Type> registrationTypes)
+    {
         // Reset before re-firing — module initializers ran once per ALC load; calling
         // RefreshAll explicitly guarantees a clean snapshot regardless of MSBuild
         // worker reuse across builds.
@@ -282,8 +309,10 @@ public sealed class BakeScopedAssetsTask : Task
 
         foreach (var regType in registrationTypes)
         {
+#pragma warning disable S3011 // the generator emits RefreshAll as internal; the bake re-fires it from outside the assembly
             var refreshAll = regType.GetMethod("RefreshAll",
                 BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+#pragma warning restore S3011
             try
             {
                 refreshAll?.Invoke(null, null);
@@ -295,7 +324,10 @@ public sealed class BakeScopedAssetsTask : Task
                     $"{ex.GetType().Name}: {ex.InnerException?.Message ?? ex.Message}");
             }
         }
+    }
 
+    private int WriteBundles(Type registryType)
+    {
         // The runtime emits a single <link>/<script> per kind at the concatenated bundle's content
         // hash, so the bake materialises exactly those two files — GetBundleHash + GetByHash are the
         // same registry methods the runtime calls, so the on-disk file name matches the URL the
@@ -333,7 +365,7 @@ public sealed class BakeScopedAssetsTask : Task
 
             // A Debug build's scoped scripts carry source maps (#1073), and the bundle's last line names this file.
             // Looked up by name so a registry from before GetSourceMap still bakes.
-            if (ext == "js"
+            if (string.Equals(ext, "js", StringComparison.Ordinal)
                 && registryType.GetMethod("GetSourceMap", BindingFlags.Static | BindingFlags.Public) is { } getSourceMap
                 && getSourceMap.Invoke(null, new object[] { hash }) is { } map)
             {
@@ -354,7 +386,7 @@ public sealed class BakeScopedAssetsTask : Task
 
     private static void InvokeStatic(Type type, string method)
     {
-        var m = type.GetMethod(method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        var m = type.GetMethod(method, BindingFlags.Static | BindingFlags.Public);
         m?.Invoke(null, null);
     }
 }

@@ -1,4 +1,4 @@
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 /// <summary>
 ///     The classes that build a <see cref="CacheDbContext" />, run as one xUnit collection so they do

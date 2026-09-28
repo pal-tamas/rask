@@ -417,7 +417,7 @@ public class WasmPrerenderTests : IDisposable
     [InlineData("<head><meta property=\"og:updated_time\" content=\"2026-09-10\"></head>", null)]
     [InlineData("<head><title>x</title></head>", null)]
     public void A_lastmod_is_read_off_the_pages_own_modified_time(string html, string? expected) =>
-        Assert.Equal(expected, WasmPrerender.LastModified(html));
+        Assert.Equal(expected, WasmPrerender.LastModifiedOf(html));
 
     [Fact]
     public void A_modified_time_is_read_from_its_own_tag_and_not_a_neighbours()
@@ -427,7 +427,7 @@ public class WasmPrerenderTests : IDisposable
         const string Head =
             "<head><meta property=\"article:modified_time\"><meta name=\"x\" content=\"2020-01-01\"></head>";
 
-        Assert.Null(WasmPrerender.LastModified(Head));
+        Assert.Null(WasmPrerender.LastModifiedOf(Head));
     }
 
     [Fact]

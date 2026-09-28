@@ -17,6 +17,8 @@ public static class ApiCall
 {
     private static readonly MediaTypeHeaderValue Json = new("application/json");
 
+    private const string PathSeparator = "/";
+
     /// <summary>
     ///     Sends the request and returns its body, or null when the answer had none.
     /// </summary>
@@ -46,17 +48,7 @@ public static class ApiCall
         var uri = Resolve(http.BaseAddress, path);
         var reported = uri.IsAbsoluteUri ? uri.ToString() : path;
 
-        using var request = new HttpRequestMessage(method, uri);
-
-        // Say JSON explicitly. Without it, content negotiation hands a `string`-returning action to
-        // ASP.NET's StringOutputFormatter, which answers text/plain — so `return "ok"` arrives as the
-        // five bytes `ok` rather than the seven of `"ok"`, and the decoder fails on a valid response.
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        if (body is not null)
-        {
-            request.Content = new ByteArrayContent(body) { Headers = { ContentType = Json } };
-        }
+        using var request = CreateRequest(method, uri, body);
 
         if (options.ConfigureRequestAsync is not null)
         {
@@ -102,6 +94,23 @@ public static class ApiCall
         }
     }
 
+    private static HttpRequestMessage CreateRequest(HttpMethod method, Uri uri, byte[]? body)
+    {
+        var request = new HttpRequestMessage(method, uri);
+
+        // Say JSON explicitly. Without it, content negotiation hands a `string`-returning action to
+        // ASP.NET's StringOutputFormatter, which answers text/plain — so `return "ok"` arrives as the
+        // five bytes `ok` rather than the seven of `"ok"`, and the decoder fails on a valid response.
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        if (body is not null)
+        {
+            request.Content = new ByteArrayContent(body) { Headers = { ContentType = Json } };
+        }
+
+        return request;
+    }
+
     /// <summary>
     ///     Combines the relative path a generated client built with the client's base address.
     /// </summary>
@@ -122,7 +131,7 @@ public static class ApiCall
 
         var root = baseAddress.AbsolutePath.EndsWith('/')
             ? baseAddress
-            : new UriBuilder(baseAddress) { Path = baseAddress.AbsolutePath + "/" }.Uri;
+            : new UriBuilder(baseAddress) { Path = baseAddress.AbsolutePath + PathSeparator }.Uri;
 
         return new Uri(root, path);
     }

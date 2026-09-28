@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -83,18 +84,18 @@ public sealed class DelegateEventAnalyzer : DiagnosticAnalyzer
     internal static ImmutableArray<ITypeSymbol>? EventArguments(ITypeSymbol type)
     {
         if (type is not INamedTypeSymbol { TypeKind: TypeKind.Delegate } named
-            || named.ContainingNamespace?.ToDisplayString() != "System")
+            || !string.Equals(named.ContainingNamespace?.ToDisplayString(), "System", StringComparison.Ordinal))
         {
             return null;
         }
 
         var arguments = named.TypeArguments;
-        if (named.Name == "Action")
+        if (string.Equals(named.Name, "Action", StringComparison.Ordinal))
         {
             return arguments.Length <= 2 ? arguments : null;
         }
 
-        if (named.Name != "Func" || arguments.Length == 0 || !IsBareTask(arguments[arguments.Length - 1]))
+        if (!string.Equals(named.Name, "Func", StringComparison.Ordinal) || arguments.Length == 0 || !IsBareTask(arguments[arguments.Length - 1]))
         {
             return null;
         }
@@ -104,5 +105,5 @@ public sealed class DelegateEventAnalyzer : DiagnosticAnalyzer
 
     private static bool IsBareTask(ITypeSymbol type) =>
         type is INamedTypeSymbol { Arity: 0, Name: "Task" or "ValueTask" } task
-        && task.ContainingNamespace?.ToDisplayString() == "System.Threading.Tasks";
+        && string.Equals(task.ContainingNamespace?.ToDisplayString(), "System.Threading.Tasks", StringComparison.Ordinal);
 }

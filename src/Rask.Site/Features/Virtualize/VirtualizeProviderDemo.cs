@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Virtualization;
 
 namespace Rask.Site.Features;
@@ -19,7 +20,7 @@ public sealed partial class VirtualizeProviderDemo : Component
             ctx => Div
                 .Class("border rounded bg-white")
                 .Style("height:360px; overflow:auto;")
-                .Data(new Dictionary<string, string?> { ["testid"] = "virtualize-async-scroller" })
+                .Data("testid", "virtualize-async-scroller")
                 .OnScroll(ctx.OnScroll)[
                 Ui.Table
                     .Class("mb-0")
@@ -48,7 +49,7 @@ public sealed partial class VirtualizeProviderDemo : Component
             // With it the window renders at full size immediately, every row a placeholder showing
             // "—", and the fetch fills in the TEXT. An estimate is all this needs; the real count
             // replaces it as soon as the provider answers, and only the spacer heights change.
-            InitialTotalCount: VirtualizeData.Rows.Length);
+            InitialTotalCount: VirtualizeData.Rows.Count);
 
     // tbody = top spacer + visible window + bottom spacer, every child keyed so the whole tbody
     // stays on the trusted keyed-diff path (spacers patch only their height; rows move by index).
@@ -60,16 +61,14 @@ public sealed partial class VirtualizeProviderDemo : Component
         {
             yield return Tr
                 .Style($"height:{ctx.ItemSize}px;")
-                .Data(new Dictionary<string, string?>
-                {
-                    ["row-index"] = item.Index.ToString(),
-                    ["rask-key"] = item.Index.ToString(),
-                    ["placeholder"] = item.IsPlaceholder ? "true" : null
-                })[
-                Td[item.IsPlaceholder ? "—" : item.Value!.Index.ToString()],
+                .Data(
+                    ("row-index", item.Index.ToString(CultureInfo.InvariantCulture)),
+                    ("rask-key", item.Index.ToString(CultureInfo.InvariantCulture)),
+                    ("placeholder", item.IsPlaceholder ? "true" : null))[
+                Td[item.IsPlaceholder ? "—" : item.Value!.Index.ToString(CultureInfo.InvariantCulture)],
                 Td[item.IsPlaceholder ? "—" : item.Value!.Name],
                 Td[item.IsPlaceholder ? "—" : item.Value!.City],
-                Td.Style("text-align:right;")[item.IsPlaceholder ? "—" : item.Value!.Balance.ToString("0.00")]
+                Td.Style("text-align:right;")[item.IsPlaceholder ? "—" : item.Value!.Balance.ToString("0.00", CultureInfo.InvariantCulture)]
             ];
         }
 
@@ -79,7 +78,7 @@ public sealed partial class VirtualizeProviderDemo : Component
     private static Component Spacer(int height, string key) =>
         Tr
             .Style($"height:{height}px;")
-            .Data(new Dictionary<string, string?> { ["rask-key"] = key })[
+            .Data("rask-key", key)[
             Td.ColSpan(4)
         ];
 
@@ -90,13 +89,13 @@ public sealed partial class VirtualizeProviderDemo : Component
         // the continuation would try to update the cache after the component was disposed.
         await Task.Delay(350, req.CancellationToken).ConfigureAwait(false);
         var rows = VirtualizeData.Rows;
-        var count = Math.Min(req.Count, rows.Length - req.StartIndex);
+        var count = Math.Min(req.Count, rows.Count - req.StartIndex);
         var slice = new VirtualizeRow[Math.Max(count, 0)];
         for (var i = 0; i < slice.Length; i++)
         {
             slice[i] = rows[req.StartIndex + i];
         }
 
-        return new ItemsProviderResult<VirtualizeRow>(slice, rows.Length);
+        return new ItemsProviderResult<VirtualizeRow>(slice, rows.Count);
     }
 }

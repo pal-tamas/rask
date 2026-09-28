@@ -25,7 +25,7 @@ public sealed class SessionUserProvider : IUserProvider
     ///     Raised when <see cref="Current" /> is replaced by a different principal, so UI that depends on
     ///     who is signed in re-renders. Setting the same instance again raises nothing.
     /// </summary>
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     /// <summary>
     ///     Replaces the session's principal — sign-in, or a re-issued set of claims. Raises
@@ -41,7 +41,7 @@ public sealed class SessionUserProvider : IUserProvider
         Current = user;
         if (!ReferenceEquals(prev, user))
         {
-            Changed?.Invoke();
+            Changed?.Invoke(this, EventArgs.Empty);
         }
     }
 

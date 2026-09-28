@@ -14,7 +14,7 @@ public sealed record MembersOnly : ICommand;
 
 public sealed record Explodes : IQuery<int>;
 
-public sealed record Uploaded(string Note, RaskFile File) : ICommand<string>;
+public sealed record Uploaded(string Note, IRaskFile File) : ICommand<string>;
 
 public sealed record Export : IQuery<FileDownload>;
 
@@ -81,23 +81,23 @@ public sealed class ExportHandler : IQueryHandler<Export, FileDownload>
 // Eleven files deliberately: the part-name pairing is a string until it is parsed, and sorting those
 // strings only starts mispairing at ten ("10" sorts before "2"). A two-file message cannot catch it.
 public sealed record UploadMany(
-    RaskFile F0,
-    RaskFile F1,
-    RaskFile F2,
-    RaskFile F3,
-    RaskFile F4,
-    RaskFile F5,
-    RaskFile F6,
-    RaskFile F7,
-    RaskFile F8,
-    RaskFile F9,
-    RaskFile F10) : ICommand<string>;
+    IRaskFile F0,
+    IRaskFile F1,
+    IRaskFile F2,
+    IRaskFile F3,
+    IRaskFile F4,
+    IRaskFile F5,
+    IRaskFile F6,
+    IRaskFile F7,
+    IRaskFile F8,
+    IRaskFile F9,
+    IRaskFile F10) : ICommand<string>;
 
 public sealed class UploadManyHandler : ICommandHandler<UploadMany, string>
 {
     public async Task<string> Handle(UploadMany command)
     {
-        RaskFile[] files =
+        IRaskFile[] files =
         [
             command.F0, command.F1, command.F2, command.F3, command.F4, command.F5,
             command.F6, command.F7, command.F8, command.F9, command.F10,

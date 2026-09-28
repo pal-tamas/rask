@@ -178,7 +178,10 @@ public abstract partial class ExternalComponent : Component
         // island is frame-cached, and its replay skips everything below: the runtime script this call
         // registers falls out of <head>, and the callbacks the props writer registers on the island's
         // own slots resolve to nothing for the rest of the session.
-        LiveRenderContext.CurrentSync?.MarkSubtreeUncacheable();
+        if (LiveRenderContext.CurrentSync is not null)
+        {
+            LiveRenderContext.MarkSubtreeUncacheable();
+        }
 
         RegisterRuntimeScript();
 
@@ -266,6 +269,10 @@ public abstract partial class ExternalComponent : Component
     /// <summary>Stores text children. Called by the generated <c>this[IEnumerable&lt;string?&gt;]</c> indexer.</summary>
     /// <param name="children">The text, one child per element; a null element renders nothing.</param>
     protected void SetTextChildren(IEnumerable<string?> children) => SetIslandChildren(children, static text => text);
+
+    // Each runtime base declares the SetChildren overloads its generated children indexers call, so a React island's
+    // indexer can only store React children: the parameter types are the check, and the generated code is the only
+    // caller. The static lambdas are cached by the compiler, so storing children allocates the array and nothing else.
 
     /// <summary>Stores children, materialised now, as the island or the text each one renders as.</summary>
     private protected void SetIslandChildren<TChild>(IEnumerable<TChild> children, Func<TChild, object?> value)

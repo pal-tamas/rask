@@ -2,19 +2,6 @@ using Microsoft.JSInterop;
 
 namespace Rask.Wasm.Browser;
 
-/// <summary>The result of showing the PWA install prompt.</summary>
-public enum InstallOutcome
-{
-    /// <summary>The user accepted and the app is being installed.</summary>
-    Accepted,
-
-    /// <summary>The user dismissed the prompt.</summary>
-    Dismissed,
-
-    /// <summary>No install prompt was available to show (already installed, or not yet installable).</summary>
-    Unavailable
-}
-
 /// <summary>
 ///     Typed access to the PWA install prompt (the <c>beforeinstallprompt</c> event,
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent" />) — show
@@ -49,27 +36,4 @@ public interface IInstallPrompt
 
     /// <summary>Whether the app is currently running as an installed PWA (standalone display mode).</summary>
     ValueTask<bool> IsInstalledAsync();
-}
-
-/// <summary>
-///     Default <see cref="IInstallPrompt" />, backed by the unified <see cref="IJSRuntime" />. The
-///     framework's <c>__raskInstall</c> helper listens for <c>beforeinstallprompt</c> at boot, calls
-///     <c>preventDefault()</c>, and holds the event so <see cref="PromptAsync" /> can replay it later.
-/// </summary>
-public sealed class InstallPrompt(IJSRuntime js) : IInstallPrompt
-{
-    /// <inheritdoc />
-    public ValueTask<bool> CanInstallAsync() => js.InvokeAsync<bool>("__raskInstall.canInstall");
-
-    /// <inheritdoc />
-    public async ValueTask<InstallOutcome> PromptAsync() =>
-        await js.InvokeAsync<string>("__raskInstall.prompt") switch
-        {
-            "accepted" => InstallOutcome.Accepted,
-            "dismissed" => InstallOutcome.Dismissed,
-            _ => InstallOutcome.Unavailable
-        };
-
-    /// <inheritdoc />
-    public ValueTask<bool> IsInstalledAsync() => js.InvokeAsync<bool>("__raskInstall.isInstalled");
 }

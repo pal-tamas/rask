@@ -172,7 +172,7 @@ internal sealed partial class DbCommand
     {
         if (!remote)
         {
-            return subcommand == "backup"
+            return string.Equals(subcommand, "backup", StringComparison.Ordinal)
                 ? await BackupLocalAsync(projectDirectory, output, cancellationToken).ConfigureAwait(false)
                 : await RestoreLocalAsync(projectDirectory, file!, force, cancellationToken).ConfigureAwait(false);
         }
@@ -200,7 +200,7 @@ internal sealed partial class DbCommand
         var name = app ?? config.Name ?? Path.GetFileName(projectDirectory.TrimEnd(Path.DirectorySeparatorChar));
         var slug = DeployCommand.ToContainerSlug(name);
 
-        return subcommand == "backup"
+        return string.Equals(subcommand, "backup", StringComparison.Ordinal)
             ? await BackupRemoteAsync(host, slug, output, cancellationToken).ConfigureAwait(false)
             : await RestoreRemoteAsync(host, slug, file!, force, cancellationToken).ConfigureAwait(false);
     }
@@ -272,12 +272,8 @@ internal sealed partial class DbCommand
     /// <summary>Replace the local database with <paramref name="input"/>, after confirming.</summary>
     private async Task<int> RestoreLocalAsync(string projectDirectory, string input, bool force, CancellationToken cancellationToken)
     {
-        if (!_fileSystem.FileExists(input))
+        if (IsMissingBackup(input))
         {
-            Console.WriteErrorLine(
-                $"No such backup: '{input}'. 'rask db backup' writes into the current directory unless you "
-                + "pass --output, and prints the path it used.",
-                ConsoleStyle.Error);
             return 1;
         }
 
@@ -300,24 +296,62 @@ internal sealed partial class DbCommand
             return declined;
         }
 
-        if (withFiles)
+        // Files first: the swap only happens once the whole archive has come out, so a corrupt archive stops the
+        // restore with the database untouched.
+        if (withFiles && !await RestoreStoredFilesAsync(archive, root!, cancellationToken).ConfigureAwait(false))
         {
-            // Files first: the swap only happens once the whole archive has come out, so a corrupt archive stops the
-            // restore with the database untouched.
-            try
-            {
-                var count = await Task.Run(() => StoredFilesArchive.Restore(archive, root!), cancellationToken).ConfigureAwait(false);
-                Console.WriteLine($"Restored {count} stored file(s) to {root}.", ConsoleStyle.Dim);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
-            {
-                Console.WriteErrorLine(
-                    $"Couldn't restore the stored files from '{archive}', so nothing was restored: {ex.Message}",
-                    ConsoleStyle.Error);
-                return 1;
-            }
+            return 1;
         }
 
+        if (!await ReplaceDatabaseAsync(input, destination, cancellationToken).ConfigureAwait(false))
+        {
+            return 1;
+        }
+
+        Console.WriteLine($"Restored {input} to {destination}.", ConsoleStyle.Success);
+
+        if (root is not null)
+        {
+            ReportMissingStoredFiles(destination, root, withFiles);
+        }
+
+        return 0;
+    }
+
+    /// <summary>Says so, and answers true, when the backup to restore is not there.</summary>
+    private bool IsMissingBackup(string input)
+    {
+        if (_fileSystem.FileExists(input))
+        {
+            return false;
+        }
+
+        Console.WriteErrorLine(
+            $"No such backup: '{input}'. 'rask db backup' writes into the current directory unless you "
+            + "pass --output, and prints the path it used.",
+            ConsoleStyle.Error);
+        return true;
+    }
+
+    private async Task<bool> RestoreStoredFilesAsync(string archive, string root, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var count = await Task.Run(() => StoredFilesArchive.Restore(archive, root), cancellationToken).ConfigureAwait(false);
+            Console.WriteLine($"Restored {count} stored file(s) to {root}.", ConsoleStyle.Dim);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            Console.WriteErrorLine(
+                $"Couldn't restore the stored files from '{archive}', so nothing was restored: {ex.Message}",
+                ConsoleStyle.Error);
+            return false;
+        }
+    }
+
+    private async Task<bool> ReplaceDatabaseAsync(string input, string destination, CancellationToken cancellationToken)
+    {
         try
         {
             // Restore through SQLite too, so a truncated or non-SQLite file is rejected here rather than
@@ -331,26 +365,18 @@ internal sealed partial class DbCommand
                     CopyDatabase(input, destination);
                 },
                 cancellationToken).ConfigureAwait(false);
+            return true;
         }
         catch (SqliteException ex)
         {
             Console.WriteErrorLine($"'{input}' isn't a readable SQLite database: {ex.Message}", ConsoleStyle.Error);
-            return 1;
+            return false;
         }
         catch (IOException ex)
         {
             Console.WriteErrorLine($"Couldn't write '{destination}': {ex.Message}", ConsoleStyle.Error);
-            return 1;
+            return false;
         }
-
-        Console.WriteLine($"Restored {input} to {destination}.", ConsoleStyle.Success);
-
-        if (root is not null)
-        {
-            ReportMissingStoredFiles(destination, root, withFiles);
-        }
-
-        return 0;
     }
 
     /// <summary>
@@ -450,12 +476,8 @@ internal sealed partial class DbCommand
 
     private async Task<int> RestoreRemoteAsync(string host, string slug, string input, bool force, CancellationToken cancellationToken)
     {
-        if (!_fileSystem.FileExists(input))
+        if (IsMissingBackup(input))
         {
-            Console.WriteErrorLine(
-                $"No such backup: '{input}'. 'rask db backup' writes into the current directory unless you "
-                + "pass --output, and prints the path it used.",
-                ConsoleStyle.Error);
             return 1;
         }
 
@@ -483,32 +505,8 @@ internal sealed partial class DbCommand
         var restored = false;
         try
         {
-            if (await DockerAsync(BuildHelperCreateArguments(host, slug, helper), cancellationToken).ConfigureAwait(false) != 0)
-            {
-                Console.WriteErrorLine("Couldn't create the helper container that carries the copy up.", ConsoleStyle.Error);
-                return 1;
-            }
-
-            if (await DockerAsync(BuildCopyUpArguments(host, helper, input), cancellationToken).ConfigureAwait(false) != 0)
-            {
-                Console.WriteErrorLine("Couldn't copy the backup up to the host.", ConsoleStyle.Error);
-                return 1;
-            }
-
-            if (withFiles &&
-                await DockerAsync(BuildFilesCopyUpArguments(host, helper, archive), cancellationToken).ConfigureAwait(false) != 0)
-            {
-                Console.WriteErrorLine("Couldn't copy the stored files archive up to the host.", ConsoleStyle.Error);
-                return 1;
-            }
-
-            if (await DockerAsync(BuildRemoteReplaceArguments(host, slug, withFiles), cancellationToken).ConfigureAwait(false) != 0)
-            {
-                Console.WriteErrorLine("Couldn't put the database in place inside the volume.", ConsoleStyle.Error);
-                return 1;
-            }
-
-            restored = true;
+            restored = await PutBackupInPlaceAsync(host, slug, helper, input, withFiles ? archive : null, cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -533,6 +531,38 @@ internal sealed partial class DbCommand
             withFiles ? $"Restored {input} and {archive} to {slug} on {host}." : $"Restored {input} to {slug} on {host}.",
             ConsoleStyle.Success);
         return 0;
+    }
+
+    /// <summary>Carries the backup (and <paramref name="archive" />, when there is one) into the stopped app's volume.</summary>
+    private async Task<bool> PutBackupInPlaceAsync(
+        string host, string slug, string helper, string input, string? archive, CancellationToken cancellationToken)
+    {
+        if (await DockerAsync(BuildHelperCreateArguments(host, slug, helper), cancellationToken).ConfigureAwait(false) != 0)
+        {
+            Console.WriteErrorLine("Couldn't create the helper container that carries the copy up.", ConsoleStyle.Error);
+            return false;
+        }
+
+        if (await DockerAsync(BuildCopyUpArguments(host, helper, input), cancellationToken).ConfigureAwait(false) != 0)
+        {
+            Console.WriteErrorLine("Couldn't copy the backup up to the host.", ConsoleStyle.Error);
+            return false;
+        }
+
+        if (archive is not null &&
+            await DockerAsync(BuildFilesCopyUpArguments(host, helper, archive), cancellationToken).ConfigureAwait(false) != 0)
+        {
+            Console.WriteErrorLine("Couldn't copy the stored files archive up to the host.", ConsoleStyle.Error);
+            return false;
+        }
+
+        if (await DockerAsync(BuildRemoteReplaceArguments(host, slug, archive is not null), cancellationToken).ConfigureAwait(false) != 0)
+        {
+            Console.WriteErrorLine("Couldn't put the database in place inside the volume.", ConsoleStyle.Error);
+            return false;
+        }
+
+        return true;
     }
 
     private Task<int> DockerAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>

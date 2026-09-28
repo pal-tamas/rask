@@ -27,27 +27,7 @@ public static class RouteAuthorizationGuard
             return RouteAuthorizationResult.Allow();
         }
 
-        var authzData = new List<IAuthorizeData>();
-        Type? failingPage = null;
-        foreach (var type in chain)
-        {
-            if (type.GetCustomAttribute<AllowAnonymousAttribute>(true) is not null)
-            {
-                authzData.Clear();
-                failingPage = null;
-                continue;
-            }
-
-            var attrs = type.GetCustomAttributes(true).OfType<IAuthorizeData>().ToArray();
-            if (attrs.Length == 0)
-            {
-                continue;
-            }
-
-            authzData.AddRange(attrs);
-            failingPage ??= type;
-        }
-
+        var (authzData, failingPage) = CollectAuthorizeData(chain);
         if (authzData.Count == 0)
         {
             return RouteAuthorizationResult.Allow();
@@ -79,6 +59,34 @@ public static class RouteAuthorizationGuard
         return user.Identity?.IsAuthenticated == true
             ? RouteAuthorizationResult.Forbid(scheme, failingPage)
             : RouteAuthorizationResult.Challenge(scheme, failingPage);
+    }
+
+    // Every [Authorize] along the chain, and the outermost page that declared one. An [AllowAnonymous]
+    // page resets both: nothing above it guards what it opens.
+    private static (List<IAuthorizeData> Data, Type? FailingPage) CollectAuthorizeData(IReadOnlyList<Type> chain)
+    {
+        var authzData = new List<IAuthorizeData>();
+        Type? failingPage = null;
+        foreach (var type in chain)
+        {
+            if (type.GetCustomAttribute<AllowAnonymousAttribute>(true) is not null)
+            {
+                authzData.Clear();
+                failingPage = null;
+                continue;
+            }
+
+            var attrs = type.GetCustomAttributes(true).OfType<IAuthorizeData>().ToArray();
+            if (attrs.Length == 0)
+            {
+                continue;
+            }
+
+            authzData.AddRange(attrs);
+            failingPage ??= type;
+        }
+
+        return (authzData, failingPage);
     }
 
     private static string? PickFirstScheme(IReadOnlyList<IAuthorizeData> data) => (from t in data

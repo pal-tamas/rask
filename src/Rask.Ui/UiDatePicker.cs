@@ -76,7 +76,7 @@ public sealed partial class UiDatePicker : UiFormField<DateOnly>
                 FieldId,
                 chosen == default ? null : UiDayGrid.Short(chosen),
                 Placeholder ?? "Choose a date",
-                ControlAria(),
+                BuildControlAria(),
                 _open,
                 Disabled == true,
                 UiClass.Compose(UiDayGrid.BoxClass(Tone, Size, Variant), Class),

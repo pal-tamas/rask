@@ -180,7 +180,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     {
         for (var t = symbol.BaseType; t is not null; t = t.BaseType)
         {
-            if (t.OriginalDefinition.ToDisplayString() == ComponentFullName)
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -217,7 +217,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     {
         for (var t = symbol.BaseType; t is not null; t = t.BaseType)
         {
-            if (t.OriginalDefinition.ToDisplayString() == ExternalComponentFullName)
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ExternalComponentFullName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -232,19 +232,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         ImmutableArray<ScopedAsset> assets,
         string strayJs)
     {
-        var byDirAndName = new Dictionary<string, List<ComponentInfo>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var c in components)
-        {
-            var dir = NormalizeDirectory(c.FilePath);
-            var key = MakeKey(dir, c.TypeName);
-            if (!byDirAndName.TryGetValue(key, out var list))
-            {
-                list = new List<ComponentInfo>(1);
-                byDirAndName[key] = list;
-            }
-
-            list.Add(c);
-        }
+        var byDirAndName = IndexByDirectoryAndName(components);
 
         ReportStrayJavaScript(spc, byDirAndName, strayJs);
 
@@ -253,39 +241,56 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             return;
         }
 
+        var pairs = PairAssets(spc, byDirAndName, assets);
+
+        if (pairs.Count == 0)
+        {
+            return;
+        }
+
+        ReportSimpleNameCollisions(spc, pairs);
+
+        EmitRegistration(spc, pairs);
+    }
+
+    // The one component a scoped asset pairs with, by directory and file stem — or null, having
+    // reported RASK017 (no component) or RASK018 (several).
+    private static ComponentInfo? SingleMatch(
+        SourceProductionContext spc, Dictionary<string, List<ComponentInfo>> byDirAndName, string sourcePath)
+    {
+        var stem = Path.GetFileNameWithoutExtension(sourcePath);
+        if (string.IsNullOrEmpty(stem))
+        {
+            return null;
+        }
+
+        var key = MakeKey(NormalizeDirectory(sourcePath), stem);
+        if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask017, SourceLocation(sourcePath), sourcePath, stem));
+            return null;
+        }
+
+        if (matches.Count > 1)
+        {
+            var fqns = string.Join(", ", matches.Select(m => m.FullyQualifiedName));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask018, SourceLocation(sourcePath), sourcePath, stem, fqns));
+            return null;
+        }
+
+        return matches[0];
+    }
+
+    private static List<(ComponentInfo Component, string Js, string SourcePath)> PairAssets(
+        SourceProductionContext spc, Dictionary<string, List<ComponentInfo>> byDirAndName, ImmutableArray<ScopedAsset> assets)
+    {
         var pairs = new List<(ComponentInfo Component, string Js, string SourcePath)>();
         var emittedFqns = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var asset in assets)
         {
-            var stem = Path.GetFileNameWithoutExtension(asset.SourcePath);
-            if (string.IsNullOrEmpty(stem))
+            if (SingleMatch(spc, byDirAndName, asset.SourcePath) is not { } match)
             {
-                continue;
-            }
-
-            var dir = NormalizeDirectory(asset.SourcePath);
-            var key = MakeKey(dir, stem);
-
-            if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask017,
-                    SourceLocation(asset.SourcePath),
-                    asset.SourcePath,
-                    stem));
-                continue;
-            }
-
-            if (matches.Count > 1)
-            {
-                var fqns = string.Join(", ", matches.Select(m => m.FullyQualifiedName));
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask018,
-                    SourceLocation(asset.SourcePath),
-                    asset.SourcePath,
-                    stem,
-                    fqns));
                 continue;
             }
 
@@ -297,8 +302,6 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             {
                 continue;
             }
-
-            var match = matches[0];
 
             // An island's front-end file is its MODULE, not a scoped asset. Skipped silently: the
             // component is right there, so nothing is orphaned and there is nothing to report.
@@ -315,11 +318,30 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             pairs.Add((match, asset.Contents, asset.SourcePath));
         }
 
-        if (pairs.Count == 0)
+        return pairs;
+    }
+
+    private static Dictionary<string, List<ComponentInfo>> IndexByDirectoryAndName(ImmutableArray<ComponentInfo> components)
+    {
+        var byDirAndName = new Dictionary<string, List<ComponentInfo>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in components)
         {
-            return;
+            var dir = NormalizeDirectory(c.FilePath);
+            var key = MakeKey(dir, c.TypeName);
+            if (!byDirAndName.TryGetValue(key, out var list))
+            {
+                list = new List<ComponentInfo>(1);
+                byDirAndName[key] = list;
+            }
+
+            list.Add(c);
         }
 
+        return byDirAndName;
+    }
+
+    private static void ReportSimpleNameCollisions(SourceProductionContext spc, List<(ComponentInfo Component, string Js, string SourcePath)> pairs)
+    {
         // RASK020 — detect simple-name collisions across registered components. Two
         // components in different namespaces with the same simple type name compete for
         // the same window.Rask[{SimpleName}] slot; the last registration wins silently.
@@ -338,7 +360,10 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                 collisionGroup.Key,
                 fqns));
         }
+    }
 
+    private static void EmitRegistration(SourceProductionContext spc, List<(ComponentInfo Component, string Js, string SourcePath)> pairs)
+    {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("#nullable enable");

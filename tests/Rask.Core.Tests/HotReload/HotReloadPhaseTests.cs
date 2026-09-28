@@ -64,7 +64,7 @@ public class HotReloadPhaseTests
                 "__RaskRoutesRegistry",
                 "__RaskCqrsRegistry",
                 "__RaskValidatorRegistry",
-                "Rask.Jobs.Generated.__RaskJobsRegistry",
+                "Rask.Background.Generated.__RaskJobsRegistry",
                 "Rask.Outbox.Generated.__RaskOutboxRegistry"
             ],
             RaskHotReload.RefreshTargetTypeNames);
@@ -141,7 +141,7 @@ public class HotReloadPhaseTests
         session.RegisterForHotReload();
 
         var applied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        void OnApplied() => applied.TrySetResult();
+        void OnApplied(object? sender, EventArgs e) => applied.TrySetResult();
 
         RaskHotReload.Applied += OnApplied;
         try
@@ -249,7 +249,7 @@ public class HotReloadPhaseTests
         // The repaint phase is dispatched off the hot-reload agent's thread; wait on the
         // coordinator's own completion signal rather than sleeping.
         var applied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        void OnApplied() => applied.TrySetResult();
+        void OnApplied(object? sender, EventArgs e) => applied.TrySetResult();
 
         RaskHotReload.Applied += OnApplied;
         try
@@ -280,6 +280,11 @@ public class HotReloadPhaseTests
         public RecordingSession(Component view, IServiceProvider services, Action? onRender = null)
             : base(view, services, LiveDiffMode.Auto)
             => _onRender = onRender;
+
+        // Nothing to tear down: the test owns the view and no pooled buffer was ever rented.
+        protected override void Dispose(bool disposing)
+        {
+        }
 
         public int RenderRequests;
 

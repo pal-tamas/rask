@@ -1,4 +1,4 @@
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     How long a query's result may be served, and how long it is kept after nothing is rendering it.

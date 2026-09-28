@@ -19,7 +19,7 @@ public class JobRegistryGeneratorTests
     public void A_top_level_job_is_registered_under_its_full_name()
     {
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public sealed record SendWelcomeEmail(int UserId) : IJob;
             """);
@@ -40,7 +40,7 @@ public class JobRegistryGeneratorTests
         // Type.FullName uses '+' between nesting levels and the serializer normalizes it to '.', so the
         // generated key has to be dotted to match.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public static class OrderJobs
             {
@@ -62,7 +62,7 @@ public class JobRegistryGeneratorTests
         // Type.FullName does not ("Demo.event.RequestReview"). Using one string for both roles meant the
         // key never matched, so the job failed to deserialize and burned attempts until it dead-lettered.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo.@event;
             public sealed record RequestReview(int OrderId) : IJob;
             """);
@@ -81,7 +81,7 @@ public class JobRegistryGeneratorTests
     public void A_job_whose_own_name_is_a_keyword_keys_unescaped()
     {
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public sealed record @class(int Id) : IJob;
             """);
@@ -100,7 +100,7 @@ public class JobRegistryGeneratorTests
         // containing type* has type parameters, so the original guard already caught it. What's new is
         // that it now says so out loud instead of vanishing silently, and names the generic outer.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public class Outer<T>
             {
@@ -126,7 +126,7 @@ public class JobRegistryGeneratorTests
     public void RASK035_on_a_file_local_job_says_how_to_fix_it()
     {
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             file sealed record RequestReview(int OrderId) : IJob;
             """);
@@ -141,7 +141,7 @@ public class JobRegistryGeneratorTests
     public void A_job_in_the_global_namespace_keys_without_a_namespace()
     {
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             public sealed record RequestReview(int OrderId) : IJob;
             """);
 
@@ -159,7 +159,7 @@ public class JobRegistryGeneratorTests
         // runtime FullName carries a synthesized "<file>F0__" segment, so the key could never match and
         // the job dead-lettered.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             file sealed record RequestReview(int OrderId) : IJob;
             """);
@@ -175,7 +175,7 @@ public class JobRegistryGeneratorTests
         // Regression: this used to emit typeof(global::Demo.Outer.RequestReview) for a private type,
         // which fails to compile with CS0122 — the whole assembly stopped building.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public class Outer
             {
@@ -194,7 +194,7 @@ public class JobRegistryGeneratorTests
         // Modelling a hierarchy with an abstract base that carries the marker is normal, not a mistake:
         // skip it, but don't nag about it.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public abstract record MaintenanceJob : IJob;
             public sealed record PurgeCancelled(int Days) : MaintenanceJob;
@@ -213,7 +213,7 @@ public class JobRegistryGeneratorTests
     {
         // A closed generic's FullName carries assembly-qualified type arguments, so no static key matches.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public sealed record Reindex<T>(int Id) : IJob;
             """);
@@ -228,7 +228,7 @@ public class JobRegistryGeneratorTests
     {
         // Each partial declaration carrying the base list is visited separately.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public partial record RequestReview : IJob;
             public partial record RequestReview : IJob;
@@ -255,7 +255,7 @@ public class JobRegistryGeneratorTests
     {
         // Deterministic output keeps the incremental cache stable across unrelated edits.
         var run = Run("""
-            using Rask.Jobs;
+            using Rask.Background;
             namespace Demo;
             public sealed record Zulu(int Id) : IJob;
             public sealed record Alpha(int Id) : IJob;

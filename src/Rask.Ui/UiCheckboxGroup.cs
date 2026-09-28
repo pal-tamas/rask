@@ -55,7 +55,7 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
 
         // A plain `group`: ARIA has no "checkboxgroup", and `group` is what carries the name the field's label
         // gives it. Without it the choices are announced one by one with nothing saying what they belong to.
-        var aria = ControlAria();
+        var aria = BuildControlAria();
         if (Label is not null)
         {
             aria["labelledby"] = LabelId;
@@ -90,15 +90,12 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
             .Checked(allIn)
             .Id(FieldId + "-all")
             .Type(InputType.Checkbox)
-            .Class(UiClass.Compose(
-                "checkbox mt-0.5",
-                Tone is { } tone ? UiClassNames.CheckboxTone(tone) : "",
-                Size is { } size ? UiClassNames.CheckboxSize(size) : ""))
+            .Class(BoxClass())
             .Disabled(Disabled == true)
             // Neither in nor out. The property is the only way to set it — there is no `indeterminate`
             // attribute — so it is `aria-checked="mixed"` that makes it true for assistive tech, and the
             // runtime's own morph leaves the DOM property alone.
-            .Aria("checked", some ? "mixed" : allIn ? "true" : "false")
+            .Aria("checked", (some, allIn) switch { (true, _) => "mixed", (_, true) => "true", _ => "false" })
             .OnChange(_ => CommitAsync(allIn ? [] : selectable, acc, ctx));
 
         return RaskMarkup.Label.Key("--all").Class(UiClass.Compose(
@@ -110,6 +107,12 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
             ]
         ];
     }
+
+    private string BoxClass() =>
+        UiClass.Compose(
+            "checkbox mt-0.5",
+            Tone is { } tone ? UiClassNames.CheckboxTone(tone) : "",
+            Size is { } size ? UiClassNames.CheckboxSize(size) : "");
 
     private Component Choice(
         (T Value, string Text) option,
@@ -129,12 +132,7 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
             .Id(FieldId + "-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Type(InputType.Checkbox)
             .Disabled(off)
-            .Class(UiChoice.ShowsBox(layout)
-                ? UiClass.Compose(
-                    "checkbox mt-0.5",
-                    Tone is { } tone ? UiClassNames.CheckboxTone(tone) : "",
-                    Size is { } size ? UiClassNames.CheckboxSize(size) : "")
-                : UiChoice.HiddenBoxClass)
+            .Class(UiChoice.ShowsBox(layout) ? BoxClass() : UiChoice.HiddenBoxClass)
             .OnChange(_ => Toggle(option.Value, picked, acc, ctx));
 
         return RaskMarkup.Label.Key(index).Class(UiChoice.ChoiceClass(layout))[

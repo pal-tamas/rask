@@ -33,16 +33,5 @@ public static class LocalUrl
         return url;
     }
 
-    private static bool ContainsControlCharacter(string value)
-    {
-        foreach (var c in value)
-        {
-            if (char.IsControl(c))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool ContainsControlCharacter(string value) => value.Any(char.IsControl);
 }

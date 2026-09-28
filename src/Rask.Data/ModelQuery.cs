@@ -68,10 +68,15 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     ///     <see cref="OrderBy{TKey}" /> replaces best-match order. See
     ///     <see cref="FullTextQueryableExtensions.Search{TEntity}" />.
     /// </remarks>
-    public ModelQuery<TEntity> Search(string? text) =>
-        FullTextQuery.Compile(text) is null
-            ? _ordered ? this : new ModelQuery<TEntity>(_compose, _ordered, unrankedSearch: true)
-            : Then(q => q.Search(text), ordered: true);
+    public ModelQuery<TEntity> Search(string? text)
+    {
+        if (FullTextQuery.Compile(text) is not null)
+        {
+            return Then(q => q.Search(text), ordered: true);
+        }
+
+        return _ordered ? this : new ModelQuery<TEntity>(_compose, _ordered, unrankedSearch: true);
+    }
 
     /// <summary>Orders the query ascending, replacing any ordering already applied.</summary>
     public ModelQuery<TEntity> OrderBy<TKey>(Expression<Func<TEntity, TKey>> keySelector)
@@ -184,8 +189,10 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     public IQueryable<TEntity> AsQueryable() => new ModelQueryProvider<TEntity>(this).Root;
 
     /// <summary>Runs the query and returns every row.</summary>
+#pragma warning disable MA0016 // a fresh list the caller owns, as EF Core's ToListAsync returns
     public Task<List<TEntity>> ToListAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.ToListAsync(ct), cancellationToken);
+#pragma warning restore MA0016
 
     /// <summary>Runs the query and returns every row as an array.</summary>
     public Task<TEntity[]> ToArrayAsync(CancellationToken cancellationToken = default) =>
@@ -259,7 +266,8 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     public async IAsyncEnumerable<TEntity> AsAsyncEnumerable(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await using var context = ReadDb.OpenFor<TEntity>();
+        var context = ReadDb.OpenFor<TEntity>();
+        await using var contextScope = context.ConfigureAwait(false);
 
         await foreach (var entity in Apply(context.Set<TEntity>())
                            .AsAsyncEnumerable()
@@ -286,7 +294,8 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        await using var context = ReadDb.OpenFor<TEntity>();
+        var context = ReadDb.OpenFor<TEntity>();
+        await using var contextScope = context.ConfigureAwait(false);
         return await query(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
     }
 
@@ -320,61 +329,8 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> run,
         CancellationToken cancellationToken)
     {
-        await using var context = ReadDb.OpenFor<TEntity>();
+        var context = ReadDb.OpenFor<TEntity>();
+        await using var contextScope = context.ConfigureAwait(false);
         return await run(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
-    }
-}
-
-/// <summary>
-///     A query that projects <typeparamref name="TEntity" /> rows to <typeparamref name="TResult" />,
-///     produced by <see cref="ModelQuery{TEntity}.Select{TResult}" />.
-/// </summary>
-/// <remarks>
-///     Read-only by construction: a projection is not an entity, so there is nothing to save or delete
-///     through it.
-/// </remarks>
-/// <typeparam name="TEntity">The entity being read.</typeparam>
-/// <typeparam name="TResult">What each row is projected to.</typeparam>
-public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity, TResult>
-    where TEntity : class
-{
-    private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>> _source;
-    private readonly Expression<Func<TEntity, TResult>> _selector;
-
-    internal Projection(
-        Func<IQueryable<TEntity>, IQueryable<TEntity>> source,
-        Expression<Func<TEntity, TResult>> selector)
-    {
-        _source = source;
-        _selector = selector;
-    }
-
-    /// <summary>Runs the query and returns every projected row.</summary>
-    public Task<List<TResult>> ToListAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.ToListAsync(ct), cancellationToken);
-
-    /// <summary>Runs the query and returns every projected row as an array.</summary>
-    public Task<TResult[]> ToArrayAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.ToArrayAsync(ct), cancellationToken);
-
-    /// <summary>Runs the query and returns the first projected row, or the default when empty.</summary>
-    public Task<TResult?> FirstOrDefaultAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken)!;
-
-    /// <summary>Counts the matching rows.</summary>
-    public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
-
-    /// <summary>Whether the query matches any row.</summary>
-    public Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
-
-    private async Task<TValue> RunAsync<TValue>(
-        Func<IQueryable<TResult>, CancellationToken, Task<TValue>> run,
-        CancellationToken cancellationToken)
-    {
-        await using var context = ReadDb.OpenFor<TEntity>();
-        var projected = _source(context.Set<TEntity>()).Select(_selector);
-        return await run(projected, cancellationToken).ConfigureAwait(false);
     }
 }

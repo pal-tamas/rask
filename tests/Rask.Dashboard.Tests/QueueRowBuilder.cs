@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using Rask.Jobs;
+using Rask.Background;
 
 namespace Rask.Dashboard.Tests;
 
@@ -23,7 +23,7 @@ internal static class QueueRowBuilder
     internal static Job Job(
         DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null)
     {
-        var job = Rask.Jobs.Job.For("Some.Job", "{}", runAt);
+        var job = Rask.Background.Job.For("Some.Job", "{}", runAt);
 
         if (error is not null)
         {

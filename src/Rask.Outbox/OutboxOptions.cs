@@ -34,7 +34,7 @@ public sealed class OutboxOptions
     /// </summary>
     public TimeSpan RetentionPeriod { get; set; } = TimeSpan.FromDays(7);
 
-    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="Validate"/> for why there is one.</summary>
+    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="OutboxOptionsValidator"/> for why there is one.</summary>
     internal const int MaxBatchSize = 1000;
 
     /// <summary>
@@ -57,67 +57,4 @@ public sealed class OutboxOptions
     /// </para>
     /// </summary>
     public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(5);
-
-    /// <summary>
-    /// Validates the option values once <c>Rask:Outbox</c> and the callback have applied. The options
-    /// validation <c>AddRaskOutbox</c> registers runs it at host start, so a bad value fails fast there
-    /// rather than throwing out of <c>new PeriodicTimer(...)</c> on the background thread —
-    /// which, with the default <c>BackgroundServiceExceptionBehavior.StopHost</c>, takes the host down at
-    /// an unrelated moment with an unrelated-looking stack.
-    /// </summary>
-    internal void Validate()
-    {
-        if (PollInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(PollInterval), PollInterval, "PollInterval must be positive.");
-        }
-
-        if (BatchSize is < 1 or > MaxBatchSize)
-        {
-            // Capped because the claim sends the candidate ids as an IN list. EF translates a parameterized
-            // Contains to json_each / = ANY / OPENJSON rather than one parameter per id, so the classic
-            // 999/2100 ceilings shouldn't bite — this is the belt to that pair of braces.
-            throw new ArgumentOutOfRangeException(
-                nameof(BatchSize), BatchSize, $"BatchSize must be between 1 and {MaxBatchSize}.");
-        }
-
-        if (MaxAttempts < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxAttempts), MaxAttempts, "MaxAttempts must be at least 1.");
-        }
-
-        if (RetentionPeriod < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(RetentionPeriod), RetentionPeriod, "RetentionPeriod cannot be negative.");
-        }
-
-        if (ShutdownGracePeriod < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownGracePeriod), ShutdownGracePeriod, "ShutdownGracePeriod cannot be negative (Zero cancels immediately).");
-        }
-
-        // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds, and it would throw
-        // from the shutdown path — the worst place to find out.
-        if (ShutdownGracePeriod.TotalMilliseconds > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownGracePeriod), ShutdownGracePeriod, $"ShutdownGracePeriod must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
-        }
-
-        if (LeaseDuration <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(LeaseDuration), LeaseDuration, "LeaseDuration must be positive.");
-        }
-
-        if (LeaseDuration <= PollInterval)
-        {
-            // A lease that expires within one poll guarantees every message is stolen mid-flight by the next
-            // instance to look — strictly worse than no lease, so it is refused rather than warned about.
-            throw new ArgumentOutOfRangeException(
-                nameof(LeaseDuration),
-                LeaseDuration,
-                $"LeaseDuration must be longer than PollInterval ({PollInterval}), or every claimed message is stolen before it finishes.");
-        }
-    }
 }

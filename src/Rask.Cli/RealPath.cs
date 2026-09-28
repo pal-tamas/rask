@@ -56,10 +56,14 @@ internal static class RealPath
             var next = Path.Combine(current, segment);
             var target = LinkTarget(next);
 
+            if (target is null)
+            {
+                current = next;
+                continue;
+            }
+
             // A link target may itself be relative, in which case it resolves against the link's directory.
-            current = target is null
-                ? next
-                : Path.GetFullPath(Path.IsPathRooted(target) ? target : Path.Combine(current, target));
+            current = Path.GetFullPath(Path.IsPathRooted(target) ? target : Path.Combine(current, target));
         }
 
         return current;

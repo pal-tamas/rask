@@ -195,7 +195,8 @@ public static class GeneratedModelWrites
             return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken).ConfigureAwait(false);
         }
 
-        await using var context = Db.CreateContext();
+        var context = Db.CreateContext();
+        await using var contextScope = context.ConfigureAwait(false);
         return await AggregateLoad.FindAsync<TEntity>(context, [key], cancellationToken).ConfigureAwait(false);
     }
 
@@ -221,7 +222,8 @@ public static class GeneratedModelWrites
         }
 
         // Tracked in a context about to be discarded, only so what was read can be remembered for Save().
-        await using var context = Db.CreateContext();
+        var context = Db.CreateContext();
+        await using var contextScope = context.ConfigureAwait(false);
         var found = await AggregateLoad.FindAsync<TEntity>(context, [key], cancellationToken, tracked: true)
             .ConfigureAwait(false);
 
@@ -247,7 +249,8 @@ public static class GeneratedModelWrites
             return await write(db).ConfigureAwait(false);
         }
 
-        await using var context = Db.CreateContext();
+        var context = Db.CreateContext();
+        await using var contextScope = context.ConfigureAwait(false);
         var result = await write(context).ConfigureAwait(false);
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

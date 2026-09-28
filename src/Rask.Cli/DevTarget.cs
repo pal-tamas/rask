@@ -4,41 +4,12 @@ using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli;
 
-/// <summary>Which template shape <c>rask dev</c> is looking at, which decides how (and whether) to run it.</summary>
-internal enum DevTemplateKind
-{
-    /// <summary>An ASP.NET host — <c>rask new</c>'s default.</summary>
-    Server,
-
-    /// <summary>A wasm-hosted solution; the project to run is the <c>.Server</c> host, not the client.</summary>
-    WasmHosted,
-
-    /// <summary>
-    ///     A TypeScript front end on an ASP.NET host. Two processes: the host, and the bundler's own dev
-    ///     server.
-    /// </summary>
-    SpaHosted,
-
-    /// <summary>
-    ///     A meta framework — Nuxt, Next, SvelteKit and the rest — on an ASP.NET host. Two processes, like
-    ///     <see cref="SpaHosted" />, and the same division of labour: the framework's own dev server owns
-    ///     the front end for the session and the browser talks to it.
-    /// </summary>
-    MetaHosted,
-
-    /// <summary>A standalone WebAssembly app: no ASP.NET host, and no launch profile scaffolded.</summary>
-    WasmStandalone,
-
-    /// <summary>Something else. Treated like <see cref="Server" />, minus the banner URL.</summary>
-    Unknown
-}
-
 /// <summary>
 ///     What <c>rask dev</c> discovered about the project it is about to run: which project file, what kind
 ///     of app, and what the launch profile says. Pure over <see cref="IFileSystem" /> so it is fully
 ///     unit-testable without a project on disk.
 /// </summary>
-internal sealed record DevTarget(
+internal sealed partial record DevTarget(
     DevTemplateKind Kind,
     string ProjectPath,
     string ProjectDirectory,
@@ -137,18 +108,24 @@ internal sealed record DevTarget(
         // it twice on every `rask dev` startup.
         var islands = HasIslandSources(fileSystem, directory);
 
+        // The meta lane's answer comes from the framework, so it holds even when the app directory was
+        // not found — and pointing `--open` at Vite's port because a Nuxt app was moved would be a
+        // worse wrong answer than the one it replaces.
+        string? clientDevServerUrl = null;
+        if (meta is not null)
+        {
+            clientDevServerUrl = MetaDevServerUrl(meta);
+        }
+        else if (client is not null)
+        {
+            clientDevServerUrl = ReadDevServerUrl(fileSystem, csproj);
+        }
+
         return new DevTarget(kind, resolved, directory, url, launchesBrowser)
         {
             ClientDirectory = client,
             MetaFramework = meta,
-            // The meta lane's answer comes from the framework, so it holds even when the app directory was
-            // not found — and pointing `--open` at Vite's port because a Nuxt app was moved would be a
-            // worse wrong answer than the one it replaces.
-            ClientDevServerUrl = meta is not null
-                ? MetaDevServerUrl(meta)
-                : client is null
-                    ? null
-                    : ReadDevServerUrl(fileSystem, csproj),
+            ClientDevServerUrl = clientDevServerUrl,
             ClientDevScript = client is null ? null : ReadDevScript(fileSystem, client),
             HasIslands = islands,
             IslandDevServerUrl = islands ? ReadIslandDevServerUrl(fileSystem, csproj) : null,
@@ -171,6 +148,8 @@ internal sealed record DevTarget(
     ///         are lying around.
     ///     </para>
     /// </remarks>
+    private static readonly string[] IslandSourcePatterns = ["*.tsx", "*.jsx", "*.vue", "*.svelte"];
+
     private static bool HasIslandSources(IFileSystem fileSystem, string projectDirectory)
     {
         if (!fileSystem.FileExists(Path.Combine(projectDirectory, "package.json")))
@@ -180,15 +159,11 @@ internal sealed record DevTarget(
 
         try
         {
-            foreach (var pattern in new[] { "*.tsx", "*.jsx", "*.vue", "*.svelte" })
+            if (IslandSourcePatterns
+                .SelectMany(pattern => fileSystem.ListFilesRecursive(projectDirectory, pattern))
+                .Any(file => !IsBuildOutput(projectDirectory, file)))
             {
-                foreach (var file in fileSystem.ListFilesRecursive(projectDirectory, pattern))
-                {
-                    if (!IsBuildOutput(projectDirectory, file))
-                    {
-                        return true;
-                    }
-                }
+                return true;
             }
 
             // A .ts counts only beside a .cs of the same name — the Lit and Angular pairing rule.
@@ -224,17 +199,15 @@ internal sealed record DevTarget(
     {
         var text = ReadOrEmpty(fileSystem, csproj);
 
-        var explicitUrl = Regex.Match(
-            text, @"<RaskExternalDevServerUrl>\s*([^<\s]+)\s*</RaskExternalDevServerUrl>");
+        var explicitUrl = ExternalDevServerUrlProperty().Match(text);
         if (explicitUrl.Success)
         {
-            return explicitUrl.Groups[1].Value;
+            return explicitUrl.Groups["value"].Value;
         }
 
-        var port = Regex.Match(
-            text, @"<RaskExternalDevServerPort>\s*(\d+)\s*</RaskExternalDevServerPort>");
+        var port = ExternalDevServerPortProperty().Match(text);
 
-        return "http://localhost:" + (port.Success ? port.Groups[1].Value : "5174");
+        return "http://localhost:" + (port.Success ? port.Groups["value"].Value : "5174");
     }
 
     /// <summary>Whether a discovered file is build output rather than someone's source.</summary>
@@ -261,31 +234,25 @@ internal sealed record DevTarget(
     /// </remarks>
     private static string ReadDevServerUrl(IFileSystem fileSystem, string csproj)
     {
-        var match = Regex.Match(
-            ReadOrEmpty(fileSystem, csproj),
-            @"<RaskSpaDevServerUrl>\s*([^<\s]+)\s*</RaskSpaDevServerUrl>");
+        var match = SpaDevServerUrlProperty().Match(ReadOrEmpty(fileSystem, csproj));
 
-        return match.Success ? match.Groups[1].Value : "http://localhost:5173";
+        return match.Success ? match.Groups["value"].Value : LocalDevServers.Vite;
     }
 
     /// <summary>The meta framework the host names in its csproj, or null when it names none.</summary>
     private static string? ReadMetaFramework(IFileSystem fileSystem, string csproj)
     {
-        var match = Regex.Match(
-            ReadOrEmpty(fileSystem, csproj),
-            @"<RaskMetaFramework>\s*([^<\s]+)\s*</RaskMetaFramework>");
+        var match = MetaFrameworkProperty().Match(ReadOrEmpty(fileSystem, csproj));
 
-        return match.Success ? match.Groups[1].Value : null;
+        return match.Success ? match.Groups["value"].Value : null;
     }
 
     /// <summary>Where the front end lives, as <c>RaskMetaAppDir</c> set it or <c>client</c> by default.</summary>
     private static string ReadMetaAppDir(IFileSystem fileSystem, string csproj)
     {
-        var match = Regex.Match(
-            ReadOrEmpty(fileSystem, csproj),
-            @"<RaskMetaAppDir>\s*([^<\s]+)\s*</RaskMetaAppDir>");
+        var match = MetaAppDirProperty().Match(ReadOrEmpty(fileSystem, csproj));
 
-        return match.Success ? match.Groups[1].Value : MetaTemplate.DefaultAppDir;
+        return match.Success ? match.Groups["value"].Value : MetaTemplate.DefaultAppDir;
     }
 
     /// <summary>Where the meta framework's own dev server listens.</summary>
@@ -396,7 +363,7 @@ internal sealed record DevTarget(
             }
 
             var parent = Path.GetDirectoryName(directory);
-            if (parent == directory)
+            if (string.Equals(parent, directory, StringComparison.Ordinal))
             {
                 break;
             }
@@ -510,9 +477,9 @@ internal sealed record DevTarget(
             return false;
         }
 
-        foreach (Match match in Regex.Matches(text, @"<ProjectReference\s+Include\s*=\s*""([^""]+)"""))
+        foreach (Match match in ProjectReferenceInclude().Matches(text))
         {
-            var relative = match.Groups[1].Value.Replace('\\', Path.DirectorySeparatorChar);
+            var relative = match.Groups["value"].Value.Replace('\\', Path.DirectorySeparatorChar);
             var referenced = Path.GetFullPath(Path.Combine(hostDirectory, relative));
             if (!fileSystem.FileExists(referenced))
             {
@@ -565,20 +532,20 @@ internal sealed record DevTarget(
                 return (null, false);
             }
 
-            foreach (var profile in profiles.EnumerateObject())
+            foreach (var profile in profiles.EnumerateObject().Select(property => property.Value))
             {
-                if (profile.Value.ValueKind != JsonValueKind.Object
-                    || !profile.Value.TryGetProperty("commandName", out var command)
+                if (profile.ValueKind != JsonValueKind.Object
+                    || !profile.TryGetProperty("commandName", out var command)
                     || command.ValueKind != JsonValueKind.String
                     || !string.Equals(command.GetString(), "Project", StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                var launches = profile.Value.TryGetProperty("launchBrowser", out var lb)
+                var launches = profile.TryGetProperty("launchBrowser", out var lb)
                                && lb.ValueKind == JsonValueKind.True;
 
-                var urls = profile.Value.TryGetProperty("applicationUrl", out var au)
+                var urls = profile.TryGetProperty("applicationUrl", out var au)
                            && au.ValueKind == JsonValueKind.String
                     ? au.GetString()
                     : null;
@@ -630,4 +597,22 @@ internal sealed record DevTarget(
             return [];
         }
     }
+
+    [GeneratedRegex(@"<RaskExternalDevServerUrl>\s*(?<value>[^<\s]+)\s*</RaskExternalDevServerUrl>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExternalDevServerUrlProperty();
+
+    [GeneratedRegex(@"<RaskExternalDevServerPort>\s*(?<value>\d+)\s*</RaskExternalDevServerPort>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExternalDevServerPortProperty();
+
+    [GeneratedRegex(@"<RaskSpaDevServerUrl>\s*(?<value>[^<\s]+)\s*</RaskSpaDevServerUrl>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex SpaDevServerUrlProperty();
+
+    [GeneratedRegex(@"<RaskMetaFramework>\s*(?<value>[^<\s]+)\s*</RaskMetaFramework>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex MetaFrameworkProperty();
+
+    [GeneratedRegex(@"<RaskMetaAppDir>\s*(?<value>[^<\s]+)\s*</RaskMetaAppDir>", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex MetaAppDirProperty();
+
+    [GeneratedRegex(@"<ProjectReference\s+Include\s*=\s*""(?<value>[^""]+)""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ProjectReferenceInclude();
 }

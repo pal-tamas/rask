@@ -13,7 +13,7 @@ namespace Rask.SQLite.Browser;
 ///     contract: the restore must block startup, and this must not. Registered after it, so the first tick
 ///     can never race the restore.
 /// </remarks>
-internal sealed class BrowserSqliteSnapshotService(
+internal sealed partial class BrowserSqliteSnapshotService(
     BrowserSqliteOptions options,
     BrowserSqliteHost host,
     ISqliteSnapshotter snapshotter,
@@ -49,7 +49,7 @@ internal sealed class BrowserSqliteSnapshotService(
                 {
                     // Quota exhaustion is the expected cause and it is not transient, so this needs to be
                     // visible rather than swallowed: the app keeps working, but durability has stopped.
-                    logger.LogError(ex, "Snapshot of browser SQLite database '{Name}' failed.", options.Name);
+                    LogSnapshotFailed(logger, ex, options.Name);
                 }
             }
         }
@@ -58,4 +58,7 @@ internal sealed class BrowserSqliteSnapshotService(
             // Normal shutdown.
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Snapshot of browser SQLite database '{Name}' failed.")]
+    private static partial void LogSnapshotFailed(ILogger logger, Exception exception, string name);
 }

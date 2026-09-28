@@ -11,7 +11,7 @@ namespace Rask.Logging;
 /// logged line is queryable, which is why the default is short.
 /// </para>
 /// </summary>
-internal sealed class LogWriter(
+internal sealed partial class LogWriter(
     LogChannel channel,
     ILogs store,
     RaskLoggingOptions options,
@@ -44,17 +44,15 @@ internal sealed class LogWriter(
             {
                 await FlushAsync(drain.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                logger.LogWarning(
-                    "The log store did not drain within {Timeout}; buffered entries were lost.",
-                    options.ShutdownDrainTimeout);
+                DrainTimedOut(logger, ex, options.ShutdownDrainTimeout);
             }
 #pragma warning disable CA1031 // Teardown must not throw: a failing store cannot be allowed to fault shutdown.
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                logger.LogError(ex, "The log store failed its shutdown drain; buffered entries were lost.");
+                DrainFailed(logger, ex);
             }
         }
 
@@ -84,8 +82,7 @@ internal sealed class LogWriter(
                 // Only a write proves the store works again. A retention sweep or a count can succeed against a
                 // store that refuses inserts — a full disk still takes deletes — and taking one for a recovery
                 // would announce it falsely and restart the run, so the next failure read as a first one.
-                logger.LogInformation(
-                    "The log store is writable again after {FailedFlushes} failed flushes.", _failedCycles);
+                StoreRecovered(logger, _failedCycles);
                 _failedCycles = 0;
             }
 
@@ -120,17 +117,11 @@ internal sealed class LogWriter(
 
         if (_failedCycles == 1)
         {
-            logger.LogError(
-                ex,
-                "A log store flush failed; retrying every {FlushInterval}, and reporting again at most once a minute while it keeps failing.",
-                options.FlushInterval);
+            FlushFailed(logger, ex, options.FlushInterval);
         }
         else if (now - _lastFailureReport >= FailureReminderInterval)
         {
-            logger.LogError(
-                ex,
-                "The log store is still failing: {FailedFlushes} flushes in a row, their entries counted on rask.logs.dropped.",
-                _failedCycles);
+            StillFailing(logger, ex, _failedCycles);
         }
         else
         {
@@ -214,4 +205,23 @@ internal sealed class LogWriter(
 
         metrics.ObserveStored(await store.Count(cancellationToken).ConfigureAwait(false));
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The log store did not drain within {Timeout}; buffered entries were lost.")]
+    private static partial void DrainTimedOut(ILogger logger, Exception exception, TimeSpan timeout);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The log store failed its shutdown drain; buffered entries were lost.")]
+    private static partial void DrainFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The log store is writable again after {FailedFlushes} failed flushes.")]
+    private static partial void StoreRecovered(ILogger logger, int failedFlushes);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "A log store flush failed; retrying every {FlushInterval}, and reporting again at most once a minute while it keeps failing.")]
+    private static partial void FlushFailed(ILogger logger, Exception exception, TimeSpan flushInterval);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "The log store is still failing: {FailedFlushes} flushes in a row, their entries counted on rask.logs.dropped.")]
+    private static partial void StillFailing(ILogger logger, Exception exception, int failedFlushes);
 }

@@ -67,7 +67,7 @@ public static class DocLinks
         var folder = sourcePath is null
             ? string.Empty
             : Path.GetDirectoryName(sourcePath)?.Replace('\\', '/') ?? string.Empty;
-        var from = new Uri(Root + "docs/" + (folder.Length == 0 ? string.Empty : folder + "/"));
+        var from = new Uri(Root + "docs/" + (folder.Length == 0 ? string.Empty : folder + Path.AltDirectorySeparatorChar));
 
         // TryCreate rather than the constructor: a link malformed enough to throw would otherwise fault the
         // render of the whole guide it sits in. It stays a repository file, unresolved, which is what it was.

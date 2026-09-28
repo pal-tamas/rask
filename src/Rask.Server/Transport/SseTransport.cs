@@ -23,8 +23,10 @@ namespace Rask.Server.Transport;
 ///         from an older stream is refused rather than applied to the newer one.
 ///     </para>
 /// </remarks>
+#pragma warning disable CA1001 // _write only ever WaitAsync/Release — no wait handle to free — and a send can outlive the request
 internal sealed class SseTransport(PipeWriter writer, int generation, CancellationToken lifetime = default)
     : ILiveTransport
+#pragma warning restore CA1001
 {
     private static readonly byte[] DataPrefix = "data: "u8.ToArray();
     private static readonly byte[] FrameEnd = "\n\n"u8.ToArray();
@@ -157,7 +159,7 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
     /// </summary>
     public async Task WaitForWritesAsync(TimeSpan timeout)
     {
-        if (await _write.WaitAsync(timeout).ConfigureAwait(false))
+        if (await _write.WaitAsync(timeout, CancellationToken.None).ConfigureAwait(false))
         {
             _write.Release();
         }

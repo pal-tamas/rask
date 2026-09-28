@@ -34,6 +34,7 @@ namespace Rask.Blazor;
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class BlazorParameterAttribute : Attribute
 {
+    /// <summary>Maps this property onto the hosted component's parameter <paramref name="name" />.</summary>
     /// <param name="name">The hosted component's parameter name, spelled exactly as it declares it.</param>
     public BlazorParameterAttribute(string name) => Name = name;
 

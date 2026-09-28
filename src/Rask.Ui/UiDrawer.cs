@@ -74,7 +74,7 @@ public sealed partial class UiDrawer : Component
                 Label
                     .For(Id)
                     .Class("drawer-overlay")
-                    .Aria(new Dictionary<string, string?> { ["label"] = CloseLabel ?? "Close" }),
+                    .Aria("label", CloseLabel ?? "Close"),
                 Panel
             ]
         ];

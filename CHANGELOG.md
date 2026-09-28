@@ -111,6 +111,26 @@ them until tagged releases begin.
     render in MDN's IDL order.
   - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
     stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
+- **BREAKING: the SVG elements are generated from MDN as well.** The 40 hand-written SVG types are gone; every
+  SVG element MDN lists as shipping in two engines is generated from the same snapshot. The chain is unchanged
+  (`Svg`, `Circle`, `SvgPath`, `SvgText`, `SvgA`, `SvgTitle`…). What changes:
+  - **Types take MDN's names and inheritance.** `Circle` is `SVGCircleElement : SVGGeometryElement :
+    SVGGraphicsElement : SVGElement`, `Svg` is `SVGSVGElement`, `SvgPath` is `SVGPathElement`, and the shared
+    base `SvgElement` is `SVGElement`.
+  - **23 new entries, with no code written:** `Animate`, `AnimateMotion`, `AnimateTransform`, `Set`, `Mpath`,
+    `View`, `Metadata`, and the rest of the filter primitives (`FeTurbulence`, `FeMorphology`, `FeImage`,
+    `FeTile`, `FeComponentTransfer` with `FeFuncR`/`G`/`B`/`A`, the lighting ones…).
+  - **Every attribute MDN gives each element:** `PathLength` on every shape, `X`/`Y`/`Width`/`Height`/`Result`
+    on every filter primitive, `ViewBox`/`PreserveAspectRatio` on `Pattern`, `SystemLanguage`, and all of SVG's
+    presentation attributes on every element (`MarkerEnd`, `Cursor`, `Mask`, `Filter`, `FontStyle`,
+    `PaintOrder`, `VectorEffect`…). `FloodColor`, `StopColor`, `TextAnchor` and the `Font*` steps now work on
+    any SVG element, where they used to be on one tag each. The rarer presentation attributes live on a side
+    object, so an element that sets none of them costs nothing more.
+  - **Attributes render in IDL order**, the base interface's first: a circle's `pathLength` (declared on
+    `SVGGeometryElement`) comes before its `cx`/`cy`/`r`, and an `<a>`'s `target` before its `href`.
+  - **Gone, because MDN records no browser shipping them:** `Svg.Xmlns` (ignored in HTML, like `<html xmlns>`),
+    `Symbol`'s `X`/`Y`/`Width`/`Height`/`RefX`/`RefY`, and `FeGaussianBlur.EdgeMode` (Safari only). The
+    verbatim `Attributes` step still writes any of them.
 
 ### Security
 
@@ -222,6 +242,52 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING — framework events are standard `EventHandler`s.** `IUserProvider.Changed`, `IToaster.Changed`,
+  `IRaskCulture.Changed`, `RouteState.Changed` and `EditContext.ValidationStateChanged` are `EventHandler`,
+  `EditContext.FieldChanged` is `EventHandler<FieldChangedEventArgs>` and `ScopedAssetRegistry.AssetChanged` is
+  `EventHandler<ScopedAssetChangedEventArgs>`. `route.Changed += StateHasChanged;` is unchanged — `Component` has
+  the matching overload; a lambda subscriber takes `(_, e) => Validate(e.Field)`, and an `IUserProvider` of your own
+  declares `event EventHandler? Changed` and raises it with `Changed?.Invoke(this, EventArgs.Empty)`.
+- **BREAKING — the batteries' namespaces are nouns of their own.** `Rask.Mail` → `Rask.Mailing`, `Rask.Jobs` →
+  `Rask.Background`, `Rask.Cache` → `Rask.Caching`, `Rask.Query` → `Rask.Querying`; the packages keep their names
+  and still import their namespace globally, so `Mail.Send(…)`/`Jobs.Enqueue(…)` read the same. A file that wrote
+  `using Rask.Mail;` writes `using Rask.Mailing;`.
+- **BREAKING — renames the analyzers asked for.**
+  `SensorPermission`/`NotificationPermission` → `SensorPermissionState`/`NotificationPermissionState`,
+  `RequestHandlerDelegate` → `RequestHandler`, `JobQueue` → `JobBacklog`, `MailQueue` → `MailOutbox`,
+  `UiStack` → `UiStackLayout` (still `Ui.Stack` in markup), `Ui.TreeSelection.Single`/`Multiple` → `One`/`Many`,
+  `SqliteCollations.Decimal` → `DecimalOrder`, a fake's `.Single()` → `.Only()`
+  (`mail.Sent().To("ann@x.io").Only()`), and the generated-markup hook `__Fragment` → `RaskFragment`.
+- **Exceptions you can catch by type.** `SqliteTransactionRolledBackException` (Rask.SQLite) and the CQRS server's
+  `BadRequestException` and `UploadOffsetException` are public, and they and `RaskValidationException` carry the
+  standard `()`, `(message)` and `(message, inner)` constructors.
+- **Fixes the analyzers found.** `IDispatcher.Subscribe(null!)` throws when called rather than on the first
+  enumeration; a scoped `IQueryClient` stops its live-refresh listener when its scope ends (it listened forever);
+  Litestream's `Validate()` throws `InvalidOperationException` for a null `Verification` or `BusyRetry`, as it
+  documents, instead of `ArgumentNullException`.
+- **A bad setting names its key, and every bad setting is reported at once.** The Jobs, Mail, Outbox, Cache,
+  Logging and Dashboard options are validated at startup by an `IValidateOptions<T>` that says
+  `Rask:Jobs:PollInterval must be positive.` — before, a setter threw an `ArgumentOutOfRangeException` for the first
+  bad value only, naming a parameter that did not exist. The batteries' shutdown and lease warnings now log the caught
+  exception with its stack. `FileRejectedException` carries the standard constructors.
+- **`UiFormField<T>.ControlAria()` returns `IReadOnlyDictionary<string, string?>`.** A form control of your own that
+  added to it builds its own dictionary from it.
+- **Smaller shape changes.** `FieldIdentifier` has `==`/`!=`; `FilePickerOptions.Accept` and
+  `SaveFilePickerOptions.Accept` are `IReadOnlyDictionary<string, string[]>?` (an initializer still compiles; mutating
+  `Accept` afterwards does not).
+- **BREAKING — a picked file is an `IRaskFile`.** The file an input hands a handler, and the file a CQRS message
+  carries, is the interface `IRaskFile` (it was the abstract class `RaskFile`, with no state of its own):
+  `OnFiles(IReadOnlyList<IRaskFile> files)`, `public IRaskFile? Photo { get; init; }`. A test double implements it
+  rather than deriving from it.
+- **BREAKING — `WasmHostBuilder.UseManifest(manifest)` is gone**; it was the `[Obsolete]` alias of
+  `UsePwa(manifest)`.
+- **`ApiException` carries the standard constructors**, and the server host passes the request's cancellation token
+  to the page, file and redirect writes it makes, so a dropped client stops them; a WASM file stream honours its token.
+- **Rask's own code is analyzer-clean.** `src/` now builds with Meziantou, Roslynator, SonarAnalyzer and
+  BannedApiAnalyzers beside the .NET analyzers at `latest-recommended`, every finding an error. Findings are fixed;
+  the few the code cannot satisfy are silenced at their one site with the reason on the line. None of these analyzers
+  reaches an app's dependency graph. See [Code analysis](docs/code-analysis.md).
+
 - **Rask.Data's verbs drop `Async`: `Product.Create(model)`, `Update`, `Delete`, `Model`.** An aggregate is
   written with `await Product.Create(model)`, `await Product.Update(id, model)`, `await Product.Delete(id, version)`
   and its edit form filled with `await Product.Model(id)`, where it used to be `CreateAsync`/`UpdateAsync`/
@@ -282,6 +348,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
+  render asked for with the awaitable form never appeared as a state render in the Renders tab.
+- **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
+  its ids per item type, so two trees of different row types both rendered `uitree-1`; the counter is shared now.
 - **An `export class` in a scoped `.ts` no longer breaks the component's whole script.** The wrapper stripped
   `export` from functions and variables but not classes, so the keyword was left inside a non-module wrapper and
   the script threw a SyntaxError. Classes are now exposed too.

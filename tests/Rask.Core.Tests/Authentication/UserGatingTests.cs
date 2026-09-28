@@ -84,7 +84,7 @@ public partial class UserGatingTests : global::Rask.Core.RaskMarkup
     {
         public ClaimsPrincipal Current { get; } = principal;
 
-        public event Action? Changed
+        public event EventHandler? Changed
         {
             add { }
             remove { }

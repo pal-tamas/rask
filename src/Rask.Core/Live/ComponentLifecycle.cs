@@ -22,7 +22,7 @@ internal static class ComponentLifecycle
         // token. Any user CancellationToken.Register callbacks then fire on CancelLifetimeToken
         // immediately below — both mechanisms work, additive.
         var unmountTask = component.RaiseUnmount();
-        if (unmountTask is not null)
+        if (!unmountTask.IsCompleted)
         {
             _ = ObserveUnmountFault(unmountTask, component);
         }
@@ -61,7 +61,7 @@ internal static class ComponentLifecycle
         }
 
         var unmountTask = component.RaiseUnmount();
-        if (unmountTask is not null)
+        if (!unmountTask.IsCompleted)
         {
             try { await unmountTask.ConfigureAwait(false); }
             catch (Exception ex) { Component.LogUnmountError(component, ex); }

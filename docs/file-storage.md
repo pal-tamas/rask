@@ -5,7 +5,7 @@
 
 `Rask.Storage` keeps the files your users upload. A saved file is two things: its bytes in a store — a
 directory, an S3-compatible bucket or an Azure Blob container — and a **`StoredFile`** row on the app's own
-database that says what the bytes are. You call **`Files.Save`**, handing it the `RaskFile` a file picker gives you,
+database that says what the bytes are. You call **`Files.Save`**, handing it the `IRaskFile` a file picker gives you,
 keep the returned id on your own entity, and later hand the file back as a public URL, a temporary URL, or a
 download behind your own authorization check. No cloud SDK is referenced: S3 requests are signed in-process
 with SigV4, Azure requests with Shared Key or a service SAS.
@@ -79,7 +79,7 @@ temporary links would otherwise 404 with nothing to say why.
 
 ## Saving an upload
 
-A file picker hands its handler a list of `RaskFile`s ([uploading files](http-and-files.md#uploading-files)).
+A file picker hands its handler a list of `IRaskFile`s ([uploading files](http-and-files.md#uploading-files)).
 Pass one's opener, name and size to `Files.Save` — nothing is injected, because it reaches the store of the
 work it runs in:
 
@@ -89,7 +89,7 @@ public sealed partial class AvatarPicker : Component
     private string? _avatarUrl;
     private string? _error;
 
-    private async Task OnFilesAsync(IReadOnlyList<RaskFile> picked)
+    private async Task OnFilesAsync(IReadOnlyList<IRaskFile> picked)
     {
         if (picked.Count == 0)
         {
@@ -124,7 +124,7 @@ public sealed partial class AvatarPicker : Component
 
 Three things about that handler are load-bearing:
 
-- **Save before the handler returns.** A `RaskFile` is only readable while its handler is on the stack, so
+- **Save before the handler returns.** A `IRaskFile` is only readable while its handler is on the stack, so
   the `await` belongs inside it.
 - **Pass the opener, don't call it.** `file.OpenReadStream` goes in as a method group, and `Save` calls
   it with the storage size limit. Calling `OpenReadStream()` yourself gets its 512 KB default cap, which is
@@ -516,7 +516,7 @@ files are on disk it says so, because that is the one state in which no backup c
 
 ## See also
 
-- [HTTP & files](http-and-files.md) — the file picker and `RaskFile`, and `Navigator.Download` for bytes you
+- [HTTP & files](http-and-files.md) — the file picker and `IRaskFile`, and `Navigator.Download` for bytes you
   generate on the fly.
 - [Forms](forms.md#file-inputs) — file inputs inside a form.
 - [Configuration](configuration.md#file-uploads--raskuploads) — the server's own upload limits.

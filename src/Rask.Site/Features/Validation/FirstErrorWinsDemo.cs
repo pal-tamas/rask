@@ -22,8 +22,8 @@ public sealed partial class FirstErrorWinsDemo : Component
                     .Id("v8-code")
                     .Validate(v =>
                         string.IsNullOrWhiteSpace(v)
-                            ? new[] { "Code is required." }
-                            : Array.Empty<string>()).ShowValidation(false),
+                            ? ["Code is required."]
+                            : []).ShowValidation(false),
                 Validation.Message.Template(FieldError).For(() => _model.Code)
             ],
             Div[
@@ -34,10 +34,4 @@ public sealed partial class FirstErrorWinsDemo : Component
             ? null
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
-}
-
-public sealed class LicenseModel
-{
-    [RegularExpression(@"^[A-Z]{3}-\d{3}$", ErrorMessage = "Use the ABC-123 format.")]
-    public string Code { get; set; } = "";
 }

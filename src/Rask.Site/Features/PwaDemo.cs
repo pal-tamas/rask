@@ -77,7 +77,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
             }
 
             var permission = await notifications.RequestPermissionAsync();
-            if (permission != NotificationPermission.Granted)
+            if (permission != NotificationPermissionState.Granted)
             {
                 _notifyStatus = $"Permission: {permission}";
                 return;
@@ -107,7 +107,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
             }
 
             var permission = await push.RequestPermissionAsync();
-            if (permission != NotificationPermission.Granted)
+            if (permission != NotificationPermissionState.Granted)
             {
                 _pushStatus = $"Permission: {permission}";
                 return;
@@ -148,10 +148,8 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
     {
         try
         {
-            // Sending is server code, so a host maps one endpoint of its own for this button:
-            //   app.MapEndpoints(e => e.MapPost("/push/test", async () =>
-            //       await Push.Send(WebPushMessage.Text("Rask push", "Delivered by Rask.WebPush."))));
-            // The browser's service worker shows the notification — even if this tab is closed.
+            // Sending is server code, so a host maps one endpoint of its own for this button: a POST to
+            // /push/test whose handler awaits Push.Send with a WebPushMessage.Text. The browser's service worker shows the notification — even if this tab is closed.
             var response = await http.PostAsync("push/test", content: null);
             _pushStatus = response.IsSuccessStatusCode
                 ? "Push sent — watch for the notification."

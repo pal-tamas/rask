@@ -25,14 +25,14 @@ namespace Rask.SQLite.Browser;
 ///         the owner closes, or proxying its writes over <c>IBroadcastChannel</c>, is not implemented.
 ///     </para>
 /// </remarks>
-internal sealed class BrowserSqliteHost(
+internal sealed partial class BrowserSqliteHost(
     BrowserSqliteOptions options,
     IWebLocks locks,
     IIndexedDb indexedDb,
     IStorageEstimator storage,
     ISqliteSnapshotter snapshotter,
     BrowserSqliteOwnership ownership,
-    ILogger<BrowserSqliteHost> logger) : IHostedService
+    ILogger<BrowserSqliteHost> logger) : IHostedService, IDisposable
 {
     // Completing this releases the Web Lock: IWebLocks holds the lock only for the lifetime of the
     // callback it is given, so the callback parks on this until shutdown.
@@ -66,10 +66,7 @@ internal sealed class BrowserSqliteHost(
 
         if (!IsOwner)
         {
-            logger.LogWarning(
-                "Another tab already owns the browser SQLite database '{Name}'. This tab starts with an empty "
-                + "in-memory database and will not persist anything, so two tabs cannot overwrite each other.",
-                options.Name);
+            LogNotOwner(logger, options.Name);
 
             // Not awaited: watching for the owner to go away must not hold up the boot.
             _takeoverWatch = WatchForAvailabilityAsync(_shutdown.Token);
@@ -108,26 +105,19 @@ internal sealed class BrowserSqliteHost(
 
             if (await storage.RequestPersistAsync().ConfigureAwait(false))
             {
-                logger.LogInformation(
-                    "Storage for '{Name}' is now exempt from eviction.", options.Name);
+                LogPersisted(logger, options.Name);
                 return;
             }
 
             // One branch, not two: RequestPersistAsync resolves false both when the browser declines and
             // when it has no such API, and from here those have exactly the same consequence.
-            logger.LogWarning(
-                "The browser did not grant persistent storage, so it may evict the snapshots of '{Name}' "
-                + "under storage pressure and the database would come back empty. Chromium grants this on "
-                + "engagement; Firefox prompts, so ask from a user gesture with "
-                + "IStorageEstimator.RequestPersistAsync() and set BrowserSqliteOptions."
-                + nameof(BrowserSqliteOptions.RequestPersistentStorage) + " to false.",
-                options.Name);
+            LogNotPersisted(logger, options.Name);
         }
 #pragma warning disable CA1031 // Durability is best-effort; a failed request must not stop the app booting.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogWarning(ex, "Could not ask for persistent storage for '{Name}'.", options.Name);
+            LogPersistFailed(logger, ex, options.Name);
         }
     }
 
@@ -149,7 +139,7 @@ internal sealed class BrowserSqliteHost(
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                logger.LogWarning(ex, "Could not write a final snapshot of '{Name}' before the page unloaded.", options.Name);
+                LogFinalSnapshotFailed(logger, ex, options.Name);
             }
         }
 
@@ -176,7 +166,7 @@ internal sealed class BrowserSqliteHost(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogWarning(ex, "Releasing the owner lock for '{Name}' failed.", options.Name);
+            LogReleaseFailed(logger, ex, options.Name);
         }
     }
 
@@ -210,8 +200,7 @@ internal sealed class BrowserSqliteHost(
                 // immediately hands it straight back.
                 if (await locks.TryRequestAsync(name, static () => Task.CompletedTask).ConfigureAwait(false))
                 {
-                    logger.LogInformation(
-                        "The tab that owned '{Name}' has gone; reload to use the database here.", options.Name);
+                    LogAvailable(logger, options.Name);
                     ownership.MarkAvailable();
                     return;
                 }
@@ -225,7 +214,7 @@ internal sealed class BrowserSqliteHost(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogWarning(ex, "Gave up watching for '{Name}' to become available.", options.Name);
+            LogWatchFailed(logger, ex, options.Name);
         }
     }
 
@@ -246,10 +235,7 @@ internal sealed class BrowserSqliteHost(
             // No Web Locks means no way to detect a second tab. Owning the database is the useful
             // behaviour for the overwhelmingly common single-tab case; the risk is stated rather than
             // silently taken.
-            logger.LogWarning(
-                "This browser has no Web Locks API, so a second tab cannot be detected. Database '{Name}' will be "
-                + "owned by every open tab, and the last one to snapshot wins.",
-                options.Name);
+            LogNoWebLocks(logger, options.Name);
             return true;
         }
 
@@ -279,6 +265,9 @@ internal sealed class BrowserSqliteHost(
         return granted;
     }
 
+    /// <inheritdoc />
+    public void Dispose() => _shutdown.Dispose();
+
     private async Task RestoreAsync(CancellationToken cancellationToken)
     {
         var path = options.DatabasePath;
@@ -287,11 +276,7 @@ internal sealed class BrowserSqliteHost(
         // overwriting it would discard whatever it wrote. Only ever restore onto nothing.
         if (File.Exists(path))
         {
-            logger.LogWarning(
-                "Browser SQLite database '{Name}' already exists at {Path} before restore; leaving it alone. "
-                + "Something opened the database before AddRaskBrowserSqlite's hosted service started.",
-                options.Name,
-                path);
+            LogAlreadyExists(logger, options.Name, path);
             return;
         }
 
@@ -304,17 +289,71 @@ internal sealed class BrowserSqliteHost(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogWarning(ex, "Could not read a snapshot of '{Name}' from IndexedDB; starting empty.", options.Name);
+            LogReadFailed(logger, ex, options.Name);
             return;
         }
 
         if (bytes is null)
         {
-            logger.LogInformation("No stored snapshot for '{Name}'; starting with an empty database.", options.Name);
+            LogNoSnapshot(logger, options.Name);
             return;
         }
 
         await File.WriteAllBytesAsync(path, bytes, cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Restored browser SQLite database '{Name}' ({Bytes} bytes).", options.Name, bytes.Length);
+        LogRestored(logger, options.Name, bytes.Length);
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Another tab already owns the browser SQLite database '{Name}'. This tab starts with an empty "
+                  + "in-memory database and will not persist anything, so two tabs cannot overwrite each other.")]
+    private static partial void LogNotOwner(ILogger logger, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Storage for '{Name}' is now exempt from eviction.")]
+    private static partial void LogPersisted(ILogger logger, string name);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "The browser did not grant persistent storage, so it may evict the snapshots of '{Name}' "
+                  + "under storage pressure and the database would come back empty. Chromium grants this on "
+                  + "engagement; Firefox prompts, so ask from a user gesture with "
+                  + "IStorageEstimator.RequestPersistAsync() and set BrowserSqliteOptions."
+                  + nameof(BrowserSqliteOptions.RequestPersistentStorage) + " to false.")]
+    private static partial void LogNotPersisted(ILogger logger, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not ask for persistent storage for '{Name}'.")]
+    private static partial void LogPersistFailed(ILogger logger, Exception exception, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not write a final snapshot of '{Name}' before the page unloaded.")]
+    private static partial void LogFinalSnapshotFailed(ILogger logger, Exception exception, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Releasing the owner lock for '{Name}' failed.")]
+    private static partial void LogReleaseFailed(ILogger logger, Exception exception, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The tab that owned '{Name}' has gone; reload to use the database here.")]
+    private static partial void LogAvailable(ILogger logger, string name);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Gave up watching for '{Name}' to become available.")]
+    private static partial void LogWatchFailed(ILogger logger, Exception exception, string name);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "This browser has no Web Locks API, so a second tab cannot be detected. Database '{Name}' will be "
+                  + "owned by every open tab, and the last one to snapshot wins.")]
+    private static partial void LogNoWebLocks(ILogger logger, string name);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Browser SQLite database '{Name}' already exists at {Path} before restore; leaving it alone. "
+                  + "Something opened the database before AddRaskBrowserSqlite's hosted service started.")]
+    private static partial void LogAlreadyExists(ILogger logger, string name, string path);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not read a snapshot of '{Name}' from IndexedDB; starting empty.")]
+    private static partial void LogReadFailed(ILogger logger, Exception exception, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "No stored snapshot for '{Name}'; starting with an empty database.")]
+    private static partial void LogNoSnapshot(ILogger logger, string name);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Restored browser SQLite database '{Name}' ({Bytes} bytes).")]
+    private static partial void LogRestored(ILogger logger, string name, int bytes);
 }

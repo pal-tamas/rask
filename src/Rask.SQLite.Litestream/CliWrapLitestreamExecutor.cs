@@ -9,7 +9,7 @@ namespace Rask.SQLite.Litestream;
 /// Exit-code validation is disabled so callers inspect the code themselves; cancelling the token kills
 /// the process (a time-boxed restore, or a graceful shutdown of the long-running <c>replicate</c>).
 /// </summary>
-internal sealed class CliWrapLitestreamExecutor : ILitestreamExecutor
+internal sealed partial class CliWrapLitestreamExecutor : ILitestreamExecutor
 {
     private readonly LitestreamOptions _options;
     private readonly ILogger<CliWrapLitestreamExecutor> _logger;
@@ -29,8 +29,8 @@ internal sealed class CliWrapLitestreamExecutor : ILitestreamExecutor
         var command = Cli.Wrap(LitestreamExecutableResolver.Resolve(_options.ExecutablePath))
             .WithArguments(arguments)
             .WithValidation(CommandResultValidation.None)
-            .WithStandardOutputPipe(PipeTarget.ToDelegate(line => _logger.LogInformation("litestream: {Line}", line)))
-            .WithStandardErrorPipe(PipeTarget.ToDelegate(line => _logger.LogWarning("litestream: {Line}", line)));
+            .WithStandardOutputPipe(PipeTarget.ToDelegate(line => LogOutput(_logger, line)))
+            .WithStandardErrorPipe(PipeTarget.ToDelegate(line => LogError(_logger, line)));
 
         // Graceful stop: on cancellation send an interrupt (SIGINT) so litestream flushes its final WAL
         // frames, then force-kill only if it hasn't exited within the grace period. On a platform that
@@ -42,4 +42,10 @@ internal sealed class CliWrapLitestreamExecutor : ILitestreamExecutor
         var result = await command.ExecuteAsync(forcefulCts.Token, cancellationToken).ConfigureAwait(false);
         return result.ExitCode;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "litestream: {Line}")]
+    private static partial void LogOutput(ILogger logger, string line);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "litestream: {Line}")]
+    private static partial void LogError(ILogger logger, string line);
 }

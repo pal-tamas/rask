@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Rask.Wasm.Browser;
 
@@ -20,11 +21,11 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Input.Value(_baudRate.ToString()).Label("Baud")
+                    Ui.Input.Value(_baudRate.ToString(CultureInfo.InvariantCulture)).Label("Baud")
                         .Id("serial-baud")
                         .Type(InputType.Number)
                         .Disabled(_port is not null)
-                        .OnInput(v => int.TryParse(v, out _baudRate)),
+                        .OnInput(v => _baudRate = int.TryParse(v, CultureInfo.InvariantCulture, out var baud) ? baud : 0),
                     Ui.Button.Tone(Ui.Tone.Primary)
                         .Id("serial-connect")
                         .Disabled(_port is not null)

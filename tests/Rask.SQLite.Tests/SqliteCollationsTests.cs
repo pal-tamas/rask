@@ -36,7 +36,7 @@ public sealed class SqliteCollationsTests : IDisposable
 
             Assert.Equal(
                 ["2.00", "9.50", "10.00", "19.95", "100.50"],
-                Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.Decimal}"));
+                Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.DecimalOrder}"));
         }
         finally
         {
@@ -67,7 +67,7 @@ public sealed class SqliteCollationsTests : IDisposable
         await using var connection = await OpenPlainAsync();
         SqliteCollations.Apply(connection);
 
-        var ordered = Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.Decimal}");
+        var ordered = Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.DecimalOrder}");
 
         // The two parseable values lead, in numeric order. The rest — junk, an exponent form the
         // invariant fixed-point parse rejects, and a value past decimal's range — follow ordinally.
@@ -86,7 +86,7 @@ public sealed class SqliteCollationsTests : IDisposable
 
         Assert.Equal(
             ["1"],
-            Query(connection, $"SELECT COUNT(DISTINCT v COLLATE {SqliteCollations.Decimal}) FROM amounts"));
+            Query(connection, $"SELECT COUNT(DISTINCT v COLLATE {SqliteCollations.DecimalOrder}) FROM amounts"));
     }
 
     // Applying it twice on the same connection must be idempotent — the interceptor and the factory
@@ -102,7 +102,7 @@ public sealed class SqliteCollationsTests : IDisposable
 
         Assert.Equal(
             ["2.00", "9.50", "10.00"],
-            Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.Decimal}"));
+            Query(connection, $"SELECT v FROM amounts ORDER BY v COLLATE {SqliteCollations.DecimalOrder}"));
     }
 
     private async Task<SqliteConnection> OpenPlainAsync()

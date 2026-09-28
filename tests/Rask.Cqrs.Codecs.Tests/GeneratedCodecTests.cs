@@ -102,7 +102,7 @@ public sealed class GeneratedCodecTests
     [Fact]
     public void A_file_leaves_the_json_and_is_replaced_by_its_index_in_the_body()
     {
-        // The message speaks RaskFile - the same type a file input hands a component, on every host. The
+        // The message speaks IRaskFile - the same type a file input hands a component, on every host. The
         // wire's RemoteFile never appears in it; the conversion both ways is generated.
         var file = new FakeRaskFile("a.png", "image/png", [1, 2]);
         var files = new List<RemoteFile>();
@@ -121,7 +121,7 @@ public sealed class GeneratedCodecTests
         Assert.Null(round.Extra);
         Assert.Equal(7, round.TodoId);
 
-        // A handler receives a RaskFile it can read exactly as it would in-process.
+        // A handler receives an IRaskFile it can read exactly as it would in-process.
         Assert.Equal("a.png", round.File.Name);
         Assert.Equal(2, round.File.Size);
         using var stream = round.File.OpenReadStream();
@@ -237,18 +237,18 @@ public sealed class GeneratedCodecTests
         return contract!;
     }
 
-    /// <summary>A RaskFile over bytes already in memory — what a picked file looks like to a message.</summary>
-    private sealed class FakeRaskFile(string name, string contentType, byte[] bytes) : RaskFile
+    /// <summary>An IRaskFile over bytes already in memory — what a picked file looks like to a message.</summary>
+    private sealed class FakeRaskFile(string name, string contentType, byte[] bytes) : IRaskFile
     {
-        public override string Name => name;
+        public string Name => name;
 
-        public override long Size => bytes.Length;
+        public long Size => bytes.Length;
 
-        public override string ContentType => contentType;
+        public string ContentType => contentType;
 
-        public override DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+        public DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
 
-        public override Stream OpenReadStream(
+        public Stream OpenReadStream(
             long maxAllowedSize = 512 * 1024,
             CancellationToken cancellationToken = default) =>
             bytes.Length > maxAllowedSize

@@ -20,7 +20,7 @@ internal static class Suggest
             return null;
         }
 
-        // A short word can only afford one edit before the "correction" is really a different word;
+        // A short word can only afford one edit before the "correction" is really a different word, while
         // longer ones can absorb two. Anything further apart is left uncorrected on purpose.
         var budget = input.Length <= 3 ? 1 : 2;
 

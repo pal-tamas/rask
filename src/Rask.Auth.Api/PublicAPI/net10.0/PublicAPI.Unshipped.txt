@@ -14,7 +14,6 @@ Rask.Auth.AuthInstanceClaim.Id.get -> int
 Rask.Auth.AuthInstanceClaim.Id.set -> void
 Rask.Auth.AuthInstanceClaimConfiguration
 Rask.Auth.AuthInstanceClaimConfiguration.AuthInstanceClaimConfiguration() -> void
-Rask.Auth.AuthInstanceClaimConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Auth.AuthInstanceClaim!>! entity) -> void
 Rask.Auth.AuthModelBuilderExtensions
 Rask.Auth.AuthOptions
 Rask.Auth.AuthOptions.AccessDeniedPath.get -> string!
@@ -396,3 +395,4 @@ static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Take(int count)
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead![]!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Auth.SessionRead!>!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+Rask.Auth.AuthInstanceClaimConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Auth.AuthInstanceClaim!>! builder) -> void

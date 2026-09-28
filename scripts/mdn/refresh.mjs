@@ -71,12 +71,19 @@ const webrefSha = process.env.RASK_MDN_WEBREF
 if (!webrefSha) throw new Error(`could not resolve webref's curated branch at ${WEBREF}`);
 const specAttrs = { html: new Map(), svg: new Map() }; // tag -> Set(attr), conforming only
 const specAttrNames = new Set();
-for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1", "svg"], ["css-masking-1", "svg"]]) {
+const smilAttrs = new Set(); // "animate.begin": what SVG Animations gives each animation element
+// SVG Animations files each attribute group under the first element it names (`dur` for animate); its sections say
+// which elements a group is for: target and timing for every animation element, values and addition for all but set.
+const SMIL = { TargetElement: ["animate", "animateMotion", "animateTransform", "set"], TargetAttributes: ["animate", "animateMotion", "animateTransform", "set"],
+  TimingAttributes: ["animate", "animateMotion", "animateTransform", "set"], ValueAttributes: ["animate", "animateMotion", "animateTransform"],
+  AdditionAttributes: ["animate", "animateMotion", "animateTransform"], AnimateMotionElement: ["animateMotion"] };
+for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1", "svg"], ["css-masking-1", "svg"], ["svg-animations", "svg"]]) {
   const res = await fetch(`https://raw.githubusercontent.com/w3c/webref/${webrefSha}/ed/dfns/${file}.json`);
   if (!res.ok) throw new Error(`webref dfns ${file}: HTTP ${res.status}`);
   for (const d of (await res.json()).dfns) {
     if (d.type !== "element-attr" || d.heading?.id === "non-conforming-features") continue;
-    for (const tag of d.for) {
+    for (const tag of (file === "svg-animations" && SMIL[d.heading?.id]) || d.for) {
+      if (file === "svg-animations") for (const name of d.linkingText) smilAttrs.add(`${tag}.${name}`);
       if (!specAttrs[ns].has(tag)) specAttrs[ns].set(tag, new Set());
       for (const name of d.linkingText) { specAttrs[ns].get(tag).add(name); specAttrNames.add(name.toLowerCase()); }
     }
@@ -243,16 +250,18 @@ for (const name of [...wanted].sort()) {
     const bcdEl = bcd[tag.namespace].elements[tag.tag];
     const names = new Set(specAttrs[tag.namespace].get(tag.tag) ?? []);
     for (const attr of Object.keys(bcdEl)) if (attr !== "__compat" && !attr.includes("_")) names.add(attr);
-    for (const attr of reflectedNames(name)) names.add(attr);
+    for (const attr of reflectedNames(name, new Set([...names, ...Object.keys(bcdEl)]))) names.add(attr);
     for (const attr of [...names].sort()) {
       const data = bcdEl[attr];
-      if ((data && !ships(data.__compat)) || globals[tag.namespace].includes(attr)) continue;
+      // An on* attribute is inline JavaScript (SVG's onbegin); events are Rask's own typed surface.
+      if ((data && !ships(data.__compat)) || globals[tag.namespace].includes(attr) || /^on[a-z]/.test(attr)) continue;
       const known = attributes.find(a => a.attr === attr);
       if (known) { known.tags.push(tag.tag); continue; }
       const idl = findReflecting(name, attr);
-      // webref scopes some shared definitions too widely (form's `action` onto button); an attribute only
-      // the spec index names is kept when the element's own IDL has it too.
-      if (!data && !idl) continue;
+      // webref scopes some shared definitions too widely (form's `action` onto button); an attribute only the spec
+      // index names is kept when the element's own IDL has it too. Except SMIL's: BCD barely covers the animation
+      // elements (no `begin` on animate), and they reflect nothing, so their spec is enough.
+      if (!data && !idl && !smilAttrs.has(`${tag.tag}.${attr}`)) continue;
       attributes.push({ attr, property: idl?.name, type: idl?.type, url: idl?.url, readonly: idl?.readonly, reflect: idl?.reflect,
         reflectDefault: idl?.reflectDefault, reflectRange: idl?.reflectRange,
         on: idl?.on, tags: [tag.tag], ...(data ? meta(data.__compat) : {}) });
@@ -273,7 +282,10 @@ for (const name of [...wanted].sort()) {
 
 // The content attributes an interface's own IDL reflects: [Reflect], or a writable, plainly typed attribute
 // named after an attribute the spec defines (input's `width` reflects `width`; `valueAsNumber` reflects none).
-function reflectedNames(iface) {
+// SVG reflects every attribute as a read-only SVGAnimated* object named after it (`pathLength`, `viewBox`), after
+// one axis of it (`stdDeviationX` for `stdDeviation`, where the tag knows no `stdDeviationX`), or as `in1`, since
+// `in` is a JavaScript keyword. `known` is what the spec index and BCD name for the tag.
+function reflectedNames(iface, known) {
   const out = [];
   for (let n = iface; n && n !== "HTMLElement" && n !== "SVGElement" && n !== "Element"; n = interfaces.get(n)?.inheritance) {
     for (const m of interfaces.get(n)?.members ?? []) {
@@ -281,6 +293,10 @@ function reflectedNames(iface) {
       const r = ext(m, "Reflect");
       if (r) out.push(extValue(r) ?? m.name.toLowerCase());
       else if (!m.readonly && PLAIN.has(typeOf(m.idlType)) && specAttrNames.has(m.name.toLowerCase())) out.push(m.name.toLowerCase());
+      else if (m.readonly && typeOf(m.idlType).startsWith("SVGAnimated")) {
+        const stem = m.name.replace(/(X|Y|Type|Angle)$/, "");
+        out.push(m.name === "in1" ? "in" : !known.has(m.name) && known.has(stem) ? stem : m.name);
+      }
     }
   }
   return out;

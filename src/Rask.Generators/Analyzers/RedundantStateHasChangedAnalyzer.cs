@@ -159,8 +159,8 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
         IsRaskCallbackName(parameter.Name);
 
     // By NAME, because the type no longer carries the signal. Rask's callbacks used to be named delegate
-    // types in Rask.Core (`Callback`, `CallbackAsync`), which said "framework event callback" on sight;
-    // they are plain `Action`/`Func<…>` now, and a BCL delegate says nothing about who re-renders after
+    // types in Rask.Core (`Callback`, `CallbackAsync`), which said "framework event callback" on sight,
+    // but they are plain `Action`/`Func<…>` now, and a BCL delegate says nothing about who re-renders after
     // it. What still says it is the property: `On…` is Rask's event-callback convention across the whole
     // surface, and `AfterBind`/`AfterBindAsync` are the two binding hooks that do not use the prefix.
     //

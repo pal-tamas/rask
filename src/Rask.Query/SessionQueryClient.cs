@@ -2,10 +2,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Rask.Cqrs;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>The session's cache. One instance per live session, by DI scope.</summary>
-internal sealed class SessionQueryClient : IQueryClient
+internal sealed class SessionQueryClient : IQueryClient, IDisposable
 {
     private readonly Dictionary<QueryKey, QueryEntry> _entries = [];
     private readonly IDispatcher _dispatcher;
@@ -24,6 +24,20 @@ internal sealed class SessionQueryClient : IQueryClient
     {
         _dispatcher = dispatcher;
         _time = time ?? Clock.TimeProvider;
+    }
+
+    /// <summary>Stops the live-refresh listener when the session's scope ends.</summary>
+    public void Dispose()
+    {
+        CancellationTokenSource? listening;
+        lock (_gate)
+        {
+            listening = _listening;
+            _listening = null;
+        }
+
+        listening?.Cancel();
+        listening?.Dispose();
     }
 
     public Query<TResult> Query<TResult>(
@@ -204,15 +218,18 @@ internal sealed class SessionQueryClient : IQueryClient
         object? subscription,
         Action admitted,
         CancellationToken ct)
-        where TNotification : INotification =>
-        _dispatcher is LocalDispatcher dispatcher
-            ? Typed<TNotification>(dispatcher.Watch(typeof(TNotification), subscription, admitted, ct), ct)
-            : Admit(
-                admitted,
-                subscription is ISubscription<TNotification> record
-                    ? _dispatcher.Subscribe(record, ct)
-                    : _dispatcher.Subscribe<TNotification>(ct),
-                ct);
+        where TNotification : INotification
+    {
+        if (_dispatcher is LocalDispatcher dispatcher)
+        {
+            return Typed<TNotification>(dispatcher.Watch(typeof(TNotification), subscription, admitted, ct), ct);
+        }
+
+        var stream = subscription is ISubscription<TNotification> record
+            ? _dispatcher.Subscribe(record, ct)
+            : _dispatcher.Subscribe<TNotification>(ct);
+        return Admit(admitted, stream, ct);
+    }
 
     private static async IAsyncEnumerable<TNotification> Typed<TNotification>(
         IAsyncEnumerable<INotification> source,
@@ -242,13 +259,13 @@ internal sealed class SessionQueryClient : IQueryClient
 
     private sealed class RecordSource<TNotification>(
         SessionQueryClient client,
-        Func<ISubscription<TNotification>?> subscription) : SubscriptionSource<TNotification>
+        Func<ISubscription<TNotification>?> subscription) : ISubscriptionSource<TNotification>
         where TNotification : INotification
     {
         private bool _asked;
         private ISubscription<TNotification>? _last;
 
-        public override bool TryAdvance(out SubscriptionTarget<TNotification>? target)
+        public bool TryAdvance(out SubscriptionTarget<TNotification>? target)
         {
             var current = subscription();
             if (_asked && Equals(current, _last))
@@ -266,12 +283,12 @@ internal sealed class SessionQueryClient : IQueryClient
 
     private sealed class StreamSource<TInput, T>(
         Func<TInput> input,
-        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream) : SubscriptionSource<T>
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream) : ISubscriptionSource<T>
     {
         private bool _asked;
         private TInput _last = default!;
 
-        public override bool TryAdvance(out SubscriptionTarget<T>? target)
+        public bool TryAdvance(out SubscriptionTarget<T>? target)
         {
             var current = input();
             if (_asked && EqualityComparer<TInput>.Default.Equals(current, _last))
@@ -330,7 +347,7 @@ internal sealed class SessionQueryClient : IQueryClient
     /// </summary>
     /// <remarks>
     ///     The listener is the session's, opened once and shared, however many queries declared what they read.
-    ///     It is never closed, because the session's scope going away is what ends it.
+    ///     It closes when the session's scope ends and disposes this client.
     /// </remarks>
     /// <param name="entity">The entity whose saves matter.</param>
     /// <param name="invalidates">The key prefix to refetch when one is written.</param>
@@ -340,6 +357,7 @@ internal sealed class SessionQueryClient : IQueryClient
         ArgumentNullException.ThrowIfNull(invalidates);
 
         bool start;
+        var token = CancellationToken.None;
         lock (_gate)
         {
             var name = entity.FullName ?? entity.Name;
@@ -355,12 +373,13 @@ internal sealed class SessionQueryClient : IQueryClient
             {
                 _listening = new CancellationTokenSource();
                 _listeningSince = _time.GetUtcNow();
+                token = _listening.Token;
             }
         }
 
         if (start)
         {
-            _ = ListenForChanges(_listening!.Token);
+            _ = ListenForChanges(token);
         }
     }
 
@@ -403,7 +422,8 @@ internal sealed class SessionQueryClient : IQueryClient
         }
         catch (Exception)
         {
-            // See the justification above.
+            // Swallowed on purpose (see the justification above): the next fetch clears the stale screen.
+            return;
         }
     }
 
@@ -530,11 +550,6 @@ internal sealed class SessionQueryClient : IQueryClient
         return RunAsync(entry, query.Fetch, query.Options, cancellationToken);
     }
 
-    [SuppressMessage(
-        "Design",
-        "CA1031:Do not catch general exception types",
-        Justification = "Whatever a handler threw belongs on the query as Error, for the component to "
-                        + "render. Letting it escape would fault a fire-and-forget task nobody awaits.")]
     private Task RunAsync(
         QueryEntry entry,
         Func<CancellationToken, Task<object?>> fetch,
@@ -569,55 +584,77 @@ internal sealed class SessionQueryClient : IQueryClient
         // Started outside the lock: it runs synchronously up to its first await, and both Succeeded
         // and Failed notify observers — which re-renders components, and must not happen while this
         // holds the cache's lock.
-        _ = Execute();
+        _ = ExecuteAsync(entry, fetch, options, completion, cancellation.Token);
         return completion.Task;
+    }
 
-        // A BOUNDED loop inside one attempt, deliberately, rather than letting a failure notify and
-        // be re-entered as a fresh fetch. That shape is what produced an unbounded hot retry against
-        // an already-unwell server the first time round; the entry's owed-fetch flag exists to stop
-        // it, and retrying through the notification path would defeat it again.
-        async Task Execute()
+    // A BOUNDED loop inside one attempt, deliberately, rather than letting a failure notify and
+    // be re-entered as a fresh fetch. That shape is what produced an unbounded hot retry against
+    // an already-unwell server the first time round; the entry's owed-fetch flag exists to stop
+    // it, and retrying through the notification path would defeat it again.
+    private async Task ExecuteAsync(
+        QueryEntry entry,
+        Func<CancellationToken, Task<object?>> fetch,
+        QueryOptions options,
+        TaskCompletionSource completion,
+        CancellationToken cancellationToken)
+    {
+        var attempt = 0;
+        while (!await SettleAsync(entry, fetch, options, attempt, cancellationToken).ConfigureAwait(false))
+        {
+            attempt++;
+        }
+
+        completion.TrySetResult();
+    }
+
+    /// <summary>One attempt: true once the entry is settled, false when it is worth another go.</summary>
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Whatever a handler threw belongs on the query as Error, for the component to "
+                        + "render. Letting it escape would fault a fire-and-forget task nobody awaits.")]
+    private async Task<bool> SettleAsync(
+        QueryEntry entry,
+        Func<CancellationToken, Task<object?>> fetch,
+        QueryOptions options,
+        int attempt,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var data = await fetch(cancellationToken).ConfigureAwait(false);
+            entry.Succeeded(data, _time.GetUtcNow());
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Cancelled because nothing is rendering this any more, or because the caller
+            // asked. Neither is a failure to show: recording it would leave an error on an
+            // entry whose next observer would then render it, having done nothing wrong.
+            entry.Abandoned();
+            return true;
+        }
+        catch (Exception ex)
         {
             var worthRetrying = options.ShouldRetry ?? QueryOptions.IsWorthRetrying;
-            var backoff = options.RetryDelay ?? QueryOptions.DefaultRetryDelay;
-
-            for (var attempt = 0; ; attempt++)
+            if (attempt >= options.Retry || !worthRetrying(ex))
             {
-                try
-                {
-                    var data = await fetch(cancellation.Token).ConfigureAwait(false);
-                    entry.Succeeded(data, _time.GetUtcNow());
-                    break;
-                }
-                catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
-                {
-                    // Cancelled because nothing is rendering this any more, or because the caller
-                    // asked. Neither is a failure to show: recording it would leave an error on an
-                    // entry whose next observer would then render it, having done nothing wrong.
-                    entry.Abandoned();
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    if (attempt >= options.Retry || !worthRetrying(ex))
-                    {
-                        entry.Failed(ex);
-                        break;
-                    }
-
-                    try
-                    {
-                        await Task.Delay(backoff(attempt), cancellation.Token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        entry.Abandoned();
-                        break;
-                    }
-                }
+                entry.Failed(ex);
+                return true;
             }
 
-            completion.TrySetResult();
+            var backoff = options.RetryDelay ?? QueryOptions.DefaultRetryDelay;
+            try
+            {
+                await Task.Delay(backoff(attempt), cancellationToken).ConfigureAwait(false);
+                return false;
+            }
+            catch (OperationCanceledException)
+            {
+                entry.Abandoned();
+                return true;
+            }
         }
     }
 

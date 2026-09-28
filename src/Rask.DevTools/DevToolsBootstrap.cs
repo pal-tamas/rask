@@ -18,7 +18,7 @@ internal sealed partial class DevToolsBootstrap : IRaskDevToolsBootstrap
         // The host face first: a face that installs the probe before the container exists registers it as an instance,
         // which the registrations below then leave alone.
         AttachHost(services);
-        services.TryAddSingleton<DevToolsRegistration>();
+        services.TryAddSingleton(DevToolsRegistration.Instance);
         // What the runtime reports to, and where it lands — one of each per container. Registered on every attach, but
         // installed into the process-wide hook only where the devtools switch on, which is the host's decision.
         services.TryAddSingleton<DevToolsFeeds>();
@@ -32,9 +32,3 @@ internal sealed partial class DevToolsBootstrap : IRaskDevToolsBootstrap
     /// </summary>
     static partial void AttachHost(IServiceCollection services);
 }
-
-/// <summary>
-///     Present in a container exactly when the devtools attached to it. The feed, the probe and the panel
-///     hang off this registration in later slices; on its own it is inert.
-/// </summary>
-internal sealed class DevToolsRegistration;

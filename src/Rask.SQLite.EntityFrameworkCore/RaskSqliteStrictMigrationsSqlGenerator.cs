@@ -52,13 +52,10 @@ public class RaskSqliteStrictMigrationsSqlGenerator : SqliteMigrationsSqlGenerat
 
         // Report a type STRICT cannot hold against the table and column it came from. SQLite's own
         // error names only the type, which is not much to go on when it surfaces during startup.
-        foreach (var column in operation.Columns)
+        if (operation.Columns.Find(column => !SqliteStrictTypes.IsAllowed(column.ColumnType)) is { } rejected)
         {
-            if (!SqliteStrictTypes.IsAllowed(column.ColumnType))
-            {
-                throw new InvalidOperationException(
-                    SqliteStrictTypes.Describe(operation.Name, column.Name, column.ColumnType));
-            }
+            throw new InvalidOperationException(
+                SqliteStrictTypes.Describe(operation.Name, rejected.Name, rejected.ColumnType));
         }
 
         // Suppress the base terminator so the keyword lands between the closing paren and the semicolon,

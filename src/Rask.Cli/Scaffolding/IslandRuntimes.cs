@@ -49,7 +49,7 @@ internal static class IslandRuntimes
     {
         ArgumentNullException.ThrowIfNull(runtimes);
 
-        if (runtimes.Contains("react") && runtimes.Contains("preact"))
+        if (runtimes.Contains("react", StringComparer.Ordinal) && runtimes.Contains("preact", StringComparer.Ordinal))
         {
             return "--islands cannot take both react and preact. Their Vite plugins cannot be installed "
                 + "side by side — @vitejs/plugin-react resolves Babel 8 while @preact/preset-vite pins "

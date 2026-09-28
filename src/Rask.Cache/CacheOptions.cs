@@ -1,4 +1,4 @@
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>Options for the cache and its background <see cref="CachePurger{TContext}"/>.</summary>
 public sealed class CacheOptions
@@ -19,25 +19,4 @@ public sealed class CacheOptions
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver? Json { get; set; }
-
-    /// <summary>Validates the option values once <c>Rask:Cache</c> and the callback have applied (checked at host start, so a bad value fails fast rather than tearing down the host later).</summary>
-    internal void Validate()
-    {
-        if (PurgeInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(PurgeInterval), PurgeInterval, "PurgeInterval must be positive.");
-        }
-
-        // PeriodicTimer rejects an interval above (uint.MaxValue - 1) ms (~49.7 days). Reject it here so a bad
-        // value fails fast at registration instead of throwing later inside the background service and faulting the host.
-        if (PurgeInterval.TotalMilliseconds > uint.MaxValue - 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(PurgeInterval), PurgeInterval, "PurgeInterval must be at most ~49 days.");
-        }
-
-        if (DefaultSlidingExpiration is { } sliding && sliding <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(DefaultSlidingExpiration), DefaultSlidingExpiration, "DefaultSlidingExpiration must be positive when set.");
-        }
-    }
 }

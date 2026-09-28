@@ -265,7 +265,7 @@ internal static class HtmlSelector
             + "support. Supported: tag, *, #id, .class, [attr], [attr=\"v\"], [attr^=\"v\"], "
             + "[attr$=\"v\"], [attr*=\"v\"], ':has-text(\"…\")', and the descendant and '>' combinators. "
             + "For anything else, give the element an id or a data-* attribute and select on that — the "
-            + "test reads better for it too.");
+            + "test reads better for it too.", nameof(selector));
 
     private readonly record struct Step(Simple Simple, bool Child);
 
@@ -319,20 +319,9 @@ internal static class HtmlSelector
                 return false;
             }
 
-            foreach (var cls in Classes)
+            if (!Classes.All(node.HasClass) || !Attributes.All(a => a.Matches(node)))
             {
-                if (!node.HasClass(cls))
-                {
-                    return false;
-                }
-            }
-
-            foreach (var attribute in Attributes)
-            {
-                if (!attribute.Matches(node))
-                {
-                    return false;
-                }
+                return false;
             }
 
             return HasText is null

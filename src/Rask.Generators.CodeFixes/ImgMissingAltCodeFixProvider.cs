@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Threading;
@@ -103,6 +104,6 @@ public sealed class ImgMissingAltCodeFixProvider : RaskCodeFixProvider<Expressio
     {
         var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         return model?.GetSymbolInfo(invocation, cancellationToken).Symbol is IMethodSymbol { IsStatic: true } method
-               && method.ContainingType?.Name == GeneratedClassName;
+               && string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal);
     }
 }

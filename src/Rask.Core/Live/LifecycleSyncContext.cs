@@ -93,29 +93,33 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
         using (ExecutionContext.SuppressFlow())
         {
             // Discarded on purpose: this is the continuation itself, with nothing to await it (RASK093).
-            _ = Task.Run(() =>
-            {
-                try
-                {
-                    // Restore ONLY the quiescence scope, never the whole ExecutionContext: the
-                    // suppression above exists to keep InHandlerScope from crossing, and undoing it
-                    // would reintroduce the lock-bypassing re-entrant render it was added to prevent.
-                    using var scope = QuiescenceScope.Enter(quiescence);
-                    var prev = Current;
-                    SetSynchronizationContext(this);
-                    try { d(state); }
-                    finally { SetSynchronizationContext(prev); }
+            // Never skipped, so no token: its finally is what opens the render gate.
+            _ = Task.Run(() => RunContinuation(d, state, quiescence, rendered), CancellationToken.None);
+        }
+    }
 
-                    _component.StateHasChanged();
-                }
-                finally
-                {
-                    // In a finally, and unconditionally: a hook that throws must not leave the initial
-                    // render waiting on a gate nothing will ever open. The fault is already routed to
-                    // the nearest ErrorBoundary by the caller.
-                    rendered?.TrySetResult();
-                }
-            });
+    private void RunContinuation(
+        SendOrPostCallback d, object? state, QuiescenceScope? quiescence, TaskCompletionSource? rendered)
+    {
+        try
+        {
+            // Restore ONLY the quiescence scope, never the whole ExecutionContext: the
+            // suppression in Post exists to keep InHandlerScope from crossing, and undoing it
+            // would reintroduce the lock-bypassing re-entrant render it was added to prevent.
+            using var scope = QuiescenceScope.Enter(quiescence);
+            var prev = Current;
+            SetSynchronizationContext(this);
+            try { d(state); }
+            finally { SetSynchronizationContext(prev); }
+
+            _component.StateHasChanged();
+        }
+        finally
+        {
+            // In a finally, and unconditionally: a hook that throws must not leave the initial
+            // render waiting on a gate nothing will ever open. The fault is already routed to
+            // the nearest ErrorBoundary by the caller.
+            rendered?.TrySetResult();
         }
     }
 

@@ -36,7 +36,7 @@ public sealed class HttpUserProvider(HttpClient http, AuthClientOptions options)
     public bool IsLoading { get; private set; }
 
     /// <inheritdoc />
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     /// <inheritdoc />
     /// <remarks>
@@ -95,7 +95,7 @@ public sealed class HttpUserProvider(HttpClient http, AuthClientOptions options)
         }
 
         _current = user;
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Rebuilds the principal the server described.</summary>

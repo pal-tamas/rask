@@ -35,7 +35,7 @@ internal sealed class QuiescenceScope : IDisposable
     // External work is registered from a property read, which happens many times per render for the
     // same task, so it is deduped by identity rather than appended each time.
     private readonly HashSet<Task> _externalSeen = new();
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private bool _disposed;
 
     /// <summary>The scope collecting work for the render currently running, if any.</summary>

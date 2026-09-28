@@ -33,7 +33,7 @@ public sealed partial class UiSearch : Component
             .Value(Value ?? string.Empty)
             .Type(InputType.Search)
             .Placeholder(Placeholder)
-            .Aria(new Dictionary<string, string?> { ["label"] = AccessibleLabel })
+            .Aria("label", AccessibleLabel)
             .Class("grow");
 
         if (OnSearch.HasValue)

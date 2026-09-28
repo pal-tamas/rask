@@ -186,7 +186,7 @@ public sealed partial class NavLink : Element
                 return false;
             }
 
-            if (!values.Contains(pair.Value))
+            if (!values.Contains(pair.Value, StringComparer.Ordinal))
             {
                 return false;
             }

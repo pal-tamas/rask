@@ -36,7 +36,7 @@ internal static class KeyLayout
 
     internal static bool TryParse(string key, string prefix, out Guid id)
     {
-        id = default;
+        id = Guid.Empty;
         if (!key.StartsWith(prefix, StringComparison.Ordinal))
         {
             return false;

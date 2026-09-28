@@ -8,19 +8,6 @@ using Rask.Wire;
 
 namespace Rask.Auth;
 
-/// <summary>What the browser must prove against: the relying party, the origins it may answer from, and the challenge.</summary>
-/// <param name="RelyingPartyId">The RP id the authenticator hashed — a registrable domain, no scheme and no port.</param>
-/// <param name="Origins">The origins a ceremony may come from, compared exactly.</param>
-/// <param name="Challenge">The random challenge this ceremony was started with.</param>
-internal sealed record PasskeyCeremony(string RelyingPartyId, IReadOnlyList<string> Origins, byte[] Challenge);
-
-/// <summary>What a verified registration yields: everything needed to store the credential.</summary>
-internal readonly record struct PasskeyRegistration(
-    byte[] CredentialId, byte[] PublicKey, int Algorithm, uint SignCount, bool BackedUp);
-
-/// <summary>What a verified assertion yields: the authenticator's new signature counter.</summary>
-internal readonly record struct PasskeyAssertion(uint SignCount);
-
 /// <summary>
 /// The relying party's half of WebAuthn, on the BCL: verifies what a browser returns from a passkey ceremony.
 /// </summary>
@@ -82,7 +69,7 @@ internal static class PasskeyVerifier
             return null;
         }
 
-        if ((flags & AuthenticatorFlags.AttestedCredentialData) == 0)
+        if (!flags.HasFlag(AuthenticatorBits.AttestedCredentialData))
         {
             failure = "the authenticator returned no credential";
             return null;
@@ -102,7 +89,7 @@ internal static class PasskeyVerifier
 
         failure = "";
         return new PasskeyRegistration(
-            credentialId, publicKey, algorithm, signCount, (flags & AuthenticatorFlags.BackedUp) != 0);
+            credentialId, publicKey, algorithm, signCount, flags.HasFlag(AuthenticatorBits.BackedUp));
     }
 
     /// <summary>Verifies an assertion against a stored passkey, returning its new counter, or <see langword="null" />.</summary>
@@ -272,7 +259,7 @@ internal static class PasskeyVerifier
     }
 
     private static bool IsExpectedAuthenticatorData(
-        byte[] authData, PasskeyCeremony ceremony, out AuthenticatorFlags flags, out uint signCount, out string failure)
+        byte[] authData, PasskeyCeremony ceremony, out AuthenticatorBits flags, out uint signCount, out string failure)
     {
         flags = default;
         signCount = 0;
@@ -293,16 +280,16 @@ internal static class PasskeyVerifier
             return false;
         }
 
-        flags = (AuthenticatorFlags)authData[FlagsOffset];
+        flags = (AuthenticatorBits)authData[FlagsOffset];
         signCount = BinaryPrimitives.ReadUInt32BigEndian(authData.AsSpan(SignCountOffset, 4));
 
-        if ((flags & AuthenticatorFlags.UserPresent) == 0)
+        if (!flags.HasFlag(AuthenticatorBits.UserPresent))
         {
             failure = "the user was not present";
             return false;
         }
 
-        if ((flags & AuthenticatorFlags.UserVerified) == 0)
+        if (!flags.HasFlag(AuthenticatorBits.UserVerified))
         {
             // Rask always asks for user verification, so a passkey is two factors: the device, and the biometric or PIN
             // that unlocked it. An authenticator that skipped it is not what was asked for.
@@ -340,7 +327,7 @@ internal static class PasskeyVerifier
 
                 // fmt and attStmt are read past on purpose: not verifying the attestation statement IS attestation
                 // "none", which is what a site that does not care which model of authenticator a user owns wants.
-                if (reader.ReadTextString() == "authData" && reader.PeekState() == CborReaderState.ByteString)
+                if (string.Equals(reader.ReadTextString(), "authData", StringComparison.Ordinal) && reader.PeekState() == CborReaderState.ByteString)
                 {
                     found = reader.ReadByteString();
                 }
@@ -371,7 +358,7 @@ internal static class PasskeyVerifier
 
     private static bool TryReadAttestedCredential(
         byte[] authData,
-        AuthenticatorFlags flags,
+        AuthenticatorBits flags,
         out byte[] credentialId,
         out byte[] publicKey,
         out int algorithm,
@@ -416,7 +403,7 @@ internal static class PasskeyVerifier
 
         // Extension data is allowed to follow the key, and only then: trailing bytes with no ED flag mean this is not
         // the structure it claims to be.
-        if ((flags & AuthenticatorFlags.ExtensionData) == 0 && offset != authData.Length)
+        if (!flags.HasFlag(AuthenticatorBits.ExtensionData) && offset != authData.Length)
         {
             failure = "the authenticator data had trailing bytes";
             return false;
@@ -445,30 +432,4 @@ internal static class PasskeyVerifier
             return false;
         }
     }
-}
-
-/// <summary>The flag byte of authenticator data (WebAuthn L2 §6.1).</summary>
-[Flags]
-internal enum AuthenticatorFlags : byte
-{
-    /// <summary>Nothing set.</summary>
-    None = 0,
-
-    /// <summary>UP — somebody was there and touched it.</summary>
-    UserPresent = 1 << 0,
-
-    /// <summary>UV — and proved who they were, with a biometric or a PIN.</summary>
-    UserVerified = 1 << 2,
-
-    /// <summary>BE — the credential may be backed up.</summary>
-    BackupEligible = 1 << 3,
-
-    /// <summary>BS — the credential is backed up, which is what makes a passkey synced across a user's devices.</summary>
-    BackedUp = 1 << 4,
-
-    /// <summary>AT — attested credential data follows, which a registration carries and an assertion does not.</summary>
-    AttestedCredentialData = 1 << 6,
-
-    /// <summary>ED — extension data follows.</summary>
-    ExtensionData = 1 << 7,
 }

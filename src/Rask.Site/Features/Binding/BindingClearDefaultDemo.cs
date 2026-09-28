@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Site.Features;
 
 public sealed partial class BindingClearDefaultDemo : Component
@@ -18,7 +20,7 @@ public sealed partial class BindingClearDefaultDemo : Component
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code.Id("bind-clear-echo")[
                 $"Age         = {_model.Age}\n" +
-                $"OptionalAge = {_model.OptionalAge?.ToString() ?? "null"}"
+                $"OptionalAge = {_model.OptionalAge?.ToString(CultureInfo.InvariantCulture) ?? "null"}"
             ]
         ]
     ];

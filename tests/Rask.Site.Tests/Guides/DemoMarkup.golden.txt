@@ -1410,6 +1410,8 @@ div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
 button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
 button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -1447,7 +1449,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -1465,7 +1470,9 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -1485,7 +1492,9 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -1504,7 +1513,9 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -1529,6 +1540,14 @@ div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
 div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
 button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
@@ -1576,7 +1595,9 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -2287,7 +2308,9 @@ strong
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -2946,7 +2969,14 @@ td
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3006,7 +3036,10 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3048,7 +3081,10 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3095,7 +3131,10 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3349,6 +3388,14 @@ div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-c
 div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
 button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
 button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3431,7 +3478,9 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3471,6 +3520,9 @@ div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
 button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
 button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3493,6 +3545,27 @@ p .text-sm .text-ui-muted
 div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .sm:p-5 .subscription-board
 h3 .font-semibold .text-sm
 p .text-sm .text-ui-muted
+
+=== svg-animate ===
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
+div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
+span .font-mono .opacity-60 .sample-code-label .text-xs
+button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
+svg .size-4
+path
+span .sample-copy-text
+pre .leading-relaxed .m-0 .overflow-x-auto .pb-1 .px-5 .sample-code .text-[0.82rem]
+code .language-csharp
+div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
+div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
+span .motion-safe:animate-pulse .status .status-primary
+div .flex-1 .sample-result-body
+svg
+circle
+animate
+rect
+animateTransform
 
 === svg-clickable ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
@@ -3693,7 +3766,10 @@ p .mb-0
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3718,7 +3794,9 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3749,7 +3827,12 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3832,7 +3915,9 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3860,7 +3945,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3891,7 +3979,10 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3918,7 +4009,9 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3954,7 +4047,9 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -3979,7 +4074,11 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -4052,7 +4151,10 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path
@@ -4125,7 +4227,9 @@ path
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-(--rask-ink) .min-w-0 .mockup-code .relative .rounded-none .sample-code-col .text-[#e7e3ff]
 div .absolute .flex .gap-1 .h-11 .inset-x-0 .items-center .pe-3 .ps-20 .sample-code-header .top-0
-span .font-mono .opacity-60 .sample-code-label .text-xs
+div .flex-nowrap .min-w-0 .overflow-x-auto .sample-tabs .tabs .tabs-xs
+button .active .font-mono .sample-tab .shrink-0 .tab .tab-active .text-[#e7e3ff]!
+button .font-mono .hover:opacity-100 .opacity-60 .sample-tab .shrink-0 .tab .text-[#e7e3ff]!
 button .[&amp;.copied]:opacity-100 .[&amp;.copied]:text-success! .btn .btn-ghost .btn-xs .font-normal .hover:opacity-100 .ms-auto .opacity-60 .sample-copy .shrink-0 .text-[#e7e3ff]!
 svg .size-4
 path

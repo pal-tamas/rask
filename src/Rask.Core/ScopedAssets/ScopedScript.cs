@@ -33,7 +33,7 @@ public static class ScopedScript
 
     // RaskScopedCallback is a [JSInvokable] any socket can call, and on the Server host this registry is shared by
     // every live session — so each entry answers only the session that registered it (JsCallbacks, JsCaller).
-    private static readonly JsCallbacks<Func<JsonElement, JsonSerializerOptions, Task?>> Callbacks = new();
+    private static readonly JsCallbacks<Func<JsonElement, JsonSerializerOptions, Task>> Callbacks = new();
 
     // No cancellation token on the calls: the component's lifetime token is cancelled on unmount, and a script's
     // teardown is exactly what OnUnmount and Dispose call — it has to go out after the token has fired.
@@ -51,7 +51,7 @@ public static class ScopedScript
     ///     Calls an export that returns an instance of an exported class (a constructor included), and
     ///     wraps it in the generated proxy.
     /// </summary>
-    public static async ValueTask<T> Object<T>(
+    public static async ValueTask<T> NewObject<T>(
         Component owner, string identifier, Func<IJSObjectReference, T> wrap, params object?[] args)
         where T : ScriptObject
     {
@@ -102,7 +102,7 @@ public static class ScopedScript
             return Task.CompletedTask;
         }
 
-        return callback(args, Options) ?? Task.CompletedTask;
+        return callback(args, Options);
     }
 
     /// <summary>
@@ -128,16 +128,16 @@ public static class ScopedScript
         if (owner.IsTornDown)
         {
             // Created after its component left (an async handler finishing late): nothing would ever release it.
-            _ = value.DisposeAsync();
+            _ = value.DisposeAsync().AsTask();
             return value;
         }
 
         value.Release = owner.LifetimeTokenInternal.Register(
-            static state => _ = ((ScriptObject)state!).DisposeAsync(), value);
+            static state => _ = ((ScriptObject)state!).DisposeAsync().AsTask(), value);
         return value;
     }
 
-    private static ScriptCallback Register(Component owner, Func<JsonElement, JsonSerializerOptions, Task?> invoke)
+    private static ScriptCallback Register(Component owner, Func<JsonElement, JsonSerializerOptions, Task> invoke)
     {
         if (owner.IsTornDown)
         {
@@ -148,7 +148,7 @@ public static class ScopedScript
         var id = Callbacks.Register(TryRuntime(owner), (args, options) =>
         {
             owner.RunFromScript(() => invoke(args, options));
-            return null;
+            return Task.CompletedTask;
         });
         owner.LifetimeTokenInternal.Register(static state => Callbacks.Unregister((int)state!), id);
         return new ScriptCallback(id);
@@ -161,7 +161,11 @@ public static class ScopedScript
             return default!;
         }
 
+#if NET11_0_OR_GREATER
+        var info = options.GetTypeInfo<T>();
+#else
         var info = (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
+#endif
         return args[index].Deserialize(info)!;
     }
 
@@ -207,106 +211,3 @@ public static class ScopedScript
         }
     }
 }
-
-/// <summary>
-///     Infrastructure. The base of the proxy Rask generates for a class a component's scoped TypeScript
-///     exports; each exported method becomes a typed method on the proxy. Disposed with its component.
-/// </summary>
-[EditorBrowsable(EditorBrowsableState.Never)]
-public abstract class ScriptObject : IAsyncDisposable
-{
-    private int _disposed;
-
-    /// <summary>Wraps the browser-side instance.</summary>
-    protected ScriptObject(IJSObjectReference reference) => Reference = reference;
-
-    /// <summary>The browser-side instance — what an export taking this class is handed.</summary>
-    public IJSObjectReference Reference { get; }
-
-    internal Component? Owner { get; set; }
-
-    internal CancellationTokenRegistration Release { get; set; }
-
-    /// <summary>Releases the browser-side instance. Runs by itself when the owning component unmounts.</summary>
-    public async ValueTask DisposeAsync()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) == 1)
-        {
-            return;
-        }
-
-        Release.Dispose();
-        try
-        {
-            await Reference.DisposeAsync().ConfigureAwait(false);
-        }
-        catch (JSDisconnectedException)
-        {
-            // The page is gone, and the instance with it.
-        }
-        catch (JSException)
-        {
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
-    // Named for the script rather than plainly (`Call`), because the generated proxy's own methods are
-    // the class's method names, PascalCased — a TS `call()` must not collide with the machinery.
-
-    /// <summary>Calls a method that returns nothing.</summary>
-    protected ValueTask CallScript(string method, params object?[] args) => Reference.InvokeVoidAsync(method, args);
-
-    /// <summary>Calls a method and reads its result as <typeparamref name="T" />.</summary>
-    protected ValueTask<T> CallScript<[DynamicallyAccessedMembers(ScopedScript.JsonSerialized)] T>(
-        string method, params object?[] args) => Reference.InvokeAsync<T>(method, args);
-
-    /// <summary>Calls a method that returns a tuple — see <see cref="ScopedScript.Tuple{T}" />.</summary>
-    protected async ValueTask<T> CallScriptTuple<T>(
-        string method, Func<JsonElement, T> read, params object?[] args)
-    {
-        var array = await Reference.InvokeAsync<JsonElement>(method, args).ConfigureAwait(false);
-        return read(array);
-    }
-
-    /// <summary>Calls a method that returns another exported class's instance.</summary>
-    protected async ValueTask<T> CallScriptObject<T>(
-        string method, Func<IJSObjectReference, T> wrap, params object?[] args)
-        where T : ScriptObject
-    {
-        var reference = await Reference.InvokeAsync<IJSObjectReference>(method, args).ConfigureAwait(false);
-        var value = wrap(reference);
-        return Owner is { } owner ? ScopedScript.Adopt(owner, value) : value;
-    }
-
-    /// <summary>Hands a parameterless callback to a method, owned by this instance's component.</summary>
-    protected object ScriptCallback(Callback callback) => ScopedScript.Callback(RequireOwner(), callback);
-
-    /// <summary>Hands a one-argument callback to a method, owned by this instance's component.</summary>
-    protected object ScriptCallback<T>(Callback<T> callback) => ScopedScript.Callback(RequireOwner(), callback);
-
-    /// <summary>Hands a two-argument callback to a method, owned by this instance's component.</summary>
-    protected object ScriptCallback<T1, T2>(Callback<T1, T2> callback) =>
-        ScopedScript.Callback(RequireOwner(), callback);
-
-    private Component RequireOwner() =>
-        Owner ?? throw new InvalidOperationException(
-            $"{GetType().Name} was not created by its component, so it has no component to run a callback on.");
-}
-
-/// <summary>
-///     Trim-safe metadata for what a generated scoped-script call puts on the wire by itself: the
-///     primitives a TypeScript signature maps to, a callback's id and arguments, and <c>any</c>.
-/// </summary>
-[JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
-[JsonSerializable(typeof(ScopedScript.ScriptCallback))]
-[JsonSerializable(typeof(JsonElement))]
-[JsonSerializable(typeof(double))]
-[JsonSerializable(typeof(long))]
-[JsonSerializable(typeof(bool))]
-[JsonSerializable(typeof(string))]
-[JsonSerializable(typeof(double?))]
-[JsonSerializable(typeof(bool?))]
-[JsonSerializable(typeof(IReadOnlyList<double>))]
-[JsonSerializable(typeof(IReadOnlyList<string>))]
-internal sealed partial class ScopedScriptJsonContext : JsonSerializerContext;

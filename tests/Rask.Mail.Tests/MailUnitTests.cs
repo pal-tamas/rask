@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 public sealed class MailUnitTests
 {
@@ -32,7 +32,7 @@ public sealed class MailUnitTests
         var ex = Assert.Throws<Microsoft.Extensions.Options.OptionsValidationException>(
             () => provider.GetRequiredService<MailOptions>());
 
-        Assert.Contains("Rask:Mail", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Rask:Mail:From", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -14,47 +14,6 @@ using Rask.DevTools.Panel;
 namespace Rask.DevTools.Probe;
 
 /// <summary>
-///     The feeds, one per inspected session, found by the session itself.
-/// </summary>
-/// <remarks>
-///     Keyed weakly on the session: the session store raises nothing when a session ends, and a feed that outlived its
-///     session would be a slow leak in the one process a developer leaves running all day. When the session is collected,
-///     so is its feed.
-/// </remarks>
-internal sealed class DevToolsFeeds
-{
-    private readonly ConditionalWeakTable<LiveSessionBase, DevToolsFeed> _feeds = new();
-
-    /// <summary>
-    ///     What the framework reported outside any page's render or handler — at startup, from a background service. Every
-    ///     panel shows it under its app-wide filter.
-    /// </summary>
-    internal DevToolsErrorLog AppWide { get; } = new();
-
-    // Weak for the same reason as the table. Written on every record; a torn read between two sessions is harmless,
-    // because the browser host that reads it has one app session.
-    private readonly WeakReference<LiveSessionBase?> _latest = new(null);
-
-    /// <summary>The feed for <paramref name="session" />, created on first use.</summary>
-    internal DevToolsFeed For(LiveSessionBase session)
-    {
-        _latest.SetTarget(session);
-        return _feeds.GetOrCreateValue(session);
-    }
-
-    /// <summary>The feed for <paramref name="session" /> if the devtools have seen it.</summary>
-    internal bool TryGet(LiveSessionBase session, out DevToolsFeed feed) => _feeds.TryGetValue(session, out feed!);
-
-    /// <summary>
-    ///     The feed of the session recorded most recently, or null before any. A WASM page has one app session, so this is
-    ///     the one its panel inspects; a Server host names the session instead.
-    /// </summary>
-    internal DevToolsFeed? Latest => _latest.TryGetTarget(out var session) && session is not null
-        ? _feeds.GetOrCreateValue(session)
-        : null;
-}
-
-/// <summary>
 ///     What the runtime reports to while the devtools are attached: the wire traffic, component tree, renders, interaction
 ///     timings and errors of every inspected session.
 /// </summary>
@@ -136,14 +95,17 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         if (IsPanel(session))
         {
             _panels.AddOrUpdate(session.Services, Listed);
-            t_walk = null;
-            t_renders = null;
-            t_provides = null;
-            t_reads = null;
+            TakeWalk();
             return;
         }
 
         _walking.AddOrUpdate(session.Services, session);
+        BeginWalk(feeds.For(session).WantsTree);
+    }
+
+    // Points this thread's walk at its reused buffers, emptied.
+    private static void BeginWalk(bool wantsTree)
+    {
         var buffer = t_walkBuffer ??= [];
         buffer.Clear();
         t_walk = buffer;
@@ -152,7 +114,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         t_renders = renders;
         t_walkStart = Stopwatch.GetTimestamp();
 
-        if (feeds.For(session).WantsTree)
+        if (wantsTree)
         {
             (t_providesBuffer ??= []).Clear();
             (t_readsBuffer ??= []).Clear();
@@ -166,7 +128,21 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         }
     }
 
-    public void ContextProvided(Context provider, Component owner)
+    // Hands back what this thread's walk collected and detaches it, so nothing is recorded until the next walk begins.
+    private static (List<DevToolsWalkItem>? Walk, List<DevToolsRenderItem>? Renders, List<DevToolsProvideItem>? Provides,
+        List<DevToolsReadItem>? Reads) TakeWalk()
+    {
+        var taken = (t_walk, t_renders, t_provides, t_reads);
+        t_walk = null;
+        t_renders = null;
+        t_provides = null;
+        t_reads = null;
+        return taken;
+    }
+
+    public void ContextProvided(Context provider, Component owner) => RecordProvided(provider, owner);
+
+    private static void RecordProvided(Context provider, Component owner)
     {
         if (t_provides is not { } provides || ContextStack.Head is not { } entry)
         {
@@ -244,20 +220,26 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
             return false;
         }
 
-        t_unwinding = exception;
-        t_unwindingEntry = null;
-        t_unwindingLog = null;
+        Unwinding(exception, null, null);
         if (LogForNow(out var appWide) is { } log && s_listed.TryAdd(exception, Listed))
         {
             var (title, message) = Describe(exception);
-            t_unwindingLog = log;
-            t_unwindingEntry = log.Record(
+            var recorded = log.Record(
                 DevToolsErrorKind.Render, isWarning: false, title, message, exception.ToString(),
                 DevToolsNames.Of(component.GetType()), _snapshots.IdOf(component), caught: false, appWide,
-                DateTimeOffset.Now, Verdict(exception, component));
+                TimeProvider.System.GetLocalNow(), Verdict(exception, component));
+            Unwinding(exception, recorded, log);
         }
 
         return false;
+    }
+
+    // The fault this thread is unwinding now, and where it was listed — null while it is listed nowhere.
+    private static void Unwinding(Exception exception, DevToolsErrorLog.Entry? entry, DevToolsErrorLog? log)
+    {
+        t_unwinding = exception;
+        t_unwindingEntry = entry;
+        t_unwindingLog = log;
     }
 
     public void ComponentFaulted(Component component, Exception exception, ErrorSource source, bool caught) =>
@@ -279,7 +261,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         log.Record(
             DevToolsErrorKind.Diagnostic, diagnostic.Level == RaskLogLevel.Warning, diagnostic.Category, message,
             diagnostic.Exception?.ToString(), component: null, componentId: null, caught: false, appWide,
-            DateTimeOffset.Now, diagnostic.Exception is { } reported ? Verdict(reported, null) : null);
+            TimeProvider.System.GetLocalNow(), diagnostic.Exception is { } reported ? Verdict(reported, null) : null);
     }
 
     private void RecordFault(Component component, Exception exception, DevToolsErrorKind kind, bool caught)
@@ -292,7 +274,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         var (title, message) = Describe(exception);
         var entry = log.Record(
             kind, isWarning: false, title, message, exception.ToString(), DevToolsNames.Of(component.GetType()),
-            _snapshots.IdOf(component), caught, appWide, DateTimeOffset.Now, Verdict(exception, component));
+            _snapshots.IdOf(component), caught, appWide, TimeProvider.System.GetLocalNow(), Verdict(exception, component));
 
         // The components around it, from the page's last render: a handler or a hook is not inside a walk to unwind.
         if (!appWide && s_dispatching.Value is { } feed && !ReferenceEquals(feed, PanelDispatch))
@@ -407,14 +389,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         // Which session this walk belongs to: the render context's services are the session's container, and WalkStarted
         // recorded the pair. The synchronous context first — it is valid for the walk itself — with the ambient one as
         // the fallback for a render that resumed after an await.
-        var walk = t_walk;
-        var renders = t_renders;
-        var provides = t_provides;
-        var reads = t_reads;
-        t_walk = null;
-        t_renders = null;
-        t_provides = null;
-        t_reads = null;
+        var (walk, renders, provides, reads) = TakeWalk();
         // Emptied, not kept: it would hold the page's components until this thread's next walk.
         t_providers?.Clear();
 
@@ -466,7 +441,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         if (IsPanel(session))
         {
             // The panel's own handlers are not the app's interactions, nor are their faults the app's errors.
-            s_dispatching.Value = PanelDispatch;
+            EnterPanelDispatch();
             return;
         }
 
@@ -480,8 +455,10 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         var now = Stopwatch.GetTimestamp();
         feed.RecordWire(DevToolsWireDirection.Out, kind, bytes, now);
         feed.PerfInbound(kind, now);
-        s_dispatching.Value = feed;
+        EnterDispatch(feed);
     }
+
+    private static void EnterDispatch(DevToolsFeed feed) => s_dispatching.Value = feed;
 
     // How many components the commit went through. Not the walk alone: a component the serializer renders on a path of its
     // own — an error boundary — runs Render() without being reported as walked.

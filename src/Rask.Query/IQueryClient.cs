@@ -1,6 +1,6 @@
 using Rask.Cqrs;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     The dispatcher, wrapped in a cache: dedup, staleness, background refetch and invalidation for
@@ -14,7 +14,7 @@ namespace Rask.Query;
 ///         because a process-wide cache in a multi-user host is a data leak with a plausible excuse.
 ///         On WASM and native the scope is the app, which is the same thing.
 ///     </para>
-///     <para>Inject it, hold the returned <see cref="Rask.Query.Query{TResult}" /> in a field, and render it.</para>
+///     <para>Inject it, hold the returned <see cref="Rask.Querying.Query{TResult}" /> in a field, and render it.</para>
 /// </remarks>
 public interface IQueryClient
 {

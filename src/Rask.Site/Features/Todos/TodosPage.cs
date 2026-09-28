@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Rask.Core.Routing;
 
 namespace Rask.Site.Features;
@@ -98,6 +97,37 @@ public sealed partial class TodosPage : Component
         _store.Delete(item.Id);
     }
 
+    private Component TodoRow(TodoItem item) =>
+        Li
+            .Key(item.Id)
+            .Class("flex items-center gap-2 px-3 py-2")[
+            // Input derives type="checkbox" from the bool it is given — there is no
+            // separate checkbox control to reach for.
+            Input
+                .Value(item.Completed)
+                .OnChange(v => Toggle(item, v))
+                .Id($"todo-done-{item.Id}")
+                .Class("size-4"),
+            Span.Class(item.Completed ? "todo-title completed" : "todo-title")[item.Title],
+            // Icon-only, so the glyph is the whole button: without an accessible name a
+            // screen reader announces "button" and nothing else. Bootstrap Icons carried no
+            // name either -- the label is what the icon was always standing in for.
+            // The Aria step is gone because the Label IS the accessible name here: a
+            // square button holds one glyph, so Ui.Button writes the label as aria-label
+            // rather than as visible text.
+            Ui.Button
+                .AccessibleLabel($"Edit {item.Title}")
+                .Square(true)
+                .Variant(Ui.Variant.Outline)
+                .OnClick(() => OpenEdit(item))[Ui.Icon.Name(Ui.IconName.Pencil)],
+            Ui.Button
+                .AccessibleLabel($"Delete {item.Title}")
+                .Square(true)
+                .Tone(Ui.Tone.Error)
+                .Variant(Ui.Variant.Outline)
+                .OnClick(() => Delete(item))[Ui.Icon.Name(Ui.IconName.Trash)]
+        ];
+
     protected override Component? Render() =>
         [
             PageHeader
@@ -114,40 +144,12 @@ public sealed partial class TodosPage : Component
                 ? Div.Class("text-ui-muted text-sm")["No todos yet — click \"New todo\" to add one."]
                 : Ul.Id("todo-list")
                     .Class("divide-y divide-ui-line rounded-lg ring-1 ring-ui-line")[
-                    _todos.Select(item => Li
-                        .Key(item.Id)
-                        .Class("flex items-center gap-2 px-3 py-2")[
-                        // Input derives type="checkbox" from the bool it is given — there is no
-                        // separate checkbox control to reach for.
-                        Input
-                            .Value(item.Completed)
-                            .OnChange(v => Toggle(item, v))
-                            .Id($"todo-done-{item.Id}")
-                            .Class("size-4"),
-                        Span.Class(item.Completed ? "todo-title completed" : "todo-title")[item.Title],
-                        // Icon-only, so the glyph is the whole button: without an accessible name a
-                        // screen reader announces "button" and nothing else. Bootstrap Icons carried no
-                        // name either -- the label is what the icon was always standing in for.
-                        // The Aria step is gone because the Label IS the accessible name here: a
-                        // square button holds one glyph, so Ui.Button writes the label as aria-label
-                        // rather than as visible text.
-                        Ui.Button
-                            .AccessibleLabel($"Edit {item.Title}")
-                            .Square(true)
-                            .Variant(Ui.Variant.Outline)
-                            .OnClick(() => OpenEdit(item))[Ui.Icon.Name(Ui.IconName.Pencil)],
-                        Ui.Button
-                            .AccessibleLabel($"Delete {item.Title}")
-                            .Square(true)
-                            .Tone(Ui.Tone.Error)
-                            .Variant(Ui.Variant.Outline)
-                            .OnClick(() => Delete(item))[Ui.Icon.Name(Ui.IconName.Trash)]
-                    ])
+                    _todos.Select(TodoRow)
                 ],
             CodeSample
-                .Files(["TodosPage.cs"])
+                .Files(["TodosPage.cs", "TodoFormDialog.cs", "TodoItem.cs", "TodoForm.cs"])
                 .Title("Source")
-                .Notes("The whole CRUD screen above, verbatim — page, dialog component, and model in one file. " +
+                .Notes("The whole CRUD screen above, verbatim — the page, its dialog component, and the models, a file each. " +
                 "Three [Route] attributes drive the dialog: /todos lists, /todos/new opens add, " +
                 "/todos/{id:guid}/edit opens edit. Updated seeds the form from the route so browser " +
                 "Back closes the dialog and deep links open it, without clobbering in-progress typing."),
@@ -160,82 +162,4 @@ public sealed partial class TodosPage : Component
                 .OnCancel(Cancel)
                 .OnSave(Save)
         ];
-}
-
-public sealed partial class TodoFormDialog : Component
-{
-    // Non-nullable props with no initializer → the generator emits them as required positional factory
-    // parameters (RASK001); Rask's post-render assignment satisfies them, so CS8618 here is intentional.
-    // The dialog is driven entirely by route state, so no IJSRuntime/ElementRef is
-    // needed — the whole dialog is one composed component tree with no lifecycle plumbing.
-#pragma warning disable CS8618
-    public bool Open { get; set; }
-    public TodoForm Model { get; set; }
-    public bool IsAdding { get; set; }
-#pragma warning restore CS8618
-    public Callback OnCancel { get; set; }
-    public Callback<TodoForm> OnSave { get; set; }
-
-    // OnClose fires for Escape, a backdrop click, and the header close button — all route back to /todos
-    // via OnCancel, which flips ShowDialog and closes the modal. Browser Back does the same through the URL.
-    // Template is required, so it is the chain's opening step: a validation message with no way to
-    // render itself is not a thing the type system lets you ask for.
-    private static Component FieldError(IReadOnlyList<string> errors) =>
-        Div.Class("field-error text-sm text-ui-danger-ink")[errors.Select(e => Div.Key(e)[e])];
-
-    protected override Component? Render() =>
-        // The native <dialog>. BsModal supplied a backdrop, Escape-to-dismiss and a focus trap. A
-        // <dialog> rendered with the `open` attribute is NON-modal, so it supplies none of the three —
-        // showModal() would, but it needs JS. The first two are cheap to keep as Rask state and a
-        // dialog without them is a worse dialog, so they are rebuilt below. The true focus TRAP (tab
-        // cannot leave) is the part that genuinely needs showModal, and is the honest reduction.
-        [
-            // A non-modal <dialog open> paints no backdrop of its own, so without this there is nothing
-            // dimming the page and nothing to click outside the dialog. It carries the click that cancels.
-            !Open
-                ? null
-                : Div.Class("dialog-backdrop fixed inset-0 z-40 bg-black/40").OnClick(OnCancel),
-            Dialog.Open(Open).Class(
-                "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-ui-bg p-5 shadow-xl")
-                // Escape dismisses. A non-modal dialog fires no `cancel` event, so the key is read
-                // where it lands — no client script, just the same routed cancel the backdrop uses.
-                .OnKeyDown(async e =>
-                {
-                    if (e.Key == "Escape")
-                    {
-                        await OnCancel.Invoke();
-                    }
-                })[
-                H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],
-                Form.Model(Model).OnSubmit(OnSave).Class("flex flex-col gap-3")[
-                    // autofocus fires when the browser PARSES the element -- a deep link to /todos/new
-                    // lands in the field. Opening the dialog through the live diff inserts it after
-                    // parse, where browsers ignore the attribute, so that path still needs a click.
-                    // Reliable focus-on-open would need ElementRef + IJSRuntime; this page is a routed
-                    // CRUD flow, not a dialog implementation.
-                    Ui.Input.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus(true).ShowValidation(false),
-                    Validation.Message.Template(FieldError).For(() => Model.Title),
-                    Div.Class("flex justify-end gap-2")[
-                        Ui.Button.Variant(Ui.Variant.Outline).OnClick(OnCancel)["Cancel"],
-                        Ui.Button
-                            .Tone(Ui.Tone.Primary)
-                            .Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), IsAdding ? "Add" : "Save"]
-                    ]
-                ]
-            ]
-        ];
-}
-
-public sealed class TodoItem
-{
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public string Title { get; set; } = "";
-    public bool Completed { get; set; }
-}
-
-public sealed class TodoForm
-{
-    [Required(ErrorMessage = "Title is required.")]
-    [StringLength(120, MinimumLength = 1, ErrorMessage = "Title must be 1–120 characters.")]
-    public string Title { get; set; } = "";
 }

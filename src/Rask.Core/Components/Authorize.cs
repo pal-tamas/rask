@@ -160,22 +160,12 @@ public sealed class Authorize : Component
         return true;
     }
 
-    private bool InAnyRole()
-    {
-        foreach (var role in Roles!)
-        {
-            if (!string.IsNullOrEmpty(role) && CurrentUser.IsInRole(role))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private bool InAnyRole() =>
+        Roles!.Any(role => !string.IsNullOrEmpty(role) && CurrentUser.IsInRole(role));
 
     // Re-render on sign-in/out. When a policy is in play the cached verdict is stale against the new
     // principal, so clear it and re-evaluate — showing the Authorizing slot in between.
-    private void OnUserChanged()
+    private void OnUserChanged(object? sender, EventArgs e)
     {
         if (!string.IsNullOrEmpty(Policy))
         {
@@ -189,9 +179,11 @@ public sealed class Authorize : Component
 
     private async Task RefreshPolicyThenRenderAsync()
     {
+#pragma warning disable S6966 // request the paint, never wait for the frame: nothing after this needs it sent
         StateHasChanged(); // paint the Authorizing slot immediately
         await EvaluatePolicyAsync(CurrentUser).ConfigureAwait(false);
         StateHasChanged(); // paint the resolved verdict
+#pragma warning restore S6966
     }
 
     private async Task EvaluatePolicyAsync(ClaimsPrincipal principal)

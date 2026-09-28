@@ -97,7 +97,6 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Single() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
@@ -260,3 +259,6 @@ static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscrib
 static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriberRead![]!>!
 static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.WebPush.PushSubscriberRead!>!>!
 static Rask.WebPush.PushSubscriberReadAccess.extension(Rask.WebPush.PushSubscriber!).Where(System.Linq.Expressions.Expression<System.Func<Rask.WebPush.PushSubscriberRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.WebPush.PushSubscriberRead!>!
+Rask.Batteries.Counting<T>.Only() -> T
+Rask.Batteries.CountingException.CountingException() -> void
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void

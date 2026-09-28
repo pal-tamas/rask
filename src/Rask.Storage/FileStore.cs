@@ -11,11 +11,11 @@ using Rask.Storage.Upload;
 namespace Rask.Storage;
 
 /// <summary><see cref="IFiles"/> over the application's <typeparamref name="TContext"/> and the configured store.</summary>
-internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFactory, StorageRuntime runtime) : IFiles
+internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> contextFactory, StorageRuntime runtime) : IFiles
     where TContext : DbContext
 {
     /// <summary>The same ceiling on every provider, so a link's lifetime never depends on where the bytes are.</summary>
-    internal static readonly TimeSpan MaxTemporaryUrlLifetime = TimeSpan.FromDays(7);
+    internal static TimeSpan MaxTemporaryUrlLifetime => TimeSpan.FromDays(7);
 
     private const int CopyBufferSize = 81920;
 
@@ -71,7 +71,7 @@ internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFac
         var stream = await runtime.Backend.OpenReadAsync(file.Key, 0, null, cancellationToken).ConfigureAwait(false);
         if (stream is null)
         {
-            runtime.Logger.LogError("Stored file {FileId} has a row but no bytes in {Provider}.", file.Id, file.Provider);
+            BytesMissing(runtime.Logger, file.Id, file.Provider);
         }
 
         return stream;
@@ -104,9 +104,7 @@ internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFac
 
         if (file.Provider != runtime.Backend.Provider)
         {
-            runtime.Logger.LogWarning(
-                "Deleted stored file {FileId}; its bytes are in {SavedProvider}, which is no longer configured, and were left there.",
-                file.Id, file.Provider);
+            BytesLeftInOldProvider(runtime.Logger, file.Id, file.Provider);
             return true;
         }
 
@@ -118,8 +116,7 @@ internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFac
         catch (Exception ex) when (ex is not OperationCanceledException)
 #pragma warning restore CA1031
         {
-            runtime.Logger.LogWarning(ex,
-                "Deleted stored file {FileId} but could not remove its bytes; the orphan sweep will.", file.Id);
+            BytesNotRemoved(runtime.Logger, ex, file.Id);
         }
 
         return true;
@@ -162,7 +159,7 @@ internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFac
     private async Task<StoredFile> SaveOpenedAsync(Func<long, CancellationToken, Stream> openRead, string name,
         bool isPublic, long limit, CancellationToken cancellationToken)
     {
-        // The limit handed to the opener is the storage limit: an upload's own default (512 KB for RaskFile) would
+        // The limit handed to the opener is the storage limit: an upload's own default (512 KB for IRaskFile) would
         // otherwise refuse anything larger, however high MaxFileSize is set.
         var content = openRead(limit, cancellationToken);
         await using (content.ConfigureAwait(false))
@@ -196,33 +193,7 @@ internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFac
             }
 
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            long size = 0;
-            var spoolStream = OpenSpool(spool);
-            await using (spoolStream.ConfigureAwait(false))
-            {
-                while (read > 0)
-                {
-                    size += read;
-                    if (size > options.MaxFileSize)
-                    {
-                        throw FileRejectedException.TooLarge(size, options.MaxFileSize);
-                    }
-
-                    hash.AppendData(buffer, 0, read);
-                    await spoolStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                    read = await content.ReadAsync(buffer.AsMemory(0, CopyBufferSize), cancellationToken).ConfigureAwait(false);
-                }
-
-                await spoolStream.FlushAsync(cancellationToken).ConfigureAwait(false);
-
-                // For the disk store the spool file BECOMES the stored file, so it reaches the disk before the rename:
-                // a power cut must not leave a row pointing at an empty file. A remote store's spool is uploaded and
-                // deleted moments later, and syncing it would only block a thread.
-                if (backend.Provider == StorageProvider.Disk)
-                {
-                    spoolStream.Flush(flushToDisk: true);
-                }
-            }
+            var size = await SpoolAsync(content, buffer, read, spool, hash, cancellationToken).ConfigureAwait(false);
 
             var headers = new BlobHeaders(
                 ContentTypePolicy.ServedType(contentType),
@@ -241,19 +212,62 @@ internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFac
                 isPublic,
                 runtime.Time.GetUtcNow().UtcDateTime);
 
-            var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-            await using (db.ConfigureAwait(false))
-            {
-                db.Set<StoredFile>().Add(stored);
-                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            }
-
+            await AddRowAsync(stored, cancellationToken).ConfigureAwait(false);
             return stored;
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
             TryDelete(spool);
+        }
+    }
+
+    /// <summary>
+    /// Copies <paramref name="content"/> — whose first <paramref name="read"/> bytes are already in
+    /// <paramref name="buffer"/> — to the spool file, hashing it and enforcing the size limit. Returns the size.
+    /// </summary>
+    private async Task<long> SpoolAsync(
+        Stream content, byte[] buffer, int read, string spool, IncrementalHash hash, CancellationToken cancellationToken)
+    {
+        var maxFileSize = runtime.Options.MaxFileSize;
+        long size = 0;
+        var spoolStream = OpenSpool(spool);
+        await using (spoolStream.ConfigureAwait(false))
+        {
+            while (read > 0)
+            {
+                size += read;
+                if (size > maxFileSize)
+                {
+                    throw FileRejectedException.TooLarge(size, maxFileSize);
+                }
+
+                hash.AppendData(buffer, 0, read);
+                await spoolStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                read = await content.ReadAsync(buffer.AsMemory(0, CopyBufferSize), cancellationToken).ConfigureAwait(false);
+            }
+
+            await spoolStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+            // For the disk store the spool file BECOMES the stored file, so it reaches the disk before the rename:
+            // a power cut must not leave a row pointing at an empty file. A remote store's spool is uploaded and
+            // deleted moments later, and syncing it would only block a thread.
+            if (runtime.Backend.Provider == StorageProvider.Disk)
+            {
+                spoolStream.Flush(flushToDisk: true);
+            }
+        }
+
+        return size;
+    }
+
+    private async Task AddRowAsync(StoredFile stored, CancellationToken cancellationToken)
+    {
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            db.Set<StoredFile>().Add(stored);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -297,4 +311,15 @@ internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFac
             // Left for DeleteStaleSpoolAsync.
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Stored file {FileId} has a row but no bytes in {Provider}.")]
+    private static partial void BytesMissing(ILogger logger, Guid fileId, StorageProvider provider);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Deleted stored file {FileId}; its bytes are in {SavedProvider}, which is no longer configured, and were left there.")]
+    private static partial void BytesLeftInOldProvider(ILogger logger, Guid fileId, StorageProvider savedProvider);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Deleted stored file {FileId} but could not remove its bytes; the orphan sweep will.")]
+    private static partial void BytesNotRemoved(ILogger logger, Exception exception, Guid fileId);
 }

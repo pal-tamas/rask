@@ -39,35 +39,34 @@ public static class QueryString
                 continue;
             }
 
-            var pair = span[start..i];
-            var eq = pair.IndexOf('=');
-            string key;
-            string value;
-            if (eq < 0)
-            {
-                key = Uri.UnescapeDataString(pair.ToString().Replace('+', ' '));
-                value = string.Empty;
-            }
-            else
-            {
-                key = Uri.UnescapeDataString(pair[..eq].ToString().Replace('+', ' '));
-                value = Uri.UnescapeDataString(pair[(eq + 1)..].ToString().Replace('+', ' '));
-            }
-
-            if (dict.TryGetValue(key, out var existing))
-            {
-                dict[key] = StringValues.Concat(existing, value);
-            }
-            else
-            {
-                dict[key] = value;
-            }
-
+            AddPair(dict, span[start..i]);
             start = i + 1;
         }
 
         return new QueryCollection(dict);
     }
+
+    // One `key=value` (or bare `key`) pair, decoded; a repeated key accumulates its values.
+    private static void AddPair(Dictionary<string, StringValues> dict, ReadOnlySpan<char> pair)
+    {
+        var eq = pair.IndexOf('=');
+        string key;
+        string value;
+        if (eq < 0)
+        {
+            key = Decode(pair);
+            value = string.Empty;
+        }
+        else
+        {
+            key = Decode(pair[..eq]);
+            value = Decode(pair[(eq + 1)..]);
+        }
+
+        dict[key] = dict.TryGetValue(key, out var existing) ? StringValues.Concat(existing, value) : value;
+    }
+
+    private static string Decode(ReadOnlySpan<char> part) => Uri.UnescapeDataString(part.ToString().Replace('+', ' '));
 
     public static string Build(string path, IEnumerable<KeyValuePair<string, StringValues>> query)
     {

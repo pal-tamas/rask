@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>
 /// Sweeps expired <see cref="CacheEntry"/> rows out of the table on a schedule (<see cref="CacheOptions.PurgeInterval"/>).
@@ -10,7 +10,7 @@ namespace Rask.Cache;
 /// again. A transient database error never crashes the app. Run <b>one purger per app</b> (SQLite is single-writer).
 /// </summary>
 /// <typeparam name="TContext">The application's <see cref="DbContext"/> that owns the cache table.</typeparam>
-public sealed class CachePurger<TContext>(
+public sealed partial class CachePurger<TContext>(
     IDbContextFactory<TContext> contextFactory,
     CacheOptions options,
     TimeProvider timeProvider,
@@ -40,7 +40,8 @@ public sealed class CachePurger<TContext>(
         try
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
-            await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
             await db.Set<CacheEntry>()
                 .Where(e => e.ExpiresAt <= now)
                 .ExecuteDeleteAsync(cancellationToken)
@@ -54,7 +55,10 @@ public sealed class CachePurger<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogError(ex, "Cache purge sweep failed; retrying on the next interval.");
+            PurgeFailed(logger, ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Cache purge sweep failed; retrying on the next interval.")]
+    private static partial void PurgeFailed(ILogger logger, Exception exception);
 }

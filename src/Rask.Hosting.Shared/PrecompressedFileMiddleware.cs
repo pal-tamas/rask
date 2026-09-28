@@ -55,7 +55,7 @@ internal sealed class PrecompressedFileMiddleware
         }
 
         var path = context.Request.Path.Value;
-        if (string.IsNullOrEmpty(path) || path == "/")
+        if (string.IsNullOrEmpty(path) || string.Equals(path, "/", StringComparison.Ordinal))
         {
             return _next(context);
         }
@@ -73,7 +73,7 @@ internal sealed class PrecompressedFileMiddleware
             return _next(context);
         }
 
-        var siblingPath = path + (encoding == "br" ? ".br" : ".gz");
+        var siblingPath = path + (string.Equals(encoding, "br", StringComparison.Ordinal) ? ".br" : ".gz");
         var sibling = _fileProvider.GetFileInfo(siblingPath);
         if (!sibling.Exists || sibling.IsDirectory)
         {

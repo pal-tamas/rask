@@ -66,8 +66,8 @@ public readonly struct Callback
     /// </summary>
     public ValueTask Invoke() => _handler switch
     {
-        Action sync => Run(sync),
-        Func<Task> async => Await(async()),
+        Action syncHandler => Run(syncHandler),
+        Func<Task> asyncHandler => Await(asyncHandler()),
         null => default,
         _ => throw Unexpected(_handler),
     };
@@ -122,8 +122,8 @@ public readonly struct Callback<T>
     /// <param name="arg">The argument the event carries.</param>
     public ValueTask Invoke(T arg) => _handler switch
     {
-        Action<T> sync => Run(sync, arg),
-        Func<T, Task> async => Callback.Await(async(arg)),
+        Action<T> syncHandler => Run(syncHandler, arg),
+        Func<T, Task> asyncHandler => Callback.Await(asyncHandler(arg)),
         Action ignoring => Run(ignoring),
         Func<Task> ignoringAsync => Callback.Await(ignoringAsync()),
         null => default,
@@ -176,8 +176,8 @@ public readonly struct Callback<T1, T2>
     /// <param name="arg2">The second argument the event carries.</param>
     public ValueTask Invoke(T1 arg1, T2 arg2) => _handler switch
     {
-        Action<T1, T2> sync => Run(sync, arg1, arg2),
-        Func<T1, T2, Task> async => Callback.Await(async(arg1, arg2)),
+        Action<T1, T2> syncHandler => Run(syncHandler, arg1, arg2),
+        Func<T1, T2, Task> asyncHandler => Callback.Await(asyncHandler(arg1, arg2)),
         null => default,
         _ => throw Callback.Unexpected(_handler),
     };

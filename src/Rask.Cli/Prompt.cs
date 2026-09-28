@@ -86,10 +86,12 @@ internal sealed class Prompt(IConsole console)
     private static bool? IsYes(string answer)
     {
         answer = answer.Trim();
-        return answer.Length == 0 ? null
-            : answer.Equals("y", StringComparison.OrdinalIgnoreCase) || answer.Equals("yes", StringComparison.OrdinalIgnoreCase) ? true
-            : answer.Equals("n", StringComparison.OrdinalIgnoreCase) || answer.Equals("no", StringComparison.OrdinalIgnoreCase) ? false
-            : null;
+        return answer.ToUpperInvariant() switch
+        {
+            "Y" or "YES" => true,
+            "N" or "NO" => false,
+            _ => null,
+        };
     }
 
     /// <summary>
@@ -158,10 +160,10 @@ internal sealed class Prompt(IConsole console)
             .InstructionsText("[dim](space to toggle, enter to accept, nothing selected is fine)[/]")
             .UseConverter(value => LabelOf(options, value, @default: null));
 
-        foreach (var option in options)
+        foreach (var value in options.Select(option => option.Value))
         {
-            var item = prompt.AddChoice(option.Value);
-            if (preselected.Contains(option.Value))
+            var item = prompt.AddChoice(value);
+            if (preselected.Contains(value, StringComparer.Ordinal))
             {
                 item.Select();
             }

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 /// Leased claiming: what stops two processor instances running the same job.

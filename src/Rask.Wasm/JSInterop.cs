@@ -16,7 +16,9 @@ namespace Rask.Wasm;
 // suppression. Removing `partial` breaks the WASM build with CS0751.
 internal static partial class JSInterop
 {
+#if RASK_BROWSER
     private const string ModuleName = "rask";
+#endif
     private static WasmLiveSession? _session;
     private static WasmJSRuntime? _runtime;
     private static WasmHostedServices? _hostedServices;
@@ -44,6 +46,17 @@ internal static partial class JSInterop
     ///     resolves the runtime.
     /// </summary>
     public static void Init(WasmJSRuntime runtime) => _runtime = runtime;
+
+    /// <summary>
+    ///     Drains the app's hosted services because the page is going away. Called from the
+    ///     <c>pagehide</c> listener in <c>rask.wasm.js</c> — only for a real teardown, never for a
+    ///     back/forward-cache suspend, where the page can be resumed with its services still needed.
+    /// </summary>
+#if RASK_BROWSER
+    [JSExport]
+#endif
+    public static Task StopHostedServices() =>
+        _hostedServices?.StopAsync(ShutdownGrace) ?? Task.CompletedTask;
 
 #if RASK_BROWSER
     public static Task ImportJsModuleAsync() =>
@@ -117,15 +130,6 @@ internal static partial class JSInterop
                 ex);
         }
     }
-
-    /// <summary>
-    ///     Drains the app's hosted services because the page is going away. Called from the
-    ///     <c>pagehide</c> listener in <c>rask.wasm.js</c> — only for a real teardown, never for a
-    ///     back/forward-cache suspend, where the page can be resumed with its services still needed.
-    /// </summary>
-    [JSExport]
-    public static Task StopHostedServices() =>
-        _hostedServices?.StopAsync(ShutdownGrace) ?? Task.CompletedTask;
 
     // Sync byte[] return — JSExport's marshaller maps that to a Uint8Array on the JS side
     // with zero base64 round-trip. JS triggerDownload calls this in response to a render
@@ -257,16 +261,25 @@ internal static partial class JSInterop
         return _session?.DispatchAsync(json) ?? Task.CompletedTask;
     }
 
-    public static void ApplyRender(Span<byte> payload) { }
+    public static void ApplyRender(Span<byte> payload)
+    {
+        // No page to apply the frame to.
+    }
 
+#pragma warning disable S3400 // each stub mirrors a browser [JSImport] method, which a constant cannot stand in for
     public static string GetLocation() => "/";
     public static string GetBaseAddress() => "/";
 
     /// <summary>No browser, so no signals — the app falls back to its configured default culture.</summary>
     public static string GetCultureSignals() => "{}";
-    public static void PushHistory(string url, bool replace) { }
 
     public static string GetBasePath() => "/";
+#pragma warning restore S3400
+
+    public static void PushHistory(string url, bool replace)
+    {
+        // No history to push onto.
+    }
 
     /// <summary>Counts the indicator calls so the non-browser tests can assert the bridge fired.</summary>
     public static int HotReloadAppliedCount { get; private set; }

@@ -58,7 +58,11 @@ internal static class ContentSniffer
         return Signature(head) ?? Markup(head) ?? (IsText(head) ? "text/plain" : OctetStream);
     }
 
-    private static string? Signature(ReadOnlySpan<byte> h)
+    // Checked in this order: the groups are only split for length, and order matters where signatures overlap
+    // (see the MPEG frame sync at the end).
+    private static string? Signature(ReadOnlySpan<byte> h) => MediaSignature(h) ?? DocumentSignature(h) ?? OtherSignature(h);
+
+    private static string? MediaSignature(ReadOnlySpan<byte> h)
     {
         if (h.StartsWith(Png))
         {
@@ -77,11 +81,7 @@ internal static class ContentSniffer
 
         if (h.Length >= 12 && h.StartsWith("RIFF"u8))
         {
-            var form = h.Slice(8, 4);
-            return form.SequenceEqual("WEBP"u8) ? "image/webp"
-                : form.SequenceEqual("WAVE"u8) ? "audio/wav"
-                : form.SequenceEqual("AVI "u8) ? "video/x-msvideo"
-                : OctetStream;
+            return Riff(h.Slice(8, 4));
         }
 
         if (h.Length >= 12 && h.Slice(4, 4).SequenceEqual("ftyp"u8))
@@ -94,6 +94,11 @@ internal static class ContentSniffer
             return h.IndexOf("webm"u8) >= 0 ? "video/webm" : "video/x-matroska";
         }
 
+        return null;
+    }
+
+    private static string? DocumentSignature(ReadOnlySpan<byte> h)
+    {
         if (h.StartsWith("%PDF-"u8))
         {
             return "application/pdf";
@@ -137,6 +142,11 @@ internal static class ContentSniffer
             return "application/vnd.rar";
         }
 
+        return null;
+    }
+
+    private static string? OtherSignature(ReadOnlySpan<byte> h)
+    {
         if (h.StartsWith(TiffLittle) || h.StartsWith(TiffBig))
         {
             return "image/tiff";
@@ -185,6 +195,21 @@ internal static class ContentSniffer
         }
 
         return null;
+    }
+
+    private static string Riff(ReadOnlySpan<byte> form)
+    {
+        if (form.SequenceEqual("WEBP"u8))
+        {
+            return "image/webp";
+        }
+
+        if (form.SequenceEqual("WAVE"u8))
+        {
+            return "audio/wav";
+        }
+
+        return form.SequenceEqual("AVI "u8) ? "video/x-msvideo" : OctetStream;
     }
 
     private static string IsoMedia(ReadOnlySpan<byte> h)

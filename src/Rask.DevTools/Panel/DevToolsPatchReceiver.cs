@@ -29,7 +29,7 @@ internal sealed partial class DevToolsPatchReceiver : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Span.Hidden(true)
-            .Data(new Dictionary<string, string?> { ["rask-devtools-patch"] = "" })
+            .Data("rask-devtools-patch", "")
             .OnKeyDown(e => Received(e.Key));
 
     private void Received(string? key)

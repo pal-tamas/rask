@@ -32,11 +32,13 @@ public sealed partial class UiText : Component
     {
         var classes = UiClass.Compose(
             UiClassNames.TextSize(Size ?? Ui.Size.Default),
-            Tone is { } tone
-                ? UiClassNames.TextTone(tone)
-                : Strong == true
-                    ? "text-base-content font-medium"
-                    : Subtle == true ? "text-base-content/60" : "text-base-content/80",
+            (Tone, Strong, Subtle) switch
+            {
+                ({ } tone, _, _) => UiClassNames.TextTone(tone),
+                (_, true, _) => "text-base-content font-medium",
+                (_, _, true) => "text-base-content/60",
+                _ => "text-base-content/80",
+            },
             Class);
 
         return Inline == true ? Span.Class(classes)[Children ?? []] : P.Class(classes)[Children ?? []];

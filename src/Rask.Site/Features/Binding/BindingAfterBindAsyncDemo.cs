@@ -2,7 +2,7 @@ namespace Rask.Site.Features;
 
 public sealed partial class BindingAfterBindAsyncDemo : Component
 {
-    private static readonly Dictionary<string, string[]> _catalog = new()
+    private static readonly Dictionary<string, string[]> _catalog = new(StringComparer.Ordinal)
     {
         ["frontend"] = ["TypeScript", "JavaScript", "HTML", "CSS"],
         ["backend"] = ["C#", "Rust", "Go", "Python"],
@@ -29,7 +29,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                 .AfterBind(async track =>
                 {
                     // An unknown track clears the dependent list instead of throwing on _catalog[track].
-                    if (track is null || !_catalog.ContainsKey(track))
+                    if (track is null || !_catalog.TryGetValue(track, out var languages))
                     {
                         _languages = [];
                         _model.Language = null;
@@ -54,7 +54,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                         return;
                     }
 
-                    _languages = _catalog[track];
+                    _languages = languages;
                     _model.Language = _languages[0];
                     _loading = false;
                 })
@@ -76,7 +76,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
         ]
     ];
 
-    private sealed class Holder
+    public sealed class Holder
     {
         public string? Track { get; set; }
         public string? Language { get; set; }

@@ -72,7 +72,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// refusal and the generation agreeing.
     /// </remarks>
     private static bool IsFrontEndPlusHost(string templateKey) =>
-        templateKey == WasmHostedKey
+        string.Equals(templateKey, WasmHostedKey, StringComparison.Ordinal)
         || SpaFramework.TryGet(templateKey, out _)
         || MetaTemplate.TryGet(templateKey, out _);
 
@@ -163,31 +163,12 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail(parsed.Errors);
         }
 
-        // A second positional is almost always an unquoted multi-word name — `rask new My App`. Taking the
-        // first and dropping the rest would scaffold a project called "My" and say nothing, which is the
-        // worst outcome available: silent, wrong, and only noticed after the files are on disk. Every other
-        // command in this CLI rejects a stray positional; this one used to be the exception.
-        if (parsed.Positionals.Count > 1)
+        if (NameArgumentError(parsed) is { } nameError)
         {
-            var joined = string.Concat(parsed.Positionals);
-            return Fail(
-                $"'rask new' takes one project name, but got {parsed.Positionals.Count.ToString(CultureInfo.InvariantCulture)}: "
-                + $"{string.Join(", ", parsed.Positionals.Select(p => $"'{p}'"))}. "
-                + (Identifiers.IsValidNamespaceName(joined)
-                    ? $"A project name can't contain spaces — did you mean '{joined}'?"
-                    : "A project name can't contain spaces."));
+            return Fail(nameError);
         }
 
-        // Both spellings of the same answer, disagreeing. Preferring one silently means the command did
-        // something the user can read the opposite of straight off their own command line.
-        if (parsed.Option("name") is { } named
-            && parsed.Positionals.FirstOrDefault() is { } positional
-            && !named.Equals(positional, StringComparison.Ordinal))
-        {
-            return Fail($"Two different project names given: '{positional}' and --name '{named}'. Pass one.");
-        }
-
-        var name = parsed.Option("name") ?? parsed.Positionals.FirstOrDefault();
+        var name = parsed.Option("name") ?? parsed.FirstPositional;
         if (string.IsNullOrWhiteSpace(name))
         {
             // No name given. On a terminal, walk an interactive wizard and re-run with the answers
@@ -201,6 +182,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return Fail("A project name is required, e.g. 'rask new Shop'.");
         }
 
+        return await ScaffoldAsync(parsed, name, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<int> ScaffoldAsync(ParsedArguments parsed, string name, CancellationToken cancellationToken)
+    {
         if (ValidateOutput(parsed.Option("output")) is { } outputError)
         {
             return Fail(outputError);
@@ -224,7 +210,68 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Everything the template can do is on unless it was turned off, so the only per-battery input is
         // the --no-* set. Auth is the exception in both directions: off by default, and asked for by name.
         var off = BatteryFlags.Where(flag => parsed.HasFlag(OffFlag(flag))).ToArray();
+        if (BatteryFlagError(template, off) is { } batteryError)
+        {
+            return Fail(batteryError);
+        }
 
+        var batteries = ToBatteries(template, off);
+
+        var islands = parsed.MultiOption("islands");
+        if (IslandsError(template, islands) is { } islandsError)
+        {
+            return Fail(islandsError);
+        }
+
+        // The schema declares the accepted monikers as this option's choices, so the parse already rejected
+        // anything else; DotnetTarget.For maps the validated value.
+        var dotnet = DotnetTarget.For(parsed.Option("framework"));
+        if (await SdkErrorAsync(dotnet, cancellationToken).ConfigureAwait(false) is { } sdkError)
+        {
+            return Fail(sdkError);
+        }
+
+        // Every template is generated directly by the CLI; the key here is one the catalog knows
+        // (validated by TemplateCatalog.TryGet).
+        return await GenerateDirectAsync(
+            template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
+            parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"), batteries,
+            (dir, version) => Generate(template, dir, name, batteries, version, islands, dotnet),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Why the project name on this command line cannot be used as given, or null when it can.</summary>
+    private static string? NameArgumentError(ParsedArguments parsed)
+    {
+        // A second positional is almost always an unquoted multi-word name — `rask new My App`. Taking the
+        // first and dropping the rest would scaffold a project called "My" and say nothing, which is the
+        // worst outcome available: silent, wrong, and only noticed after the files are on disk. Every other
+        // command in this CLI rejects a stray positional; this one used to be the exception.
+        if (parsed.Positionals.Count > 1)
+        {
+            var joined = string.Concat(parsed.Positionals);
+            return $"'rask new' takes one project name, but got {parsed.Positionals.Count.ToString(CultureInfo.InvariantCulture)}: "
+                + $"{string.Join(", ", parsed.Positionals.Select(p => $"'{p}'"))}. "
+                + (Identifiers.IsValidNamespaceName(joined)
+                    ? $"A project name can't contain spaces — did you mean '{joined}'?"
+                    : "A project name can't contain spaces.");
+        }
+
+        // Both spellings of the same answer, disagreeing. Preferring one silently means the command did
+        // something the user can read the opposite of straight off their own command line.
+        if (parsed.Option("name") is { } named
+            && parsed.FirstPositional is { } positional
+            && !named.Equals(positional, StringComparison.Ordinal))
+        {
+            return $"Two different project names given: '{positional}' and --name '{named}'. Pass one.";
+        }
+
+        return null;
+    }
+
+    /// <summary>Why the <c>--no-*</c> set cannot apply to <paramref name="template" />, or null when it can.</summary>
+    private static string? BatteryFlagError(TemplateInfo template, string[] off)
+    {
         // Turning off something this template never had is a mistake worth naming: it means the command
         // line was written against a different template, and silently accepting it would hide that.
         var absent = off.Where(flag => !template.SupportedFlags.Contains(flag))
@@ -236,8 +283,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 ? "(none)"
                 : string.Join(", ", template.SupportedFlags.OrderBy(f => f, StringComparer.Ordinal));
             var rejected = string.Join(", ", absent.Select(f => "--" + f));
-            return Fail(
-                $"Template '{template.Key}' has nothing to change for: {rejected}. It supports: {supported}.");
+            return $"Template '{template.Key}' has nothing to change for: {rejected}. It supports: {supported}.";
         }
 
         // The generated contracts ARE the mediator's wire on the front-end-plus-host templates, so there is
@@ -250,39 +296,39 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // is C# over Rask.Cqrs.Client rather than generated TypeScript — the same wire, a different language.
         if (off.Contains("cqrs") && IsFrontEndPlusHost(template.Key))
         {
-            var wire = template.Key == WasmHostedKey
+            var wire = string.Equals(template.Key, WasmHostedKey, StringComparison.Ordinal)
                 ? "the browser half dispatches through it over Rask.Cqrs.Client"
                 : "the generated TypeScript client dispatches through it";
-            return Fail(
-                $"Template '{template.Key}' can't drop CQRS — {wire}, so it is the template rather than a "
-                + "battery in it.");
+            return $"Template '{template.Key}' can't drop CQRS — {wire}, so it is the template rather than a "
+                + "battery in it.";
         }
 
-        var batteries = ToBatteries(template, off);
+        return null;
+    }
+
+    /// <summary>Why <c>--islands</c> cannot apply here, or null when it can (or was not asked for).</summary>
+    private static string? IslandsError(TemplateInfo template, IReadOnlyList<string> islands)
+    {
+        if (islands.Count == 0)
+        {
+            return null;
+        }
 
         // Islands ride on a C# host: the SPA and meta templates ARE a front end already, and a second
         // bundler inside one is not a shape this supports.
-        var islands = parsed.MultiOption("islands");
-        if (islands.Count > 0)
+        if (SpaFramework.TryGet(template.Key, out _) || MetaTemplate.TryGet(template.Key, out _))
         {
-            if (SpaFramework.TryGet(template.Key, out _) || MetaTemplate.TryGet(template.Key, out _))
-            {
-                return Fail(
-                    $"--islands is not available on --template {template.Key}: that template's whole "
-                    + "client IS a front end. Islands put a front-end component inside a C# host — use "
-                    + "the server or wasm template, or add a component to the client you already have.");
-            }
-
-            if (IslandRuntimes.Refuse(islands) is { } refusal)
-            {
-                return Fail(refusal);
-            }
+            return $"--islands is not available on --template {template.Key}: that template's whole "
+                + "client IS a front end. Islands put a front-end component inside a C# host — use "
+                + "the server or wasm template, or add a component to the client you already have.";
         }
 
-        // The schema declares the accepted monikers as this option's choices, so the parse already rejected
-        // anything else; DotnetTarget.For maps the validated value.
-        var dotnet = DotnetTarget.For(parsed.Option("framework"));
+        return IslandRuntimes.Refuse(islands);
+    }
 
+    /// <summary>Why the installed SDK cannot build <paramref name="dotnet" />, or null when it can.</summary>
+    private async Task<string?> SdkErrorAsync(DotnetTarget dotnet, CancellationToken cancellationToken)
+    {
         // Refused BEFORE a file is written, not left to the build. Scaffolding first would leave a directory
         // that cannot compile — and the SDK's own message (NETSDK1045) names a framework the author chose
         // deliberately, which reads as Rask being broken rather than as an SDK they have not installed yet.
@@ -294,45 +340,42 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             && await SdkMajorAsync(cancellationToken).ConfigureAwait(false) is { } sdkMajor
             && sdkMajor < dotnet.SdkMajor)
         {
-            return Fail(
-                $"--framework {dotnet.Moniker} needs the .NET {dotnet.SdkMajor} SDK, and the `dotnet` on your PATH "
+            return $"--framework {dotnet.Moniker} needs the .NET {dotnet.SdkMajor} SDK, and the `dotnet` on your PATH "
                 + $"is {sdkMajor}.x. Install it from https://dotnet.microsoft.com/download, or scaffold for "
-                + $"{DotnetTarget.Default.Moniker} — Rask ships for both.");
+                + $"{DotnetTarget.Default.Moniker} — Rask ships for both.";
         }
 
-        // Every template is generated directly by the CLI; the key here is one the catalog knows
-        // (validated by TemplateCatalog.TryGet).
-        return await GenerateDirectAsync(
-            template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
-            parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"), batteries,
-            (dir, version) =>
-            {
-                // A front-end framework claims its own template key, so this has to be asked before the
-                // switch below — and asking the SAME list the catalog was built from is what stops a key
-                // being accepted by the parser and then generating something else.
-                if (SpaFramework.TryGet(template.Key, out var framework))
-                {
-                    return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version, dotnet);
-                }
+        return null;
+    }
 
-                // The other front-end lane, asked the same way and for the same reason: the meta
-                // templates' keys ARE the RaskMetaFramework values, so this asks the table that decides
-                // what gets built rather than a second list that can drift from it.
-                if (MetaTemplate.TryGet(template.Key, out var meta))
-                {
-                    return ProjectGenerator.GenerateMeta(dir, name, meta, batteries, version, dotnet);
-                }
+    private static ScaffoldResult Generate(
+        TemplateInfo template, string dir, string name, ServerBatteries batteries, string version,
+        IReadOnlyList<string> islands, DotnetTarget dotnet)
+    {
+        // A front-end framework claims its own template key, so this has to be asked before the
+        // switch below — and asking the SAME list the catalog was built from is what stops a key
+        // being accepted by the parser and then generating something else.
+        if (SpaFramework.TryGet(template.Key, out var framework))
+        {
+            return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version, dotnet);
+        }
 
-                return template.Key switch
-                {
-                    "wasm" => ProjectGenerator.GenerateWasm(
-                        dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands, dotnet),
-                    WasmHostedKey => ProjectGenerator.GenerateWasmHosted(
-                        dir, name, batteries, version, islands, dotnet),
-                    _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands, dotnet),
-                };
-            },
-            cancellationToken).ConfigureAwait(false);
+        // The other front-end lane, asked the same way and for the same reason: the meta
+        // templates' keys ARE the RaskMetaFramework values, so this asks the table that decides
+        // what gets built rather than a second list that can drift from it.
+        if (MetaTemplate.TryGet(template.Key, out var meta))
+        {
+            return ProjectGenerator.GenerateMeta(dir, name, meta, batteries, version, dotnet);
+        }
+
+        return template.Key switch
+        {
+            "wasm" => ProjectGenerator.GenerateWasm(
+                dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands, dotnet),
+            WasmHostedKey => ProjectGenerator.GenerateWasmHosted(
+                dir, name, batteries, version, islands, dotnet),
+            _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands, dotnet),
+        };
     }
 
     /// <summary>
@@ -373,65 +416,59 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// then disregards is this repository's most expensive bug class — it is what <c>--template native</c>
     /// did, and the reason <c>--tailwind</c> is refused on the WASM templates instead of ignored.
     /// </remarks>
-    private static string? RetiredFlagError(IReadOnlyList<string> args)
-    {
-        foreach (var arg in args)
-        {
+    private static string? RetiredFlagError(IReadOnlyList<string> args) =>
+        args
+            .Where(arg => arg.StartsWith("--", StringComparison.Ordinal))
             // `--flag=false` is a spelling the parser accepts, so match the prefix too rather than only
             // the bare token.
-            var name = arg.StartsWith("--", StringComparison.Ordinal)
-                ? arg[2..].Split('=')[0]
-                : null;
+            .Select(arg => RetiredFlagMessage(arg[2..].Split('=')[0]))
+            .FirstOrDefault(message => message is not null);
 
-            if (name is null)
-            {
-                continue;
-            }
+    private static string? RetiredFlagMessage(string name)
+    {
+        // Both named an answer on an axis that no longer exists. Tailwind is not an option a project
+        // picks, it is what a Rask project is styled with — so there is nothing left for either flag
+        // to mean, and someone's muscle memory still has them in it.
+        if (name.Equals("tailwind", StringComparison.Ordinal))
+        {
+            return "--tailwind is gone: Tailwind is built in, so every project is scaffolded with it.";
+        }
 
-            // Both named an answer on an axis that no longer exists. Tailwind is not an option a project
-            // picks, it is what a Rask project is styled with — so there is nothing left for either flag
-            // to mean, and someone's muscle memory still has them in it.
-            if (name.Equals("tailwind", StringComparison.Ordinal))
-            {
-                return "--tailwind is gone: Tailwind is built in, so every project is scaffolded with it.";
-            }
+        if (name.Equals("bootstrap", StringComparison.Ordinal))
+        {
+            return "--bootstrap is gone: Rask.Bootstrap has been removed and every project is styled "
+                + "with Tailwind, which is built in.";
+        }
 
-            if (name.Equals("bootstrap", StringComparison.Ordinal))
-            {
-                return "--bootstrap is gone: Rask.Bootstrap has been removed and every project is styled "
-                    + "with Tailwind, which is built in.";
-            }
+        if (name.Equals("auth", StringComparison.Ordinal))
+        {
+            return "--auth is gone: every app with a database has accounts now. Register, sign in and "
+                + "sign out work out of the box, and /login, /register and /logout are already routed. "
+                + "To do without them, write app.Configure(c => c.Auth.Off()) in Program.cs.";
+        }
 
-            if (name.Equals("auth", StringComparison.Ordinal))
-            {
-                return "--auth is gone: every app with a database has accounts now. Register, sign in and "
-                    + "sign out work out of the box, and /login, /register and /logout are already routed. "
-                    + "To do without them, write app.Configure(c => c.Auth.Off()) in Program.cs.";
-            }
+        if (name.Equals("all-batteries", StringComparison.Ordinal))
+        {
+            return "--all-batteries is gone: every battery is on by default now. "
+                + "Pass --no-<battery> to leave one out, e.g. --no-push.";
+        }
 
-            if (name.Equals("all-batteries", StringComparison.Ordinal))
-            {
-                return "--all-batteries is gone: every battery is on by default now. "
-                    + "Pass --no-<battery> to leave one out, e.g. --no-push.";
-            }
+        // Ahead of the general case, which would say "on by default now" and send the reader looking
+        // for a --no- that no longer exists either.
+        if (name.Equals("localization", StringComparison.Ordinal)
+            || name.Equals("no-localization", StringComparison.Ordinal)
+            || name.Equals("culture", StringComparison.Ordinal))
+        {
+            return $"--{name} is gone: the languages an app ships are configured in Program.cs, not on "
+                + "this command line. A new project starts with English, and adding a language is a "
+                + "line in the AddRask(configureCulture: ...) call it already has — see "
+                + "docs/localization.md.";
+        }
 
-            // Ahead of the general case, which would say "on by default now" and send the reader looking
-            // for a --no- that no longer exists either.
-            if (name.Equals("localization", StringComparison.Ordinal)
-                || name.Equals("no-localization", StringComparison.Ordinal)
-                || name.Equals("culture", StringComparison.Ordinal))
-            {
-                return $"--{name} is gone: the languages an app ships are configured in Program.cs, not on "
-                    + "this command line. A new project starts with English, and adding a language is a "
-                    + "line in the AddRask(configureCulture: ...) call it already has — see "
-                    + "docs/localization.md.";
-            }
-
-            if (Array.IndexOf(BatteryFlags, name) >= 0)
-            {
-                return $"--{name} is on by default now, so there is nothing to turn on. "
-                    + $"Pass --no-{name} to leave it out.";
-            }
+        if (Array.IndexOf(BatteryFlags, name) >= 0)
+        {
+            return $"--{name} is on by default now, so there is nothing to turn on. "
+                + $"Pass --no-{name} to leave it out.";
         }
 
         return null;
@@ -478,21 +515,21 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         IReadOnlyCollection<string> on) =>
         new()
         {
-            Localization = on.Contains("localization"),
-            Pwa = on.Contains("pwa"),
-            Cqrs = on.Contains("cqrs"),
-            Data = on.Contains("data"),
-            Docker = on.Contains("docker"),
-            Jobs = on.Contains("jobs"),
-            Mail = on.Contains("mail"),
-            Cache = on.Contains("cache"),
-            Storage = on.Contains("storage"),
-            Outbox = on.Contains("outbox"),
-            Push = on.Contains("push"),
-            Snapshots = on.Contains("snapshots"),
-            Logs = on.Contains("logs"),
-            Ops = on.Contains("ops"),
-            Tests = on.Contains("tests"),
+            Localization = on.Contains("localization", StringComparer.Ordinal),
+            Pwa = on.Contains("pwa", StringComparer.Ordinal),
+            Cqrs = on.Contains("cqrs", StringComparer.Ordinal),
+            Data = on.Contains("data", StringComparer.Ordinal),
+            Docker = on.Contains("docker", StringComparer.Ordinal),
+            Jobs = on.Contains("jobs", StringComparer.Ordinal),
+            Mail = on.Contains("mail", StringComparer.Ordinal),
+            Cache = on.Contains("cache", StringComparer.Ordinal),
+            Storage = on.Contains("storage", StringComparer.Ordinal),
+            Outbox = on.Contains("outbox", StringComparer.Ordinal),
+            Push = on.Contains("push", StringComparer.Ordinal),
+            Snapshots = on.Contains("snapshots", StringComparer.Ordinal),
+            Logs = on.Contains("logs", StringComparer.Ordinal),
+            Ops = on.Contains("ops", StringComparer.Ordinal),
+            Tests = on.Contains("tests", StringComparer.Ordinal),
         };
 
     internal static ServerBatteries ToBatteries(
@@ -502,7 +539,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Every battery a template supports is on unless it was turned off. There is no longer an
         // opt-in exception: localization was the only one, and it is not a flag any more (#854).
         bool On(string battery) =>
-            template.SupportedFlags.Contains(battery) && !off.Contains(battery);
+            template.SupportedFlags.Contains(battery) && !off.Contains(battery, StringComparer.Ordinal);
 
         return new ServerBatteries
         {
@@ -538,7 +575,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// template with no database.
     /// </para>
     /// </summary>
-    private IReadOnlyList<string> RunWizard(Prompt prompt, IReadOnlyList<string> args, ParsedArguments parsed)
+    private List<string> RunWizard(Prompt prompt, IReadOnlyList<string> args, ParsedArguments parsed)
     {
         Branding.Write(Console, "let's set up your project");
         var ansi = Console.Ansi;
@@ -548,7 +585,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Everything already typed stands; the wizard only appends what is still unanswered.
         var filled = new List<string>(args);
 
-        if (string.IsNullOrWhiteSpace(parsed.Option("name") ?? parsed.Positionals.FirstOrDefault()))
+        if (string.IsNullOrWhiteSpace(parsed.Option("name") ?? parsed.FirstPositional))
         {
             // Validate here rather than after the answers are re-parsed: being told the name is unusable
             // while still in the question is a correction, being told it afterwards is a restart.
@@ -604,7 +641,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// SPA it had chosen a database battery — a question that template never asks and does not support —
     /// which is worse than saying nothing, because it reads as confirmation.
     /// </remarks>
-    private void WriteWizardSummary(IReadOnlyList<string> args, TemplateInfo template, DotnetTarget dotnet)
+    private void WriteWizardSummary(List<string> args, TemplateInfo template, DotnetTarget dotnet)
     {
         // Resolved through the same path the scaffold will take, rather than read back off the flags. The
         // summary's whole job is to be what happens next, and a second reading of the same answers is how
@@ -704,59 +741,16 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // --dry-run previews the plan without touching disk or restoring.
         if (dryRun)
         {
-            WriteHeading($"Would create {template.DisplayName} '{name}':");
-            foreach (var external in result.ExternalScaffolds)
-            {
-                WriteDryRun("run", external.Command + " " + string.Join(" ", external.Arguments));
-            }
-
-            foreach (var file in result.Files)
-            {
-                WriteDryRun("write", Path.GetRelativePath(_workingDirectory, file.Path));
-            }
-
-            foreach (var patch in result.Patches)
-            {
-                WriteDryRun("patch", Path.GetRelativePath(_workingDirectory, patch.Path) + " — " + patch.Description);
-            }
-
+            WriteDryRunPlan(template, name, result);
             return 0;
         }
 
         var restoreTarget = result.RestoreTarget is { } relative
             ? Path.Combine(targetDirectory, relative)
             : Path.Combine(targetDirectory, name + ".csproj");
-        // The guard used to check only for the restore target, so scaffolding over a directory that already
-        // held a Program.cs, a Features/ tree or a wwwroot silently overwrote them — with no --force to
-        // consent to it and nothing to undo it. Any existing file is now enough to stop.
-        if (!force)
+        if (!force && await RefuseToOverwriteAsync(targetDirectory, restoreTarget, result).ConfigureAwait(false))
         {
-            if (_fileSystem.FileExists(restoreTarget))
-            {
-                var existing = Path.GetFileName(restoreTarget);
-                Console.WriteErrorLine(
-                    $"A project already exists at '{targetDirectory}' ({existing}). Choose another name, --output, or pass --force.",
-                    ConsoleStyle.Error);
-                return 1;
-            }
-
-            var clashes = result.Files.Where(f => _fileSystem.FileExists(f.Path)).ToArray();
-            if (clashes.Length > 0)
-            {
-                Console.WriteErrorLine($"'{targetDirectory}' already contains files this would overwrite:", ConsoleStyle.Error);
-                foreach (var clash in clashes.Take(5))
-                {
-                    Console.Error.WriteLine($"  {Path.GetRelativePath(_workingDirectory, clash.Path)}");
-                }
-
-                if (clashes.Length > 5)
-                {
-                    Console.Error.WriteLine($"  …and {(clashes.Length - 5).ToString(CultureInfo.InvariantCulture)} more");
-                }
-
-                Console.WriteErrorLine("Choose another name or --output, or pass --force to overwrite.", ConsoleStyle.Error);
-                return 1;
-            }
+            return 1;
         }
 
         WriteHeading($"Creating {template.DisplayName} '{name}'…");
@@ -772,6 +766,83 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             }
         }
 
+        WriteScaffoldFiles(result);
+
+        var (restoreFailed, buildFailed) = await RestoreAndBuildAsync(
+            result, restoreTarget, targetDirectory, noRestore, cancellationToken).ConfigureAwait(false);
+
+        // The database-backed batteries keep their state in tables that only exist once a migration has been
+        // applied. The app applies its pending migrations itself when it starts, but it can only apply one that
+        // exists — so the first migration is part of scaffolding rather than a step in the next-steps text.
+        var migrated = !batteries.Data || noRestore || restoreFailed || buildFailed
+            ? (bool?)null
+            : await CreateFirstMigrationAsync(targetDirectory, PickEfProject(result, name), cancellationToken)
+                .ConfigureAwait(false);
+
+        // After the migration, so Migrations/ is in the initial commit rather than showing up as the first
+        // uncommitted change in a project the user hasn't touched yet.
+        await InitializeGitAsync(targetDirectory, noGit, cancellationToken).ConfigureAwait(false);
+
+        return await ReportOutcomeAsync(result, targetDirectory, batteries, migrated, restoreFailed).ConfigureAwait(false);
+    }
+
+    private void WriteDryRunPlan(TemplateInfo template, string name, ScaffoldResult result)
+    {
+        WriteHeading($"Would create {template.DisplayName} '{name}':");
+        foreach (var external in result.ExternalScaffolds)
+        {
+            WriteDryRun("run", external.Command + " " + string.Join(" ", external.Arguments));
+        }
+
+        foreach (var file in result.Files)
+        {
+            WriteDryRun("write", Path.GetRelativePath(_workingDirectory, file.Path));
+        }
+
+        foreach (var patch in result.Patches)
+        {
+            WriteDryRun("patch", Path.GetRelativePath(_workingDirectory, patch.Path) + " — " + patch.Description);
+        }
+    }
+
+    /// <summary>Reports, and answers true, when scaffolding here would overwrite something already on disk.</summary>
+    private async Task<bool> RefuseToOverwriteAsync(string targetDirectory, string restoreTarget, ScaffoldResult result)
+    {
+        // The guard used to check only for the restore target, so scaffolding over a directory that already
+        // held a Program.cs, a Features/ tree or a wwwroot silently overwrote them — with no --force to
+        // consent to it and nothing to undo it. Any existing file is now enough to stop.
+        if (_fileSystem.FileExists(restoreTarget))
+        {
+            var existing = Path.GetFileName(restoreTarget);
+            Console.WriteErrorLine(
+                $"A project already exists at '{targetDirectory}' ({existing}). Choose another name, --output, or pass --force.",
+                ConsoleStyle.Error);
+            return true;
+        }
+
+        var clashes = result.Files.Where(f => _fileSystem.FileExists(f.Path)).ToArray();
+        if (clashes.Length == 0)
+        {
+            return false;
+        }
+
+        Console.WriteErrorLine($"'{targetDirectory}' already contains files this would overwrite:", ConsoleStyle.Error);
+        foreach (var clash in clashes.Take(5))
+        {
+            await Console.Error.WriteLineAsync($"  {Path.GetRelativePath(_workingDirectory, clash.Path)}").ConfigureAwait(false);
+        }
+
+        if (clashes.Length > 5)
+        {
+            await Console.Error.WriteLineAsync($"  …and {(clashes.Length - 5).ToString(CultureInfo.InvariantCulture)} more").ConfigureAwait(false);
+        }
+
+        Console.WriteErrorLine("Choose another name or --output, or pass --force to overwrite.", ConsoleStyle.Error);
+        return true;
+    }
+
+    private void WriteScaffoldFiles(ScaffoldResult result)
+    {
         foreach (var file in result.Files)
         {
             var directory = Path.GetDirectoryName(file.Path);
@@ -803,21 +874,26 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         {
             ApplyPatch(patch);
         }
+    }
 
+    private async Task<(bool RestoreFailed, bool BuildFailed)> RestoreAndBuildAsync(
+        ScaffoldResult result, string restoreTarget, string targetDirectory, bool noRestore, CancellationToken cancellationToken)
+    {
         // Package refs are already baked into the csproj(s) at the pinned version; restore pulls them so the
         // project builds immediately. The files on disk are complete and correct either way — but a failed
         // restore leaves a project that won't build, so it is reported as a failure rather than a warning
         // that `rask new && dotnet build` would step straight past. --no-restore skips it deliberately.
-        var restoreFailed = false;
         if (noRestore)
         {
             Console.WriteLine("Skipped restore (--no-restore) — run 'dotnet restore' before building.", ConsoleStyle.Dim);
+            return (false, false);
         }
-        else
+
+        await ReportUnpublishedPackagesAsync(result, cancellationToken).ConfigureAwait(false);
+        Console.WriteLine("Restoring packages…", ConsoleStyle.Dim);
+        if (await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false) != 0)
         {
-            await ReportUnpublishedPackagesAsync(result, cancellationToken).ConfigureAwait(false);
-            Console.WriteLine("Restoring packages…", ConsoleStyle.Dim);
-            restoreFailed = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false) != 0;
+            return (true, false);
         }
 
         // Built here, before anything else touches it, so "does this compile?" is answered by the compiler
@@ -825,50 +901,40 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // migration — builds the project as a side effect of loading the DbContext, so a scaffold that did
         // not compile surfaced as an EF failure under a line reading "Creating the first migration…",
         // which names neither the file nor the error. A build says it plainly and stops.
-        var buildFailed = false;
-        if (!noRestore && !restoreFailed)
-        {
-            Console.WriteLine("Building…", ConsoleStyle.Dim);
+        Console.WriteLine("Building…", ConsoleStyle.Dim);
 
-            // The same front-end skip the migration step uses: with the batteries on, a plain build runs
-            // the bundler (or, on the meta lane, a full production front-end build) — minutes of silence
-            // for output nobody reads before `rask dev` turns both off again.
-            buildFailed = await _process.RunAsync(
-                "dotnet",
-                ["build", restoreTarget, .. SkipFrontEndBuild.Select(p => $"-p:{p.Key}={p.Value}")],
-                targetDirectory,
-                cancellationToken).ConfigureAwait(false) != 0;
-        }
+        // The same front-end skip the migration step uses: with the batteries on, a plain build runs
+        // the bundler (or, on the meta lane, a full production front-end build) — minutes of silence
+        // for output nobody reads before `rask dev` turns both off again.
+        var buildFailed = await _process.RunAsync(
+            "dotnet",
+            ["build", restoreTarget, .. SkipFrontEndBuild.Select(p => $"-p:{p.Key}={p.Value}")],
+            targetDirectory,
+            cancellationToken).ConfigureAwait(false) != 0;
 
-        // The database-backed batteries keep their state in tables that only exist once a migration has been
-        // applied. The app applies its pending migrations itself when it starts, but it can only apply one that
-        // exists — so the first migration is part of scaffolding rather than a step in the next-steps text.
-        var migrated = !batteries.Data || noRestore || restoreFailed || buildFailed
-            ? (bool?)null
-            : await CreateFirstMigrationAsync(targetDirectory, PickEfProject(result, name), cancellationToken)
-                .ConfigureAwait(false);
+        return (false, buildFailed);
+    }
 
-        // After the migration, so Migrations/ is in the initial commit rather than showing up as the first
-        // uncommitted change in a project the user hasn't touched yet.
-        await InitializeGitAsync(targetDirectory, noGit, cancellationToken).ConfigureAwait(false);
-
+    private async Task<int> ReportOutcomeAsync(
+        ScaffoldResult result, string targetDirectory, ServerBatteries batteries, bool? migrated, bool restoreFailed)
+    {
         if (!string.IsNullOrEmpty(result.Notes))
         {
-            Console.Out.WriteLine();
-            Console.Out.WriteLine(result.Notes);
+            await Console.Out.WriteLineAsync().ConfigureAwait(false);
+            await Console.Out.WriteLineAsync(result.Notes).ConfigureAwait(false);
         }
 
         // Only now that it has happened. Said by the generator ahead of time, it appeared under a restore that had
         // failed and a migration that never ran (#1083).
         if (migrated == true)
         {
-            Console.Out.WriteLine();
-            Console.Out.WriteLine("The first migration is in Migrations/; the app applies it to app.db when it starts.");
+            await Console.Out.WriteLineAsync().ConfigureAwait(false);
+            await Console.Out.WriteLineAsync("The first migration is in Migrations/; the app applies it to app.db when it starts.").ConfigureAwait(false);
         }
 
         if (restoreFailed)
         {
-            Console.Out.WriteLine();
+            await Console.Out.WriteLineAsync().ConfigureAwait(false);
             Console.WriteErrorLine(
                 $"The project was written to '{targetDirectory}', but restoring its packages failed — it won't build until that succeeds.",
                 ConsoleStyle.Error);
@@ -882,7 +948,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // scaffolded nothing.
         if (batteries.Data && migrated != true)
         {
-            Console.Out.WriteLine();
+            await Console.Out.WriteLineAsync().ConfigureAwait(false);
             WriteFirstMigrationInstructions(migrated is null);
         }
 
@@ -989,20 +1055,20 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         // A creator that will only take one path segment is run from inside the project directory
         // instead, with that directory created first — see ExternalScaffold.WorkingSubdirectory.
-        var workingDirectory = external.WorkingSubdirectory.Length == 0
+        var creatorDirectory = external.WorkingSubdirectory.Length == 0
             ? targetDirectory
             : Path.Combine(targetDirectory, external.WorkingSubdirectory);
 
         if (external.WorkingSubdirectory.Length != 0)
         {
-            _fileSystem.CreateDirectory(workingDirectory);
+            _fileSystem.CreateDirectory(creatorDirectory);
         }
 
         int exitCode;
         try
         {
             exitCode = await _process
-                .RunAsync(external.Command, external.Arguments, workingDirectory, cancellationToken)
+                .RunAsync(external.Command, external.Arguments, creatorDirectory, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (System.ComponentModel.Win32Exception)
@@ -1022,7 +1088,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             return 1;
         }
 
-        RemoveNestedRepository(workingDirectory, external);
+        RemoveNestedRepository(creatorDirectory, external);
 
         return null;
     }
@@ -1228,7 +1294,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     /// </summary>
     internal static string ResolvePackageVersion(string cliVersion)
     {
-        if (string.IsNullOrEmpty(cliVersion) || cliVersion == "0.0.0")
+        if (string.IsNullOrEmpty(cliVersion) || string.Equals(cliVersion, "0.0.0", StringComparison.Ordinal))
         {
             return cliVersion;
         }

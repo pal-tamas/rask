@@ -88,7 +88,7 @@ public sealed partial class LifecycleProbe : Component
     // is explicitly one of the places the golden contract allows a value to move.
     private static Component Row(string hook, string status) =>
         Li.Class("ps-2")
-            .Data(new Dictionary<string, string?> { ["hook"] = hook })[
+            .Data("hook", hook)[
             Code.Class("text-sm")[hook],
             Span.Class("text-ui-muted ms-2")[status]
         ];

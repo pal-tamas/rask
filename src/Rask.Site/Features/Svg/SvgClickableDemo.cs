@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Site.Features;
 
 public sealed partial class SvgClickableDemo : Component
@@ -30,7 +32,7 @@ public sealed partial class SvgClickableDemo : Component
             var index = i;
             var (_, hex) = Swatches[i];
             children.Add(Circle
-                .Cx((24 + (i * 56)).ToString())
+                .Cx((24 + (i * 56)).ToString(CultureInfo.InvariantCulture))
                 .Cy("24")
                 .R("18")
                 .Fill(i == _selected ? hex : "#e5e7eb")

@@ -8,11 +8,11 @@ public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
     public required int InstanceId { get; set; }
 
     public ValueTask DisposeAsync() =>
-        Log.Invoke($"#{InstanceId} async-disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
+        Log.Invoke($"#{InstanceId} async-disposed (lived {(TimeProvider.System.GetLocalNow() - _mountedAt).TotalMilliseconds:F0} ms)");
 
     protected override async Task OnMount()
     {
-        _mountedAt = DateTimeOffset.Now;
+        _mountedAt = TimeProvider.System.GetLocalNow();
         await Log.Invoke($"#{InstanceId} async-mounted");
     }
 

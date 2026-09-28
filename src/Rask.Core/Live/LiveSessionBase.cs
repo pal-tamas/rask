@@ -13,7 +13,7 @@ namespace Rask.Core.Live;
 // diff-vs-full and write the frame into WriteBuffer. The hosts keep what genuinely differs — their
 // transport (WS push vs ApplyRender), their locking, reconnect/dispatch lifecycle, and the dedup
 // strategy around the send (Server double-buffers; WASM returns a byte[] each frame).
-internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
+internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposable
 {
     // Pooled across the session lifetime; ResetWrittenCount between frames keeps the rented backing
     // array hot. Non-readonly: TryEmitFrameAsync swaps it with the previous-frame buffer for zero-copy dedup.
@@ -38,6 +38,20 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // the page is rendered into a reused buffer instead of a fresh per-update string. Committed (swapped)
     // by the hosts only when a frame is actually sent, mirroring _writeBuffer/_lastSentBuffer.
     protected readonly RenderedHtmlBuffers _htmlBuffers = new();
+
+    /// <summary>
+    ///     Tears the session down. Each host owns the order — the Server host returns <see cref="_htmlBuffers" />
+    ///     to the pool inside its render lock, so a racing render cannot write into an array another session owns.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>The host's teardown; <paramref name="disposing" /> is always true — sessions have no finalizer.</summary>
+    /// <param name="disposing">Whether this is an explicit <see cref="Dispose()" />.</param>
+    protected abstract void Dispose(bool disposing);
 
     // Set when an in-handler StateHasChanged lands mid-dispatch (InHandlerScope=true); the coalescing
     // loop reads and clears it to rebuild the payload before releasing the dispatch lock.
@@ -99,7 +113,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // on ambient state, which alone would invalidate its cache entry — but only for components that read
     // culture THROUGH Rask. A component formatting with CultureInfo.CurrentCulture directly is invisible
     // to that marking and would otherwise keep serving a cached subtree in the previous language.
-    private void OnCultureChanged()
+    private void OnCultureChanged(object? sender, EventArgs e)
     {
         Component.MarkSubtreeDirtyInternal(View);
         _ = RequestRenderAsync();
@@ -161,7 +175,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // Live sessions tracked weakly so a component-code edit under `dotnet watch` can re-render them; weak
     // refs mean tracking never keeps a session (its DI scope, tree) alive past its normal lifetime, so no
     // explicit unregister is needed — dead entries are pruned while enumerating.
-    private static readonly object _hotReloadLock = new();
+    private static readonly Lock _hotReloadLock = new();
     private static readonly List<WeakReference<LiveSessionBase>> _hotReloadSessions = new();
 
     // Internal (not ctor-inlined) so tests can register a session without depending on the
@@ -463,52 +477,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
         var devTools = RaskDevToolsHook.Active;
         var devToolsStart = devTools is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
 
-        var usedDiff = false;
-        var diffPathEntered = false;
-        if (frameWriter is not null && _renderCache is not null && auth is null && download is null)
-        {
-            _diffOps ??= new List<EditOp>();
-            diffPathEntered = true;
-            var headChanged = _htmlBuffers.HasPrevious && !LiveDiffGate.HeadUnchanged(html.Span, _htmlBuffers.PreviousSpan);
-            // Ship the diff when it carries DOM ops, OR when it carries none but a navigation or a
-            // head change must still flow (a query-only nav pushes the URL; a head-only change ships
-            // the head fragment). Zero ops + no history + unchanged head means nothing to send.
-            if (_renderCache.TryComputeDiff(_diffOps, commitCache, html.Span)
-                && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
-                && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
-                && !_renderCache.LastDiffForcedFullHtml)
-            {
-                var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
-                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
-                    headHtml, html.Span, resume, devError);
-
-                // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
-                // under Forced. Only the pathological case (nearly every node changed on a tiny page,
-                // so op-list framing exceeds the body) falls back to full HTML on size.
-                //
-                // The resume record is discounted from the diff's measured size because the full-HTML
-                // payload would carry the identical record: it is on both sides of this comparison, so
-                // letting it count only against the diff would flip small pages to full HTML purely
-                // because a record happened to be due — a page whose diff is a few hundred bytes would
-                // start shipping its whole body every time the declared state moved.
-                // The dev-error record is discounted for exactly the reason the resume record is: the
-                // full-HTML payload carries the identical record, so it sits on both sides of this
-                // comparison. Letting it count only against the diff would flip a page to full HTML
-                // purely because a handler threw — shipping the whole body at the moment the developer
-                // most wants a minimal, legible frame.
-                var resumeCost = resume is null ? 0 : resume.Length + ResumeFieldOverhead;
-                var devErrorCost = devError is null ? 0 : DevErrorCost(devError);
-                if (DiffMode == LiveDiffMode.Forced
-                    || _writeBuffer.WrittenCount - resumeCost - devErrorCost < html.Length)
-                {
-                    usedDiff = true;
-                }
-                else
-                {
-                    _writeBuffer.ResetWrittenCount();
-                }
-            }
-        }
+        var diffCache = frameWriter is not null && auth is null && download is null ? _renderCache : null;
+        var diffPathEntered = diffCache is not null;
+        var usedDiff = diffCache is not null
+                       && TryWriteDiff(diffCache, html, jsInvokes, historyUrl, replace, commitCache, resume, devError);
 
         if (!usedDiff)
         {
@@ -528,5 +500,52 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
         // Ops only count when they shipped: a diff that lost on size was rebuilt as full HTML above.
         devTools?.DiffComputed(this, usedDiff ? _diffOps!.Count : 0, usedDiff, devToolsStart);
+    }
+
+    // The diff path: builds the diff frame into the write buffer and reports whether it shipped. A diff that
+    // cannot carry the change, or that loses to the full body on size, leaves the buffer empty and returns false.
+    private bool TryWriteDiff(SessionRenderCache renderCache, ReadOnlyMemory<char> html, PendingJsInvoke[]? jsInvokes,
+        string? historyUrl, bool replace, bool commitCache, string? resume, DevErrorInfo? devError)
+    {
+        _diffOps ??= new List<EditOp>();
+        var headChanged = _htmlBuffers.HasPrevious && !LiveDiffGate.HeadUnchanged(html.Span, _htmlBuffers.PreviousSpan);
+        // Ship the diff when it carries DOM ops, OR when it carries none but a navigation or a
+        // head change must still flow (a query-only nav pushes the URL; a head-only change ships
+        // the head fragment). Zero ops + no history + unchanged head means nothing to send.
+        if (renderCache.TryComputeDiff(_diffOps, commitCache, html.Span)
+            && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
+            && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
+            && !renderCache.LastDiffForcedFullHtml)
+        {
+            var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
+            LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
+                headHtml, html.Span, resume, devError);
+
+            // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
+            // under Forced. Only the pathological case (nearly every node changed on a tiny page,
+            // so op-list framing exceeds the body) falls back to full HTML on size.
+            //
+            // The resume record is discounted from the diff's measured size because the full-HTML
+            // payload would carry the identical record: it is on both sides of this comparison, so
+            // letting it count only against the diff would flip small pages to full HTML purely
+            // because a record happened to be due — a page whose diff is a few hundred bytes would
+            // start shipping its whole body every time the declared state moved.
+            // The dev-error record is discounted for exactly the reason the resume record is: the
+            // full-HTML payload carries the identical record, so it sits on both sides of this
+            // comparison. Letting it count only against the diff would flip a page to full HTML
+            // purely because a handler threw — shipping the whole body at the moment the developer
+            // most wants a minimal, legible frame.
+            var resumeCost = resume is null ? 0 : resume.Length + ResumeFieldOverhead;
+            var devErrorCost = devError is null ? 0 : DevErrorCost(devError);
+            if (DiffMode == LiveDiffMode.Forced
+                || _writeBuffer.WrittenCount - resumeCost - devErrorCost < html.Length)
+            {
+                return true;
+            }
+
+            _writeBuffer.ResetWrittenCount();
+        }
+
+        return false;
     }
 }

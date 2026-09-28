@@ -8,11 +8,11 @@ namespace Rask.Core.Messaging;
 /// </summary>
 public sealed class Toaster : IToaster
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly List<ToastMessage> _queue = [];
     private int _nextId;
 
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     public void Add(ToastLevel level, string message, string? title = null)
     {
@@ -22,7 +22,7 @@ public sealed class Toaster : IToaster
             _queue.Add(new ToastMessage(_nextId++, level, message, title));
         }
 
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public IReadOnlyList<ToastMessage> Consume()

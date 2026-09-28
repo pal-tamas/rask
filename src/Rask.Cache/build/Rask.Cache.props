@@ -1,5 +1,5 @@
 <Project>
   <ItemGroup>
-    <Using Include="Rask.Cache"/>
+    <Using Include="Rask.Caching"/>
   </ItemGroup>
 </Project>

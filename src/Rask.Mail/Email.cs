@@ -1,18 +1,7 @@
 using MimeKit;
 using Rask.Core;
 
-namespace Rask.Mail;
-
-/// <summary>An email address with an optional display name.</summary>
-/// <param name="Address">The email address (e.g. <c>jane@example.com</c>).</param>
-/// <param name="Name">An optional display name (e.g. <c>Jane Doe</c>).</param>
-public sealed record EmailAddress(string Address, string? Name = null);
-
-/// <summary>A file attached to an email.</summary>
-/// <param name="FileName">The attachment's file name (e.g. <c>invoice.pdf</c>).</param>
-/// <param name="ContentType">The MIME content type (e.g. <c>application/pdf</c>).</param>
-/// <param name="Content">The attachment bytes.</param>
-public sealed record EmailAttachment(string FileName, string ContentType, byte[] Content);
+namespace Rask.Mailing;
 
 /// <summary>
 /// A fluent builder for an email. Start with <see cref="To(string, string?)"/>, chain recipients, a

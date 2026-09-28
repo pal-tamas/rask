@@ -165,7 +165,7 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
         {
             var ctx = LiveRenderContext.Current!;
             var r = ctx.GetOrCreate(_ => Receiver);
-            ctx.NotifyParameters(r, false); // stable props ⇒ Receiver caches after first render
+            LiveRenderContext.NotifyParameters(r, false); // stable props ⇒ Receiver caches after first render
             return Div[r];
         }
     }
@@ -193,7 +193,7 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
             RenderCount++;
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Component);
-            ctx.NotifyParameters(c, false);
+            LiveRenderContext.NotifyParameters(c, false);
 
             switch (_mode)
             {

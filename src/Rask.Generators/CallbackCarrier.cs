@@ -1,3 +1,4 @@
+using System;
 using Microsoft.CodeAnalysis;
 
 namespace Rask.Generators;
@@ -16,5 +17,5 @@ internal static class CallbackCarrier
     /// </remarks>
     public static bool IsNonNullable(ITypeSymbol type) =>
         type is INamedTypeSymbol { IsValueType: true, Name: "Callback", Arity: <= 2 } named
-        && named.ContainingNamespace?.ToDisplayString() == "Rask.Core";
+        && string.Equals(named.ContainingNamespace?.ToDisplayString(), "Rask.Core", StringComparison.Ordinal);
 }

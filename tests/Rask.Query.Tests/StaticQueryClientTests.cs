@@ -4,7 +4,7 @@ using Rask.Core.Forms;
 using Rask.Cqrs;
 using Rask.Testing;
 
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>
 ///     The static <see cref="QueryClient" />: a query declared in <c>Render</c> from current values, in a

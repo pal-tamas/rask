@@ -100,6 +100,9 @@ public sealed class LitestreamVerificationOptions
                 + "or no restore attempt fits inside the budget.");
         }
 
-        ArgumentNullException.ThrowIfNull(BusyRetry);
+        if (BusyRetry is null)
+        {
+            throw new InvalidOperationException($"{nameof(BusyRetry)} must not be null.");
+        }
     }
 }

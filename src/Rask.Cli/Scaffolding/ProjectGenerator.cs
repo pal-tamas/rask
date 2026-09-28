@@ -9,9 +9,8 @@ namespace Rask.Cli.Scaffolding;
 /// version the caller passes (the CLI's own version).
 /// </summary>
 /// <remarks>
-/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.WasmHosted.cs</c>, <c>.Spa.cs</c> — with the content
-/// more than one of them emits in <c>.Shared.cs</c>. This remark is the map a reader uses to find the
-/// emitter for a template, so it has to name files that exist.
+/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.WasmHosted.cs</c>, <c>.Spa.cs</c>, <c>.Meta.cs</c>.
+/// This remark is the map a reader uses to find the emitter for a template, so it has to name files that exist.
 /// <para>
 /// Every template is a SINGLE project. <c>wasm-hosted</c> does not scaffold a second one: it writes the
 /// browser app into <c>Client/</c>, and the build generates the browser half into <c>obj/</c> from
@@ -20,44 +19,4 @@ namespace Rask.Cli.Scaffolding;
 /// GUIDs, removed in #877 precisely because the one-project build now does that automatically.
 /// </para>
 /// </remarks>
-internal static partial class ProjectGenerator
-{
-    private const string NameToken = "Company.RaskServer";
-
-    /// <summary>
-    /// The files every template emits regardless of what was asked for: a <c>.gitignore</c>, an
-    /// <c>.editorconfig</c>, and a <c>.slnx</c> over <paramref name="projectPaths"/>.
-    /// <para>
-    /// These are defaults rather than options because the cost of not having them is paid later and by
-    /// someone else — a committed <c>bin/</c> or <c>app.db</c>, a formatting-only diff, a solution nobody
-    /// can open. Anyone who doesn't want one can delete it; nobody remembers to add one.
-    /// </para>
-    /// </summary>
-    private static IEnumerable<(string Path, string Content)> ProjectHygiene(params IReadOnlyList<string> projectPaths) =>
-    [
-        (".gitignore", GitIgnore),
-        (".editorconfig", EditorConfig),
-        ($"{NameToken}.slnx", Slnx(projectPaths)),
-    ];
-
-    /// <summary>
-    /// Materialise a single-project template: the placeholder namespace becomes <paramref name="name"/> in
-    /// every file's content, and in the paths too (so <c>{NameToken}.csproj</c> becomes <c>{name}.csproj</c>).
-    /// </summary>
-    private static List<ScaffoldFile> Materialize(
-        string targetDirectory, string name, IEnumerable<(string Path, string Content)> files) =>
-        files.Select(f => new ScaffoldFile(
-            System.IO.Path.Combine(targetDirectory, f.Path.Replace(NameToken, name, StringComparison.Ordinal)),
-            f.Content.Replace(NameToken, name, StringComparison.Ordinal))).ToList();
-
-    /// <summary>
-    /// Materialise a multi-project template, where each file declares which namespace the placeholder becomes
-    /// (a two-project solution has a <c>{name}.Host</c> and a <c>{name}.Wasm</c>). Paths are used as given —
-    /// the project name is already a directory segment in them, so a blanket token replace would double it up.
-    /// </summary>
-    private static List<ScaffoldFile> Materialize(
-        string targetDirectory, IEnumerable<(string Path, string Content, string Namespace)> files) =>
-        files.Select(f => new ScaffoldFile(
-            System.IO.Path.Combine(targetDirectory, f.Path),
-            f.Content.Replace(NameToken, f.Namespace, StringComparison.Ordinal))).ToList();
-}
+internal static partial class ProjectGenerator;

@@ -2,7 +2,7 @@ using Company.RaskServer.Client;
 using Rask.Wasm;
 // rask:if cqrs
 using Rask.Cqrs.Client;
-using Rask.Query;
+using Rask.Querying;
 // rask:end
 
 // The browser app. It runs in WebAssembly and renders every page itself; the server's Program.cs is the

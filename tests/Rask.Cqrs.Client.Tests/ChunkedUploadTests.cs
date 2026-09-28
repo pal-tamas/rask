@@ -8,7 +8,7 @@ namespace Rask.Cqrs.Client.Tests;
 /// </summary>
 /// <remarks>
 ///     A browser's <c>fetch</c> reads a request body into memory before sending it, so a single-shot
-///     upload costs its own size in the tab. Every host already reads a <c>RaskFile</c> in bounded slices
+///     upload costs its own size in the tab. Every host already reads a <c>IRaskFile</c> in bounded slices
 ///     — chunking is what keeps the <em>request</em> bounded too, and it is the whole reason this path
 ///     exists rather than a bigger multipart body.
 /// </remarks>
@@ -229,17 +229,17 @@ public sealed class ChunkedUploadTests
     }
 
     /// <summary>What a file input hands a component — the type a message declares, on every host.</summary>
-    private sealed class PickedFile(string name, string contentType, byte[] bytes) : RaskFile
+    private sealed class PickedFile(string name, string contentType, byte[] bytes) : IRaskFile
     {
-        public override string Name => name;
+        public string Name => name;
 
-        public override long Size => bytes.Length;
+        public long Size => bytes.Length;
 
-        public override string ContentType => contentType;
+        public string ContentType => contentType;
 
-        public override DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+        public DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
 
-        public override Stream OpenReadStream(
+        public Stream OpenReadStream(
             long maxAllowedSize = 512 * 1024,
             CancellationToken cancellationToken = default) =>
             bytes.Length > maxAllowedSize

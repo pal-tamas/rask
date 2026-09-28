@@ -98,12 +98,10 @@ public sealed partial class UiPopover : Component
                 Size is { } size ? UiClassNames.ButtonSize(size) : ""))
             // aria-haspopup="dialog" rather than "menu": what opens is a panel of content, and saying menu
             // would promise a list of commands and the arrow keys that walk it.
-            .Aria(new Dictionary<string, string?>
-            {
-                ["haspopup"] = "dialog",
-                ["expanded"] = open ? "true" : "false",
-                ["controls"] = PanelId,
-            })
+            .Aria(
+                ("haspopup", "dialog"),
+                ("expanded", open ? "true" : "false"),
+                ("controls", PanelId))
             .Attributes(("popovertarget", PanelId), ("style", "anchor-name:--" + Prefix));
 
         var panel = Div
@@ -168,13 +166,13 @@ public sealed partial class UiPopover : Component
 
     private async Task OnPanelToggleAsync(ToggleEvent e)
     {
-        _open = e.NewState == "open";
+        _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
 
         // Controlled: tell the page only about a change it did not make itself — the runtime showing the
         // popover because Open became true fires this same event.
-        if (e.NewState == "open" != Open)
+        if (string.Equals(e.NewState, "open", StringComparison.Ordinal) != Open)
         {
-            await OnToggle.Invoke(e.NewState == "open").ConfigureAwait(false);
+            await OnToggle.Invoke(string.Equals(e.NewState, "open", StringComparison.Ordinal)).ConfigureAwait(false);
         }
     }
 }

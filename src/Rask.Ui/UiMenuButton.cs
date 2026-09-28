@@ -48,12 +48,10 @@ public abstract partial class UiMenuButton : UiMenuSurface
             .Id(TriggerId)
             .Type("button")
             .Class(TriggerClass)
-            .Aria(new Dictionary<string, string?>
-            {
-                ["haspopup"] = "menu",
-                ["expanded"] = open ? "true" : "false",
-                ["controls"] = MenuId,
-            })
+            .Aria(
+                ("haspopup", "menu"),
+                ("expanded", open ? "true" : "false"),
+                ("controls", MenuId))
             .Attributes(("popovertarget", PanelId), ("style", "anchor-name:--" + Prefix));
 
         var root = Div.Class(UiClass.Compose(RootClass, Class));

@@ -73,7 +73,7 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Class("btn btn-square filter-reset")
-                .Aria(new Dictionary<string, string?> { ["label"] = ResetLabel ?? "All" }),
+                .Aria("label", ResetLabel ?? "All"),
             Options.Select(option =>
             {
                 var (value, text) = option;
@@ -88,7 +88,7 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
                     .Type(InputType.Radio)
                     .Name(Group)
                     .Class("btn")
-                    .Aria(new Dictionary<string, string?> { ["label"] = text });
+                    .Aria("label", text);
             })
         ];
     }

@@ -108,4 +108,16 @@ public sealed class ValidationBehaviorTests
             ValueTask.FromResult<IReadOnlyList<RequestValidationError>>(
                 [new RequestValidationError(string.Empty, "The request as a whole is wrong.")]);
     }
+
+    [Fact]
+    public void A_validation_exception_made_from_a_message_carries_no_field_errors()
+    {
+        var inner = new InvalidOperationException("cause");
+
+        var ex = new RaskValidationException("rejected", inner);
+
+        Assert.Equal("rejected", ex.Message);
+        Assert.Same(inner, ex.InnerException);
+        Assert.Empty(ex.Errors);
+    }
 }

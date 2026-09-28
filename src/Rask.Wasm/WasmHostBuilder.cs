@@ -135,10 +135,6 @@ public sealed class WasmHostBuilder
         return this;
     }
 
-    /// <summary>Renamed to <see cref="UsePwa" /> for naming parity with the Server host's <c>AddRaskPwa</c>.</summary>
-    [Obsolete("Renamed to UsePwa (parity with the Server host's AddRaskPwa). This alias will be removed.")]
-    public WasmHostBuilder UseManifest(WebAppManifest manifest) => UsePwa(manifest);
-
     /// <summary>
     ///     Page origin (e.g. "https://localhost:5050/") suitable for use as <see cref="HttpClient.BaseAddress" />.
     ///     Read this lazily inside an <see cref="IServiceCollection" /> factory so the call happens after
@@ -255,21 +251,7 @@ public sealed class WasmHostBuilder
         BootAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {
-        Console.WriteLine($"[Rask.Wasm] Rask {RaskVersion.Current} (WASM) starting");
-        Console.WriteLine("[Rask.Wasm] importing rask.wasm.js …");
-        await JSInterop.ImportJsModuleAsync().ConfigureAwait(false);
-        Console.WriteLine("[Rask.Wasm] rask.wasm.js imported");
-
-        // Auto-detect the app's sub-path from <base href> so head-emitted asset
-        // URLs (e.g. /Rask/_rask/a/{hash}.css for a GH Pages deploy at /Rask/)
-        // resolve correctly. Skipped if the user already configured PathBase
-        // explicitly in CreateDefault(o => o.PathBase = ...) — the static
-        // accessor is non-empty in that case.
-        if (LiveOptions.PathBase.Length == 0)
-        {
-            LiveOptions.PathBase = RaskPath.Normalize(JSInterop.GetBasePath());
-            Console.WriteLine($"[Rask.Wasm] auto-detected PathBase='{LiveOptions.PathBase}'");
-        }
+        await ImportRuntimeAsync().ConfigureAwait(false);
 
         // The batteries, at the last moment services can still be added — after everything Program.cs did,
         // including any Configure block that turned one off. Inert unless the app references the `Rask`
@@ -291,16 +273,7 @@ public sealed class WasmHostBuilder
         // BEFORE any user code can resolve IJSRuntime and start dispatching.
         JSInterop.Init(provider.GetRequiredService<WasmJSRuntime>());
 
-        var app = ActivatorUtilities.CreateInstance<TApp>(provider);
-        // Wrap the App in an implicit RootErrorBoundary so an uncaught render / lifecycle /
-        // event-handler exception anywhere in the user's tree renders a styled fallback
-        // page instead of leaving the browser on a blank screen.
-        // A chain carries properties and DI services; `app` is neither, and this is the root, so there is
-        // no parent render context whose GetOrCreate a chain would route through. RASK014's reason to
-        // exist is absent here.
-#pragma warning disable RASK014
-        var root = new RootErrorBoundary(app) { Defaults = provider.GetService<RaskDocumentDefaults>() };
-#pragma warning restore RASK014
+        var root = CreateRoot<TApp>(provider);
 
         var routeState = provider.GetRequiredService<RouteState>();
         RouteSeeder.Seed(JSInterop.GetLocation(), routeState);
@@ -310,18 +283,7 @@ public sealed class WasmHostBuilder
         // painting in the wrong one and correcting it afterwards is a flash the visitor sees.
         WasmCultureSeeder.Seed(provider);
 
-        if (provider.GetService<IUserProvider>() is { } userProvider)
-        {
-            try { await userProvider.EnsureLoadedAsync().ConfigureAwait(false); }
-            catch (Exception ex)
-            {
-                RaskDiagnostics.Report(
-                    RaskLogLevel.Error,
-                    "Rask.Wasm",
-                    "[Rask.Wasm] IUserProvider.EnsureLoadedAsync failed",
-                    ex);
-            }
-        }
+        await LoadUserAsync(provider).ConfigureAwait(false);
 
         var session = new WasmLiveSession(root, provider, _diffMode);
         JSInterop.Init(session);
@@ -331,41 +293,106 @@ public sealed class WasmHostBuilder
         // supports metadata updates, which a trimmed (published) bundle does not.
         HotReload.WasmHotReloadBridge.Subscribe();
 
-        // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender);
+        // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender), and
         // the returned bytes are just for the diagnostic below.
         var payload = await session.InitialRenderAsync().ConfigureAwait(false);
         Console.WriteLine($"[Rask.Wasm] first render payload bytes={payload.Length}");
         Console.WriteLine("[Rask.Wasm] first render applied");
 
-        // Inject the typed web app manifest (if configured) — a data: URL <link rel="manifest"> with
-        // sub-path-correct absolute URLs, plus <meta name="theme-color">. Non-fatal on failure.
-        if (_manifest is not null)
-        {
-            try
-            {
-                await provider.GetRequiredService<IJSRuntime>()
-                    .InvokeVoidAsync("__raskPwa.applyManifest", _manifest.ToJson())
-                    .ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                RaskDiagnostics.Report(
-                    RaskLogLevel.Warning, "Rask.Wasm", "[Rask.Wasm] applying web app manifest failed", ex);
-            }
-        }
+        await ApplyManifestAsync(provider).ConfigureAwait(false);
 
-        // Registered IHostedServices — the browser analogue of the generic host starting them, so an
-        // AddHostedService line means the same thing on both hosts instead of silently doing nothing here.
-        //
-        // LAST in the boot sequence, deliberately, for two reasons. A background service is free to mutate
-        // state and call StateHasChanged, and until InitialRenderAsync has run there is no mounted tree to
-        // render into. And a plain IHostedService (not a BackgroundService) does its work *inside*
-        // StartAsync, so starting these any earlier would let a slow one delay the manifest injection — or,
-        // if it never returns, hold up everything after `await RunAsync<App>()` in the user's Program.cs
-        // with no clue as to why. Nothing after this point can be starved.
+        await StartHostedServicesAsync(provider).ConfigureAwait(false);
+    }
+
+    // Registered IHostedServices — the browser analogue of the generic host starting them, so an
+    // AddHostedService line means the same thing on both hosts instead of silently doing nothing here.
+    //
+    // LAST in the boot sequence, deliberately, for two reasons. A background service is free to mutate
+    // state and call StateHasChanged, and until InitialRenderAsync has run there is no mounted tree to
+    // render into. And a plain IHostedService (not a BackgroundService) does its work *inside*
+    // StartAsync, so starting these any earlier would let a slow one delay the manifest injection — or,
+    // if it never returns, hold up everything after `await RunAsync<App>()` in the user's Program.cs
+    // with no clue as to why. Nothing after this point can be starved.
+    private static async Task StartHostedServicesAsync(IServiceProvider provider)
+    {
         var hostedServices = new WasmHostedServices(provider);
         JSInterop.Init(hostedServices);
         await hostedServices.StartAsync().ConfigureAwait(false);
+    }
+
+    private static async Task ImportRuntimeAsync()
+    {
+        Console.WriteLine($"[Rask.Wasm] Rask {RaskVersion.Current} (WASM) starting");
+        Console.WriteLine("[Rask.Wasm] importing rask.wasm.js …");
+        await JSInterop.ImportJsModuleAsync().ConfigureAwait(false);
+        Console.WriteLine("[Rask.Wasm] rask.wasm.js imported");
+
+        // Auto-detect the app's sub-path from <base href> so head-emitted asset
+        // URLs (e.g. /Rask/_rask/a/{hash}.css for a GH Pages deploy at /Rask/)
+        // resolve correctly. Skipped if the user already configured PathBase
+        // explicitly in CreateDefault(o => o.PathBase = ...) — the static
+        // accessor is non-empty in that case.
+        if (LiveOptions.PathBase.Length == 0)
+        {
+            LiveOptions.PathBase = RaskPath.Normalize(JSInterop.GetBasePath());
+            Console.WriteLine($"[Rask.Wasm] auto-detected PathBase='{LiveOptions.PathBase}'");
+        }
+    }
+
+    private static RootErrorBoundary CreateRoot<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+        IServiceProvider provider)
+        where TApp : Component
+    {
+        var app = ActivatorUtilities.CreateInstance<TApp>(provider);
+        // Wrap the App in an implicit RootErrorBoundary so an uncaught render / lifecycle /
+        // event-handler exception anywhere in the user's tree renders a styled fallback
+        // page instead of leaving the browser on a blank screen.
+        // A chain carries properties and DI services; `app` is neither, and this is the root, so there is
+        // no parent render context whose GetOrCreate a chain would route through. RASK014's reason to
+        // exist is absent here.
+#pragma warning disable RASK014
+        return new RootErrorBoundary(app) { Defaults = provider.GetService<RaskDocumentDefaults>() };
+#pragma warning restore RASK014
+    }
+
+    private static async Task LoadUserAsync(IServiceProvider provider)
+    {
+        if (provider.GetService<IUserProvider>() is not { } userProvider)
+        {
+            return;
+        }
+
+        try { await userProvider.EnsureLoadedAsync().ConfigureAwait(false); }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error,
+                "Rask.Wasm",
+                "[Rask.Wasm] IUserProvider.EnsureLoadedAsync failed",
+                ex);
+        }
+    }
+
+    // Inject the typed web app manifest (if configured) — a data: URL <link rel="manifest"> with
+    // sub-path-correct absolute URLs, plus <meta name="theme-color">. Non-fatal on failure.
+    private async Task ApplyManifestAsync(IServiceProvider provider)
+    {
+        if (_manifest is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await provider.GetRequiredService<IJSRuntime>()
+                .InvokeVoidAsync("__raskPwa.applyManifest", _manifest.ToJson())
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Wasm", "[Rask.Wasm] applying web app manifest failed", ex);
+        }
     }
 
     /// <summary>

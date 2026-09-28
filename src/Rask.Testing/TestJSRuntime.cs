@@ -2,11 +2,6 @@ using Microsoft.JSInterop;
 
 namespace Rask.Testing;
 
-/// <summary>One recorded JS interop call: the dotted <paramref name="Identifier" /> and its arguments.</summary>
-/// <param name="Identifier">The identifier the component invoked, e.g. <c>"raskApi.clipboard.write"</c>.</param>
-/// <param name="Args">The arguments passed, or <c>null</c> if none.</param>
-public readonly record struct JSCall(string Identifier, object?[]? Args);
-
 /// <summary>
 ///     An <see cref="IJSRuntime" /> for tests: it records every call and returns whatever you configure,
 ///     so a component that injects <c>IJSRuntime</c> can be unit-tested without a browser. Register it in
@@ -21,9 +16,9 @@ public readonly record struct JSCall(string Identifier, object?[]? Args);
 public sealed class TestJSRuntime : IJSRuntime
 {
     private readonly List<JSCall> _calls = [];
-    private readonly Dictionary<string, Exception> _exceptions = [];
+    private readonly Dictionary<string, Exception> _exceptions = new(StringComparer.Ordinal);
     private readonly Lock _gate = new();
-    private readonly Dictionary<string, object?> _responses = [];
+    private readonly Dictionary<string, object?> _responses = new(StringComparer.Ordinal);
 
     /// <summary>Every call made so far, in invocation order.</summary>
     public IReadOnlyList<JSCall> Calls
@@ -81,13 +76,13 @@ public sealed class TestJSRuntime : IJSRuntime
             + $"type the component reads: SetResponse(\"{identifier}\", ({typeof(TValue).Name})…)."));
     }
 
-    private static string Describe(object? value) =>
-        value is null ? "null" : value.GetType().Name;
-
     /// <inheritdoc />
     public ValueTask<TValue> InvokeAsync<TValue>(
         string identifier, CancellationToken cancellationToken, object?[]? args) =>
         InvokeAsync<TValue>(identifier, args);
+
+    private static string Describe(object? value) =>
+        value is null ? "null" : value.GetType().Name;
 
     /// <summary>Makes every call to <paramref name="identifier" /> return <paramref name="response" />.</summary>
     public void SetResponse(string identifier, object? response)
@@ -118,7 +113,7 @@ public sealed class TestJSRuntime : IJSRuntime
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        var matches = Calls.Where(c => c.Identifier == identifier).ToArray();
+        var matches = Calls.Where(c => string.Equals(c.Identifier, identifier, StringComparison.Ordinal)).ToArray();
         return matches.Length == 1
             ? matches[0].Args
             : throw new InvalidOperationException(
@@ -130,6 +125,6 @@ public sealed class TestJSRuntime : IJSRuntime
     public int CallCount(string identifier)
     {
         ArgumentNullException.ThrowIfNull(identifier);
-        return Calls.Count(c => c.Identifier == identifier);
+        return Calls.Count(c => string.Equals(c.Identifier, identifier, StringComparison.Ordinal));
     }
 }

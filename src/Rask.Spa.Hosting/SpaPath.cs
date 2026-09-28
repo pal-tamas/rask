@@ -23,7 +23,7 @@ internal static class SpaPath
         }
 
         var s = value.Trim();
-        if (s == "/")
+        if (string.Equals(s, "/", StringComparison.Ordinal))
         {
             return string.Empty;
         }

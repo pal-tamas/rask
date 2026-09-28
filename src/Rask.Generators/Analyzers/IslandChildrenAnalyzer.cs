@@ -36,7 +36,7 @@ public sealed class IslandChildrenAnalyzer : DiagnosticAnalyzer
     // By metadata name: the generator cannot reference either island package.
     private const string BlazorBase = "Rask.Blazor.BlazorComponent`1";
     private const string ExternalBase = "Rask.External.ExternalComponent";
-    private const string Refusal = "Rask.External.NotAChildOfThisIsland";
+    private const string RefusalTypeName = "Rask.External.NotAChildOfThisIsland";
     private const string ComponentType = "Rask.Core.Component";
 
     // What a message calls each runtime, by the base class that declares it.
@@ -78,9 +78,9 @@ public sealed class IslandChildrenAnalyzer : DiagnosticAnalyzer
             var islands = new Islands(
                 compilation.GetTypeByMetadataName(BlazorBase),
                 compilation.GetTypeByMetadataName(ExternalBase),
-                compilation.GetTypeByMetadataName(Refusal),
+                compilation.GetTypeByMetadataName(RefusalTypeName),
                 compilation.GetTypeByMetadataName(ComponentType),
-                RuntimeBases(compilation));
+                ReadRuntimeBases(compilation));
 
             // Neither island package is referenced, so no island can exist here and the check is skipped rather
             // than run against every element access in the compilation.
@@ -192,7 +192,7 @@ public sealed class IslandChildrenAnalyzer : DiagnosticAnalyzer
         return "JavaScript";
     }
 
-    private static ImmutableArray<(INamedTypeSymbol Symbol, string Runtime)> RuntimeBases(Compilation compilation)
+    private static ImmutableArray<(INamedTypeSymbol Symbol, string Runtime)> ReadRuntimeBases(Compilation compilation)
     {
         // No LINQ here: `Select` on this compilation would bind to Roslyn's incremental-generator extension rather
         // than Enumerable's, and the resulting inference failure is unreadable.

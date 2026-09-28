@@ -17,7 +17,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
         using (var ctx = LiveRenderContext.Begin(root, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         Assert.False(c.Token.IsCancellationRequested);
@@ -73,7 +73,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
         using (var ctx = LiveRenderContext.Begin(root, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         Assert.False(capturedToken.IsCancellationRequested);
@@ -107,7 +107,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
         using (var ctx = LiveRenderContext.Begin(root, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         var after = await afterAwait.Task.WaitAsync(TimeSpan.FromSeconds(5));

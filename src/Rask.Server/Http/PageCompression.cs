@@ -40,7 +40,7 @@ internal static class PageCompression
         var response = context.Response;
         if (!compress)
         {
-            await response.WriteAsync(content).ConfigureAwait(false);
+            await response.WriteAsync(content, context.RequestAborted).ConfigureAwait(false);
             return;
         }
 
@@ -53,7 +53,7 @@ internal static class PageCompression
         var encoding = Negotiate(context.Request);
         if (encoding is null || response.Headers.ContainsKey(HeaderNames.ContentEncoding))
         {
-            await response.WriteAsync(content).ConfigureAwait(false);
+            await response.WriteAsync(content, context.RequestAborted).ConfigureAwait(false);
             return;
         }
 
@@ -65,10 +65,13 @@ internal static class PageCompression
         try
         {
             var length = _utf8.GetBytes(content, buffer);
-            await using Stream compressed = encoding == "br"
+            Stream compressed = string.Equals(encoding, "br", StringComparison.Ordinal)
                 ? new BrotliStream(response.Body, CompressionLevel.Optimal, leaveOpen: true)
                 : new GZipStream(response.Body, CompressionLevel.Optimal, leaveOpen: true);
-            await compressed.WriteAsync(buffer.AsMemory(0, length), context.RequestAborted).ConfigureAwait(false);
+            await using (compressed.ConfigureAwait(false))
+            {
+                await compressed.WriteAsync(buffer.AsMemory(0, length), context.RequestAborted).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -103,8 +106,11 @@ internal static class PageCompression
             }
         }
 
-        return brotli > 0 && brotli >= gzip ? "br"
-            : gzip > 0 ? "gzip"
-            : null;
+        if (brotli > 0 && brotli >= gzip)
+        {
+            return "br";
+        }
+
+        return gzip > 0 ? "gzip" : null;
     }
 }

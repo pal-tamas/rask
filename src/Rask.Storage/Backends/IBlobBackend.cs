@@ -54,12 +54,3 @@ internal interface IBlobBackend
     /// <summary>Removes spool files older than <paramref name="olderThan"/> — what a crash mid-save leaves behind.</summary>
     Task DeleteStaleSpoolAsync(DateTimeOffset olderThan, CancellationToken cancellationToken);
 }
-
-/// <summary>One object in a listing.</summary>
-internal readonly record struct BlobEntry(string Key, long Size, DateTimeOffset LastModified);
-
-/// <summary>
-/// The headers stored with an object, so that a CDN in front of a public bucket serves it with the same safe
-/// type and disposition the app would.
-/// </summary>
-internal readonly record struct BlobHeaders(string ContentType, string ContentDisposition, string CacheControl);

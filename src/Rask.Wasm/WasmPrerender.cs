@@ -112,30 +112,7 @@ public static class WasmPrerender
         // compressed siblings and the endpoint manifest back into agreement with.
         var writtenFiles = new List<string>();
 
-        // The literal routes, plus whatever the app says its parameterised ones expand to. A docs site's
-        // /guides/{slug} is one route and eighty pages, and the pass cannot know the slugs — so without
-        // this the whole of a site's actual content ships as an empty boot shell while the publish
-        // reports a healthy count of the pages around it.
-        var supplied = SuppliedPaths(services, plan);
-        var paths = supplied.Count == 0 ? plan.Paths : [.. plan.Paths, .. supplied];
-
-        // Said out loud rather than logged at debug, and said even when the list is empty. A pass that
-        // covered a site's static half while its parameterised routes went unmentioned would read as
-        // though it had covered everything.
-        Console.WriteLine(
-            $"[Rask.Prerender] {paths.Count} route(s) to render, {plan.Skipped.Count} skipped");
-        if (supplied.Count > 0)
-        {
-            Console.WriteLine(
-                $"[Rask.Prerender]   {supplied.Count} of them supplied by IPrerenderPaths");
-        }
-
-        foreach (var skipped in plan.Skipped)
-        {
-            Console.WriteLine(
-                $"[Rask.Prerender]   skipped {skipped} — its path is not known without data"
-                + " (register an IPrerenderPaths to supply them)");
-        }
+        var paths = PathsToRender(services, plan);
 
         // Read ONCE, before the first page is written — the shell being read is index.html, and the
         // root route's own output is index.html. Reading it per page would hand page two the merged
@@ -145,33 +122,7 @@ public static class WasmPrerender
         // into the same directory finds the FIRST publish's merged page under that name. ReadShellAsync
         // is where that case is detected and recovered from (#1036).
         var shell = await ReadShellAsync(outputDirectory).ConfigureAwait(false);
-        if (shell is null)
-        {
-            Console.WriteLine(
-                $"[Rask.Prerender] no boot shell at {Path.Combine(outputDirectory, ShellFileName)} — "
-                + "writing whole documents, which will NOT boot the bundle");
-        }
-
-        // The untouched shell, kept where a static host will serve it for an unknown path (#974).
-        //
-        // Prerendering an app with un-prerenderable routes used to break their deep links, and by
-        // building the very thing that was supposed to help. The root route's own output IS index.html,
-        // so once this pass runs the file a static host falls back to is no longer a neutral shell —
-        // it is the HOME PAGE, fully rendered. A deep link to a route that could not be prerendered
-        // then arrives, gets the home page's markup, and the bundle boots into a document already
-        // describing a different page. Before prerendering, the same link got an empty shell and
-        // routed correctly.
-        //
-        // 404.html because that is what every static host this targets already reaches for — GitHub
-        // Pages, Netlify, Cloudflare Pages, S3 — and it costs no configuration. Written BEFORE the loop,
-        // from the shell read above, so it cannot pick up a page's output.
-        if (shell is not null)
-        {
-            var fallback = Path.Combine(outputDirectory, FallbackFileName);
-            await File.WriteAllTextAsync(fallback, shell).ConfigureAwait(false);
-            writtenFiles.Add(fallback);
-            Console.WriteLine($"[Rask.Prerender] wrote the neutral boot shell to {FallbackFileName}");
-        }
+        await WriteFallbackAsync(outputDirectory, shell, writtenFiles).ConfigureAwait(false);
 
         // The paths the SITEMAP should list, which is neither plan.Paths nor "everything written". A
         // route that threw or timed out is not written at all, and listing it would send a crawler to a
@@ -182,86 +133,173 @@ public static class WasmPrerender
         var trailingSlash = HostServesTrailingSlash();
         foreach (var path in paths)
         {
-            // A scope per page, as a request would get: a page that injects something scoped must not
-            // see the previous page's instance.
-            using var scope = services.CreateScope();
-
-            // The path the BROWSER will report for this file, not the route template's spelling. The page
-            // is written to {route}/index.html, which GitHub Pages serves at /docs/ — so once the bundle
-            // boots, RouteState.Path is "/docs/". Seeding the bare "/docs" here baked a document that
-            // disagreed with its own hydrated render, and anything that prints or compares the path
-            // (a breadcrumb, a "path:" badge) visibly jumped the moment the runtime took over.
-            scope.ServiceProvider.GetRequiredService<RouteState>().Path = SiteUrlPath(path, trailingSlash);
-
-            var app = ActivatorUtilities.CreateInstance<TApp>(scope.ServiceProvider);
-            var result = await RaskPrerender
-                .RenderDocumentAsync(app, scope.ServiceProvider, budget)
-                .ConfigureAwait(false);
-
-            // Both of these still hand back perfectly ordinary HTML — an error document, or the
-            // placeholder that was on screen when the budget ran out. Writing either would publish it
-            // under the route's own name, and a baked spinner is worse than no prerender at all because
-            // it looks prerendered. Skip and say so; the bundle still serves the route at runtime.
-            if (result.Faulted)
+            if (await RenderPageAsync<TApp>(services, path, trailingSlash, budget).ConfigureAwait(false) is not { } rendered)
             {
-                // WHAT threw, not merely that something did. A skipped page is a URL that ships as the
-                // boot shell — correct for a visitor, blank for a crawler — so this line is the only
-                // notice anyone gets, and "threw" on its own sends the reader to guess. Type and
-                // message, plus the innermost cause, which for a DI failure is where the name is.
-                Console.WriteLine($"[Rask.Prerender]   {path} threw — not written: {Describe(result.Error)}");
                 continue;
             }
 
-            if (result.TimedOut)
-            {
-                Console.WriteLine($"[Rask.Prerender]   {path} did not settle in {budget.TotalSeconds:0.#}s — not written");
-                continue;
-            }
-
-            // Spliced into the shell rather than written over it. The shell carries the fingerprinted
-            // import map, the SRI-pinned preload, the <base href> and the script that boots the bundle;
-            // replacing the file would publish real markup that can never become interactive.
-            var html = shell is null ? result.Html : PrerenderShell.Merge(shell, result.Html);
-
-            var file = OutputPathFor(outputDirectory, path);
-            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-            await File.WriteAllTextAsync(file, html).ConfigureAwait(false);
-            writtenFiles.Add(file);
+            var html = await WritePageAsync(outputDirectory, path, shell, rendered, writtenFiles).ConfigureAwait(false);
             written++;
 
-            // Written, but not necessarily LISTED. Both reasons are read off the page's own rendered
-            // markup rather than from a second declaration, so the page and the sitemap cannot disagree.
-            //
-            //   * noindex — the page has asked not to be in search results, and a sitemap is a request
-            //     to index. Listing it submits a contradiction, which Search Console reports as an error
-            //     against the whole file rather than against the one URL.
-            //   * a canonical pointing SOMEWHERE ELSE — the page has said another URL is the real one.
-            //     An add form that canonicalises to its list is the ordinary case, and a sitemap lists
-            //     canonical URLs; listing both asks a crawler to index a page that disclaims itself.
-            //
-            // And the date it last changed comes off the same markup, for the same reason: see LastModified.
-            if (ListedInSitemap(html, path))
+            if (SitemapEntryFor(html, path) is { } entry)
             {
-                writtenPaths.Add(new SitemapEntry(path, LastModified(html)));
+                writtenPaths.Add(entry);
             }
         }
 
         Console.WriteLine($"[Rask.Prerender] wrote {written} page(s) to {outputDirectory}");
 
-        // A second line, for the build rather than for a reader. The build cannot ask the filesystem
-        // whether this pass produced anything: the root route's output IS index.html, which the boot
-        // shell already occupies, so "a page exists" is true before the pass runs and stays true when
-        // it writes nothing. Only the pass knows the count, so it says so in a form that survives a
-        // grep and carries no punctuation an MSBuild condition has to escape.
         WriteSitemap(outputDirectory, writtenPaths, writtenFiles);
 
         // Last, because it reads back every file the pass wrote — including the sitemap and robots.txt
         // above, which a static host compresses just like a page.
         RefreshPublishedArtifacts(outputDirectory, writtenFiles);
 
-        Console.WriteLine($"{SummaryPrefix}written={written} skipped={plan.Skipped.Count}");
-
+        ReportForTheBuild(written, plan.Skipped.Count);
         return written;
+    }
+
+    // A second line, for the build rather than for a reader. The build cannot ask the filesystem
+    // whether this pass produced anything: the root route's output IS index.html, which the boot
+    // shell already occupies, so "a page exists" is true before the pass runs and stays true when
+    // it writes nothing. Only the pass knows the count, so it says so in a form that survives a
+    // grep and carries no punctuation an MSBuild condition has to escape.
+    private static void ReportForTheBuild(int written, int skipped) =>
+        Console.WriteLine($"{SummaryPrefix}written={written} skipped={skipped}");
+
+    private static async Task<string> WritePageAsync(
+        string outputDirectory, string path, string? shell, string rendered, List<string> writtenFiles)
+    {
+        // Spliced into the shell rather than written over it. The shell carries the fingerprinted
+        // import map, the SRI-pinned preload, the <base href> and the script that boots the bundle, so
+        // replacing the file would publish real markup that can never become interactive.
+        var html = shell is null ? rendered : PrerenderShell.Merge(shell, rendered);
+
+        var file = OutputPathFor(outputDirectory, path);
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        await File.WriteAllTextAsync(file, html).ConfigureAwait(false);
+        writtenFiles.Add(file);
+        return html;
+    }
+
+    // Written, but not necessarily LISTED. Both reasons are read off the page's own rendered
+    // markup rather than from a second declaration, so the page and the sitemap cannot disagree.
+    //
+    //   * noindex — the page has asked not to be in search results, and a sitemap is a request
+    //     to index. Listing it submits a contradiction, which Search Console reports as an error
+    //     against the whole file rather than against the one URL.
+    //   * a canonical pointing SOMEWHERE ELSE — the page has said another URL is the real one.
+    //     An add form that canonicalises to its list is the ordinary case, and a sitemap lists
+    //     canonical URLs; listing both asks a crawler to index a page that disclaims itself.
+    //
+    // And the date it last changed comes off the same markup, for the same reason: see LastModifiedOf.
+    private static SitemapEntry? SitemapEntryFor(string html, string path) =>
+        ListedInSitemap(html, path) ? new SitemapEntry(path, LastModifiedOf(html)) : null;
+
+    // The literal routes, plus whatever the app says its parameterised ones expand to. A docs site's
+    // /guides/{slug} is one route and eighty pages, and the pass cannot know the slugs — so without
+    // this the whole of a site's actual content ships as an empty boot shell while the publish
+    // reports a healthy count of the pages around it.
+    private static IReadOnlyList<string> PathsToRender(IServiceProvider services, PrerenderPlan plan)
+    {
+        var supplied = SuppliedPaths(services, plan);
+        IReadOnlyList<string> paths = supplied.Count == 0 ? plan.Paths : [.. plan.Paths, .. supplied];
+        AnnouncePlan(plan, paths.Count, supplied.Count);
+        return paths;
+    }
+
+    // Said out loud rather than logged at debug, and said even when the list is empty. A pass that
+    // covered a site's static half while its parameterised routes went unmentioned would read as
+    // though it had covered everything.
+    private static void AnnouncePlan(PrerenderPlan plan, int routes, int supplied)
+    {
+        Console.WriteLine($"[Rask.Prerender] {routes} route(s) to render, {plan.Skipped.Count} skipped");
+        if (supplied > 0)
+        {
+            Console.WriteLine($"[Rask.Prerender]   {supplied} of them supplied by IPrerenderPaths");
+        }
+
+        foreach (var skipped in plan.Skipped)
+        {
+            Console.WriteLine(
+                $"[Rask.Prerender]   skipped {skipped} — its path is not known without data"
+                + " (register an IPrerenderPaths to supply them)");
+        }
+    }
+
+    // The untouched shell, kept where a static host will serve it for an unknown path (#974).
+    //
+    // Prerendering an app with un-prerenderable routes used to break their deep links, and by
+    // building the very thing that was supposed to help. The root route's own output IS index.html,
+    // so once this pass runs the file a static host falls back to is no longer a neutral shell —
+    // it is the HOME PAGE, fully rendered. A deep link to a route that could not be prerendered
+    // then arrives, gets the home page's markup, and the bundle boots into a document already
+    // describing a different page. Before prerendering, the same link got an empty shell and
+    // routed correctly.
+    //
+    // 404.html because that is what every static host this targets already reaches for — GitHub
+    // Pages, Netlify, Cloudflare Pages, S3 — and it costs no configuration. Written BEFORE the loop,
+    // from the shell read above, so it cannot pick up a page's output.
+    private static async Task WriteFallbackAsync(string outputDirectory, string? shell, List<string> writtenFiles)
+    {
+        if (shell is null)
+        {
+            Console.WriteLine(
+                $"[Rask.Prerender] no boot shell at {Path.Combine(outputDirectory, ShellFileName)} — "
+                + "writing whole documents, which will NOT boot the bundle");
+            return;
+        }
+
+        var fallback = Path.Combine(outputDirectory, FallbackFileName);
+        await File.WriteAllTextAsync(fallback, shell).ConfigureAwait(false);
+        writtenFiles.Add(fallback);
+        Console.WriteLine($"[Rask.Prerender] wrote the neutral boot shell to {FallbackFileName}");
+    }
+
+    // The page's markup, or null — having said why — when it must not be written.
+    private static async Task<string?> RenderPageAsync<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+        IServiceProvider services, string path, bool trailingSlash, TimeSpan budget)
+        where TApp : Component
+    {
+        // A scope per page, as a request would get: a page that injects something scoped must not
+        // see the previous page's instance.
+        using var scope = services.CreateScope();
+
+        // The path the BROWSER will report for this file, not the route template's spelling. The page
+        // is written to {route}/index.html, which GitHub Pages serves at /docs/ — so once the bundle
+        // boots, RouteState.Path is "/docs/". Seeding the bare "/docs" here baked a document that
+        // disagreed with its own hydrated render, and anything that prints or compares the path
+        // (a breadcrumb, a "path:" badge) visibly jumped the moment the runtime took over.
+        scope.ServiceProvider.GetRequiredService<RouteState>().Path = SiteUrlPath(path, trailingSlash);
+
+        var app = ActivatorUtilities.CreateInstance<TApp>(scope.ServiceProvider);
+        var result = await RaskPrerender
+            .RenderDocumentAsync(app, scope.ServiceProvider, budget)
+            .ConfigureAwait(false);
+
+        // Both of these still hand back perfectly ordinary HTML — an error document, or the
+        // placeholder that was on screen when the budget ran out. Writing either would publish it
+        // under the route's own name, and a baked spinner is worse than no prerender at all because
+        // it looks prerendered. Skip and say so; the bundle still serves the route at runtime.
+        if (result.Faulted)
+        {
+            // WHAT threw, not merely that something did. A skipped page is a URL that ships as the
+            // boot shell — correct for a visitor, blank for a crawler — so this line is the only
+            // notice anyone gets, and "threw" on its own sends the reader to guess. Type and
+            // message, plus the innermost cause, which for a DI failure is where the name is.
+            Console.WriteLine($"[Rask.Prerender]   {path} threw — not written: {Describe(result.Error)}");
+            return null;
+        }
+
+        if (result.TimedOut)
+        {
+            Console.WriteLine($"[Rask.Prerender]   {path} did not settle in {budget.TotalSeconds:0.#}s — not written");
+            return null;
+        }
+
+        return result.Html;
     }
 
     /// <summary>
@@ -349,7 +387,7 @@ public static class WasmPrerender
             }
 
             using var output = new MemoryStream();
-            using (Stream compressor = suffix == ".br"
+            using (Stream compressor = string.Equals(suffix, ".br", StringComparison.Ordinal)
                        ? new BrotliStream(output, CompressionLevel.SmallestSize, leaveOpen: true)
                        : new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
             {
@@ -411,6 +449,54 @@ public static class WasmPrerender
         }
     }
 
+    /// <summary>What a static-web-assets endpoint says about the file it serves.</summary>
+    private sealed record AssetFacts(string Length, string ETag, string Modified, string Integrity)
+    {
+        public static AssetFacts Of(string path)
+        {
+            var bytes = File.ReadAllBytes(path);
+            var hash = Convert.ToBase64String(SHA256.HashData(bytes));
+            return new AssetFacts(
+                bytes.Length.ToString(CultureInfo.InvariantCulture),
+                $"\"{hash}\"",
+                File.GetLastWriteTimeUtc(path).ToString("R", CultureInfo.InvariantCulture),
+                $"sha256-{hash}");
+        }
+    }
+
+    private static string UncompressedName(string asset) =>
+        asset.EndsWith(".br", StringComparison.OrdinalIgnoreCase) || asset.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
+            ? asset[..^3]
+            : asset;
+
+    private static void PatchHeaders(JsonArray headers, AssetFacts facts)
+    {
+        foreach (var header in headers.OfType<JsonObject>())
+        {
+            var value = header["Name"]?.GetValue<string>() switch
+            {
+                "Content-Length" => facts.Length,
+                "ETag" => facts.ETag,
+                "Last-Modified" => facts.Modified,
+                _ => null,
+            };
+
+            if (value is not null)
+            {
+                header["Value"] = value;
+            }
+        }
+    }
+
+    private static void PatchIntegrity(JsonArray properties, string integrity)
+    {
+        foreach (var property in properties.OfType<JsonObject>()
+                     .Where(p => string.Equals(p["Name"]?.GetValue<string>(), "integrity", StringComparison.Ordinal)))
+        {
+            property["Value"] = integrity;
+        }
+    }
+
     private static int PatchManifest(string manifest, Dictionary<string, string> refreshed)
     {
         var document = JsonNode.Parse(File.ReadAllText(manifest));
@@ -419,8 +505,7 @@ public static class WasmPrerender
             return 0;
         }
 
-        var described = new Dictionary<string, (string Length, string ETag, string Modified, string Integrity)>(
-            StringComparer.OrdinalIgnoreCase);
+        var described = new Dictionary<string, AssetFacts>(StringComparer.OrdinalIgnoreCase);
 
         var patched = 0;
         foreach (var endpoint in endpoints)
@@ -433,54 +518,21 @@ public static class WasmPrerender
 
             if (!described.TryGetValue(asset, out var facts))
             {
-                var bytes = File.ReadAllBytes(path);
-                var hash = Convert.ToBase64String(SHA256.HashData(bytes));
-                facts = (
-                    bytes.Length.ToString(CultureInfo.InvariantCulture),
-                    $"\"{hash}\"",
-                    File.GetLastWriteTimeUtc(path).ToString("R", CultureInfo.InvariantCulture),
-                    $"sha256-{hash}");
+                facts = AssetFacts.Of(path);
                 described[asset] = facts;
             }
 
             if (endpoint?["ResponseHeaders"] is JsonArray headers)
             {
-                foreach (var header in headers)
-                {
-                    var value = header?["Name"]?.GetValue<string>() switch
-                    {
-                        "Content-Length" => facts.Length,
-                        "ETag" => facts.ETag,
-                        "Last-Modified" => facts.Modified,
-                        _ => null,
-                    };
-
-                    if (value is not null && header is not null)
-                    {
-                        header["Value"] = value;
-                    }
-                }
+                PatchHeaders(headers, facts);
             }
 
             // The integrity an endpoint advertises is the UNCOMPRESSED asset's, so a compressed variant
             // carries the hash of the file it decompresses to rather than its own bytes.
-            if (endpoint?["EndpointProperties"] is JsonArray properties)
+            if (endpoint?["EndpointProperties"] is JsonArray properties
+                && described.TryGetValue(UncompressedName(asset), out var origin))
             {
-                var source = asset.EndsWith(".br", StringComparison.OrdinalIgnoreCase)
-                             || asset.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
-                    ? asset[..^3]
-                    : asset;
-
-                if (described.TryGetValue(source, out var origin))
-                {
-                    foreach (var property in properties)
-                    {
-                        if (property?["Name"]?.GetValue<string>() == "integrity" && property is not null)
-                        {
-                            property["Value"] = origin.Integrity;
-                        }
-                    }
-                }
+                PatchIntegrity(properties, origin.Integrity);
             }
 
             patched++;
@@ -488,7 +540,7 @@ public static class WasmPrerender
 
         if (patched > 0)
         {
-            File.WriteAllText(manifest, document!.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(manifest, document.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
         }
 
         return patched;
@@ -511,7 +563,7 @@ public static class WasmPrerender
     ///     </para>
     /// </remarks>
     private static void WriteSitemap(
-        string outputDirectory, IReadOnlyList<SitemapEntry> paths, List<string> writtenFiles)
+        string outputDirectory, List<SitemapEntry> paths, List<string> writtenFiles)
     {
         var origin = Environment.GetEnvironmentVariable(SiteUrlVariable)?.Trim().TrimEnd('/');
         if (string.IsNullOrEmpty(origin))
@@ -532,6 +584,16 @@ public static class WasmPrerender
             return;
         }
 
+        var sitemap = Path.Combine(outputDirectory, SitemapFileName);
+        File.WriteAllText(sitemap, SitemapXml(origin, paths));
+        writtenFiles.Add(sitemap);
+        Console.WriteLine($"[Rask.Prerender] wrote {SitemapFileName} with {paths.Count} URL(s)");
+
+        WriteRobots(outputDirectory, $"{origin}{LiveOptions.PathBase}/{SitemapFileName}", writtenFiles);
+    }
+
+    private static string SitemapXml(string origin, List<SitemapEntry> paths)
+    {
         var builder = new StringBuilder();
         builder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         builder.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
@@ -552,13 +614,11 @@ public static class WasmPrerender
         }
 
         builder.AppendLine("</urlset>");
+        return builder.ToString();
+    }
 
-        var sitemap = Path.Combine(outputDirectory, SitemapFileName);
-        File.WriteAllText(sitemap, builder.ToString());
-        writtenFiles.Add(sitemap);
-        Console.WriteLine($"[Rask.Prerender] wrote {SitemapFileName} with {paths.Count} URL(s)");
-
-        var sitemapUrl = $"{origin}{LiveOptions.PathBase}/{SitemapFileName}";
+    private static void WriteRobots(string outputDirectory, string sitemapUrl, List<string> writtenFiles)
+    {
         var robots = Path.Combine(outputDirectory, RobotsFileName);
 
         // "Existing" is not the same question as "the app's own" — the second publish into a directory
@@ -596,8 +656,8 @@ public static class WasmPrerender
         var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
 
         return lines.Length == 4
-               && lines[0] == "User-agent: *"
-               && lines[1] == "Allow: /"
+               && string.Equals(lines[0], "User-agent: *", StringComparison.Ordinal)
+               && string.Equals(lines[1], "Allow: /", StringComparison.Ordinal)
                && lines[2].StartsWith("Sitemap: ", StringComparison.Ordinal)
                && lines[3].Length == 0;
     }
@@ -658,13 +718,7 @@ public static class WasmPrerender
 
         foreach (var source in sources)
         {
-            foreach (var path in source.Paths())
-            {
-                if (!string.IsNullOrEmpty(path) && seen.Add(path))
-                {
-                    extra.Add(path);
-                }
-            }
+            extra.AddRange(source.Paths().Where(path => !string.IsNullOrEmpty(path) && seen.Add(path)));
         }
 
         return extra;
@@ -695,7 +749,7 @@ public static class WasmPrerender
     ///         <c>lastmod</c> is reported against the whole sitemap rather than against its URL.
     ///     </para>
     /// </remarks>
-    internal static string? LastModified(string html)
+    internal static string? LastModifiedOf(string html)
     {
         var property = html.IndexOf("property=\"article:modified_time\"", StringComparison.OrdinalIgnoreCase);
         if (property < 0)
@@ -987,6 +1041,6 @@ public static class WasmPrerender
         var relative = routePath.Trim('/');
         return relative.Length == 0
             ? Path.Combine(root, "index.html")
-            : Path.Combine(root, Path.Combine(relative.Split('/')), "index.html");
+            : Path.Combine([root, .. relative.Split('/'), "index.html"]);
     }
 }

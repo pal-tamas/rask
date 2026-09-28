@@ -21,13 +21,17 @@ namespace Rask.Core;
 ///         <see cref="Dictionary{TKey,TValue}" /> when a bag is genuinely large.
 ///     </para>
 /// </remarks>
+#pragma warning disable CA1710 // named for what it holds (docs/api-style.md); a suffix would read worse at every call site
 public sealed class AttrBag : IReadOnlyDictionary<string, string?>
+#pragma warning restore CA1710
 {
     // The first pair is inlined so the overwhelmingly common single-attribute bag allocates nothing
     // beyond this object; _rest stays null until there is a second one.
     private readonly string _name0;
     private readonly string? _value0;
     private readonly KeyValuePair<string, string?>[]? _rest;
+
+    private const string UnnamedEntry = "Every attribute in a bag needs a name.";
 
     /// <summary>One attribute — the shape <c>.Data("test-id", "primary")</c> produces.</summary>
     public AttrBag(string name, string? value)
@@ -45,7 +49,11 @@ public sealed class AttrBag : IReadOnlyDictionary<string, string?>
             throw new ArgumentException("An attribute bag needs at least one entry.", nameof(pairs));
         }
 
-        ArgumentException.ThrowIfNullOrEmpty(pairs[0].Name, nameof(pairs));
+        if (string.IsNullOrEmpty(pairs[0].Name))
+        {
+            throw new ArgumentException(UnnamedEntry, nameof(pairs));
+        }
+
         _name0 = pairs[0].Name;
         _value0 = pairs[0].Value;
         if (pairs.Length == 1)
@@ -56,7 +64,11 @@ public sealed class AttrBag : IReadOnlyDictionary<string, string?>
         var rest = new KeyValuePair<string, string?>[pairs.Length - 1];
         for (var i = 1; i < pairs.Length; i++)
         {
-            ArgumentException.ThrowIfNullOrEmpty(pairs[i].Name, nameof(pairs));
+            if (string.IsNullOrEmpty(pairs[i].Name))
+            {
+                throw new ArgumentException(UnnamedEntry, nameof(pairs));
+            }
+
             rest[i - 1] = new KeyValuePair<string, string?>(pairs[i].Name, pairs[i].Value);
         }
 

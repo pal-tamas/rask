@@ -110,7 +110,7 @@ public class ConfigurableLimitsTests
     {
         var o = new RaskServerOptions { ShutdownDrainTimeout = TimeSpan.FromSeconds(-1) };
 
-        Assert.Throws<ArgumentOutOfRangeException>(o.Validate);
+        Assert.Throws<InvalidOperationException>(o.Validate);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public class ConfigurableLimitsTests
         // throw from the shutdown path, the worst possible place to find out.
         var o = new RaskServerOptions { ShutdownDrainTimeout = TimeSpan.FromDays(30) };
 
-        Assert.Throws<ArgumentOutOfRangeException>(o.Validate);
+        Assert.Throws<InvalidOperationException>(o.Validate);
     }
 
     [Fact]

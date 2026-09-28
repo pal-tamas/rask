@@ -1,4 +1,4 @@
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 /// <summary>
 ///     The classes that build a <see cref="MailDbContext" />, run as one xUnit collection so they do

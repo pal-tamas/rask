@@ -35,7 +35,9 @@ public abstract partial class UiMenuSurface : Component
     private bool _open;
     private int _cursor = -1;
     private UiMenuScope? _scope;
+#pragma warning disable S3459 // a mutable struct whose default is its empty state; Next() fills it in place
     private UiTypeAhead _typeAhead;
+#pragma warning restore S3459
 
     /// <summary>
     ///     Whether the menu is open. Leave it unset to let the reader open and close it; set it to take
@@ -99,7 +101,7 @@ public abstract partial class UiMenuSurface : Component
             panel = panel.Data("rask-popover-open", controlled ? "true" : "false");
         }
 
-        var aria = new Dictionary<string, string?>();
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
         if (labelledBy is not null)
         {
             aria["labelledby"] = labelledBy;
@@ -128,15 +130,15 @@ public abstract partial class UiMenuSurface : Component
 
     private async Task OnPanelToggleAsync(ToggleEvent e)
     {
-        _open = e.NewState == "open";
+        _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
         _openSubs.Clear();
-        _cursor = e.NewState == "open" && _scope is { } scope ? FirstEnabled(scope.Entries, -1) : -1;
+        _cursor = string.Equals(e.NewState, "open", StringComparison.Ordinal) && _scope is { } scope ? FirstEnabled(scope.Entries, -1) : -1;
 
         // Controlled: tell the page only about a change it did not make itself — the runtime showing the popover
         // because Open became true fires this same event.
-        if (e.NewState == "open" != Open)
+        if (string.Equals(e.NewState, "open", StringComparison.Ordinal) != Open)
         {
-            await OnToggle.Invoke(e.NewState == "open").ConfigureAwait(false);
+            await OnToggle.Invoke(string.Equals(e.NewState, "open", StringComparison.Ordinal)).ConfigureAwait(false);
         }
     }
 
@@ -198,7 +200,7 @@ public abstract partial class UiMenuSurface : Component
                 _cursor = level;
                 break;
             default:
-                if (e.Key.Length == 1 && e.Key != " ")
+                if (e.Key.Length == 1 && !string.Equals(e.Key, " ", StringComparison.Ordinal))
                 {
                     TypeAhead(e.Key, entries, level, at);
                 }

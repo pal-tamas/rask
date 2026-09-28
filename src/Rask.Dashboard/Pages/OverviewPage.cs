@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Routing;
 using Rask.Dashboard.Panels;
 
@@ -84,11 +85,11 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     {
         var outstanding = _queues.Sum(q => q.Counts.Outstanding);
         var failed = _queues.Sum(q => q.Counts.Failed);
-        var queues = _queues.Count == 1 ? "1 queue" : $"{_queues.Count} queues";
+        var queueCount = _queues.Count == 1 ? "1 queue" : $"{_queues.Count} queues";
 
         return failed > 0
-            ? $"{queues} · {outstanding} outstanding · {failed} failed"
-            : $"{queues} · {outstanding} outstanding · nothing failed";
+            ? $"{queueCount} · {outstanding} outstanding · {failed} failed"
+            : $"{queueCount} · {outstanding} outstanding · nothing failed";
     }
 
     /// <summary>
@@ -100,7 +101,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     /// one thing, so it gets one card, and the grid divides evenly by the number of queues rather than by
     /// twice it. The whole card is one link, which is why its corner holds a status rather than a button.
     /// </remarks>
-    private Component QueueCard(IQueuePanel panel, QueueCounts counts)
+    private static Component QueueCard(IQueuePanel panel, QueueCounts counts)
     {
         var failing = counts.Failed > 0;
 
@@ -116,12 +117,12 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
                 Ui.Metric
                     .Key("outstanding")
                     .Label("Outstanding")
-                    .Value(counts.Outstanding.ToString())
+                    .Value(counts.Outstanding.ToString(CultureInfo.CurrentCulture))
                     .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting"),
                 Ui.Metric
                     .Key("failed")
                     .Label("Failed")
-                    .Value(counts.Failed.ToString())
+                    .Value(counts.Failed.ToString(CultureInfo.CurrentCulture))
                     .Tone(failing ? Ui.Tone.Error : null)
                     .Caption($"dead after {panel.MaxAttempts} attempts")
             ]

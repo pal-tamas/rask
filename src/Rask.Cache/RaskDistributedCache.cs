@@ -3,7 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>
 /// An <see cref="IDistributedCache"/> backed by a <see cref="CacheEntry"/> table on the app's own database —
@@ -12,14 +12,13 @@ namespace Rask.Cache;
 /// <see cref="IDbContextFactory{TContext}"/> so each operation gets a fresh short-lived context.
 /// </summary>
 /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the cache table.</typeparam>
-public sealed class RaskDistributedCache<TContext>(
+public sealed partial class RaskDistributedCache<TContext>(
     IDbContextFactory<TContext> contextFactory,
     CacheOptions options,
     TimeProvider timeProvider,
     ILogger<RaskDistributedCache<TContext>> logger) : IDistributedCache
     where TContext : DbContext
 {
-    /// <inheritdoc/>
     // One cache, isolated per tenant by the KEY rather than by a query filter.
     //
     // A filter is the wrong tool here twice over. The purger has to sweep every tenant's expired rows, and a
@@ -33,6 +32,7 @@ public sealed class RaskDistributedCache<TContext>(
     private static string Scoped(string key) =>
         Current.Tenant is { } tenant ? string.Concat(tenant.ToString("N"), ":", key) : key;
 
+    /// <inheritdoc/>
     public byte[]? Get(string key) => GetAsync(key).GetAwaiter().GetResult();
 
     /// <inheritdoc/>
@@ -41,7 +41,8 @@ public sealed class RaskDistributedCache<TContext>(
         key = Scoped(key);
         ArgumentException.ThrowIfNullOrEmpty(key);
 
-        await using var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         // No-tracking read: the mutations below use set-based ExecuteDelete/ExecuteUpdate, so nothing is saved
         // through the change tracker — which keeps concurrent reads of the same key from racing on a tracked save.
         var entry = await db.Set<CacheEntry>().AsNoTracking().FirstOrDefaultAsync(e => e.Key == key, token).ConfigureAwait(false);
@@ -102,7 +103,7 @@ public sealed class RaskDistributedCache<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogDebug(ex, "Best-effort cache maintenance write failed; ignoring.");
+            MaintenanceWriteFailed(logger, ex);
         }
     }
 
@@ -123,7 +124,8 @@ public sealed class RaskDistributedCache<TContext>(
         key = Scoped(key);
         ArgumentException.ThrowIfNullOrEmpty(key);
 
-        await using var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         await db.Set<CacheEntry>().Where(e => e.Key == key).ExecuteDeleteAsync(token).ConfigureAwait(false);
     }
 
@@ -142,7 +144,8 @@ public sealed class RaskDistributedCache<TContext>(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var (absolute, sliding, expiresAt) = Resolve(options, now);
 
-        await using var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         var entry = await db.Set<CacheEntry>().FirstOrDefaultAsync(e => e.Key == key, token).ConfigureAwait(false);
         if (entry is not null)
         {
@@ -167,36 +170,48 @@ public sealed class RaskDistributedCache<TContext>(
             // clash. If no row matches, the failure was NOT a duplicate-key conflict (some other write error), so
             // rethrow rather than swallow it — a Set must not silently lose the value.
             db.ChangeTracker.Clear();
-            var updated = await db.Set<CacheEntry>()
-                .Where(e => e.Key == key)
-                .ExecuteUpdateAsync(
-                    s => s
-                        .SetProperty(e => e.Value, value)
-                        .SetProperty(e => e.AbsoluteExpiration, absolute)
-                        .SetProperty(e => e.SlidingSeconds, sliding == null ? (double?)null : sliding.Value.TotalSeconds)
-                        .SetProperty(e => e.ExpiresAt, expiresAt)
-                        .SetProperty(e => e.CreatedAt, now),
-                    token)
-                .ConfigureAwait(false);
-            if (updated == 0)
+            if (await OverwriteAsync(db, key, value, (absolute, sliding, expiresAt), now, token).ConfigureAwait(false) == 0)
             {
-                // A key longer than the table's key column never stores on a provider that enforces the length
-                // (PostgreSQL, SQL Server): the insert failed on truncation, and there is no row to update. Name
-                // that, rather than surface a provider error about some value being too long for some column.
-                // SQLite does not enforce the length, so it never reaches here for this reason.
-                if (db.Model.FindEntityType(typeof(CacheEntry))?.FindProperty(nameof(CacheEntry.Key))?.GetMaxLength()
-                        is { } maxLength
-                    && key.Length > maxLength)
-                {
-                    throw new ArgumentException(
-                        $"The cache key is {key.Length} characters long, and this database's cache table holds keys of "
-                        + $"at most {maxLength}. Shorten the key — hash a long one, for example with SHA-256.",
-                        nameof(key),
-                        error);
-                }
-
+                ThrowIfKeyTooLong(db, key, error);
                 throw;
             }
+        }
+    }
+
+    // Writes over the row a concurrent insert beat us to, returning how many rows it touched.
+    private static Task<int> OverwriteAsync(
+        TContext db,
+        string key,
+        byte[] value,
+        (DateTime? Absolute, TimeSpan? Sliding, DateTime ExpiresAt) expiry,
+        DateTime now,
+        CancellationToken token) =>
+        db.Set<CacheEntry>()
+            .Where(e => e.Key == key)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(e => e.Value, value)
+                    .SetProperty(e => e.AbsoluteExpiration, expiry.Absolute)
+                    .SetProperty(e => e.SlidingSeconds, expiry.Sliding == null ? (double?)null : expiry.Sliding.Value.TotalSeconds)
+                    .SetProperty(e => e.ExpiresAt, expiry.ExpiresAt)
+                    .SetProperty(e => e.CreatedAt, now),
+                token);
+
+    // A key longer than the table's key column never stores on a provider that enforces the length
+    // (PostgreSQL, SQL Server): the insert failed on truncation, and there is no row to update. Name
+    // that, rather than surface a provider error about some value being too long for some column.
+    // SQLite does not enforce the length, so it never reaches here for this reason.
+    private static void ThrowIfKeyTooLong(TContext db, string key, DbUpdateException error)
+    {
+        if (db.Model.FindEntityType(typeof(CacheEntry))?.FindProperty(nameof(CacheEntry.Key))?.GetMaxLength()
+                is { } maxLength
+            && key.Length > maxLength)
+        {
+            throw new ArgumentException(
+                $"The cache key is {key.Length} characters long, and this database's cache table holds keys of "
+                + $"at most {maxLength}. Shorten the key — hash a long one, for example with SHA-256.",
+                nameof(key),
+                error);
         }
     }
 
@@ -239,4 +254,7 @@ public sealed class RaskDistributedCache<TContext>(
 
         return (absolute, sliding, expiresAt);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Best-effort cache maintenance write failed; ignoring.")]
+    private static partial void MaintenanceWriteFailed(ILogger logger, Exception exception);
 }

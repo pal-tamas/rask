@@ -86,7 +86,7 @@ public sealed class ComponentConstructionAnalyzer : DiagnosticAnalyzer
             {
                 foreach (var named in attribute.NamedArguments)
                 {
-                    if (named.Key == "Entry" && named.Value.Value is string entry)
+                    if (string.Equals(named.Key, "Entry", StringComparison.Ordinal) && named.Value.Value is string entry)
                     {
                         return entry;
                     }

@@ -9,17 +9,6 @@ using Rask.Wire;
 
 namespace Rask.Auth;
 
-/// <summary>Names shared by the auth endpoints and the clients that call them.</summary>
-/// <remarks>
-/// The contract itself lives in <see cref="AuthApi" />, in Rask.Wire, because the browser half cannot
-/// reference this package — it carries Entity Framework, which must not reach a trimmed WebAssembly publish.
-/// </remarks>
-public static class RaskAuthDefaults
-{
-    /// <inheritdoc cref="AuthApi.RequestHeader" />
-    public const string RequestHeader = AuthApi.RequestHeader;
-}
-
 /// <summary>Maps the register, sign-in, sign-out and current-user endpoints.</summary>
 public static class RaskAuthEndpointExtensions
 {
@@ -172,13 +161,15 @@ public static class RaskAuthEndpointExtensions
         // 503 when the app has no mail battery, which is a misconfiguration of the server rather than anything
         // the caller did wrong — answering 401 would have a client show "check your email" over a message that
         // never left. 429 when the caller is asking too often.
-        return result.Succeeded
-            ? Results.Accepted()
-            : Refuse(
-                result,
-                result.Error == AuthError.TooManyAttempts
-                    ? StatusCodes.Status429TooManyRequests
-                    : StatusCodes.Status503ServiceUnavailable);
+        if (result.Succeeded)
+        {
+            return Results.Accepted();
+        }
+
+        var status = result.Error == AuthError.TooManyAttempts
+            ? StatusCodes.Status429TooManyRequests
+            : StatusCodes.Status503ServiceUnavailable;
+        return Refuse(result, status);
     }
 
     /// <summary>Sets a new password from an emailed token.</summary>

@@ -127,7 +127,7 @@ internal static class BulkInsertWriter
         try
         {
             var transaction = ambient ?? owned;
-            var written = write.RowsPerStatement > 1
+            var written = write.RowsPerCommand > 1
                 ? await WritePackedAsync(connection, transaction, write, batch, cancellationToken).ConfigureAwait(false)
                 : await WriteRowsAsync(connection, transaction, write, batch, cancellationToken).ConfigureAwait(false);
 
@@ -158,7 +158,8 @@ internal static class BulkInsertWriter
         where TEntity : class
     {
         var plan = write.Plan;
-        await using var command = connection.CreateCommand();
+        var command = connection.CreateCommand();
+        await using var commandScope = command.ConfigureAwait(false);
         command.Transaction = transaction;
         command.CommandText = plan.CommandText;
         var parameters = AddParameters(command, plan, rows: 1, static (p, i) => p.Columns[i].ParameterName);
@@ -176,7 +177,9 @@ internal static class BulkInsertWriter
             {
                 if (write.Synchronous)
                 {
+#pragma warning disable S6966 // the synchronous BulkInsert overload must not block on an async call
                     command.Prepare();
+#pragma warning restore S6966
                 }
                 else
                 {
@@ -186,9 +189,11 @@ internal static class BulkInsertWriter
                 prepared = true;
             }
 
+#pragma warning disable S6966 // the synchronous BulkInsert overload must not block on an async call
             written += write.Synchronous
                 ? command.ExecuteNonQuery()
                 : await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+#pragma warning restore S6966
         }
 
         return written;
@@ -211,11 +216,11 @@ internal static class BulkInsertWriter
         var written = 0;
         try
         {
-            foreach (var rows in batch.Chunk(write.RowsPerStatement))
+            foreach (var rows in batch.Chunk(write.RowsPerCommand))
             {
                 DbCommand command;
                 DbParameter[] parameters;
-                if (rows.Length == write.RowsPerStatement)
+                if (rows.Length == write.RowsPerCommand)
                 {
                     full ??= CreatePacked(connection, transaction, plan, rows.Length, out fullParameters);
                     command = full;
@@ -321,5 +326,5 @@ internal static class BulkInsertWriter
         ?? Clock.TimeProvider;
 
     /// <summary>What every batch of one load shares.</summary>
-    private sealed record BatchWrite(BulkInsertPlan Plan, DateTime Now, bool Synchronous, int RowsPerStatement);
+    private sealed record BatchWrite(BulkInsertPlan Plan, DateTime Now, bool Synchronous, int RowsPerCommand);
 }

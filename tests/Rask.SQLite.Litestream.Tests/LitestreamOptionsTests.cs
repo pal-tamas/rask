@@ -130,6 +130,24 @@ public sealed class LitestreamOptionsTests
     }
 
     [Fact]
+    public void Validate_rejects_verification_options_set_to_null()
+    {
+        var options = Valid();
+        options.Verification = null!;
+
+        Assert.Throws<InvalidOperationException>(() => Validate(options));
+    }
+
+    [Fact]
+    public void Validate_rejects_a_verification_busy_retry_set_to_null()
+    {
+        var options = Valid();
+        options.Verification.BusyRetry = null!;
+
+        Assert.Throws<InvalidOperationException>(() => Validate(options));
+    }
+
+    [Fact]
     public void Verification_is_off_by_default()
     {
         // Every pass is a real restore and a real egress bill; opting in is the user's call.

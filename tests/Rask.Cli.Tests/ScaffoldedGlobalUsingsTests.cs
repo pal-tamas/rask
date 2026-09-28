@@ -32,9 +32,9 @@ public class ScaffoldedGlobalUsingsTests
             Logs = true,
         });
 
-        Assert.Contains("global using Rask.Jobs;", usings, StringComparison.Ordinal);
-        Assert.Contains("global using Rask.Mail;", usings, StringComparison.Ordinal);
-        Assert.Contains("global using Rask.Cache;", usings, StringComparison.Ordinal);
+        Assert.Contains("global using Rask.Background;", usings, StringComparison.Ordinal);
+        Assert.Contains("global using Rask.Mailing;", usings, StringComparison.Ordinal);
+        Assert.Contains("global using Rask.Caching;", usings, StringComparison.Ordinal);
         Assert.Contains("global using Rask.Storage;", usings, StringComparison.Ordinal);
         Assert.Contains("global using Rask.Logging;", usings, StringComparison.Ordinal);
         Assert.Contains("global using Rask.Cqrs;", usings, StringComparison.Ordinal);
@@ -45,9 +45,9 @@ public class ScaffoldedGlobalUsingsTests
     {
         var usings = GlobalUsings(new ServerBatteries { Data = true, Cqrs = true });
 
-        Assert.DoesNotContain("global using Rask.Jobs;", usings, StringComparison.Ordinal);
-        Assert.DoesNotContain("global using Rask.Mail;", usings, StringComparison.Ordinal);
-        Assert.DoesNotContain("global using Rask.Cache;", usings, StringComparison.Ordinal);
+        Assert.DoesNotContain("global using Rask.Background;", usings, StringComparison.Ordinal);
+        Assert.DoesNotContain("global using Rask.Mailing;", usings, StringComparison.Ordinal);
+        Assert.DoesNotContain("global using Rask.Caching;", usings, StringComparison.Ordinal);
         Assert.DoesNotContain("global using Rask.Storage;", usings, StringComparison.Ordinal);
     }
 

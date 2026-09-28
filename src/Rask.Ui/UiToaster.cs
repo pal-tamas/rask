@@ -1,13 +1,5 @@
 namespace Rask;
 
-/// <summary>Marks the subtree inside a <see cref="UiToaster" />, so a toast knows it is one of a stack.</summary>
-/// <remarks>
-/// A toast on its own places itself in a corner of the viewport. Inside a toaster the STACK is placed and each
-/// toast fills its width, because two toasts that each pinned themselves to the same corner would sit on top
-/// of one another.
-/// </remarks>
-internal sealed record UiToastStack;
-
 /// <summary>
 /// Where a page's toasts stack up.
 /// </summary>
@@ -49,7 +41,7 @@ public sealed partial class UiToaster : Component
                 // The stack ignores the pointer so it does not swallow clicks on the page underneath it
                 // between toasts; each toast takes it back for itself.
                 Div.Class("pointer-events-auto contents")[
-                    Context.Provide(new UiToastStack())[Children]
+                    Context.Provide(UiToastStack.Instance)[Children]
                 ]
             ];
 }

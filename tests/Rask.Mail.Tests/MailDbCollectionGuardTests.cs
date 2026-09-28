@@ -1,6 +1,6 @@
 using Rask.Tests.Shared;
 
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 // In the collection it guards, so it costs the suite nothing and needs no exemption of its own.
 [Collection(MailDbCollection.Name)]

@@ -1,15 +1,4 @@
-using Microsoft.JSInterop;
-
 namespace Rask.Core.Browser;
-
-/// <summary>An estimate of the origin's storage budget (<c>StorageManager.estimate()</c>).</summary>
-/// <param name="Quota">Total bytes the origin may use (a conservative estimate).</param>
-/// <param name="Usage">Bytes the origin is currently using across caches, IndexedDB, etc.</param>
-public sealed record StorageEstimate(long Quota, long Usage)
-{
-    /// <summary>Fraction of the quota in use, <c>0</c>–<c>1</c> (<c>0</c> when the quota is unknown).</summary>
-    public double UsageRatio => Quota > 0 ? (double)Usage / Quota : 0;
-}
 
 /// <summary>
 ///     Typed access to the Storage API's quota estimate
@@ -46,26 +35,4 @@ public interface IStorageEstimator
     ///     being persisted resolves <c>true</c> without re-asking, and <c>false</c> where unsupported.
     /// </summary>
     ValueTask<bool> RequestPersistAsync();
-}
-
-/// <summary>
-///     Default <see cref="IStorageEstimator" />, backed by the unified <see cref="IJSRuntime" />.
-///     <c>navigator.storage.estimate()</c> resolves to a live object, so the read goes through the
-///     framework's <c>__raskApi.storageEstimate</c> helper, which returns a plain <c>{ quota, usage }</c>
-///     snapshot.
-/// </summary>
-public sealed class StorageEstimator(IJSRuntime js) : IStorageEstimator
-{
-    /// <inheritdoc />
-    public ValueTask<bool> IsSupportedAsync() => js.InvokeAsync<bool>("__raskApi.storageSupported");
-
-    /// <inheritdoc />
-    public ValueTask<StorageEstimate?> EstimateAsync() =>
-        js.InvokeAsync<StorageEstimate?>("__raskApi.storageEstimate");
-
-    /// <inheritdoc />
-    public ValueTask<bool> IsPersistedAsync() => js.InvokeAsync<bool>("__raskApi.storagePersisted");
-
-    /// <inheritdoc />
-    public ValueTask<bool> RequestPersistAsync() => js.InvokeAsync<bool>("__raskApi.storagePersist");
 }

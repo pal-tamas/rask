@@ -21,7 +21,7 @@ namespace Rask.Server;
 // Render/diff/payload pipeline + the IJSRuntime queue live in LiveSessionBase (Core), shared with
 // the WASM host. LiveSession adds the WebSocket transport: the socket lifecycle, reconnect/force-
 // resend, the dispatch lock, out-of-band sends, and the zero-copy double-buffered send dedup.
-internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposable
+internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 {
     // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
     // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
@@ -46,7 +46,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // match the session's state because the browser literally just rendered the GET
     // response) from a subsequent reconnect (where the browser may have missed the prior
     // socket's last frame due to a partial send, a tab background, or any other transport
-    // gap we can't observe from this side). First-attach skips the redundant render;
+    // gap we can't observe from this side). First-attach skips the redundant render, and a
     // reconnect always renders.
     private bool _hasAttachedBefore;
 
@@ -220,7 +220,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         // enumeration — the very class of concurrent-tree-mutation bug _renderLock exists to
         // prevent (see its field comment). Hold it across the whole walk, then release before
         // disposing the semaphore itself.
-        await _renderLock.WaitAsync().ConfigureAwait(false);
+        await _renderLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         try
         {
             await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
@@ -241,13 +241,13 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         Scope.Dispose();
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
         _disposed = true;
         DetachCulture();
         // See DisposeAsync: take the render lock so the synchronous tree walk can't race an
         // in-flight render mutating the same child dictionaries.
-        _renderLock.Wait();
+        _renderLock.Wait(CancellationToken.None);
         try
         {
             ComponentLifecycle.DisposeComponentTree(View);
@@ -382,7 +382,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         return RequestPublishRenderAsync();
     }
 
-    private readonly object _handlerChainGate = new();
+    private readonly Lock _handlerChainGate = new();
 
     /// <summary>
     ///     Appends to <see cref="LastHandlerTask" /> atomically. Whatever extends the chain from another thread than the
@@ -403,12 +403,22 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     protected override void RunInOrderCore(Func<Task> work) =>
         EnqueueOnHandlerChain(async previous =>
         {
-            try { await previous.ConfigureAwait(false); }
-            catch { }
-
-            try { await work().ConfigureAwait(false); }
-            catch { }
+            await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await Started(work).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         });
+
+    // The work's task, with a synchronous throw carried in it like an asynchronous one.
+    private static Task Started(Func<Task> work)
+    {
+        try
+        {
+            return work();
+        }
+        catch (Exception ex)
+        {
+            return Task.FromException(ex);
+        }
+    }
 
     internal bool IsDisposed => _disposed;
 
@@ -798,7 +808,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         {
             await transport.SendAsync(payload, cts.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (!_socketCt.IsCancellationRequested)
+        catch (OperationCanceledException timedOut) when (!_socketCt.IsCancellationRequested)
         {
             // Ours, not the caller's: the send timed out rather than the session being torn down. Abort so
             // the receive loop unwinds, then report it as a transport failure — which is what it is, and
@@ -809,7 +819,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
                 + "reading; its session is kept for the reconnect grace period.");
             transport.Abort();
 
-            throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Send timed out.");
+            throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Send timed out.", timedOut);
         }
     }
 
@@ -826,55 +836,20 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
         try
         {
-            // Consume a reconnect's resend request inside the lock that owns the dedup
-            // baselines, so AttachSocket never has to touch them from another thread. Clearing
-            // both forces this render past the HTML dedup (below) and the buffer dedup (line
-            // ~530), guaranteeing the catch-up frame reaches the freshly attached socket.
-            if (_forceResend)
-            {
-                _forceResend = false;
-                _lastSentBuffer = null;
-                _htmlBuffers.Invalidate();
-            }
+            ConsumeForcedResend();
 
             // Render + decide diff-vs-full + write the frame — shared with the WASM host (LiveSessionBase).
             var html = RenderTreeToHtml(publishOnly, out var frameWriter);
             var download = ConsumeDownload();
             var jsInvokes = JsInvokes.Drain();
 
-            // HTML-level dedup: when the rendered HTML matches the last sent (or the GET-seeded
-            // baseline) and there's nothing out-of-band to flow, the payload would be byte-identical
-            // to the last send — skip before building. Preserves JS-applied DOM state (hljs's `.hljs`
-            // class) across noop publish-renders, and lets a fresh socket dedup against the GET HTML.
-            // HasPendingDevError defeats this deliberately: a handler that threw and changed nothing
-            // renders byte-identical HTML, so without it the overlay would never reach the browser in
-            // exactly the simplest case — a click whose only effect was the exception.
-            if (jsInvokes is null
-                && historyUrl is null && auth is null && download is null
-                && !HasPendingDevError
-                && _htmlBuffers.CurrentEqualsPrevious())
+            if (RepeatsLastFrame(jsInvokes, historyUrl, auth, download))
             {
                 return;
             }
 
             var renderStarted = Stopwatch.GetTimestamp();
-
-            // Read before WritePayload consumes it — the byte-level dedup below needs to know too.
-            var devErrorPending = HasPendingDevError;
-
-            WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
-                commitCache: true, auth, Id);
-
-            // Emit via the shared double-buffered send (dedup + swap in LiveSessionBase). Force the
-            // send when something out-of-band (navigation, auth, download) must flow even if the
-            // rendered bytes are byte-identical to the previous frame — otherwise the dedup skips it.
-            // Read BEFORE the emit: TryEmitFrameAsync swaps _writeBuffer with the previous-frame buffer
-            // for the zero-copy dedup, so afterwards this field is the OTHER buffer and its count is the
-            // reset one. Measuring it there silently records zero for every frame.
-            var payloadBytes = _writeBuffer.WrittenCount;
-
-            var force = historyUrl is not null || auth is not null || download is not null
-                        || devErrorPending;
+            var force = WriteFrame(html, frameWriter, download, jsInvokes, historyUrl, replace, auth, out var payloadBytes);
             bool sent;
             try
             {
@@ -893,20 +868,81 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
 
             if (sent)
             {
-                _htmlBuffers.Commit();
-
-                // Only when a frame actually went out. Recording a deduped render — one whose bytes
-                // matched the last frame and was suppressed — would put a zero-byte sample in the payload
-                // histogram and count work the client never saw, which is precisely the case these two
-                // signals exist to distinguish from a real one.
-                _metrics?.RecordRenderDuration(Stopwatch.GetElapsedTime(renderStarted).TotalMilliseconds);
-                _metrics?.RecordPayloadBytes(payloadBytes);
+                RecordSent(renderStarted, payloadBytes);
             }
         }
         finally
         {
             _renderLock.Release();
         }
+    }
+
+    // Consume a reconnect's resend request inside the lock that owns the dedup
+    // baselines, so AttachSocket never has to touch them from another thread. Clearing
+    // both forces this render past the HTML dedup (below) and the buffer dedup (line
+    // ~530), guaranteeing the catch-up frame reaches the freshly attached socket.
+    private void ConsumeForcedResend()
+    {
+        if (_forceResend)
+        {
+            _forceResend = false;
+            _lastSentBuffer = null;
+            _htmlBuffers.Invalidate();
+        }
+    }
+
+    // HTML-level dedup: when the rendered HTML matches the last sent (or the GET-seeded
+    // baseline) and there's nothing out-of-band to flow, the payload would be byte-identical
+    // to the last send — skip before building. Preserves JS-applied DOM state (hljs's `.hljs`
+    // class) across noop publish-renders, and lets a fresh socket dedup against the GET HTML.
+    // HasPendingDevError defeats this deliberately: a handler that threw and changed nothing
+    // renders byte-identical HTML, so without it the overlay would never reach the browser in
+    // exactly the simplest case — a click whose only effect was the exception.
+    private bool RepeatsLastFrame(
+        PendingJsInvoke[]? jsInvokes, string? historyUrl, AuthInstruction? auth, PendingDownload? download) =>
+        jsInvokes is null
+        && historyUrl is null && auth is null && download is null
+        && !HasPendingDevError
+        && _htmlBuffers.CurrentEqualsPrevious();
+
+    // Writes the payload and answers whether it must be sent even when its bytes repeat the last frame.
+    private bool WriteFrame(
+        ReadOnlyMemory<char> html,
+        FrameWriter? frameWriter,
+        PendingDownload? download,
+        PendingJsInvoke[]? jsInvokes,
+        string? historyUrl,
+        bool replace,
+        AuthInstruction? auth,
+        out int payloadBytes)
+    {
+        // Read before WritePayload consumes it — the byte-level dedup below needs to know too.
+        var devErrorPending = HasPendingDevError;
+
+        WritePayload(html, frameWriter, download, jsInvokes, historyUrl, replace,
+            commitCache: true, auth, Id);
+
+        // Emit via the shared double-buffered send (dedup + swap in LiveSessionBase). Force the
+        // send when something out-of-band (navigation, auth, download) must flow even if the
+        // rendered bytes are byte-identical to the previous frame — otherwise the dedup skips it.
+        // Read BEFORE the emit: TryEmitFrameAsync swaps _writeBuffer with the previous-frame buffer
+        // for the zero-copy dedup, so afterwards this field is the OTHER buffer and its count is the
+        // reset one. Measuring it there silently records zero for every frame.
+        payloadBytes = _writeBuffer.WrittenCount;
+
+        return historyUrl is not null || auth is not null || download is not null || devErrorPending;
+    }
+
+    private void RecordSent(long renderStarted, int payloadBytes)
+    {
+        _htmlBuffers.Commit();
+
+        // Only when a frame actually went out. Recording a deduped render — one whose bytes
+        // matched the last frame and was suppressed — would put a zero-byte sample in the payload
+        // histogram and count work the client never saw, which is precisely the case these two
+        // signals exist to distinguish from a real one.
+        _metrics?.RecordRenderDuration(Stopwatch.GetElapsedTime(renderStarted).TotalMilliseconds);
+        _metrics?.RecordPayloadBytes(payloadBytes);
     }
 
     /// <summary>

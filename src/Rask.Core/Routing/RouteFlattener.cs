@@ -1,23 +1,5 @@
 namespace Rask.Core.Routing;
 
-internal sealed class RouteLeaf
-{
-    public RouteLeaf(string fullTemplate, IReadOnlyList<Type> chain, RoutePattern pattern, int literalSegmentCount)
-    {
-        FullTemplate = fullTemplate;
-        Chain = chain;
-        Pattern = pattern;
-        LiteralSegmentCount = literalSegmentCount;
-        HasCatchAll = pattern.Segments.Any(s => s.Kind == SegmentKind.CatchAll);
-    }
-
-    public string FullTemplate { get; }
-    public IReadOnlyList<Type> Chain { get; }
-    public RoutePattern Pattern { get; }
-    public int LiteralSegmentCount { get; }
-    public bool HasCatchAll { get; }
-}
-
 internal static class RouteFlattener
 {
     public static IReadOnlyList<RouteLeaf> Flatten(IEnumerable<Route> roots)
@@ -50,14 +32,11 @@ internal static class RouteFlattener
         return leaves;
     }
 
-    private static void Walk(Route node, string parentTemplate, IReadOnlyList<Type> parentChain, List<RouteLeaf> leaves)
+    private static void Walk(Route node, string parentTemplate, Type[] parentChain, List<RouteLeaf> leaves)
     {
         var fullTemplate = Combine(parentTemplate, node.Template);
-        var chain = new Type[parentChain.Count + 1];
-        for (var i = 0; i < parentChain.Count; i++)
-        {
-            chain[i] = parentChain[i];
-        }
+        var chain = new Type[parentChain.Length + 1];
+        parentChain.CopyTo(chain, 0);
 
         chain[^1] = node.PageType;
 

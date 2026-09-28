@@ -2,6 +2,7 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Rask.Data;
@@ -47,7 +48,8 @@ internal static class AggregateSave
         TEntity aggregate, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {
-        await using var context = Db.CreateContext();
+        var context = Db.CreateContext();
+        await using var contextScope = context.ConfigureAwait(false);
 
         await StageAsync(context, aggregate, cancellationToken).ConfigureAwait(false);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -92,6 +94,12 @@ internal static class AggregateSave
             return;
         }
 
+        StageOver(context, entry, aggregate, stored);
+    }
+
+    // Attaches the aggregate over the stored row it replaces, so only what this code changed is written.
+    private static void StageOver(DbContext context, EntityEntry entry, object aggregate, object stored)
+    {
         // Compared with what was READ when that is known; with the row as it is now otherwise (built by hand
         // with an existing key, or last saved through a context the caller committed).
         var rootType = entry.Metadata;

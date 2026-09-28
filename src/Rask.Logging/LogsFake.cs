@@ -1,40 +1,6 @@
-using Microsoft.Extensions.Logging;
 using Rask.Batteries;
 
 namespace Rask.Logging;
-
-/// <summary>A test's stand-in for the durable log: <c>using var logs = Logs.Fake();</c>.</summary>
-public static class LogsFakes
-{
-    extension(Logs)
-    {
-        /// <summary>
-        ///     Takes the place of the log store for this test — an in-memory one that really stores, so a
-        ///     search reads back what was written — until the returned fake is disposed:
-        /// </summary>
-        /// <remarks>
-        ///     <code>
-        ///     using var logs = Logs.Fake();
-        ///
-        ///     await page.Click("Save");
-        ///
-        ///     logs.Stored().AtLeast(LogLevel.Error).Saying("refused").Once();
-        ///     </code>
-        ///     <para>
-        ///         Scoped to the test's own flow, so tests running in parallel never see each other's
-        ///         entries. It stands in front of <c>Logs.Search</c>; a class that takes <see cref="ILogs" />
-        ///         in its constructor is handed whatever the container holds, so register the fake there too
-        ///         — <c>services.AddSingleton&lt;ILogs&gt;(logs)</c> — when the code under test injects it.
-        ///     </para>
-        ///     <para>
-        ///         It records what reached the STORE, not what was logged: the real pillar drains an
-        ///         <c>ILogger</c> through a channel and a background writer, so a test that wants to prove a
-        ///         line was logged should append to this directly rather than expect a logger call to arrive.
-        ///     </para>
-        /// </remarks>
-        public static LogsFake Fake() => new();
-    }
-}
 
 /// <summary>An in-memory log store that remembers what a test wrote to it.</summary>
 public sealed class LogsFake : ILogs, IDisposable
@@ -157,26 +123,4 @@ public sealed class LogsFake : ILogs, IDisposable
             || (entry.Exception?.Contains(text, StringComparison.OrdinalIgnoreCase) ?? false))
         && (query.From is not { } from || entry.Timestamp >= from)
         && (query.To is not { } to || entry.Timestamp <= to);
-}
-
-/// <summary>The steps that narrow what a test asks about its log.</summary>
-public static class StoredLogCounting
-{
-    extension(Counting<LogRecord> stored)
-    {
-        /// <summary>Only entries at or above <paramref name="level" />.</summary>
-        public Counting<LogRecord> AtLeast(LogLevel level) =>
-            stored.Where(e => e.Level >= level, $"at {level} or above");
-
-        /// <summary>Only entries whose message or exception contains <paramref name="text" />.</summary>
-        public Counting<LogRecord> Saying(string text) =>
-            stored.Where(
-                e => e.Message.Contains(text, StringComparison.OrdinalIgnoreCase)
-                    || (e.Exception?.Contains(text, StringComparison.OrdinalIgnoreCase) ?? false),
-                $"saying \"{text}\"");
-
-        /// <summary>Only entries logged under <paramref name="category" />.</summary>
-        public Counting<LogRecord> From(string category) =>
-            stored.Where(e => e.Category.Contains(category, StringComparison.OrdinalIgnoreCase), $"from {category}");
-    }
 }

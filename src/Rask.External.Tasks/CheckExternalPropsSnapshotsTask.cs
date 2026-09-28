@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
@@ -46,7 +47,7 @@ public sealed class CheckExternalPropsSnapshotsTask : Task
         {
             var name = island.GetMetadata("IslandName");
             var file = island.GetMetadata("DeclaringFile");
-            var line = int.TryParse(island.GetMetadata("ModuleLine"), out var parsed) ? parsed : 0;
+            var line = int.TryParse(island.GetMetadata("ModuleLine"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
 
             if (!File.Exists(island.ItemSpec))
             {
@@ -90,7 +91,8 @@ public sealed class CheckExternalPropsSnapshotsTask : Task
         var match = Regex.Match(
             lockText,
             key + "\\s*:\\s*\\{[^{}]*?\"version\"\\s*:\\s*\"(?<version>[^\"]+)\"",
-            RegexOptions.CultureInvariant);
+            RegexOptions.CultureInvariant,
+            TimeSpan.FromSeconds(1));
         return match.Success ? match.Groups["version"].Value : null;
     }
 

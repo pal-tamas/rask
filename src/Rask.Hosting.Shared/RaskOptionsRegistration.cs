@@ -132,7 +132,9 @@ internal static class RaskOptionsRegistration
     }
 
     // One per options type, marking that AddRaskOptions already ran for it on this collection.
+#pragma warning disable S2094, S2326 // a type-only DI key: the closed Marker<T> itself is what is looked up
     private sealed class Marker<T>;
+#pragma warning restore S2094, S2326
 
     private sealed class BindSection<T>(string section, IConfiguration? configuration, Action<IConfigurationSection, T> bind)
         : IConfigureOptions<T>
@@ -166,7 +168,7 @@ internal static class RaskOptionsRegistration
         public ValidateOptionsResult Validate(string? name, T options)
         {
             // Only the unnamed instance is the one AddRaskX registered; a named instance is someone else's.
-            if (name is not null && name != Options.DefaultName)
+            if (name is not null && !string.Equals(name, Options.DefaultName, StringComparison.Ordinal))
             {
                 return ValidateOptionsResult.Skip;
             }

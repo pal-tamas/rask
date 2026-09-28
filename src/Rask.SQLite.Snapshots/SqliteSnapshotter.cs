@@ -9,7 +9,7 @@ namespace Rask.SQLite.Snapshots;
 /// (SQLite's Online Backup API) to produce a consistent copy of the live database while writers continue —
 /// never an unsafe file copy — then hands it to the store and prunes.
 /// </summary>
-internal sealed class SqliteSnapshotter : ISqliteSnapshotter
+internal sealed partial class SqliteSnapshotter : ISqliteSnapshotter
 {
     private readonly SqliteSnapshotOptions _options;
     private readonly ISqliteSnapshotStore _store;
@@ -40,7 +40,7 @@ internal sealed class SqliteSnapshotter : ISqliteSnapshotter
             CreateConsistentCopy(databasePath, tempPath);
             await _store.SaveAsync(tempPath, snapshotName, cancellationToken).ConfigureAwait(false);
             await _store.PruneAsync(_options.Retain, cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Created SQLite snapshot {SnapshotName}.", snapshotName);
+            LogSnapshotCreated(_logger, snapshotName);
             return snapshotName;
         }
         finally
@@ -69,7 +69,9 @@ internal sealed class SqliteSnapshotter : ISqliteSnapshotter
         using (var pragma = source.CreateCommand())
         {
             var milliseconds = (long)Math.Round(_options.BusyTimeout.TotalMilliseconds, MidpointRounding.AwayFromZero);
+#pragma warning disable S2077 // a PRAGMA takes no parameters; the value is an invariant-formatted integer
             pragma.CommandText = $"PRAGMA busy_timeout={milliseconds.ToString(CultureInfo.InvariantCulture)};";
+#pragma warning restore S2077
             pragma.ExecuteNonQuery();
         }
 
@@ -78,4 +80,7 @@ internal sealed class SqliteSnapshotter : ISqliteSnapshotter
 
         source.BackupDatabase(destination);
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Created SQLite snapshot {SnapshotName}.")]
+    private static partial void LogSnapshotCreated(ILogger logger, string snapshotName);
 }

@@ -10,6 +10,14 @@ public sealed partial class UiKitLayoutDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        DrawerSection(),
+        DividerJoinIndicatorSection(),
+        ApplicationLayoutSection(),
+        MaskSection(),
+        MockupsSection()
+    ];
+
+    private Component DrawerSection() =>
         Section(
             "Drawer",
             "The one interactive component whose state stays in a checkbox — daisyUI's rules are "
@@ -38,8 +46,9 @@ public sealed partial class UiKitLayoutDemo : Component
                         ]
                     ]
                 ]
-            ]),
+            ]);
 
+    private static Component DividerJoinIndicatorSection() =>
         Section(
             "Divider, join, indicator and stack",
             "Structure with no state.",
@@ -60,8 +69,9 @@ public sealed partial class UiKitLayoutDemo : Component
                     // worse than two letters — the NAME is still what a screen reader announces.
                     Ui.Avatar.Key("a2").Name("Ada Lovelace").Size(Ui.Size.Lg)
                 ]
-            ]),
+            ]);
 
+    private static Component ApplicationLayoutSection() =>
         Section(
             "Application layout — sidebar, navigation, separator, spacer, type",
             "Flux UI's layout pieces. The sidebar beside these docs IS Ui.Sidebar: docked from md up, a drawer "
@@ -113,8 +123,9 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Text.Key("t")["Body copy in the kit's scale. ", Ui.Text.Key("strong").Inline(true).Strong(true)["Strong"],
                         " for what matters, ", Ui.Text.Key("subtle").Inline(true).Subtle(true)["subtle"], " for what can be skipped."]
                 ]
-            ]),
+            ]);
 
+    private static Component MaskSection() =>
         Section(
             "Mask",
             "Clipping, so whatever is masked has to survive losing its corners.",
@@ -122,8 +133,9 @@ public sealed partial class UiKitLayoutDemo : Component
                 Ui.Mask.Key("m1").Shape(Ui.MaskShape.Squircle).Class("size-12 bg-secondary"),
                 Ui.Mask.Key("m2").Shape(Ui.MaskShape.Hexagon).Class("size-12 bg-accent"),
                 Ui.Mask.Key("m3").Shape(Ui.MaskShape.Triangle).Class("size-12 bg-primary")
-            ]),
+            ]);
 
+    private static Component MockupsSection() =>
         Section(
             "Mockups",
             "Frames for a screenshot or a snippet. The code block is the only one carrying text, and "
@@ -146,10 +158,9 @@ public sealed partial class UiKitLayoutDemo : Component
                         ]
                     ]
                 ]
-            ])
-    ];
+            ]);
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+    private static AttrBag Testid(string value) => new("testid", value);
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

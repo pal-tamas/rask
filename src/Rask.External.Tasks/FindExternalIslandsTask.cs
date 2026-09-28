@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Task = Microsoft.Build.Utilities.Task;
@@ -100,16 +101,11 @@ public sealed class FindExternalIslandsTask : Task
             islands.Add(claimed);
         }
 
-        var scoped = new List<ITaskItem>();
-        foreach (var item in ScopedFiles)
-        {
-            if (ExternalSourceScan.RuntimeOfModule(runtimes, item.GetMetadata("FullPath")) is not null)
-            {
-                // The item ITSELF, so the Remove in the targets matches on the identity the scoped
-                // glob produced rather than on a normalized copy of it.
-                scoped.Add(item);
-            }
-        }
+        // The item ITSELF, so the Remove in the targets matches on the identity the scoped
+        // glob produced rather than on a normalized copy of it.
+        var scoped = ScopedFiles
+            .Where(item => ExternalSourceScan.RuntimeOfModule(runtimes, item.GetMetadata("FullPath")) is not null)
+            .ToList();
 
         Islands = islands.ToArray();
         ScopedIslands = scoped.ToArray();

@@ -76,7 +76,8 @@ internal sealed partial class PackageFeed(Func<string, CancellationToken, Task<I
                 return null;
             }
 
-            await using var body = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
+            await using var disposeBody = body.ConfigureAwait(false);
             using var document = await JsonDocument.ParseAsync(body, cancellationToken: timeout.Token).ConfigureAwait(false);
             return document.RootElement.TryGetProperty("versions", out var versions) && versions.ValueKind == JsonValueKind.Array
                 ? [.. versions.EnumerateArray().Select(v => v.GetString()).OfType<string>()]
@@ -89,6 +90,6 @@ internal sealed partial class PackageFeed(Func<string, CancellationToken, Task<I
         }
     }
 
-    [GeneratedRegex("""<PackageReference\s+Include="(?<id>Rask[A-Za-z0-9.]*)"\s+Version="(?<version>[^"]+)"\s*/?>""")]
+    [GeneratedRegex("""<PackageReference\s+Include="(?<id>Rask[A-Za-z0-9.]*)"\s+Version="(?<version>[^"]+)"\s*/?>""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex PackageReference();
 }

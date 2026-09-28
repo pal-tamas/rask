@@ -5,10 +5,10 @@ namespace Rask.Core.Tests.Interop;
 public class DeviceSensorsTests
 {
     [Theory]
-    [InlineData("granted", SensorPermission.Granted)]
-    [InlineData("denied", SensorPermission.Denied)]
-    [InlineData(null, SensorPermission.Denied)]
-    public async Task Requesting_orientation_permission_maps_the_result(string? raw, SensorPermission expected)
+    [InlineData("granted", SensorPermissionState.Granted)]
+    [InlineData("denied", SensorPermissionState.Denied)]
+    [InlineData(null, SensorPermissionState.Denied)]
+    public async Task Requesting_orientation_permission_maps_the_result(string? raw, SensorPermissionState expected)
     {
         var js = new FakeJsRuntime();
         if (raw is not null)

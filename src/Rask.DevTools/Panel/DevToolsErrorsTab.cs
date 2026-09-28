@@ -28,7 +28,7 @@ internal sealed partial class DevToolsErrorsTab : Component
 
     // The report open for editing, by row key, and what the developer has made of each draft so far.
     private string? _reporting;
-    private readonly Dictionary<string, (string Title, string Body)> _drafts = [];
+    private readonly Dictionary<string, (string Title, string Body)> _drafts = new(StringComparer.Ordinal);
 
     /// <summary>The inspected page's errors.</summary>
     public required DevToolsErrorLog PageErrors { get; set; }
@@ -79,8 +79,8 @@ internal sealed partial class DevToolsErrorsTab : Component
     protected override Component? Render()
     {
         var errors = Merge(
-            _filter == App ? [] : PageErrors.Snapshot(),
-            _filter == Page ? [] : AppErrors.Snapshot());
+            Showing(App) ? [] : PageErrors.Snapshot(),
+            Showing(Page) ? [] : AppErrors.Snapshot());
 
         return Div.Class("flex flex-col gap-3")[
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
@@ -92,27 +92,23 @@ internal sealed partial class DevToolsErrorsTab : Component
                 Ui.Button.Size(Ui.Size.Sm).Title("Forget the errors listed").OnClick(Clear)["Clear"]
             ],
             errors.Count == 0
-                ? Ui.Alert.Tone(Ui.Tone.Success)[
-                    _filter == App
-                        ? "Nothing reported outside a page's work."
-                        : "No errors. A component that throws, and anything the framework warns about, is listed here."
-                ]
+                ? Ui.Alert.Tone(Ui.Tone.Success)[NothingText]
                 : Div.Class("flex flex-col gap-2")[
                     errors.Take(RowLimit).Select(Row).ToArray()
                 ]
         ];
     }
 
-    private void OnChanged() => _gate?.Notify();
+    private void OnChanged(object? sender, EventArgs e) => _gate?.Notify();
 
     private void Clear()
     {
-        if (_filter != App)
+        if (!Showing(App))
         {
             PageErrors.Clear();
         }
 
-        if (_filter != Page)
+        if (!Showing(Page))
         {
             AppErrors.Clear();
         }
@@ -122,8 +118,8 @@ internal sealed partial class DevToolsErrorsTab : Component
         Ui.Button
             .Size(Ui.Size.Sm)
             // daisyUI's own markers, written whole: a composed class name is invisible to the kit's Tailwind scan.
-            .Class(_filter == id ? "join-item btn-active" : "join-item")
-            .Aria(new Dictionary<string, string?> { ["pressed"] = _filter == id ? "true" : "false" })
+            .Class(Showing(id) ? "join-item btn-active" : "join-item")
+            .Aria("pressed", Showing(id) ? "true" : "false")
             .OnClick(() => _filter = id)[label];
 
     /// <summary>Both logs, newest first.</summary>
@@ -135,6 +131,18 @@ internal sealed partial class DevToolsErrorsTab : Component
         merged.Sort(static (a, b) => b.At.CompareTo(a.At));
         return merged;
     }
+
+    private bool Showing(string filter) => string.Equals(_filter, filter, StringComparison.Ordinal);
+
+    private string NothingText =>
+        Showing(App)
+            ? "Nothing reported outside a page's work."
+            : "No errors. A component that throws, and anything the framework warns about, is listed here.";
+
+    private Component? ShowInTree(DevToolsError error) =>
+        error.ComponentId is { } id && OnShowInTree.HasValue
+            ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => OnShowInTree.Invoke(id).AsTask())["Show in tree"]
+            : null;
 
     private static string RowKey(DevToolsError error) =>
         (error.AppWide ? "app-" : "page-") + error.Sequence.ToString(CultureInfo.InvariantCulture);
@@ -156,9 +164,7 @@ internal sealed partial class DevToolsErrorsTab : Component
                         ? null
                         : Div.Class("flex flex-wrap items-center gap-2 text-xs")[
                             Span.Class("font-mono opacity-80")[string.Join(" › ", error.Path)],
-                            error.ComponentId is { } id && OnShowInTree.HasValue
-                                ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => OnShowInTree.Invoke(id).AsTask())["Show in tree"]
-                                : null
+                            ShowInTree(error)
                         ],
                     error.Detail is { } detail
                         ? Ui.Collapse.Title("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]
@@ -173,7 +179,7 @@ internal sealed partial class DevToolsErrorsTab : Component
     private Component Report(DevToolsError error, DevToolsBugReport.Environment environment)
     {
         var key = RowKey(error);
-        if (_reporting != key)
+        if (!string.Equals(_reporting, key, StringComparison.Ordinal))
         {
             return Div.Class("flex flex-wrap items-center gap-2 text-xs")[
                 Span.Class("opacity-60")["This looks like a bug in Rask itself."],

@@ -63,7 +63,12 @@ public static class BulkInsertExtensions
 
         var options = new BulkInsertOptions();
         configure?.Invoke(options);
-        options.Validate();
+        if (options.BatchSize is < 1 or > BulkInsertOptions.MaxBatchSize)
+        {
+            // The bad value came in through the callback, so that is the argument named.
+            throw new ArgumentOutOfRangeException(
+                nameof(configure), options.BatchSize, $"BatchSize must be between 1 and {BulkInsertOptions.MaxBatchSize}.");
+        }
 
         // Entries() runs DetectChanges first, so this sees uncommitted work the caller never saved. Clearing
         // the tracker between batches would throw it away, so refuse rather than lose it.
@@ -141,7 +146,7 @@ public static class BulkInsertExtensions
         CancellationToken cancellationToken)
         where TEntity : class
     {
-        // Join the caller's transaction when there is one, so a bulk insert composes with surrounding work;
+        // Join the caller's transaction when there is one, so a bulk insert composes with surrounding work, and
         // own one otherwise, so the load is all-or-nothing.
         var ambient = context.Database.CurrentTransaction;
         var transaction = ambient is null

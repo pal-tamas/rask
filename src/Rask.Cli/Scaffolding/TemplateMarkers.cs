@@ -40,7 +40,8 @@ internal static partial class TemplateMarkers
 {
     [GeneratedRegex(
         @"^[ \t]*(?://|<!--|/\*|#|@\*)[ \t]*rask:(?<kind>if|ifnot|end)(?:[ \t]+(?<flags>[A-Za-z0-9_ -]+?))?[ \t]*(?:-->|\*/|\*@)?[ \t]*$",
-        RegexOptions.ExplicitCapture)]
+        RegexOptions.ExplicitCapture,
+        matchTimeoutMilliseconds: 1000)]
     private static partial Regex Marker { get; }
 
     /// <summary>Whether <paramref name="line"/> is a marker rather than content.</summary>
@@ -84,46 +85,9 @@ internal static partial class TemplateMarkers
             var match = Marker.Match(line);
             if (match.Success)
             {
-                if (match.Groups["kind"].Value == "end")
-                {
-                    if (depth == 0)
-                    {
-                        throw new InvalidOperationException(
-                            $"{path}: a rask:end with no matching rask:if.");
-                    }
-
-                    depth--;
-
-                    // >= and not >: a region opened at depth 0 records suppressedAt 0, and closing it
-                    // brings depth back to 0. With a strict comparison the suppression is never lifted
-                    // and everything after the first unsatisfied region is silently dropped.
-                    if (suppressedAt >= 0 && suppressedAt >= depth)
-                    {
-                        suppressedAt = -1;
-                    }
-
-                    continue;
-                }
-
-                var satisfied = match.Groups["flags"].Value
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .All(on.Contains);
-
-                if (match.Groups["kind"].Value == "ifnot")
-                {
-                    satisfied = !satisfied;
-                }
-
-                if (!satisfied && suppressedAt < 0)
-                {
-                    suppressedAt = depth;
-                }
-
-                depth++;
-                continue;
+                Enter(match, on, path, ref depth, ref suppressedAt);
             }
-
-            if (suppressedAt < 0)
+            else if (suppressedAt < 0)
             {
                 kept.Append(line).Append(newline);
             }
@@ -135,5 +99,48 @@ internal static partial class TemplateMarkers
         }
 
         return kept.ToString();
+    }
+
+    /// <summary>Opens or closes the region a marker line names.</summary>
+    /// <param name="depth">How many regions are open.</param>
+    /// <param name="suppressedAt">The depth at which the outermost unsatisfied region opened, or -1.</param>
+    private static void Enter(Match match, IReadOnlySet<string> on, string path, ref int depth, ref int suppressedAt)
+    {
+        if (string.Equals(match.Groups["kind"].Value, "end", StringComparison.Ordinal))
+        {
+            if (depth == 0)
+            {
+                throw new InvalidOperationException(
+                    $"{path}: a rask:end with no matching rask:if.");
+            }
+
+            depth--;
+
+            // >= and not >: a region opened at depth 0 records suppressedAt 0, and closing it
+            // brings depth back to 0. With a strict comparison the suppression is never lifted
+            // and everything after the first unsatisfied region is silently dropped.
+            if (suppressedAt >= 0 && suppressedAt >= depth)
+            {
+                suppressedAt = -1;
+            }
+
+            return;
+        }
+
+        var satisfied = match.Groups["flags"].Value
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .All(on.Contains);
+
+        if (string.Equals(match.Groups["kind"].Value, "ifnot", StringComparison.Ordinal))
+        {
+            satisfied = !satisfied;
+        }
+
+        if (!satisfied && suppressedAt < 0)
+        {
+            suppressedAt = depth;
+        }
+
+        depth++;
     }
 }

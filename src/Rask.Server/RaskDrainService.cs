@@ -127,6 +127,7 @@ internal sealed class RaskDrainService : IHostedService, IDisposable
         catch
 #pragma warning restore CA1031
         {
+            // Deliberate: see above.
         }
     }
 
@@ -160,7 +161,7 @@ internal sealed class RaskDrainService : IHostedService, IDisposable
                     $"Rask: draining {sessions} live session(s) with a {_limits.ShutdownDrainTimeout.TotalSeconds:0.##}s budget."));
         }
 
-        _announce = Task.Run(AnnounceAsync);
+        _announce = Task.Run(AnnounceAsync, CancellationToken.None);
     }
 
     /// <summary>

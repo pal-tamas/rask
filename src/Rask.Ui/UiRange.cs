@@ -81,7 +81,7 @@ public sealed partial class UiRange : Component, IFormControl<double>
                 .Min(Bound(Min ?? 0))
                 .Max(Bound(Max ?? 100))
                 .Step(Bound(Step ?? 1))
-                .Aria(new Dictionary<string, string?> { ["label"] = Label })
+                .Aria("label", Label)
                 .Class(BoxClass());
         }
 
@@ -92,7 +92,7 @@ public sealed partial class UiRange : Component, IFormControl<double>
             .Min(Bound(Min ?? 0))
             .Max(Bound(Max ?? 100))
             .Step(Bound(Step ?? 1))
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            .Aria("label", Label)
             .Class(BoxClass());
     }
 

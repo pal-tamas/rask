@@ -4,7 +4,7 @@ namespace Rask.Site.Features;
 
 // Renders one guide: docs/{slug}.md, embedded and read by GuideCatalog. The slug comes straight from the
 // route, so /guides/routing renders docs/routing.md. The narrative-guide layout — Chapters TOC, the
-// prose (with any inline demos), a sticky on-this-page rail, and prev/next — all lives in GuideChrome;
+// prose (with any inline demos), a sticky on-this-page rail, and prev/next — all lives in GuideChrome, and
 // this page is just the routed shell that supplies the slug and the document head.
 [Route("guides/{slug}")]
 [ParentRoute(typeof(ShowcaseLayout))]

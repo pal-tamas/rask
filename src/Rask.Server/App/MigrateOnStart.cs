@@ -44,10 +44,7 @@ internal sealed class MigrateOnStart<TContext>(IDbContextFactory<TContext> conte
             // by the first one that comes along.
             if (!db.Database.GetMigrations().Any())
             {
-                _log.LogWarning(
-                    "{Context} has no migrations yet, so the database was left as it is. Create the first one with "
-                    + "`rask db add Init`; the app applies it the next time it starts.",
-                    context);
+                MigrateOnStartLog.NoMigrations(_log, context);
                 return;
             }
 
@@ -68,7 +65,7 @@ internal sealed class MigrateOnStart<TContext>(IDbContextFactory<TContext> conte
             }
 
             var names = string.Join(", ", pending);
-            _log.LogInformation("Applying {Count} migration(s) to the database: {Migrations}", pending.Count, names);
+            MigrateOnStartLog.Applying(_log, pending.Count, names);
 
             try
             {

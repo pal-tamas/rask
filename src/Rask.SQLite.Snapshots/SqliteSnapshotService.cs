@@ -8,7 +8,7 @@ namespace Rask.SQLite.Snapshots;
 /// startup when <see cref="SqliteSnapshotOptions.SnapshotOnStartup"/> is set). A snapshot failure is
 /// logged and the schedule continues — a backup problem never crashes the app.
 /// </summary>
-internal sealed class SqliteSnapshotService : BackgroundService
+internal sealed partial class SqliteSnapshotService : BackgroundService
 {
     private readonly SqliteSnapshotOptions _options;
     private readonly ISqliteSnapshotter _snapshotter;
@@ -63,7 +63,10 @@ internal sealed class SqliteSnapshotService : BackgroundService
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            _logger.LogError(ex, "SQLite snapshot failed; will retry on the next interval.");
+            LogSnapshotFailed(_logger, ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "SQLite snapshot failed; will retry on the next interval.")]
+    private static partial void LogSnapshotFailed(ILogger logger, Exception exception);
 }

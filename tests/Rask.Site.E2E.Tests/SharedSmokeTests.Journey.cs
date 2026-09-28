@@ -1068,7 +1068,7 @@ public abstract partial class SharedSmokeTests
     protected async Task WalkElementsGuideAsync()
     {
         await SideAsync("Elements & the DSL", "Elements & the DSL", "main .markdown-body h1");
-        await AssertGuideDemosAsync(28, "elements");
+        await AssertGuideDemosAsync(29, "elements");
         // Gate on a late demo's distinctive element (the Interactive-elements demo, near the end).
         await Expect(Page.Locator(".guide-demo .sample-result-body details[open] summary").First)
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
@@ -1102,6 +1102,12 @@ public abstract partial class SharedSmokeTests
         // SVG: the shapes demo renders a live <svg> (typed factories, no Raw()).
         await Expect(Page.Locator(".guide-demo .sample-result-body svg").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // …and the animation elements generated from MDN reach the DOM in the SVG namespace, with their SMIL
+        // attributes, where the browser runs them.
+        var spin = Page.Locator(".guide-demo .sample-result-body animateTransform[type='rotate'][repeatCount='indefinite']");
+        await Expect(spin).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        Assert.Equal("http://www.w3.org/2000/svg", await spin.EvaluateAsync<string>("el => el.namespaceURI"));
     }
 
     protected async Task WalkHttpAndFilesGuideAsync()

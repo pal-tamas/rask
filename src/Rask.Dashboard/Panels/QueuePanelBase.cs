@@ -56,7 +56,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             return default;
         }
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         // Counted on the entity set — no projection needed just to count rows.
@@ -75,7 +76,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             return ([], 0);
         }
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var filtered = Filter(db.Set<TEntity>(), filter, now);
 
@@ -104,7 +106,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         }
 
         var cutoff = timeProvider.GetUtcNow().UtcDateTime - olderThan;
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         // ProcessedAt IS NOT NULL is the whole guard: outstanding work and dead letters are both
         // untouched, whatever cutoff the caller passes.
@@ -122,7 +125,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             return 0;
         }
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         // Outstanding only. Deleting a processed row would erase the record of work that actually
         // happened, which is the one thing an operator can never undo.
@@ -147,7 +151,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         var max = MaxAttempts;
         var runAt = RunAtProperty;
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         return await db.Set<TEntity>()
             .Where(scope)
             .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null && EF.Property<int>(e, "Attempts") >= max)

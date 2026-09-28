@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 ///     What happens to a job that is already running when the host is asked to stop. Before
@@ -111,8 +111,11 @@ public sealed class JobShutdownGraceTests
     [Fact]
     public void A_negative_grace_is_rejected_at_registration()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(
-            new JobsOptions { ShutdownGracePeriod = TimeSpan.FromSeconds(-1) }.Validate);
+        var options = new JobsOptions { ShutdownGracePeriod = TimeSpan.FromSeconds(-1) };
+
+        var result = new JobsOptionsValidator().Validate(null, options);
+
+        Assert.Contains("Rask:Jobs:ShutdownGracePeriod", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -120,8 +123,11 @@ public sealed class JobShutdownGraceTests
     {
         // CancellationTokenSource.CancelAfter throws above int.MaxValue ms — and it would throw from the
         // shutdown path, the worst place to find out.
-        Assert.Throws<ArgumentOutOfRangeException>(
-            new JobsOptions { ShutdownGracePeriod = TimeSpan.FromDays(30) }.Validate);
+        var options = new JobsOptions { ShutdownGracePeriod = TimeSpan.FromDays(30) };
+
+        var result = new JobsOptionsValidator().Validate(null, options);
+
+        Assert.Contains("Rask:Jobs:ShutdownGracePeriod", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]

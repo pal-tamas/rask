@@ -30,18 +30,3 @@ public sealed partial class FluentValidationDemo : Component
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
-
-public sealed class OrderModel
-{
-    public string Product { get; set; } = "";
-    public int Quantity { get; set; }
-}
-
-public sealed class OrderValidator : AbstractValidator<OrderModel>
-{
-    public OrderValidator()
-    {
-        RuleFor(x => x.Product).NotEmpty().WithMessage("Product is required.");
-        RuleFor(x => x.Quantity).GreaterThanOrEqualTo(1).WithMessage("Quantity must be at least 1.");
-    }
-}

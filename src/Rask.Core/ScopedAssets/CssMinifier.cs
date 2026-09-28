@@ -37,51 +37,11 @@ internal static class CssMinifier
         {
             var c = css[i];
 
-            // String literal — copy verbatim (including escapes) so its whitespace/delimiters survive.
-            if (c is '"' or '\'')
-            {
-                if (pendingSpace)
-                {
-                    AppendSpaceIfNeeded(sb, prev, c);
-                    pendingSpace = false;
-                }
-
-                var quote = c;
-                sb.Append(c);
-                i++;
-                while (i < n)
-                {
-                    var d = css[i];
-                    sb.Append(d);
-                    i++;
-                    if (d == '\\' && i < n)
-                    {
-                        sb.Append(css[i]);
-                        i++;
-                        continue;
-                    }
-
-                    if (d == quote)
-                    {
-                        break;
-                    }
-                }
-
-                prev = quote;
-                continue;
-            }
-
             // Comment — drop it, but treat it as a token separator (CSS comments always separate tokens),
             // so an adjacent-token join can't happen.
             if (c == '/' && i + 1 < n && css[i + 1] == '*')
             {
-                i += 2;
-                while (i + 1 < n && !(css[i] == '*' && css[i + 1] == '/'))
-                {
-                    i++;
-                }
-
-                i = i + 1 < n ? i + 2 : n; // skip the closing */ (or run to end on an unterminated comment)
+                i = SkipComment(css, i + 2);
                 pendingSpace = true;
                 continue;
             }
@@ -93,12 +53,21 @@ internal static class CssMinifier
                 continue;
             }
 
-            // A real, structural character.
             if (pendingSpace)
             {
                 AppendSpaceIfNeeded(sb, prev, c);
                 pendingSpace = false;
             }
+
+            // String literal — copy verbatim (including escapes) so its whitespace/delimiters survive.
+            if (c is '"' or '\'')
+            {
+                i = CopyString(css, i, sb);
+                prev = c;
+                continue;
+            }
+
+            // A real, structural character.
 
             // Drop a declaration's trailing ';' right before a '}' (";}" -> "}"). Safe: string content is
             // emitted in the branch above, so a ';' sitting at the tail here is always a real terminator.
@@ -113,6 +82,44 @@ internal static class CssMinifier
         }
 
         return sb.ToString();
+    }
+
+    // Copies the string literal opening at `start` verbatim, escapes included; returns the index past it.
+    private static int CopyString(string css, int start, StringBuilder sb)
+    {
+        var quote = css[start];
+        sb.Append(quote);
+        var i = start + 1;
+        while (i < css.Length)
+        {
+            var d = css[i];
+            sb.Append(d);
+            i++;
+            if (d == '\\' && i < css.Length)
+            {
+                sb.Append(css[i]);
+                i++;
+                continue;
+            }
+
+            if (d == quote)
+            {
+                break;
+            }
+        }
+
+        return i;
+    }
+
+    // From just inside a comment, the index past its closing */ (or the end, on an unterminated comment).
+    private static int SkipComment(string css, int i)
+    {
+        while (i + 1 < css.Length && !(css[i] == '*' && css[i + 1] == '/'))
+        {
+            i++;
+        }
+
+        return i + 1 < css.Length ? i + 2 : css.Length;
     }
 
     // Emit a single separating space only when neither side is a removable boundary.

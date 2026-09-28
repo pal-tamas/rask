@@ -8,11 +8,11 @@ public sealed partial class DisposableTimerProbe : Component, IDisposable
     public required int InstanceId { get; set; }
 
     public void Dispose() =>
-        _ = Log.Invoke($"#{InstanceId} disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
+        _ = Log.Invoke($"#{InstanceId} disposed (lived {(TimeProvider.System.GetLocalNow() - _mountedAt).TotalMilliseconds:F0} ms)").AsTask();
 
     protected override async Task OnMount()
     {
-        _mountedAt = DateTimeOffset.Now;
+        _mountedAt = TimeProvider.System.GetLocalNow();
         await Log.Invoke($"#{InstanceId} mounted");
     }
 

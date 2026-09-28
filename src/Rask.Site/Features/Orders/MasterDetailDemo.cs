@@ -73,11 +73,11 @@ public sealed partial class MasterDetailDemo : Component
                         .Square(true)
                         .Variant(Ui.Variant.Link)
                         .Class("p-0 no-underline")
-                        .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
+                        .Data("testid", $"expander-{order.Id}")
                         .OnClick(() => Toggle(order.Id))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)]
                 ],
                 Td.Class("font-semibold")[order.Customer],
-                Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd")],
+                Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
                 Td[Ui.Badge.Tone(StatusTone(order.Status)).Variant(Ui.Variant.Soft)[order.Status]],
                 Td.Class("text-ui-muted")[order.Items.Count],
                 Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
@@ -91,7 +91,7 @@ public sealed partial class MasterDetailDemo : Component
                     Td.ColSpan(_orderColumns.Length).Class("p-0 bg-ui-well")[
                         Div
                             .Class("p-3")
-                            .Data(new Dictionary<string, string?> { ["testid"] = $"inner-{order.Id}" })[
+                            .Data("testid", $"inner-{order.Id}")[
                             InnerGrid(order)
                         ]
                     ]
@@ -153,9 +153,12 @@ public sealed partial class MasterDetailDemo : Component
 
     // Cycle a column's sort: unsorted → asc → desc → unsorted.
     private static (string Col, bool Asc) NextSort((string Col, bool Asc) current, string col) =>
-        current.Col != col ? (col, true)
-        : current.Asc ? (col, false)
-        : ("", true);
+        current switch
+        {
+            _ when !string.Equals(current.Col, col, StringComparison.Ordinal) => (col, true),
+            { Asc: true } => (col, false),
+            _ => ("", true),
+        };
 
     private static IReadOnlyList<Order> SortOrders(IReadOnlyList<Order> source, (string Col, bool Asc) sort)
     {
@@ -168,9 +171,9 @@ public sealed partial class MasterDetailDemo : Component
         IEnumerable<Order> view = source;
         view = sort.Col switch
         {
-            "customer" => asc ? view.OrderBy(o => o.Customer) : view.OrderByDescending(o => o.Customer),
+            "customer" => asc ? view.OrderBy(o => o.Customer, StringComparer.Ordinal) : view.OrderByDescending(o => o.Customer, StringComparer.Ordinal),
             "placed" => asc ? view.OrderBy(o => o.Placed) : view.OrderByDescending(o => o.Placed),
-            "status" => asc ? view.OrderBy(o => o.Status) : view.OrderByDescending(o => o.Status),
+            "status" => asc ? view.OrderBy(o => o.Status, StringComparer.Ordinal) : view.OrderByDescending(o => o.Status, StringComparer.Ordinal),
             "items" => asc ? view.OrderBy(o => o.Items.Count) : view.OrderByDescending(o => o.Items.Count),
             "total" => asc ? view.OrderBy(o => o.Total) : view.OrderByDescending(o => o.Total),
             _ => view
@@ -189,8 +192,8 @@ public sealed partial class MasterDetailDemo : Component
         IEnumerable<LineItem> view = source;
         view = sort.Col switch
         {
-            "sku" => asc ? view.OrderBy(i => i.Sku) : view.OrderByDescending(i => i.Sku),
-            "product" => asc ? view.OrderBy(i => i.Product) : view.OrderByDescending(i => i.Product),
+            "sku" => asc ? view.OrderBy(i => i.Sku, StringComparer.Ordinal) : view.OrderByDescending(i => i.Sku, StringComparer.Ordinal),
+            "product" => asc ? view.OrderBy(i => i.Product, StringComparer.Ordinal) : view.OrderByDescending(i => i.Product, StringComparer.Ordinal),
             "qty" => asc ? view.OrderBy(i => i.Qty) : view.OrderByDescending(i => i.Qty),
             "unit" => asc ? view.OrderBy(i => i.UnitPrice) : view.OrderByDescending(i => i.UnitPrice),
             "line" => asc ? view.OrderBy(i => i.LineTotal) : view.OrderByDescending(i => i.LineTotal),
@@ -204,10 +207,13 @@ public sealed partial class MasterDetailDemo : Component
     private static Component SortHeader(string columnId, string header, (string Col, bool Asc) sort,
         Action<string> toggle)
     {
-        var sorted = sort.Col == columnId;
-        var icon = sorted
-            ? sort.Asc ? Ui.IconName.ChevronUp : Ui.IconName.ChevronDown
-            : Ui.IconName.ArrowsUpDown;
+        var sorted = string.Equals(sort.Col, columnId, StringComparison.Ordinal);
+        var icon = (sorted, sort.Asc) switch
+        {
+            (false, _) => Ui.IconName.ArrowsUpDown,
+            (true, true) => Ui.IconName.ChevronUp,
+            (true, false) => Ui.IconName.ChevronDown,
+        };
 
         return Th.Scope("col").Key(columnId)[
             Ui.Button
@@ -246,7 +252,9 @@ public sealed partial class MasterDetailDemo : Component
             ("DSK-MAT", "Desk mat", 24m), ("CHR-ERG", "Ergonomic chair", 449m)
         };
 
+#pragma warning disable S2245 // seeded on purpose: the same demo data on every visit, nothing secret
         var rng = new Random(42);
+#pragma warning restore S2245
         var orders = new Order[customers.Length];
         var nextItemId = 1;
         for (var i = 0; i < customers.Length; i++)

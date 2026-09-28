@@ -155,7 +155,7 @@ internal sealed record MetaTemplate(
     public bool KitAlias { get; init; }
 
     /// <summary>Where this framework's dev server listens, for the next-steps text.</summary>
-    public string DevServerUrl { get; init; } = "http://localhost:3000";
+    public string DevServerUrl { get; init; } = LocalDevServers.Port3000;
 
     /// <summary>Nuxt's config, replacing the one-line stub the minimal template writes.</summary>
     private const string NuxtConfig =
@@ -262,7 +262,7 @@ internal sealed record MetaTemplate(
         GeneratedDir = "app/rask",
         TsConfigFile = null,
         TailwindStylesheet = "app/assets/css/main.css",
-        DevServerUrl = "http://localhost:3000",
+        DevServerUrl = LocalDevServers.Port3000,
     };
 
     /// <summary>Next.js. The one framework here whose static assets its own server does not serve.</summary>
@@ -277,7 +277,7 @@ internal sealed record MetaTemplate(
         ],
         GeneratedDir = "app/rask",
         DaisyUiStylesheet = "app/globals.css",
-        DevServerUrl = "http://localhost:3000",
+        DevServerUrl = LocalDevServers.Port3000,
     };
 
     /// <summary>
@@ -310,7 +310,7 @@ internal sealed record MetaTemplate(
         ],
         DaisyUiStylesheet = "src/routes/layout.css",
         ViteConfigFile = "vite.config.ts",
-        DevServerUrl = "http://localhost:5173",
+        DevServerUrl = LocalDevServers.Vite,
     };
 
     /// <summary>
@@ -337,7 +337,7 @@ internal sealed record MetaTemplate(
         // NOT the first @import in this file — the creator's sheet opens with a Google Fonts
         // `@import url(...)`, and the Tailwind one is the third line.
         DaisyUiStylesheet = "src/styles.css",
-        DevServerUrl = "http://localhost:3000",
+        DevServerUrl = LocalDevServers.Port3000,
     };
 
     /// <summary>
@@ -363,7 +363,7 @@ internal sealed record MetaTemplate(
 
         // Vite's own default is 5173, but @solidjs/start moves it — a scaffolded app reports
         // "Local: http://localhost:3000". Measured rather than assumed, because --open goes here.
-        DevServerUrl = "http://localhost:3000",
+        DevServerUrl = LocalDevServers.Port3000,
     };
 
     /// <summary>Analog, the Angular meta framework.</summary>
@@ -398,7 +398,7 @@ internal sealed record MetaTemplate(
         TailwindStylesheet = "src/styles.css",
         TailwindThroughPostcss = true,
         ViteConfigFile = "vite.config.ts",
-        DevServerUrl = "http://localhost:5173",
+        DevServerUrl = LocalDevServers.Vite,
     };
 
     /// <summary>Every framework this lane scaffolds, keyed by <c>RaskMetaFramework</c>'s own names.</summary>
@@ -407,16 +407,8 @@ internal sealed record MetaTemplate(
 
     public static bool TryGet(string key, out MetaTemplate template)
     {
-        foreach (var candidate in All)
-        {
-            if (string.Equals(candidate.Key, key, StringComparison.OrdinalIgnoreCase))
-            {
-                template = candidate;
-                return true;
-            }
-        }
-
-        template = null!;
-        return false;
+        var match = All.FirstOrDefault(candidate => string.Equals(candidate.Key, key, StringComparison.OrdinalIgnoreCase));
+        template = match!;
+        return match is not null;
     }
 }

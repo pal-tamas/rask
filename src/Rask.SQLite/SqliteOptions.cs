@@ -1,56 +1,5 @@
 namespace Rask.SQLite;
 
-/// <summary>The SQLite <c>journal_mode</c> — how the rollback/write-ahead journal is kept.</summary>
-public enum SqliteJournalMode
-{
-    /// <summary>Delete the rollback journal at the end of each transaction (SQLite's historical default).</summary>
-    Delete,
-
-    /// <summary>Truncate the rollback journal to zero length instead of deleting it.</summary>
-    Truncate,
-
-    /// <summary>Overwrite the rollback journal header with zeroes instead of deleting it.</summary>
-    Persist,
-
-    /// <summary>Keep the rollback journal in volatile memory (no crash safety).</summary>
-    Memory,
-
-    /// <summary>Write-Ahead Logging — readers do not block the writer; the recommended production mode.</summary>
-    Wal,
-
-    /// <summary>No journal at all (no rollback, no crash safety).</summary>
-    Off,
-}
-
-/// <summary>The SQLite <c>synchronous</c> setting — how aggressively writes are flushed to disk.</summary>
-public enum SqliteSynchronous
-{
-    /// <summary>No fsync — fastest, but a crash can corrupt the database.</summary>
-    Off,
-
-    /// <summary>fsync at the critical moments only — safe under WAL and the recommended pairing with it.</summary>
-    Normal,
-
-    /// <summary>fsync on every commit — the default outside WAL; slower.</summary>
-    Full,
-
-    /// <summary>Like <see cref="Full"/> plus an extra sync of the directory containing a rollback journal.</summary>
-    Extra,
-}
-
-/// <summary>The SQLite <c>temp_store</c> setting — where temporary tables and indices live.</summary>
-public enum SqliteTempStore
-{
-    /// <summary>Use the compile-time default (usually a file).</summary>
-    Default,
-
-    /// <summary>Store temporary objects in a file.</summary>
-    File,
-
-    /// <summary>Store temporary objects in memory.</summary>
-    Memory,
-}
-
 /// <summary>
 /// The SQLite pragmas <see cref="ISqlite"/> (for raw ADO.NET) — and the Entity
 /// Framework Core interceptor in the <c>Rask.SQLite.EntityFrameworkCore</c> package — apply to every

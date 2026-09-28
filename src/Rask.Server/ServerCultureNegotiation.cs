@@ -82,6 +82,7 @@ internal static class ServerCultureNegotiation
             return;
         }
 
+#pragma warning disable S3330, S2092 // a language tag, never a credential: script-readable by design, and Secure follows the scheme so plain-http dev hosts keep it
         response.Cookies.Append(
             options.CookieName,
             RaskCultureCookie.Format(negotiation.Culture.Name, negotiation.UICulture.Name),
@@ -97,6 +98,7 @@ internal static class ServerCultureNegotiation
                 SameSite = SameSiteMode.Lax,
                 Secure = response.HttpContext.Request.IsHttps,
             });
+#pragma warning restore S3330, S2092
     }
 
     /// <summary>
@@ -107,7 +109,7 @@ internal static class ServerCultureNegotiation
     ///     values, whitespace and malformed entries are handled the way the rest of the stack handles
     ///     them. <c>q=0</c> means "explicitly not this one" and is dropped rather than ranked last.
     /// </remarks>
-    private static IReadOnlyList<string>? ClientLanguages(HttpRequest request)
+    private static List<string>? ClientLanguages(HttpRequest request)
     {
         var header = request.GetTypedHeaders().AcceptLanguage;
         if (header is not { Count: > 0 })
@@ -124,7 +126,7 @@ internal static class ServerCultureNegotiation
             }
 
             var value = entry.Value.Value;
-            if (!string.IsNullOrWhiteSpace(value) && value != "*")
+            if (!string.IsNullOrWhiteSpace(value) && !string.Equals(value, "*", StringComparison.Ordinal))
             {
                 ranked.Add(value);
             }

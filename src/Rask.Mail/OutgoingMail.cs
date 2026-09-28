@@ -1,4 +1,4 @@
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// A fully-resolved email ready to send, materialized from a stored <see cref="QueuedMail"/> and handed to

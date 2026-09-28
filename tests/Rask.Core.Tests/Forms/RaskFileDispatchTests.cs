@@ -15,8 +15,8 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
         var services = new ServiceCollection()
             .AddSingleton<IBrowserFileBackend>(backend)
             .BuildServiceProvider();
-        IReadOnlyList<RaskFile>? received = null;
-        Action<IReadOnlyList<RaskFile>> handler = files => received = files;
+        IReadOnlyList<IRaskFile>? received = null;
+        Action<IReadOnlyList<IRaskFile>> handler = files => received = files;
         var page = Page.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
         var ok = await page.TryInvokeAsync("h0", """
@@ -42,7 +42,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
             .AddSingleton<IBrowserFileBackend>(backend)
             .BuildServiceProvider();
         var seen = 0;
-        Func<IReadOnlyList<RaskFile>, Task> handler = files =>
+        Func<IReadOnlyList<IRaskFile>, Task> handler = files =>
         {
             seen = files.Count;
             return Task.CompletedTask;
@@ -62,7 +62,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_input_with_OnFiles_set_emits_the_files_handler_attribute()
     {
-        Action<IReadOnlyList<RaskFile>> handler = _ => { };
+        Action<IReadOnlyList<IRaskFile>> handler = _ => { };
         var html = Page.Render(() => Input.Value<string>(null).Type(InputType.File).OnFiles(handler)).Html;
 
         Assert.Contains("data-rask-on-files=", html);
@@ -71,16 +71,16 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
 
     private sealed class TestBackend : IBrowserFileBackend
     {
-        public List<RaskFile> Released { get; } = new();
+        public List<IRaskFile> Released { get; } = new();
 
-        public RaskFile Create(JsonElement metadata) => new TestFile(
+        public IRaskFile Create(JsonElement metadata) => new TestFile(
             metadata.GetProperty("token").GetString() ?? "",
             metadata.GetProperty("name").GetString() ?? "",
             metadata.GetProperty("size").GetInt64(),
             metadata.GetProperty("type").GetString() ?? "application/octet-stream",
             DateTimeOffset.FromUnixTimeMilliseconds(metadata.GetProperty("lastModified").GetInt64()));
 
-        public void Release(IEnumerable<RaskFile> files)
+        public void Release(IEnumerable<IRaskFile> files)
         {
             foreach (var f in files)
             {
@@ -89,7 +89,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
         }
     }
 
-    private sealed class TestFile : RaskFile
+    private sealed class TestFile : IRaskFile
     {
         public TestFile(string token, string name, long size, string contentType, DateTimeOffset lastModified)
         {
@@ -101,12 +101,12 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
         }
 
         public string Token { get; }
-        public override string Name { get; }
-        public override long Size { get; }
-        public override string ContentType { get; }
-        public override DateTimeOffset LastModified { get; }
+        public string Name { get; }
+        public long Size { get; }
+        public string ContentType { get; }
+        public DateTimeOffset LastModified { get; }
 
-        public override Stream OpenReadStream(long maxAllowedSize = 524288,
+        public Stream OpenReadStream(long maxAllowedSize = 524288,
             CancellationToken cancellationToken = default) =>
             new MemoryStream(new byte[Size]);
     }

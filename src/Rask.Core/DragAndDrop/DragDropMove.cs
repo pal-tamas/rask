@@ -17,15 +17,8 @@ public sealed record DragDropMove(string FromZone, int FromIndex, string ToZone,
     // slot (ToIndex == count) and an empty target list.
     public void ApplyTo<T>(IList<T> from, IList<T> to)
     {
-        if (from is null)
-        {
-            throw new ArgumentNullException(nameof(from));
-        }
-
-        if (to is null)
-        {
-            throw new ArgumentNullException(nameof(to));
-        }
+        ArgumentNullException.ThrowIfNull(from);
+        ArgumentNullException.ThrowIfNull(to);
 
         if (FromIndex < 0 || FromIndex >= from.Count)
         {

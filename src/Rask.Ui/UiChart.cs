@@ -33,11 +33,6 @@ public sealed partial class UiChart<T> : Component
     private const double Width = 1000;
     private const double Height = 300;
 
-    private static readonly Ui.Tone[] Palette =
-    [
-        Ui.Tone.Primary, Ui.Tone.Secondary, Ui.Tone.Accent, Ui.Tone.Info, Ui.Tone.Success, Ui.Tone.Warning, Ui.Tone.Error,
-    ];
-
     // What each series and the axis read from a row, keyed by the component the factory handed back. Refilled on every
     // render, since the factory builds its series again each time.
     private readonly Dictionary<UiChartSeries, Func<T, double>> _values = new(ReferenceEqualityComparer.Instance);
@@ -152,7 +147,7 @@ public sealed partial class UiChart<T> : Component
         var format = Format ?? (scale.Step >= 1 ? "N0" : "0.##");
 
         return Figure
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            .Aria("label", Label)
             // m-0: a <figure> carries the browser's own 40px side margins, and the kit puts no outer margin on anything.
             // Each row says self-stretch rather than trusting the figure's alignment: a host stylesheet that centres a
             // figure's children — the site's own demo frame does — would otherwise shrink the plot to its axis labels.
@@ -198,7 +193,7 @@ public sealed partial class UiChart<T> : Component
                 series.Add(new Resolved(
                     s.Kind ?? Ui.ChartKind.Line,
                     value,
-                    s.Tone ?? Palette[series.Count % Palette.Length],
+                    s.Tone ?? UiChartPalette.For(series.Count),
                     s.Label ?? "Series " + (series.Count + 1).ToString(CultureInfo.CurrentCulture)));
             }
         }
@@ -221,7 +216,7 @@ public sealed partial class UiChart<T> : Component
 
     private static string Coord(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
-    private Component LegendRow(List<Resolved> series) =>
+    private static Component LegendRow(List<Resolved> series) =>
         Div.Class("flex flex-wrap gap-x-4 gap-y-1 self-stretch text-sm").Aria("hidden", "true")[
             series.Select((s, i) => Span.Key(i).Class("inline-flex items-center gap-2")[
                 Span.Class(UiClass.Compose("size-2.5 shrink-0 rounded-full", UiClassNames.ChartSwatch(s.Tone))),
@@ -234,69 +229,65 @@ public sealed partial class UiChart<T> : Component
         // Every kind is placed in BANDS, one per row, with a line's points at the middle of theirs — so a line over a
         // bar chart passes through the tops of the bars rather than beside them, and the hover columns and the labels
         // along the bottom line up with both.
-        var band = count == 0 ? Width : Width / count;
-        double Y(double v) => Height - ((v - scale.Min) / (scale.Max - scale.Min) * Height);
-        double Mid(int i) => (i + 0.5) * band;
-        var baseline = Y(Math.Clamp(0, scale.Min, scale.Max));
-
+        var space = new PlotSpace(count == 0 ? Width : Width / count, scale);
         var bars = series.Where(s => s.Kind == Ui.ChartKind.Bar).ToList();
-        var barWidth = bars.Count == 0 ? 0 : band * 0.7 / bars.Count;
 
         return Svg
             .ViewBox("0 0 " + Coord(Width) + " " + Coord(Height))
             .Attributes(("preserveAspectRatio", "none"), ("aria-hidden", "true"), ("focusable", "false"))
             .Class("absolute inset-0 size-full overflow-visible")[
-            Grid == false
-                ? null
-                : G.Class("stroke-base-300")[
-                    scale.Ticks.Select((tick, i) => RaskMarkup.Line.Key(i)
-                        .X1("0").X2(Coord(Width)).Y1(Coord(Y(tick))).Y2(Coord(Y(tick)))
-                        .Attributes(("vector-effect", "non-scaling-stroke")))
-                ],
-            series.Select((s, index) =>
-            {
-                var points = values[index];
-                if (s.Kind == Ui.ChartKind.Bar)
-                {
-                    var slot = bars.IndexOf(s);
-                    return (Component)G.Key(index).Class(UiClassNames.ChartFill(s.Tone))[
-                        points.Select((v, i) =>
-                        {
-                            var top = Math.Min(Y(v), baseline);
-                            return Rect.Key(i)
-                                .X(Coord((i * band) + (band * 0.15) + (slot * barWidth)))
-                                .Y(Coord(top))
-                                .Width(Coord(Math.Max(barWidth - 2, 1)))
-                                .Height(Coord(Math.Abs(baseline - Y(v))));
-                        })
-                    ];
-                }
+            Grid == false ? null : GridLines(space),
+            series.Select((s, index) => s.Kind == Ui.ChartKind.Bar
+                ? BarSeries(space, s, index, values[index], bars)
+                : LineSeries(space, s, index, values[index]))
+        ];
+    }
 
-                if (points.Length == 0)
-                {
-                    return null;
-                }
+    private static Component GridLines(PlotSpace space) =>
+        G.Class("stroke-base-300")[
+            space.Scale.Ticks.Select((tick, i) => RaskMarkup.Line.Key(i)
+                .X1("0").X2(Coord(Width)).Y1(Coord(space.Y(tick))).Y2(Coord(space.Y(tick)))
+                .Attributes(("vector-effect", "non-scaling-stroke")))
+        ];
 
-                var line = string.Concat(points.Select((v, i) =>
-                    (i == 0 ? "M" : "L") + Coord(Mid(i)) + " " + Coord(Y(v))));
+    private static Component BarSeries(PlotSpace space, Resolved s, int index, double[] points, List<Resolved> bars)
+    {
+        var slot = bars.IndexOf(s);
+        var barWidth = space.Band * 0.7 / bars.Count;
+        return G.Key(index).Class(UiClassNames.ChartFill(s.Tone))[
+            points.Select((v, i) => Rect.Key(i)
+                .X(Coord((i * space.Band) + (space.Band * 0.15) + (slot * barWidth)))
+                .Y(Coord(Math.Min(space.Y(v), space.Baseline)))
+                .Width(Coord(Math.Max(barWidth - 2, 1)))
+                .Height(Coord(Math.Abs(space.Baseline - space.Y(v)))))
+        ];
+    }
 
-                return G.Key(index)[
-                    s.Kind == Ui.ChartKind.Area
-                        ? SvgPath
-                            .D(line + "L" + Coord(Mid(points.Length - 1)) + " " + Coord(baseline)
-                               + "L" + Coord(Mid(0)) + " " + Coord(baseline) + "Z")
-                            .Class(UiClassNames.ChartArea(s.Tone))
-                        : null,
-                    SvgPath
-                        .D(line)
-                        .Fill("none")
-                        .StrokeWidth("2")
-                        .StrokeLinejoin("round")
-                        .StrokeLinecap("round")
-                        .Class(UiClassNames.ChartStroke(s.Tone))
-                        .Attributes(("vector-effect", "non-scaling-stroke"))
-                ];
-            })
+    private static Component? LineSeries(PlotSpace space, Resolved s, int index, double[] points)
+    {
+        if (points.Length == 0)
+        {
+            return null;
+        }
+
+        var line = string.Concat(points.Select((v, i) =>
+            (i == 0 ? "M" : "L") + Coord(space.Mid(i)) + " " + Coord(space.Y(v))));
+
+        return G.Key(index)[
+            s.Kind == Ui.ChartKind.Area
+                ? SvgPath
+                    .D(line + "L" + Coord(space.Mid(points.Length - 1)) + " " + Coord(space.Baseline)
+                       + "L" + Coord(space.Mid(0)) + " " + Coord(space.Baseline) + "Z")
+                    .Class(UiClassNames.ChartArea(s.Tone))
+                : null,
+            SvgPath
+                .D(line)
+                .Fill("none")
+                .StrokeWidth("2")
+                .StrokeLinejoin("round")
+                .StrokeLinecap("round")
+                .Class(UiClassNames.ChartStroke(s.Tone))
+                .Attributes(("vector-effect", "non-scaling-stroke"))
         ];
     }
 
@@ -350,4 +341,14 @@ public sealed partial class UiChart<T> : Component
         ];
 
     private sealed record Resolved(Ui.ChartKind Kind, Func<T, double> Value, Ui.Tone Tone, string Label);
+
+    /// <summary>The plot's coordinates: how wide a row's band is, and where a value sits vertically.</summary>
+    private sealed record PlotSpace(double Band, UiChartScale Scale)
+    {
+        internal double Baseline => Y(Math.Clamp(0, Scale.Min, Scale.Max));
+
+        internal double Y(double v) => Height - ((v - Scale.Min) / (Scale.Max - Scale.Min) * Height);
+
+        internal double Mid(int i) => (i + 0.5) * Band;
+    }
 }

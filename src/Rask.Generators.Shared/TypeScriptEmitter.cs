@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -40,7 +41,7 @@ internal sealed class TypeScriptEmitter
     ///     duration are not instants either, and a <c>Date</c> round-tripped back would be rejected
     ///     outright by the reader on the other side.
     /// </remarks>
-    private static readonly Dictionary<string, string> StringAliases = new()
+    private static readonly Dictionary<string, string> StringAliases = new(StringComparer.Ordinal)
     {
         ["global::System.Guid"] = "Guid",
         ["global::System.DateOnly"] = "DateOnly",
@@ -49,7 +50,7 @@ internal sealed class TypeScriptEmitter
     };
 
     /// <summary>The numeric CLR scalars. Everything here is a JSON number both ways.</summary>
-    private static readonly HashSet<string> Numbers = new()
+    private static readonly HashSet<string> Numbers = new(StringComparer.Ordinal)
     {
         "global::System.Byte", "global::System.SByte",
         "global::System.Int16", "global::System.UInt16",
@@ -59,8 +60,8 @@ internal sealed class TypeScriptEmitter
     };
 
     private readonly StringBuilder _declarations = new();
-    private readonly Dictionary<string, string> _named = new();
-    private readonly Dictionary<string, ShapeDescriptor> _shapes = new();
+    private readonly Dictionary<string, string> _named = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ShapeDescriptor> _shapes = new(StringComparer.Ordinal);
 
     /// <summary>The emitted interfaces and enums, in the order they were first needed.</summary>
     public string Declarations => _declarations.ToString();
@@ -125,7 +126,7 @@ internal sealed class TypeScriptEmitter
 
     private static string Scalar(WireType type)
     {
-        if (type.Fqn == "global::System.Boolean")
+        if (string.Equals(type.Fqn, "global::System.Boolean", StringComparison.Ordinal))
         {
             return "boolean";
         }
@@ -213,7 +214,7 @@ internal sealed class TypeScriptEmitter
 
         var body = new StringBuilder();
         var instants = new List<string>();
-        var nested = new Dictionary<string, NestedShape>();
+        var nested = new Dictionary<string, NestedShape>(StringComparer.Ordinal);
 
         foreach (var member in type.Members)
         {
@@ -289,39 +290,14 @@ internal sealed class TypeScriptEmitter
 
     private string Unique(string preferred)
     {
-        if (!_named.ContainsValue(preferred))
+        var candidate = preferred;
+        var suffix = 2;
+        while (_named.ContainsValue(candidate))
         {
-            return preferred;
+            candidate = preferred + suffix.ToString(CultureInfo.InvariantCulture);
+            suffix++;
         }
 
-        for (var suffix = 2; ; suffix++)
-        {
-            var candidate = preferred + suffix.ToString(CultureInfo.InvariantCulture);
-            if (!_named.ContainsValue(candidate))
-            {
-                return candidate;
-            }
-        }
+        return candidate;
     }
-}
-
-/// <summary>A named shape reached through some number of arrays or dictionaries.</summary>
-/// <param name="Name">The shape's TypeScript name.</param>
-/// <param name="Depth">
-///     How many containers stand between the property and the shape: 0 for a plain object, 1 for a
-///     list or a dictionary of them, 2 for a list of lists.
-/// </param>
-internal sealed record NestedShape(string Name, int Depth);
-
-/// <summary>Which properties of one shape carry dates, and which lead to another shape.</summary>
-internal sealed class ShapeDescriptor(IReadOnlyList<string> instants, IReadOnlyDictionary<string, NestedShape> nested)
-{
-    /// <summary>Properties that are instants, and so become <c>Date</c>.</summary>
-    public IReadOnlyList<string> Instants { get; } = instants;
-
-    /// <summary>Properties whose value is another named shape, by that shape's TypeScript name.</summary>
-    public IReadOnlyDictionary<string, NestedShape> Nested { get; } = nested;
-
-    /// <summary>Whether this shape, as written, needs the runtime to touch it at all.</summary>
-    public bool IsEmpty => Instants.Count == 0 && Nested.Count == 0;
 }

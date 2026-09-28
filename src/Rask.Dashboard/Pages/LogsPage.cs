@@ -183,7 +183,7 @@ public sealed partial class LogsPage(
             ModeTab("history", "History")
         ];
 
-    private Component ModeTab(string? view, string label) =>
+    private UiTab ModeTab(string? view, string label) =>
         Ui.Tab
             .Key(label)
             .Label(label)
@@ -204,7 +204,7 @@ public sealed partial class LogsPage(
             IsHistory ? SearchBox() : null
         ];
 
-    private Component LevelPill(LogLevel? level, string label) =>
+    private UiTab LevelPill(LogLevel? level, string label) =>
         Ui.Tab
             .Key(label)
             .Label(label)
@@ -214,7 +214,7 @@ public sealed partial class LogsPage(
     // A native select rather than a drawn list: a real application has dozens of logger categories, and the
     // platform's own picker is keyboard-navigable, needs no script and is the right control on a phone. Only
     // the categories actually present are offered.
-    private Component? CategoryFilter()
+    private UiSelect<string>? CategoryFilter()
     {
         var categories = IsHistory ? _storedCategories : buffer.Categories();
         if (categories.Count == 0)
@@ -238,7 +238,7 @@ public sealed partial class LogsPage(
         return Task.CompletedTask;
     }
 
-    private Component SearchBox() =>
+    private UiSearch SearchBox() =>
         Ui.Search
             .Placeholder("Search message or exception")
             .AccessibleLabel("Search stored log entries")
@@ -374,7 +374,7 @@ public sealed partial class LogsPage(
             _ => null,
         })[level.ToString()];
 
-    private void OnLogged()
+    private void OnLogged(object? sender, EventArgs e)
     {
         // Only the live tail is push-driven. In History mode a render per log line would mean a database
         // query per log line — a self-inflicted storm exactly when the app is at its noisiest.

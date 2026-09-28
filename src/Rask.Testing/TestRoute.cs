@@ -15,6 +15,8 @@ namespace Rask.Testing;
 /// </remarks>
 public static class TestRoute
 {
+    private const string RootPath = "/";
+
     /// <summary>
     ///     A <see cref="RouteState" /> at <paramref name="url" />. The query string, if present, is parsed
     ///     and decoded, so <c>"/search?q=hello%20world&amp;page=2"</c> arrives as the page will read it.
@@ -28,9 +30,9 @@ public static class TestRoute
         var path = split < 0 ? url : url[..split];
         var query = split < 0 ? string.Empty : url[(split + 1)..];
 
-        if (path.Length == 0 || path[0] != '/')
+        if (!path.StartsWith(RootPath, StringComparison.Ordinal))
         {
-            path = "/" + path;
+            path = RootPath + path;
         }
 
         var state = new RouteState { Path = path };

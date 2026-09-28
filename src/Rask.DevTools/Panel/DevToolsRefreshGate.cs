@@ -25,6 +25,7 @@ internal sealed class DevToolsRefreshGate
     private readonly Func<CancellationToken, Task> _delay;
     private int _scheduled;
 
+    /// <summary>A gate that runs <paramref name="refresh" /> once per interval, however often it is notified.</summary>
     /// <param name="refresh">What runs once the interval has passed.</param>
     /// <param name="lifetime">Cancelled when the panel goes away; no refresh runs after that.</param>
     /// <param name="delay">The wait, replaceable so a test decides when the interval ends.</param>

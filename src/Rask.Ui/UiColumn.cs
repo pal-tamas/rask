@@ -274,10 +274,15 @@ public sealed partial class UiColumn<T> : Component
     internal Component Body(T row) =>
         Cell is { } cell && cell.Invoke(row) is { } built ? built : (Read(row)?.ToString() ?? "");
 
-    internal Component Foot(IReadOnlyList<T> rows) =>
-        FooterCell is { } cell && cell.Invoke(rows) is { } built ? built
-        : Footer is { } foot ? (foot.Invoke(rows)?.ToString() ?? "")
-        : "";
+    internal Component Foot(IReadOnlyList<T> rows)
+    {
+        if (FooterCell is { } cell && cell.Invoke(rows) is { } built)
+        {
+            return built;
+        }
+
+        return Footer is { } foot ? (foot.Invoke(rows)?.ToString() ?? "") : "";
+    }
 
     /// <inheritdoc />
     /// <remarks>

@@ -1,4 +1,4 @@
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>What a query holds.</summary>
 /// <remarks>
@@ -19,37 +19,5 @@ public enum QueryStatus
     Error,
 
     /// <summary>A result is available and the last attempt succeeded.</summary>
-    Success,
-}
-
-/// <summary>Whether a request is on the wire.</summary>
-public enum FetchStatus
-{
-    /// <summary>Nothing in flight.</summary>
-    Idle,
-
-    /// <summary>A request is in flight, whether it is the first or a refresh.</summary>
-    Fetching,
-
-    /// <summary>
-    ///     Would fetch, but must not. Today that means <see cref="QueryOptions.Enabled" /> is false —
-    ///     a query waiting on something the user has not chosen yet. Offline will land here too.
-    /// </summary>
-    Paused,
-}
-
-/// <summary>Where a renderable command is in its one-shot lifecycle.</summary>
-public enum CommandStatus
-{
-    /// <summary>Never run, or reset.</summary>
-    Idle,
-
-    /// <summary>Dispatched and not yet answered. This is what disables the button.</summary>
-    Pending,
-
-    /// <summary>The last run threw.</summary>
-    Error,
-
-    /// <summary>The last run succeeded.</summary>
     Success,
 }

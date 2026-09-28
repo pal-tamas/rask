@@ -109,17 +109,17 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <!--
-    AnalysisLevel stays at the SDK default mode: the repo builds clean there, so warnings-as-errors
-    locks in that clean state. Raising it (e.g. <AnalysisLevel>latest-recommended</AnalysisLevel>)
-    surfaces ~33 extra CA findings — some worth doing (CA1865/CA1859), some that clash with
-    the documented hot-path design (CA1051 on RenderFrame's deliberately-public fields). Promote the
-    level in a focused PR that fixes/justifies each finding with benchmark evidence — not here.
-
-    CA1305 (IFormatProvider) has since been promoted on its own, scoped to src/Rask.Core/**, in
-    .editorconfig — a single severity line rather than a level bump, so it brought none of the others
-    with it. Rask.Core is where wire formats live (reconciliation keys, DOM event payloads, field-path
-    indices), and those must stay invariant even when a render runs under a user's culture.
+    The .NET analyzers run at latest-recommended for everything under src/ — the shipped code. Tests and
+    benchmarks keep the SDK default. A finding is fixed; one the code genuinely cannot satisfy is silenced at
+    that one site with a #pragma giving the reason. The third-party analyzers are wired in
+    Directory.Build.targets (docs/code-analysis.md).
   -->
+  <PropertyGroup Condition=" $(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)src')) ">
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Code style and naming keep the severities .editorconfig gives them; the level raises the CA rules only. -->
+    <AnalysisModeStyle>Default</AnalysisModeStyle>
+    <AnalysisModeNaming>Default</AnalysisModeNaming>
+  </PropertyGroup>
 
   <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
     <None Include="$(MSBuildThisFileDirectory)NUGET.md" Pack="true" PackagePath="" Visible="false"/>

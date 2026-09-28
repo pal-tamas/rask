@@ -72,10 +72,7 @@ public static class ExpressionAccessor
 
     public static Accessor Parse(LambdaExpression expression)
     {
-        if (expression is null)
-        {
-            throw new ArgumentNullException(nameof(expression));
-        }
+        ArgumentNullException.ThrowIfNull(expression);
 
         var body = expression.Body;
         // Every Convert, not one: a bind lifted by NonNullable over a cast the caller wrote carries two.
@@ -90,7 +87,7 @@ public static class ExpressionAccessor
         // MethodCallExpression on the synthesised `get_Item` method.
         var isIndexerCall = body is MethodCallExpression mce
                             && mce.Method.IsSpecialName
-                            && mce.Method.Name == "get_Item";
+                            && string.Equals(mce.Method.Name, "get_Item", StringComparison.Ordinal);
 
         if (isIndexerCall
             || body is IndexExpression
@@ -135,7 +132,7 @@ public static class ExpressionAccessor
 
     // Evaluates the target sub-expression (everything left of the terminal property) with plain
     // reflection — no Expression.Compile(). Parse runs on every render of every bound control
-    // (Input/Select/Textarea/Bs*), so compiling a throwaway lambda per render was pure overhead;
+    // (Input/Select/Textarea/Bs*), so compiling a throwaway lambda per render was pure overhead, and
     // this walks the tree once instead, and needs no runtime code generation under AOT. Covers every
     // documented Bind/For shape: captured closure constants, member chains, foreach-captured locals,
     // and array / list / dictionary indexers. An undocumented shape (e.g. arithmetic inside an index,
@@ -219,7 +216,7 @@ public static class ExpressionAccessor
         }
     }
 
-    private static bool TryEvaluateAll(System.Collections.Generic.IReadOnlyList<Expression> exprs, out object?[] values)
+    private static bool TryEvaluateAll(System.Collections.ObjectModel.ReadOnlyCollection<Expression> exprs, out object?[] values)
     {
         values = new object?[exprs.Count];
         for (var i = 0; i < exprs.Count; i++)

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Rask.Data;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 /// <summary>
 /// One cache, isolated per tenant by the KEY rather than by a query filter.

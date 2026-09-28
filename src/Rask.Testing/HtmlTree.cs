@@ -63,62 +63,66 @@ internal static class HtmlTree
                 continue;
             }
 
-            if (lt + 1 < html.Length && html[lt + 1] == '/')
-            {
-                var close = html.IndexOf('>', lt);
-                if (close < 0)
-                {
-                    break;
-                }
-
-                var name = html[(lt + 2)..close].Trim();
-                CloseTo(open, name, root);
-                i = close + 1;
-                continue;
-            }
-
-            if (!TryReadStartTag(html, lt, out var tag, out var attributes, out var selfClosing, out var after))
-            {
-                // A '<' that starts no tag is text — the serializer encodes those, but a Raw() need not.
-                AppendText(open.Peek(), html, lt, lt + 1);
-                i = lt + 1;
-                continue;
-            }
-
-            var node = new HtmlNode(tag);
-            foreach (var (name, value) in attributes)
-            {
-                node.SetAttribute(name, value);
-            }
-
-            open.Peek().Add(node);
-
-            if (selfClosing || VoidElements.Contains(tag))
-            {
-                i = after;
-                continue;
-            }
-
-            if (RawTextElements.Contains(tag))
-            {
-                var end = html.IndexOf($"</{tag}", after, StringComparison.OrdinalIgnoreCase);
-                if (end < 0)
-                {
-                    node.AppendText(html[after..]);
-                    break;
-                }
-
-                node.AppendText(html[after..end]);
-                var gt = html.IndexOf('>', end);
-                i = gt < 0 ? html.Length : gt + 1;
-                continue;
-            }
-
-            open.Push(node);
-            i = after;
+            i = lt + 1 < html.Length && html[lt + 1] == '/'
+                ? ReadEndTag(html, lt, open, root)
+                : ReadElement(html, lt, open);
         }
 
         return root;
+    }
+
+    // Closes up to the named element; returns where parsing resumes (the end of input when unterminated).
+    private static int ReadEndTag(string html, int lt, Stack<HtmlNode> open, HtmlNode root)
+    {
+        var close = html.IndexOf('>', lt);
+        if (close < 0)
+        {
+            return html.Length;
+        }
+
+        CloseTo(open, html[(lt + 2)..close].Trim(), root);
+        return close + 1;
+    }
+
+    // Reads the start tag at lt (and a raw-text element's content); returns where parsing resumes.
+    private static int ReadElement(string html, int lt, Stack<HtmlNode> open)
+    {
+        if (!TryReadStartTag(html, lt, out var tag, out var attributes, out var selfClosing, out var after))
+        {
+            // A '<' that starts no tag is text — the serializer encodes those, but a Raw() need not.
+            AppendText(open.Peek(), html, lt, lt + 1);
+            return lt + 1;
+        }
+
+        var node = new HtmlNode(tag);
+        foreach (var (name, value) in attributes)
+        {
+            node.SetAttribute(name, value);
+        }
+
+        open.Peek().Add(node);
+
+        if (selfClosing || VoidElements.Contains(tag))
+        {
+            return after;
+        }
+
+        if (RawTextElements.Contains(tag))
+        {
+            var end = html.IndexOf($"</{tag}", after, StringComparison.OrdinalIgnoreCase);
+            if (end < 0)
+            {
+                node.AppendText(html[after..]);
+                return html.Length;
+            }
+
+            node.AppendText(html[after..end]);
+            var gt = html.IndexOf('>', end);
+            return gt < 0 ? html.Length : gt + 1;
+        }
+
+        open.Push(node);
+        return after;
     }
 
     private static void AppendText(HtmlNode into, string html, int start, int end)
@@ -195,11 +199,7 @@ internal static class HtmlTree
 
         while (i < html.Length)
         {
-            while (i < html.Length && char.IsWhiteSpace(html[i]))
-            {
-                i++;
-            }
-
+            SkipWhitespace(html, ref i);
             if (i >= html.Length)
             {
                 break;
@@ -218,43 +218,48 @@ internal static class HtmlTree
                 continue;
             }
 
-            var attrStart = i;
-            while (i < html.Length && !char.IsWhiteSpace(html[i]) && html[i] is not ('=' or '>' or '/'))
-            {
-                i++;
-            }
-
-            var name = html[attrStart..i];
-            if (name.Length == 0)
-            {
-                i++;
-                continue;
-            }
-
-            while (i < html.Length && char.IsWhiteSpace(html[i]))
-            {
-                i++;
-            }
-
-            if (i < html.Length && html[i] == '=')
-            {
-                i++;
-                while (i < html.Length && char.IsWhiteSpace(html[i]))
-                {
-                    i++;
-                }
-
-                attributes.Add((name, ReadValue(html, ref i)));
-            }
-            else
-            {
-                // A bare attribute (`defer`, `disabled`) — HTML says its value is its own name.
-                attributes.Add((name, name));
-            }
+            ReadAttribute(html, ref i, attributes);
         }
 
         after = html.Length;
         return true;
+    }
+
+    private static void ReadAttribute(string html, ref int i, List<(string Name, string Value)> attributes)
+    {
+        var attrStart = i;
+        while (i < html.Length && !char.IsWhiteSpace(html[i]) && html[i] is not ('=' or '>' or '/'))
+        {
+            i++;
+        }
+
+        var name = html[attrStart..i];
+        if (name.Length == 0)
+        {
+            i++;
+            return;
+        }
+
+        SkipWhitespace(html, ref i);
+        if (i < html.Length && html[i] == '=')
+        {
+            i++;
+            SkipWhitespace(html, ref i);
+            attributes.Add((name, ReadValue(html, ref i)));
+        }
+        else
+        {
+            // A bare attribute (`defer`, `disabled`) — HTML says its value is its own name.
+            attributes.Add((name, name));
+        }
+    }
+
+    private static void SkipWhitespace(string html, ref int i)
+    {
+        while (i < html.Length && char.IsWhiteSpace(html[i]))
+        {
+            i++;
+        }
     }
 
     private static string ReadValue(string html, ref int i)

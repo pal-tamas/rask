@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Batteries;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>The job queue's claim on the application's model, checked once at boot. See #1015.</summary>
 internal sealed class JobsModelCheck<TContext>(IDbContextFactory<TContext> contextFactory)

@@ -25,18 +25,19 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
         {
             _installed = await install.IsInstalledAsync();
             _canInstall = !_installed && await install.CanInstallAsync();
-            _status = _installed
-                ? "running as an installed app"
-                : _canInstall
-                    ? "installable — use the button"
-                    : "not installable yet (needs HTTPS + manifest + service worker, fired once per load)";
+            _status = (_installed, _canInstall) switch
+            {
+                (true, _) => "running as an installed app",
+                (false, true) => "installable — use the button",
+                _ => "not installable yet (needs HTTPS + manifest + service worker, fired once per load)",
+            };
         }
         catch (Exception ex)
         {
             _status = "check failed: " + ex.Message;
         }
 
-        StateHasChanged();
+        await StateHasChangedAsync();
     }
 
     private async Task Install()

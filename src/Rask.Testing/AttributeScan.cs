@@ -18,12 +18,7 @@ internal static class AttributeScan
         ArgumentNullException.ThrowIfNull(html);
         ArgumentNullException.ThrowIfNull(name);
 
-        foreach (var value in Scan(html, name))
-        {
-            return value;
-        }
-
-        return null;
+        return Scan(html, name).FirstOrDefault();
     }
 
     /// <summary>

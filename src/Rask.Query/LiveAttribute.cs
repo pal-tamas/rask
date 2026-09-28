@@ -1,4 +1,4 @@
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     Names the entities this query reads, so it refetches when anything in the process writes one — another

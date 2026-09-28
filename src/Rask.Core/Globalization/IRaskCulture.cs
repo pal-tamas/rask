@@ -28,7 +28,7 @@ public interface IRaskCulture
     bool IsRightToLeft { get; }
 
     /// <summary>Raised after the culture changes, so the session can re-render.</summary>
-    event Action? Changed;
+    event EventHandler? Changed;
 
     /// <summary>
     ///     Switches to <paramref name="culture" /> if the app supports it, persists the choice, and
@@ -44,14 +44,4 @@ public interface IRaskCulture
     /// </summary>
     /// <returns>Whether the culture changed.</returns>
     Task<bool> SetAsync(string name);
-}
-
-/// <summary>
-///     Where an explicit culture choice is stored between visits. Implemented per host: a cookie on the
-///     web, nothing at all where there is nowhere to write.
-/// </summary>
-public interface IRaskCulturePersistence
-{
-    /// <summary>Stores the chosen culture.</summary>
-    Task SaveAsync(string culture, string uiCulture, CancellationToken cancellationToken = default);
 }

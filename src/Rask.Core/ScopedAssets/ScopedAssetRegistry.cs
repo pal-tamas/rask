@@ -19,7 +19,7 @@ namespace Rask.Core.ScopedAssets;
 ///         an entry another type still references.
 ///     </para>
 /// </summary>
-public static class ScopedAssetRegistry
+public static partial class ScopedAssetRegistry
 {
     /// <summary>
     ///     Length of the lowercase-hex content hash used in <c>/_rask/a/{hash}.{ext}</c>
@@ -28,7 +28,7 @@ public static class ScopedAssetRegistry
     /// </summary>
     public const int HashHexLength = 12;
 
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
 
     // by-Type lookups are read once per user component per render (TryGetScopeId via
     // LiveRenderContext.PushScope) and per mounted type during head emission — the hottest
@@ -69,26 +69,27 @@ public static class ScopedAssetRegistry
     // the bare forms — without it an `export async function` keeps its `export` keyword and
     // throws a SyntaxError inside the (non-module) wrapper. `class` for the same reason: an exported
     // class kept its keyword and took the component's whole script down with it.
-    private static readonly Regex _exportStrip =
-        new(@"(^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|class|const|let|var)\b)",
-            RegexOptions.Compiled);
+    [GeneratedRegex(@"(?<lead>^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|class|const|let|var)\b)",
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExportStrip();
 
     // Exported classes, exposed through a factory — `__new_Chart(...)` — because a call from C# can
     // invoke a function but has no `new`. The generated `NewChart(...)` on the component calls it.
-    private static readonly Regex _exportedClassNames =
-        new(@"(^|\n)\s*export\s+(?:default\s+)?class\s+(\w+)\b", RegexOptions.Compiled);
+    [GeneratedRegex(@"(^|\n)\s*export\s+(default\s+)?class\s+(?<name>\w+)\b",
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExportedClassNames();
 
-    // Collects the names of exported function declarations (sync or async) so they can be
-    // re-exposed on the returned object. The `async` modifier is optional and non-capturing,
-    // so the name stays in group 2.
     // `export const double = (x) => x * 2` — a function held in a binding. Collected with the functions, and
     // exposed only when the value really is one (the same typeof guard), so `export const PI = 3.14` stays private.
-    private static readonly Regex _exportedBindingNames =
-        new(@"(^|\n)\s*export\s+(?:const|let|var)\s+(\w+)\s*[=:]", RegexOptions.Compiled);
+    [GeneratedRegex(@"(^|\n)\s*export\s+(const|let|var)\s+(?<name>\w+)\s*[=:]",
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExportedBindingNames();
 
-    private static readonly Regex _exportedFunctionNames =
-        new(@"(^|\n)\s*export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*\(",
-            RegexOptions.Compiled);
+    // Collects the names of exported function declarations (sync or async) so they can be
+    // re-exposed on the returned object. The `async` modifier is optional; the name is the `name` group.
+    [GeneratedRegex(@"(^|\n)\s*export\s+(default\s+)?(async\s+)?function\s+(?<name>\w+)\s*\(",
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ExportedFunctionNames();
 
     internal static int CssEntryCount
     {
@@ -112,7 +113,7 @@ public static class ScopedAssetRegistry
         }
     }
 
-    public static event Action<Type, AssetKind>? AssetChanged;
+    public static event EventHandler<ScopedAssetChangedEventArgs>? AssetChanged;
 
     // True when at least one component has registered scoped CSS (so a scope id exists to push). A
     // lock-free ConcurrentDictionary.IsEmpty check the per-component render walk uses to skip the by-type
@@ -192,7 +193,7 @@ public static class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(componentType, AssetKind.Css);
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Css));
         }
     }
 
@@ -207,7 +208,7 @@ public static class ScopedAssetRegistry
     {
         if (hashByType.TryGetValue(componentType, out var existing))
         {
-            if (existing == hash)
+            if (string.Equals(existing, hash, StringComparison.Ordinal))
             {
                 return false;
             }
@@ -229,7 +230,7 @@ public static class ScopedAssetRegistry
     {
         if (hashByType.TryGetValue(componentType, out var existing))
         {
-            if (existing == hash)
+            if (string.Equals(existing, hash, StringComparison.Ordinal))
             {
                 return false;
             }
@@ -290,7 +291,7 @@ public static class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(componentType, AssetKind.Js);
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Js));
         }
     }
 
@@ -325,7 +326,7 @@ public static class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(componentType, AssetKind.Css);
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Css));
         }
     }
 
@@ -358,7 +359,7 @@ public static class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(componentType, AssetKind.Js);
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Js));
         }
     }
 
@@ -565,7 +566,7 @@ public static class ScopedAssetRegistry
     // one tag per mounted component; the bundle is served like any other content-addressed asset
     // (GetByHash resolves it), so its URL is immutable and a static-asset host can ship it as a
     // single fingerprinted file. Rebuilt only when the registered set changes.
-    private sealed record BundleEntry(long Version, bool Minified, string Hash, AssetBytes Bytes, AssetBytes? SourceMap = null);
+    private sealed record BundleEntry(long BuiltAtVersion, bool Minified, string ContentHash, AssetBytes Bytes, AssetBytes? SourceMap = null);
 
     private static volatile BundleEntry? _cssBundle;
     private static volatile BundleEntry? _jsBundle;
@@ -580,7 +581,7 @@ public static class ScopedAssetRegistry
     public static string GetBundleHash(AssetKind kind)
     {
         var bundle = EnsureBundle(kind);
-        return bundle?.Hash ?? string.Empty;
+        return bundle?.ContentHash ?? string.Empty;
     }
 
     private static BundleEntry? EnsureBundle(AssetKind kind)
@@ -591,9 +592,9 @@ public static class ScopedAssetRegistry
         // (its bytes, hash, and immutable URL) rather than serving a stale representation.
         var minify = kind == AssetKind.Css && LiveOptions.MinifyScopedAssets == true;
         var cached = kind == AssetKind.Css ? _cssBundle : _jsBundle;
-        if (cached is not null && cached.Version == version && cached.Minified == minify)
+        if (cached is not null && cached.BuiltAtVersion == version && cached.Minified == minify)
         {
-            return cached.Hash.Length == 0 ? null : cached;
+            return cached.ContentHash.Length == 0 ? null : cached;
         }
 
         // Snapshot + concatenate under the lock so the bundle is atomic w.r.t. the by-hash buckets.
@@ -601,7 +602,7 @@ public static class ScopedAssetRegistry
         // deterministic regardless of registration order — two builds of the same component set
         // produce byte-identical bundles, so the immutable URL stays stable across deployments.
         byte[] bytes;
-        List<(int Line, string Map)>? sections = null;
+        List<(int Line, string Map)>? sections;
         lock (_lock)
         {
             // Read the bucket field inside the lock: the refresh path swaps it wholesale.
@@ -613,25 +614,7 @@ public static class ScopedAssetRegistry
                 return null;
             }
 
-            var ordered = new List<KeyValuePair<string, AssetEntry>>(bucket);
-            ordered.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
-            using var ms = new MemoryStream();
-            var line = 0;
-            foreach (var kv in ordered)
-            {
-                // Each mapped entry's source starts WrapPrefixLines below where the entry does: that is where its
-                // section of the bundle's index map begins.
-                if (kv.Value.SourceMap is { } map)
-                {
-                    (sections ??= []).Add((line + WrapPrefixLines, map));
-                }
-
-                ms.Write(kv.Value.Utf8, 0, kv.Value.Utf8.Length);
-                ms.WriteByte((byte)'\n');
-                line += kv.Value.Utf8.AsSpan().Count((byte)'\n') + 1;
-            }
-
-            bytes = ms.ToArray();
+            bytes = ConcatenateSorted(bucket, out sections);
         }
 
         // Minify the fully-concatenated CSS once per rebuild, before hashing, so the digest + immutable
@@ -656,6 +639,30 @@ public static class ScopedAssetRegistry
         return entry;
     }
 
+    // Every entry in hash order, newline-separated, plus where each mapped entry's source starts: WrapPrefixLines
+    // below where the entry does, which is where its section of the bundle's index map begins.
+    private static byte[] ConcatenateSorted(Dictionary<string, AssetEntry> bucket, out List<(int Line, string Map)>? sections)
+    {
+        sections = null;
+        var ordered = new List<KeyValuePair<string, AssetEntry>>(bucket);
+        ordered.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+        using var ms = new MemoryStream();
+        var line = 0;
+        foreach (var asset in ordered.Select(kv => kv.Value))
+        {
+            if (asset.SourceMap is { } map)
+            {
+                (sections ??= []).Add((line + WrapPrefixLines, map));
+            }
+
+            ms.Write(asset.Utf8, 0, asset.Utf8.Length);
+            ms.WriteByte((byte)'\n');
+            line += asset.Utf8.AsSpan().Count((byte)'\n') + 1;
+        }
+
+        return ms.ToArray();
+    }
+
     /// <summary>
     ///     The source map of the scoped-script bundle <paramref name="hash" /> names, served beside it as
     ///     <c>/_rask/a/{hash}.js.map</c>; null when that is not the current bundle or no entry in it carries a map.
@@ -667,7 +674,7 @@ public static class ScopedAssetRegistry
     public static AssetBytes? GetSourceMap(string hash)
     {
         var bundle = EnsureBundle(AssetKind.Js);
-        return bundle is not null && string.Equals(bundle.Hash, hash, StringComparison.Ordinal) ? bundle.SourceMap : null;
+        return bundle is not null && string.Equals(bundle.ContentHash, hash, StringComparison.Ordinal) ? bundle.SourceMap : null;
     }
 
     private static string Blank(ReadOnlySpan<char> text)
@@ -810,8 +817,8 @@ public static class ScopedAssetRegistry
         // component's hash. Resolve it here so the one serving path (/_rask/a/{hash}.{ext}) handles
         // both per-component assets and the bundle without a second endpoint.
         var bundle = kind == AssetKind.Css ? _cssBundle : _jsBundle;
-        if (bundle is not null && bundle.Hash.Length != 0
-            && string.Equals(bundle.Hash, hash, StringComparison.Ordinal))
+        if (bundle is not null && bundle.ContentHash.Length != 0
+            && string.Equals(bundle.ContentHash, hash, StringComparison.Ordinal))
         {
             return bundle.Bytes;
         }
@@ -879,39 +886,16 @@ public static class ScopedAssetRegistry
     private static string WrapModule(string typeName, string source, bool preserveLayout = false)
     {
         var exportedNames = new List<string>();
-        foreach (Match m in _exportedFunctionNames.Matches(source))
-        {
-            var name = m.Groups[2].Value;
-            if (!exportedNames.Contains(name, StringComparer.Ordinal))
-            {
-                exportedNames.Add(name);
-            }
-        }
-
-        foreach (Match m in _exportedBindingNames.Matches(source))
-        {
-            var name = m.Groups[2].Value;
-            if (!exportedNames.Contains(name, StringComparer.Ordinal))
-            {
-                exportedNames.Add(name);
-            }
-        }
-
+        CollectNames(ExportedFunctionNames(), source, exportedNames);
+        CollectNames(ExportedBindingNames(), source, exportedNames);
         var exportedClasses = new List<string>();
-        foreach (Match m in _exportedClassNames.Matches(source))
-        {
-            var name = m.Groups[2].Value;
-            if (!exportedClasses.Contains(name, StringComparer.Ordinal))
-            {
-                exportedClasses.Add(name);
-            }
-        }
+        CollectNames(ExportedClassNames(), source, exportedClasses);
 
         // With a source map every line and column of the source must stay where the map says it is, so the stripped
         // `export ` becomes blanks, and any newline the match took is kept, rather than being removed.
         var stripped = preserveLayout
-            ? _exportStrip.Replace(source, static m => m.Groups[1].Value + Blank(m.Value.AsSpan(m.Groups[1].Length)))
-            : _exportStrip.Replace(source, "$1");
+            ? ExportStrip().Replace(source, static m => m.Groups["lead"].Value + Blank(m.Value.AsSpan(m.Groups["lead"].Length)))
+            : ExportStrip().Replace(source, "${lead}");
         var sb = new StringBuilder(stripped.Length + 128);
         sb.Append("(function () {\n");
         sb.Append("window.Rask = window.Rask || {};\n");
@@ -930,6 +914,27 @@ public static class ScopedAssetRegistry
         }
 
         sb.Append('\n');
+        AppendMembers(sb, exportedNames, exportedClasses);
+        sb.Append("    };\n})();\n})();\n");
+        return sb.ToString();
+    }
+
+    // Each distinct `name` group of the pattern, in source order.
+    private static void CollectNames(Regex pattern, string source, List<string> names)
+    {
+        foreach (Match m in pattern.Matches(source))
+        {
+            var name = m.Groups["name"].Value;
+            if (!names.Contains(name, StringComparer.Ordinal))
+            {
+                names.Add(name);
+            }
+        }
+    }
+
+    // A function is exposed only when the value really is one; a class also gets a `__new_` factory.
+    private static void AppendMembers(StringBuilder sb, List<string> exportedNames, List<string> exportedClasses)
+    {
         var members = new List<string>(exportedNames.Count + (exportedClasses.Count * 2));
         foreach (var name in exportedNames)
         {
@@ -952,9 +957,6 @@ public static class ScopedAssetRegistry
 
             sb.Append('\n');
         }
-
-        sb.Append("    };\n})();\n})();\n");
-        return sb.ToString();
     }
 
     public readonly record struct EnumeratedEntry(string Hash, AssetKind Kind, ReadOnlyMemory<byte> Utf8);

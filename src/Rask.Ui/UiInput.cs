@@ -184,7 +184,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
         await self.InvokeOnChangeAsync(default!).ConfigureAwait(false);
     }
 
-    private Component Field()
+    private HTMLInputElement<T> Field()
     {
         // Bound and controlled are different chain TYPES, not two settings on one — Bind and Value are
         // mutually exclusive openings — so each is built as its own complete expression.

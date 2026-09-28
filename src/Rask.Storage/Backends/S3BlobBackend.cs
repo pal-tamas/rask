@@ -11,7 +11,9 @@ namespace Rask.Storage.Backends;
 /// </summary>
 internal sealed class S3BlobBackend : RemoteBlobBackend
 {
+#pragma warning disable S5332 // an XML namespace name, never fetched: S3 answers in exactly this namespace
     private static readonly XNamespace S3Ns = "http://s3.amazonaws.com/doc/2006-03-01/";
+#pragma warning restore S5332
 
     private readonly S3Credential _credential;
     private readonly string _region;

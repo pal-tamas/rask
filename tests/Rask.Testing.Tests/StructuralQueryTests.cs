@@ -110,6 +110,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains(expected, error.Message, StringComparison.Ordinal);
         Assert.Contains("does not support", error.Message, StringComparison.Ordinal);
+        Assert.Equal("selector", error.ParamName);
     }
 
     [Fact]

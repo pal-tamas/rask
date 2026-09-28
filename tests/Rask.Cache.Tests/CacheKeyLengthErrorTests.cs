@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 /// <summary>
 ///     A key the database cannot store is reported as a key that is too long, not as a provider error.

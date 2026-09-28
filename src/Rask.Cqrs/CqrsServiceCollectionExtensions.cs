@@ -27,13 +27,12 @@ public static class CqrsServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         // Idempotent: a second call (e.g. a shared library and the app host both register) is a no-op,
-        // so behaviors aren't double-registered and the first call's options win consistently.
-        if (services.Any(static d => d.ServiceType == typeof(CqrsMarker)))
+        // so behaviors aren't double-registered and the first call's options win consistently. The
+        // execution snapshot is registered by this method alone, so it doubles as the marker.
+        if (services.Any(static d => d.ServiceType == typeof(CqrsExecutionOptions)))
         {
             return services;
         }
-
-        services.AddSingleton(new CqrsMarker());
 
         var options = new CqrsOptions();
         ApplyConfiguration(options, HostConfiguration(services));
@@ -45,6 +44,18 @@ public static class CqrsServiceCollectionExtensions
         services.TryAddTransient<LocalDispatcher>();
         services.TryAddTransient<IDispatcher>(static sp => sp.GetRequiredService<LocalDispatcher>());
 
+        AddNotifications(services, options);
+
+        // Apply the generated handler registrations (populated by [ModuleInitializer]s at module load).
+        CqrsRegistry.ApplyRegistrations(services, options.HandlerLifetime);
+
+        AddBehaviors(services, options);
+
+        return services;
+    }
+
+    private static void AddNotifications(IServiceCollection services, CqrsOptions options)
+    {
         // One feed per container — the process on a server, the tab in a browser — so every dispatcher, whatever scope
         // resolved it, publishes into the same subscriptions.
         var execution = new CqrsExecutionOptions
@@ -66,10 +77,10 @@ public static class CqrsServiceCollectionExtensions
         // app, a test — but only once something resolves a dispatcher. Both are idempotent.
         services.TryAddSingleton<NotifyRoot>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, NotifyBinding>());
+    }
 
-        // Apply the generated handler registrations (populated by [ModuleInitializer]s at module load).
-        CqrsRegistry.ApplyRegistrations(services, options.HandlerLifetime);
-
+    private static void AddBehaviors(IServiceCollection services, CqrsOptions options)
+    {
         // Validation goes on FIRST, so it is the outermost wrapper: a request that is not valid should
         // not reach a transaction, a log line saying it was handled, or the handler. An app that has
         // configured its own behaviors still gets them inside this one, which is the order they would
@@ -87,8 +98,6 @@ public static class CqrsServiceCollectionExtensions
         {
             services.Add(new ServiceDescriptor(behavior.ServiceType, behavior.ImplementationType, options.HandlerLifetime));
         }
-
-        return services;
     }
 
     /// <summary>Reads the <c>Rask:Cqrs</c> section onto <paramref name="options"/>, key by key.</summary>
@@ -191,7 +200,4 @@ public static class CqrsServiceCollectionExtensions
         bool.TryParse(value, out var parsed)
             ? parsed
             : throw new InvalidOperationException($"Rask:Cqrs:{key} is '{value}'; use true or false.");
-
-    // Sentinel marking that AddRaskCqrs already ran on this collection.
-    private sealed class CqrsMarker;
 }

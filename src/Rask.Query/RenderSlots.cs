@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using Rask.Core;
 using Rask.Core.Live;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     The queries and commands one component asked for inside its <c>Render</c>, kept from one render to
@@ -129,11 +129,4 @@ internal sealed class RenderSlots
 
         public long LastUsed { get; set; }
     }
-}
-
-/// <summary>A handle a render slot can set aside when a render stops using it.</summary>
-internal interface IRenderSlotHandle
-{
-    /// <summary>Stops watching, unless it was read during <paramref name="generation" />.</summary>
-    void ReleaseUnlessReadIn(long generation);
 }

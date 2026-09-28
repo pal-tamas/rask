@@ -1,4 +1,4 @@
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 /// <summary>
 ///     What happens to a send that is already talking to the SMTP server when the host is asked to stop.
@@ -76,7 +76,9 @@ public sealed class MailShutdownGraceTests
     {
         var options = new MailOptions { From = "a@example.com", ShutdownGracePeriod = TimeSpan.FromSeconds(-1) };
 
-        Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
+        var result = new MailOptionsValidator().Validate(null, options);
+
+        Assert.Contains("Rask:Mail:ShutdownGracePeriod", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,6 +88,8 @@ public sealed class MailShutdownGraceTests
         // shutdown path, the worst place to find out.
         var options = new MailOptions { From = "a@example.com", ShutdownGracePeriod = TimeSpan.FromDays(30) };
 
-        Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
+        var result = new MailOptionsValidator().Validate(null, options);
+
+        Assert.Contains("Rask:Mail:ShutdownGracePeriod", result.FailureMessage, StringComparison.Ordinal);
     }
 }

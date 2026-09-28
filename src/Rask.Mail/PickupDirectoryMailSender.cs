@@ -1,4 +1,4 @@
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// An <see cref="IMailSender"/> that writes each message to a directory as an <c>.eml</c> file instead of
@@ -25,7 +25,8 @@ public sealed class PickupDirectoryMailSender : IMailSender
         var message = MimeMailFactory.Build(mail);
 
         var path = Path.Combine(_directory, $"{Guid.NewGuid():N}.eml");
-        await using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        await using var streamScope = stream.ConfigureAwait(false);
         await message.WriteToAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -5,20 +5,6 @@ using Rask.Core.Routing;
 namespace Rask.Site;
 
 /// <summary>
-///     What a guide adds to the head beyond what every page carries.
-/// </summary>
-/// <param name="Section">
-///     The catalog group the guide sits in — <c>article:section</c>, and the article's
-///     <c>articleSection</c> in the structured data.
-/// </param>
-/// <param name="Modified">
-///     When the guide's source last changed, as git recorded it; <c>null</c> when the build could not say,
-///     in which case no date is claimed anywhere.
-/// </param>
-/// <param name="MarkdownUrl">The absolute URL of the guide's Markdown twin, advertised as an alternate.</param>
-public sealed record PageArticle(string Section, DateOnly? Modified, string MarkdownUrl);
-
-/// <summary>
 ///     The head metadata every page owes a crawler: a title of its own, a description of its own, a
 ///     canonical URL saying which address is the real one, the card a shared link unfurls with, and the
 ///     structured data saying what the page is.
@@ -214,7 +200,7 @@ public static partial class PageMeta
         }
 
         var graph = StructuredData.Graph(new StructuredData.Page(
-            name, description, url, canonicalPath == "/", Breadcrumb(name, canonicalPath), article));
+            name, description, url, canonicalPath is "/", Breadcrumb(name, canonicalPath), article));
 
         // Raw, because a script's content is not HTML: encoding it would turn every quote into an entity
         // and the JSON into something no parser reads. The writer already escaped '<', so it cannot close
@@ -234,7 +220,7 @@ public static partial class PageMeta
     /// </remarks>
     internal static IReadOnlyList<StructuredData.Crumb> Breadcrumb(string name, string canonicalPath)
     {
-        if (canonicalPath == "/")
+        if (canonicalPath is "/")
         {
             return [];
         }
@@ -246,7 +232,7 @@ public static partial class PageMeta
         if (canonicalPath.StartsWith(docs, StringComparison.Ordinal))
         {
             crumbs.Add(new StructuredData.Crumb("Docs", root + docs));
-            if (canonicalPath == docs)
+            if (string.Equals(canonicalPath, docs, StringComparison.Ordinal))
             {
                 return crumbs;
             }

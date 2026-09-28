@@ -7,5 +7,5 @@ public sealed partial class PropsAttributeOrderDemo : Component
             .Href("/tags")
             .Id("out")
             .Class("link link-primary")
-            .Data(new Dictionary<string, string?> { ["external"] = "true" })["See HTML order"];
+            .Data("external", "true")["See HTML order"];
 }

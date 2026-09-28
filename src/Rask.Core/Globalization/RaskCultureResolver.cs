@@ -93,7 +93,7 @@ public static class RaskCultureResolver
             //
             // German writes 14.03.2026 where the invariant culture writes 03/14/2026. If those come
             // back the same, there is no data behind the name.
-            var probe = new DateTime(2026, 3, 14);
+            var probe = new DateTime(2026, 3, 14, 0, 0, 0, DateTimeKind.Unspecified);
             return !string.Equals(
                 probe.ToString("d", CultureInfo.GetCultureInfo("de-DE")),
                 probe.ToString("d", CultureInfo.InvariantCulture),

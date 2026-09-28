@@ -40,7 +40,7 @@ internal static class WasmHotReloadBridge
         RaskHotReload.Applied += OnApplied;
     }
 
-    private static void OnApplied()
+    private static void OnApplied(object? sender, EventArgs e)
     {
         try
         {

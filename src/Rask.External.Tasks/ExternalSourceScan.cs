@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Rask.External.Tasks;
@@ -76,7 +77,8 @@ public static class ExternalSourceScan
     private static readonly Regex Declaration = new(
         @"(?<modifiers>(?:\b(?:public|internal|private|protected|sealed|abstract|static|partial|file|unsafe|record|new)\s+)*)"
         + @"\bclass\s+(?<name>[A-Za-z_]\w*)\s*(?:<[^<>]*>)?\s*(?:\([^()]*\))?\s*:\s*(?<base>[A-Za-z_][\w.]*)",
-        RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
 
     /// <summary>Line and block comments, removed before the declarations are read.</summary>
     /// <remarks>
@@ -84,7 +86,7 @@ public static class ExternalSourceScan
     ///     <c>class Gauge : LitComponent</c> would otherwise declare an island nobody wrote. Stripping
     ///     reaches inside string literals too, which can only ever cost a match — never invent one.
     /// </remarks>
-    private static readonly Regex Comments = new(@"//[^\r\n]*|/\*.*?\*/", RegexOptions.Singleline);
+    private static readonly Regex Comments = new(@"//[^\r\n]*|/\*.*?\*/", RegexOptions.Singleline, TimeSpan.FromSeconds(1));
 
     /// <summary>A base chain longer than this is a cycle, or source this has no business reading.</summary>
     private const int MaxDepth = 32;
@@ -117,70 +119,70 @@ public static class ExternalSourceScan
 
         foreach (var path in sources)
         {
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            if (ReadDeclaringSource(path) is { } text)
             {
-                continue;
-            }
-
-            string text;
-            try
-            {
-                text = File.ReadAllText(path);
-            }
-            catch (IOException)
-            {
-                continue;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                continue;
-            }
-
-            // Nothing in this file can declare a class, so the regex is not worth running on it.
-            //
-            // Deliberately NOT a test for "Component": the leaf of a chain need not mention it. A
-            // project's own `abstract class Widget : LitComponent` carries the runtime down to a
-            // `Dial : Widget` whose file names no base of Rask's at all, and skipping that file left
-            // the island silently compiled as a scoped asset.
-            if (text.IndexOf("class", StringComparison.Ordinal) < 0)
-            {
-                continue;
-            }
-
-            foreach (Match match in Declaration.Matches(Comments.Replace(text, " ")))
-            {
-                var name = match.Groups["name"].Value;
-                var declaredBase = LastSegment(match.Groups["base"].Value);
-
-                // A partial class can spell its base list in one part and not the others, so the
-                // first part that names one wins rather than the last file enumerated.
-                if (!baseOf.ContainsKey(name))
-                {
-                    baseOf[name] = declaredBase;
-                }
-
-                if (match.Groups["modifiers"].Value.IndexOf("abstract", StringComparison.Ordinal) >= 0)
-                {
-                    abstractTypes.Add(name);
-                }
+                ReadDeclarations(text, baseOf, abstractTypes);
             }
         }
 
-        var runtimes = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var pair in baseOf)
+        return baseOf.Keys
+            .Where(name => !abstractTypes.Contains(name))
+            .Select(name => (Name: name, Resolved: Resolve(baseOf, name)))
+            .Where(pair => pair.Resolved is not null)
+            .ToDictionary(pair => pair.Name, pair => pair.Resolved!.Value.Runtime, StringComparer.Ordinal);
+    }
+
+    /// <summary>A C# file's text, or null when it is unreadable or cannot declare a class.</summary>
+    private static string? ReadDeclaringSource(string path)
+    {
+        if (string.IsNullOrEmpty(path) || !File.Exists(path))
         {
-            if (abstractTypes.Contains(pair.Key))
-            {
-                continue;
-            }
-
-            if (Resolve(baseOf, pair.Key) is { } runtime)
-            {
-                runtimes[pair.Key] = runtime.Runtime;
-            }
+            return null;
         }
 
-        return runtimes;
+        string text;
+        try
+        {
+            text = File.ReadAllText(path);
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+
+        // Nothing in this file can declare a class, so the regex is not worth running on it.
+        //
+        // Deliberately NOT a test for "Component": the leaf of a chain need not mention it. A
+        // project's own `abstract class Widget : LitComponent` carries the runtime down to a
+        // `Dial : Widget` whose file names no base of Rask's at all, and skipping that file left
+        // the island silently compiled as a scoped asset.
+        return text.IndexOf("class", StringComparison.Ordinal) < 0 ? null : text;
+    }
+
+    /// <summary>Records each class declaration's first base, and which classes are abstract.</summary>
+    private static void ReadDeclarations(string text, Dictionary<string, string> baseOf, HashSet<string> abstractTypes)
+    {
+        foreach (Match match in Declaration.Matches(Comments.Replace(text, " ")))
+        {
+            var name = match.Groups["name"].Value;
+            var declaredBase = LastSegment(match.Groups["base"].Value);
+
+            // A partial class can spell its base list in one part and not the others, so the
+            // first part that names one wins rather than the last file enumerated.
+            if (!baseOf.ContainsKey(name))
+            {
+                baseOf[name] = declaredBase;
+            }
+
+            if (match.Groups["modifiers"].Value.IndexOf("abstract", StringComparison.Ordinal) >= 0)
+            {
+                abstractTypes.Add(name);
+            }
+        }
     }
 
     /// <summary>
@@ -225,23 +227,20 @@ public static class ExternalSourceScan
             return null;
         }
 
-        foreach (var declared in Bases.Values)
-        {
-            if (string.Equals(declared.Runtime, runtime, StringComparison.Ordinal))
-            {
-                return string.Equals(
-                    Path.GetExtension(frontEndFile), declared.Extension, StringComparison.OrdinalIgnoreCase)
-                    ? runtime
-                    : null;
-            }
-        }
+        var extension = Bases.Values
+            .Where(declared => string.Equals(declared.Runtime, runtime, StringComparison.Ordinal))
+            .Select(declared => declared.Extension)
+            .FirstOrDefault();
 
-        return null;
+        return extension is not null
+               && string.Equals(Path.GetExtension(frontEndFile), extension, StringComparison.OrdinalIgnoreCase)
+            ? runtime
+            : null;
     }
 
     /// <summary>The runtime a class reaches by following its base chain, or null if it reaches none.</summary>
     private static (string Runtime, string Extension)? Resolve(
-        IReadOnlyDictionary<string, string> baseOf,
+        Dictionary<string, string> baseOf,
         string name)
     {
         var current = name;

@@ -4,12 +4,12 @@ namespace Rask.Server.Files;
 
 internal sealed class SessionUploadStore : IDisposable
 {
-    private readonly ConcurrentDictionary<string, Entry> _entries = new();
+    private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.Ordinal);
 
     // Running total of staged bytes per session, for the optional per-session upload quota. Guarded by
     // its own lock so the quota check + reserve in StageAsync is atomic (concurrent same-session uploads
     // can't both pass a stale check and overshoot) and a release can't resurrect a removed session key.
-    private readonly object _quotaLock = new();
+    private readonly Lock _quotaLock = new();
     private readonly Dictionary<string, long> _sessionBytes = new(StringComparer.Ordinal);
 
     public void Dispose()

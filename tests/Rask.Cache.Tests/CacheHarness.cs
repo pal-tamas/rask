@@ -3,7 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 public sealed class CacheDbContext(DbContextOptions<CacheDbContext> options) : DbContext(options)
 {

@@ -5,163 +5,6 @@ using Rask.Core.Diagnostics;
 namespace Rask.Core.Live;
 
 /// <summary>
-///     Kind of edit operation the diff codec emits when comparing two
-///     <see cref="RenderFrame" /> streams. Maps to a verb the client interpreter
-///     applies to its DOM-mirroring frame stream.
-/// </summary>
-public enum EditOpKind : byte
-{
-    /// <summary>
-    ///     Set or replace an attribute's value on the element at
-    ///     <see cref="EditOp.Path" />. <see cref="EditOp.Name" /> is the attribute name,
-    ///     <see cref="EditOp.Value" /> is the new value (null for bare attributes).
-    /// </summary>
-    SetAttribute = 1,
-
-    /// <summary>
-    ///     Remove an attribute by name from the element at
-    ///     <see cref="EditOp.Path" />.
-    /// </summary>
-    RemoveAttribute = 2,
-
-    /// <summary>
-    ///     Replace the text content of the text-or-raw node at
-    ///     <see cref="EditOp.Path" />.
-    /// </summary>
-    UpdateText = 3,
-
-    /// <summary>
-    ///     Insert a new subtree at <see cref="EditOp.Path" /> (the index of the
-    ///     slot among the parent's existing DOM children; ops further into the same
-    ///     parent reference subsequent indices). The inserted markup travels as the
-    ///     <see cref="EditOp.HtmlStart" />/<see cref="EditOp.HtmlEnd" /> char range into the render
-    ///     HTML (sliced into the wire payload at write time), or as a verbatim
-    ///     <see cref="EditOp.Value" /> string for directly-constructed ops.
-    /// </summary>
-    InsertSubtree = 4,
-
-    /// <summary>
-    ///     Remove a contiguous run of <see cref="EditOp.Length" /> sibling
-    ///     subtrees starting at <see cref="EditOp.Path" />.
-    /// </summary>
-    RemoveSubtree = 5,
-
-    /// <summary>
-    ///     Move an existing sibling DOM node within its parent. <see cref="EditOp.Path" />
-    ///     resolves to the destination slot among the parent's DOM-relevant children;
-    ///     <see cref="EditOp.Length" /> is the source slot. The client detaches the node at the
-    ///     source, then inserts at the destination slot in the post-detach sibling list — both
-    ///     indexes are computed against the live DOM as it stands when this op runs (with any
-    ///     preceding ops already applied). Preserves DOM identity (focus, IDL property state, event
-    ///     listeners, iframe document state) since moving an existing node via
-    ///     <c>parent.insertBefore</c> doesn't materialise a new element.
-    /// </summary>
-    MoveSubtree = 6,
-
-    /// <summary>
-    ///     A batch of sibling moves under a single keyed parent. <see cref="EditOp.Path" />
-    ///     resolves to the shared parent node; <see cref="EditOp.Moves" /> is a flat
-    ///     <c>[dst0, src0, dst1, src1, …]</c> array, replayed in order with identical semantics to a
-    ///     run of <see cref="MoveSubtree" /> ops (detach the source slot, then insert at the
-    ///     destination slot in the post-detach sibling list). The order is load-bearing: each
-    ///     dst/src pair is computed against the live DOM as mutated by all preceding pairs in the
-    ///     batch, so it must not be reordered. Collapses N per-row moves (each re-emitting the full
-    ///     parent path) into one op + one path — the dominant wire-bytes cost of a keyed-list
-    ///     reorder. Like <see cref="MoveSubtree" /> it only ever comes from the keyed path and
-    ///     preserves DOM identity.
-    /// </summary>
-    PermutationBatch = 7,
-
-    /// <summary>
-    ///     Reconcile the CHILDREN of the element at <see cref="EditOp.Path" /> against a fresh HTML
-    ///     fragment (that element's new inner HTML) via the client's <c>morph()</c> engine. Emitted
-    ///     when a sibling level mixes a <see cref="RenderFrameKind.Raw" /> frame with other siblings
-    ///     and changed: a Raw's verbatim markup parses into an unknown number of DOM nodes, so the
-    ///     positional <c>childNodes[slot]</c> paths of the following siblings can't be trusted — but
-    ///     the Raw-owning PARENT is still addressable by a clean path (every ancestor level is
-    ///     untainted by construction, else the morph would have been emitted higher up). So instead of
-    ///     bailing the whole render to a full-document morph, we localise it to this one parent. The
-    ///     fragment travels as the <see cref="EditOp.HtmlStart" />/<see cref="EditOp.HtmlEnd" /> char
-    ///     range into the render HTML (sliced at wire-write time, like
-    ///     <see cref="InsertSubtree" />), or as a verbatim <see cref="EditOp.Value" /> string. Always
-    ///     <see cref="EditOp.Trusted" /> — a morph handles arbitrary node counts and preserves keyed /
-    ///     focus / IDL state — so it ships as a diff rather than routing to the full-HTML fallback.
-    /// </summary>
-    MorphSubtree = 8
-}
-
-/// <summary>
-///     A single edit operation produced by <c>FrameDiffer.Diff</c>. Each op
-///     names the DOM node it targets via <see cref="Path" /> — a sequence of child
-///     indices from the document root, counting only DOM-relevant nodes (elements,
-///     text, raw, doctype). Attribute frames in the underlying render-tree stream
-///     are NOT counted; Component frames are transparent (their rendered body
-///     contributes siblings at the surrounding level). The path representation lets
-///     the client interpreter walk its DOM by simple <c>parent.children[i]</c>
-///     descent without needing to mirror the server's frame stream.
-/// </summary>
-public readonly struct EditOp
-{
-    public EditOp(EditOpKind kind, int[] path, string? name, string? value, int length = 0, bool trusted = false,
-        int[]? moves = null, int htmlStart = -1, int htmlEnd = -1)
-    {
-        Kind = kind;
-        Path = path;
-        Name = name;
-        Value = value;
-        Length = length;
-        Trusted = trusted;
-        Moves = moves;
-        HtmlStart = htmlStart;
-        HtmlEnd = htmlEnd;
-    }
-
-    public EditOpKind Kind { get; }
-
-    /// <summary>
-    ///     Component-index sequence from the document root that identifies the
-    ///     target DOM node (or, for <see cref="EditOpKind.InsertSubtree" /> /
-    ///     <see cref="EditOpKind.RemoveSubtree" /> / <see cref="EditOpKind.MoveSubtree" />,
-    ///     the slot among siblings).
-    /// </summary>
-    public int[] Path { get; }
-
-    public string? Name { get; }
-    public string? Value { get; }
-    public int Length { get; }
-
-    /// <summary>
-    ///     For <see cref="EditOpKind.InsertSubtree" />: the <c>[HtmlStart..HtmlEnd)</c> char range of
-    ///     the inserted subtree's markup within the render HTML, so the wire codec can slice the
-    ///     fragment straight into the UTF-8 payload at write time instead of materialising a
-    ///     per-insert <see cref="Value" /> string during the diff. <c>-1</c> (the default) means no
-    ///     deferred slice — the codec then ships <see cref="Value" /> verbatim (the path used by
-    ///     directly-constructed ops) or null. Ignored for every other op kind.
-    /// </summary>
-    public int HtmlStart { get; }
-
-    /// <summary>Companion to <see cref="HtmlStart" /> — the exclusive end of the fragment range.</summary>
-    public int HtmlEnd { get; }
-
-    /// <summary>
-    ///     For <see cref="EditOpKind.PermutationBatch" /> only: a flat
-    ///     <c>[dst0, src0, dst1, src1, …]</c> array of sibling moves under the parent at
-    ///     <see cref="Path" />, in apply order. Null for every other op kind.
-    /// </summary>
-    public int[]? Moves { get; }
-
-    /// <summary>
-    ///     True when this structural op was produced by the keyed-matching path
-    ///     (where the moved/inserted/removed node is identified by <c>data-rask-key</c>, so the
-    ///     surrounding morph-baseline DOM state stays consistent under apply). Positional structural
-    ///     ops set this to <c>false</c> and the live-session gates route them through the full-HTML
-    ///     morph path. Non-structural ops (SetAttribute, RemoveAttribute, UpdateText) ignore the
-    ///     flag — they're always safe to ship.
-    /// </summary>
-    public bool Trusted { get; }
-}
-
-/// <summary>
 ///     Compares two <see cref="RenderFrame" /> streams (previous render vs current
 ///     render) and produces a minimal list of <see cref="EditOp" />s that transforms
 ///     the previous into the current. Mirrors the role of Blazor's
@@ -189,7 +32,7 @@ public static class FrameDiffer
     ///     replace to route into a logger or test sink. Only ever fires on the already-broken path, so
     ///     it adds no cost to a correctly-keyed render.
     /// </summary>
-    internal static Action<string>? OnDuplicateKey = ReportDuplicateKeyOnce;
+    internal static Action<string>? OnDuplicateKey { get; set; } = ReportDuplicateKeyOnce;
 
     // Report at most once per distinct key (bounded), routed through the shared diagnostics seam so a
     // host can capture it. Logged at Error, not Warning: a duplicate key is a latent state-corruption
@@ -219,12 +62,14 @@ public static class FrameDiffer
     ///     Without <paramref name="newHtml" /> those ops carry the <c>(-1, -1)</c> sentinel and the
     ///     caller must route the payload through the full-HTML fallback.
     /// </summary>
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
     public static int Diff(
         ReadOnlySpan<RenderFrame> oldFrames,
         ReadOnlySpan<RenderFrame> newFrames,
         List<EditOp> output,
         ReadOnlySpan<char> newHtml = default)
         => Diff(oldFrames, newFrames, output, out _, newHtml);
+#pragma warning restore MA0016
 
     /// <summary>
     ///     Variant that also reports whether the keyed-matching path was used at any depth.
@@ -234,6 +79,7 @@ public static class FrameDiffer
     ///     path. See <see cref="EditOp.Trusted" /> for the per-op marker that carries the same
     ///     signal to <c>DiffOpsAreClientSupported</c>.
     /// </summary>
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
     public static int Diff(
         ReadOnlySpan<RenderFrame> oldFrames,
         ReadOnlySpan<RenderFrame> newFrames,
@@ -241,6 +87,7 @@ public static class FrameDiffer
         out bool usedKeyedPath,
         ReadOnlySpan<char> newHtml = default)
         => Diff(oldFrames, newFrames, output, new DiffScratch(), out usedKeyedPath, newHtml);
+#pragma warning restore MA0016
 
     /// <summary>
     ///     Scratch-pooled variant. <paramref name="scratch" /> carries the reusable
@@ -251,10 +98,12 @@ public static class FrameDiffer
     ///     callers without one use the parameterless overloads, which allocate a transient
     ///     scratch per call — unchanged behaviour for tests and one-shot callers.
     /// </summary>
+#pragma warning disable MA0016 // hot path: the diff appends to a reused List, no interface dispatch per op
     public static int Diff(
         ReadOnlySpan<RenderFrame> oldFrames,
         ReadOnlySpan<RenderFrame> newFrames,
         List<EditOp> output,
+#pragma warning restore MA0016
         DiffScratch scratch,
         out bool usedKeyedPath,
         ReadOnlySpan<char> newHtml = default)
@@ -275,18 +124,45 @@ public static class FrameDiffer
         ReadOnlySpan<char> newHtml,
         DiffScratch scratch)
     {
-        var path = scratch.Path;
+        if (TryDiffKeyed(oldFrames, oldStart, oldEnd, newFrames, newStart, newEnd, output, newHtml, scratch))
+        {
+            return;
+        }
 
-        // Keyed matching kicks in only when every child on BOTH sides is a keyed
-        // Element. A single unkeyed child, or any non-Element sibling (text/raw/doctype)
-        // mixed with elements, or a duplicate key on either side, falls back to the
-        // positional walk below. This mirrors the morph engine's all-or-nothing keyed
-        // reconciliation in Rask.Core/Resources/rask-morph.js — same parents that the
-        // morph treats as keyed get the keyed diff path, no surprise divergence.
-        //
-        // The keyed buffers (key maps + child lists) come from a pooled bundle that stays
-        // live through DiffKeyedSiblings' inner-diff recursion, so it's returned only after
-        // that call completes; the positional fallback returns it immediately.
+        // A Raw frame's verbatim markup parses into an unknown node count, so once a Raw shares a
+        // sibling level with anything else, every position after it is suspect. If this level (or
+        // its subtree) ends up emitting ANY op, the positional paths can't be trusted — flag the
+        // render for the full-HTML morph. Detected up front; committed below only if ops were
+        // actually produced, so an idle render of such a page still ships nothing.
+        var rawTaintedLevel = LevelHasRawWithSiblings(oldFrames, oldStart, oldEnd)
+                              || LevelHasRawWithSiblings(newFrames, newStart, newEnd);
+        var opCountAtEntry = output.Count;
+
+        DiffPositional(oldFrames, oldStart, oldEnd, newFrames, newStart, newEnd, output, newHtml, scratch);
+
+        if (rawTaintedLevel && output.Count != opCountAtEntry)
+        {
+            MorphRawTaintedLevel(newFrames, newStart, newEnd, output, newHtml, scratch, opCountAtEntry);
+        }
+    }
+
+    // Keyed matching kicks in only when every child on BOTH sides is a keyed
+    // Element. A single unkeyed child, or any non-Element sibling (text/raw/doctype)
+    // mixed with elements, or a duplicate key on either side, falls back to the
+    // positional walk below. This mirrors the morph engine's all-or-nothing keyed
+    // reconciliation in Rask.Core/Resources/rask-morph.js — same parents that the
+    // morph treats as keyed get the keyed diff path, no surprise divergence.
+    //
+    // The keyed buffers (key maps + child lists) come from a pooled bundle that stays
+    // live through DiffKeyedSiblings' inner-diff recursion, so it's returned only after
+    // that call completes; the positional fallback returns it immediately.
+    private static bool TryDiffKeyed(
+        ReadOnlySpan<RenderFrame> oldFrames, int oldStart, int oldEnd,
+        ReadOnlySpan<RenderFrame> newFrames, int newStart, int newEnd,
+        List<EditOp> output,
+        ReadOnlySpan<char> newHtml,
+        DiffScratch scratch)
+    {
         var bundle = scratch.RentBundle();
         if (TryCollectKeyedChildren(oldFrames, oldStart, oldEnd, bundle.OldKids, bundle.Seen))
         {
@@ -303,21 +179,22 @@ public static class FrameDiffer
                     scratch.ReturnBundle(bundle);
                 }
 
-                return;
+                return true;
             }
         }
 
         scratch.ReturnBundle(bundle);
+        return false;
+    }
 
-        // A Raw frame's verbatim markup parses into an unknown node count, so once a Raw shares a
-        // sibling level with anything else, every position after it is suspect. If this level (or
-        // its subtree) ends up emitting ANY op, the positional paths can't be trusted — flag the
-        // render for the full-HTML morph. Detected up front; committed below only if ops were
-        // actually produced, so an idle render of such a page still ships nothing.
-        var rawTaintedLevel = LevelHasRawWithSiblings(oldFrames, oldStart, oldEnd)
-                              || LevelHasRawWithSiblings(newFrames, newStart, newEnd);
-        var opCountAtEntry = output.Count;
-
+    private static void DiffPositional(
+        ReadOnlySpan<RenderFrame> oldFrames, int oldStart, int oldEnd,
+        ReadOnlySpan<RenderFrame> newFrames, int newStart, int newEnd,
+        List<EditOp> output,
+        ReadOnlySpan<char> newHtml,
+        DiffScratch scratch)
+    {
+        var path = scratch.Path;
         var oi = oldStart;
         var ni = newStart;
         var domSlot = 0;
@@ -346,7 +223,7 @@ public static class FrameDiffer
                 levelHadReplace = true;
                 output.Add(new EditOp(EditOpKind.RemoveSubtree, PathPlus(path, domSlot), null, null,
                     DomNodeCount(oldFrames, oi, oi + oldFrame.SubtreeLength)));
-                var (replStart, replEnd) = InsertHtmlRange(newHtml, newFrame);
+                var (replStart, replEnd) = InsertHtmlRange(newHtml, newFrame.HtmlStart, newFrame.HtmlEnd);
                 output.Add(new EditOp(EditOpKind.InsertSubtree, PathPlus(path, domSlot), null, null,
                     DomNodeCount(newFrames, ni, ni + newFrame.SubtreeLength),
                     htmlStart: replStart, htmlEnd: replEnd));
@@ -356,91 +233,118 @@ public static class FrameDiffer
                 continue;
             }
 
-            switch (oldFrame.Kind)
-            {
-                case RenderFrameKind.Element:
-                {
-                    var oldChildStart = oi + 1;
-                    var oldChildEnd = oi + oldFrame.SubtreeLength;
-                    var newChildStart = ni + 1;
-                    var newChildEnd = ni + newFrame.SubtreeLength;
-
-                    // Attributes diff against the current element path (built lazily inside
-                    // DiffAttributes only if an attribute op is actually emitted).
-                    DiffAttributes(oldFrames, ref oldChildStart, oldChildEnd,
-                        newFrames, ref newChildStart, newChildEnd,
-                        path, domSlot, output);
-
-                    // An opaque element's DOM belongs to a foreign renderer — React, Lit, Blazor (see
-                    // Rask.External). Its attributes still diff above, which is how changed props reach
-                    // the adapter; its children never do. Recursing here would put two writers on one
-                    // subtree, and that does not throw — it corrupts the moment the parent re-renders.
-                    //
-                    // Either side being opaque is enough. A tag change already routes to the replace
-                    // path above, so an opacity mismatch at a matched slot is not a case we should be
-                    // patching into on the strength of one side's word.
-                    if (oldFrame.Opaque || newFrame.Opaque)
-                    {
-                        oi += oldFrame.SubtreeLength;
-                        ni += newFrame.SubtreeLength;
-                        domSlot++;
-                        break;
-                    }
-
-                    // Recurse into children. Push domSlot onto path, then diff inside.
-                    path.Add(domSlot);
-                    DiffSiblings(oldFrames, oldChildStart, oldChildEnd,
-                        newFrames, newChildStart, newChildEnd,
-                        output, newHtml, scratch);
-                    path.RemoveAt(path.Count - 1);
-
-                    oi += oldFrame.SubtreeLength;
-                    ni += newFrame.SubtreeLength;
-                    domSlot++;
-                    break;
-                }
-
-                case RenderFrameKind.Text:
-                    if (!string.Equals(oldFrame.Name, newFrame.Name, StringComparison.Ordinal))
-                    {
-                        output.Add(new EditOp(EditOpKind.UpdateText, PathPlus(path, domSlot), null, newFrame.Name));
-                    }
-
-                    oi++;
-                    ni++;
-                    domSlot++;
-                    break;
-
-                case RenderFrameKind.Raw:
-                    // Only equal-valued Raw frames reach here — a changed Raw is a SiblingMatches
-                    // non-match (see SiblingMatches) and already shipped as Remove+Insert above, so
-                    // there is nothing to patch in place. Advance past the (single) Raw frame and
-                    // its DOM slot to keep the positional walk aligned.
-                    oi++;
-                    ni++;
-                    domSlot++;
-                    break;
-
-                case RenderFrameKind.Doctype:
-                    // Doctypes are identical-or-replaced. SiblingMatches gates on Kind
-                    // equality (which it is at this branch), so just advance.
-                    oi++;
-                    ni++;
-                    domSlot++;
-                    break;
-
-                default:
-                    oi++;
-                    ni++;
-                    break;
-            }
+            DiffMatchedPair(oldFrames, ref oi, newFrames, ref ni, ref domSlot, output, newHtml, scratch);
         }
 
         // Tail append/truncate is safe to ship as a trusted diff at a nested, replace-free level (see
         // the levelHadReplace note above). Only reachable once the main walk has consumed all matched
         // pairs, so levelHadReplace is final here.
         var trustedTail = !levelHadReplace && path.Count >= 1;
+        EmitTail(oldFrames, oi, oldEnd, newFrames, ni, newEnd, domSlot, trustedTail, output, newHtml, path);
+    }
 
+    // One sibling pair SiblingMatches already paired up: patch it in place and advance past it.
+    private static void DiffMatchedPair(
+        ReadOnlySpan<RenderFrame> oldFrames, ref int oi,
+        ReadOnlySpan<RenderFrame> newFrames, ref int ni,
+        ref int domSlot,
+        List<EditOp> output,
+        ReadOnlySpan<char> newHtml,
+        DiffScratch scratch)
+    {
+        var path = scratch.Path;
+        ref readonly var oldFrame = ref oldFrames[oi];
+        ref readonly var newFrame = ref newFrames[ni];
+        switch (oldFrame.Kind)
+        {
+            case RenderFrameKind.Element:
+                DiffMatchedElement(oldFrames, oi, newFrames, ni, domSlot, output, newHtml, scratch);
+                oi += oldFrame.SubtreeLength;
+                ni += newFrame.SubtreeLength;
+                domSlot++;
+                break;
+
+            case RenderFrameKind.Text:
+                if (!string.Equals(oldFrame.Name, newFrame.Name, StringComparison.Ordinal))
+                {
+                    output.Add(new EditOp(EditOpKind.UpdateText, PathPlus(path, domSlot), null, newFrame.Name));
+                }
+
+                oi++;
+                ni++;
+                domSlot++;
+                break;
+
+            // Only equal-valued Raw frames reach here — a changed Raw is a SiblingMatches
+            // non-match (see SiblingMatches) and already shipped as Remove+Insert above, so
+            // there is nothing to patch in place. Doctypes are identical-or-replaced, and
+            // SiblingMatches gates on Kind equality (which it is at this branch). Either way,
+            // advance past the single frame and its DOM slot to keep the positional walk aligned.
+            case RenderFrameKind.Raw:
+            case RenderFrameKind.Doctype:
+                oi++;
+                ni++;
+                domSlot++;
+                break;
+
+            default:
+                oi++;
+                ni++;
+                break;
+        }
+    }
+
+    private static void DiffMatchedElement(
+        ReadOnlySpan<RenderFrame> oldFrames, int oi,
+        ReadOnlySpan<RenderFrame> newFrames, int ni,
+        int domSlot,
+        List<EditOp> output,
+        ReadOnlySpan<char> newHtml,
+        DiffScratch scratch)
+    {
+        var path = scratch.Path;
+        ref readonly var oldFrame = ref oldFrames[oi];
+        ref readonly var newFrame = ref newFrames[ni];
+        var oldChildStart = oi + 1;
+        var oldChildEnd = oi + oldFrame.SubtreeLength;
+        var newChildStart = ni + 1;
+        var newChildEnd = ni + newFrame.SubtreeLength;
+
+        // Attributes diff against the current element path (built lazily inside
+        // DiffAttributes only if an attribute op is actually emitted).
+        DiffAttributes(oldFrames, ref oldChildStart, oldChildEnd,
+            newFrames, ref newChildStart, newChildEnd,
+            path, domSlot, output);
+
+        // An opaque element's DOM belongs to a foreign renderer — React, Lit, Blazor (see
+        // Rask.External). Its attributes still diff above, which is how changed props reach
+        // the adapter; its children never do. Recursing here would put two writers on one
+        // subtree, and that does not throw — it corrupts the moment the parent re-renders.
+        //
+        // Either side being opaque is enough. A tag change already routes to the replace
+        // path above, so an opacity mismatch at a matched slot is not a case we should be
+        // patching into on the strength of one side's word.
+        if (oldFrame.Opaque || newFrame.Opaque)
+        {
+            return;
+        }
+
+        // Recurse into children. Push domSlot onto path, then diff inside.
+        path.Add(domSlot);
+        DiffSiblings(oldFrames, oldChildStart, oldChildEnd,
+            newFrames, newChildStart, newChildEnd,
+            output, newHtml, scratch);
+        path.RemoveAt(path.Count - 1);
+    }
+
+    private static void EmitTail(
+        ReadOnlySpan<RenderFrame> oldFrames, int oi, int oldEnd,
+        ReadOnlySpan<RenderFrame> newFrames, int ni, int newEnd,
+        int domSlot, bool trustedTail,
+        List<EditOp> output,
+        ReadOnlySpan<char> newHtml,
+        List<int> path)
+    {
         while (oi < oldEnd)
         {
             ref readonly var oldFrame = ref oldFrames[oi];
@@ -455,50 +359,56 @@ public static class FrameDiffer
         while (ni < newEnd)
         {
             ref readonly var newFrame = ref newFrames[ni];
-            var (tailStart, tailEnd) = InsertHtmlRange(newHtml, newFrame);
+            var (tailStart, tailEnd) = InsertHtmlRange(newHtml, newFrame.HtmlStart, newFrame.HtmlEnd);
             output.Add(new EditOp(EditOpKind.InsertSubtree, PathPlus(path, domSlot), null, null,
                 DomNodeCount(newFrames, ni, ni + newFrame.SubtreeLength),
                 trusted: trustedTail, htmlStart: tailStart, htmlEnd: tailEnd));
             ni += newFrame.SubtreeLength;
             domSlot++;
         }
+    }
 
-        if (rawTaintedLevel && output.Count != opCountAtEntry)
+    // The positional ops just emitted for this Raw-tainted level (and everything its subtree
+    // produced) can't be trusted — a Raw parses into an unknown DOM-node count, drifting every
+    // following sibling's childNodes[slot]. Roll them all back and ship ONE scoped morph at the
+    // Raw-owning parent instead: the parent is addressable by a clean path (every ancestor level
+    // is untainted, else the morph would already have been emitted higher up), and one morph of
+    // its children subsumes every op below — including any deeper MorphSubtree and the earlier
+    // pre-Raw siblings, which are also this parent's children. Correctness is identical to the
+    // old full-document morph, just localised to the tainted subtree.
+    private static void MorphRawTaintedLevel(
+        ReadOnlySpan<RenderFrame> newFrames, int newStart, int newEnd,
+        List<EditOp> output,
+        ReadOnlySpan<char> newHtml,
+        DiffScratch scratch,
+        int opCountAtEntry)
+    {
+        var path = scratch.Path;
+        output.RemoveRange(opCountAtEntry, output.Count - opCountAtEntry);
+
+        var (innerStart, innerEnd) = ChildrenHtmlRange(newFrames, newStart, newEnd, newHtml);
+        if (path.Count >= 1 && !newHtml.IsEmpty && innerStart >= 0)
         {
-            // The positional ops just emitted for this Raw-tainted level (and everything its subtree
-            // produced) can't be trusted — a Raw parses into an unknown DOM-node count, drifting every
-            // following sibling's childNodes[slot]. Roll them all back and ship ONE scoped morph at the
-            // Raw-owning parent instead: the parent is addressable by a clean path (every ancestor level
-            // is untainted, else the morph would already have been emitted higher up), and one morph of
-            // its children subsumes every op below — including any deeper MorphSubtree and the earlier
-            // pre-Raw siblings, which are also this parent's children. Correctness is identical to the
-            // old full-document morph, just localised to the tainted subtree.
-            output.RemoveRange(opCountAtEntry, output.Count - opCountAtEntry);
-
-            var (innerStart, innerEnd) = ChildrenHtmlRange(newFrames, newStart, newEnd, newHtml);
-            if (path.Count >= 1 && !newHtml.IsEmpty && innerStart >= 0)
-            {
-                // path is the parent element's DOM path; the client morphs its children against the
-                // sliced inner-HTML fragment. Trusted so DiffOpsAreClientSupported ships it as a diff.
-                output.Add(new EditOp(EditOpKind.MorphSubtree, path.ToArray(), null, null,
-                    trusted: true, htmlStart: innerStart, htmlEnd: innerEnd));
-                scratch.ForceFullHtml = false;
-            }
-            else if (path.Count >= 1 && !newHtml.IsEmpty && newStart >= newEnd)
-            {
-                // The Raw-tainted parent legitimately emptied (its Raw + siblings were all removed).
-                // A verbatim empty-string fragment morphs its children to nothing — no full-doc fallback.
-                output.Add(new EditOp(EditOpKind.MorphSubtree, path.ToArray(), null, string.Empty,
-                    trusted: true));
-                scratch.ForceFullHtml = false;
-            }
-            else
-            {
-                // Degenerate: taint at the document root (path empty — no addressable parent) or no
-                // render HTML supplied (one-shot / test callers that inspect ops without a wire build).
-                // Keep the full-HTML fallback, exactly as before.
-                scratch.ForceFullHtml = true;
-            }
+            // path is the parent element's DOM path; the client morphs its children against the
+            // sliced inner-HTML fragment. Trusted so DiffOpsAreClientSupported ships it as a diff.
+            output.Add(new EditOp(EditOpKind.MorphSubtree, path.ToArray(), null, null,
+                trusted: true, htmlStart: innerStart, htmlEnd: innerEnd));
+            scratch.ForceFullHtml = false;
+        }
+        else if (path.Count >= 1 && !newHtml.IsEmpty && newStart >= newEnd)
+        {
+            // The Raw-tainted parent legitimately emptied (its Raw + siblings were all removed).
+            // A verbatim empty-string fragment morphs its children to nothing — no full-doc fallback.
+            output.Add(new EditOp(EditOpKind.MorphSubtree, path.ToArray(), null, string.Empty,
+                trusted: true));
+            scratch.ForceFullHtml = false;
+        }
+        else
+        {
+            // Degenerate: taint at the document root (path empty — no addressable parent) or no
+            // render HTML supplied (one-shot / test callers that inspect ops without a wire build).
+            // Keep the full-HTML fallback, exactly as before.
+            scratch.ForceFullHtml = true;
         }
     }
 
@@ -569,10 +479,8 @@ public static class FrameDiffer
     // deferred slice" — when no render HTML was supplied (one-shot / test callers that inspect
     // ops without a wire build) or the frame's offsets are degenerate, so the codec then ships a
     // null fragment exactly as the old null-Value path did.
-    private static (int Start, int End) InsertHtmlRange(ReadOnlySpan<char> newHtml, in RenderFrame frame)
+    private static (int Start, int End) InsertHtmlRange(ReadOnlySpan<char> newHtml, int start, int end)
     {
-        var start = frame.HtmlStart;
-        var end = frame.HtmlEnd;
         if (newHtml.IsEmpty || end <= start || (uint)end > (uint)newHtml.Length)
         {
             return (-1, -1);
@@ -706,7 +614,7 @@ public static class FrameDiffer
     {
         // Number of DOM-structural sibling nodes spanned by frames[start..end). Used
         // to size RemoveSubtree.Length (# of consecutive siblings to remove on the
-        // client). The body of the first frame counts as one (it IS one DOM node);
+        // client). The body of the first frame counts as one (it IS one DOM node), and
         // we only count siblings at depth = 0 within the range.
         var count = 0;
         var i = start;
@@ -821,9 +729,18 @@ public static class FrameDiffer
         // diff allocates nothing here beyond the EditOp path arrays (intentional wire data)
         // and the two ArrayPool-rented int buffers in the MOVES step below.
         var path = scratch.Path;
+        IndexKeys(bundle);
+        EmitKeyedRemoves(oldFrames, path, output, bundle);
+        CollectSurvivors(bundle);
+        EmitKeyedInserts(newFrames, path, output, newHtml, bundle);
+        EmitKeyedMoves(path, output, bundle);
+        DiffKeptKeyedChildren(oldFrames, newFrames, output, newHtml, scratch, bundle);
+    }
+
+    private static void IndexKeys(KeyedBundle bundle)
+    {
         var oldKids = bundle.OldKids;
         var newKids = bundle.NewKids;
-
         var oldByKey = bundle.OldByKey;
         for (var i = 0; i < oldKids.Count; i++)
         {
@@ -835,6 +752,13 @@ public static class FrameDiffer
         {
             newByKey[newKids[j].Key] = j;
         }
+    }
+
+    private static void EmitKeyedRemoves(
+        ReadOnlySpan<RenderFrame> oldFrames, List<int> path, List<EditOp> output, KeyedBundle bundle)
+    {
+        var oldKids = bundle.OldKids;
+        var newByKey = bundle.NewByKey;
 
         // 1) REMOVES. Walk old right-to-left so each emitted slot stays valid (a remove
         //    shifts subsequent siblings left, but we never visit those again).
@@ -855,18 +779,35 @@ public static class FrameDiffer
                 DomNodeCount(oldFrames, oc.FrameIndex, oc.FrameIndex + elem.SubtreeLength),
                 true));
         }
+    }
+
+    private static void CollectSurvivors(KeyedBundle bundle)
+    {
+        var oldKids = bundle.OldKids;
+        var newByKey = bundle.NewByKey;
 
         // 2) Build tracking list = old children whose keys survived. Note we work with
         //    the KeyedChild structs (so we can look up frame data later) — the "current
         //    slot index" is the index within this list as it mutates during steps 3-4.
         var surviving = bundle.Surviving;
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var oc in oldKids)
+#pragma warning restore S3267
         {
             if (newByKey.ContainsKey(oc.Key))
             {
                 surviving.Add(oc);
             }
         }
+    }
+
+    private static void EmitKeyedInserts(
+        ReadOnlySpan<RenderFrame> newFrames, List<int> path, List<EditOp> output, ReadOnlySpan<char> newHtml,
+        KeyedBundle bundle)
+    {
+        var newKids = bundle.NewKids;
+        var oldByKey = bundle.OldByKey;
+        var surviving = bundle.Surviving;
 
         // 3) INSERTS. Walk new left-to-right; emit InsertSubtree for keys not in old, at
         //    the new position. Each insert into `surviving` shifts the tracking indexes
@@ -880,7 +821,7 @@ public static class FrameDiffer
             }
 
             ref readonly var elem = ref newFrames[nc.FrameIndex];
-            var (insStart, insEnd) = InsertHtmlRange(newHtml, elem);
+            var (insStart, insEnd) = InsertHtmlRange(newHtml, elem.HtmlStart, elem.HtmlEnd);
             output.Add(new EditOp(
                 EditOpKind.InsertSubtree,
                 PathPlus(path, j),
@@ -892,145 +833,206 @@ public static class FrameDiffer
                 htmlEnd: insEnd));
             surviving.Insert(j, nc);
         }
+    }
 
-        // 4) MOVES. `surviving` and `newKids` now hold the same key set; compute the
-        //    permutation (target[i] = new position of surviving[i]) and find its longest
-        //    increasing subsequence. Elements ON the LIS are already in the right relative
-        //    order — they stay put. Elements OFF the LIS need to move. This is the same
-        //    minimal-moves strategy React's reconciler uses; for our two benchmark
-        //    scenarios it emits 2 moves on KeyedList100Reorder and 0 on DeleteMiddleRow.
+    // 4) MOVES. `surviving` and `newKids` now hold the same key set; compute the
+    //    permutation (target[i] = new position of surviving[i]) and find its longest
+    //    increasing subsequence. Elements ON the LIS are already in the right relative
+    //    order — they stay put. Elements OFF the LIS need to move. This is the same
+    //    minimal-moves strategy React's reconciler uses; for our two benchmark
+    //    scenarios it emits 2 moves on KeyedList100Reorder and 0 on DeleteMiddleRow.
+    //
+    // Elements ON the LIS are already in the right relative order — they never move.
+    // Everything else must be repositioned. We walk the NEW indices RIGHT-TO-LEFT and
+    // move each off-LIS element to sit immediately before the element at the next new
+    // index (its "anchor"). Going right-to-left, that anchor is already in its final
+    // slot, so anchoring against it places the moved node correctly — this is the
+    // standard correct minimal-move reconcile (Vue/Inferno).
+    //
+    // The earlier implementation walked target-ascending and inserted each node at its
+    // numeric target index in the mutating list. That is WRONG for permutations needing
+    // 3+ moves: insert-at-numeric-target does not account for the unmoved (LIS) backbone
+    // the nodes must weave around, so the resulting DOM order was incorrect. It went
+    // unnoticed because the only keyed-move test asserted op *count*, never the order.
+    //
+    // newIndexToSurv[j] = surviving-index whose new position is j. `targets` is a
+    // permutation of 0..n-1 (surviving and newKids share the same key set), so it is
+    // invertible.
+    private static void EmitKeyedMoves(List<int> path, List<EditOp> output, KeyedBundle bundle)
+    {
+        var surviving = bundle.Surviving;
+        var newByKey = bundle.NewByKey;
         var n = surviving.Count;
-        if (n > 0)
+        if (n == 0)
         {
-            // `targets` and `newIndexToSurv` are size-n scratch permutations used only within
-            // this step (before the step-5 recursion), so they come from ArrayPool — rented
-            // oversized, hence every loop bounds on `n`, never `.Length`. `lis` and `live`
-            // reuse the bundle's set/list.
-            var targets = ArrayPool<int>.Shared.Rent(n);
-            var newIndexToSurv = ArrayPool<int>.Shared.Rent(n);
-            try
+            return;
+        }
+
+        // `targets` and `newIndexToSurv` are size-n scratch permutations used only within
+        // this step (before the step-5 recursion), so they come from ArrayPool — rented
+        // oversized, hence every loop bounds on `n`, never `.Length`. `lis` and `live`
+        // reuse the bundle's set/list.
+        var targets = ArrayPool<int>.Shared.Rent(n);
+        var newIndexToSurv = ArrayPool<int>.Shared.Rent(n);
+        try
+        {
+            for (var i = 0; i < n; i++)
             {
-                for (var i = 0; i < n; i++)
-                {
-                    targets[i] = newByKey[surviving[i].Key];
-                }
-
-                var lis = bundle.LisSet;
-                ComputeLisIndexSet(targets, n, lis);
-
-                // Elements ON the LIS are already in the right relative order — they never move.
-                // Everything else must be repositioned. We walk the NEW indices RIGHT-TO-LEFT and
-                // move each off-LIS element to sit immediately before the element at the next new
-                // index (its "anchor"). Going right-to-left, that anchor is already in its final
-                // slot, so anchoring against it places the moved node correctly — this is the
-                // standard correct minimal-move reconcile (Vue/Inferno).
-                //
-                // The earlier implementation walked target-ascending and inserted each node at its
-                // numeric target index in the mutating list. That is WRONG for permutations needing
-                // 3+ moves: insert-at-numeric-target does not account for the unmoved (LIS) backbone
-                // the nodes must weave around, so the resulting DOM order was incorrect. It went
-                // unnoticed because the only keyed-move test asserted op *count*, never the order.
-                //
-                // newIndexToSurv[j] = surviving-index whose new position is j. `targets` is a
-                // permutation of 0..n-1 (surviving and newKids share the same key set), so it is
-                // invertible.
-                for (var i = 0; i < n; i++)
-                {
-                    newIndexToSurv[targets[i]] = i;
-                }
-
-                // The loop mutates `live` (surviving-indices in current DOM order, starting 0..n-1) in
-                // lockstep with the moves the client replays: for each off-LIS row, detach it
-                // (rank → remove) and re-insert before its anchor (rank → insert), emitting the
-                // (dst, src) positions. Accumulated as a flat [dst0, src0, …] array shipped as one
-                // PermutationBatch (a per-row op would re-emit the full parent path); it MUST stay in
-                // emission order — each pair is computed against the already-mutated `live`, so the
-                // client replays it left-to-right (see EditOpKind docs). Re-insert even on the
-                // dst == src no-op so `live` stays consistent for the remaining lookups.
-                //
-                // Two backings, identical semantics + identical emitted positions (the tests replay
-                // them to the target, so both are validated): a plain List<int> for typical small
-                // lists, where its O(n) IndexOf/RemoveAt/Insert are cache-friendly and cheap; and the
-                // order-statistics PositionIndex above the threshold, whose O(log n) ops keep a large
-                // full/near-full reversal from going O(n²) (~3 ms → tens of µs at 5000 rows).
-                var moves = bundle.MovesBuffer;
-                if (n <= LargeReorderThreshold)
-                {
-                    var live = bundle.Live;
-                    for (var i = 0; i < n; i++)
-                    {
-                        live.Add(i);
-                    }
-
-                    for (var j = n - 1; j >= 0; j--)
-                    {
-                        var id = newIndexToSurv[j];
-                        if (lis.Contains(id))
-                        {
-                            continue;
-                        }
-
-                        var src = live.IndexOf(id);
-                        live.RemoveAt(src);
-                        var dst = j + 1 < n ? live.IndexOf(newIndexToSurv[j + 1]) : live.Count;
-                        if (dst != src)
-                        {
-                            moves.Add(dst);
-                            moves.Add(src);
-                        }
-
-                        live.Insert(dst, id);
-                    }
-                }
-                else
-                {
-                    var live = new PositionIndex();
-                    live.InitSequence(n);
-                    try
-                    {
-                        for (var j = n - 1; j >= 0; j--)
-                        {
-                            var id = newIndexToSurv[j];
-                            if (lis.Contains(id))
-                            {
-                                continue;
-                            }
-
-                            var src = live.RankOf(id);
-                            live.RemoveAt(src);
-                            var dst = j + 1 < n ? live.RankOf(newIndexToSurv[j + 1]) : live.Count;
-                            if (dst != src)
-                            {
-                                moves.Add(dst);
-                                moves.Add(src);
-                            }
-
-                            live.InsertAt(dst, id);
-                        }
-                    }
-                    finally
-                    {
-                        live.Return();
-                    }
-                }
-
-                if (moves.Count > 0)
-                {
-                    output.Add(new EditOp(
-                        EditOpKind.PermutationBatch,
-                        path.ToArray(),
-                        null,
-                        null,
-                        trusted: true,
-                        moves: moves.ToArray()));
-                }
+                targets[i] = newByKey[surviving[i].Key];
             }
-            finally
+
+            var lis = bundle.LisSet;
+            ComputeLisIndexSet(targets, n, lis);
+
+            // newIndexToSurv[j] = surviving-index whose new position is j (see above).
+            for (var i = 0; i < n; i++)
             {
-                ArrayPool<int>.Shared.Return(targets);
-                ArrayPool<int>.Shared.Return(newIndexToSurv);
+                newIndexToSurv[targets[i]] = i;
+            }
+
+            var moves = bundle.MovesBuffer;
+            if (n <= LargeReorderThreshold)
+            {
+                CollectMovesByList(newIndexToSurv, n, lis, bundle.Live, moves);
+            }
+            else
+            {
+                CollectMovesByPositionIndex(newIndexToSurv, n, lis, moves);
+            }
+
+            if (moves.Count > 0)
+            {
+                output.Add(new EditOp(
+                    EditOpKind.PermutationBatch,
+                    path.ToArray(),
+                    null,
+                    null,
+                    trusted: true,
+                    moves: moves.ToArray()));
             }
         }
+        finally
+        {
+            ArrayPool<int>.Shared.Return(targets);
+            ArrayPool<int>.Shared.Return(newIndexToSurv);
+        }
+    }
+
+    // The loop mutates `live` (surviving-indices in current DOM order, starting 0..n-1) in
+    // lockstep with the moves the client replays: for each off-LIS row, detach it
+    // (rank → remove) and re-insert before its anchor (rank → insert), emitting the
+    // (dst, src) positions. Accumulated as a flat [dst0, src0, …] array shipped as one
+    // PermutationBatch (a per-row op would re-emit the full parent path); it MUST stay in
+    // emission order — each pair is computed against the already-mutated `live`, so the
+    // client replays it left-to-right (see EditOpKind docs). Re-insert even on the
+    // dst == src no-op so `live` stays consistent for the remaining lookups.
+    //
+    // Two backings, identical semantics + identical emitted positions (the tests replay
+    // them to the target, so both are validated): a plain List<int> for typical small
+    // lists, where its O(n) IndexOf/RemoveAt/Insert are cache-friendly and cheap; and the
+    // order-statistics PositionIndex above the threshold, whose O(log n) ops keep a large
+    // full/near-full reversal from going O(n²) (~3 ms → tens of µs at 5000 rows).
+    private static void CollectMovesByList(int[] newIndexToSurv, int n, HashSet<int> lis, List<int> live, List<int> moves)
+    {
+        for (var i = 0; i < n; i++)
+        {
+            live.Add(i);
+        }
+
+        for (var j = n - 1; j >= 0; j--)
+        {
+            var id = newIndexToSurv[j];
+            if (lis.Contains(id))
+            {
+                continue;
+            }
+
+            var src = live.IndexOf(id);
+            live.RemoveAt(src);
+            var dst = j + 1 < n ? live.IndexOf(newIndexToSurv[j + 1]) : live.Count;
+            if (dst != src)
+            {
+                moves.Add(dst);
+                moves.Add(src);
+            }
+
+            live.Insert(dst, id);
+        }
+    }
+
+    // The large-list backing of the same walk (see CollectMovesByList): O(log n) per op.
+    private static void CollectMovesByPositionIndex(int[] newIndexToSurv, int n, HashSet<int> lis, List<int> moves)
+    {
+        var live = new PositionIndex();
+        live.InitSequence(n);
+        try
+        {
+            for (var j = n - 1; j >= 0; j--)
+            {
+                var id = newIndexToSurv[j];
+                if (lis.Contains(id))
+                {
+                    continue;
+                }
+
+                var src = live.RankOf(id);
+                live.RemoveAt(src);
+                var dst = j + 1 < n ? live.RankOf(newIndexToSurv[j + 1]) : live.Count;
+                if (dst != src)
+                {
+                    moves.Add(dst);
+                    moves.Add(src);
+                }
+
+                live.InsertAt(dst, id);
+            }
+        }
+        finally
+        {
+            live.Return();
+        }
+    }
+
+    // Same key, different tag (e.g., user replaced <li data-rask-key="3"> with
+    // <div data-rask-key="3">). Treat as a fresh node: remove the old, insert
+    // the new at slot j. The earlier remove-and-insert passes wouldn't have
+    // covered this because the key IS in both maps.
+    private static void EmitKeyedTagSwap(
+        ReadOnlySpan<RenderFrame> oldFrames, int oldIndex,
+        ReadOnlySpan<RenderFrame> newFrames, int newIndex,
+        int j, List<int> path, List<EditOp> output, ReadOnlySpan<char> newHtml)
+    {
+        ref readonly var oldElem = ref oldFrames[oldIndex];
+        ref readonly var newElem = ref newFrames[newIndex];
+        output.Add(new EditOp(
+            EditOpKind.RemoveSubtree,
+            PathPlus(path, j),
+            null,
+            null,
+            DomNodeCount(oldFrames, oldIndex, oldIndex + oldElem.SubtreeLength),
+            true));
+        var (swapStart, swapEnd) = InsertHtmlRange(newHtml, newElem.HtmlStart, newElem.HtmlEnd);
+        output.Add(new EditOp(
+            EditOpKind.InsertSubtree,
+            PathPlus(path, j),
+            null,
+            null,
+            DomNodeCount(newFrames, newIndex, newIndex + newElem.SubtreeLength),
+            true,
+            htmlStart: swapStart,
+            htmlEnd: swapEnd));
+    }
+
+    private static void DiffKeptKeyedChildren(
+        ReadOnlySpan<RenderFrame> oldFrames,
+        ReadOnlySpan<RenderFrame> newFrames,
+        List<EditOp> output, ReadOnlySpan<char> newHtml,
+        DiffScratch scratch, KeyedBundle bundle)
+    {
+        var path = scratch.Path;
+        var oldKids = bundle.OldKids;
+        var newKids = bundle.NewKids;
+        var oldByKey = bundle.OldByKey;
 
         // 5) INNER DIFFS for kept elements. Path uses the NEW slot index, so the client
         //    walks its post-permutation DOM at the same coordinate. Note `surviving` may
@@ -1051,27 +1053,7 @@ public static class FrameDiffer
 
             if (!string.Equals(oldElem.Name, newElem.Name, StringComparison.Ordinal))
             {
-                // Same key, different tag (e.g., user replaced <li data-rask-key="3"> with
-                // <div data-rask-key="3">). Treat as a fresh node: remove the old, insert
-                // the new at slot j. The earlier remove-and-insert passes wouldn't have
-                // covered this because the key IS in both maps.
-                output.Add(new EditOp(
-                    EditOpKind.RemoveSubtree,
-                    PathPlus(path, j),
-                    null,
-                    null,
-                    DomNodeCount(oldFrames, oc.FrameIndex, oc.FrameIndex + oldElem.SubtreeLength),
-                    true));
-                var (swapStart, swapEnd) = InsertHtmlRange(newHtml, newElem);
-                output.Add(new EditOp(
-                    EditOpKind.InsertSubtree,
-                    PathPlus(path, j),
-                    null,
-                    null,
-                    DomNodeCount(newFrames, nc.FrameIndex, nc.FrameIndex + newElem.SubtreeLength),
-                    true,
-                    htmlStart: swapStart,
-                    htmlEnd: swapEnd));
+                EmitKeyedTagSwap(oldFrames, oc.FrameIndex, newFrames, nc.FrameIndex, j, path, output, newHtml);
                 continue;
             }
 

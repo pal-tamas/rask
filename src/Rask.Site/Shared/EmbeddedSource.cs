@@ -15,7 +15,7 @@ public static class EmbeddedSource
     // those live in the app assembly, not Rask.Site. Copy-on-write so the
     // render-time reads below stay lock-free; the rare registration takes the gate.
     private static volatile Assembly[] _sources = [typeof(EmbeddedSource).Assembly];
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
 
     // Reading a manifest stream allocates; the set of demo files is small and fixed, so
     // memoise per file name (mirrors CodeSample's HighlightCache rationale).

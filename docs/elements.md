@@ -253,12 +253,21 @@ copy of something the reader needs — use `Aria` for an accessible name.
 
 ## SVG
 
-SVG elements are first-class core components. `svg`, `g`, `path`, the shapes, `text`, gradients and
-filters all have typed entries that flow through scoped CSS, keyed lists, and event handlers — **no
-`Raw()` required**.
+SVG elements are first-class core components, **generated from MDN's data** like the HTML ones: every SVG
+element MDN lists as shipping in two browser engines has an entry — `svg`, `g`, the shapes, `text`,
+gradients, every filter primitive, and the animation elements (`Animate`, `AnimateTransform`, `Set`). They
+flow through scoped CSS, keyed lists, and event handlers — **no `Raw()` required**.
 
-Shapes inside an `<svg>` — presentation attributes (`Fill`, `Stroke`, `StrokeWidth`, `StrokeLinecap`, …)
-live on the shared `SvgElement` base, so every shape exposes them as optional chain steps:
+Each entry builds MDN's own type, with MDN's inheritance: `Circle` is an `SVGCircleElement :
+SVGGeometryElement : SVGGraphicsElement : SVGElement`, so `PathLength` lives once on the geometry base and
+`SystemLanguage` on the graphics one. Attributes carry their MDN names (`ViewBox`, `PathLength`,
+`StdDeviation`) and render in the IDL's order. The entries keep their tag names; the tags HTML also has
+(`a`, `script`, `style`, `title`), and `path` and `text` (which would shadow `System.IO.Path` and the `Text`
+primitive), take an `Svg` prefix: `SvgA`, `SvgPath`, `SvgText`.
+
+Presentation attributes (`Fill`, `Stroke`, `StrokeWidth`, `StrokeLinecap`, `MarkerEnd`, `Cursor`, …) live
+on the shared `SVGElement` base, so every shape exposes them as optional chain steps. The common ones are
+fields; the rarer ones cost an element nothing until it sets one:
 
 <!-- demo:svg-shapes -->
 
@@ -276,6 +285,11 @@ Text with `<text>` and `<tspan>` — `SvgText` is the `<text>` tag (renamed to a
 `Text` primitive); `Tspan` styles a run inside it:
 
 <!-- demo:svg-text -->
+
+SVG's own animation elements come from the same data — `Animate` tweens one attribute, `AnimateTransform` a
+transform — and the browser runs them, so nothing re-renders:
+
+<!-- demo:svg-animate -->
 
 ---
 

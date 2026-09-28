@@ -89,7 +89,7 @@ public sealed partial class UiThemePicker : Component
                     .Type(InputType.Radio)
                     .Name(GroupName)
                     .Class("radio radio-sm theme-controller")
-                    .Aria(new Dictionary<string, string?> { ["label"] = label ?? value }),
+                    .Aria("label", label ?? value),
                 Span[label ?? value]
             ]
         ];

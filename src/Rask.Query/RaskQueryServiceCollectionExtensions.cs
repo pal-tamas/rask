@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>Registers the query cache.</summary>
 public static class RaskQueryServiceCollectionExtensions

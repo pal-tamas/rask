@@ -15,16 +15,16 @@ global using Rask.Core.Routing;
 // Your batteries, by name: Cache.Remember(…), Mail.Send(…), Jobs.Enqueue(…), Files.Save(…).
 // rask:if cqrs
 global using Rask.Cqrs;
-global using Rask.Query;
+global using Rask.Querying;
 // rask:end
 // rask:if jobs
-global using Rask.Jobs;
+global using Rask.Background;
 // rask:end
 // rask:if mail
-global using Rask.Mail;
+global using Rask.Mailing;
 // rask:end
 // rask:if cache
-global using Rask.Cache;
+global using Rask.Caching;
 // rask:end
 // rask:if storage
 global using Rask.Storage;

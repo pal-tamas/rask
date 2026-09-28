@@ -44,7 +44,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
             return new[] { "Postal code is required." };
         }
 
-        if (!Regex.IsMatch(code, @"^\d{5}$"))
+        if (!FiveDigits().IsMatch(code))
         {
             return new[] { "Postal code must be 5 digits." };
         }
@@ -83,8 +83,8 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                         .Id("v-nlive-name")
                         .Validate(v =>
                             string.IsNullOrWhiteSpace(v)
-                                ? new[] { "Name is required." }
-                                : Array.Empty<string>()).ShowValidation(false),
+                                ? ["Name is required."]
+                                : []).ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Ui.Input.Bind(() => _model.Address.PostalCode)
@@ -92,74 +92,14 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     .Hint("Try 12345, 99999, or any 5-digit code.")
                     .Id("v-nlive-postal")
                     .Validate(ValidatePostalAsync),
-                Div.Class("border rounded p-3")[
-                    Div.Class("font-semibold text-sm mb-2")["Items"],
-                    Div.Class("grid grid-cols-12 gap-4 mb-2 items-center")[
-                        Div.Class("col-span-6")[
-                            Ui.Input.Bind(() => _model.Items[0].Name)
-                                .AccessibleLabel("Item 1 name")
-                                .Id("v-nlive-item0-name")
-                        ],
-                        Div.Class("col-span-3")[
-                            Ui.Input.Bind(() => _model.Items[0].Quantity)
-                                .AccessibleLabel("Item 1 quantity")
-                                .Id("v-nlive-item0-qty")
-                                .Min("0")
-                        ],
-                        Div.Class("col-span-3")[
-                            Ui.Input.Bind(() => _model.Items[0].UnitPrice)
-                                .AccessibleLabel("Item 1 unit price")
-                                .Id("v-nlive-item0-price")
-                                .Step("0.01")
-                        ]
-                    ],
-                    Div.Class("grid grid-cols-12 gap-4 items-center")[
-                        Div.Class("col-span-6")[
-                            Ui.Input.Bind(() => _model.Items[1].Name)
-                                .AccessibleLabel("Item 2 name")
-                                .Id("v-nlive-item1-name")
-                        ],
-                        Div.Class("col-span-3")[
-                            Ui.Input.Bind(() => _model.Items[1].Quantity)
-                                .AccessibleLabel("Item 2 quantity")
-                                .Id("v-nlive-item1-qty")
-                                .Min("0")
-                        ],
-                        Div.Class("col-span-3")[
-                            Ui.Input.Bind(() => _model.Items[1].UnitPrice)
-                                .AccessibleLabel("Item 2 unit price")
-                                .Id("v-nlive-item1-price")
-                                .Step("0.01")
-                        ]
-                    ]
-                ],
+                ItemsPanel(),
                 Div[
                     Ui.Input.Bind(() => _model.DiscountCode)
                         .Label("Promo code")
                         .Hint("Try SAVE10 or SAVE25.")
                         .Id("v-nlive-promo")
                 ],
-                Div.Id("v-nlive-totals").Class("bg-ui-well rounded p-3 text-sm")[
-                    Div.Class("flex justify-between flex-wrap items-center")[
-                        Span["Subtotal"],
-                        Span.Id("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]
-                    ],
-                    Div.Class("flex justify-between flex-wrap items-center")[
-                        Span[discountPct > 0m
-                            ? $"Discount ({(int)(discountPct * 100)}%)"
-                            : "Discount"],
-                        Span.Id("v-nlive-discount")[$"-${discount.ToString("F2", CultureInfo.InvariantCulture)}"]
-                    ],
-                    Div.Class("flex justify-between flex-wrap items-center")[
-                        Span["Tax (8%)"],
-                        Span.Id("v-nlive-tax")[$"${tax.ToString("F2", CultureInfo.InvariantCulture)}"]
-                    ],
-                    Hr.Class("my-2"),
-                    Div.Class("flex justify-between flex-wrap items-center font-bold")[
-                        Span["Total"],
-                        Span.Id("v-nlive-total")[$"${total.ToString("F2", CultureInfo.InvariantCulture)}"]
-                    ]
-                ],
+                Totals(subtotal, discountPct, discount, tax, total),
                 Div[
                     Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CreditCard), "Pay"]
                 ]
@@ -169,24 +109,73 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("v-nlive-submission")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
         ];
     }
-}
 
-public sealed class StorefrontModel
-{
-    public string CustomerName { get; set; } = "";
-    public StorefrontAddress Address { get; set; } = new();
-    public List<StorefrontLineItem> Items { get; set; } = new();
-    public string DiscountCode { get; set; } = "";
-}
+    private Component ItemsPanel() =>
+        Div.Class("border rounded p-3")[
+            Div.Class("font-semibold text-sm mb-2")["Items"],
+            Div.Class("grid grid-cols-12 gap-4 mb-2 items-center")[
+                Div.Class("col-span-6")[
+                    Ui.Input.Bind(() => _model.Items[0].Name)
+                        .AccessibleLabel("Item 1 name")
+                        .Id("v-nlive-item0-name")
+                ],
+                Div.Class("col-span-3")[
+                    Ui.Input.Bind(() => _model.Items[0].Quantity)
+                        .AccessibleLabel("Item 1 quantity")
+                        .Id("v-nlive-item0-qty")
+                        .Min("0")
+                ],
+                Div.Class("col-span-3")[
+                    Ui.Input.Bind(() => _model.Items[0].UnitPrice)
+                        .AccessibleLabel("Item 1 unit price")
+                        .Id("v-nlive-item0-price")
+                        .Step("0.01")
+                ]
+            ],
+            Div.Class("grid grid-cols-12 gap-4 items-center")[
+                Div.Class("col-span-6")[
+                    Ui.Input.Bind(() => _model.Items[1].Name)
+                        .AccessibleLabel("Item 2 name")
+                        .Id("v-nlive-item1-name")
+                ],
+                Div.Class("col-span-3")[
+                    Ui.Input.Bind(() => _model.Items[1].Quantity)
+                        .AccessibleLabel("Item 2 quantity")
+                        .Id("v-nlive-item1-qty")
+                        .Min("0")
+                ],
+                Div.Class("col-span-3")[
+                    Ui.Input.Bind(() => _model.Items[1].UnitPrice)
+                        .AccessibleLabel("Item 2 unit price")
+                        .Id("v-nlive-item1-price")
+                        .Step("0.01")
+                ]
+            ]
+        ];
 
-public sealed class StorefrontAddress
-{
-    public string PostalCode { get; set; } = "";
-}
+    private static Component Totals(decimal subtotal, decimal discountPct, decimal discount, decimal tax, decimal total) =>
+        Div.Id("v-nlive-totals").Class("bg-ui-well rounded p-3 text-sm")[
+            Div.Class("flex justify-between flex-wrap items-center")[
+                Span["Subtotal"],
+                Span.Id("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]
+            ],
+            Div.Class("flex justify-between flex-wrap items-center")[
+                Span[discountPct > 0m
+                    ? $"Discount ({(int)(discountPct * 100)}%)"
+                    : "Discount"],
+                Span.Id("v-nlive-discount")[$"-${discount.ToString("F2", CultureInfo.InvariantCulture)}"]
+            ],
+            Div.Class("flex justify-between flex-wrap items-center")[
+                Span["Tax (8%)"],
+                Span.Id("v-nlive-tax")[$"${tax.ToString("F2", CultureInfo.InvariantCulture)}"]
+            ],
+            Hr.Class("my-2"),
+            Div.Class("flex justify-between flex-wrap items-center font-bold")[
+                Span["Total"],
+                Span.Id("v-nlive-total")[$"${total.ToString("F2", CultureInfo.InvariantCulture)}"]
+            ]
+        ];
 
-public sealed class StorefrontLineItem
-{
-    public string Name { get; set; } = "";
-    public int Quantity { get; set; }
-    public decimal UnitPrice { get; set; }
+    [GeneratedRegex(@"^\d{5}$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex FiveDigits();
 }

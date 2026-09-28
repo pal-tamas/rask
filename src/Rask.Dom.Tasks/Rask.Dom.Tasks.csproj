@@ -21,8 +21,7 @@
     <!-- ExcludeAssets=runtime: MSBuild provides these to a task at runtime. -->
     <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
     <!-- The generators' never-throwing JSON reader, shared rather than a System.Text.Json dependency. -->
-    <Compile Include="..\Rask.Generators\Json\JsonLite.cs" Link="Json\JsonLite.cs"/>
-    <Compile Include="..\Rask.Generators\Json\JsonScanner.cs" Link="Json\JsonScanner.cs"/>
+    <Compile Include="..\Rask.Generators\Json\*.cs" Link="Json\%(Filename)%(Extension)"/>
   </ItemGroup>
 
   <ItemGroup>

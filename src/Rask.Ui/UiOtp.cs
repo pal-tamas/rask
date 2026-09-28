@@ -65,6 +65,7 @@ public sealed partial class UiOtp : UiFormField<string>
                 .AfterBind(async value =>
                 {
                     await AfterBind.Invoke(value).ConfigureAwait(false);
+
                     await CompleteAsync(value).ConfigureAwait(false);
                 })
                 .Type(InputType.Text)
@@ -80,6 +81,7 @@ public sealed partial class UiOtp : UiFormField<string>
             .OnChange(async value =>
             {
                 await OnChange.Invoke(value).ConfigureAwait(false);
+
                 await CompleteAsync(value).ConfigureAwait(false);
             })
             .Type(InputType.Text)

@@ -1,3 +1,5 @@
+using System.Globalization;
+using Rask.Site;
 using Rask.Wasm.Browser;
 
 namespace Rask.Site.Features;
@@ -45,7 +47,7 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("usb-status")[_status]]
             ];
 
-    private static string Hex(int value) => "0x" + value.ToString("x4");
+    private static string Hex(int value) => "0x" + value.ToString("x4", CultureInfo.InvariantCulture);
 
     private async Task RequestDevice()
     {

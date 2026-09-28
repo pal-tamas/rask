@@ -31,14 +31,14 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 {
     // Per-instance, so two id-less selects on one page cannot collide on option ids —
     // aria-activedescendant points at them by id, and a collision aims it at the wrong list.
-    private static int _instances;
-
-    private readonly int _instance = Interlocked.Increment(ref _instances);
+    private readonly int _instance = UiInstanceCounter.Next();
 
     private bool _open;
     private int _cursor = -1;
     private string? _filter;
+#pragma warning disable S3459 // a mutable struct whose default is its empty state; Next() fills it in place
     private UiTypeAhead _typeAhead;
+#pragma warning restore S3459
 
     /// <summary>
     ///     The options: the value stored, and the words shown.
@@ -253,24 +253,37 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     {
         var acc = Bind is { } bind ? ExpressionAccessor.Parse(bind) : null;
         var ctx = acc is null ? null : BindingHelpers.ResolveBindingContext(acc.Target);
+        var current = Value;
         if (acc is not null)
         {
             // Every render, deliberately: passing the collapsed validator each time is also what clears
             // a stale rule when the consumer stops supplying one.
             ((IFormControl<T>)this).RegisterValidator(acc, ctx);
+            current = acc.Getter() is T v ? v : default;
         }
 
-        var current = acc is not null ? acc.Getter() is T v ? v : default : Value;
         var layout = UiSelectNav.Build(
             Shown(),
             OptionGroup is { } g ? o => g.Invoke(o.Value) ?? string.Empty : null);
-        var flat = layout.Flat;
-        var disabled = Disabledness(flat);
-        var cursor = UiSelectNav.Normalize(_cursor, flat.Count, disabled);
+        var view = new ListView(acc, ctx, layout.Flat, Disabledness(layout.Flat), current);
+        var cursor = UiSelectNav.Normalize(_cursor, view.Flat.Count, view.Disabled);
+
+        return Div.Class(UiClass.Compose("relative w-full", Class))[
+            ComboBox(view, cursor),
+            // Beside the box rather than inside it: a button cannot hold another button, and the box is one.
+            Clearable == true && current is not null && Disabled != true ? ClearButton(acc, ctx) : null,
+            Panel(layout, view, cursor),
+            HiddenField(current)
+        ];
+    }
+
+    private Component ComboBox(ListView view, int cursor)
+    {
+        var (_, _, flat, disabled, current) = view;
 
         // The id is what the legend's `for` names. Without it the label pointed at nothing, and the box
         // was named only by the aria-label this used to duplicate from it.
-        var box = Button
+        return Button
             .Id(FieldId)
             .Type("button")
             .Role("combobox")
@@ -293,7 +306,14 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             // its own toggle flipped `aria-expanded` back to false over a list that was plainly open.
             // All this does is have a cursor ready for the frame that opens.
             .OnClick(() => _cursor = UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled))
-            .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, disabled, current));
+            .OnKeyDown(e => OnKeyAsync(e, view))[
+            Span.Class("truncate")[Display(current)]
+        ];
+    }
+
+    private Component Panel(UiSelectNav.Layout<(T Value, string Text)> layout, ListView view, int cursor)
+    {
+        var (_, _, flat, disabled, current) = view;
 
         // The popover is a PANEL around the list, and the extra element is load-bearing twice over.
         //
@@ -309,7 +329,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         // is followed by a click that lands on the list instead of the invoker and the popover never
         // opens at all. One of those rules also puts `pointer-events: none` on the wrapper's first
         // child. A control cannot be a CSS dropdown and a popover at once; this one is a popover.
-        var panel = Div
+        return Div
             .Id(PanelId)
             .Popover("auto")
             .Class("z-1 max-h-64 overflow-y-auto rounded-box border border-base-300 bg-base-100 "
@@ -327,7 +347,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             // answer to a question with one. Hearing this is what keeps aria-expanded truthful.
             .OnToggle(e =>
             {
-                _open = e.NewState == "open";
+                _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
                 _cursor = _open
                     ? UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled)
                     : -1;
@@ -337,44 +357,51 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                     _filter = null;
                 }
             })[
-            SearchBox(acc, ctx, flat, disabled, current, cursor),
-            Ul
-                .Id(ListId)
-                .Role("listbox")
-                .Class("menu w-full flex-nowrap p-0")
-                // The list is a separate widget in the top layer and needs its own name. Omitted when there is
-                // none to give: a null value renders a valueless aria-label.
-                .Aria((Label ?? AccessibleLabel) is { } listName
-                    ? new Dictionary<string, string?> { ["label"] = listName }
-                    : [])[
-                flat.Count == 0 || Loading == true
-                    ? Li.Class("px-3 py-2 text-sm opacity-60")[
-                        Loading == true ? LoadingText ?? "Searching…" : EmptyText ?? "No results found"
-                    ]
-                    : Rows(layout, acc, ctx, current, cursor)
-            ]
+            SearchBox(view, cursor),
+            ListBox(layout, view, cursor)
+        ];
+    }
+
+    private Component ListBox(UiSelectNav.Layout<(T Value, string Text)> layout, ListView view, int cursor)
+    {
+        var list = Ul.Id(ListId).Role("listbox").Class("menu w-full flex-nowrap p-0");
+
+        // The list is a separate widget in the top layer and needs its own name. Omitted when there is none to
+        // give: a null value renders a valueless aria-label.
+        if ((Label ?? AccessibleLabel) is { } listName)
+        {
+            list = list.Aria("label", listName);
+        }
+
+        return list[
+            view.Flat.Count == 0 || Loading == true
+                ? Li.Class("px-3 py-2 text-sm opacity-60")[StatusText]
+                : Rows(layout, view.Acc, view.Ctx, view.Current, cursor)
+        ];
+    }
+
+    private string StatusText => Loading == true ? LoadingText ?? "Searching…" : EmptyText ?? "No results found";
+
+    private Component ClearButton(ExpressionAccessor.Accessor? acc, EditContext? ctx) =>
+        Button
+            .Type("button")
+            .Class("absolute inset-y-0 end-7 my-auto flex size-5 items-center justify-center rounded "
+                   + "opacity-60 hover:opacity-100")
+            .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "selection"))
+            .OnClick(() => CommitAsync(acc, ctx, default!))[
+            Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
         ];
 
-        return Div.Class(UiClass.Compose("relative w-full", Class))[
-            box[Span.Class("truncate")[Display(current)]],
-            // Beside the box rather than inside it: a button cannot hold another button, and the box is one.
-            Clearable == true && current is not null && Disabled != true
-                ? Button
-                    .Type("button")
-                    .Class("absolute inset-y-0 end-7 my-auto flex size-5 items-center justify-center rounded "
-                           + "opacity-60 hover:opacity-100")
-                    .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "selection"))
-                    .OnClick(() => CommitAsync(acc, ctx, default!))[
-                    Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
-                ]
-                : null,
-            panel,
-            // A listbox of buttons submits nothing. Without this a control inside a plain <form> would
-            // silently drop its field, which is the kind of failure nobody sees until the data is wrong.
-            Name is { } name
-                ? Input.Value(current is null ? string.Empty : OptionText(current)).Type(InputType.Hidden).Name(name)
-                : null
-        ];
+    // A listbox of buttons submits nothing. Without this a control inside a plain <form> would silently drop its
+    // field, which is the kind of failure nobody sees until the data is wrong.
+    private HTMLInputElement<string>? HiddenField(T? current)
+    {
+        if (Name is not { } name)
+        {
+            return null;
+        }
+
+        return Input.Value(current is null ? string.Empty : OptionText(current)).Type(InputType.Hidden).Name(name);
     }
 
     // The options to draw: every one of them, unless a search box narrowed them here. With OnSearch the page runs
@@ -391,7 +418,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         foreach (var option in Options)
         {
             var hit = Filter is { } match
-                ? match.Invoke(option.Value, needle) == true
+                ? match.Invoke(option.Value, needle)
                 // The visitor's culture, and ignoring case and accents: what counts as a match for "ö" is a local
                 // question, and a reader typing "o" means to find "Ö".
                 : CultureInfo.CurrentCulture.CompareInfo.IndexOf(
@@ -448,12 +475,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                 selected ? "menu-active" : "",
                 cursor == row.FlatIndex ? "menu-focus" : ""))
             .Disabled(off)
-            // aria-disabled is OMITTED when the option is enabled, never nulled. A null renders the
-            // attribute valueless, and a valueless aria-disabled reads as "true" — so the tidy
-            // conditional value would have made every selectable option announce itself unavailable.
-            .Aria(off
-                ? new Dictionary<string, string?> { ["selected"] = "false", ["disabled"] = "true" }
-                : new Dictionary<string, string?> { ["selected"] = selected ? "true" : "false" })
+            .Aria(UiOptionAria.For(disabled: off, selected: selected))
             // Closes the list declaratively as well as through the callback, so the dismissal does not
             // depend on the runtime having attached anything.
             .Attributes(("popovertarget", PanelId), ("popovertargetaction", "hide"));
@@ -475,13 +497,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     // The search box lives INSIDE the popover, above the list: it opens with the list, takes focus from the
     // popover's own focusing steps, and carries the cursor's ARIA — aria-activedescendant only announces the
     // option from the element that actually has focus.
-    private Component? SearchBox(
-        ExpressionAccessor.Accessor? acc,
-        EditContext? ctx,
-        IReadOnlyList<(T Value, string Text)> flat,
-        Func<int, bool> disabled,
-        T? current,
-        int cursor)
+    private Component? SearchBox(ListView view, int cursor)
     {
         if (!HasSearch || !_open)
         {
@@ -517,40 +533,19 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                     _cursor = 0;
                     await OnSearch.Invoke(raw ?? string.Empty).ConfigureAwait(false);
                 })
-                .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, disabled, current, fromSearch: true))
+                .OnKeyDown(e => OnKeyAsync(e, view, fromSearch: true))
         ];
     }
 
-    private async Task OnKeyAsync(
-        KeyboardEvent e,
-        ExpressionAccessor.Accessor? acc,
-        EditContext? ctx,
-        IReadOnlyList<(T Value, string Text)> flat,
-        Func<int, bool> disabled,
-        T? current,
-        bool fromSearch = false)
+    private async Task OnKeyAsync(KeyboardEvent e, ListView view, bool fromSearch = false)
     {
+        var (acc, ctx, flat, disabled, _) = view;
         var count = flat.Count;
         var cursor = UiSelectNav.Normalize(_cursor, count, disabled);
 
         if (!_open)
         {
-            // Closed, the arrows move the SELECTION rather than opening the list — what a native select
-            // does on a desktop, and what lets a reader change the answer without ever seeing the list.
-            switch (e.Key)
-            {
-                case "ArrowDown":
-                case "ArrowUp":
-                    var next = UiSelectNav.Step(
-                        IndexOf(flat, current), e.Key == "ArrowDown" ? 1 : -1, count, disabled);
-                    if (next >= 0 && next < count)
-                    {
-                        await CommitAsync(acc, ctx, flat[next].Value).ConfigureAwait(false);
-                    }
-
-                    break;
-            }
-
+            await MoveSelectionAsync(e, view).ConfigureAwait(false);
             return;
         }
 
@@ -578,22 +573,50 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             default:
                 // Type-ahead, the way a native select answers a letter — but only with focus on the BOX. In the
                 // search field the same keystroke is what is being searched for.
-                if (!fromSearch && e.Key.Length == 1 && e.Key != " " && !e.CtrlKey && !e.AltKey && !e.MetaKey)
+                if (!fromSearch)
                 {
-                    var texts = new string?[count];
-                    for (var i = 0; i < count; i++)
-                    {
-                        texts[i] = disabled(i) ? null : flat[i].Text;
-                    }
-
-                    var hit = _typeAhead.Next(e.Key, cursor, texts, Clock);
-                    if (hit >= 0)
-                    {
-                        _cursor = hit;
-                    }
+                    TypeAhead(e, view, cursor);
                 }
 
                 break;
+        }
+    }
+
+    // Closed, the arrows move the SELECTION rather than opening the list — what a native select does on a
+    // desktop, and what lets a reader change the answer without ever seeing the list.
+    private async Task MoveSelectionAsync(KeyboardEvent e, ListView view)
+    {
+        var down = string.Equals(e.Key, "ArrowDown", StringComparison.Ordinal);
+        if (!down && !string.Equals(e.Key, "ArrowUp", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var count = view.Flat.Count;
+        var next = UiSelectNav.Step(IndexOf(view.Flat, view.Current), down ? 1 : -1, count, view.Disabled);
+        if (next >= 0 && next < count)
+        {
+            await CommitAsync(view.Acc, view.Ctx, view.Flat[next].Value).ConfigureAwait(false);
+        }
+    }
+
+    private void TypeAhead(KeyboardEvent e, ListView view, int cursor)
+    {
+        if (e.Key.Length != 1 || string.Equals(e.Key, " ", StringComparison.Ordinal) || e.CtrlKey || e.AltKey || e.MetaKey)
+        {
+            return;
+        }
+
+        var texts = new string?[view.Flat.Count];
+        for (var i = 0; i < texts.Length; i++)
+        {
+            texts[i] = view.Disabled(i) ? null : view.Flat[i].Text;
+        }
+
+        var hit = _typeAhead.Next(e.Key, cursor, texts, Clock);
+        if (hit >= 0)
+        {
+            _cursor = hit;
         }
     }
 
@@ -625,7 +648,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     private Func<int, bool> Disabledness(IReadOnlyList<(T Value, string Text)> flat) =>
         OptionDisabled is { } off ? i => off.Invoke(flat[i].Value) : _ => false;
 
-    private int IndexOf(IReadOnlyList<(T Value, string Text)> flat, T? current)
+    private static int IndexOf(IReadOnlyList<(T Value, string Text)> flat, T? current)
     {
         for (var i = 0; i < flat.Count; i++)
         {
@@ -667,7 +690,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     // visible label, and a VALUELESS aria-label on a select with no label at all.
     private Dictionary<string, string?> Aria(bool? expanded, string? activeDescendant = null)
     {
-        var aria = ControlAria();
+        var aria = BuildControlAria();
 
         if (expanded is { } open)
         {
@@ -687,4 +710,12 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     private static bool Same(T? a, T? b) => EqualityComparer<T?>.Default.Equals(a, b);
 
     private static string OptionText(T value) => BindingHelpers.FormatValue(value);
+
+    /// <summary>One render's reading of the list: where it binds, what it offers, and what is chosen.</summary>
+    private sealed record ListView(
+        ExpressionAccessor.Accessor? Acc,
+        EditContext? Ctx,
+        IReadOnlyList<(T Value, string Text)> Flat,
+        Func<int, bool> Disabled,
+        T? Current);
 }

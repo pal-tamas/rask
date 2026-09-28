@@ -36,7 +36,7 @@ public static class Tenant
     private static readonly AsyncLocal<State> Ambient = new();
 
     /// <summary>Whether the work in flight deliberately spans tenants — see <see cref="Across" />.</summary>
-    public static bool IsAcrossTenants => Ambient.Value.Across;
+    public static bool IsAcrossTenants => Ambient.Value.AllTenants;
 
     /// <summary>The tenant an explicit <see cref="Use" /> scope set, ignoring the principal.</summary>
     /// <remarks>The tenant in flight from every source is <c>Current.Tenant</c>.</remarks>
@@ -47,7 +47,7 @@ public static class Tenant
     /// </summary>
     /// <param name="tenant">The tenant to work in.</param>
     /// <returns>A scope that restores the previous tenant.</returns>
-    public static IDisposable Use(Guid tenant) => new Scope(new State(tenant, Across: false));
+    public static IDisposable Use(Guid tenant) => new Scope(new State(tenant, AllTenants: false));
 
     /// <summary>
     ///     Lets the work in flight see every tenant, until the returned scope is disposed.
@@ -59,12 +59,12 @@ public static class Tenant
     ///     never quietly becomes a cross-tenant read. This is a block rather than a per-query call so that
     ///     crossing a boundary is one greppable thing a reviewer can find.
     /// </remarks>
-    public static IDisposable Across() => new Scope(new State(Tenant: null, Across: true));
+    public static IDisposable Across() => new Scope(new State(Tenant: null, AllTenants: true));
 
     /// <summary>Clears the tenant for the duration of the returned scope.</summary>
     /// <returns>A scope that restores the previous tenant.</returns>
     /// <remarks>For a test, or for the sign-in that has to find a user before it can know their tenant.</remarks>
-    public static IDisposable None() => new Scope(new State(Tenant: null, Across: false));
+    public static IDisposable None() => new Scope(new State(Tenant: null, AllTenants: false));
 
     /// <summary>
     ///     What a context's tenant filter compares against: an explicit scope first, then the principal.
@@ -84,9 +84,9 @@ public static class Tenant
     /// <exception cref="InvalidOperationException">
     ///     Nothing says which tenant: no scope is open and the principal carries no tenant.
     /// </exception>
-    public static Guid? Resolve() => Ambient.Value.Across ? null : Current.RequiredTenant;
+    public static Guid? Resolve() => Ambient.Value.AllTenants ? null : Current.RequiredTenant;
 
-    private readonly record struct State(Guid? Tenant, bool Across);
+    private readonly record struct State(Guid? Tenant, bool AllTenants);
 
     private sealed class Scope : IDisposable
     {
@@ -108,43 +108,4 @@ public static class Tenant
             }
         }
     }
-}
-
-/// <summary>
-///     A <c>DbContext</c> that knows which tenant it is reading for.
-/// </summary>
-/// <remarks>
-///     <para>
-///         Implement it on the application's context — <c>: DbContext, ITenantScoped</c> — and pass the
-///         context to <c>modelBuilder.ApplyRaskConventions(this)</c>. Nothing needs writing: the default
-///         implementation reads <c>Current.Tenant</c>.
-///     </para>
-///     <para>
-///         <b>Why the filter goes through an instance member rather than reading the ambient directly.</b>
-///         A query filter is compiled into the model, and the model is CACHED. A static read is evaluated
-///         once and inlined into the SQL as a literal, so the first tenant to run a query pins that value for
-///         every tenant afterwards — measured, not assumed. Reaching the same value through the context
-///         instance makes EF Core lift it to a real parameter and re-bind it per query.
-///     </para>
-/// </remarks>
-public interface ITenantScoped
-{
-    /// <summary>
-    ///     What the tenant filter compares against: the tenant in flight, or <see langword="null" /> inside
-    ///     <see cref="Tenant.Across" /> to mean "do not restrict".
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Reading this with no tenant set and no <see cref="Tenant.Across" /> open THROWS, and the throw
-    ///         lands where it should: EF Core evaluates this per query, so the exception surfaces at the call
-    ///         that tried to read rather than at startup.
-    ///     </para>
-    ///     <para>
-    ///         Null therefore never means "the rows whose TenantId is null" — the filter pairs it with a
-    ///         <c>current == null ||</c> guard, so null lifts the restriction instead of narrowing to unowned
-    ///         rows. That distinction is the whole difference between <c>Tenant.Across()</c> working and
-    ///         silently returning nothing.
-    ///     </para>
-    /// </remarks>
-    Guid? CurrentTenant => Tenant.Resolve();
 }

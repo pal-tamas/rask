@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Serialization.Metadata;
@@ -80,11 +81,11 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
     // targetInstanceId travel as strings to dodge BigInt marshalling; the dispatcher rebuilds them.
     protected override void DispatchOutsideRender(PendingJsInvoke invoke) =>
         JSInterop.BeginInvokeJSImport(
-            invoke.TaskId.ToString(),
+            invoke.TaskId.ToString(CultureInfo.InvariantCulture),
             invoke.Identifier,
             invoke.ArgsJson,
             invoke.ResultType,
-            invoke.TargetInstanceId.ToString());
+            invoke.TargetInstanceId.ToString(CultureInfo.InvariantCulture));
 
     protected override void EndInvokeDotNet(
         DotNetInvocationInfo invocationInfo,

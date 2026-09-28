@@ -76,14 +76,31 @@ public sealed class EditorDevServerTests
         // Two tables — the CLI's scaffold table and this package's presets — that have to agree, read from
         // the CLI source rather than restated, because two literals that are supposed to match are exactly
         // what drifts. The browser would open a port nothing listens on, with nothing failing.
-        var source = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Rask.Cli", "Scaffolding", "MetaTemplate.cs"));
+        var cli = Path.Combine(RepoRoot(), "src", "Rask.Cli");
+        var source = File.ReadAllText(Path.Combine(cli, "Scaffolding", "MetaTemplate.cs"));
         var start = source.IndexOf($"\n        \"{name}\", ", StringComparison.Ordinal);
         Assert.True(start > 0, $"MetaTemplate.cs no longer declares '{name}'");
 
-        var url = Regex.Match(source[start..], @"DevServerUrl = ""http://localhost:(\d+)""");
-        Assert.True(url.Success, $"MetaTemplate.cs has no DevServerUrl for '{name}'");
+        var url = DevServerUrl(source[start..], File.ReadAllText(Path.Combine(cli, "LocalDevServers.cs")));
+        Assert.True(url is not null, $"MetaTemplate.cs has no DevServerUrl for '{name}'");
 
-        Assert.Equal(int.Parse(url.Groups[1].Value, CultureInfo.InvariantCulture), MetaFramework.ByName(name)!.DevServerPort);
+        Assert.Equal(int.Parse(url, CultureInfo.InvariantCulture), MetaFramework.ByName(name)!.DevServerPort);
+    }
+
+    // The port a template's DevServerUrl names, written either as a literal or as one of LocalDevServers' constants.
+    private static string? DevServerUrl(string template, string constants)
+    {
+        var literal = Regex.Match(template, @"DevServerUrl = ""http://localhost:(\d+)""");
+        if (literal.Success)
+        {
+            return literal.Groups[1].Value;
+        }
+
+        var named = Regex.Match(template, @"DevServerUrl = LocalDevServers\.(\w+)");
+        var constant = named.Success
+            ? Regex.Match(constants, $@"const string {named.Groups[1].Value} = ""http://localhost:(\d+)""")
+            : Match.Empty;
+        return constant.Success ? constant.Groups[1].Value : null;
     }
 
     private static string RepoRoot()

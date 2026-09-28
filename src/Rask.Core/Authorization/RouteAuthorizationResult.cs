@@ -1,12 +1,5 @@
 namespace Rask.Core.Authorization;
 
-public enum RouteAuthorizationOutcome
-{
-    Allow,
-    Challenge,
-    Forbid
-}
-
 public sealed class RouteAuthorizationResult
 {
     private RouteAuthorizationResult(

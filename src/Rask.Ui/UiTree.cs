@@ -38,9 +38,7 @@ public sealed partial class UiTree<T, TKey> : Component
 {
     // Per instance, so two id-less trees on one page cannot collide: aria-activedescendant points at a row BY ID, and a
     // collision aims it at the other tree's row.
-    private static int _instances;
-
-    private readonly int _instance = Interlocked.Increment(ref _instances);
+    private readonly int _instance = UiInstanceCounter.Next();
 
     // The tree's own halves of the two axes, used only while the page is not holding them.
     private readonly HashSet<TKey> _expanded = [];
@@ -53,7 +51,9 @@ public sealed partial class UiTree<T, TKey> : Component
 
     private int _nextId;
     private Func<T, IEnumerable<T>?>? _children;
+#pragma warning disable S3459 // a mutable struct whose default is its empty state; Next() fills it in place
     private UiTypeAhead _typeAhead;
+#pragma warning restore S3459
     private TKey? _cursorKey;
     private bool _hasCursor;
     private int _cursorHint;
@@ -93,7 +93,7 @@ public sealed partial class UiTree<T, TKey> : Component
     /// </remarks>
     public int? ExpandDepth { get; set; }
 
-    /// <summary>What a reader may select. Unset means <see cref="Ui.TreeSelection.Single" /> once a selection is
+    /// <summary>What a reader may select. Unset means <see cref="Ui.TreeSelection.One" /> once a selection is
     /// involved, and <see cref="Ui.TreeSelection.None" /> otherwise.</summary>
     public Ui.TreeSelection? Selection { get; set; }
 
@@ -149,7 +149,7 @@ public sealed partial class UiTree<T, TKey> : Component
     }
 
     private Ui.TreeSelection Mode =>
-        Selection ?? (Selected is not null || OnSelectionChange.HasValue ? Ui.TreeSelection.Single : Ui.TreeSelection.None);
+        Selection ?? (Selected is not null || OnSelectionChange.HasValue ? Ui.TreeSelection.One : Ui.TreeSelection.None);
 
     private string Prefix => "uitree-" + _instance.ToString(CultureInfo.InvariantCulture);
 
@@ -160,10 +160,12 @@ public sealed partial class UiTree<T, TKey> : Component
     {
         if (ItemSize is { } size && size <= 0)
         {
+#pragma warning disable MA0015, S3928 // the argument out of range is the .ItemSize(...) chain step's (#611)
             throw new ArgumentOutOfRangeException(
                 nameof(ItemSize),
                 ItemSize,
                 "A tree's ItemSize is one row's height in pixels: .ItemSize(28). Leave it unset for nested lists.");
+#pragma warning restore MA0015, S3928
         }
 
         SeedExpansion();
@@ -228,7 +230,7 @@ public sealed partial class UiTree<T, TKey> : Component
         }
     }
 
-    private Component Flat(List<UiTreeRow<T, TKey>> rows, int cursor, int rowHeight)
+    private VirtualizeModel Flat(List<UiTreeRow<T, TKey>> rows, int cursor, int rowHeight)
     {
         var height = Height ?? 320;
         return Virtualize.Items<UiTreeRow<T, TKey>>(
@@ -244,11 +246,9 @@ public sealed partial class UiTree<T, TKey> : Component
                         Class))
                     .Style("height:" + Px(height) + ";--ui-tree-row:" + Px(rowHeight))
                     // What the runtime's scroll-follow needs to reach a row that is not rendered: where it would be.
-                    .Data(new Dictionary<string, string?>
-                    {
-                        ["rask-item-size"] = Int(rowHeight),
-                        ["rask-active-top"] = Int(Math.Max(cursor, 0) * rowHeight),
-                    })
+                    .Data(
+                        ("rask-item-size", Int(rowHeight)),
+                        ("rask-active-top", Int(Math.Max(cursor, 0) * rowHeight)))
                     .Aria(TreeAria(rows, cursor))
                     .OnScroll(ctx.OnScroll)
                     .OnKeyDown(e => OnKeyAsync(e, rows));
@@ -277,12 +277,12 @@ public sealed partial class UiTree<T, TKey> : Component
             .Role("treeitem")
             // The depth is a CSS variable rather than a class: a built class name is invisible to Tailwind's scan.
             .Style("--ui-tree-depth:" + Int(row.Level - 1))
-            .Data(new Dictionary<string, string?> { ["rask-key"] = RowId(row.Key) })
+            .Data("rask-key", RowId(row.Key))
             .Aria(RowAria(row, level: true))[
                 Row(row, at == cursor)
             ];
 
-    private static Component Spacer(string which, int height) =>
+    private static HTMLLIElement Spacer(string which, int height) =>
         Li.Key("ui-tree-" + which).Role("none").Style("height:" + Px(height));
 
     private Component Row(UiTreeRow<T, TKey> row, bool isCursor)
@@ -309,24 +309,27 @@ public sealed partial class UiTree<T, TKey> : Component
     // A leaf keeps the same box, so its label lines up with its siblings' labels rather than with their twisties.
     private Component Twisty(UiTreeRow<T, TKey> row)
     {
-        var box = Span.Class("ui-tree-toggle").Aria(new Dictionary<string, string?> { ["hidden"] = "true" });
-        return row.HasChildren
-            ? box.OnClick(() => ToggleAsync(row))[
-                Ui.Icon.Name(row.IsExpanded ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)
-                    .Class("size-3 shrink-0 opacity-60")
-            ]
-            : box;
+        var box = Span.Class("ui-tree-toggle").Aria("hidden", "true");
+        if (!row.HasChildren)
+        {
+            return box;
+        }
+
+        return box.OnClick(() => ToggleAsync(row))[
+            Ui.Icon.Name(row.IsExpanded ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)
+                .Class("size-3 shrink-0 opacity-60")
+        ];
     }
 
     private Dictionary<string, string?> TreeAria(List<UiTreeRow<T, TKey>> rows, int cursor)
     {
-        var aria = new Dictionary<string, string?> { ["label"] = Label };
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = Label };
         if (cursor >= 0 && cursor < rows.Count)
         {
             aria["activedescendant"] = RowId(rows[cursor].Key);
         }
 
-        if (Mode == Ui.TreeSelection.Multiple)
+        if (Mode == Ui.TreeSelection.Many)
         {
             aria["multiselectable"] = "true";
         }
@@ -338,7 +341,7 @@ public sealed partial class UiTree<T, TKey> : Component
     // reader that has both trusts the markup.
     private Dictionary<string, string?> RowAria(UiTreeRow<T, TKey> row, bool level)
     {
-        var aria = new Dictionary<string, string?> { ["labelledby"] = RowId(row.Key) + "-l" };
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["labelledby"] = RowId(row.Key) + "-l" };
         if (row.HasChildren)
         {
             aria["expanded"] = row.IsExpanded ? "true" : "false";
@@ -370,27 +373,15 @@ public sealed partial class UiTree<T, TKey> : Component
         }
 
         var at = Math.Clamp(ResolveCursor(rows), 0, rows.Count - 1);
+        if (Destination(e.Key, at, rows.Count) is { } to)
+        {
+            MoveTo(rows, to);
+            return;
+        }
+
         var row = rows[at];
         switch (e.Key)
         {
-            case "ArrowDown":
-                MoveTo(rows, Math.Min(at + 1, rows.Count - 1));
-                break;
-            case "ArrowUp":
-                MoveTo(rows, Math.Max(at - 1, 0));
-                break;
-            case "Home":
-                MoveTo(rows, 0);
-                break;
-            case "End":
-                MoveTo(rows, rows.Count - 1);
-                break;
-            case "PageDown":
-                MoveTo(rows, Math.Min(at + Page, rows.Count - 1));
-                break;
-            case "PageUp":
-                MoveTo(rows, Math.Max(at - Page, 0));
-                break;
             case "ArrowRight":
                 if (row.HasChildren && !row.IsExpanded)
                 {
@@ -430,6 +421,18 @@ public sealed partial class UiTree<T, TKey> : Component
         }
     }
 
+    // Where a key that only moves the cursor moves it to, or null for a key that does something else.
+    private int? Destination(string key, int at, int count) => key switch
+    {
+        "ArrowDown" => Math.Min(at + 1, count - 1),
+        "ArrowUp" => Math.Max(at - 1, 0),
+        "Home" => 0,
+        "End" => count - 1,
+        "PageDown" => Math.Min(at + Page, count - 1),
+        "PageUp" => Math.Max(at - Page, 0),
+        _ => null,
+    };
+
     private void TypeAhead(string key, int at, List<UiTreeRow<T, TKey>> rows)
     {
         if (NodeText is not { } text || key.Length != 1)
@@ -453,8 +456,8 @@ public sealed partial class UiTree<T, TKey> : Component
     // Enter and Space differ in one place only: with nothing selectable, Enter is the second way to open a branch.
     private Task ActivateAsync(UiTreeRow<T, TKey> row, bool enter) => Mode switch
     {
-        Ui.TreeSelection.Single => CommitSelectionAsync([row.Key]),
-        Ui.TreeSelection.Multiple => ToggleSelectionAsync(row.Key),
+        Ui.TreeSelection.One => CommitSelectionAsync([row.Key]),
+        Ui.TreeSelection.Many => ToggleSelectionAsync(row.Key),
         _ => enter && row.HasChildren ? SetExpandedAsync([row.Key], !row.IsExpanded) : Task.CompletedTask,
     };
 
@@ -648,7 +651,7 @@ public sealed partial class UiTree<T, TKey> : Component
     private Task HoverAsync(PointerEvent e, UiTreeRow<T, TKey> row)
     {
         // A touch reports one enter for the tap that follows it, which is not hovering.
-        if (e.PointerType == "touch"
+        if (string.Equals(e.PointerType, "touch", StringComparison.Ordinal)
             || (_hovering && _hovered is { } previous && EqualityComparer<TKey>.Default.Equals(previous, row.Key)))
         {
             return Task.CompletedTask;
@@ -656,7 +659,7 @@ public sealed partial class UiTree<T, TKey> : Component
 
         _hovering = true;
         _hovered = row.Key;
-        return Raise(OnHover, (T?)row.Node);
+        return Raise(OnHover, row.Node);
     }
 
     private Task LeaveAsync(PointerEvent e)

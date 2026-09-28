@@ -1,7 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 [Collection(CacheDbCollection.Name)]
 public sealed class RaskDistributedCacheTests

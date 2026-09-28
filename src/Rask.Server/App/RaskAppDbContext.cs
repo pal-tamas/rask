@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Auth;
-using Rask.Cache;
+using Rask.Background;
+using Rask.Caching;
 using Rask.Data;
-using Rask.Jobs;
 using Rask.Logging;
-using Rask.Mail;
+using Rask.Mailing;
 using Rask.Outbox;
 using Rask.Storage;
 using Rask.WebPush;

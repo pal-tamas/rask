@@ -25,7 +25,7 @@ internal static partial class Vapid
     {
         var claims = new VapidClaims
         {
-            Audience = Audience(endpoint),
+            Audience = AudienceOf(endpoint),
             Expiration = expires.ToUnixTimeSeconds(),
             Subject = subject
         };
@@ -43,7 +43,7 @@ internal static partial class Vapid
 
     // The `aud` claim is the origin of the endpoint — scheme + host (+ explicit port) with NO path.
     // A trailing path or slash here causes the push service to reject the token (401).
-    public static string Audience(string endpoint) => new Uri(endpoint).GetLeftPart(UriPartial.Authority);
+    public static string AudienceOf(string endpoint) => new Uri(endpoint).GetLeftPart(UriPartial.Authority);
 
     // Import the base64url VAPID key pair into an ECDsa over P-256. Both the private scalar D and the
     // public point Q are supplied so ECParameters.Validate() can confirm they are consistent.

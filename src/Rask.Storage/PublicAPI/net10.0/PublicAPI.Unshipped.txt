@@ -106,7 +106,6 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Single() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
@@ -239,3 +238,9 @@ static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Tak
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead![]!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Storage.StoredFileRead!>!>!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+Rask.Batteries.Counting<T>.Only() -> T
+Rask.Batteries.CountingException.CountingException() -> void
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
+Rask.Storage.FileRejectedException.FileRejectedException() -> void
+Rask.Storage.FileRejectedException.FileRejectedException(string! message) -> void
+Rask.Storage.FileRejectedException.FileRejectedException(string! message, System.Exception! innerException) -> void

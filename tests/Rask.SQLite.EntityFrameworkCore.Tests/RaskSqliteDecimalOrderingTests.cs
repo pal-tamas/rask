@@ -162,8 +162,8 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
         await using var context = NewContext();
         var sql = context.Rows.OrderBy(r => r.Amount).Select(r => r.Amount).ToQueryString();
 
-        Assert.Contains($"COLLATE {SqliteCollations.Decimal}", sql, StringComparison.Ordinal);
-        Assert.Equal("EF_DECIMAL", SqliteCollations.Decimal);
+        Assert.Contains($"COLLATE {SqliteCollations.DecimalOrder}", sql, StringComparison.Ordinal);
+        Assert.Equal("EF_DECIMAL", SqliteCollations.DecimalOrder);
     }
 
     // The DDL must be untouched: no collation on the column, no migration, and every other tool still
@@ -213,12 +213,12 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
             // index over a bare column inherits that column's collating sequence.
             ddl.CommandText = "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'Rows'";
             var tableSql = (string?)await ddl.ExecuteScalarAsync();
-            Assert.Contains($"COLLATE {SqliteCollations.Decimal}", tableSql ?? "", StringComparison.Ordinal);
+            Assert.Contains($"COLLATE {SqliteCollations.DecimalOrder}", tableSql ?? "", StringComparison.Ordinal);
         }
 
         await using var plan = connection.CreateCommand();
         plan.CommandText =
-            $"EXPLAIN QUERY PLAN SELECT \"Amount\" FROM \"Rows\" ORDER BY \"Amount\" COLLATE {SqliteCollations.Decimal}";
+            $"EXPLAIN QUERY PLAN SELECT \"Amount\" FROM \"Rows\" ORDER BY \"Amount\" COLLATE {SqliteCollations.DecimalOrder}";
         await using var reader = await plan.ExecuteReaderAsync();
 
         var detail = new List<string>();
@@ -308,7 +308,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Verbatim from docs/data-access.md.
-            modelBuilder.Entity<ProbeRow>().Property(p => p.Amount).UseCollation(SqliteCollations.Decimal);
+            modelBuilder.Entity<ProbeRow>().Property(p => p.Amount).UseCollation(SqliteCollations.DecimalOrder);
             modelBuilder.Entity<ProbeRow>().HasIndex(p => p.Amount);
         }
     }

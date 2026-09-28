@@ -5,23 +5,6 @@ using Rask.Storage.Backends;
 
 namespace Rask.Storage;
 
-/// <summary>What one sweep did.</summary>
-internal readonly record struct SweepResult(int Deleted, int Orphans, bool Tripped);
-
-/// <summary>Rows whose bytes are not on disk: how many, and the first few ids.</summary>
-internal sealed record MissingFiles(int Count, IReadOnlyList<Guid> Examples);
-
-/// <summary>When the sweep is allowed to delete at all.</summary>
-internal static class SweepPolicy
-{
-    /// <summary>
-    /// A disk root belongs to the app. A bucket is easily shared by two environments, and without a prefix a
-    /// key's shape alone cannot tell this app's orphans from another app's files — so there it only reports.
-    /// </summary>
-    internal static bool MayDelete(StorageProvider provider, string prefix) =>
-        provider == StorageProvider.Disk || prefix.Length > 0;
-}
-
 /// <summary>
 /// Removes bytes that have no <see cref="StoredFile"/> row once they are older than
 /// <see cref="StorageOptions.OrphanGracePeriod"/>: what a save that failed between writing the bytes and the
@@ -49,7 +32,7 @@ internal static class SweepPolicy
 /// the app's, and the fix is to restore the files.
 /// </para>
 /// </remarks>
-internal sealed class OrphanSweeper<TContext>(
+internal sealed partial class OrphanSweeper<TContext>(
     IDbContextFactory<TContext> contextFactory,
     StorageRuntime runtime,
     ILogger<OrphanSweeper<TContext>> logger) : BackgroundService
@@ -61,7 +44,7 @@ internal sealed class OrphanSweeper<TContext>(
     internal const int MissingExamples = 5;
 
     /// <summary>How long after start the first sweep waits, before its jitter.</summary>
-    internal static readonly TimeSpan InitialDelay = TimeSpan.FromMinutes(1);
+    internal static TimeSpan InitialDelay => TimeSpan.FromMinutes(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -102,7 +85,7 @@ internal sealed class OrphanSweeper<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogError(ex, "The storage orphan sweep failed and stopped; retrying on the next interval.");
+            SweepFailed(logger, ex);
         }
     }
 
@@ -120,7 +103,7 @@ internal sealed class OrphanSweeper<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogError(ex, "The storage check for files missing from disk failed; retrying on the next interval.");
+            MissingCheckFailed(logger, ex);
         }
     }
 
@@ -169,11 +152,7 @@ internal sealed class OrphanSweeper<TContext>(
 
         if (missing > 0)
         {
-            logger.LogWarning(
-                "{Missing} stored files have a StoredFile row but no bytes under {Root} (for example {Examples}), and answer "
-                + "404. A database restored without its files looks like this: restore the .files.tgz archive that "
-                + "rask db backup wrote beside the database.",
-                missing, runtime.Options.Disk.Root, string.Join(", ", examples));
+            FilesMissing(logger, missing, runtime.Options.Disk.Root, string.Join(", ", examples));
         }
 
         return new MissingFiles(missing, examples);
@@ -181,21 +160,48 @@ internal sealed class OrphanSweeper<TContext>(
 
     internal async Task<SweepResult> SweepAsync(CancellationToken cancellationToken)
     {
-        var options = runtime.Options;
         var backend = runtime.Backend;
-        var cutoff = runtime.Time.GetUtcNow() - options.OrphanGracePeriod;
+        var cutoff = runtime.Time.GetUtcNow() - runtime.Options.OrphanGracePeriod;
 
         // First, whatever the listing below decides: a crashed save's spool file is this process's own.
         await backend.DeleteStaleSpoolAsync(cutoff, cancellationToken).ConfigureAwait(false);
 
+        var (eligible, orphanCount, orphans) = await FindOrphansAsync(cutoff, cancellationToken).ConfigureAwait(false);
+        if (orphanCount == 0)
+        {
+            return new SweepResult(0, 0, Tripped: false);
+        }
+
+        if (!await MayDeleteAsync(eligible, orphanCount, cancellationToken).ConfigureAwait(false))
+        {
+            return new SweepResult(0, orphanCount, Tripped: true);
+        }
+
+        var deleted = await DeleteOrphansAsync(orphans, cancellationToken).ConfigureAwait(false);
+        if (deleted > 0)
+        {
+            OrphansRemoved(logger, deleted);
+        }
+
+        return new SweepResult(deleted, orphanCount, Tripped: false);
+    }
+
+    /// <summary>
+    /// Lists the store: how many objects were old enough to judge, how many have no row, and the first
+    /// <see cref="MaxDeletesPerRun"/> of those.
+    /// </summary>
+    private async Task<(int Eligible, int OrphanCount, List<(Guid Id, string Key)> Orphans)> FindOrphansAsync(
+        DateTimeOffset cutoff, CancellationToken cancellationToken)
+    {
+        var prefix = runtime.Options.Prefix;
         var eligible = 0;
         var orphanCount = 0;
         var orphans = new List<(Guid Id, string Key)>();
         var batch = new List<(Guid Id, string Key)>(BatchSize);
 
-        await foreach (var entry in backend.ListAsync(options.Prefix, cancellationToken).ConfigureAwait(false))
+        await foreach (var entry in runtime.Backend.ListAsync(prefix, cancellationToken).ConfigureAwait(false))
         {
-            if (entry.LastModified > cutoff || !KeyLayout.TryParse(entry.Key, options.Prefix, out var id))
+            if (entry.LastModified > cutoff || !KeyLayout.TryParse(entry.Key, prefix, out var id))
             {
                 continue;
             }
@@ -214,41 +220,36 @@ internal sealed class OrphanSweeper<TContext>(
             orphanCount += await CollectOrphansAsync(batch, orphans, cancellationToken).ConfigureAwait(false);
         }
 
-        if (orphanCount == 0)
-        {
-            return new SweepResult(0, 0, Tripped: false);
-        }
+        return (eligible, orphanCount, orphans);
+    }
 
-        if (!SweepPolicy.MayDelete(backend.Provider, options.Prefix))
+    /// <summary>The breakers: whether deleting <paramref name="orphanCount"/> objects is safe, logging why not.</summary>
+    private async Task<bool> MayDeleteAsync(int eligible, int orphanCount, CancellationToken cancellationToken)
+    {
+        var provider = runtime.Backend.Provider;
+        if (!SweepPolicy.MayDelete(provider, runtime.Options.Prefix))
         {
-            logger.LogWarning(
-                "The storage orphan sweep found {Orphans} objects in {Provider} with no StoredFile row and deleted none: "
-                + "with no Rask__Storage__Prefix it cannot tell this app's orphans from another environment's files in the "
-                + "same bucket. Set Rask__Storage__Prefix to let it clean up.",
-                orphanCount, backend.Provider);
-            return new SweepResult(0, orphanCount, Tripped: true);
+            NoPrefix(logger, orphanCount, provider);
+            return false;
         }
 
         if (!await AnyRowAsync(cancellationToken).ConfigureAwait(false))
         {
-            logger.LogError(
-                "The storage orphan sweep found {Orphans} stored objects but the StoredFile table is empty, and deleted "
-                + "none of them: an empty table usually means the app is reading the wrong or a freshly created "
-                + "database. Check ConnectionStrings:App.",
-                orphanCount);
-            return new SweepResult(0, orphanCount, Tripped: true);
+            EmptyTable(logger, orphanCount);
+            return false;
         }
 
         if (orphanCount > Math.Max(BreakerFloor, eligible / 10))
         {
-            logger.LogError(
-                "The storage orphan sweep found {Orphans} of {Eligible} stored objects with no StoredFile row and deleted "
-                + "none of them: that many usually means the app is reading the wrong database, or two environments share "
-                + "one bucket and prefix. Check ConnectionStrings:App and Rask__Storage__Prefix.",
-                orphanCount, eligible);
-            return new SweepResult(0, orphanCount, Tripped: true);
+            TooManyOrphans(logger, orphanCount, eligible);
+            return false;
         }
 
+        return true;
+    }
+
+    private async Task<int> DeleteOrphansAsync(List<(Guid Id, string Key)> orphans, CancellationToken cancellationToken)
+    {
         var deleted = 0;
         foreach (var chunk in orphans.Chunk(BatchSize))
         {
@@ -261,17 +262,12 @@ internal sealed class OrphanSweeper<TContext>(
                     continue;
                 }
 
-                await backend.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
+                await runtime.Backend.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
                 deleted++;
             }
         }
 
-        if (deleted > 0)
-        {
-            logger.LogInformation("The storage orphan sweep removed {Deleted} objects with no StoredFile row.", deleted);
-        }
-
-        return new SweepResult(deleted, orphanCount, Tripped: false);
+        return deleted;
     }
 
     private async Task<int> CollectOrphansAsync(List<(Guid Id, string Key)> batch, List<(Guid Id, string Key)> orphans,
@@ -318,4 +314,41 @@ internal sealed class OrphanSweeper<TContext>(
             return await db.Set<StoredFile>().AnyAsync(cancellationToken).ConfigureAwait(false);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The storage orphan sweep failed and stopped; retrying on the next interval.")]
+    private static partial void SweepFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The storage check for files missing from disk failed; retrying on the next interval.")]
+    private static partial void MissingCheckFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "{Missing} stored files have a StoredFile row but no bytes under {Root} (for example {Examples}), and answer "
+            + "404. A database restored without its files looks like this: restore the .files.tgz archive that "
+            + "rask db backup wrote beside the database.")]
+    private static partial void FilesMissing(ILogger logger, int missing, string? root, string examples);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "The storage orphan sweep found {Orphans} objects in {Provider} with no StoredFile row and deleted none: "
+            + "with no Rask__Storage__Prefix it cannot tell this app's orphans from another environment's files in the "
+            + "same bucket. Set Rask__Storage__Prefix to let it clean up.")]
+    private static partial void NoPrefix(ILogger logger, int orphans, StorageProvider provider);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "The storage orphan sweep found {Orphans} stored objects but the StoredFile table is empty, and deleted "
+            + "none of them: an empty table usually means the app is reading the wrong or a freshly created "
+            + "database. Check ConnectionStrings:App.")]
+    private static partial void EmptyTable(ILogger logger, int orphans);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "The storage orphan sweep found {Orphans} of {Eligible} stored objects with no StoredFile row and deleted "
+            + "none of them: that many usually means the app is reading the wrong database, or two environments share "
+            + "one bucket and prefix. Check ConnectionStrings:App and Rask__Storage__Prefix.")]
+    private static partial void TooManyOrphans(ILogger logger, int orphans, int eligible);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The storage orphan sweep removed {Deleted} objects with no StoredFile row.")]
+    private static partial void OrphansRemoved(ILogger logger, int deleted);
 }

@@ -258,52 +258,16 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             return null;
         }
 
-        if (ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
+        if (ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol
+            || symbol.IsAbstract
+            || symbol.IsGenericType
+            || !InheritsFromComponent(symbol))
         {
             return null;
         }
 
-        if (symbol.IsAbstract || symbol.IsGenericType)
-        {
-            return null;
-        }
-
-        if (!InheritsFromComponent(symbol))
-        {
-            return null;
-        }
-
-        var templates = new List<string>();
-        Location? firstRouteAttrLocation = null;
-        Location? notFoundAttrLocation = null;
-        string? parentTypeFqn = null;
-        var hasNotFound = false;
-
-        foreach (var attr in symbol.GetAttributes())
-        {
-            var name = attr.AttributeClass?.ToDisplayString();
-            if (name == RouteAttrFullName)
-            {
-                if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string t)
-                {
-                    templates.Add(t);
-                }
-
-                firstRouteAttrLocation ??= attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
-            }
-            else if (name == NotFoundAttrFullName)
-            {
-                hasNotFound = true;
-                notFoundAttrLocation = attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
-            }
-            else if (name == ParentRouteAttrFullName)
-            {
-                if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is INamedTypeSymbol p)
-                {
-                    parentTypeFqn = p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                }
-            }
-        }
+        var (templates, firstRouteAttrLocation, hasNotFound, notFoundAttrLocation, parentTypeFqn) =
+            ReadRouteAttributes(symbol);
 
         var ns = symbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
@@ -339,7 +303,45 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             new LocationInfo(firstRouteAttrLocation),
             IsNotFound: false,
             HasRouteAttr: true,
-            IsPubliclyVisible: IsPubliclyVisible(symbol));
+            IsPubliclyVisible: IsTypePubliclyVisible(symbol));
+    }
+
+    // What a page's [Route], [NotFound] and [ParentRoute] attributes say about it.
+    private static (List<string> Templates, Location? FirstRoute, bool HasNotFound, Location? NotFound, string? ParentFqn)
+        ReadRouteAttributes(INamedTypeSymbol symbol)
+    {
+        var templates = new List<string>();
+        Location? firstRouteAttrLocation = null;
+        Location? notFoundAttrLocation = null;
+        string? parentTypeFqn = null;
+        var hasNotFound = false;
+
+        foreach (var attr in symbol.GetAttributes())
+        {
+            var name = attr.AttributeClass?.ToDisplayString();
+            if (string.Equals(name, RouteAttrFullName, StringComparison.Ordinal))
+            {
+                if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string t)
+                {
+                    templates.Add(t);
+                }
+
+                firstRouteAttrLocation ??= attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
+            }
+            else if (string.Equals(name, NotFoundAttrFullName, StringComparison.Ordinal))
+            {
+                hasNotFound = true;
+                notFoundAttrLocation = attr.ApplicationSyntaxReference?.GetSyntax().GetLocation();
+            }
+            else if (string.Equals(name, ParentRouteAttrFullName, StringComparison.Ordinal)
+                     && attr.ConstructorArguments.Length > 0
+                     && attr.ConstructorArguments[0].Value is INamedTypeSymbol p)
+            {
+                parentTypeFqn = p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            }
+        }
+
+        return (templates, firstRouteAttrLocation, hasNotFound, notFoundAttrLocation, parentTypeFqn);
     }
 
     /// <summary>
@@ -348,7 +350,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     ///     match: a static extension member takes the receiver type in its signature, so a public container
     ///     over an internal page is CS0051.
     /// </summary>
-    private static bool IsPubliclyVisible(INamedTypeSymbol symbol)
+    private static bool IsTypePubliclyVisible(INamedTypeSymbol symbol)
     {
         for (ISymbol? s = symbol; s is not null and not INamespaceSymbol; s = s.ContainingType)
         {
@@ -405,7 +407,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     {
         for (var t = symbol.BaseType; t is not null; t = t.BaseType)
         {
-            if (t.OriginalDefinition.ToDisplayString() == ComponentFullName)
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -419,120 +421,113 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         var result = new List<RoutePropInfo>();
         foreach (var member in symbol.GetMembers())
         {
-            if (member is not IPropertySymbol prop)
+            if (member is not IPropertySymbol prop
+                || prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared
+                || prop.DeclaredAccessibility != Accessibility.Public
+                || prop.SetMethod is not { DeclaredAccessibility: Accessibility.Public })
             {
                 continue;
             }
 
-            if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
-            {
-                continue;
-            }
-
-            if (prop.DeclaredAccessibility != Accessibility.Public)
-            {
-                continue;
-            }
-
-            if (prop.SetMethod is null)
-            {
-                continue;
-            }
-
-            if (prop.SetMethod.DeclaredAccessibility != Accessibility.Public)
-            {
-                continue;
-            }
-
-            string? queryParamName = null;
-            var hasQueryParam = false;
-            string? routeParamName = null;
-            var hasRouteParam = false;
-            foreach (var attr in prop.GetAttributes())
-            {
-                var attrName = attr.AttributeClass?.ToDisplayString();
-                if (attrName == QueryParamAttrFullName)
-                {
-                    hasQueryParam = true;
-                    if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string qn)
-                    {
-                        queryParamName = qn;
-                    }
-                }
-                else if (attrName == RouteParamAttrFullName)
-                {
-                    hasRouteParam = true;
-                    if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string rn)
-                    {
-                        routeParamName = rn;
-                    }
-                }
-            }
-
-            var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
-                             || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
-                                 SpecialType.System_Nullable_T);
-
-            var underlyingTypeName = GetUnderlyingTypeName(prop.Type);
-
-            // Through GeneratedModelShape: a Rask.Data entity's generated model is an unresolved error type to
-            // this generator, and its bare display name would not bind from the generated routes file.
-            var typeFqn = Shared.GeneratedModelShape.DisplayName(
-                prop.Type,
-                SymbolDisplayFormat.FullyQualifiedFormat
-                    .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                              | SymbolDisplayMiscellaneousOptions.UseSpecialTypes),
-                compilation);
-
-            var isParsable = IsBindableType(prop.Type);
-
-            var underlyingSymbol = GetUnderlying(prop.Type);
-            var underlyingTypeFqn = Shared.GeneratedModelShape.DisplayName(
-                underlyingSymbol, SymbolDisplayFormat.FullyQualifiedFormat, compilation);
-
-            // Register every parsable type that is NOT a compiler primitive with TypedParserRegistry so
-            // a full-AOT (no MakeGenericMethod) build can bind it. SpecialType.None deliberately covers
-            // more than user types — Guid, the date/time types, Int128/UInt128/Half and System.Version
-            // are all non-special IParsable structs. Testing SpecialType (not the namespace) is what
-            // keeps a System-namespace type like Version, which is NOT in the registry's primitive
-            // seed, from silently falling through the gap. Re-registering a type the registry already
-            // seeds is an idempotent no-op, and registrations are deduped by FQN at emit time.
-            var needsAotRegistration = isParsable && underlyingSymbol.SpecialType == SpecialType.None;
-
-            var loc = prop.Locations.FirstOrDefault();
-
-            result.Add(new RoutePropInfo(
-                prop.Name,
-                typeFqn,
-                underlyingTypeName,
-                isNullable,
-                hasQueryParam,
-                queryParamName,
-                hasRouteParam,
-                routeParamName,
-                isParsable,
-                underlyingTypeFqn,
-                needsAotRegistration,
-                new LocationInfo(loc)));
+            result.Add(ToRouteProp(prop, compilation));
         }
 
         return result;
     }
 
-    private static OrphanCandidate? GetOrphanCandidate(GeneratorSyntaxContext ctx)
+    private static RoutePropInfo ToRouteProp(IPropertySymbol prop, Compilation compilation)
     {
-        if (ctx.Node is not ClassDeclarationSyntax classDecl)
+        var (hasQueryParam, queryParamName, hasRouteParam, routeParamName) = ReadParamAttributes(prop);
+
+        var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
+                         || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
+                             SpecialType.System_Nullable_T);
+
+        var underlyingTypeName = GetUnderlyingTypeName(prop.Type);
+
+        // Through GeneratedModelShape: a Rask.Data entity's generated model is an unresolved error type to
+        // this generator, and its bare display name would not bind from the generated routes file.
+        var typeFqn = Shared.GeneratedModelShape.DisplayName(
+            prop.Type,
+            SymbolDisplayFormat.FullyQualifiedFormat
+                .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                                          | SymbolDisplayMiscellaneousOptions.UseSpecialTypes),
+            compilation);
+
+        var isParsable = IsBindableType(prop.Type);
+
+        var underlyingSymbol = GetUnderlying(prop.Type);
+        var underlyingTypeFqn = Shared.GeneratedModelShape.DisplayName(
+            underlyingSymbol, SymbolDisplayFormat.FullyQualifiedFormat, compilation);
+
+        // Register every parsable type that is NOT a compiler primitive with TypedParserRegistry so
+        // a full-AOT (no MakeGenericMethod) build can bind it. SpecialType.None deliberately covers
+        // more than user types — Guid, the date/time types, Int128/UInt128/Half and System.Version
+        // are all non-special IParsable structs. Testing SpecialType (not the namespace) is what
+        // keeps a System-namespace type like Version, which is NOT in the registry's primitive
+        // seed, from silently falling through the gap. Re-registering a type the registry already
+        // seeds is an idempotent no-op, and registrations are deduped by FQN at emit time.
+        var needsAotRegistration = isParsable && underlyingSymbol.SpecialType == SpecialType.None;
+
+        var loc = prop.Locations.FirstOrDefault();
+
+        return new RoutePropInfo(
+            prop.Name,
+            typeFqn,
+            underlyingTypeName,
+            isNullable,
+            hasQueryParam,
+            queryParamName,
+            hasRouteParam,
+            routeParamName,
+            isParsable,
+            underlyingTypeFqn,
+            needsAotRegistration,
+            new LocationInfo(loc));
+    }
+
+    // A property's [QueryParam] / [RouteParam], each with the explicit name it gives, if any.
+    private static (bool HasQuery, string? QueryName, bool HasRoute, string? RouteName) ReadParamAttributes(
+        IPropertySymbol prop)
+    {
+        string? queryParamName = null;
+        var hasQueryParam = false;
+        string? routeParamName = null;
+        var hasRouteParam = false;
+        foreach (var attr in prop.GetAttributes())
         {
-            return null;
+            var attrName = attr.AttributeClass?.ToDisplayString();
+            if (string.Equals(attrName, QueryParamAttrFullName, StringComparison.Ordinal))
+            {
+                hasQueryParam = true;
+                if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string qn)
+                {
+                    queryParamName = qn;
+                }
+            }
+            else if (string.Equals(attrName, RouteParamAttrFullName, StringComparison.Ordinal))
+            {
+                hasRouteParam = true;
+                if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string rn)
+                {
+                    routeParamName = rn;
+                }
+            }
         }
 
-        if (ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
+        return (hasQueryParam, queryParamName, hasRouteParam, routeParamName);
+    }
+
+    private static OrphanCandidate? GetOrphanCandidate(GeneratorSyntaxContext ctx)
+    {
+        if (ctx.Node is not ClassDeclarationSyntax classDecl
+            || ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
         {
             return null;
         }
 
         var classAttrs = symbol.GetAttributes();
-        if (classAttrs.Any(a => a.AttributeClass?.ToDisplayString() == SkipFactoryAttrFullName))
+        if (classAttrs.Any(a => string.Equals(a.AttributeClass?.ToDisplayString(), SkipFactoryAttrFullName, StringComparison.Ordinal)))
         {
             return null;
         }
@@ -540,7 +535,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         var inheritsComponent = InheritsFromComponent(symbol);
 
         // A class is a route target if it carries [Route].
-        var isRouteTarget = classAttrs.Any(a => a.AttributeClass?.ToDisplayString() == RouteAttrFullName);
+        var isRouteTarget = classAttrs.Any(a => string.Equals(a.AttributeClass?.ToDisplayString(), RouteAttrFullName, StringComparison.Ordinal));
 
         string? reason = null;
         if (!inheritsComponent)
@@ -561,33 +556,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             return null;
         }
 
-        var props = new List<OrphanProp>();
-        foreach (var member in symbol.GetMembers())
-        {
-            if (member is not IPropertySymbol prop)
-            {
-                continue;
-            }
-
-            if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
-            {
-                continue;
-            }
-
-            foreach (var attr in prop.GetAttributes())
-            {
-                var name = attr.AttributeClass?.ToDisplayString();
-                if (name != RouteParamAttrFullName && name != QueryParamAttrFullName)
-                {
-                    continue;
-                }
-
-                var loc = attr.ApplicationSyntaxReference?.GetSyntax().GetLocation()
-                          ?? prop.Locations.FirstOrDefault();
-                props.Add(new OrphanProp(prop.Name, name == RouteParamAttrFullName, new LocationInfo(loc)));
-            }
-        }
-
+        var props = OrphanProps(symbol);
         if (props.Count == 0)
         {
             return null;
@@ -597,6 +566,34 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             reason,
             new EquatableArray<OrphanProp>(props));
+    }
+
+    // Every [RouteParam] / [QueryParam] on a class that cannot bind them.
+    private static List<OrphanProp> OrphanProps(INamedTypeSymbol symbol)
+    {
+        var props = new List<OrphanProp>();
+        foreach (var member in symbol.GetMembers())
+        {
+            if (member is not IPropertySymbol prop || prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
+            {
+                continue;
+            }
+
+            foreach (var attr in prop.GetAttributes())
+            {
+                var name = attr.AttributeClass?.ToDisplayString();
+                if (!string.Equals(name, RouteParamAttrFullName, StringComparison.Ordinal) && !string.Equals(name, QueryParamAttrFullName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var loc = attr.ApplicationSyntaxReference?.GetSyntax().GetLocation()
+                          ?? prop.Locations.FirstOrDefault();
+                props.Add(new OrphanProp(prop.Name, string.Equals(name, RouteParamAttrFullName, StringComparison.Ordinal), new LocationInfo(loc)));
+            }
+        }
+
+        return props;
     }
 
     private static void EmitOrphanDiagnostics(SourceProductionContext spc, ImmutableArray<OrphanCandidate> candidates)
@@ -647,12 +644,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         foreach (var iface in underlying.AllInterfaces)
         {
             var def = iface.OriginalDefinition;
-            if (def.MetadataName != "IParsable`1")
+            if (!string.Equals(def.MetadataName, "IParsable`1", StringComparison.Ordinal))
             {
                 continue;
             }
 
-            if (def.ContainingNamespace?.ToDisplayString() != "System")
+            if (!string.Equals(def.ContainingNamespace?.ToDisplayString(), "System", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -675,6 +672,40 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             return;
         }
 
+        var filtered = DropAmbiguous(spc, candidates);
+
+        filtered = DropDuplicateNotFound(spc, filtered);
+
+        ReportRouteCollisions(spc, filtered);
+
+        if (filtered.Count == 0)
+        {
+            return;
+        }
+
+        var byFqn = filtered
+            .GroupBy(c => c.FullyQualifiedName, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
+        // NotFound pages don't get Routes.X() factories — nobody navigates to NotFound by name.
+        var routed = byFqn.Values.Where(c => !c.IsNotFound).ToList();
+        if (routed.Count > 0)
+        {
+            EmitRoutesClass(spc, routed, byFqn, supportsExtensionMembers, rootNamespace);
+        }
+
+        // Deduplicate by fully-qualified type name before emitting the registry. A `partial`
+        // routed page whose declarations carry attributes on more than one part (e.g. [Route] on
+        // one and [Obsolete]/a source-gen attribute on another) yields one Candidate per attributed
+        // declaration — all with the same FQN. Emitting them all produced duplicate
+        // RouteRegistration entries (competing Route nodes for the same page) and duplicate
+        // [DynamicDependency] attributes. byFqn already keeps the first Candidate per FQN (its
+        // Templates reflect every [Route] on the merged symbol), so the registry uses that.
+        EmitRegistryInitializer(spc, byFqn.Values.ToList());
+    }
+
+    private static List<Candidate> DropAmbiguous(SourceProductionContext spc, ImmutableArray<Candidate> candidates)
+    {
         // RASK013: a class with both [NotFound] and [Route] is ambiguous — drop those
         // candidates from registry emission so neither catch-all nor typed route gets
         // registered for a misconfigured type.
@@ -691,6 +722,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             filtered.Add(c);
         }
 
+        return filtered;
+    }
+
+    private static List<Candidate> DropDuplicateNotFound(SourceProductionContext spc, List<Candidate> filtered)
+    {
         // RASK012: only one [NotFound] per assembly. Report on every duplicate after the
         // first (sorted by FQN for stable diagnostics).
         var notFoundCandidates = filtered.Where(c => c.IsNotFound)
@@ -708,10 +744,15 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             // create competing catch-all registrations.
             var keepFqn = notFoundCandidates[0].FullyQualifiedName;
             filtered = filtered
-                .Where(c => !c.IsNotFound || c.FullyQualifiedName == keepFqn)
+                .Where(c => !c.IsNotFound || string.Equals(c.FullyQualifiedName, keepFqn, StringComparison.Ordinal))
                 .ToList();
         }
 
+        return filtered;
+    }
+
+    private static void ReportRouteCollisions(SourceProductionContext spc, List<Candidate> filtered)
+    {
         // RASK031: two different top-level pages must not resolve to the same route — both would match
         // the same URL and the winner would be arbitrary. Group by the NORMALIZED pattern the runtime
         // router actually matches on (see NormalizeTemplate — case-insensitive literals, trimmed slashes,
@@ -746,16 +787,16 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             }
         }
 
-        foreach (var entry in collisions.OrderBy(e => e.Key, StringComparer.Ordinal))
+        foreach (var pages in collisions.OrderBy(e => e.Key, StringComparer.Ordinal).Select(e => e.Value))
         {
-            if (entry.Value.Count < 2)
+            if (pages.Count < 2)
             {
                 continue;
             }
 
             // Report on every colliding page after the first (ordered by fully-qualified name for a
             // stable canonical page), naming this page's own template and the page it collides with.
-            var ordered = entry.Value.OrderBy(x => x.Page.FullyQualifiedName, StringComparer.Ordinal).ToList();
+            var ordered = pages.OrderBy(x => x.Page.FullyQualifiedName, StringComparer.Ordinal).ToList();
             var firstFqn = ordered[0].Page.FullyQualifiedName;
             foreach (var dup in ordered.Skip(1))
             {
@@ -763,31 +804,6 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                     dup.Template, firstFqn));
             }
         }
-
-        if (filtered.Count == 0)
-        {
-            return;
-        }
-
-        var byFqn = filtered
-            .GroupBy(c => c.FullyQualifiedName, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
-
-        // NotFound pages don't get Routes.X() factories — nobody navigates to NotFound by name.
-        var routed = byFqn.Values.Where(c => !c.IsNotFound).ToList();
-        if (routed.Count > 0)
-        {
-            EmitRoutesClass(spc, routed, byFqn, supportsExtensionMembers, rootNamespace);
-        }
-
-        // Deduplicate by fully-qualified type name before emitting the registry. A `partial`
-        // routed page whose declarations carry attributes on more than one part (e.g. [Route] on
-        // one and [Obsolete]/a source-gen attribute on another) yields one Candidate per attributed
-        // declaration — all with the same FQN. Emitting them all produced duplicate
-        // RouteRegistration entries (competing Route nodes for the same page) and duplicate
-        // [DynamicDependency] attributes. byFqn already keeps the first Candidate per FQN (its
-        // Templates reflect every [Route] on the merged symbol), so the registry uses that.
-        EmitRegistryInitializer(spc, byFqn.Values.ToList());
     }
 
     /// <summary>
@@ -1048,22 +1064,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("internal static class __RaskRoutesRegistry");
         sb.AppendLine("{");
-        // Per-page [DynamicDependency] tells the trimmer to keep public ctors and properties on
-        // every routed page type. Pages are instantiated via ActivatorUtilities.CreateInstance
-        // (needs ctors) and bound via reflection over [RouteParam]/[QueryParam] properties
-        // (needs property accessors). Custom attributes on the type — [Route], [Authorize],
-        // [AllowAnonymous] — are preserved by the trimmer whenever the type metadata is kept,
-        // so the auth guard and template resolver work transparently.
-        foreach (var c in candidates.OrderBy(x => x.FullyQualifiedName, StringComparer.Ordinal))
-        {
-            sb.Append("    [global::System.Diagnostics.CodeAnalysis.DynamicDependency(")
-                .Append(
-                    "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors | " +
-                    "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties")
-                .Append(", typeof(")
-                .Append(c.FullyQualifiedName)
-                .AppendLine("))]");
-        }
+        AppendDynamicDependencies(sb, candidates);
 
         // Init() only bootstraps; RefreshAll() holds the whole body so the hot-reload coordinator
         // can re-invoke it after a metadata update ([ModuleInitializer] never runs twice). It must
@@ -1081,6 +1082,40 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         sb.AppendLine(
             "        global::Rask.Core.Routing.RouteRegistry.Replace(typeof(__RaskRoutesRegistry), new global::Rask.Core.Routing.RouteRegistration[]");
         sb.AppendLine("        {");
+        AppendRegistrations(sb, candidates);
+
+        sb.AppendLine("        });");
+
+        AppendParsableRegistrations(sb, candidates);
+
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+
+        spc.AddSource("__RaskRoutesRegistry.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static void AppendDynamicDependencies(StringBuilder sb, IReadOnlyList<Candidate> candidates)
+    {
+        // Per-page [DynamicDependency] tells the trimmer to keep public ctors and properties on
+        // every routed page type. Pages are instantiated via ActivatorUtilities.CreateInstance
+        // (needs ctors) and bound via reflection over [RouteParam]/[QueryParam] properties
+        // (needs property accessors). Custom attributes on the type — [Route], [Authorize],
+        // [AllowAnonymous] — are preserved by the trimmer whenever the type metadata is kept,
+        // so the auth guard and template resolver work transparently.
+        foreach (var c in candidates.OrderBy(x => x.FullyQualifiedName, StringComparer.Ordinal))
+        {
+            sb.Append("    [global::System.Diagnostics.CodeAnalysis.DynamicDependency(")
+                .Append(
+                    "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors | " +
+                    "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties")
+                .Append(", typeof(")
+                .Append(c.FullyQualifiedName)
+                .AppendLine("))]");
+        }
+    }
+
+    private static void AppendRegistrations(StringBuilder sb, IReadOnlyList<Candidate> candidates)
+    {
         foreach (var c in candidates.OrderBy(x => x.FullyQualifiedName, StringComparer.Ordinal))
         {
             // One RouteRegistration per [Route] attribute. RouteRegistry.BuildTree groups
@@ -1105,9 +1140,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 sb.AppendLine("),");
             }
         }
+    }
 
-        sb.AppendLine("        });");
-
+    private static void AppendParsableRegistrations(StringBuilder sb, IReadOnlyList<Candidate> candidates)
+    {
         // Register every non-primitive IParsable<T> route/query param type with the reflection-free
         // parser registry so a full-AOT publish (no MakeGenericMethod) can still bind it. Compiler
         // primitives are always seeded by the framework, so they are skipped; deduped by FQN.
@@ -1125,35 +1161,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 .Append(fqn)
                 .AppendLine(">();");
         }
-
-        sb.AppendLine("    }");
-        sb.AppendLine("}");
-
-        spc.AddSource("__RaskRoutesRegistry.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private static void EmitRouteFactory(SourceProductionContext spc, StringBuilder sb, StringBuilder? extSb,
         Candidate c, Dictionary<string, Candidate> byFqn, string helperFqn)
     {
-        var unbindable = false;
-        foreach (var prop in c.Properties)
-        {
-            if (!(prop.HasRouteParam || prop.HasQueryParam))
-            {
-                continue;
-            }
-
-            if (prop.IsParsable)
-            {
-                continue;
-            }
-
-            spc.ReportDiagnostic(Diagnostic.Create(Rask011, prop.Location.ToLocation(), c.FullyQualifiedName,
-                prop.Name, prop.TypeFqn));
-            unbindable = true;
-        }
-
-        if (unbindable)
+        if (ReportUnbindable(spc, c))
         {
             EmitStub(sb, c);
             return;
@@ -1163,7 +1176,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         // misconfigured template) and aggregate the set of matched RouteParam property names
         // across all of them. A RouteParam that appears in at least one template's segments
         // is considered bound — RASK008 only fires for properties that no template references.
-        List<TemplatePart>? firstParts = null;
+        List<ITemplatePart>? firstParts = null;
         List<ResolvedPathParam>? firstResolved = null;
         var matchedAcrossTemplates = new HashSet<string>(StringComparer.Ordinal);
 
@@ -1183,40 +1196,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                 return;
             }
 
-            var pathParams = parts.OfType<ParamPart>().ToList();
-            var resolved = new List<ResolvedPathParam>();
-
-            foreach (var p in pathParams)
+            if (ResolvePathParams(spc, c, parts, matchedAcrossTemplates) is not { } resolved)
             {
-                var prop = c.Properties.FirstOrDefault(x =>
-                    x.HasRouteParam &&
-                    string.Equals(x.RouteParamName ?? x.Name, p.Name, StringComparison.OrdinalIgnoreCase));
-                if (prop.Name is null)
-                {
-                    spc.ReportDiagnostic(Diagnostic.Create(Rask004, c.RouteAttrLocation.ToLocation(), p.Name,
-                        c.FullyQualifiedName));
-                    EmitStub(sb, c);
-                    return;
-                }
-
-                if (prop.HasQueryParam)
-                {
-                    spc.ReportDiagnostic(Diagnostic.Create(Rask006, prop.Location.ToLocation(), c.FullyQualifiedName,
-                        prop.Name, p.Name));
-                    EmitStub(sb, c);
-                    return;
-                }
-
-                if (!IsTypeCompatible(prop.UnderlyingTypeName, p.Constraint))
-                {
-                    spc.ReportDiagnostic(Diagnostic.Create(Rask005, prop.Location.ToLocation(), c.FullyQualifiedName,
-                        prop.Name, prop.TypeFqn, p.Constraint ?? "(none)"));
-                    EmitStub(sb, c);
-                    return;
-                }
-
-                matchedAcrossTemplates.Add(prop.Name);
-                resolved.Add(new ResolvedPathParam(p, prop));
+                EmitStub(sb, c);
+                return;
             }
 
             if (i == 0)
@@ -1227,15 +1210,13 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         // RASK008: orphan [RouteParam] = a property no template segment binds.
-        foreach (var prop in c.Properties)
+        var orphan = c.Properties.FirstOrDefault(p => p.HasRouteParam && !matchedAcrossTemplates.Contains(p.Name));
+        if (orphan.Name is not null)
         {
-            if (prop.HasRouteParam && !matchedAcrossTemplates.Contains(prop.Name))
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask008, prop.Location.ToLocation(), c.FullyQualifiedName,
-                    prop.Name, prop.RouteParamName ?? prop.Name));
-                EmitStub(sb, c);
-                return;
-            }
+            spc.ReportDiagnostic(Diagnostic.Create(Rask008, orphan.Location.ToLocation(), c.FullyQualifiedName,
+                orphan.Name, orphan.RouteParamName ?? orphan.Name));
+            EmitStub(sb, c);
+            return;
         }
 
         var queryProps = c.Properties.Where(p => p.HasQueryParam).ToList();
@@ -1243,6 +1224,59 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         // URL formatter is built from the first template only — see TryResolveFullTemplate's
         // index-0 comment for the rationale.
         EmitFactoryBody(sb, extSb, c, firstParts!, firstResolved!, queryProps, helperFqn);
+    }
+
+    // RASK011 for every [RouteParam] / [QueryParam] whose type cannot be parsed from a URL.
+    private static bool ReportUnbindable(SourceProductionContext spc, Candidate c)
+    {
+        var unbindable = false;
+        foreach (var prop in c.Properties.Where(static p => (p.HasRouteParam || p.HasQueryParam) && !p.IsParsable))
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask011, prop.Location.ToLocation(), c.FullyQualifiedName,
+                prop.Name, prop.TypeFqn));
+            unbindable = true;
+        }
+
+        return unbindable;
+    }
+
+    // Binds each path parameter of one template to its [RouteParam] property, or reports why one
+    // cannot be bound (RASK004/005/006) and returns null.
+    private static List<ResolvedPathParam>? ResolvePathParams(
+        SourceProductionContext spc, Candidate c, List<ITemplatePart> parts, HashSet<string> matchedAcrossTemplates)
+    {
+        var resolved = new List<ResolvedPathParam>();
+        foreach (var p in parts.OfType<ParamPart>())
+        {
+            var prop = c.Properties.FirstOrDefault(x =>
+                x.HasRouteParam &&
+                string.Equals(x.RouteParamName ?? x.Name, p.Name, StringComparison.OrdinalIgnoreCase));
+            if (prop.Name is null)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask004, c.RouteAttrLocation.ToLocation(), p.Name,
+                    c.FullyQualifiedName));
+                return null;
+            }
+
+            if (prop.HasQueryParam)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask006, prop.Location.ToLocation(), c.FullyQualifiedName,
+                    prop.Name, p.Name));
+                return null;
+            }
+
+            if (!IsTypeCompatible(prop.UnderlyingTypeName, p.Constraint))
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask005, prop.Location.ToLocation(), c.FullyQualifiedName,
+                    prop.Name, prop.TypeFqn, p.Constraint ?? "(none)"));
+                return null;
+            }
+
+            matchedAcrossTemplates.Add(prop.Name);
+            resolved.Add(new ResolvedPathParam(p, prop));
+        }
+
+        return resolved;
     }
 
     // The doc on a generated route helper. `Routes.UserPage(42)` is what a link is SUPPOSED to be written
@@ -1281,7 +1315,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     }
 
     private static void EmitFactoryBody(StringBuilder sb, StringBuilder? extSb, Candidate c,
-        List<TemplatePart> parts, List<ResolvedPathParam> pathParams, List<RoutePropInfo> queryProps,
+        List<ITemplatePart> parts, List<ResolvedPathParam> pathParams, List<RoutePropInfo> queryProps,
         string helperFqn)
     {
         // Signature: required path params first (in declaration order), then optional, then query
@@ -1289,6 +1323,43 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
         EmitRouteDoc(sb, c);
         sb.Append("    public static ").Append(RouteUrlFullName).Append(' ').Append(c.TypeName).Append('(');
+        AppendFactoryParameters(sb, orderedPath, queryProps);
+
+        sb.AppendLine(")");
+        sb.AppendLine("    {");
+
+        // Build path
+        AppendPathExpression(sb, parts, pathParams);
+
+        // Empty path → root
+        sb.AppendLine("        if (__path.Length == 0) __path = \"/\";");
+
+        // Build query string
+        if (queryProps.Count > 0)
+        {
+            sb.AppendLine("        global::System.Text.StringBuilder? __qs = null;");
+            AppendQueryString(sb, queryProps);
+
+            sb.Append("        return new ").Append(RouteUrlFullName).Append("(__path, __qs?.ToString(), typeof(")
+                .Append(c.FullyQualifiedName).AppendLine("));");
+        }
+        else
+        {
+            sb.Append("        return new ").Append(RouteUrlFullName).Append("(__path, null, typeof(")
+                .Append(c.FullyQualifiedName).AppendLine("));");
+        }
+
+        sb.AppendLine("    }");
+
+        if (extSb is not null)
+        {
+            EmitNavigationExtension(extSb, c, orderedPath, queryProps, helperFqn);
+        }
+    }
+
+    private static void AppendFactoryParameters(
+        StringBuilder sb, List<ResolvedPathParam> orderedPath, List<RoutePropInfo> queryProps)
+    {
         var first = true;
         foreach (var rp in orderedPath)
         {
@@ -1317,11 +1388,10 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             var paramType = qp.IsNullable ? qp.TypeFqn : qp.TypeFqn + "?";
             sb.Append(paramType).Append(' ').Append(qp.Name).Append(" = null");
         }
+    }
 
-        sb.AppendLine(")");
-        sb.AppendLine("    {");
-
-        // Build path
+    private static void AppendPathExpression(StringBuilder sb, List<ITemplatePart> parts, List<ResolvedPathParam> pathParams)
+    {
         sb.Append("        var __path = \"\"");
         var pendingLiteral = new StringBuilder();
         for (var i = 0; i < parts.Count; i++)
@@ -1367,60 +1437,40 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine(";");
+    }
 
-        // Empty path → root
-        sb.AppendLine("        if (__path.Length == 0) __path = \"/\";");
-
-        // Build query string
-        if (queryProps.Count > 0)
+    private static void AppendQueryString(StringBuilder sb, List<RoutePropInfo> queryProps)
+    {
+        foreach (var qp in queryProps)
         {
-            sb.AppendLine("        global::System.Text.StringBuilder? __qs = null;");
-            foreach (var qp in queryProps)
+            var ident = qp.Name;
+            var qpName = qp.QueryParamName ?? qp.Name;
+            // URL-encode the query KEY at generation time (the value is encoded at runtime via
+            // EncodeExpr). The key is a compile-time constant, so baking the encoded form costs
+            // nothing and keeps an explicit [QueryParam("a b")] / a name with '&'/'=' from
+            // emitting a malformed query string. Property-name-derived keys are valid
+            // identifiers, so this is a no-op for them.
+            var encodedKey = Uri.EscapeDataString(qpName);
+            if (qp.IsNullable)
             {
-                var ident = qp.Name;
-                var qpName = qp.QueryParamName ?? qp.Name;
-                // URL-encode the query KEY at generation time (the value is encoded at runtime via
-                // EncodeExpr). The key is a compile-time constant, so baking the encoded form costs
-                // nothing and keeps an explicit [QueryParam("a b")] / a name with '&'/'=' from
-                // emitting a malformed query string. Property-name-derived keys are valid
-                // identifiers, so this is a no-op for them.
-                var encodedKey = Uri.EscapeDataString(qpName);
-                if (qp.IsNullable)
-                {
-                    sb.Append("        if (").Append(ident).AppendLine(" is not null)");
-                    sb.AppendLine("        {");
-                    sb.AppendLine("            __qs ??= new global::System.Text.StringBuilder();");
-                    sb.AppendLine("            __qs.Append(__qs.Length == 0 ? '?' : '&');");
-                    sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
-                        .AppendLine("=\");");
-                    sb.Append("            __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
-                    sb.AppendLine("        }");
-                }
-                else
-                {
-                    // Non-nullable required query param — always emit
-                    sb.AppendLine("        __qs ??= new global::System.Text.StringBuilder();");
-                    sb.AppendLine("        __qs.Append(__qs.Length == 0 ? '?' : '&');");
-                    sb.Append("        __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
-                        .AppendLine("=\");");
-                    sb.Append("        __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
-                }
+                sb.Append("        if (").Append(ident).AppendLine(" is not null)");
+                sb.AppendLine("        {");
+                sb.AppendLine("            __qs ??= new global::System.Text.StringBuilder();");
+                sb.AppendLine("            __qs.Append(__qs.Length == 0 ? '?' : '&');");
+                sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
+                    .AppendLine("=\");");
+                sb.Append("            __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
+                sb.AppendLine("        }");
             }
-
-            sb.Append("        return new ").Append(RouteUrlFullName).Append("(__path, __qs?.ToString(), typeof(")
-                .Append(c.FullyQualifiedName).AppendLine("));");
-        }
-        else
-        {
-            sb.Append("        return new ").Append(RouteUrlFullName).Append("(__path, null, typeof(")
-                .Append(c.FullyQualifiedName).AppendLine("));");
-        }
-
-        sb.AppendLine("    }");
-
-        if (extSb is not null)
-        {
-            EmitNavigationExtension(extSb, c, orderedPath, queryProps, helperFqn);
+            else
+            {
+                // Non-nullable required query param — always emit
+                sb.AppendLine("        __qs ??= new global::System.Text.StringBuilder();");
+                sb.AppendLine("        __qs.Append(__qs.Length == 0 ? '?' : '&');");
+                sb.Append("        __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
+                    .AppendLine("=\");");
+                sb.Append("        __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
+            }
         }
     }
 
@@ -1585,11 +1635,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
         switch (constraint)
         {
-            case "int": return underlyingTypeName == "int";
-            case "long": return underlyingTypeName == "long";
-            case "bool": return underlyingTypeName == "bool";
-            case "guid": return underlyingTypeName == "global::System.Guid";
-            default: return underlyingTypeName == "string";
+            case "int": return string.Equals(underlyingTypeName, "int", StringComparison.Ordinal);
+            case "long": return string.Equals(underlyingTypeName, "long", StringComparison.Ordinal);
+            case "bool": return string.Equals(underlyingTypeName, "bool", StringComparison.Ordinal);
+            case "guid": return string.Equals(underlyingTypeName, "global::System.Guid", StringComparison.Ordinal);
+            default: return string.Equals(underlyingTypeName, "string", StringComparison.Ordinal);
         }
     }
 
@@ -1670,9 +1720,9 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static bool TryParseTemplate(string template, out List<TemplatePart> parts, out string error)
+    private static bool TryParseTemplate(string template, out List<ITemplatePart> parts, out string error)
     {
-        parts = new List<TemplatePart>();
+        parts = new List<ITemplatePart>();
         error = string.Empty;
         if (string.IsNullOrEmpty(template))
         {
@@ -1696,40 +1746,12 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
             if (seg[0] == '{' && seg[seg.Length - 1] == '}')
             {
-                var inner = seg.Substring(1, seg.Length - 2);
-                if (inner.StartsWith("**", StringComparison.Ordinal))
+                if (ParseParam(seg.Substring(1, seg.Length - 2), out error) is not { } param)
                 {
-                    error = "catch-all '{**...}' segments are not supported in typed routes — name the segments you need, e.g. \"/files/{folder}/{name}\", or match the rest inside the page";
                     return false;
                 }
 
-                var optional = false;
-                if (inner.EndsWith("?", StringComparison.Ordinal))
-                {
-                    optional = true;
-                    inner = inner.Substring(0, inner.Length - 1);
-                }
-
-                string name;
-                string? constraint = null;
-                var colon = inner.IndexOf(':');
-                if (colon >= 0)
-                {
-                    name = inner.Substring(0, colon);
-                    constraint = inner.Substring(colon + 1).ToLowerInvariant();
-                }
-                else
-                {
-                    name = inner;
-                }
-
-                if (name.Length == 0)
-                {
-                    error = "param has no name — name it, e.g. \"/users/{id}\" or \"/users/{id:guid?}\"";
-                    return false;
-                }
-
-                parts.Add(new ParamPart(name, constraint, optional));
+                parts.Add(param);
             }
             else if (seg.IndexOf('{') >= 0 || seg.IndexOf('}') >= 0)
             {
@@ -1743,6 +1765,45 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         return true;
+    }
+
+    // The inside of one `{…}` segment: name, optional `:constraint`, optional trailing `?`.
+    private static ParamPart? ParseParam(string inner, out string error)
+    {
+        error = string.Empty;
+        if (inner.StartsWith("**", StringComparison.Ordinal))
+        {
+            error = "catch-all '{**...}' segments are not supported in typed routes — name the segments you need, e.g. \"/files/{folder}/{name}\", or match the rest inside the page";
+            return null;
+        }
+
+        var optional = false;
+        if (inner.EndsWith("?", StringComparison.Ordinal))
+        {
+            optional = true;
+            inner = inner.Substring(0, inner.Length - 1);
+        }
+
+        string name;
+        string? constraint = null;
+        var colon = inner.IndexOf(':');
+        if (colon >= 0)
+        {
+            name = inner.Substring(0, colon);
+            constraint = inner.Substring(colon + 1).ToLowerInvariant();
+        }
+        else
+        {
+            name = inner;
+        }
+
+        if (name.Length == 0)
+        {
+            error = "param has no name — name it, e.g. \"/users/{id}\" or \"/users/{id:guid?}\"";
+            return null;
+        }
+
+        return new ParamPart(name, constraint, optional);
     }
 
     private static string EscapeForCSharpStringLiteral(string s)
@@ -1764,11 +1825,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private abstract record TemplatePart;
+    private interface ITemplatePart;
 
-    private sealed record LiteralPart(string Value) : TemplatePart;
+    private sealed record LiteralPart(string Value) : ITemplatePart;
 
-    private sealed record ParamPart(string Name, string? Constraint, bool Optional) : TemplatePart;
+    private sealed record ParamPart(string Name, string? Constraint, bool Optional) : ITemplatePart;
 
     private sealed record ResolvedPathParam(ParamPart Part, RoutePropInfo Prop);
 

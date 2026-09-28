@@ -72,7 +72,7 @@ public sealed class IncompleteChainCodeFixProvider : CodeFixProvider
         foreach (var link in links)
         {
             var name = ((MemberAccessExpressionSyntax)link.Expression).Name.Identifier.ValueText;
-            if (missing.Any(m => m.Name == name) && !later.ContainsKey(name))
+            if (missing.Any(m => string.Equals(m.Name, name, StringComparison.Ordinal)) && !later.ContainsKey(name))
             {
                 later[name] = link.ArgumentList.ToString();
             }

@@ -72,26 +72,7 @@ public static class RaskSqliteDbContextOptionsExtensions
             services, "Rask:Sqlite", static (section, o) => section.Bind(o), configure);
 
         var retry = options.Retry;
-        try
-        {
-            retry.Validate();
-
-            if (retry.Enabled)
-            {
-                // The async execution strategy owns waiting: turn off SQLite's native busy handler so BUSY
-                // surfaces to the strategy instead of blocking a thread inside native code.
-                options.BusyTimeout = TimeSpan.Zero;
-            }
-
-            options.Validate();
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
-        {
-            // Reported like every other bad setting — which section, and why — since the value may well have
-            // come from appsettings rather than the callback.
-            throw new OptionsValidationException(
-                Microsoft.Extensions.Options.Options.DefaultName, typeof(SqliteOptions), [$"Rask:Sqlite: {ex.Message}"]);
-        }
+        Validate(options);
 
         // EF Core resolves exactly one IMigrationsSqlGenerator, so this is a single choice rather than two
         // replacements: registering a strict generator and a range-exclusion generator separately would keep
@@ -190,6 +171,30 @@ public static class RaskSqliteDbContextOptionsExtensions
         this DbContextOptionsBuilder<TContext> optionsBuilder)
         where TContext : DbContext
         => (DbContextOptionsBuilder<TContext>)UseRaskFullTextSearch((DbContextOptionsBuilder)optionsBuilder);
+
+    private static void Validate(SqliteOptions options)
+    {
+        try
+        {
+            options.Retry.Validate();
+
+            if (options.Retry.Enabled)
+            {
+                // The async execution strategy owns waiting: turn off SQLite's native busy handler so BUSY
+                // surfaces to the strategy instead of blocking a thread inside native code.
+                options.BusyTimeout = TimeSpan.Zero;
+            }
+
+            options.Validate();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            // Reported like every other bad setting — which section, and why — since the value may well have
+            // come from appsettings rather than the callback.
+            throw new OptionsValidationException(
+                Microsoft.Extensions.Options.Options.DefaultName, typeof(SqliteOptions), [$"Rask:Sqlite: {ex.Message}"]);
+        }
+    }
 
     // The annotation provider reports the declaration on its table so the migrations differ sees it change; EF
     // resolves exactly one, and nothing else in Rask replaces it. The extension carries the query side, and EF keeps

@@ -56,7 +56,7 @@ internal static class DomainName
         for (var i = 0; i < labels.Length; i++)
         {
             // "*.example.com" — a wildcard is only meaningful as the whole first label.
-            if (i == 0 && labels[i] == "*" && labels.Length > 1)
+            if (i == 0 && string.Equals(labels[i], "*", StringComparison.Ordinal) && labels.Length > 1)
             {
                 continue;
             }

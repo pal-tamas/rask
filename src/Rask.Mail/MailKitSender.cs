@@ -1,7 +1,7 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// The default <see cref="IMailSender"/> when <see cref="MailOptions.Smtp"/> is configured: builds a MIME

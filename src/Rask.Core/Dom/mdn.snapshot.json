@@ -19575,24 +19575,6 @@
    "spec": "https://svgwg.org/specs/animations/#InterfaceSVGAnimateElement",
    "attributes": [
     {
-     "attr": "onbegin",
-     "property": "onbegin",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onend",
-     "property": "onend",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onrepeat",
-     "property": "onrepeat",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
      "attr": "systemLanguage",
      "property": "systemLanguage",
      "type": "SVGStringList",
@@ -19605,6 +19587,12 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/systemLanguage",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGTests__systemLanguage"
+    },
+    {
+     "attr": "accumulate"
+    },
+    {
+     "attr": "additive"
     },
     {
      "attr": "attributeName",
@@ -19626,6 +19614,9 @@
      "spec": "https://www.w3.org/TR/SVG11/animate.html#AttributeTypeAttribute"
     },
     {
+     "attr": "begin"
+    },
+    {
      "attr": "dur",
      "support": {
       "chrome": "2",
@@ -19634,6 +19625,9 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/dur",
      "spec": "https://svgwg.org/specs/animations/#DurAttribute"
+    },
+    {
+     "attr": "end"
     },
     {
      "attr": "fill",
@@ -19666,6 +19660,18 @@
      "spec": "https://svgwg.org/specs/animations/#HrefAttribute"
     },
     {
+     "attr": "keySplines"
+    },
+    {
+     "attr": "keyTimes"
+    },
+    {
+     "attr": "max"
+    },
+    {
+     "attr": "min"
+    },
+    {
      "attr": "repeatCount",
      "support": {
       "chrome": "2",
@@ -19676,6 +19682,12 @@
      "spec": "https://svgwg.org/specs/animations/#RepeatCountAttribute"
     },
     {
+     "attr": "repeatDur"
+    },
+    {
+     "attr": "restart"
+    },
+    {
      "attr": "to",
      "support": {
       "chrome": "2",
@@ -19683,6 +19695,9 @@
       "safari": "4"
      },
      "spec": "https://svgwg.org/specs/animations/#ToAttribute"
+    },
+    {
+     "attr": "values"
     }
    ],
    "members": []
@@ -19699,24 +19714,6 @@
    "spec": "https://svgwg.org/specs/animations/#InterfaceSVGAnimateMotionElement",
    "attributes": [
     {
-     "attr": "onbegin",
-     "property": "onbegin",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onend",
-     "property": "onend",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onrepeat",
-     "property": "onrepeat",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
      "attr": "systemLanguage",
      "property": "systemLanguage",
      "type": "SVGStringList",
@@ -19731,6 +19728,18 @@
      "spec": "https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGTests__systemLanguage"
     },
     {
+     "attr": "accumulate"
+    },
+    {
+     "attr": "additive"
+    },
+    {
+     "attr": "attributeName"
+    },
+    {
+     "attr": "begin"
+    },
+    {
      "attr": "calcMode",
      "support": {
       "chrome": "19",
@@ -19738,6 +19747,12 @@
       "safari": "6"
      },
      "spec": "https://svgwg.org/specs/animations/#CalcModeAttribute"
+    },
+    {
+     "attr": "dur"
+    },
+    {
+     "attr": "end"
     },
     {
      "attr": "fill",
@@ -19748,6 +19763,9 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/fill",
      "spec": "https://svgwg.org/specs/animations/#FillAttribute"
+    },
+    {
+     "attr": "from"
     },
     {
      "attr": "href",
@@ -19770,6 +19788,18 @@
      "spec": "https://svgwg.org/specs/animations/#KeyPointsAttribute"
     },
     {
+     "attr": "keySplines"
+    },
+    {
+     "attr": "keyTimes"
+    },
+    {
+     "attr": "max"
+    },
+    {
+     "attr": "min"
+    },
+    {
      "attr": "origin",
      "support": {
       "chrome": "19",
@@ -19788,6 +19818,15 @@
      "spec": "https://svgwg.org/specs/animations/#AnimateMotionElementPathAttribute"
     },
     {
+     "attr": "repeatCount"
+    },
+    {
+     "attr": "repeatDur"
+    },
+    {
+     "attr": "restart"
+    },
+    {
      "attr": "rotate",
      "support": {
       "chrome": "19",
@@ -19796,6 +19835,9 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/rotate",
      "spec": "https://svgwg.org/specs/animations/#RotateAttribute"
+    },
+    {
+     "attr": "values"
     }
    ],
    "members": []
@@ -19812,24 +19854,6 @@
    "spec": "https://svgwg.org/specs/animations/#InterfaceSVGAnimateTransformElement",
    "attributes": [
     {
-     "attr": "onbegin",
-     "property": "onbegin",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onend",
-     "property": "onend",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onrepeat",
-     "property": "onrepeat",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
      "attr": "systemLanguage",
      "property": "systemLanguage",
      "type": "SVGStringList",
@@ -19844,6 +19868,18 @@
      "spec": "https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGTests__systemLanguage"
     },
     {
+     "attr": "accumulate"
+    },
+    {
+     "attr": "additive"
+    },
+    {
+     "attr": "attributeName"
+    },
+    {
+     "attr": "begin"
+    },
+    {
      "attr": "by",
      "support": {
       "chrome": "2",
@@ -19852,6 +19888,12 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/by",
      "spec": "https://svgwg.org/specs/animations/#ByAttribute"
+    },
+    {
+     "attr": "dur"
+    },
+    {
+     "attr": "end"
     },
     {
      "attr": "fill",
@@ -19883,6 +19925,27 @@
      "spec": "https://svgwg.org/specs/animations/#HrefAttribute"
     },
     {
+     "attr": "keySplines"
+    },
+    {
+     "attr": "keyTimes"
+    },
+    {
+     "attr": "max"
+    },
+    {
+     "attr": "min"
+    },
+    {
+     "attr": "repeatCount"
+    },
+    {
+     "attr": "repeatDur"
+    },
+    {
+     "attr": "restart"
+    },
+    {
      "attr": "to",
      "support": {
       "chrome": "2",
@@ -19899,6 +19962,9 @@
       "safari": "3"
      },
      "spec": "https://svgwg.org/specs/animations/#AnimateTransformElementTypeAttribute"
+    },
+    {
+     "attr": "values"
     }
    ],
    "members": []
@@ -20081,6 +20147,13 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/cx",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/geometry.html#CxProperty"
+    },
+    {
+     "attr": "pathLength",
+     "property": "pathLength",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGGeometryElement"
     },
     {
      "attr": "cy",
@@ -20561,6 +20634,13 @@
      "spec": "https://w3c.github.io/svgwg/svg2-draft/geometry.html#CxProperty"
     },
     {
+     "attr": "pathLength",
+     "property": "pathLength",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGGeometryElement"
+    },
+    {
      "attr": "cy",
      "property": "cy",
      "type": "SVGAnimatedLength",
@@ -20712,6 +20792,36 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/mode",
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-feblend-mode"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "in",
@@ -20871,6 +20981,36 @@
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-fecolormatrix-values"
     },
     {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    },
+    {
      "attr": "in",
      "support": {
       "chrome": "5",
@@ -21003,6 +21143,36 @@
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEComponentTransferElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEComponentTransferElement",
    "attributes": [
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    },
     {
      "attr": "in",
      "support": {
@@ -21185,6 +21355,36 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/k4",
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-fecomposite-k4"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "in",
@@ -21461,6 +21661,36 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/preserveAlpha",
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-feconvolvematrix-preservealpha"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "in",
@@ -21760,6 +21990,36 @@
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-fediffuselighting-diffuseconstant"
     },
     {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    },
+    {
      "attr": "in",
      "support": {
       "chrome": "5",
@@ -21979,6 +22239,36 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/yChannelSelector",
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-fedisplacementmap-ychannelselector"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "in",
@@ -22231,6 +22521,36 @@
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-fedropshadow-dy"
     },
     {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    },
+    {
      "attr": "in",
      "support": {
       "chrome": "13",
@@ -22420,6 +22740,38 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEFloodElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEFloodElement",
+   "attributes": [
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    }
+   ],
    "members": [
     {
      "kind": "attribute",
@@ -22503,6 +22855,57 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEFuncAElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEFuncAElement",
+   "attributes": [
+    {
+     "attr": "type",
+     "property": "type",
+     "type": "SVGAnimatedEnumeration",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "tableValues",
+     "property": "tableValues",
+     "type": "SVGAnimatedNumberList",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "slope",
+     "property": "slope",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "intercept",
+     "property": "intercept",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "amplitude",
+     "property": "amplitude",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "exponent",
+     "property": "exponent",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "offset",
+     "property": "offset",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    }
+   ],
    "members": []
   },
   "SVGFEFuncBElement": {
@@ -22515,6 +22918,57 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEFuncBElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEFuncBElement",
+   "attributes": [
+    {
+     "attr": "type",
+     "property": "type",
+     "type": "SVGAnimatedEnumeration",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "tableValues",
+     "property": "tableValues",
+     "type": "SVGAnimatedNumberList",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "slope",
+     "property": "slope",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "intercept",
+     "property": "intercept",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "amplitude",
+     "property": "amplitude",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "exponent",
+     "property": "exponent",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "offset",
+     "property": "offset",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    }
+   ],
    "members": []
   },
   "SVGFEFuncGElement": {
@@ -22527,6 +22981,57 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEFuncGElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEFuncGElement",
+   "attributes": [
+    {
+     "attr": "type",
+     "property": "type",
+     "type": "SVGAnimatedEnumeration",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "tableValues",
+     "property": "tableValues",
+     "type": "SVGAnimatedNumberList",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "slope",
+     "property": "slope",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "intercept",
+     "property": "intercept",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "amplitude",
+     "property": "amplitude",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "exponent",
+     "property": "exponent",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "offset",
+     "property": "offset",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    }
+   ],
    "members": []
   },
   "SVGFEFuncRElement": {
@@ -22539,6 +23044,57 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEFuncRElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEFuncRElement",
+   "attributes": [
+    {
+     "attr": "type",
+     "property": "type",
+     "type": "SVGAnimatedEnumeration",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "tableValues",
+     "property": "tableValues",
+     "type": "SVGAnimatedNumberList",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "slope",
+     "property": "slope",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "intercept",
+     "property": "intercept",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "amplitude",
+     "property": "amplitude",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "exponent",
+     "property": "exponent",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    },
+    {
+     "attr": "offset",
+     "property": "offset",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGComponentTransferFunctionElement"
+    }
+   ],
    "members": []
   },
   "SVGFEGaussianBlurElement": {
@@ -22552,6 +23108,36 @@
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEGaussianBlurElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEGaussianBlurElement",
    "attributes": [
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    },
     {
      "attr": "in",
      "support": {
@@ -22730,6 +23316,36 @@
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-feimage-preserveaspectratio"
     },
     {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    },
+    {
      "attr": "href",
      "property": "href",
      "type": "SVGAnimatedString",
@@ -22853,6 +23469,38 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGFEMergeElement",
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFEMergeElement",
+   "attributes": [
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    }
+   ],
    "members": [
     {
      "kind": "attribute",
@@ -22985,6 +23633,36 @@
       "safari": "6"
      },
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-femorphology-operator"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "in",
@@ -23165,6 +23843,36 @@
       "safari": "6"
      },
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-feoffset-dy"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "in",
@@ -23425,6 +24133,36 @@
       "safari": "6"
      },
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-fespecularlighting-specularexponent"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "in",
@@ -23827,6 +24565,36 @@
    "spec": "https://drafts.csswg.org/filter-effects/#InterfaceSVGFETileElement",
    "attributes": [
     {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
+    },
+    {
      "attr": "in",
      "support": {
       "chrome": "5",
@@ -23984,6 +24752,36 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/type",
      "spec": "https://drafts.csswg.org/filter-effects/#element-attrdef-feturbulence-type"
+    },
+    {
+     "attr": "x",
+     "property": "x",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "y",
+     "property": "y",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "width",
+     "property": "width",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "height",
+     "property": "height",
+     "type": "SVGAnimatedLength",
+     "readonly": true
+    },
+    {
+     "attr": "result",
+     "property": "result",
+     "type": "SVGAnimatedString",
+     "readonly": true
     },
     {
      "attr": "baseFrequency",
@@ -24961,6 +25759,13 @@
    "spec": "https://w3c.github.io/svgwg/svg2-draft/shapes.html#InterfaceSVGLineElement",
    "attributes": [
     {
+     "attr": "pathLength",
+     "property": "pathLength",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGGeometryElement"
+    },
+    {
      "attr": "x1",
      "property": "x1",
      "type": "SVGAnimatedLength",
@@ -25386,6 +26191,12 @@
      "spec": "https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute"
     },
     {
+     "attr": "preserveAspectRatio",
+     "property": "preserveAspectRatio",
+     "type": "SVGAnimatedPreserveAspectRatio",
+     "readonly": true
+    },
+    {
      "attr": "orient",
      "property": "orient",
      "type": "DOMString",
@@ -25752,6 +26563,12 @@
    "spec": "https://w3c.github.io/svgwg/svg2-draft/paths.html#InterfaceSVGPathElement",
    "attributes": [
     {
+     "attr": "pathLength",
+     "property": "pathLength",
+     "type": "SVGAnimatedNumber",
+     "readonly": true
+    },
+    {
      "attr": "systemLanguage",
      "property": "systemLanguage",
      "type": "SVGStringList",
@@ -25932,6 +26749,18 @@
      "spec": "https://w3c.github.io/svgwg/svg2-draft/pservers.html#PatternElementHeightAttribute"
     },
     {
+     "attr": "viewBox",
+     "property": "viewBox",
+     "type": "SVGAnimatedRect",
+     "readonly": true
+    },
+    {
+     "attr": "preserveAspectRatio",
+     "property": "preserveAspectRatio",
+     "type": "SVGAnimatedPreserveAspectRatio",
+     "readonly": true
+    },
+    {
      "attr": "href",
      "property": "href",
      "type": "SVGAnimatedString",
@@ -26103,6 +26932,13 @@
    "spec": "https://w3c.github.io/svgwg/svg2-draft/shapes.html#InterfaceSVGPolygonElement",
    "attributes": [
     {
+     "attr": "pathLength",
+     "property": "pathLength",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGGeometryElement"
+    },
+    {
      "attr": "points",
      "property": "points",
      "type": "SVGPointList",
@@ -26181,6 +27017,13 @@
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGPolylineElement",
    "spec": "https://w3c.github.io/svgwg/svg2-draft/shapes.html#InterfaceSVGPolylineElement",
    "attributes": [
+    {
+     "attr": "pathLength",
+     "property": "pathLength",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGGeometryElement"
+    },
     {
      "attr": "points",
      "property": "points",
@@ -26487,6 +27330,13 @@
    "mdn": "https://developer.mozilla.org/docs/Web/API/SVGRectElement",
    "spec": "https://w3c.github.io/svgwg/svg2-draft/shapes.html#InterfaceSVGRectElement",
    "attributes": [
+    {
+     "attr": "pathLength",
+     "property": "pathLength",
+     "type": "SVGAnimatedNumber",
+     "readonly": true,
+     "on": "SVGGeometryElement"
+    },
     {
      "attr": "x",
      "property": "x",
@@ -27248,24 +28098,6 @@
    "spec": "https://svgwg.org/specs/animations/#InterfaceSVGSetElement",
    "attributes": [
     {
-     "attr": "onbegin",
-     "property": "onbegin",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onend",
-     "property": "onend",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
-     "attr": "onrepeat",
-     "property": "onrepeat",
-     "type": "EventHandler",
-     "on": "SVGAnimationElement"
-    },
-    {
      "attr": "systemLanguage",
      "property": "systemLanguage",
      "type": "SVGStringList",
@@ -27278,6 +28110,18 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/systemLanguage",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGTests__systemLanguage"
+    },
+    {
+     "attr": "attributeName"
+    },
+    {
+     "attr": "begin"
+    },
+    {
+     "attr": "dur"
+    },
+    {
+     "attr": "end"
     },
     {
      "attr": "fill",
@@ -27298,6 +28142,21 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/href",
      "spec": "https://svgwg.org/specs/animations/#HrefAttribute"
+    },
+    {
+     "attr": "max"
+    },
+    {
+     "attr": "min"
+    },
+    {
+     "attr": "repeatCount"
+    },
+    {
+     "attr": "repeatDur"
+    },
+    {
+     "attr": "restart"
     },
     {
      "attr": "to",
@@ -28068,6 +28927,13 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/textLength",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/text.html#TextElementTextLengthAttribute"
+    },
+    {
+     "attr": "lengthAdjust",
+     "property": "lengthAdjust",
+     "type": "SVGAnimatedEnumeration",
+     "readonly": true,
+     "on": "SVGTextContentElement"
     },
     {
      "attr": "systemLanguage",

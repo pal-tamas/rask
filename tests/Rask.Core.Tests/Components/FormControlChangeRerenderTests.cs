@@ -154,7 +154,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             var ctx = LiveRenderContext.Current!;
             var p = ctx.GetOrCreate(_ => Picker);
-            ctx.NotifyParameters(p, false); // stable props ⇒ Picker caches after first render
+            LiveRenderContext.NotifyParameters(p, false); // stable props ⇒ Picker caches after first render
             return Div[p];
         }
     }
@@ -186,7 +186,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             var ctx = LiveRenderContext.Current!;
             var e = ctx.GetOrCreate(_ => Echo);
-            ctx.NotifyParameters(e, false);
+            LiveRenderContext.NotifyParameters(e, false);
             return Div[e];
         }
     }
@@ -214,7 +214,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             var ctx = LiveRenderContext.Current!;
             var r = ctx.GetOrCreate(_ => Rows);
-            ctx.NotifyParameters(r, false); // stable props ⇒ cached unless the change dirties it
+            LiveRenderContext.NotifyParameters(r, false); // stable props ⇒ cached unless the change dirties it
             return Div[r];
         }
     }
@@ -261,7 +261,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             var ctx = LiveRenderContext.Current!;
             var f = ctx.GetOrCreate(_ => Form);
-            ctx.NotifyParameters(f, false);
+            LiveRenderContext.NotifyParameters(f, false);
             return Div[f];
         }
     }
@@ -294,7 +294,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => Consumer);
-            ctx.NotifyParameters(c, false);
+            LiveRenderContext.NotifyParameters(c, false);
             return Div[c];
         }
     }

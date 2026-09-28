@@ -1,6 +1,6 @@
 using MimeKit;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>Builds a MimeKit <see cref="MimeMessage"/> from an <see cref="OutgoingMail"/> — shared by the SMTP and pickup-directory senders.</summary>
 internal static class MimeMailFactory

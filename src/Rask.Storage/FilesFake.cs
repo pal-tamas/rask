@@ -3,35 +3,6 @@ using Rask.Batteries;
 
 namespace Rask.Storage;
 
-/// <summary>A test's stand-in for file storage: <c>using var files = Files.Fake();</c>.</summary>
-public static class FilesFakes
-{
-    extension(Files)
-    {
-        /// <summary>
-        ///     Takes the place of file storage for this test — an in-memory one that really stores, so the
-        ///     code under test reads back what it saved — until the returned fake is disposed:
-        /// </summary>
-        /// <remarks>
-        ///     <code>
-        ///     using var files = Files.Fake();
-        ///
-        ///     await page.Click("Upload");
-        ///
-        ///     files.Saved().Named("avatar.png").Public().Once();
-        ///     </code>
-        ///     <para>
-        ///         Nothing touches a disk, a bucket or a database. Scoped to the test's own flow, so tests
-        ///         running in parallel never see each other's files. It stands in front of <c>Files.Save</c>;
-        ///         a class that takes <see cref="IFiles" /> in its constructor is handed whatever the
-        ///         container holds, so register the fake there too —
-        ///         <c>services.AddSingleton&lt;IFiles&gt;(files)</c> — when the code under test injects it.
-        ///     </para>
-        /// </remarks>
-        public static FilesFake Fake() => new();
-    }
-}
-
 /// <summary>An in-memory file store that remembers what a test asked of it.</summary>
 public sealed class FilesFake : IFiles, IDisposable
 {
@@ -195,28 +166,4 @@ public sealed class FilesFake : IFiles, IDisposable
             Clock.Now.UtcDateTime);
 
     private sealed record Held(byte[] Content, string Name, bool IsPublic);
-}
-
-/// <summary>One file a test saved.</summary>
-/// <param name="Id">Its id, as the code under test received it.</param>
-/// <param name="Name">Its display name.</param>
-/// <param name="Size">How many bytes were stored.</param>
-/// <param name="IsPublic">Whether <c>.Public()</c> was asked for.</param>
-public sealed record SavedFile(Guid Id, string Name, long Size, bool IsPublic);
-
-/// <summary>The steps that narrow what a test asks about its files.</summary>
-public static class SavedFileCounting
-{
-    extension(Counting<SavedFile> saved)
-    {
-        /// <summary>Only the files saved under the display name <paramref name="name" />.</summary>
-        public Counting<SavedFile> Named(string name) =>
-            saved.Where(f => string.Equals(f.Name, name, StringComparison.Ordinal), $"named \"{name}\"");
-
-        /// <summary>Only the files saved with <c>.Public()</c>.</summary>
-        public Counting<SavedFile> Public() => saved.Where(f => f.IsPublic, "public");
-
-        /// <summary>Only the files saved without <c>.Public()</c>.</summary>
-        public Counting<SavedFile> Private() => saved.Where(f => !f.IsPublic, "private");
-    }
 }

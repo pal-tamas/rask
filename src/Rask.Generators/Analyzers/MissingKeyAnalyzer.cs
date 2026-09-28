@@ -81,51 +81,7 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
     {
         var node = (ExpressionSyntax)context.Node;
         var model = context.SemanticModel;
-
-        // 1) Is this a Rask construction that COULD carry a key? Two spellings.
-        //
-        //    The factory is a static method on a class named `Generated` (namespace varies per
-        //    component) returning a Component-derived type.
-        //
-        //    A CHAIN is not a method call at all, which is why this analyzer used to miss it entirely:
-        //    `Li[…]` is a property reference plus a children indexer, and `Li.Class("c")[…]` puts
-        //    extension setters in between. The outermost invocation's symbol is the last SETTER, never
-        //    the component — so matching on the method name found nothing and the keyless-list check
-        //    silently stopped firing on the only spelling the docs teach (#704).
-        //
-        //    The distinction still matters: an expression merely TYPED as a component is not enough. A
-        //    static helper returning markup (`Ui.Badge(x)`) yields a Component and cannot take a key, so
-        //    flagging it would be noise. Only a factory call or a chain can be keyed.
-        string name;
-        Location location;
-        if (node is InvocationExpressionSyntax invocation
-            && model.GetSymbolInfo(invocation, context.CancellationToken).Symbol is IMethodSymbol method
-            && method.IsStatic
-            && string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal)
-            && InheritsFrom(method.ReturnType as INamedTypeSymbol, component))
-        {
-            // 2) Already keyed — a Key: argument, or a Data argument carrying rask-key (back-compat).
-            if (HasKeyArgument(invocation))
-            {
-                return;
-            }
-
-            name = method.Name;
-            location = NameLocation(invocation);
-        }
-        else if (BuilderEntry.TryReadChain(
-                     node, model, context.CancellationToken, out var entry, out _, out var steps))
-        {
-            // Key names the identity; a Data step carrying rask-key is the VirtualizePage-style equivalent.
-            if (steps.Contains("Key") || steps.Contains("Data") && node.ToString().Contains("rask-key"))
-            {
-                return;
-            }
-
-            name = entry.Identifier.ValueText;
-            location = entry.GetLocation();
-        }
-        else
+        if (!TryReadUnkeyedConstruction(node, model, component, context.CancellationToken, out var name, out var location))
         {
             return;
         }
@@ -154,6 +110,53 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         }
 
         context.ReportDiagnostic(Diagnostic.Create(Rask022, location, name));
+    }
+
+    // 1) Is this a Rask construction that COULD carry a key, and 2) does it still lack one? Two spellings.
+    //
+    //    The factory is a static method on a class named `Generated` (namespace varies per
+    //    component) returning a Component-derived type.
+    //
+    //    A CHAIN is not a method call at all, which is why this analyzer used to miss it entirely:
+    //    `Li[…]` is a property reference plus a children indexer, and `Li.Class("c")[…]` puts
+    //    extension setters in between. The outermost invocation's symbol is the last SETTER, never
+    //    the component — so matching on the method name found nothing and the keyless-list check
+    //    silently stopped firing on the only spelling the docs teach (#704).
+    //
+    //    The distinction still matters: an expression merely TYPED as a component is not enough. A
+    //    static helper returning markup (`Ui.Badge(x)`) yields a Component and cannot take a key, so
+    //    flagging it would be noise. Only a factory call or a chain can be keyed.
+    private static bool TryReadUnkeyedConstruction(
+        ExpressionSyntax node,
+        SemanticModel model,
+        INamedTypeSymbol component,
+        CancellationToken cancellationToken,
+        out string name,
+        out Location location)
+    {
+        name = string.Empty;
+        location = Location.None;
+        if (node is InvocationExpressionSyntax invocation
+            && model.GetSymbolInfo(invocation, cancellationToken).Symbol is IMethodSymbol method
+            && method.IsStatic
+            && string.Equals(method.ContainingType?.Name, GeneratedClassName, StringComparison.Ordinal)
+            && InheritsFrom(method.ReturnType as INamedTypeSymbol, component))
+        {
+            // Already keyed — a Key: argument, or a Data argument carrying rask-key (back-compat).
+            name = method.Name;
+            location = NameLocation(invocation);
+            return !HasKeyArgument(invocation);
+        }
+
+        if (BuilderEntry.TryReadChain(node, model, cancellationToken, out var entry, out _, out var steps))
+        {
+            // Key names the identity; a Data step carrying rask-key is the VirtualizePage-style equivalent.
+            name = entry.Identifier.ValueText;
+            location = entry.GetLocation();
+            return !(steps.Contains("Key") || steps.Contains("Data") && node.ToString().Contains("rask-key"));
+        }
+
+        return false;
     }
 
     // Build<T>/Build<T, TMode> implement IComponentChain explicitly, so this is the one thing that

@@ -109,8 +109,8 @@ public static class RaskMetaServiceCollectionExtensions
                                     $"Framework '{name}' is not a meta framework Rask hosts.");
         }
 
-        options.AppDirectory = section.GetValue(nameof(MetaHostingOptions.AppDirectory), options.AppDirectory)!;
-        options.NodeExecutable = section.GetValue(nameof(MetaHostingOptions.NodeExecutable), options.NodeExecutable)!;
+        options.AppDirectory = section.GetValue(nameof(MetaHostingOptions.AppDirectory), options.AppDirectory);
+        options.NodeExecutable = section.GetValue(nameof(MetaHostingOptions.NodeExecutable), options.NodeExecutable);
         options.Port = section.GetValue(nameof(MetaHostingOptions.Port), options.Port);
         options.StartupTimeout = section.GetValue(nameof(MetaHostingOptions.StartupTimeout), options.StartupTimeout);
         options.ShutdownTimeout = section.GetValue(nameof(MetaHostingOptions.ShutdownTimeout), options.ShutdownTimeout);
@@ -120,7 +120,7 @@ public static class RaskMetaServiceCollectionExtensions
             section.GetValue(nameof(MetaHostingOptions.HealthyRunThreshold), options.HealthyRunThreshold);
         options.BaseUrl = section.GetValue(nameof(MetaHostingOptions.BaseUrl), options.BaseUrl);
         options.BaseUrlVariable =
-            section.GetValue(nameof(MetaHostingOptions.BaseUrlVariable), options.BaseUrlVariable)!;
+            section.GetValue(nameof(MetaHostingOptions.BaseUrlVariable), options.BaseUrlVariable);
         options.SuperviseNode = section.GetValue(nameof(MetaHostingOptions.SuperviseNode), options.SuperviseNode);
 
         foreach (var variable in section.GetSection(nameof(MetaHostingOptions.Environment)).GetChildren())

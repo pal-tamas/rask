@@ -1,11 +1,11 @@
 using Rask.Api;
 using Rask.Auth;
-using Rask.Cache;
+using Rask.Background;
+using Rask.Caching;
 using Rask.Core.Browser;
 using Rask.Core.Live;
-using Rask.Jobs;
 using Rask.Logging;
-using Rask.Mail;
+using Rask.Mailing;
 using Rask.Outbox;
 using Rask.Server;
 using Rask.SQLite.Snapshots;

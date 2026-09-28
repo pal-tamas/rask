@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
-using Rask.Query;
+using Rask.Querying;
 using Rask.Site.DataDemo;
 using Rask.SQLite;
 using Rask.SQLite.Browser;
@@ -44,4 +44,4 @@ host.Services.AddRaskQuery();
 host.Services.AddSingleton<NotesReady>();
 host.Services.AddHostedService<NotesDatabase>();
 
-await host.RunAsync<App>();
+await host.RunAsync<App>().ConfigureAwait(false);

@@ -22,6 +22,17 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
+    public async Task A_null_subscription_is_refused_when_asked_for_not_when_enumerated()
+    {
+        await using var services = Build();
+        var dispatcher = services.GetRequiredService<IDispatcher>();
+
+        var refused = Record.Exception(() => dispatcher.Subscribe<DoorOpened>(subscription: null!));
+
+        Assert.IsType<ArgumentNullException>(refused);
+    }
+
+    [Fact]
     public async Task A_subscriber_hears_only_the_type_it_asked_for()
     {
         await using var services = Build();

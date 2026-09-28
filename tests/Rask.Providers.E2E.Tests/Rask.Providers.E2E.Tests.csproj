@@ -31,7 +31,7 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Cqrs"/>
     <Using Include="Rask.Data"/>
-    <Using Include="Rask.Jobs"/>
+    <Using Include="Rask.Background"/>
     <Using Include="Rask.Postgres"/>
   </ItemGroup>
 

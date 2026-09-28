@@ -46,14 +46,14 @@ public class FormDataFilesTests
 
     private sealed class TestBackend : IBrowserFileBackend
     {
-        public RaskFile Create(JsonElement metadata) => new TestFile(
+        public IRaskFile Create(JsonElement metadata) => new TestFile(
             metadata.GetProperty("name").GetString() ?? "",
             metadata.GetProperty("size").GetInt64());
 
-        public void Release(IEnumerable<RaskFile> files) { }
+        public void Release(IEnumerable<IRaskFile> files) { }
     }
 
-    private sealed class TestFile : RaskFile
+    private sealed class TestFile : IRaskFile
     {
         public TestFile(string name, long size)
         {
@@ -61,12 +61,12 @@ public class FormDataFilesTests
             Size = size;
         }
 
-        public override string Name { get; }
-        public override long Size { get; }
-        public override string ContentType => "application/octet-stream";
-        public override DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+        public string Name { get; }
+        public long Size { get; }
+        public string ContentType => "application/octet-stream";
+        public DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
 
-        public override Stream OpenReadStream(long maxAllowedSize = 524288,
+        public Stream OpenReadStream(long maxAllowedSize = 524288,
             CancellationToken cancellationToken = default) =>
             Stream.Null;
     }

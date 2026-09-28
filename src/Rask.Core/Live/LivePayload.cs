@@ -92,6 +92,44 @@ public static class LivePayload
     }
 
     /// <summary>
+    ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
+    ///     also <c>data-rask-dev</c> — the flag the client requires before it will act on any dev-only
+    ///     frame. Production HTML never carries it, so those branches are unreachable there even if a
+    ///     frame somehow arrived.
+    /// </summary>
+    public static string InjectRootAttr(string html, string sessionId, bool dev = false)
+    {
+        // Linear scan for the first "<body" (case-insensitive). Faster than a compiled regex
+        // for the typical render path and avoids the regex engine's per-call state allocation.
+        var i = IndexOfBodyOpen(html);
+        if (i < 0)
+        {
+            return html;
+        }
+
+        var encoded = HtmlEncoder.Default.Encode(sessionId);
+        var insertAt = i + "<body".Length;
+        var sb = RaskStringBuilderPool.Shared.Get();
+        try
+        {
+            sb.EnsureCapacity(html.Length + encoded.Length + 48);
+            sb.Append(html, 0, insertAt);
+            sb.Append(" data-rask-root=\"").Append(encoded).Append('"');
+            if (dev)
+            {
+                sb.Append(" data-rask-dev");
+            }
+
+            sb.Append(html, insertAt, html.Length - insertAt);
+            return sb.ToString();
+        }
+        finally
+        {
+            RaskStringBuilderPool.Shared.Return(sb);
+        }
+    }
+
+    /// <summary>
     ///     Stamps where the islands' Vite dev server is, as <c>data-rask-islands-dev</c>, so the island
     ///     runtime can load <c>@vite/client</c> and let each framework hot-replace its own modules.
     /// </summary>
@@ -151,44 +189,6 @@ public static class LivePayload
                   + (string.IsNullOrEmpty(panelUrl) ? "" : " data-panel=\"" + HtmlEncoder.Default.Encode(panelUrl) + "\"")
                   + " data-rask-managed defer></script>";
         return string.Concat(html.AsSpan(0, headClose), tag.AsSpan(), html.AsSpan(headClose));
-    }
-
-    /// <summary>
-    ///     Stamps the session id onto <c>&lt;body&gt;</c> as <c>data-rask-root</c>, and in development
-    ///     also <c>data-rask-dev</c> — the flag the client requires before it will act on any dev-only
-    ///     frame. Production HTML never carries it, so those branches are unreachable there even if a
-    ///     frame somehow arrived.
-    /// </summary>
-    public static string InjectRootAttr(string html, string sessionId, bool dev = false)
-    {
-        // Linear scan for the first "<body" (case-insensitive). Faster than a compiled regex
-        // for the typical render path and avoids the regex engine's per-call state allocation.
-        var i = IndexOfBodyOpen(html);
-        if (i < 0)
-        {
-            return html;
-        }
-
-        var encoded = HtmlEncoder.Default.Encode(sessionId);
-        var insertAt = i + "<body".Length;
-        var sb = RaskStringBuilderPool.Shared.Get();
-        try
-        {
-            sb.EnsureCapacity(html.Length + encoded.Length + 48);
-            sb.Append(html, 0, insertAt);
-            sb.Append(" data-rask-root=\"").Append(encoded).Append('"');
-            if (dev)
-            {
-                sb.Append(" data-rask-dev");
-            }
-
-            sb.Append(html, insertAt, html.Length - insertAt);
-            return sb.ToString();
-        }
-        finally
-        {
-            RaskStringBuilderPool.Shared.Return(sb);
-        }
     }
 
     public static string ExtractBody(string html)
@@ -402,67 +402,19 @@ public static class LivePayload
         string? resume = null,
         DevErrorInfo? devError = null)
     {
-        // Pass 1: build the attribute-name symbol table. Intern when the name appears
-        // 3+ times — break-even with the table overhead lands around there for typical
-        // attribute names. Two occurrences of a short name like "class" cost more in the
-        // table slot (`,"names":["class"]` ≈ 18 bytes) than they save in the two op refs
-        // (~12 bytes saved). Three plus is comfortably net-positive for any name length.
-        // Result: scenarios like AttributeBurstUpdate (100 ops sharing one name) drop
-        // the duplicate name to a single integer per op (~1.2 KB saved); small diffs
-        // pay no extra envelope.
-        Dictionary<string, int>? nameIndex = null;
+        // Pass 1: the attribute-name symbol table (see BuildNameTable). A name can only reach the 3+
+        // interning break-even across at least 3 attribute ops, so a smaller diff skips the pass.
         List<string>? internedNames = null;
-
-        // A name can only reach the 3+ interning break-even across at least 3 attribute ops, so a
-        // diff with fewer than 3 ops can never intern — skip the whole symbol-table pass (its
-        // allocation and two loops) for the common small update. Larger diffs reuse per-thread
-        // scratch collections so an attribute-heavy steady-state render doesn't reallocate the
-        // count map (and, in a burst, the index map + names list) every frame.
-        if (ops.Count >= 3)
-        {
-            var nameCount = _nameCountScratch ??= new Dictionary<string, int>(StringComparer.Ordinal);
-            nameCount.Clear();
-            for (var i = 0; i < ops.Count; i++)
-            {
-                var op = ops[i];
-                if (op.Name is null
-                    || (op.Kind != EditOpKind.SetAttribute && op.Kind != EditOpKind.RemoveAttribute))
-                {
-                    continue;
-                }
-
-                nameCount.TryGetValue(op.Name, out var c);
-                nameCount[op.Name] = c + 1;
-            }
-
-            foreach (var kv in nameCount)
-            {
-                if (kv.Value < 3)
-                {
-                    continue;
-                }
-
-                if (nameIndex is null)
-                {
-                    nameIndex = _nameIndexScratch ??= new Dictionary<string, int>(StringComparer.Ordinal);
-                    internedNames = _internedNamesScratch ??= new List<string>();
-                    nameIndex.Clear();
-                    internedNames.Clear();
-                }
-
-                nameIndex[kv.Key] = internedNames!.Count;
-                internedNames.Add(kv.Key);
-            }
-        }
+        var nameIndex = ops.Count >= 3 ? BuildNameTable(ops, out internedNames) : null;
 
         using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
         writer.WriteStartObject();
         writer.WriteString("kind", "diff");
 
-        if (internedNames is { Count: > 0 })
+        if (nameIndex is not null)
         {
             writer.WriteStartArray("names");
-            foreach (var n in internedNames)
+            foreach (var n in internedNames!)
             {
                 writer.WriteStringValue(n);
             }
@@ -473,104 +425,7 @@ public static class LivePayload
         writer.WriteStartArray("ops");
         foreach (var op in ops)
         {
-            writer.WriteStartArray();
-            writer.WriteNumberValue((int)op.Kind);
-
-            writer.WriteStartArray();
-            foreach (var step in op.Path)
-            {
-                writer.WriteNumberValue(step);
-            }
-
-            writer.WriteEndArray();
-
-            switch (op.Kind)
-            {
-                case EditOpKind.SetAttribute:
-                    WriteInternedOrString(writer, op.Name, nameIndex);
-                    if (op.Value is null)
-                    {
-                        writer.WriteNullValue();
-                    }
-                    else
-                    {
-                        writer.WriteStringValue(op.Value);
-                    }
-
-                    break;
-                case EditOpKind.RemoveAttribute:
-                    WriteInternedOrString(writer, op.Name, nameIndex);
-                    break;
-                case EditOpKind.UpdateText:
-                    if (op.Value is null)
-                    {
-                        writer.WriteNullValue();
-                    }
-                    else
-                    {
-                        writer.WriteStringValue(op.Value);
-                    }
-
-                    break;
-                case EditOpKind.InsertSubtree:
-                    // Prefer a verbatim Value (directly-constructed ops); otherwise slice the
-                    // fragment straight out of the render HTML by the op's deferred char range
-                    // (the FrameDiffer hot path), encoding to UTF-8 with no intermediate string.
-                    if (op.Value is not null)
-                    {
-                        writer.WriteStringValue(op.Value);
-                    }
-                    else if (!newHtml.IsEmpty && op.HtmlStart >= 0 && op.HtmlEnd > op.HtmlStart
-                             && op.HtmlEnd <= newHtml.Length)
-                    {
-                        writer.WriteStringValue(newHtml.Slice(op.HtmlStart, op.HtmlEnd - op.HtmlStart));
-                    }
-                    else
-                    {
-                        writer.WriteNullValue();
-                    }
-
-                    writer.WriteNumberValue(op.Length);
-                    break;
-                case EditOpKind.MorphSubtree:
-                    // [8, path, innerHtml] — the parent's new inner HTML. Prefer a verbatim Value
-                    // (directly-constructed ops, incl. the emptied-parent "" fragment); otherwise slice
-                    // it out of the render HTML by the op's deferred char range (the FrameDiffer hot
-                    // path), exactly like InsertSubtree but with no trailing domCount.
-                    if (op.Value is not null)
-                    {
-                        writer.WriteStringValue(op.Value);
-                    }
-                    else if (!newHtml.IsEmpty && op.HtmlStart >= 0 && op.HtmlEnd > op.HtmlStart
-                             && op.HtmlEnd <= newHtml.Length)
-                    {
-                        writer.WriteStringValue(newHtml.Slice(op.HtmlStart, op.HtmlEnd - op.HtmlStart));
-                    }
-                    else
-                    {
-                        writer.WriteStringValue(string.Empty);
-                    }
-
-                    break;
-                case EditOpKind.RemoveSubtree:
-                case EditOpKind.MoveSubtree:
-                    writer.WriteNumberValue(op.Length);
-                    break;
-                case EditOpKind.PermutationBatch:
-                    writer.WriteStartArray();
-                    if (op.Moves is { } moves)
-                    {
-                        foreach (var m in moves)
-                        {
-                            writer.WriteNumberValue(m);
-                        }
-                    }
-
-                    writer.WriteEndArray();
-                    break;
-            }
-
-            writer.WriteEndArray();
+            WriteOp(writer, op, nameIndex, newHtml);
         }
 
         writer.WriteEndArray();
@@ -605,6 +460,142 @@ public static class LivePayload
         writer.WriteEndObject();
     }
 
+    // The interned-name table: every attribute name used 3+ times, mapped to its index in
+    // `internedNames`; null when no name qualifies.
+    //
+    // Interned at 3+ times — break-even with the table overhead lands around there for typical
+    // attribute names. Two occurrences of a short name like "class" cost more in the
+    // table slot (`,"names":["class"]` ≈ 18 bytes) than they save in the two op refs
+    // (~12 bytes saved). Three plus is comfortably net-positive for any name length.
+    // Result: scenarios like AttributeBurstUpdate (100 ops sharing one name) drop
+    // the duplicate name to a single integer per op (~1.2 KB saved); small diffs
+    // pay no extra envelope.
+    //
+    // Larger diffs reuse per-thread scratch collections so an attribute-heavy steady-state render doesn't
+    // reallocate the count map (and, in a burst, the index map + names list) every frame.
+    private static Dictionary<string, int>? BuildNameTable(IReadOnlyList<EditOp> ops, out List<string>? internedNames)
+    {
+        Dictionary<string, int>? nameIndex = null;
+        internedNames = null;
+
+        var nameCount = _nameCountScratch ??= new Dictionary<string, int>(StringComparer.Ordinal);
+        nameCount.Clear();
+        for (var i = 0; i < ops.Count; i++)
+        {
+            var op = ops[i];
+            if (op.Name is null
+                || (op.Kind != EditOpKind.SetAttribute && op.Kind != EditOpKind.RemoveAttribute))
+            {
+                continue;
+            }
+
+            nameCount.TryGetValue(op.Name, out var c);
+            nameCount[op.Name] = c + 1;
+        }
+
+        foreach (var kv in nameCount)
+        {
+            if (kv.Value < 3)
+            {
+                continue;
+            }
+
+            if (nameIndex is null)
+            {
+                nameIndex = _nameIndexScratch ??= new Dictionary<string, int>(StringComparer.Ordinal);
+                internedNames = _internedNamesScratch ??= new List<string>();
+                nameIndex.Clear();
+                internedNames.Clear();
+            }
+
+            nameIndex[kv.Key] = internedNames!.Count;
+            internedNames.Add(kv.Key);
+        }
+
+        return nameIndex;
+    }
+
+    private static void WriteOp(
+        Utf8JsonWriter writer, EditOp op, Dictionary<string, int>? nameIndex, ReadOnlySpan<char> newHtml)
+    {
+        writer.WriteStartArray();
+        writer.WriteNumberValue((int)op.Kind);
+
+        writer.WriteStartArray();
+        foreach (var step in op.Path)
+        {
+            writer.WriteNumberValue(step);
+        }
+
+        writer.WriteEndArray();
+
+        switch (op.Kind)
+        {
+            case EditOpKind.SetAttribute:
+                WriteInternedOrString(writer, op.Name, nameIndex);
+                writer.WriteStringValue(op.Value);
+                break;
+            case EditOpKind.RemoveAttribute:
+                WriteInternedOrString(writer, op.Name, nameIndex);
+                break;
+            case EditOpKind.UpdateText:
+                writer.WriteStringValue(op.Value);
+                break;
+            case EditOpKind.InsertSubtree:
+                WriteFragment(writer, op, newHtml, emptyAsNull: true);
+                writer.WriteNumberValue(op.Length);
+                break;
+            case EditOpKind.MorphSubtree:
+                // [8, path, innerHtml] — the parent's new inner HTML, exactly like InsertSubtree
+                // but with no trailing domCount.
+                WriteFragment(writer, op, newHtml, emptyAsNull: false);
+                break;
+            case EditOpKind.RemoveSubtree:
+            case EditOpKind.MoveSubtree:
+                writer.WriteNumberValue(op.Length);
+                break;
+            case EditOpKind.PermutationBatch:
+                writer.WriteStartArray();
+                if (op.Moves is { } moves)
+                {
+                    foreach (var m in moves)
+                    {
+                        writer.WriteNumberValue(m);
+                    }
+                }
+
+                writer.WriteEndArray();
+                break;
+        }
+
+        writer.WriteEndArray();
+    }
+
+    // Prefer a verbatim Value (directly-constructed ops, incl. an emptied parent's "" fragment); otherwise
+    // slice the fragment straight out of the render HTML by the op's deferred char range (the FrameDiffer
+    // hot path), encoding to UTF-8 with no intermediate string. With neither, an insert writes null and a
+    // morph writes the empty fragment.
+    private static void WriteFragment(Utf8JsonWriter writer, EditOp op, ReadOnlySpan<char> newHtml, bool emptyAsNull)
+    {
+        if (op.Value is not null)
+        {
+            writer.WriteStringValue(op.Value);
+        }
+        else if (!newHtml.IsEmpty && op.HtmlStart >= 0 && op.HtmlEnd > op.HtmlStart
+                 && op.HtmlEnd <= newHtml.Length)
+        {
+            writer.WriteStringValue(newHtml.Slice(op.HtmlStart, op.HtmlEnd - op.HtmlStart));
+        }
+        else if (emptyAsNull)
+        {
+            writer.WriteNullValue();
+        }
+        else
+        {
+            writer.WriteStringValue(string.Empty);
+        }
+    }
+
     private static void BuildPayloadUtf8Spliced(
         ArrayBufferWriter<byte> output,
         string html,
@@ -627,37 +618,14 @@ public static class LivePayload
         // encode straight into one buffer.
         const int bodyOpenLen = 5; // "<body"
         var bodyOpenChar = IndexOfBodyOpen(html);
-        if (bodyOpenChar < 0)
+        var sliceEndChar = bodyOpenChar < 0 ? -1 : SliceEnd(html, bodyOpenChar, includeOnlyBody);
+        if (sliceEndChar < 0)
         {
             BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes, resume);
             return;
         }
 
         var sliceStartChar = includeOnlyBody ? bodyOpenChar : 0;
-        int sliceEndChar;
-        if (includeOnlyBody)
-        {
-            var tagEndRel = html.AsSpan(bodyOpenChar).IndexOf('>');
-            if (tagEndRel < 0)
-            {
-                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes, resume);
-                return;
-            }
-
-            var afterOpenTagChar = bodyOpenChar + tagEndRel + 1;
-            var closeCharIdx = IndexOfIgnoreCase(html, "</body>", afterOpenTagChar);
-            if (closeCharIdx < 0)
-            {
-                BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes, resume);
-                return;
-            }
-
-            sliceEndChar = closeCharIdx + "</body>".Length;
-        }
-        else
-        {
-            sliceEndChar = html.Length;
-        }
 
         // The splice point is right after "<body". Encode three slices into one
         // pooled UTF-8 buffer:
@@ -669,38 +637,60 @@ public static class LivePayload
         var tailSlice = html.AsSpan(headEndChar, sliceEndChar - headEndChar);
 
         var encodedSessionId = HtmlEncoder.Default.Encode(sessionId);
-        var prefix = " data-rask-root=\""u8;
-        var suffix = "\""u8;
-
-        var headByteCount = Encoding.UTF8.GetByteCount(headSlice);
-        var tailByteCount = Encoding.UTF8.GetByteCount(tailSlice);
-        var sidByteCount = Encoding.UTF8.GetByteCount(encodedSessionId);
-        var totalBytes = headByteCount + prefix.Length + sidByteCount + suffix.Length + tailByteCount;
+        var totalBytes = Encoding.UTF8.GetByteCount(headSlice) + RootAttrPrefix.Length
+                         + Encoding.UTF8.GetByteCount(encodedSessionId) + 1
+                         + Encoding.UTF8.GetByteCount(tailSlice);
 
         var buffer = ArrayPool<byte>.Shared.Rent(totalBytes);
         try
         {
-            var span = buffer.AsSpan(0, totalBytes);
-            var cursor = 0;
-            cursor += Encoding.UTF8.GetBytes(headSlice, span[cursor..]);
-            prefix.CopyTo(span[cursor..]);
-            cursor += prefix.Length;
-            cursor += Encoding.UTF8.GetBytes(encodedSessionId, span[cursor..]);
-            suffix.CopyTo(span[cursor..]);
-            cursor += suffix.Length;
-            cursor += Encoding.UTF8.GetBytes(tailSlice, span[cursor..]);
+            var cursor = EncodeSplice(buffer.AsSpan(0, totalBytes), headSlice, encodedSessionId, tailSlice);
+            var span = buffer.AsSpan(0, cursor);
 
             // Same relaxed encoder as the diff path — the WS payload is parsed by JSON.parse,
             // not embedded into HTML, so the default HTML-safe escaping inflates the "html"
             // field's `<` / `>` 5× for no security benefit. Shaves ~3-5 KB off a 10 KB page.
             using var writer = new Utf8JsonWriter(output, DiffWriterOptions);
-            WriteJsonUtf8Body(writer, span[..cursor], historyUrl, replace, auth, download, jsInvokes, resume,
-                devError);
+            WriteJsonUtf8Body(writer, span, historyUrl, replace, auth, download, jsInvokes, resume, devError);
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
+    }
+
+    private static ReadOnlySpan<byte> RootAttrPrefix => " data-rask-root=\""u8;
+
+    // head + ` data-rask-root="{sessionId}"` + tail, UTF-8, into `span`; returns the bytes written.
+    private static int EncodeSplice(
+        Span<byte> span, ReadOnlySpan<char> headSlice, string encodedSessionId, ReadOnlySpan<char> tailSlice)
+    {
+        var cursor = Encoding.UTF8.GetBytes(headSlice, span);
+        RootAttrPrefix.CopyTo(span[cursor..]);
+        cursor += RootAttrPrefix.Length;
+        cursor += Encoding.UTF8.GetBytes(encodedSessionId, span[cursor..]);
+        span[cursor++] = (byte)'"';
+        cursor += Encoding.UTF8.GetBytes(tailSlice, span[cursor..]);
+        return cursor;
+    }
+
+    // Where the spliced payload ends: just past </body> when only the body ships, else the end of the page.
+    // An unterminated body answers -1, since there is nothing sound to splice.
+    private static int SliceEnd(string html, int bodyOpenChar, bool includeOnlyBody)
+    {
+        if (!includeOnlyBody)
+        {
+            return html.Length;
+        }
+
+        var tagEndRel = html.AsSpan(bodyOpenChar).IndexOf('>');
+        if (tagEndRel < 0)
+        {
+            return -1;
+        }
+
+        var closeCharIdx = IndexOfIgnoreCase(html, "</body>", bodyOpenChar + tagEndRel + 1);
+        return closeCharIdx < 0 ? -1 : closeCharIdx + "</body>".Length;
     }
 
     /// <summary>

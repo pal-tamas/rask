@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -47,12 +48,9 @@ public sealed class HiddenBuilderEntrySuppressor : DiagnosticSuppressor
 
     public override void ReportSuppressions(SuppressionAnalysisContext context)
     {
-        foreach (var diagnostic in context.ReportedDiagnostics)
+        foreach (var diagnostic in context.ReportedDiagnostics.Where(diagnostic => HidesABuilderEntry(context, diagnostic)))
         {
-            if (HidesABuilderEntry(context, diagnostic))
-            {
-                context.ReportSuppression(Suppression.Create(RaskSup001, diagnostic));
-            }
+            context.ReportSuppression(Suppression.Create(RaskSup001, diagnostic));
         }
     }
 
@@ -79,13 +77,10 @@ public sealed class HiddenBuilderEntrySuppressor : DiagnosticSuppressor
         // A same-type collision is a duplicate-definition error, never this warning.
         for (var current = hiding.ContainingType?.BaseType; current is not null; current = current.BaseType)
         {
-            foreach (var candidate in current.GetMembers(hiding.Name))
+            if (current.GetMembers(hiding.Name).Any(candidate =>
+                    BuilderEntry.EntryTypeOf(candidate, component) is not null || IsSeedEntry(candidate, component)))
             {
-                if (BuilderEntry.EntryTypeOf(candidate, component) is not null
-                    || IsSeedEntry(candidate, component))
-                {
-                    return true;
-                }
+                return true;
             }
         }
 

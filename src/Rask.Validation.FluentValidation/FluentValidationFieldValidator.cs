@@ -80,12 +80,9 @@ public sealed class FluentValidationFieldValidator : IAsyncFieldValidator
                 context.Model, new PropertyChain(), selector);
 
             var rootResult = await _validator.ValidateAsync(rootCtx, cancellationToken).ConfigureAwait(false);
-            foreach (var error in rootResult.Errors)
+            foreach (var error in rootResult.Errors.Where(e => string.Equals(e.PropertyName, field.FieldName, StringComparison.Ordinal)))
             {
-                if (error.PropertyName == field.FieldName)
-                {
-                    context.AddValidationMessage(field, error.ErrorMessage);
-                }
+                context.AddValidationMessage(field, error.ErrorMessage);
             }
 
             return;
@@ -108,7 +105,7 @@ public sealed class FluentValidationFieldValidator : IAsyncFieldValidator
             var resolved = ModelGraphWalker.Resolve(context.Model, error.PropertyName);
             if (resolved is { } r
                 && ReferenceEquals(r.Owner, field.Model)
-                && r.Property == field.FieldName)
+                && string.Equals(r.Property, field.FieldName, StringComparison.Ordinal))
             {
                 context.AddValidationMessage(field, error.ErrorMessage);
             }

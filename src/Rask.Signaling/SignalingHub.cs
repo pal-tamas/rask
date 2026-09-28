@@ -83,7 +83,7 @@ internal sealed class SignalingHub(RaskSignalingOptions options)
 
         lock (entry.Gate)
         {
-            return [.. entry.Peers.Values.Where(p => p.Id != peer.Id)];
+            return [.. entry.Peers.Values.Where(p => !string.Equals(p.Id, peer.Id, StringComparison.Ordinal))];
         }
     }
 
@@ -93,7 +93,7 @@ internal sealed class SignalingHub(RaskSignalingOptions options)
     /// </summary>
     public Peer? Target(Peer from, string peerId)
     {
-        if (peerId == from.Id || !_rooms.TryGetValue(from.Room, out var entry))
+        if (string.Equals(peerId, from.Id, StringComparison.Ordinal) || !_rooms.TryGetValue(from.Room, out var entry))
         {
             return null;
         }
@@ -112,10 +112,4 @@ internal sealed class SignalingHub(RaskSignalingOptions options)
 
         public bool Removed { get; set; }
     }
-}
-
-/// <summary>One connected peer. <see cref="SendGate" /> serialises writes — a WebSocket allows only one.</summary>
-internal sealed record Peer(string Id, WebSocket Socket, string Room)
-{
-    public SemaphoreSlim SendGate { get; } = new(1, 1);
 }

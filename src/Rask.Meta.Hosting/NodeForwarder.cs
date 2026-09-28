@@ -157,7 +157,7 @@ internal sealed partial class NodeForwarder : IDisposable
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         context.Response.Headers.RetryAfter = "1";
         context.Response.ContentType = "text/plain; charset=utf-8";
-        await context.Response.WriteAsync(reason).ConfigureAwait(false);
+        await context.Response.WriteAsync(reason, context.RequestAborted).ConfigureAwait(false);
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Error,

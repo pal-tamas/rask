@@ -38,7 +38,7 @@ public sealed partial class DragDropSortableDemo : Component
                 .OnDragOver(ctx.DragOver("list", index))
                 .OnDrop(ctx.Drop("list", index))
                 .OnDragEnd(ctx.DragEnd)
-                .Data(new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
+                .Data("testid", $"fruit-{index}")[
                 Ui.Icon.Name(Ui.IconName.Grip).Class("text-ui-muted"),
                 Span.Class("font-semibold")[fruit]
             ]);

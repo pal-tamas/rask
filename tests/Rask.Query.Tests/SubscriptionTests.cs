@@ -4,7 +4,7 @@ using Rask.Core;
 using Rask.Cqrs;
 using Rask.Testing;
 
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 public sealed record OrderPlaced(int Number) : INotification;
 

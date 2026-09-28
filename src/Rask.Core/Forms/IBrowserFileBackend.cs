@@ -4,7 +4,7 @@ namespace Rask.Core.Forms;
 
 public interface IBrowserFileBackend
 {
-    RaskFile Create(JsonElement metadata);
+    IRaskFile Create(JsonElement metadata);
 
-    void Release(IEnumerable<RaskFile> files);
+    void Release(IEnumerable<IRaskFile> files);
 }

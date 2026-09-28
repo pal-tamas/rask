@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 // JobsOptions come from Rask:Jobs first and the AddRaskJobs callback second. The recurring schedule is the one
 // member appsettings cannot express — the binding generator reports that, and Rask.Jobs.csproj suppresses it —
@@ -101,7 +101,8 @@ public sealed class RaskJobsOptionsBindingTests
         using var provider = Provider(new() { ["Rask:Jobs:BatchSize"] = "0" });
 
         var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<JobsOptions>());
-        Assert.Contains("Rask:Jobs", ex.Message, StringComparison.Ordinal);
+
+        Assert.Contains("Rask:Jobs:BatchSize", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

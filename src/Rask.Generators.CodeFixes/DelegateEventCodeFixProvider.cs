@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
@@ -74,7 +75,7 @@ public sealed class DelegateEventCodeFixProvider : CodeFixProvider
     }
 
     // `Callback<Order>` from `Action<Order>?` / `Func<Order, Task>`, reusing the type arguments as written.
-    private static TypeSyntax? Callback(TypeSyntax written, ITypeSymbol type)
+    private static QualifiedNameSyntax? Callback(TypeSyntax written, ITypeSymbol type)
     {
         var bare = written is NullableTypeSyntax nullable ? nullable.ElementType : written;
         var name = bare is QualifiedNameSyntax qualified ? qualified.Right : bare as SimpleNameSyntax;
@@ -86,7 +87,7 @@ public sealed class DelegateEventCodeFixProvider : CodeFixProvider
         var arguments = name is GenericNameSyntax generic
             ? generic.TypeArgumentList.Arguments.ToList()
             : new List<TypeSyntax>();
-        if (delegateType.Name == "Func" && arguments.Count > 0)
+        if (string.Equals(delegateType.Name, "Func", StringComparison.Ordinal) && arguments.Count > 0)
         {
             arguments.RemoveAt(arguments.Count - 1);
         }

@@ -38,4 +38,13 @@ public abstract partial class LitComponent : ExternalComponent
 {
     /// <inheritdoc />
     protected sealed override string Runtime => "lit";
+
+    /// <summary>Stores this island's children. Called by its generated children indexers.</summary>
+    protected void SetChildren(LitChild[] children) => SetIslandChildren(children, static child => child.Value);
+
+    /// <summary>Stores this island's children, materialised now. Called by its generated children indexers.</summary>
+    protected void SetChildren(IEnumerable<LitChild> children) => SetIslandChildren(children, static child => child.Value);
+
+    /// <summary>Stores a sequence of islands as this island's children. Called by its generated children indexers.</summary>
+    protected void SetChildren(IEnumerable<LitComponent?> children) => SetIslandChildren(children, static island => island);
 }

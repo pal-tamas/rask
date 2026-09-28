@@ -53,28 +53,7 @@ internal static class CssScoper
             }
 
             var preludeStart = i;
-            var parenDepth = 0;
-            while (i < end)
-            {
-                var c = css[i];
-                if (c == '(')
-                {
-                    parenDepth++;
-                }
-                else if (c == ')')
-                {
-                    parenDepth = Math.Max(0, parenDepth - 1);
-                }
-                else if (parenDepth == 0)
-                {
-                    if (c == '{' || c == ';' || c == '}')
-                    {
-                        break;
-                    }
-                }
-
-                i++;
-            }
+            i = ScanPrelude(css, i, end);
 
             if (i >= end)
             {
@@ -97,54 +76,88 @@ internal static class CssScoper
                 continue;
             }
 
-            var braceOpen = i;
-            var depth = 1;
-            i++;
-            while (i < end && depth > 0)
-            {
-                if (css[i] == '{')
-                {
-                    depth++;
-                }
-                else if (css[i] == '}')
-                {
-                    depth--;
-                }
-
-                if (depth > 0)
-                {
-                    i++;
-                }
-            }
-
-            var braceClose = i;
-            var bodyStart = braceOpen + 1;
-            var bodyLength = braceClose - bodyStart;
-
-            var trimmedPrelude = prelude.TrimStart();
-            if (StartsWithAtRule(trimmedPrelude, "@media") ||
-                StartsWithAtRule(trimmedPrelude, "@supports") ||
-                StartsWithAtRule(trimmedPrelude, "@container") ||
-                StartsWithAtRule(trimmedPrelude, "@layer"))
-            {
-                sb.Append(prelude).Append('{');
-                RewriteBlock(css, bodyStart, bodyStart + bodyLength, suffix, sb);
-                sb.Append('}');
-            }
-            else if (trimmedPrelude.StartsWith("@", StringComparison.Ordinal))
-            {
-                sb.Append(prelude).Append('{').Append(css, bodyStart, bodyLength).Append('}');
-            }
-            else
-            {
-                AppendRewrittenSelectorList(prelude, suffix, sb);
-                sb.Append('{').Append(css, bodyStart, bodyLength).Append('}');
-            }
+            var bodyStart = i + 1;
+            i = FindBlockClose(css, bodyStart, end);
+            AppendRule(css, prelude, bodyStart, i - bodyStart, suffix, sb);
 
             if (i < end)
             {
                 i++;
             }
+        }
+    }
+
+    // The index of the first top-level `{`, `;` or `}` from i on — or end, when the prelude runs out.
+    private static int ScanPrelude(string css, int i, int end)
+    {
+        var parenDepth = 0;
+        while (i < end)
+        {
+            var c = css[i];
+            if (c == '(')
+            {
+                parenDepth++;
+            }
+            else if (c == ')')
+            {
+                parenDepth = Math.Max(0, parenDepth - 1);
+            }
+            else if (parenDepth == 0 && (c == '{' || c == ';' || c == '}'))
+            {
+                break;
+            }
+
+            i++;
+        }
+
+        return i;
+    }
+
+    // The index of the `}` closing the block whose body starts at bodyStart — or end, when it is unclosed.
+    private static int FindBlockClose(string css, int bodyStart, int end)
+    {
+        var i = bodyStart;
+        var depth = 1;
+        while (i < end && depth > 0)
+        {
+            if (css[i] == '{')
+            {
+                depth++;
+            }
+            else if (css[i] == '}')
+            {
+                depth--;
+            }
+
+            if (depth > 0)
+            {
+                i++;
+            }
+        }
+
+        return i;
+    }
+
+    private static void AppendRule(string css, string prelude, int bodyStart, int bodyLength, string suffix, StringBuilder sb)
+    {
+        var trimmedPrelude = prelude.TrimStart();
+        if (StartsWithAtRule(trimmedPrelude, "@media") ||
+            StartsWithAtRule(trimmedPrelude, "@supports") ||
+            StartsWithAtRule(trimmedPrelude, "@container") ||
+            StartsWithAtRule(trimmedPrelude, "@layer"))
+        {
+            sb.Append(prelude).Append('{');
+            RewriteBlock(css, bodyStart, bodyStart + bodyLength, suffix, sb);
+            sb.Append('}');
+        }
+        else if (trimmedPrelude.StartsWith('@'))
+        {
+            sb.Append(prelude).Append('{').Append(css, bodyStart, bodyLength).Append('}');
+        }
+        else
+        {
+            AppendRewrittenSelectorList(prelude, suffix, sb);
+            sb.Append('{').Append(css, bodyStart, bodyLength).Append('}');
         }
     }
 
@@ -215,9 +228,24 @@ internal static class CssScoper
             return;
         }
 
+        var insertAt = FindPseudoStart(source, FindLastCompoundStart(source, s, e), e);
+
+        sb.Append(source, s, insertAt - s);
+        sb.Append(suffix);
+        sb.Append(source, insertAt, e - insertAt);
+        if (e < end)
+        {
+            sb.Append(source, e, end - e);
+        }
+    }
+
+    // Where the selector's last compound starts: just past its last top-level combinator.
+    private static int FindLastCompoundStart(string source, int s, int e)
+    {
         var lastCompoundStart = s;
         int parenDepth = 0, bracketDepth = 0;
-        for (var i = s; i < e; i++)
+        var i = s;
+        while (i < e)
         {
             var c = source[i];
             if (c == '(')
@@ -236,27 +264,29 @@ internal static class CssScoper
             {
                 bracketDepth = Math.Max(0, bracketDepth - 1);
             }
-            else if (parenDepth == 0 && bracketDepth == 0)
+            else if (parenDepth == 0 && bracketDepth == 0 && IsCombinator(c))
             {
-                if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '>' || c == '+' || c == '~')
+                while (i < e && IsCombinator(source[i]))
                 {
-                    var j = i;
-                    while (j < e && (source[j] == ' ' || source[j] == '\t' || source[j] == '\n' || source[j] == '\r' ||
-                                     source[j] == '>' || source[j] == '+' || source[j] == '~'))
-                    {
-                        j++;
-                    }
-
-                    lastCompoundStart = j;
-                    i = j - 1;
+                    i++;
                 }
+
+                lastCompoundStart = i;
+                continue;
             }
+
+            i++;
         }
 
-        var insertAt = e;
-        parenDepth = 0;
-        bracketDepth = 0;
-        for (var i = lastCompoundStart; i < e; i++)
+        return lastCompoundStart;
+    }
+
+    // Where the scope attribute goes in the compound starting at `from`: before its first top-level
+    // pseudo-class or pseudo-element, or at the end when it has none.
+    private static int FindPseudoStart(string source, int from, int e)
+    {
+        int parenDepth = 0, bracketDepth = 0;
+        for (var i = from; i < e; i++)
         {
             var c = source[i];
             if (c == '(')
@@ -277,19 +307,15 @@ internal static class CssScoper
             }
             else if (c == ':' && parenDepth == 0 && bracketDepth == 0)
             {
-                insertAt = i;
-                break;
+                return i;
             }
         }
 
-        sb.Append(source, s, insertAt - s);
-        sb.Append(suffix);
-        sb.Append(source, insertAt, e - insertAt);
-        if (e < end)
-        {
-            sb.Append(source, e, end - e);
-        }
+        return e;
     }
+
+    private static bool IsCombinator(char c) =>
+        c is ' ' or '\t' or '\n' or '\r' or '>' or '+' or '~';
 
     private static bool StartsWithAtRule(string s, string atRule)
     {

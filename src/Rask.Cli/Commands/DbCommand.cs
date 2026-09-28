@@ -87,9 +87,10 @@ internal sealed partial class DbCommand(
     public override async Task<int> ExecuteAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         var schema = CreateSchema();
-        if (!schema.TryResolveVerb(args.FirstOrDefault(), out var subcommand))
+        var verb = args.Count > 0 ? args[0] : null;
+        if (!schema.TryResolveVerb(verb, out var subcommand))
         {
-            return FailUnknownVerb(args.FirstOrDefault(), schema);
+            return FailUnknownVerb(verb, schema);
         }
 
         var parsed = schema.Parse(args.Skip(1).ToArray());
@@ -103,102 +104,140 @@ internal sealed partial class DbCommand(
             return Fail($"Unexpected argument '{parsed.Positionals[1]}'.");
         }
 
-        var name = parsed.Positionals.FirstOrDefault();
+        var name = parsed.FirstPositional;
         if (!ValidatePositional(subcommand, name, out var positionalError))
         {
             return Fail(positionalError!);
         }
 
-        var output = parsed.Option("output");
-        if (output is not null && subcommand is not ("add" or "backup"))
+        if (OptionScopeError(subcommand, parsed) is { } scopeError)
         {
-            return Fail("--output only applies to 'rask db add' and 'rask db backup'.");
+            return Fail(scopeError);
+        }
+
+        var remote = parsed.HasFlag("remote");
+        var project = ResolveProject(subcommand, parsed, remote);
+        if (project is null)
+        {
+            return 1;
+        }
+
+        // backup/restore branch off before the EF tooling: they copy a database, they don't migrate one, so
+        // they must not install dotnet-ef or require the project to reference EF's design package.
+        if (FileSubcommands.Contains(subcommand))
+        {
+            return await FileSubcommandAsync(subcommand, parsed, name, project, remote, cancellationToken).ConfigureAwait(false);
+        }
+
+        return await EfSubcommandAsync(subcommand, parsed, name, project, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Why an option on this command line does not apply to <paramref name="subcommand" />, or null.</summary>
+    private static string? OptionScopeError(string subcommand, ParsedArguments parsed)
+    {
+        if (parsed.Option("output") is not null && subcommand is not ("add" or "backup"))
+        {
+            return "--output only applies to 'rask db add' and 'rask db backup'.";
         }
 
         if (parsed.HasFlag("yes") && subcommand is not ("drop" or "restore"))
         {
-            return Fail("--yes only applies to 'rask db drop' and 'rask db restore'.");
+            return "--yes only applies to 'rask db drop' and 'rask db restore'.";
         }
 
         var remote = parsed.HasFlag("remote");
         foreach (var option in new[] { "remote", "host", "app" })
         {
-            var supplied = option == "remote" ? remote : parsed.Option(option) is not null;
+            var supplied = string.Equals(option, "remote", StringComparison.Ordinal) ? remote : parsed.Option(option) is not null;
             if (supplied && !FileSubcommands.Contains(subcommand))
             {
-                return Fail($"--{option} only applies to 'rask db backup' and 'rask db restore'.");
+                return $"--{option} only applies to 'rask db backup' and 'rask db restore'.";
             }
         }
 
         if (!remote && (parsed.Option("host") is not null || parsed.Option("app") is not null))
         {
-            return Fail("--host and --app only apply with --remote.");
+            return "--host and --app only apply with --remote.";
         }
 
+        return null;
+    }
+
+    /// <summary>The project to act on, or null (after saying why) when there is none.</summary>
+    private string? ResolveProject(string subcommand, ParsedArguments parsed, bool remote)
+    {
         // An explicit --project wins; otherwise fall back to the single .csproj at or above the CWD. EF
         // accepts a directory here and finds the project inside it, so the located directory is enough.
         //
         // A remote backup/restore is the one case that needs no project at all: it acts on a container on
         // another machine, identified by host and app name. Requiring a .csproj would stop you taking a
         // copy of production from a scratch directory, or from CI.
-        var project = parsed.Option("project");
-        if (project is null)
+        if (parsed.Option("project") is { } project)
         {
-            var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
-            if (located is null && !(remote && FileSubcommands.Contains(subcommand)))
+            return project;
+        }
+
+        var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
+        if (located is null && !(remote && FileSubcommands.Contains(subcommand)))
+        {
+            Console.WriteErrorLine(
+                $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a project, or pass --project.",
+                ConsoleStyle.Error);
+            return null;
+        }
+
+        return located?.ProjectDirectory ?? _workingDirectory;
+    }
+
+    private async Task<int> FileSubcommandAsync(
+        string subcommand, ParsedArguments parsed, string? name, string project, bool remote, CancellationToken cancellationToken)
+    {
+        var output = parsed.Option("output");
+
+        // Both of these copy a database *file* — locally through SQLite's Online Backup API, remotely
+        // with VACUUM INTO in a sidecar.
+        //
+        // Restore replaces a database and, when remote, stops the app to do it — so "what exactly
+        // would this touch" is worth being able to ask without finding out (#600).
+        if (parsed.HasFlag("dry-run"))
+        {
+            var where = remote
+                ? $"the deployed database on {parsed.Option("host") ?? "the remembered host"}"
+                : $"the local database of {project}";
+            WriteDryRun(subcommand, where);
+            if (output is not null)
             {
-                Console.WriteErrorLine(
-                    $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a project, or pass --project.",
-                    ConsoleStyle.Error);
-                return 1;
+                WriteDryRun("write to", output);
             }
 
-            project = located?.ProjectDirectory ?? _workingDirectory;
+            if (name is not null)
+            {
+                WriteDryRun("read from", name);
+            }
+
+            return 0;
         }
+
+        return await ExecuteFileActionAsync(
+            subcommand,
+            name,
+            project,
+            output,
+            remote,
+            parsed.Option("host"),
+            parsed.Option("app"),
+            parsed.HasFlag("yes"),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<int> EfSubcommandAsync(
+        string subcommand, ParsedArguments parsed, string? name, string project, CancellationToken cancellationToken)
+    {
+        var output = parsed.Option("output");
 
         // The startup project configures the DbContext (DI); in a typical single-project Rask app it's the
         // same project that owns the migrations, so it defaults to --project.
         var startupProject = parsed.Option("startup-project") ?? project;
-
-        // backup/restore branch off before the EF tooling: they copy a database, they don't migrate one, so
-        // they must not install dotnet-ef or require the project to reference EF's design package.
-        if (FileSubcommands.Contains(subcommand))
-        {
-            // Both of these copy a database *file* — locally through SQLite's Online Backup API, remotely
-            // with VACUUM INTO in a sidecar.
-            //
-            // Restore replaces a database and, when remote, stops the app to do it — so "what exactly
-            // would this touch" is worth being able to ask without finding out (#600).
-            if (parsed.HasFlag("dry-run"))
-            {
-                var where = remote
-                    ? $"the deployed database on {parsed.Option("host") ?? "the remembered host"}"
-                    : $"the local database of {project}";
-                WriteDryRun(subcommand, where);
-                if (output is not null)
-                {
-                    WriteDryRun("write to", output);
-                }
-
-                if (name is not null)
-                {
-                    WriteDryRun("read from", name);
-                }
-
-                return 0;
-            }
-
-            return await ExecuteFileActionAsync(
-                subcommand,
-                name,
-                project,
-                output,
-                remote,
-                parsed.Option("host"),
-                parsed.Option("app"),
-                parsed.HasFlag("yes"),
-                cancellationToken).ConfigureAwait(false);
-        }
 
         // Before the confirmation and before the dotnet-ef install: a dry run changes nothing, so asking
         // permission for it — or refusing it outright for want of a terminal, which is what happened —
@@ -222,19 +261,11 @@ internal sealed partial class DbCommand(
         // prompt. `dotnet ef database drop` does its own, but only when it has a terminal, so a drop run
         // from a script destroyed the database with nothing asked. Ask here, where we know the answer
         // matters, and refuse rather than guess when there's nobody to ask.
-        if (subcommand == "drop" && !parsed.HasFlag("yes"))
+        if (string.Equals(subcommand, "drop", StringComparison.Ordinal)
+            && !parsed.HasFlag("yes")
+            && await ConfirmDropAsync(startupProject).ConfigureAwait(false) is { } declined)
         {
-            if (Console.IsInputRedirected)
-            {
-                Console.WriteErrorLine("`rask db drop` deletes the database. Pass --yes to confirm — there's no terminal to ask on.", ConsoleStyle.Error);
-                return 1;
-            }
-
-            if (!new Prompt(Console).Confirm($"Drop the database for '{Path.GetFileName(startupProject)}'? This deletes it and everything in it.", @default: false))
-            {
-                Console.Out.WriteLine("Left it alone.");
-                return 0;
-            }
+            return declined;
         }
 
         if (!await EfToolProbe.EnsureAsync(_process, Console, cancellationToken).ConfigureAwait(false))
@@ -253,6 +284,24 @@ internal sealed partial class DbCommand(
 
         return await _process.RunAsync("dotnet", efArgs, _workingDirectory, cancellationToken, _buildEnvironment)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>Asks before a drop; the exit code to stop with when the answer is no (or cannot be asked), else null.</summary>
+    private async Task<int?> ConfirmDropAsync(string startupProject)
+    {
+        if (Console.IsInputRedirected)
+        {
+            Console.WriteErrorLine("`rask db drop` deletes the database. Pass --yes to confirm — there's no terminal to ask on.", ConsoleStyle.Error);
+            return 1;
+        }
+
+        if (!new Prompt(Console).Confirm($"Drop the database for '{Path.GetFileName(startupProject)}'? This deletes it and everything in it.", @default: false))
+        {
+            await Console.Out.WriteLineAsync("Left it alone.").ConfigureAwait(false);
+            return 0;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -301,7 +350,7 @@ internal sealed partial class DbCommand(
         var lines = stdout.Split('\n');
         for (var i = 0; i < lines.Length; i++)
         {
-            if (lines[i].Trim() == "[")
+            if (string.Equals(lines[i].Trim(), "[", StringComparison.Ordinal))
             {
                 return string.Join('\n', lines.Skip(i));
             }
@@ -310,7 +359,7 @@ internal sealed partial class DbCommand(
         return null;
     }
 
-    // The EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design;
+    // The EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design:
     // without it `dotnet ef` fails with a terse message. Projects scaffolded with `--data` already
     // include it, but a hand-built one (or a demo that uses EnsureCreated) may not — so add it for the
     // user (like the dotnet-ef tool install
@@ -396,7 +445,28 @@ internal sealed partial class DbCommand(
         IReadOnlyList<string> passthrough)
     {
         var args = new List<string> { "ef" };
+        AddEfVerb(args, subcommand, name, output, force);
 
+        args.Add("--project");
+        args.Add(project);
+        args.Add("--startup-project");
+        args.Add(startupProject);
+
+        if (!string.IsNullOrWhiteSpace(context))
+        {
+            args.Add("--context");
+            args.Add(context);
+        }
+
+        // Forwarded verbatim (e.g. --verbose, --connection). These are dotnet-ef options, so they are
+        // appended as ordinary arguments rather than after a '--' separator (which ef reserves for the app).
+        args.AddRange(passthrough);
+
+        return args;
+    }
+
+    private static void AddEfVerb(List<string> args, string subcommand, string? name, string? output, bool force)
+    {
         switch (subcommand)
         {
             case "add":
@@ -441,22 +511,5 @@ internal sealed partial class DbCommand(
 
                 break;
         }
-
-        args.Add("--project");
-        args.Add(project);
-        args.Add("--startup-project");
-        args.Add(startupProject);
-
-        if (!string.IsNullOrWhiteSpace(context))
-        {
-            args.Add("--context");
-            args.Add(context);
-        }
-
-        // Forwarded verbatim (e.g. --verbose, --connection). These are dotnet-ef options, so they are
-        // appended as ordinary arguments rather than after a '--' separator (which ef reserves for the app).
-        args.AddRange(passthrough);
-
-        return args;
     }
 }

@@ -2,7 +2,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Server.Files;
 
-internal sealed class ServerRaskFile : RaskFile
+internal sealed class ServerRaskFile : IRaskFile
 {
     private readonly SessionUploadStore.Entry _entry;
     private readonly SessionUploadStore _store;
@@ -13,15 +13,15 @@ internal sealed class ServerRaskFile : RaskFile
         _store = store;
     }
 
-    public override string Name => _entry.Name;
-    public override long Size => _entry.Size;
-    public override string ContentType => _entry.ContentType;
-    public override DateTimeOffset LastModified => _entry.LastModified;
+    public string Name => _entry.Name;
+    public long Size => _entry.Size;
+    public string ContentType => _entry.ContentType;
+    public DateTimeOffset LastModified => _entry.LastModified;
 
     internal string Token => _entry.Token;
     internal string SessionId => _entry.SessionId;
 
-    public override Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
+    public Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
         CancellationToken cancellationToken = default)
     {
         if (_entry.Size > maxAllowedSize)

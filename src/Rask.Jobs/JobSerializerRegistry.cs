@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Rask.Cqrs;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 /// Maps a persisted <see cref="Job.Type"/> name back to its CLR type so the
@@ -11,7 +11,7 @@ namespace Rask.Jobs;
 /// </summary>
 public static class JobSerializerRegistry
 {
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
 
     // Registrations made directly rather than by a generated initializer. Kept apart from the generated
     // groups so a refresh can replace a group's contribution without dropping these.
@@ -23,7 +23,7 @@ public static class JobSerializerRegistry
 
     // The flattened lookup Deserialize reads. Rebuilt under the lock and installed in a single store, so
     // a reader observes either the complete old map or the complete new one, never a half-built one.
-    private static volatile IReadOnlyDictionary<string, Type> _types =
+    private static volatile Dictionary<string, Type> _types =
         new Dictionary<string, Type>(StringComparer.Ordinal);
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

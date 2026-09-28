@@ -127,18 +127,27 @@ public sealed class RequiredBuilderPropertyAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        context.ReportDiagnostic(MissingDiagnostic(
+            entryType, missing, IsStored(outermost), operation.Syntax.GetLocation()));
+    }
+
+    private static Diagnostic MissingDiagnostic(
+        INamedTypeSymbol entryType, List<IPropertySymbol> missing, bool stored, Location location)
+    {
         var names = Quote(missing);
+        var one = missing.Count == 1;
+        if (stored)
+        {
+            return Diagnostic.Create(Rask039, location, entryType.ToDisplayString(),
+                one ? "a required property" : "every required property", names);
+        }
+
         // A setter is named after the property it writes, delegate or not, so the message can name the
         // property directly. It could not while a delegate prop's setter dropped a leading `On` — naming
         // the property then sent the author to a method that did not exist.
         var setters = string.Join(", ", missing.Select(static p => "'." + p.Name + "(…)'"));
-        var location = operation.Syntax.GetLocation();
-
-        context.ReportDiagnostic(IsStored(outermost)
-            ? Diagnostic.Create(Rask039, location, entryType.ToDisplayString(),
-                missing.Count == 1 ? "a required property" : "every required property", names)
-            : Diagnostic.Create(Rask038, location, entryType.ToDisplayString(),
-                names, missing.Count == 1 ? "it" : "them", setters));
+        return Diagnostic.Create(Rask038, location, entryType.ToDisplayString(),
+            names, one ? "it" : "them", setters);
     }
 
     /// <summary>

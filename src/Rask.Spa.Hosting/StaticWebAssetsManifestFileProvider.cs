@@ -1,6 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.FileProviders.Physical;
 using Microsoft.Extensions.Primitives;
@@ -138,9 +136,9 @@ internal sealed class StaticWebAssetsManifestFileProvider : IFileProvider
         }
 
         var relative = string.Join(Path.DirectorySeparatorChar, remaining);
-        foreach (var pattern in patterns)
+        foreach (var contentRootIndex in patterns.Select(pattern => pattern.ContentRootIndex))
         {
-            var root = manifest.ContentRoots[pattern.ContentRootIndex];
+            var root = manifest.ContentRoots[contentRootIndex];
             var fullRoot = Path.GetFullPath(root);
             var candidate = Path.GetFullPath(Path.Combine(fullRoot, relative));
 
@@ -155,7 +153,7 @@ internal sealed class StaticWebAssetsManifestFileProvider : IFileProvider
 
             return new Node
             {
-                Asset = new Asset { ContentRootIndex = pattern.ContentRootIndex, SubPath = Path.GetRelativePath(root, candidate) }
+                Asset = new Asset { ContentRootIndex = contentRootIndex, SubPath = Path.GetRelativePath(root, candidate) }
             };
         }
 
@@ -199,6 +197,7 @@ internal sealed class StaticWebAssetsManifestFileProvider : IFileProvider
             }
             catch (IOException)
             {
+                // Mid-write or locked by the build — likewise keep serving the previous one.
             }
 
             return _manifest;
@@ -284,11 +283,4 @@ internal sealed class StaticWebAssetsManifestFileProvider : IFileProvider
 
         public int Depth { get; set; }
     }
-
 }
-
-/// <summary>Source-generated metadata — the package is trim- and AOT-analysed under warnings-as-errors.</summary>
-[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
-[JsonSerializable(typeof(StaticWebAssetsManifestFileProvider.Manifest))]
-[SuppressMessage("Design", "CA1812", Justification = "Instantiated by the source-generated serializer.")]
-internal sealed partial class ManifestJson : JsonSerializerContext;

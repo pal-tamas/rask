@@ -19,6 +19,15 @@ public sealed partial class UiKitFeedbackDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
+        AlertSection(),
+        LoadingSection(),
+        ProgressSection(),
+        TooltipSection(),
+        SkeletonSection(),
+        ToastSection()
+    ];
+
+    private static Component AlertSection() =>
         Section(
             "Alert",
             "Tone and fill compose, as everywhere else in the kit.",
@@ -27,8 +36,9 @@ public sealed partial class UiKitFeedbackDemo : Component
                 Ui.Alert.Key("s").Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft)["Saved."],
                 Ui.Alert.Key("w").Tone(Ui.Tone.Warning)["Two jobs are close to their retry limit."],
                 Ui.Alert.Key("e").Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)["Payment failed."]
-            ]),
+            ]);
 
+    private static Component LoadingSection() =>
         Section(
             "Loading",
             "Six shapes, all saying the same thing — and none of them saying it to a screen reader. "
@@ -40,8 +50,9 @@ public sealed partial class UiKitFeedbackDemo : Component
                 Spin("ball", Ui.LoadingShape.Ball, "Ball"),
                 Spin("bars", Ui.LoadingShape.Bars, "Bars"),
                 Spin("infinity", Ui.LoadingShape.Infinity, "Infinity")
-            ]),
+            ]);
 
+    private Component ProgressSection() =>
         Section(
             "Progress",
             "A real <progress> element, so it reports its own value without being told to.",
@@ -54,8 +65,9 @@ public sealed partial class UiKitFeedbackDemo : Component
                         .OnClick(() => { _progress = Math.Min(100, _progress + 10); })["+10"]
                 ],
                 Ui.RadialProgress.Label("Disk used").Percent(_progress)
-            ]),
+            ]);
 
+    private static Component TooltipSection() =>
         Section(
             "Tooltip",
             "A hint and nothing more: it is easy to miss, so nothing that matters should live only here. "
@@ -80,8 +92,9 @@ public sealed partial class UiKitFeedbackDemo : Component
                 Ui.Tooltip.Key("o").Tip("Always shown").Position(Ui.Position.Top).Open(true)[
                     Ui.Button.Size(Ui.Size.Sm)["Open"]
                 ]
-            ]),
+            ]);
 
+    private static Component SkeletonSection() =>
         Section(
             "Skeleton",
             "The shape of what is coming, so the layout does not jump when it arrives. Lines draws a "
@@ -94,8 +107,9 @@ public sealed partial class UiKitFeedbackDemo : Component
                     Div.Class("grow")[Ui.Skeleton.Key("lines").Lines(2)]
                 ],
                 Ui.Skeleton.Key("c").Class("h-24 w-full")
-            ]),
+            ]);
 
+    private Component ToastSection() =>
         Section(
             "Toast",
             "Pinned to the viewport rather than pushed into the page's flow: an inline notice moves "
@@ -128,8 +142,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                                     .OnClick(() => Drop(t.Id))["Undo"])
                             .OnDismiss(() => Drop(t.Id)))
                 ]
-            ])
-    ];
+            ]);
 
     private void Push(string message, string? heading, Ui.Tone tone)
     {
@@ -140,13 +153,13 @@ public sealed partial class UiKitFeedbackDemo : Component
             tone));
     }
 
-    private void Drop(string id) => _toasts.RemoveAll(t => t.Id == id);
+    private void Drop(string id) => _toasts.RemoveAll(t => string.Equals(t.Id, id, StringComparison.Ordinal));
 
     private sealed record Notice(string Id, string Message, string? Heading, Ui.Tone Tone);
 
-    private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+    private static AttrBag Testid(string value) => new("testid", value);
 
-    private static Component Spin(string key, Ui.LoadingShape shape, string label) =>
+    private static UiLoading Spin(string key, Ui.LoadingShape shape, string label) =>
         Ui.Loading.Key(key).Text(label).Shape(shape).Size(Ui.Size.Lg);
 
     private static Component Section(string heading, string blurb, Component body) =>

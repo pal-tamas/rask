@@ -64,7 +64,9 @@ internal sealed class LiveJsInvokeQueue
             message = "Rask: render frame carrying the JS invoke was never delivered";
         }
 
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var invoke in invokes)
+#pragma warning restore S3267
         {
             try
             {
@@ -91,13 +93,4 @@ internal sealed class LiveJsInvokeQueue
             }
         }
     }
-}
-
-// Implemented by both LiveSession (Server) and WasmLiveSession (WASM) so RaskJSRuntimeBase can queue
-// a call and request a render without knowing the transport.
-internal interface ILiveJsHost
-{
-    LiveJsInvokeQueue JsInvokes { get; }
-
-    Task RequestRenderAsync();
 }

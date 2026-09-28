@@ -94,7 +94,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         return base.EnterChildrenScope();
     }
 
-    private static IEnumerable<Component?> MarkSelected(IEnumerable<Component?> children, Selection current)
+    private static Component?[] MarkSelected(IEnumerable<Component?> children, Selection current)
     {
         var list = new List<Component?>();
         foreach (var c in children)
@@ -124,7 +124,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     private readonly struct Selection(string single, IReadOnlySet<string>? many)
     {
         public bool Matches(string? value) =>
-            many is null ? value == single : value is not null && many.Contains(value);
+            many is null ? string.Equals(value, single, StringComparison.Ordinal) : value is not null && many.Contains(value);
     }
 
     private static HTMLOptionElement MarkOption(HTMLOptionElement opt, Selection current)
@@ -179,7 +179,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
 
     // The picked values a multi-select bound to a collection should mark, or null for every other shape —
     // which keeps the single-value path on its existing string compare.
-    private IReadOnlySet<string>? SelectionSet(object? bound)
+    private HashSet<string>? SelectionSet(object? bound)
     {
         if (Multiple is not true || !BindingHelpers.IsBindableSelectionType<T>())
         {
@@ -202,24 +202,9 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     {
         base.WriteAttributes(sb);
 
-        ExpressionAccessor.Accessor? acc = null;
-        EditContext? bindCtx = null;
-        var fid = default(FieldIdentifier);
-        if (Bind is not null)
-        {
-            acc = ExpressionAccessor.Parse(Bind);
-            bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
-            fid = acc.Field;
-            _bound = true;
-            _selectedValue = BindingHelpers.FormatValue(acc.Getter());
-            _selectedValues = SelectionSet(acc.Getter());
-        }
-        else if (Value is not null)
-        {
-            _bound = true;
-            _selectedValue = BindingHelpers.FormatValue(Value);
-            _selectedValues = SelectionSet(Value);
-        }
+        var acc = Bind is not null ? ExpressionAccessor.Parse(Bind) : null;
+        var bindCtx = acc is not null ? BindingHelpers.ResolveBindingContext(acc.Target) : null;
+        CaptureSelection(acc);
 
         var name = Name ?? acc?.PropertyName;
         if (name is not null)
@@ -234,17 +219,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
 
         if (acc is not null)
         {
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
-            ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
-            // A multi-select bound to a collection takes the whole selection the client now reports
-            // (`values`), not the single `value` the DOM exposes — which is only the FIRST selected
-            // option, so binding it converged the model on one option out of however many were picked.
-            // A multi-select bound to a scalar keeps the single-value handler: that is a control whose
-            // model can hold one answer, and silently widening it would be the more surprising change.
-            var handler = Multiple is true && BindingHelpers.IsBindableSelectionType<T>()
-                ? BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind)
-                : (Delegate)BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
-            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(handler));
+            WireBound(sb, ctx, acc, bindCtx);
         }
         else if (SelectionHandler() is { } picked)
         {
@@ -253,14 +228,43 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
             // is exactly what a control taking the raw values does not want.
             AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(picked));
         }
-        else
+        else if (((IFormControl<T>)this).ControlledChangeHandler() is { } change)
         {
-            var change = ((IFormControl<T>)this).ControlledChangeHandler();
-            if (change is not null)
-            {
-                AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
-            }
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }
+    }
+
+    // What the options render marks: the bound model's value, or the controlled Value.
+    private void CaptureSelection(ExpressionAccessor.Accessor? acc)
+    {
+        if (acc is not null)
+        {
+            _bound = true;
+            _selectedValue = BindingHelpers.FormatValue(acc.Getter());
+            _selectedValues = SelectionSet(acc.Getter());
+        }
+        else if (Value is not null)
+        {
+            _bound = true;
+            _selectedValue = BindingHelpers.FormatValue(Value);
+            _selectedValues = SelectionSet(Value);
+        }
+    }
+
+    private void WireBound(StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx)
+    {
+        var fid = acc.Field;
+        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
+        ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+        // A multi-select bound to a collection takes the whole selection the client now reports
+        // (`values`), not the single `value` the DOM exposes — which is only the FIRST selected
+        // option, so binding it converged the model on one option out of however many were picked.
+        // A multi-select bound to a scalar keeps the single-value handler: that is a control whose
+        // model can hold one answer, and silently widening it would be the more surprising change.
+        var handler = Multiple is true && BindingHelpers.IsBindableSelectionType<T>()
+            ? BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind)
+            : (Delegate)BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
+        AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(handler));
     }
 
     // The values-shaped change handler, or null when none was wired. Handed over as the caller's own

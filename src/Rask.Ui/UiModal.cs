@@ -119,12 +119,6 @@ public sealed partial class UiModal : Component
 
     private Component Popover(string id)
     {
-        // Both names on every control, so each browser takes the one it has: an invoker command where it is
-        // supported, which the platform acts on first, and the popover action everywhere else.
-        (string, string?)[] Opens() => [("command", "show-modal"), ("commandfor", id), ("popovertarget", id)];
-        (string, string?)[] Closes() =>
-            [("command", "close"), ("commandfor", id), ("popovertarget", id), ("popovertargetaction", "hide")];
-
         var dialog = Dialog
             .Id(id)
             .Class(Classes())
@@ -140,7 +134,7 @@ public sealed partial class UiModal : Component
         {
             // The dialog's own toggle event: the platform reports every way it closed, the ones no handler here
             // saw included — Escape, the backdrop, a button inside the body.
-            dialog = dialog.OnToggle(e => e.NewState == "open" ? Task.CompletedTask : OnClose.Invoke().AsTask());
+            dialog = dialog.OnToggle(e => string.Equals(e.NewState, "open", StringComparison.Ordinal) ? Task.CompletedTask : OnClose.Invoke().AsTask());
         }
 
         // Escape, and a light dismiss where the browser does one: the platform raises cancel for those and
@@ -156,36 +150,46 @@ public sealed partial class UiModal : Component
         return
         [
             Trigger is { } trigger
-                ? Button.Type("button").Class("btn").Attributes(Opens())[trigger]
+                ? Button.Type("button").Class("btn").Attributes(Opens(id))[trigger]
                 : null,
             Shell(
                 dialog,
-                // Markup rather than a handler, so it closes with no runtime at all.
-                Closable == false
-                    ? null
-                    : Button
-                        .Type("button")
-                        .Class("btn btn-ghost btn-sm btn-square")
-                        .Attributes(Closes())
-                        .Aria(new Dictionary<string, string?> { ["label"] = "Close" })[
-                        Ui.Icon.Name(Ui.IconName.Close).Class("size-4 shrink-0")
-                    ],
-                // A MODAL dialog has no light-dismiss of its own in most browsers — the viewport-sized `.modal`
-                // is the dialog, so a click on the dimmed area is a click inside it. daisyUI's backdrop button is
-                // the part that click lands on. No role and no label: the close button is the keyboard's way out.
-                backdrop: Dismissible == false
-                    ? null
-                    : Button
-                        .Type("button")
-                        .Class("modal-backdrop")
-                        .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
-                        .TabIndex(-1)
-                        .Attributes(Closes())
-                        // The markup still closes it with no runtime; the handler only adds the word
-                        // "dismissed", and only for a caller who asked to hear it.
-                        .OnClick(OnCancel)["close"])
+                Closable == false ? null : PopoverClose(id),
+                backdrop: Dismissible == false ? null : PopoverBackdrop(id))
         ];
     }
+
+    // Both names on every control, so each browser takes the one it has: an invoker command where it is
+    // supported, which the platform acts on first, and the popover action everywhere else.
+    private static (string, string?)[] Opens(string id) =>
+        [("command", "show-modal"), ("commandfor", id), ("popovertarget", id)];
+
+    private static (string, string?)[] Closes(string id) =>
+        [("command", "close"), ("commandfor", id), ("popovertarget", id), ("popovertargetaction", "hide")];
+
+    // Markup rather than a handler, so it closes with no runtime at all.
+    private static Component PopoverClose(string id) =>
+        Button
+            .Type("button")
+            .Class("btn btn-ghost btn-sm btn-square")
+            .Attributes(Closes(id))
+            .Aria("label", "Close")[
+            Ui.Icon.Name(Ui.IconName.Close).Class("size-4 shrink-0")
+        ];
+
+    // A MODAL dialog has no light-dismiss of its own in most browsers — the viewport-sized `.modal` is the
+    // dialog, so a click on the dimmed area is a click inside it. daisyUI's backdrop button is the part that
+    // click lands on. No role and no label: the close button is the keyboard's way out.
+    private Component PopoverBackdrop(string id) =>
+        Button
+            .Type("button")
+            .Class("modal-backdrop")
+            .Aria("hidden", "true")
+            .TabIndex(-1)
+            .Attributes(Closes(id))
+            // The markup still closes it with no runtime; the handler only adds the word "dismissed", and only
+            // for a caller who asked to hear it.
+            .OnClick(OnCancel)["close"];
 
     private Component StateDriven()
     {
@@ -218,11 +222,7 @@ public sealed partial class UiModal : Component
 
         return Shell(
             dialog,
-            Closable == false
-                ? EscapeTarget()
-                : !OnCancel.HasValue
-                    ? close[Ui.Icon.Name(Ui.IconName.Close)]
-                    : [close[Ui.Icon.Name(Ui.IconName.Close)], EscapeTarget()],
+            HeaderControls(close),
             // A pointer convenience, not the only way out: the header's close button is the keyboard
             // path, which is why this carries no role and no label of its own.
             backdrop: !HearsDismissal || Dismissible == false
@@ -230,9 +230,21 @@ public sealed partial class UiModal : Component
                 : Button
                     .Type("button")
                     .Class("modal-backdrop")
-                    .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
+                    .Aria("hidden", "true")
                     .TabIndex(-1)
                     .OnClick(DismissAsync)["close"]);
+    }
+
+    private Component? HeaderControls(UiButton close)
+    {
+        if (Closable == false)
+        {
+            return EscapeTarget();
+        }
+
+        return !OnCancel.HasValue
+            ? close[Ui.Icon.Name(Ui.IconName.Close)]
+            : [close[Ui.Icon.Name(Ui.IconName.Close)], EscapeTarget()];
     }
 
     // Someone is listening for the page to stop rendering it open. Without either callback a dismissal would
@@ -243,6 +255,7 @@ public sealed partial class UiModal : Component
     private async Task DismissAsync()
     {
         await OnCancel.Invoke().ConfigureAwait(true);
+
         await OnClose.Invoke().ConfigureAwait(true);
     }
 
@@ -254,7 +267,7 @@ public sealed partial class UiModal : Component
             : Button
                 .Type("button")
                 .Class("hidden")
-                .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
+                .Aria("hidden", "true")
                 .TabIndex(-1)
                 .Attributes(("data-rask-dismiss", null))
                 .OnClick(DismissAsync)["close"];
@@ -274,12 +287,12 @@ public sealed partial class UiModal : Component
     // Takes the dialog itself. It used to take `Build<HTMLDialogElement>`, because the chain receiver was the only
     // thing carrying the children indexer; the component carries it now. The two paths differ in how the
     // dialog OPENS, not in what is inside it.
-    private Component Shell(Rask.Core.Components.HTMLDialogElement dialog, Component? closeControl, Component? backdrop) =>
+    private Component Shell(HTMLDialogElement dialog, Component? closeControl, Component? backdrop) =>
         // No `role="dialog"`: the element IS a dialog and carries that role implicitly, so stating it
         // again is the redundant-ARIA that guidance tells you not to write. The NAME is not implicit,
         // though — a dialog with a heading inside is still an unnamed dialog to a screen reader, which
         // announces "dialog" and nothing else — so the title goes on as aria-label.
-        dialog.Aria(new Dictionary<string, string?> { ["label"] = Title })[
+        dialog.Aria("label", Title)[
             Div.Class(IsFlyout
                 ? "modal-box flex w-[min(28rem,100vw)] flex-col p-0"
                 // daisyUI's side modals are already full height; the centred box's height and width caps would

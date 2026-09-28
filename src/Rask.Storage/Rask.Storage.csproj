@@ -37,7 +37,7 @@
   <!-- No Rask.Core reference, deliberately (#1086). Core is IsPackable=false and travels inside the hosts that
        render components, so the SPA and meta lanes have none, and an app there died before Main the moment
        MapRaskStorage named a Core type. The path base arrives through AppContext data instead (see RaskPathBase),
-       and an upload is saved from its opener rather than from Core's RaskFile. -->
+       and an upload is saved from its opener rather than from Core's IRaskFile. -->
 
   <!-- StorageOptions binds Rask:Storage. The configuration binding source generator writes that bind at compile time,
        so no reflection binder runs; the SDK leaves it off unless a project asks. -->
@@ -50,7 +50,9 @@
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
     <Compile Include="..\Rask.Batteries.Shared\Counting.cs" Link="Shared\Counting.cs"/>
-    <Compile Include="..\Rask.Batteries.Shared\HousekeepingContexts.cs" Link="Shared\HousekeepingContexts.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\CountingException.cs" Link="Shared\CountingException.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\HousekeepingContextFactory.cs" Link="Shared\HousekeepingContextFactory.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\HousekeepingServiceCollectionExtensions.cs" Link="Shared\HousekeepingServiceCollectionExtensions.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
 

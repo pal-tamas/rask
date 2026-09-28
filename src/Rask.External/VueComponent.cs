@@ -39,4 +39,13 @@ public abstract partial class VueComponent : ExternalComponent
 {
     /// <inheritdoc />
     protected sealed override string Runtime => "vue";
+
+    /// <summary>Stores this island's children. Called by its generated children indexers.</summary>
+    protected void SetChildren(VueChild[] children) => SetIslandChildren(children, static child => child.Value);
+
+    /// <summary>Stores this island's children, materialised now. Called by its generated children indexers.</summary>
+    protected void SetChildren(IEnumerable<VueChild> children) => SetIslandChildren(children, static child => child.Value);
+
+    /// <summary>Stores a sequence of islands as this island's children. Called by its generated children indexers.</summary>
+    protected void SetChildren(IEnumerable<VueComponent?> children) => SetIslandChildren(children, static island => island);
 }

@@ -21,91 +21,9 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
-                Div.Class("flex gap-2 items-center flex-wrap mb-3")[
-                    // Headless: we render our own buttons; the triggers just supply the gesture attribute.
-                    Trigger.Fullscreen
-                        .Template(g =>
-                        Ui.Button.Tone(Ui.Tone.Primary).Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
-                    Trigger.ScreenOrientation
-                        .Orientation("landscape")
-                        .Template(g =>
-                            Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
-                                .Id("orientation-btn")
-                                .Data(g)["Lock landscape"]),
-                    Trigger.Install
-                        .Template(g =>
-                            Ui.Button.Tone(Ui.Tone.Success).Variant(Ui.Variant.Outline)
-                                .Id("install-btn")
-                                .Data(g)["Install app"])
-                        .OnOutcome(outcome =>
-                        {
-                            // No StateHasChanged: the trigger is a Component rather than an Element, so its
-                            // callback is auto-wrapped and this demo repaints when the handler returns.
-                            _install = outcome;
-                            return Task.CompletedTask;
-                        }),
-                    _install is null
-                        ? Span.Class("text-sm text-ui-muted")["not prompted"]
-                        : Span.Class("text-sm")["install: ", Code.Id("install-outcome")[_install]]
-                ],
-                Div.Class("flex gap-2 items-center flex-wrap mb-2")[
-                    Trigger.EyeDropper
-                        .Template(g =>
-                            Ui.Button.Variant(Ui.Variant.Outline)
-                                .Id("eyedropper-btn")
-                                .Data(g)["Pick a colour"])
-                        .OnColor(hex =>
-                        {
-                            _color = hex;
-                            return Task.CompletedTask;
-                        }),
-                    _color is null
-                        ? Span.Class("text-sm text-ui-muted")["no colour picked"]
-                        : Span.Class("inline-flex items-center gap-2 text-sm")[
-                            Span
-                                .Id("eyedropper-swatch")
-                                .Style("display:inline-block;width:1.25rem;height:1.25rem;border-radius:.25rem;"
-                                       + $"border:1px solid #ccc;background:{_color}"),
-                            Code.Id("eyedropper-value")[_color]]
-                ],
-                // Trigger.MediaCapture fills this <video> from the camera; Trigger.PictureInPicture then pops
-                // that same element out — both resolve the element from its ElementRef.
-                Div.Class("flex gap-2 items-center flex-wrap items-center")[
-                    // For and Template are the required steps, so they come first: until both are named
-                    // the receiver is still a pending-required wrapper and has no optional setters on it.
-                    Trigger.MediaCapture
-                        .For(_preview)
-                        .Template(g =>
-                            Ui.Button.Variant(Ui.Variant.Outline)
-                                .Id("camera-btn")
-                                .Data(g)["Start camera"])
-                        .Video(true)
-                        .FacingMode("user")
-                        // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
-                        // app can hold one, and what makes the stop button below possible at all. No
-                        // StateHasChanged: the trigger is a Component, so its callback is auto-wrapped and
-                        // this demo repaints when the handler returns (RASK026).
-                        .OnStream(id =>
-                        {
-                            _camera = id;
-                            return Task.CompletedTask;
-                        }),
-                    Ui.Button.Variant(Ui.Variant.Outline)
-                        .Id("camera-stop-btn")
-                        .Disabled(_camera is null)
-                        .OnClick(StopCameraAsync)["Stop camera"],
-                    Trigger.PictureInPicture
-                        .For(_preview)
-                        .Template(g =>
-                            Ui.Button.Variant(Ui.Variant.Outline)
-                                .Id("pip-btn")
-                                .Data(g)["Pop out video"]),
-                    Video
-                        .Ref(_preview)
-                        .Id("gesture-preview")
-                        .Muted(true)
-                        .Style("width:12rem;max-width:100%;border-radius:.25rem;background:#000")
-                ],
+                DisplayTriggers(),
+                EyeDropperRow(),
+                CameraRow(),
                 Div.Class("text-sm text-ui-muted mt-3")[
                     "Every button runs inside its own click gesture, so they all work on the Server too. ",
                     "Camera + picture-in-picture need HTTPS and a real device; install needs an installable PWA ",
@@ -114,6 +32,97 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     "Stopping the camera goes through ", Code["IMediaStreams"], " on the id the capture ",
                     "trigger handed back — releasing the device and its hardware indicator."]
             ];
+
+    private Component DisplayTriggers() =>
+        Div.Class("flex gap-2 items-center flex-wrap mb-3")[
+            // Headless: we render our own buttons; the triggers just supply the gesture attribute.
+            Trigger.Fullscreen
+                .Template(g =>
+                Ui.Button.Tone(Ui.Tone.Primary).Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
+            Trigger.ScreenOrientation
+                .Orientation("landscape")
+                .Template(g =>
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                        .Id("orientation-btn")
+                        .Data(g)["Lock landscape"]),
+            Trigger.Install
+                .Template(g =>
+                    Ui.Button.Tone(Ui.Tone.Success).Variant(Ui.Variant.Outline)
+                        .Id("install-btn")
+                        .Data(g)["Install app"])
+                .OnOutcome(outcome =>
+                {
+                    // No StateHasChanged: the trigger is a Component rather than an Element, so its
+                    // callback is auto-wrapped and this demo repaints when the handler returns.
+                    _install = outcome;
+                    return Task.CompletedTask;
+                }),
+            _install is null
+                ? Span.Class("text-sm text-ui-muted")["not prompted"]
+                : Span.Class("text-sm")["install: ", Code.Id("install-outcome")[_install]]
+        ];
+
+    private Component EyeDropperRow() =>
+        Div.Class("flex gap-2 items-center flex-wrap mb-2")[
+            Trigger.EyeDropper
+                .Template(g =>
+                    Ui.Button.Variant(Ui.Variant.Outline)
+                        .Id("eyedropper-btn")
+                        .Data(g)["Pick a colour"])
+                .OnColor(hex =>
+                {
+                    _color = hex;
+                    return Task.CompletedTask;
+                }),
+            _color is null
+                ? Span.Class("text-sm text-ui-muted")["no colour picked"]
+                : Span.Class("inline-flex items-center gap-2 text-sm")[
+                    Span
+                        .Id("eyedropper-swatch")
+                        .Style("display:inline-block;width:1.25rem;height:1.25rem;border-radius:.25rem;"
+                               + $"border:1px solid #ccc;background:{_color}"),
+                    Code.Id("eyedropper-value")[_color]]
+        ];
+
+    // Trigger.MediaCapture fills this <video> from the camera; Trigger.PictureInPicture then pops
+    // that same element out — both resolve the element from its ElementRef.
+    private Component CameraRow() =>
+        Div.Class("flex gap-2 items-center flex-wrap items-center")[
+            // For and Template are the required steps, so they come first: until both are named
+            // the receiver is still a pending-required wrapper and has no optional setters on it.
+            Trigger.MediaCapture
+                .For(_preview)
+                .Template(g =>
+                    Ui.Button.Variant(Ui.Variant.Outline)
+                        .Id("camera-btn")
+                        .Data(g)["Start camera"])
+                .Video(true)
+                .FacingMode("user")
+                // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
+                // app can hold one, and what makes the stop button below possible at all. No
+                // StateHasChanged: the trigger is a Component, so its callback is auto-wrapped and
+                // this demo repaints when the handler returns (RASK026).
+                .OnStream(id =>
+                {
+                    _camera = id;
+                    return Task.CompletedTask;
+                }),
+            Ui.Button.Variant(Ui.Variant.Outline)
+                .Id("camera-stop-btn")
+                .Disabled(_camera is null)
+                .OnClick(StopCameraAsync)["Stop camera"],
+            Trigger.PictureInPicture
+                .For(_preview)
+                .Template(g =>
+                    Ui.Button.Variant(Ui.Variant.Outline)
+                        .Id("pip-btn")
+                        .Data(g)["Pop out video"]),
+            Video
+                .Ref(_preview)
+                .Id("gesture-preview")
+                .Muted(true)
+                .Style("width:12rem;max-width:100%;border-radius:.25rem;background:#000")
+        ];
 
     // Stopping is not optional: a live stream holds the camera (and its indicator) open until every track
     // is stopped, and nothing else in the page will do it.

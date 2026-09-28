@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Rask.Generators.Json;
 
 namespace Rask.Generators.Translations;
@@ -70,50 +72,8 @@ internal static class JsonCatalogReader
 
             while (true)
             {
-                _scanner.SkipWhitespace();
-                var keyLine = _scanner.Line;
-                var keyColumn = _scanner.Column;
-
-                if (_scanner.Peek() != '"')
+                if (!TryReadMember(prefix, members, out var path))
                 {
-                    Defect("expected a quoted key");
-                    return;
-                }
-
-                if (!TryReadString(out var key))
-                {
-                    return;
-                }
-
-                _scanner.SkipWhitespace();
-                if (!TryExpect(':', $"expected ':' after the key '{key}'"))
-                {
-                    return;
-                }
-
-                var path = prefix is null ? key : prefix + "." + key;
-
-                _scanner.SkipWhitespace();
-                var c = _scanner.Peek();
-                if (c == '"')
-                {
-                    if (!TryReadString(out var value))
-                    {
-                        return;
-                    }
-
-                    members.Add((key, value, keyLine, keyColumn));
-                }
-                else if (c == '{')
-                {
-                    _scanner.Advance();
-                    ReadObject(path);
-                }
-                else
-                {
-                    // A number, bool or null in a catalog is almost always a mistake rather than an
-                    // intent — say which key, because the file may have hundreds.
-                    Defect($"the value for '{path}' is not text or a nested object");
                     return;
                 }
 
@@ -134,6 +94,62 @@ internal static class JsonCatalogReader
             }
         }
 
+        // One `"key": value` pair: a string is held in members, a nested object is read in full. False
+        // once a defect has been reported.
+        private bool TryReadMember(
+            string? prefix, List<(string Key, string Value, int Line, int Column)> members, out string path)
+        {
+            path = string.Empty;
+            _scanner.SkipWhitespace();
+            var keyLine = _scanner.Line;
+            var keyColumn = _scanner.Column;
+
+            if (_scanner.Peek() != '"')
+            {
+                Defect("expected a quoted key");
+                return false;
+            }
+
+            if (!TryReadString(out var key))
+            {
+                return false;
+            }
+
+            _scanner.SkipWhitespace();
+            if (!TryExpect(':', $"expected ':' after the key '{key}'"))
+            {
+                return false;
+            }
+
+            path = prefix is null ? key : prefix + "." + key;
+
+            _scanner.SkipWhitespace();
+            var c = _scanner.Peek();
+            if (c == '"')
+            {
+                if (!TryReadString(out var value))
+                {
+                    return false;
+                }
+
+                members.Add((key, value, keyLine, keyColumn));
+            }
+            else if (c == '{')
+            {
+                _scanner.Advance();
+                ReadObject(path);
+            }
+            else
+            {
+                // A number, bool or null in a catalog is almost always a mistake rather than an
+                // intent — say which key, because the file may have hundreds.
+                Defect($"the value for '{path}' is not text or a nested object");
+                return false;
+            }
+
+            return true;
+        }
+
         // Turns an object's collected members into catalog entries: one plural key, or one key each.
         private void Flush(
             string? prefix,
@@ -141,15 +157,10 @@ internal static class JsonCatalogReader
             int line,
             int column)
         {
-            string? pluralParameter = null;
-            foreach (var member in members)
-            {
-                if (member.Key == "$plural")
-                {
-                    pluralParameter = member.Value;
-                    break;
-                }
-            }
+            var pluralParameter = members
+                .Where(static member => string.Equals(member.Key, "$plural", StringComparison.Ordinal))
+                .Select(static member => member.Value)
+                .FirstOrDefault();
 
             if (pluralParameter is null)
             {
@@ -176,7 +187,7 @@ internal static class JsonCatalogReader
 
             foreach (var member in members)
             {
-                if (member.Key == "$plural")
+                if (string.Equals(member.Key, "$plural", StringComparison.Ordinal))
                 {
                     continue;
                 }

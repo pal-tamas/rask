@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.Logging;
 
 namespace Rask.Logging;
@@ -62,47 +60,4 @@ internal sealed class LogEntry
         Message,
         Exception,
         LogScopeJson.Decode(Scopes));
-}
-
-/// <summary>The EF Core mapping for <see cref="LogEntry"/>.</summary>
-internal sealed class LogEntryConfiguration : IEntityTypeConfiguration<LogEntry>
-{
-    public void Configure(EntityTypeBuilder<LogEntry> entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-
-        // The same table and index names as the file store's, so a query plan or a runbook reads the same on both.
-        entity.ToTable("RaskLog");
-        entity.HasKey(e => e.Id);
-        entity.Property(e => e.Category).HasMaxLength(LogEntry.CategoryMaxLength).IsRequired();
-        entity.Property(e => e.Message).IsRequired();
-
-        // Retention's cutoff, and the time-range filter.
-        entity.HasIndex(e => e.Timestamp);
-
-        // The level and category filters, each already in the newest-first order a page is read in.
-        entity.HasIndex(e => new { e.Level, e.Id }).IsDescending(false, true);
-        entity.HasIndex(e => new { e.Category, e.Id }).IsDescending(false, true);
-    }
-}
-
-/// <summary>Model-building helper for the log table.</summary>
-public static class LoggingModelBuilderExtensions
-{
-    /// <summary>
-    /// Maps the <c>RaskLog</c> table that <c>AddRaskLogging&lt;TContext&gt;()</c> writes to. Call from your
-    /// context's <c>OnModelCreating</c>, then create the table with <c>rask db add AddLogs &amp;&amp; rask db update</c>.
-    /// </summary>
-    /// <remarks>
-    /// Only for the application-database store. <c>AddRaskLogging()</c> keeps its log in a SQLite
-    /// file of its own and needs nothing in your model.
-    /// </remarks>
-    /// <param name="modelBuilder">The model being built.</param>
-    /// <returns>The same builder, for chaining.</returns>
-    public static ModelBuilder AddRaskLogging(this ModelBuilder modelBuilder)
-    {
-        ArgumentNullException.ThrowIfNull(modelBuilder);
-        modelBuilder.ApplyConfiguration(new LogEntryConfiguration());
-        return modelBuilder;
-    }
 }

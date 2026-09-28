@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// Polls the <see cref="QueuedMail"/> table on a schedule and delivers each due message through the registered
@@ -15,7 +15,7 @@ namespace Rask.Mail;
 /// instances is safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
 /// <typeparam name="TContext">The application's <see cref="DbContext"/> that owns the mail table.</typeparam>
-public sealed class MailProcessor<TContext>(
+public sealed partial class MailProcessor<TContext>(
     IDbContextFactory<TContext> contextFactory,
     IServiceScopeFactory scopeFactory,
     MailOptions options,
@@ -24,7 +24,7 @@ public sealed class MailProcessor<TContext>(
     ILogger<MailProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
-    private static readonly TimeSpan PurgeInterval = TimeSpan.FromHours(1);
+    private static TimeSpan PurgeInterval => TimeSpan.FromHours(1);
     private DateTime _lastPurge;
 
     /// <summary>Identifies this instance in logs — not persisted; the per-batch token is what rows carry.</summary>
@@ -106,7 +106,9 @@ public sealed class MailProcessor<TContext>(
 
         try
         {
-            await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
+
             // Attempts goes back with the lease. ClaimAsync increments it up front so mail that takes the
             // process down still reaches MaxAttempts — but a shutdown is not that, and every row still
             // holding our lease unsent either never started or was cut off mid-send. Leaving the increment
@@ -127,7 +129,7 @@ public sealed class MailProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogWarning(ex, "Could not release mail leases on shutdown; they expire in {Lease}.", options.LeaseDuration);
+            LeaseReleaseFailed(logger, ex, options.LeaseDuration);
         }
     }
 
@@ -170,21 +172,18 @@ public sealed class MailProcessor<TContext>(
                 // The generic message would send someone reading a stack trace instead of running two
                 // commands. This failure is also invisible without it: the exception is swallowed here,
                 // so the app looks healthy while logging the same error every poll, forever.
-                logger.LogError(
-                    ex,
-                    "Rask.Mail added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
-                    + "Run: rask db add AddMailLeases && rask db update. See docs/{Doc}.",
-                    "scaling.md#running-more-than-one-instance");
+                LeaseColumnsMissing(logger, ex, "scaling.md#running-more-than-one-instance");
                 return;
             }
 
-            logger.LogError(ex, "Mail processing cycle failed; retrying on the next poll.");
+            CycleFailed(logger, ex);
         }
     }
 
     private async Task DrainAsync(CancellationToken cancellationToken)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         var batch = await ClaimAsync(db, now, cancellationToken).ConfigureAwait(false);
@@ -215,86 +214,103 @@ public sealed class MailProcessor<TContext>(
                 break;
             }
 
-            var startedAt = timeProvider.GetTimestamp();
-            try
+            if (!await SendAsync(message, graceToken, cancellationToken).ConfigureAwait(false))
             {
-                var outgoing = MailSerializer.ToOutgoing(message);
-                // A fresh scope per message resolves the sender at its own lifetime, so a custom scoped
-                // IMailSender isn't captured by this singleton processor.
-                await using var scope = scopeFactory.CreateAsyncScope();
-                var sender = scope.ServiceProvider.GetRequiredService<IMailSender>();
-
-                // Send AS the tenant this mail was queued for: a custom IMailSender that reads a
-                // tenant-scoped table would otherwise throw, since background work carries no principal.
-                using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
-
-                await sender.Send(outgoing, graceToken).ConfigureAwait(false);
-                message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
-                message.Error = null;
-                Release(message);
-                metrics.Sent(timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                // Shutdown outlived the grace. Attempts is deliberately untouched: a redeploy is not a
-                // failed attempt, and counting it would march never-failing mail toward its dead letter at
-                // the cadence you deploy. The row stays immediately eligible and is re-sent on restart —
-                // and because delivery may already have happened, this counter is the direct answer to
-                // "did that deploy duplicate any mail?".
-                //
-                // The filter stays on the HOST token, not the grace token: the grace deadline is only ever
-                // armed by the host token firing, so any grace expiry necessarily satisfies it, while a
-                // sender's own OperationCanceledException still falls through to the generic catch below
-                // and counts as the real failure it is.
-                // Attempts and the lease are both given back by StopAsync, which owns every row this
-                // instance still holds — including ones claimed in this batch but never started. It cannot
-                // be done here: this `break` skips the per-item SaveChanges below, so an in-memory edit
-                // would be discarded while the claim's increment is already on disk.
-                metrics.Interrupted();
-                logger.LogWarning(
-                    "Email {Id} was interrupted by shutdown after its {Grace} grace period. It will be sent again on "
-                    + "restart — and it may already have been delivered, since a cancelled SMTP conversation can be "
-                    + "accepted by the server before the row is marked.",
-                    message.Id, options.ShutdownGracePeriod);
                 break; // leave this and the rest for the next run
             }
+
+            await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Sends one claimed message, recording its outcome on the row. False when shutdown cut it off.</summary>
+    private async Task<bool> SendAsync(QueuedMail message, CancellationToken graceToken, CancellationToken cancellationToken)
+    {
+        var startedAt = timeProvider.GetTimestamp();
+        try
+        {
+            await DeliverAsync(message, graceToken).ConfigureAwait(false);
+            message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
+            message.Error = null;
+            Release(message);
+            metrics.Sent(timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
+        }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            // Shutdown outlived the grace. Attempts is deliberately untouched: a redeploy is not a
+            // failed attempt, and counting it would march never-failing mail toward its dead letter at
+            // the cadence you deploy. The row stays immediately eligible and is re-sent on restart —
+            // and because delivery may already have happened, this counter is the direct answer to
+            // "did that deploy duplicate any mail?".
+            //
+            // The filter stays on the HOST token, not the grace token: the grace deadline is only ever
+            // armed by the host token firing, so any grace expiry necessarily satisfies it, while a
+            // sender's own OperationCanceledException still falls through to the generic catch below
+            // and counts as the real failure it is.
+            // Attempts and the lease are both given back by StopAsync, which owns every row this
+            // instance still holds — including ones claimed in this batch but never started. It cannot
+            // be done here: returning false skips the per-item SaveChanges, so an in-memory edit
+            // would be discarded while the claim's increment is already on disk.
+            metrics.Interrupted();
+            InterruptedByShutdown(logger, ex, message.Id, options.ShutdownGracePeriod);
+            return false;
+        }
 #pragma warning disable CA1031 // A failing send must not stop the drain or crash the app — record + retry with backoff.
-            catch (Exception ex)
+        catch (Exception ex)
 #pragma warning restore CA1031
+        {
+            Fail(message, ex.Message);
+            metrics.Failed();
+            if (message.Attempts >= options.MaxAttempts)
             {
-                Fail(message, ex.Message);
-                metrics.Failed();
-                if (message.Attempts >= options.MaxAttempts)
-                {
-                    metrics.DeadLettered();
-                }
-
-                logger.LogError(ex, "Email {Id} failed to send (attempt {Attempts}).", message.Id, message.Attempts);
+                metrics.DeadLettered();
             }
 
-            // Persist THIS message's outcome before moving on (with None so a delivered message is still marked
-            // during shutdown). Saving per message bounds an at-least-once re-send to the single message whose
-            // save failed — never the whole batch of already-sent ones.
-            try
-            {
-                await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                // ClaimToken is the concurrency token, so this means our lease expired mid-send and another
-                // instance owns the row now. Its outcome wins; discard ours. The recipient did get the email
-                // twice — at-least-once was always the contract, and the fix for *this* cause is a longer
-                // LeaseDuration. This warning is how you find out you need one.
-                logger.LogWarning(
-                    "Email {Id} lost its lease mid-send on instance {Instance}; another instance owns it now. "
-                    + "Increase MailOptions.LeaseDuration past the time a send takes.",
-                    message.Id,
-                    _instanceId);
+            SendFailed(logger, ex, message.Id, message.Attempts);
+        }
 
-                // The context is shared across the batch: a failed entry left attached is retried by the
-                // next message's SaveChanges and fails that one too.
-                db.Entry(message).State = EntityState.Detached;
-            }
+        return true;
+    }
+
+    private async Task DeliverAsync(QueuedMail message, CancellationToken graceToken)
+    {
+        var outgoing = MailSerializer.ToOutgoing(message);
+
+        // A fresh scope per message resolves the sender at its own lifetime, so a custom scoped
+        // IMailSender isn't captured by this singleton processor.
+        var scope = scopeFactory.CreateAsyncScope();
+        await using var messageScope = scope.ConfigureAwait(false);
+        var sender = scope.ServiceProvider.GetRequiredService<IMailSender>();
+
+        // Send AS the tenant this mail was queued for: a custom IMailSender that reads a
+        // tenant-scoped table would otherwise throw, since background work carries no principal.
+        using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
+
+        await sender.Send(outgoing, graceToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Persists THIS message's outcome before moving on (with None so a delivered message is still marked
+    /// during shutdown). Saving per message bounds an at-least-once re-send to the single message whose
+    /// save failed — never the whole batch of already-sent ones.
+    /// </summary>
+    private async Task SaveOutcomeAsync(TContext db, QueuedMail message)
+    {
+        try
+        {
+            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // ClaimToken is the concurrency token, so this means our lease expired mid-send and another
+            // instance owns the row now. Its outcome wins; discard ours. The recipient did get the email
+            // twice — at-least-once was always the contract, and the fix for *this* cause is a longer
+            // LeaseDuration. This warning is how you find out you need one.
+            LeaseLost(logger, ex, message.Id, _instanceId);
+
+            // The context is shared across the batch: a failed entry left attached is retried by the
+            // next message's SaveChanges and fails that one too.
+            db.Entry(message).State = EntityState.Detached;
         }
     }
 
@@ -356,7 +372,8 @@ public sealed class MailProcessor<TContext>(
         var cutoff = now - options.RetentionPeriod;
         const int page = 1000;
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         // Paged rather than one unbounded DELETE. The single statement was correct — a set-based delete is
         // idempotent, so concurrent sweeps can't corrupt each other — but on the first run of an app that
@@ -398,7 +415,8 @@ public sealed class MailProcessor<TContext>(
             return;
         }
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         var pending = await db.Set<QueuedMail>()
             .CountAsync(m => m.ProcessedAt == null && m.Attempts < options.MaxAttempts, cancellationToken)
@@ -409,4 +427,32 @@ public sealed class MailProcessor<TContext>(
 
         metrics.ObserveQueueDepth(pending, deadLetters);
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Mail added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
+            + "Run: rask db add AddMailLeases && rask db update. See docs/{Doc}.")]
+    private static partial void LeaseColumnsMissing(ILogger logger, Exception exception, string doc);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Mail processing cycle failed; retrying on the next poll.")]
+    private static partial void CycleFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Email {Id} was interrupted by shutdown after its {Grace} grace period. It will be sent again on "
+            + "restart — and it may already have been delivered, since a cancelled SMTP conversation can be "
+            + "accepted by the server before the row is marked.")]
+    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, TimeSpan grace);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Email {Id} failed to send (attempt {Attempts}).")]
+    private static partial void SendFailed(ILogger logger, Exception exception, long id, int attempts);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Email {Id} lost its lease mid-send on instance {Instance}; another instance owns it now. "
+            + "Increase MailOptions.LeaseDuration past the time a send takes.")]
+    private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not release mail leases on shutdown; they expire in {Lease}.")]
+    private static partial void LeaseReleaseFailed(ILogger logger, Exception exception, TimeSpan lease);
 }

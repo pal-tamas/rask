@@ -7,23 +7,6 @@ using Rask.Data;
 
 namespace Rask.Site.DataDemo;
 
-/// <summary>Completes once the model surface is configured and the table, its index and the seed rows exist.</summary>
-/// <remarks>
-///     A browser app starts its hosted services after the first render, so the page asks this before its first read
-///     rather than racing the schema. A failure is kept, so the page can say what broke instead of spinning.
-/// </remarks>
-public sealed class NotesReady
-{
-    private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    /// <summary>Completes when the database is ready, or faults with why it is not.</summary>
-    public Task Task => _ready.Task;
-
-    internal void Set() => _ready.TrySetResult();
-
-    internal void Fail(Exception error) => _ready.TrySetException(error);
-}
-
 /// <summary>
 ///     Builds the schema and seeds it on the first visit. Registered after <c>AddRaskBrowserSqlite</c>, so a
 ///     returning visitor's database has been restored from IndexedDB before this looks at it.
@@ -35,12 +18,14 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
     {
         try
         {
-            await using var db = await contexts.CreateDbContextAsync(cancellationToken);
+            var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
 
             // A database restored from IndexedDB already has it all.
             var exists = await db.Database
                 .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = 'Note'")
-                .SingleAsync(cancellationToken);
+                .SingleAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             if (exists == 0)
             {
@@ -50,12 +35,12 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
                 var operations = db.GetService<IMigrationsModelDiffer>().GetDifferences(null, model.GetRelationalModel());
                 foreach (var command in db.GetService<IMigrationsSqlGenerator>().Generate(operations, model))
                 {
-                    await db.Database.ExecuteSqlRawAsync(command.CommandText, cancellationToken);
+                    await db.Database.ExecuteSqlRawAsync(command.CommandText, cancellationToken).ConfigureAwait(false);
                 }
 
                 foreach (var (title, body) in Seed)
                 {
-                    await Note.Create(Note.Write(title, body), cancellationToken: cancellationToken);
+                    await Note.Create(Note.Write(title, body), cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             }
 

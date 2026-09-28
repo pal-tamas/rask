@@ -48,8 +48,8 @@ public sealed record RangeExclusionSpec(
     /// </remarks>
     public bool Equals(RangeExclusionSpec? other)
         => other is not null
-            && Lo == other.Lo
-            && Hi == other.Hi
+            && string.Equals(Lo, other.Lo, StringComparison.Ordinal)
+            && string.Equals(Hi, other.Hi, StringComparison.Ordinal)
             && IgnoreSoftDeleted == other.IgnoreSoftDeleted
             && PartitionBy.SequenceEqual(other.PartitionBy, StringComparer.Ordinal);
 
@@ -83,7 +83,7 @@ public sealed record RangeExclusionSpec(
         }
 
         var parts = text.Split(FieldSeparator);
-        if (parts.Length != FieldCount || parts[0] != Version)
+        if (parts.Length != FieldCount || !string.Equals(parts[0], Version, StringComparison.Ordinal))
         {
             return false;
         }
@@ -92,7 +92,7 @@ public sealed record RangeExclusionSpec(
             parts[1],
             parts[2],
             parts[3].Length == 0 ? [] : parts[3].Split(ListSeparator),
-            parts[4] == "1");
+            string.Equals(parts[4], "1", StringComparison.Ordinal));
         return true;
     }
 }

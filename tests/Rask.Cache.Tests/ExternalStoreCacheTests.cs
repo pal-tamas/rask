@@ -2,7 +2,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 /// <summary>
 /// Backing <see cref="ICache"/> with someone else's <see cref="IDistributedCache"/> — Redis in practice.

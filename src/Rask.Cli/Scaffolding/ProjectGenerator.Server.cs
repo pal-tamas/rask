@@ -198,30 +198,4 @@ internal static partial class ProjectGenerator
             steps.Append("   everyone already subscribed to the old one.)\n");
         }
     }
-
-    // ---- server-only template files ----
-
-    /// <summary>
-    /// A starter catalog. The neutral one carries the app's English; a translation starts as a copy so
-    /// the keys line up and the build tells you which ones still need doing (RASK052).
-    /// </summary>
-    private static string StringsCatalog(bool neutral) =>
-        neutral
-            ? """
-              {
-                "AppTitle": "Welcome to Rask",
-                "Greeting": "Hello, {name}!",
-                "Items": { "$plural": "count", "one": "{count} item", "other": "{count} items" }
-              }
-              """
-            : """
-              // Translated text for this language. The keys come from the neutral catalog; one that is
-              // missing here is a warning (RASK052) and falls back to the neutral text, so a
-              // half-finished translation still renders.
-              {
-                "AppTitle": "Welcome to Rask",
-                "Greeting": "Hello, {name}!",
-                "Items": { "$plural": "count", "one": "{count} item", "other": "{count} items" }
-              }
-              """;
 }

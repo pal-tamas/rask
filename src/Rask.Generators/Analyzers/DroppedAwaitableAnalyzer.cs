@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -164,6 +165,6 @@ public sealed class DroppedAwaitableAnalyzer : DiagnosticAnalyzer
 
         return awaiter.GetMembers("IsCompleted").OfType<IPropertySymbol>().Any(p => p.GetMethod is not null)
             && awaiter.GetMembers("GetResult").OfType<IMethodSymbol>().Any(m => m.Parameters.Length == 0)
-            && awaiter.AllInterfaces.Any(i => i.Name == "INotifyCompletion");
+            && awaiter.AllInterfaces.Any(i => string.Equals(i.Name, "INotifyCompletion", StringComparison.Ordinal));
     }
 }

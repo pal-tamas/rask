@@ -5,28 +5,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Rask.Core.Routing;
 using Rask.Dashboard.Logging;
 using Rask.Dashboard.Panels;
 using Rask.Hosting.Shared;
 
 namespace Rask.Dashboard;
-
-/// <summary>The authorization policy the dashboard's pages are gated on.</summary>
-public static class RaskDashboardPolicies
-{
-    /// <summary>
-    /// The policy name every dashboard page carries. Define it in your own <c>AddAuthorization</c> to say
-    /// who may operate the app:
-    /// <code>
-    /// builder.Services.AddAuthorization(o =>
-    ///     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
-    /// </code>
-    /// If you don't, the dashboard supplies a default — permissive in Development, <b>deny-all</b>
-    /// everywhere else.
-    /// </summary>
-    public const string Access = "RaskDashboard";
-}
 
 /// <summary>Registers the batteries dashboard into an <see cref="IServiceCollection"/>.</summary>
 public static class RaskDashboardServiceCollectionExtensions
@@ -65,7 +50,9 @@ public static class RaskDashboardServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddRaskOptions<RaskDashboardOptions>("Rask:Dashboard", static (section, o) => section.Bind(o),
-            configure, static o => o.Validate());
+            configure, validate: null);
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<RaskDashboardOptions>, RaskDashboardOptionsValidator>());
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
         // The console is its OWN application, not a set of pages inside the host's. RouteRegistry is

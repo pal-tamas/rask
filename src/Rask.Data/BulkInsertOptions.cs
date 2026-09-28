@@ -8,18 +8,12 @@ public sealed class BulkInsertOptions
     /// <summary>The largest <see cref="BatchSize"/> accepted — past this the change tracker is the cost.</summary>
     internal const int MaxBatchSize = 100_000;
 
-    private int _batchSize = 5_000;
-
     /// <summary>
     /// How many entities are tracked and saved per round-trip. Each batch is one <c>SaveChanges</c>, after
     /// which the change tracker is cleared — which is what keeps a million-row load flat in memory instead
     /// of quadratic. Defaults to 5,000; must be between 1 and 100,000.
     /// </summary>
-    public int BatchSize
-    {
-        get => _batchSize;
-        set => _batchSize = value;
-    }
+    public int BatchSize { get; set; } = 5_000;
 
     /// <summary>
     /// Whether the whole load commits as <b>one</b> transaction (<c>true</c>) or each batch commits on its
@@ -64,13 +58,4 @@ public sealed class BulkInsertOptions
     /// </remarks>
     public bool SkipChangeTracking { get; set; }
 
-    /// <summary>Throws if any option is out of range. Called at the start of every bulk insert.</summary>
-    internal void Validate()
-    {
-        if (_batchSize is < 1 or > MaxBatchSize)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(BatchSize), _batchSize, $"BatchSize must be between 1 and {MaxBatchSize}.");
-        }
-    }
 }

@@ -179,7 +179,7 @@ public sealed class ScaffoldFrameworkTests
         // cannot see is a silent miss BY CONSTRUCTION — which is precisely how launch.json got through —
         // so the two are pinned together here rather than trusted to stay in step.
         Assert.NotEqual(text, DotnetTarget.Preview.Rewrite(text));
-        Assert.True(DotnetTarget.Preview.StillNamesTheDefault(text));
+        Assert.True(DotnetTarget.StillNamesTheDefault(text));
     }
 
     private static string Single(ScaffoldResult result, string suffix) =>

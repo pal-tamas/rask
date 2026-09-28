@@ -2,10 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Rask.Batteries;
 using Rask.Hosting.Shared;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>Registers background jobs into an <see cref="IServiceCollection"/>.</summary>
 public static class RaskJobsServiceCollectionExtensions
@@ -30,10 +31,11 @@ public static class RaskJobsServiceCollectionExtensions
         // The binding generator cannot bind the recurring schedule (see the NoWarn in Rask.Jobs.csproj): it is a
         // list of job factories, which appsettings has no way to express, so Run<TJob>() is the only way to
         // fill it. Every other property binds, and RaskJobsOptionsBindingTests pins that each settable one does.
-        services.AddRaskOptions("Rask:Jobs", static (section, o) => Bind(section, o), configure, static o => o.Validate());
+        services.AddRaskOptions("Rask:Jobs", static (section, o) => Bind(section, o), configure, validate: null);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<JobsOptions>, JobsOptionsValidator>());
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<JobMetrics>();
-        services.TryAddSingleton<IJobs, JobQueue<TContext>>();
+        services.TryAddSingleton<IJobs, JobBacklog<TContext>>();
 
         // Before the processor, so an app whose model never mapped Job fails the boot with the line to
         // type rather than on the first enqueue. The processor itself tolerates a missing table — it has
