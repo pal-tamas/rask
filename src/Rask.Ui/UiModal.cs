@@ -284,7 +284,7 @@ public sealed partial class UiModal : Component
                 : "modal-bottom sm:modal-middle",
             Class);
 
-    // Takes the dialog itself. It used to take `Build<Dialog>`, because the chain receiver was the only
+    // Takes the dialog itself. It used to take `Build<HTMLDialogElement>`, because the chain receiver was the only
     // thing carrying the children indexer; the component carries it now. The two paths differ in how the
     // dialog OPENS, not in what is inside it.
     private Component Shell(HTMLDialogElement dialog, Component? closeControl, Component? backdrop) =>

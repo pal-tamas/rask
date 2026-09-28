@@ -40,7 +40,7 @@ public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesRead
 
                 foreach (var (title, body) in Seed)
                 {
-                    await Note.CreateAsync(Note.Write(title, body), cancellationToken: cancellationToken).ConfigureAwait(false);
+                    await Note.Create(Note.Write(title, body), cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             }
 

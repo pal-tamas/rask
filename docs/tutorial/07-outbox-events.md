@@ -14,7 +14,7 @@ processor delivers it after commit — retrying until it succeeds.
 
 ## 1. Placing an order is a domain operation
 
-Chapter 3's order form saves an `OrderModel` with `Order.CreateAsync(model)`. That is exactly right for data
+Chapter 3's order form saves an `OrderModel` with `Order.Create(model)`. That is exactly right for data
 entry (a member of staff types an order in) and exactly wrong for announcing anything, because a form save
 writes properties and nothing in it says that what just happened was a *sale*. It records a row; it isn't the
 business event, so it isn't where the event belongs.
@@ -70,7 +70,7 @@ atomic.
 namespace Shop.Features.Orders;
 
 // A "Buy" button. A sale is a domain operation, not a form edit, so it goes through Order.Place — the
-// factory that announces it — and Order.CreateAsync inserts the order Place built.
+// factory that announces it — and Order.Create inserts the order Place built.
 public sealed partial class PlaceOrder : Component
 {
     private bool _placing;
@@ -85,7 +85,7 @@ public sealed partial class PlaceOrder : Component
         try
         {
             var order = Order.Place(ProductId, Price, DateTime.UtcNow);
-            await Order.CreateAsync(order, cancellationToken: CancellationToken);   // the order AND its OrderPlaced, one transaction
+            await Order.Create(order, cancellationToken: CancellationToken);        // the order AND its OrderPlaced, one transaction
         }
         finally
         {
@@ -98,7 +98,7 @@ public sealed partial class PlaceOrder : Component
 }
 ```
 
-`Order.CreateAsync(order)` is the create for an aggregate you built yourself. It saves through the same
+`Order.Create(order)` is the create for an aggregate you built yourself. It saves through the same
 interceptors a form save does, so the order and the event it carries are written in one transaction. The
 `_placing` flag disables the button while the save runs, so a double click can't buy twice.
 
@@ -124,7 +124,7 @@ find out when a crash loses an order confirmation. A framework that makes you op
 asking you to remember something on pain of silent data loss, so Rask decides it for you.
 
 Both interceptors sit in every context's `SaveChanges` pipeline — which is why `PlaceOrder`'s
-`Order.CreateAsync` gets the outbox, the timestamps and the version bump exactly as chapter 2's form saves do.
+`Order.Create` gets the outbox, the timestamps and the version bump exactly as chapter 2's form saves do.
 
 If losing an event on a crash is acceptable, plain in-process domain events need no outbox at all:
 `app.Configure(c => c.Outbox.Off())` in `Program.cs`, and the data battery dispatches them itself.
@@ -169,7 +169,7 @@ receipt already went out before sending another.
 > **What raises nothing.** Editing an order through `UpdateOrder` announces nothing: a form save writes the
 > model's properties and calls no method, so nothing raises an event. When a change *is* something the business
 > cares about (a cancellation, a shipment) give `Order` a method for it that raises its event, and call it
-> through `Order.UpdateAsync(id, o => o.Cancel(now))`.
+> through `Order.Update(id, o => o.Cancel(now))`.
 
 ## Verify
 

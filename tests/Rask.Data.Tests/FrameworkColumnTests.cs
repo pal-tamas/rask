@@ -31,7 +31,7 @@ public sealed class FrameworkColumnTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        // The default is HARD: no column, no query filter, and DeleteAsync removes the row. An aggregate
+        // The default is HARD: no column, no query filter, and Delete removes the row. An aggregate
         // that wants the row kept says so — see Memo, which declares Deletes = Deletion.Soft.
         var receipt = database.Context.Model.FindEntityType(typeof(Receipt))!;
         Assert.Null(receipt.FindProperty(Columns.DeletedAt));
@@ -40,10 +40,10 @@ public sealed class FrameworkColumnTests : IDisposable
         // And the version token is still there, because that default did NOT move.
         Assert.NotNull(receipt.FindProperty(Columns.Version));
 
-        var kept = await Receipt.CreateAsync(r => r.Note("keep"));
-        var gone = await Receipt.CreateAsync(r => r.Note("go"));
+        var kept = await Receipt.Create(r => r.Note("keep"));
+        var gone = await Receipt.Create(r => r.Note("go"));
 
-        await Receipt.DeleteAsync(gone.Id);
+        await Receipt.Delete(gone.Id);
 
         // Gone means gone: not hidden by a filter, actually absent from the table.
         Assert.Null(await database.LoadAsync<Receipt>(gone.Id));

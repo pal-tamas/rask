@@ -155,7 +155,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         try
         {
             // Refreshes the two queries above: the save reports that it wrote a Note.
-            await Note.CreateAsync(note, cancellationToken: CancellationToken).ConfigureAwait(false);
+            await Note.Create(note, cancellationToken: CancellationToken).ConfigureAwait(false);
 
             _saveError = null;
             _draft = new();

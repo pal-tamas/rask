@@ -145,8 +145,8 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     }
 
     // ---- the generated writes ------------------------------------------------------------------------
-    // The model carries no key, so the key comes from the caller — CreateAsync(id, model), for every entity — or,
-    // where CreateAsync(model) exists, from something that can produce one: the store's identity for an integer,
+    // The model carries no key, so the key comes from the caller — Create(id, model), for every entity — or,
+    // where Create(model) exists, from something that can produce one: the store's identity for an integer,
     // the generated create itself for a Guid or a strongly-typed id over one. A key nothing can produce — a
     // strongly-typed id over a string — gets only the id overload.
 
@@ -162,8 +162,8 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var first = await Coupon.CreateAsync(new CouponModel { Code = "SPRING" });
-        var second = await Coupon.CreateAsync(new CouponModel { Code = "SUMMER" });
+        var first = await Coupon.Create(new CouponModel { Code = "SPRING" });
+        var second = await Coupon.Create(new CouponModel { Code = "SUMMER" });
 
         Assert.True(first.Id > 0);
         Assert.NotEqual(first.Id, second.Id);
@@ -176,7 +176,7 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         // An explicit value in an identity column is refused on SQL Server and leaves PostgreSQL's sequence behind.
         Assert.DoesNotContain(
             typeof(CouponModelExtensions).GetMethods(),
-            m => m.Name == "CreateAsync" && m.GetParameters()[0].ParameterType == typeof(int));
+            m => m.Name == "Create" && m.GetParameters()[0].ParameterType == typeof(int));
     }
 
     [Fact]
@@ -184,18 +184,18 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var created = await Locker.CreateAsync(new LockerCode("A-12"), new LockerModel { Site = "Szeged" });
+        var created = await Locker.Create(new LockerCode("A-12"), new LockerModel { Site = "Szeged" });
 
         Assert.Equal(new LockerCode("A-12"), created.Id);
         Assert.Equal("Szeged", (await database.LoadAsync<Locker>(new LockerCode("A-12")))!.Site);
         Assert.DoesNotContain(
             typeof(LockerModelExtensions).GetMethods(),
-            m => m.Name == "CreateAsync" &&
+            m => m.Name == "Create" &&
                  (m.GetParameters()[0].ParameterType == typeof(LockerModel) ||
                   m.GetParameters()[0].ParameterType == typeof(Action<Locker>)));
 
         // The lambda form takes the key the same way.
-        var moved = await Locker.CreateAsync(new LockerCode("B-7"), locker => locker.MoveTo("Debrecen"));
+        var moved = await Locker.Create(new LockerCode("B-7"), locker => locker.MoveTo("Debrecen"));
         Assert.Equal(new LockerCode("B-7"), moved.Id);
         Assert.Equal("Debrecen", (await database.LoadAsync<Locker>(new LockerCode("B-7")))!.Site);
     }
@@ -205,8 +205,8 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var first = await Parcel.CreateAsync(NewParcel("first"));
-        var second = await Parcel.CreateAsync(NewParcel("second"));
+        var first = await Parcel.Create(NewParcel("first"));
+        var second = await Parcel.Create(NewParcel("second"));
 
         Assert.NotEqual(Guid.Empty, first.Id.Value);
         Assert.Equal(7, first.Id.Value.Version);
@@ -219,7 +219,7 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var created = await Parcel.CreateAsync(NewParcel("fragile"));
+        var created = await Parcel.Create(NewParcel("fragile"));
 
         var stored = (await database.LoadAsync<Parcel>(created.Id))!;
         Assert.Equal("1 Main St", stored.Destination.Street);
@@ -231,7 +231,7 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         edit.Destination!.City = "Debrecen";
         edit.Weight!.Amount = 3m;
         edit.Weight.Unit = "lb";
-        await Parcel.UpdateAsync(created.Id, edit);
+        await Parcel.Update(created.Id, edit);
 
         var updated = (await database.LoadAsync<Parcel>(created.Id))!;
         Assert.Equal("1 Main St", updated.Destination.Street);

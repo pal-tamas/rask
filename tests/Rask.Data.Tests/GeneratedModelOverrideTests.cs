@@ -5,7 +5,7 @@ namespace Rask.Data.Tests;
 
 // An entity that replaces two of its generated writes. Declaring the member on the entity is the whole of
 // overriding one: a type's own member wins over an extension member of the same signature, so every
-// `Ticket.CreateAsync(model)` in the app reaches this code — and the generated write stays reachable
+// `Ticket.Create(model)` in the app reaches this code — and the generated write stays reachable
 // through its extension class for an override that only wants to add to it.
 public sealed class Ticket : Aggregate<Guid>
 {
@@ -19,14 +19,14 @@ public sealed class Ticket : Aggregate<Guid>
 
     public bool Urgent { get; private set; }
 
-    public static Task<Ticket> CreateAsync(TicketModel model, CancellationToken cancellationToken = default)
+    public static Task<Ticket> Create(TicketModel model, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
         model.Title = model.Title?.Trim().ToUpperInvariant();
-        return TicketModelExtensions.CreateAsync(model, cancellationToken: cancellationToken);
+        return TicketModelExtensions.Create(model, cancellationToken: cancellationToken);
     }
 
-    public static Task DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+    public static Task Delete(Guid id, CancellationToken cancellationToken = default) =>
         throw new InvalidOperationException("A ticket is closed, never deleted.");
 }
 
@@ -45,7 +45,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var created = await Ticket.CreateAsync(new TicketModel { Title = "  printer jam " });
+        var created = await Ticket.Create(new TicketModel { Title = "  printer jam " });
 
         Assert.Equal("PRINTER JAM", created.Title);
         Assert.Equal("PRINTER JAM", (await database.LoadAsync<Ticket>(created.Id))!.Title);
@@ -55,9 +55,9 @@ public sealed class GeneratedModelOverrideTests : IDisposable
     public async Task A_delete_the_entity_declares_is_the_one_every_call_site_reaches()
     {
         await using var database = await StartDatabaseAsync();
-        var created = await Ticket.CreateAsync(new TicketModel { Title = "fax" });
+        var created = await Ticket.Create(new TicketModel { Title = "fax" });
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Ticket.DeleteAsync(created.Id));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Ticket.Delete(created.Id));
         Assert.NotNull(await database.LoadAsync<Ticket>(created.Id));
     }
 
@@ -65,9 +65,9 @@ public sealed class GeneratedModelOverrideTests : IDisposable
     public async Task A_write_the_entity_does_not_declare_is_still_the_generated_one()
     {
         await using var database = await StartDatabaseAsync();
-        var created = await Ticket.CreateAsync(new TicketModel { Title = "scanner" });
+        var created = await Ticket.Create(new TicketModel { Title = "scanner" });
 
-        await Ticket.UpdateAsync(created.Id, new TicketModel { Title = created.Title, Urgent = true });
+        await Ticket.Update(created.Id, new TicketModel { Title = created.Title, Urgent = true });
 
         Assert.True((await database.LoadAsync<Ticket>(created.Id))!.Urgent);
     }
@@ -76,9 +76,9 @@ public sealed class GeneratedModelOverrideTests : IDisposable
     public async Task The_generated_delete_stays_reachable_through_its_extension_class()
     {
         await using var database = await StartDatabaseAsync();
-        var created = await Ticket.CreateAsync(new TicketModel { Title = "toner" });
+        var created = await Ticket.Create(new TicketModel { Title = "toner" });
 
-        await TicketModelExtensions.DeleteAsync(created.Id);
+        await TicketModelExtensions.Delete(created.Id);
 
         Assert.Null(await database.LoadAsync<Ticket>(created.Id));
     }

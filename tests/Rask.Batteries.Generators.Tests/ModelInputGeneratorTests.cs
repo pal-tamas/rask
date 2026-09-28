@@ -66,22 +66,22 @@ public class ModelInputGeneratorTests
         Assert.Contains("public ProductModel() => ProductModelExtensions.__Fill(this, ProductModelExtensions.__Defaults());", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CreatedAt", source, StringComparison.Ordinal);
 
-        Assert.Contains("CreateAsync(global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
-        Assert.Contains("CreateAsync(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         // The creates mirror the updates: a lambda-only form beside each model form.
         Assert.Contains(
-            "CreateAsync(global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
+            "Create(global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "CreateAsync(global::System.Guid id, global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
+            "Create(global::System.Guid id, global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
             source,
             StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
-        Assert.Contains("DeleteAsync(global::System.Guid id, int? version = null, ", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
+        Assert.Contains("Delete(global::System.Guid id, int? version = null, ", source, StringComparison.Ordinal);
         Assert.Contains("public global::Shop.ProductModel ToModel()", source, StringComparison.Ordinal);
         Assert.Contains(
-            "UpdateAsync(global::System.Guid id, global::System.Action<global::Shop.Product> apply, int? version = null, ",
+            "Update(global::System.Guid id, global::System.Action<global::Shop.Product> apply, int? version = null, ",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -90,11 +90,11 @@ public class ModelInputGeneratorTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "DeleteAsync(global::System.Guid id, int? version = null, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
+            "Delete(global::System.Guid id, int? version = null, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "<c>Product.CreateAsync(model)</c>, <c>Product.CreateAsync(id, model)</c> or <c>Product.UpdateAsync(id, model)</c>",
+            "<c>Product.Create(model)</c>, <c>Product.Create(id, model)</c> or <c>Product.Update(id, model)</c>",
             source,
             StringComparison.Ordinal);
     }
@@ -122,7 +122,7 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("model.Id", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Id = entity.Id", source, StringComparison.Ordinal);
         Assert.Contains(
-            ".UpdateAsync<global::Shop.Product>(id!, model.Version, entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);",
+            ".Update<global::Shop.Product>(id!, model.Version, entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);",
             source,
             StringComparison.Ordinal);
         Assert.Contains("<param name=\"id\">The id of the row to update.</param>", source, StringComparison.Ordinal);
@@ -143,7 +143,7 @@ public class ModelInputGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(
-            "DeleteAsync(global::System.Guid id, int? version = null, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
+            "Delete(global::System.Guid id, int? version = null, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
             run.GeneratedSource("Shop.TagModel"),
             StringComparison.Ordinal);
     }
@@ -196,9 +196,9 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.ProductModel");
-        Assert.Contains("DeleteAsync(global::Shop.ProductId id, ", source, StringComparison.Ordinal);
-        Assert.Contains("CreateAsync(global::Shop.ProductId id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::Shop.ProductId id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
+        Assert.Contains("Delete(global::Shop.ProductId id, ", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::Shop.ProductId id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::Shop.ProductId id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         Assert.Contains(
             "if (global::System.Collections.Generic.EqualityComparer<global::Shop.ProductId>.Default.Equals(entity.Id, default!))",
             source,
@@ -237,8 +237,8 @@ public class ModelInputGeneratorTests
         foreach (var (name, id) in new[] { ("Product", "global::Shop.ProductId"), ("Tag", "global::System.Guid") })
         {
             var source = run.GeneratedSource("Shop." + name + "Model");
-            Assert.Contains($"CreateAsync(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
-            Assert.Contains($"CreateAsync({id} id, global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
+            Assert.Contains($"Create(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
+            Assert.Contains($"Create({id} id, global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
         }
 
         // A store-generated integer gets no create that takes a key: an explicit identity value fails on SQL Server
@@ -246,8 +246,8 @@ public class ModelInputGeneratorTests
         foreach (var (name, id) in new[] { ("Note", "int"), ("Entry", "long") })
         {
             var source = run.GeneratedSource("Shop." + name + "Model");
-            Assert.Contains($"CreateAsync(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
-            Assert.DoesNotContain($"CreateAsync({id} id, ", source, StringComparison.Ordinal);
+            Assert.Contains($"Create(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
+            Assert.DoesNotContain($"Create({id} id, ", source, StringComparison.Ordinal);
         }
 
         foreach (var (name, id) in new[]
@@ -256,9 +256,9 @@ public class ModelInputGeneratorTests
                  })
         {
             var source = run.GeneratedSource("Shop." + name + "Model");
-            Assert.DoesNotContain($"CreateAsync(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
-            Assert.DoesNotContain($"<c>{name}.CreateAsync(model)</c>", source, StringComparison.Ordinal);
-            Assert.Contains($"CreateAsync({id} id, global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
+            Assert.DoesNotContain($"Create(global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
+            Assert.DoesNotContain($"<c>{name}.Create(model)</c>", source, StringComparison.Ordinal);
+            Assert.Contains($"Create({id} id, global::Shop.{name}Model model, ", source, StringComparison.Ordinal);
             Assert.DoesNotContain("CreateVersion7", source, StringComparison.Ordinal);
         }
 
@@ -387,9 +387,9 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.CouponModel");
-        Assert.Contains("CreateAsync(global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateAsync(int id, ", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(int id, global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(int id, ", source, StringComparison.Ordinal);
+        Assert.Contains("Update(int id, global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -708,8 +708,65 @@ public class ModelInputGeneratorTests
         Assert.Contains("internal static class NoteModelExtensions", source, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("Product.Create(model)", false)]
+    [InlineData("Product.Create(p => { })", false)]
+    [InlineData("Product.Create(Product.Make())", false)]
+    [InlineData("Product.Update(id, model)", false)]
+    [InlineData("Product.Update(id, p => { })", false)]
+    [InlineData("Product.Delete(id)", false)]
+    [InlineData("Product.Model(id)", false)]
+    [InlineData("Product.CreateAsync(model)", true)]
+    [InlineData("Product.UpdateAsync(id, model)", true)]
+    [InlineData("Product.DeleteAsync(id)", true)]
+    [InlineData("Product.ModelAsync(id)", true)]
+    public void An_aggregates_verbs_carry_no_Async_suffix(string call, bool refused)
+    {
+        var run = Run($$"""
+            using System;
+            using System.Threading.Tasks;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Product : Aggregate<Guid>
+            {
+                public string Name { get; private set; } = "";
+                public static Product Make() => new() { Id = Guid.CreateVersion7() };
+            }
+            public static class Caller
+            {
+                public static Task Go(Guid id, ProductModel model) => {{call}};
+            }
+            """);
+
+        var errors = CallSiteErrors(run);
+
+        if (refused)
+        {
+            Assert.Contains("CS0117", errors);
+        }
+        else
+        {
+            Assert.Empty(errors);
+        }
+    }
+
+    private static List<string> CallSiteErrors(GeneratorRun run)
+    {
+        var generated = run.RunResult.Results
+            .SelectMany(r => r.GeneratedSources)
+            .Select(s => CSharpSyntaxTree.ParseText(
+                s.SourceText, new CSharpParseOptions(LanguageVersion.Latest), path: s.HintName))
+            .ToArray();
+
+        return run.Compilation.AddSyntaxTrees(generated)
+            .GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .Select(d => d.Id)
+            .ToList();
+    }
+
     [Fact]
-    public void An_entity_without_a_parameterless_constructor_gets_no_CreateAsync_and_RASK086()
+    public void An_entity_without_a_parameterless_constructor_gets_no_Create_and_RASK086()
     {
         var run = Run("""
             using System;
@@ -730,8 +787,8 @@ public class ModelInputGeneratorTests
 
         // Any mention at all — the member, or a doc comment pointing a reader at a member that is not there.
         var source = run.GeneratedSource("Shop.ProductModel");
-        Assert.DoesNotContain("CreateAsync", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -770,9 +827,9 @@ public class ModelInputGeneratorTests
         // it is created, changed and removed as part of the order.
         var line = run.GeneratedSource("Shop.OrderLineModel");
         Assert.Contains("public global::System.Guid? Id { get; set; }", line, StringComparison.Ordinal);
-        Assert.DoesNotContain("CreateAsync", line, StringComparison.Ordinal);
-        Assert.DoesNotContain("UpdateAsync", line, StringComparison.Ordinal);
-        Assert.DoesNotContain("DeleteAsync", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("Update(", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("Delete(", line, StringComparison.Ordinal);
 
         // The read-only view is written through its backing field.
         Assert.Contains("Name = \"_lines\"", order, StringComparison.Ordinal);
@@ -905,15 +962,15 @@ public class ModelInputGeneratorTests
 
         // No model type, and nothing that takes one.
         Assert.DoesNotContain("partial class PasskeyModel", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("ModelAsync", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(" Model(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ToModel()", source, StringComparison.Ordinal);
         Assert.DoesNotContain("__Apply", source, StringComparison.Ordinal);
         Assert.DoesNotContain("__Fill", source, StringComparison.Ordinal);
 
         // The BEHAVIOUR writes are untouched — none of them ever took a model.
-        Assert.Contains("CreateAsync(global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::System.Guid id, global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
-        Assert.Contains("DeleteAsync(global::System.Guid id", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::System.Guid id, global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
+        Assert.Contains("Delete(global::System.Guid id", source, StringComparison.Ordinal);
     }
 
     // ---- Deletion.None: an aggregate that is never deleted -------------------------------------------
@@ -925,7 +982,7 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
-    public void Deletion_None_drops_DeleteAsync_and_keeps_every_other_write()
+    public void Deletion_None_drops_Delete_and_keeps_every_other_write()
     {
         var run = Run("""
             using System;
@@ -943,16 +1000,16 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.InvoiceModel");
-        Assert.DoesNotContain("DeleteAsync", source, StringComparison.Ordinal);
-        Assert.Contains("CreateAsync(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::System.Guid id, global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Delete(", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::System.Guid id, global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData("Deletion.Hard")]
     [InlineData("Deletion.Soft")]
-    public void Hard_and_soft_deletion_both_keep_the_generated_DeleteAsync(string deletes)
+    public void Hard_and_soft_deletion_both_keep_the_generated_Delete(string deletes)
     {
         var run = Run($$"""
             using System;
@@ -966,13 +1023,13 @@ public class ModelInputGeneratorTests
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains("DeleteAsync(global::System.Guid id", run.GeneratedSource("Shop.InvoiceModel"), StringComparison.Ordinal);
+        Assert.Contains("Delete(global::System.Guid id", run.GeneratedSource("Shop.InvoiceModel"), StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData("Deletion.None", true)]
     [InlineData("Deletion.Hard", false)]   // the control: the same call site DOES bind when the delete exists
-    public void Calling_DeleteAsync_on_a_Deletion_None_aggregate_does_not_compile(string deletes, bool refused)
+    public void Calling_Delete_on_a_Deletion_None_aggregate_does_not_compile(string deletes, bool refused)
     {
         // The point of the const: the mistake is a build error at the call site, not a runtime surprise.
         var run = Run($$"""
@@ -987,20 +1044,11 @@ public class ModelInputGeneratorTests
             }
             public static class Caller
             {
-                public static Task Go(Guid id) => Invoice.DeleteAsync(id);
+                public static Task Go(Guid id) => Invoice.Delete(id);
             }
             """);
 
-        var generated = run.RunResult.Results
-            .SelectMany(r => r.GeneratedSources)
-            .Select(s => CSharpSyntaxTree.ParseText(
-                s.SourceText, new CSharpParseOptions(LanguageVersion.Latest), path: s.HintName))
-            .ToArray();
-        var errors = run.Compilation.AddSyntaxTrees(generated)
-            .GetDiagnostics()
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
-            .Select(d => d.Id)
-            .ToList();
+        var errors = CallSiteErrors(run);
 
         if (refused)
         {
@@ -1056,12 +1104,12 @@ public class ModelInputGeneratorTests
         var source = run.GeneratedSource("Shop.InvoiceModel");
 
         Assert.Contains("partial class InvoiceModel", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
-        Assert.Contains("ModelAsync", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("?> Model(global::System.Guid id, ", source, StringComparison.Ordinal);
 
         // A row a form may edit but never make.
-        Assert.DoesNotContain("CreateAsync(global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
-        Assert.Contains("CreateAsync(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1081,9 +1129,9 @@ public class ModelInputGeneratorTests
         var source = run.GeneratedSource("Shop.InvoiceModel");
 
         Assert.Contains("partial class InvoiceModel", source, StringComparison.Ordinal);
-        Assert.Contains("CreateAsync(global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
-        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
-        Assert.Contains("ModelAsync", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("Update(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("?> Model(global::System.Guid id, ", source, StringComparison.Ordinal);
         Assert.Contains("ToModel()", source, StringComparison.Ordinal);
     }
 
@@ -1184,7 +1232,7 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("Shipments", order, StringComparison.Ordinal);
 
         // And the shipment keeps its own writes, because it is a root.
-        Assert.Contains("CreateAsync", run.GeneratedSource("Shop.ShipmentModel"), StringComparison.Ordinal);
+        Assert.Contains("Create", run.GeneratedSource("Shop.ShipmentModel"), StringComparison.Ordinal);
     }
 
     [Fact]

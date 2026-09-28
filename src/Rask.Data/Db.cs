@@ -10,15 +10,15 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Every read on a model — <c>Product.Where(…)</c>, <c>Product.FindAsync(id)</c>,
-///         <c>Product.AsQueryable()</c> — opens a fresh context from here and disposes it before it
+///         Every read on a model — <c>Product.Read.Where(…)</c>, <c>Product.Model(id)</c>,
+///         <c>Product.Read.AsQueryable()</c> — opens a fresh context from here and disposes it before it
 ///         returns. Nothing is ambient and nothing stays tracked between
 ///         calls, which is what makes a model safe to read from a page that lives as long as the browser
 ///         keeps its socket open.
 ///     </para>
 ///     <para>
-///         <b>The writes on a model use it the same way.</b> <c>Product.CreateAsync(model)</c>,
-///         <c>Product.UpdateAsync(id, model)</c> and <c>Product.DeleteAsync(id)</c> open a context here, save
+///         <b>The writes on a model use it the same way.</b> <c>Product.Create(model)</c>,
+///         <c>Product.Update(id, model)</c> and <c>Product.Delete(id)</c> open a context here, save
 ///         and dispose it — unless they are handed a context, which they save through and leave open. A
 ///         transaction over two aggregates is that context's <c>Database.BeginTransactionAsync</c>; there is
 ///         no Rask-owned unit of work to learn.

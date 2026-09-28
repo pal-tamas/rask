@@ -100,7 +100,7 @@ public class RerenderAllAsyncTests
         protected override Component? Render()
         {
             RenderCount++;
-            return new HTMLSpanElement();
+            return Markup.Span;
         }
     }
 

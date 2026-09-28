@@ -1,7 +1,7 @@
 # Data access (EF Core + SQLite)
 
 Rask ships a data layer, [`Rask.Data`](data.md): declare an `Aggregate<TId>` and read and write it off the
-type — `Product.Read.Where(…)`, `Product.CreateAsync(model)` — with no `DbContext` to write. **Start there.**
+type — `Product.Read.Where(…)`, `Product.Create(model)` — with no `DbContext` to write. **Start there.**
 
 This guide is the other road: **plain EF Core + SQLite**, with a `DbContext` of your own, for an app
 that opts out of the model conventions or entities that do not derive from `Model`. It shows the
