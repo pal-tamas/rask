@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A commit that carries its CHANGELOG line and its docs no longer tests the whole solution.** Those files
+  sat outside `src/`/`tests/`, so the scoped gate fell back to FULL on ~90% of commits. Each test project now
+  declares the files it reads from disk (`<RaskTestReads/>` in its csproj), and a change scopes to exactly
+  those readers — which also closes blind spots where a change to, say, `src/Rask.Server/Resources/rask.ts`
+  ran none of the Core tests that pin it. See `docs/development-workflow.md`.
 - **The generator test suites run about 15× faster.** Their harnesses built a fresh Roslyn reference set for every
   test, so each of ~950 tests re-read every framework assembly's metadata; the set is now built once per process.
   `Rask.Generators.Tests` went from 67 s to 4 s and `Rask.Batteries.Generators.Tests` from 37 s to 3 s, taking the

@@ -60,4 +60,15 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
+       read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test
+       that starts reading a new file outside this project must add it here. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\docs\blazor-components.md" />
+    <RaskTestReads Include="..\..\src\Rask.Blazor\**" />
+    <RaskTestReads Include="..\..\src\Rask.Server\Rask.Server.csproj" />
+    <RaskTestReads Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj" />
+    <RaskTestReads Include="..\Rask.Blazor.Library.Fixture\**" />
+  </ItemGroup>
+
 </Project>
