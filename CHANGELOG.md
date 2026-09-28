@@ -16,6 +16,10 @@ them until tagged releases begin.
 - **Two validator tests no longer race the clock.** The async-validator demos' "empty input short-circuits"
   tests asserted the call took under 200 ms, which a loaded machine misses. They now assert the returned
   `ValueTask` is already complete — i.e. the delay was never awaited — which is the short circuit itself.
+- **A scaffold's `.vscode/extensions.json` recommends what the project actually uses.** Every template adds
+  EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
+  `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
+  on a server app included. The file is generated from the scaffold's own files, no longer a committed fragment.
 - **`Rask.Server.Tests` spends ~40% less time waiting.** After a `hello`, 26 tests drained a frame with a 2 s
   timeout — but a hello is answered with nothing unless a render is owed, so each waited out the whole 2 s,
   about half the suite's test time. They now wait for the server to attach the socket (`AttachedAsync`), which
