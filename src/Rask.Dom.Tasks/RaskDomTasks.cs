@@ -28,6 +28,9 @@ namespace Rask.Core.Dom.Build
 
         [Required] public string OutputDirectory { get; set; } = "";
 
+        // Where the browser half (rask-dom-events.ts) goes: beside the scripts that import it.
+        [Required] public string ScriptDirectory { get; set; } = "";
+
         [Output] public ITaskItem[] Generated { get; set; } = Array.Empty<ITaskItem>();
 
         public override bool Execute()
@@ -46,9 +49,10 @@ namespace Rask.Core.Dom.Build
 
             Directory.CreateDirectory(OutputDirectory);
             var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Directory.CreateDirectory(ScriptDirectory);
             foreach (var file in files)
             {
-                var path = Path.Combine(OutputDirectory, file.Key);
+                var path = Path.Combine(file.Key.EndsWith(".ts", StringComparison.Ordinal) ? ScriptDirectory : OutputDirectory, file.Key);
                 written.Add(path);
                 // Only-if-changed, so an unchanged snapshot never retriggers the compile.
                 if (!File.Exists(path) || File.ReadAllText(path) != file.Value)
@@ -121,6 +125,7 @@ namespace Rask.Core.Dom.Build
             info.Environment["RASK_MDN_BCD"] = pins["@mdn/browser-compat-data"];
             info.Environment["RASK_MDN_IDL"] = pins["@webref/idl"];
             info.Environment["RASK_MDN_ELEMENTS"] = pins["@webref/elements"];
+            info.Environment["RASK_MDN_EVENTS"] = pins["@webref/events"];
             info.Environment["RASK_MDN_WEBREF"] = pins["webref/dfns"];
             info.Environment["RASK_MDN_WEBIDL2"] = pins["webidl2"];
             using var process = Process.Start(info)!;
@@ -153,7 +158,7 @@ namespace Rask.Core.Dom.Build
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
             http.DefaultRequestHeaders.UserAgent.ParseAdd("rask-build");
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var package in new[] { "@mdn/browser-compat-data", "@webref/idl", "@webref/elements", "webidl2" })
+            foreach (var package in new[] { "@mdn/browser-compat-data", "@webref/idl", "@webref/elements", "@webref/events", "webidl2" })
             {
                 var tags = DomEmitter.Parse(http.GetStringAsync("https://registry.npmjs.org/-/package/" + package.Replace("/", "%2F") + "/dist-tags").Result);
                 var latest = tags["latest"]?.AsString() ?? throw new FormatException("no `latest` dist-tag for " + package);
@@ -460,6 +465,7 @@ namespace Rask.Core.Dom.Build
                 }
             }
 
+            DomEventEmitter.Emit(root, files);
             return files;
         }
 
@@ -613,7 +619,7 @@ namespace Rask.Core.Dom.Build
 
             if (data["support"] is { Kind: JsonKind.Object } support)
             {
-                var line = string.Join(" · ", support.Members.Select(p => $"{Browser(p.Key)} {p.Value.AsString()}"));
+                var line = string.Join(" · ", support.Members.Select(p => $"{BrowserName(p.Key)} {p.Value.AsString()}"));
                 if (line.Length > 0)
                 {
                     remarks.Add(line + ".");
@@ -636,7 +642,7 @@ namespace Rask.Core.Dom.Build
             }
         }
 
-        private static string Browser(string id) => id switch
+        internal static string BrowserName(string id) => id switch
         {
             "chrome" => "Chrome",
             "chrome_android" => "Chrome Android",

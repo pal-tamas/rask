@@ -189,7 +189,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
             .Attributes(("style", "position-anchor:--" + picker.Prefix
                                   + ";position-area:block-end span-inline-end"
                                   + ";position-try-fallbacks:flip-block,flip-inline;margin:4px 0"))
-            .OnToggle(e => picker.OnToggle(e.IsOpen));
+            .OnToggle(e => picker.OnToggle(e.NewState == "open"));
         if (picker.PanelName is { } name)
         {
             panel = panel.Aria(new Dictionary<string, string?> { ["label"] = name });

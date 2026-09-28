@@ -361,10 +361,10 @@ public sealed partial class UiTree<T, TKey> : Component
 
     // ---- the keyboard ---------------------------------------------------------------------------
 
-    private async Task OnKeyAsync(KeyboardEventArgs e, List<UiTreeRow<T, TKey>> rows)
+    private async Task OnKeyAsync(KeyboardEvent e, List<UiTreeRow<T, TKey>> rows)
     {
         // A modified key belongs to the browser or the app, not to the tree.
-        if (rows.Count == 0 || e.Ctrl || e.Alt || e.Meta)
+        if (rows.Count == 0 || e.CtrlKey || e.AltKey || e.MetaKey)
         {
             return;
         }
@@ -645,7 +645,7 @@ public sealed partial class UiTree<T, TKey> : Component
         }
     }
 
-    private Task HoverAsync(PointerEventArgs e, UiTreeRow<T, TKey> row)
+    private Task HoverAsync(PointerEvent e, UiTreeRow<T, TKey> row)
     {
         // A touch reports one enter for the tap that follows it, which is not hovering.
         if (e.PointerType == "touch"
@@ -659,7 +659,7 @@ public sealed partial class UiTree<T, TKey> : Component
         return Raise(OnHover, (T?)row.Node);
     }
 
-    private Task LeaveAsync(PointerEventArgs e)
+    private Task LeaveAsync(PointerEvent e)
     {
         if (!_hovering)
         {

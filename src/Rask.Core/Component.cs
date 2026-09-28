@@ -2465,13 +2465,23 @@ public abstract partial class Component : RaskMarkup
         owner.Live.StateDirty = true;
         try
         {
+            // A DOM event handler (e => … over MDN's MouseEvent, KeyboardEvent, …): the generated dispatch reads the
+            // typed argument and runs a synchronous handler itself; an asynchronous one comes back as a Func<Task> and
+            // takes the Func<Task> arm below — no await of its own, so this state machine stays the size it was.
+            if (DomEventDispatch.TryInvoke(handler, payload, out var pendingDomEvent))
+            {
+                if (pendingDomEvent is null)
+                {
+                    return true;
+                }
+
+                handler = pendingDomEvent;
+            }
+
             switch (handler)
             {
                 case Action a:
                     a();
-                    return true;
-                case Action<MouseModifiers> am:
-                    am(ExtractModifiers(payload));
                     return true;
                 case Func<Task> f:
                     await InvokeWithRenderingAsync(f).ConfigureAwait(false);
@@ -2480,11 +2490,6 @@ public abstract partial class Component : RaskMarkup
                     // dispatcher's post-handler render picks up state mutated AFTER the
                     // mid-await window (e.g. an async validator's terminal message, or a
                     // user lambda that ran on the continuation of an awaited Task).
-                    owner.Live.StateDirty = true;
-                    return true;
-                case Func<MouseModifiers, Task> fm:
-                    var modsForAsync = ExtractModifiers(payload);
-                    await InvokeWithRenderingAsync(() => fm(modsForAsync)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 case Action<string> a:
@@ -2511,30 +2516,6 @@ public abstract partial class Component : RaskMarkup
                     await InvokeWithRenderingAsync(() => f(data)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
-                case Action<ScrollEvent> a:
-                    a(ScrollEvent.FromJson(payload));
-                    return true;
-                case Func<ScrollEvent, Task> f:
-                    var scroll = ScrollEvent.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => f(scroll)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                case Action<KeyboardEventArgs> a:
-                    a(KeyboardEventArgs.FromJson(payload));
-                    return true;
-                case Func<KeyboardEventArgs, Task> f:
-                    var key = KeyboardEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => f(key)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                case Action<ToggleEventArgs> a:
-                    a(ToggleEventArgs.FromJson(payload));
-                    return true;
-                case Func<ToggleEventArgs, Task> f:
-                    var toggle = ToggleEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => f(toggle)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
                 case Action<IReadOnlyList<RaskFile>> a:
                 {
                     var files = FileListReader.Read(payload);
@@ -2552,69 +2533,6 @@ public abstract partial class Component : RaskMarkup
                     }
                     finally { ReleaseFiles(files); }
 
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                // Extended GlobalEventHandlers args (mouse/wheel/pointer/touch/clipboard/media). Each
-                // parses the flat client payload into its typed record; async siblings re-mark dirty
-                // after the mid-await render, mirroring the keyboard/scroll cases above.
-                case Action<MouseEventArgs> c:
-                    c(MouseEventArgs.FromJson(payload));
-                    return true;
-                case Func<MouseEventArgs, Task> c:
-                {
-                    var args = MouseEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case Action<WheelEventArgs> c:
-                    c(WheelEventArgs.FromJson(payload));
-                    return true;
-                case Func<WheelEventArgs, Task> c:
-                {
-                    var args = WheelEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case Action<PointerEventArgs> c:
-                    c(PointerEventArgs.FromJson(payload));
-                    return true;
-                case Func<PointerEventArgs, Task> c:
-                {
-                    var args = PointerEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case Action<TouchEventArgs> c:
-                    c(TouchEventArgs.FromJson(payload));
-                    return true;
-                case Func<TouchEventArgs, Task> c:
-                {
-                    var args = TouchEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case Action<ClipboardEventArgs> c:
-                    c(ClipboardEventArgs.FromJson(payload));
-                    return true;
-                case Func<ClipboardEventArgs, Task> c:
-                {
-                    var args = ClipboardEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
-                    owner.Live.StateDirty = true;
-                    return true;
-                }
-                case Action<MediaEventArgs> c:
-                    c(MediaEventArgs.FromJson(payload));
-                    return true;
-                case Func<MediaEventArgs, Task> c:
-                {
-                    var args = MediaEventArgs.FromJson(payload);
-                    await InvokeWithRenderingAsync(() => c(args)).ConfigureAwait(false);
                     owner.Live.StateDirty = true;
                     return true;
                 }
@@ -3058,11 +2976,6 @@ public abstract partial class Component : RaskMarkup
         return single.Length == 0 ? [] : new[] { single };
     }
 
-    private static MouseModifiers ExtractModifiers(JsonElement payload) =>
-        new(ExtractBool(payload, "shiftKey"),
-            ExtractBool(payload, "ctrlKey"),
-            ExtractBool(payload, "altKey"),
-            ExtractBool(payload, "metaKey"));
 
     private static bool ExtractBool(JsonElement payload, string property)
     {
@@ -3285,4 +3198,3 @@ public abstract partial class Component : RaskMarkup
     }
 }
 
-public readonly record struct MouseModifiers(bool Shift, bool Ctrl, bool Alt, bool Meta);

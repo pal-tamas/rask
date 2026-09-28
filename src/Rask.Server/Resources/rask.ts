@@ -46,6 +46,7 @@ import {
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
+import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 
 (function () {
     "use strict";
@@ -1737,10 +1738,10 @@ import "../../Rask.Core/Resources/rask-events.js";
         }
         if (!invoker) { e.preventDefault(); }
         flushInputsNow();
-        const payload: Record<string, unknown> = {
-            id: t.getAttribute("data-rask-on-click"), type: "click",
-            shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-        };
+        // The click's PointerEvent, in MDN's fields (rask-dom-payload.ts).
+        const payload = raskDomPayload(e, "click");
+        payload.id = t.getAttribute("data-rask-on-click");
+        payload.type = "click";
         send(payload);
         trackLoading(t, payload);
     });

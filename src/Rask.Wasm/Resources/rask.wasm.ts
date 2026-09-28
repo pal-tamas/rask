@@ -35,6 +35,7 @@ import {
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
+import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import "./rask-wasm-api.js";
 
 let dotnetExports: RaskWasmExports | null = null;
@@ -821,10 +822,9 @@ document.addEventListener("click", (e) => {
     // The dispatch promise resolves once the handler AND its render are done, which is exactly how long
     // the control has been waiting.
     const ticket = waiting ? beginLoading(waiting) : null;
-    send({
-        id: t.getAttribute("data-rask-on-click"), type: "click",
-        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-    }).finally(() => endLoading(ticket));
+    // The click's PointerEvent, in MDN's fields (rask-dom-payload.ts).
+    send(Object.assign(raskDomPayload(e, "click"), { id: t.getAttribute("data-rask-on-click"), type: "click" }))
+        .finally(() => endLoading(ticket));
 });
 
 document.addEventListener("change", (e) => {

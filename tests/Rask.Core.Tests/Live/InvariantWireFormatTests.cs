@@ -89,8 +89,8 @@ public partial class InvariantWireFormatTests : global::Rask.Core.RaskMarkup
         CultureInfo.CurrentCulture = Hostile("sv-SE");
 
         using var doc = JsonDocument.Parse(
-            """{"scrollTop":"-120","clientHeight":"600","scrollHeight":"2400"}""");
-        var scroll = ScrollEvent.FromJson(doc.RootElement);
+            """{"target":{"scrollTop":"-120","clientHeight":"600","scrollHeight":"2400"}}""");
+        var scroll = new Event(doc.RootElement).Target!;
 
         Assert.Equal(-120, scroll.ScrollTop);
         Assert.Equal(600, scroll.ClientHeight);
