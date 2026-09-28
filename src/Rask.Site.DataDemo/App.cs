@@ -68,7 +68,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         var notes = QueryClient.Query(QueryKey.For<Note>("recent"), async ct =>
         {
             await ready.Task;
-            return await Note.Read.OrderByDescending(n => n.CreatedAt).Take(50).ToListAsync(ct);
+            return await Note.OrderByDescending(n => n.CreatedAt).Take(50).ToListAsync(ct);
         });
 
         // The search: follows the box, and pauses while it is empty (a null input fetches nothing).
@@ -76,7 +76,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
             async (text, ct) =>
             {
                 await ready.Task;
-                return await Note.Read.Search(text)
+                return await Note.Search(text)
                     .Take(20)
                     .Select(n => new Hit(n.Id, FullText.Highlight(n.Title), FullText.Snippet(n.Body, 12)))
                     .ToListAsync(ct);
@@ -147,7 +147,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         try
         {
             // Refreshes the two queries above: the save reports that it wrote a Note.
-            await Note.CreateAsync(note, cancellationToken: CancellationToken);
+            await Note.Create(note, cancellationToken: CancellationToken);
 
             _saveError = null;
             _draft = new();

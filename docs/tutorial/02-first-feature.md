@@ -63,7 +63,7 @@ form checks it as the user types. `[Range]` is only for the form. `InStock`'s `=
 product starts with, on the create form too.
 
 **Reading needs nothing more.** The build generates a **read face** beside the aggregate —
-`Product.Read.Where(…)`, `Product.Read.AsQueryable()` — whose rows are `ProductRead`: plain columns, no
+`Product.Where(…)`, `Product.AsQueryable()` — whose rows are `ProductRead`: plain columns, no
 behaviour, nothing to save. Each read opens its own database context, runs, and disposes it before it
 returns. That's what makes it safe to call straight from a page: a Rask page lives as long as the browser
 keeps its socket open, and nothing here holds a context between calls.
@@ -88,9 +88,9 @@ A form edits something mutable, and `Product` isn't. So the build generates a **
 The writes are on the type, beside the reads, and take the model:
 
 ```csharp
-var product = await Product.CreateAsync(model);   // a new row with a new Id
-await Product.UpdateAsync(id, model);             // only the changed columns; a stale Version throws
-await Product.DeleteAsync(id, version);           // removes the row; a stale Version throws
+var product = await Product.Create(model);        // a new row with a new Id
+await Product.Update(id, model);                  // only the changed columns; a stale Version throws
+await Product.Delete(id, version);                // removes the row; a stale Version throws
 ```
 
 Each one opens a context, saves through the interceptors `rask new` wired (so the timestamps and `Version` are
@@ -123,7 +123,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
                 save.IsError ? Ui.Alert.Tone(Ui.Tone.Error)["Something went wrong — please try again."] : null,
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
-                    await Product.CreateAsync(model, cancellationToken: ct);
+                    await Product.Create(model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());
                 }, CancellationToken))[
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
@@ -158,7 +158,7 @@ written, so a double click can't create two products, and a failure lands on `Is
 click — `Send` never throws, which is why there is no `try` here. `Send` hands back a step that does
 nothing until it is awaited, so the handler is `async` and awaits it; forget the `await` and
 [RASK093](../diagnostics.md#rask093) stops the build rather than letting the save silently not happen.
-A command also refreshes whatever a save made stale: the product count you'll put on the list page updates by itself once `CreateAsync` commits.
+A command also refreshes whatever a save made stale: the product count you'll put on the list page updates by itself once `Create` commits.
 See [queries and commands](../query.md).
 
 ## 4. Edit and delete
@@ -189,7 +189,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
     protected override Component? Render()
     {
         var product = QueryClient.Query(QueryKey.For<Product>("edit"), Id,
-            (id, ct) => Product.ModelAsync(id, cancellationToken: ct), ThisPageOnly);
+            (id, ct) => Product.Model(id, cancellationToken: ct), ThisPageOnly);
         var save = QueryClient.Command();
 
         if (product.IsLoading)
@@ -225,7 +225,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
                 },
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
-                    await Product.UpdateAsync(Id, model, cancellationToken: ct);
+                    await Product.Update(Id, model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());
                 }, CancellationToken))[
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
@@ -245,10 +245,10 @@ Four things in that page are doing more than they look:
 - **The row comes from the route.** The page looks the product up by its `[RouteParam]` and saves to that same
   `Id`. The model carries no id, so no input on the form can point the save at another row.
 - **`ToModel()` copies the `Version` too.** That is the whole of optimistic concurrency here: the model
-  remembers the version the form was loaded at, and `UpdateAsync` refuses to write if the row has moved on
+  remembers the version the form was loaded at, and `Update` refuses to write if the row has moved on
   since, throwing `DbUpdateConcurrencyException` rather than overwriting someone else's edit. A row deleted
   in the meantime is a `KeyNotFoundException`.
-- **The save writes what the form holds.** `UpdateAsync` loads the row, copies the model onto it and saves only
+- **The save writes what the form holds.** `Update` loads the row, copies the model onto it and saves only
   the columns that changed. The model is how a change gets back: nothing the page holds is tracked by EF.
 - **The load is a query, and it follows the route.** `QueryClient.Query(key, Id, load)` is asked for in
   `Render`, where the route's `Id` is already bound, and the same call is the same query every render — so
@@ -288,7 +288,7 @@ public sealed partial class DeleteProduct : Component
             {
                 // A row someone edited or deleted first fails here and lands on delete.Error; refreshing the
                 // list below shows the reader what happened either way.
-                await delete.Send(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
+                await delete.Send(ct => Product.Delete(Id, Version, cancellationToken: ct), CancellationToken);
 
                 // Tell the caller. Unset, this does nothing; a synchronous handler completes without a Task.
                 await OnDeleted.Invoke();
@@ -315,7 +315,7 @@ public sealed partial class ProductsPage : Component
 {
     // An IQueryable, not a list. It holds no database connection: the grid runs it — sorted and paged in
     // SQL — each time it renders, and each run opens and disposes its own context.
-    private readonly IQueryable<ProductRead> _products = Product.Read.OrderBy(p => p.Name).AsQueryable();
+    private readonly IQueryable<ProductRead> _products = Product.OrderBy(p => p.Name).AsQueryable();
 
     protected override Component? HeadAssets => Title["Products"];
 
@@ -323,7 +323,7 @@ public sealed partial class ProductsPage : Component
     {
         // Cached for this session, and refetched by itself after any Product write — a create, an edit, a
         // delete — because its key is about Product.
-        var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.Read.CountAsync(ct));
+        var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.CountAsync(ct));
 
         return
         [
@@ -345,7 +345,7 @@ public sealed partial class ProductsPage : Component
 }
 ```
 
-`Product.Read.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
+`Product.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
 shape [`Ui.DataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager
 becomes `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required —
 it is what the grid identifies a row by when it redraws. The grid shows read faces, read-only by
@@ -354,7 +354,7 @@ construction; `UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sorta
 Note what the page doesn't have: an `OnMount`. The grid runs its `IQueryable` when it renders, and the
 count in the heading is a **query** — asked for in `Render`, cached for the session, loading on its own. Its
 key, `QueryKey.For<Product>("count")`, says what it is about, and that is the whole of keeping it right: once
-any `Product` write commits — `CreateAsync`, `UpdateAsync`, `DeleteAsync` — every query about `Product` on this
+any `Product` write commits — `Create`, `Update`, `Delete` — every query about `Product` on this
 session's screen refetches, so creating a product and coming back shows the new count with nothing written to
 make it happen. The grid is left an `IQueryable` on purpose: it pages and sorts in SQL, which a cached list
 could not. See [queries and commands](../query.md).
@@ -380,8 +380,8 @@ What that one line did for this slice:
   the app handles concurrent writers — the jobs, email and outbox of later chapters — without hitting
   `database is locked`. A deploy overrides the connection string with `Rask__ConnectionStrings__App`, which
   is how it points at a persistent volume.
-- It pointed the model surface at that context, which is what lets `Product.Read.Where(…)` and
-  `Product.CreateAsync(…)` open a database with nothing injected.
+- It pointed the model surface at that context, which is what lets `Product.Where(…)` and
+  `Product.Create(…)` open a database with nothing injected.
 - It added the interceptors that fill in timestamps and versions, publish events, and soft-delete an
   aggregate that asks for it.
 
@@ -426,7 +426,7 @@ it's on disk in `app.db`.
 
 > **Troubleshooting.** `rask db` can't find the project → make sure you `cd`'d into `Shop` first.
 > `/products` fails with `no such table` → you skipped `rask db update`. The build can't find
-> `Routes.ProductsPage()`, `ProductModel` or `Product.Read` → those are generated; build once and the IDE
+> `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
 > catches up. For a route, the generator also needs the `[Route]` attribute on the page.
 
 **Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [data grid](../data-grid.md) ·

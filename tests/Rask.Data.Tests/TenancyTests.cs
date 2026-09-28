@@ -75,7 +75,7 @@ public sealed class TenancyTests : IDisposable
         Assert.NotNull(model.FindEntityType(typeof(Ledger))!.FindProperty(Columns.TenantId));
 
         // The child never says anything: it is part of the aggregate, so it belongs to the root's tenant —
-        // and it carries the column itself, because LedgerEntry.Read is queryable on its own.
+        // and it carries the column itself, because LedgerEntry.Where(…) is queryable on its own.
         Assert.NotNull(model.FindEntityType(typeof(LedgerEntry))!.FindProperty(Columns.TenantId));
 
         // Ignored, not merely unmapped, on a table that said nothing.
@@ -92,12 +92,12 @@ public sealed class TenancyTests : IDisposable
 
         using (Tenant.Use(_acme))
         {
-            Assert.Equal(["ACME-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference).ToListAsync());
         }
 
         using (Tenant.Use(_globex))
         {
-            Assert.Equal(["GLOBEX-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["GLOBEX-1"], await Ledger.Select(l => l.Reference).ToListAsync());
         }
     }
 
@@ -128,7 +128,7 @@ public sealed class TenancyTests : IDisposable
         // that keeps costing this codebase; returning everything would be the leak.
         using (Tenant.None())
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => Ledger.Read.ToListAsync());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => Ledger.ToListAsync());
         }
     }
 
@@ -144,7 +144,7 @@ public sealed class TenancyTests : IDisposable
         {
             Assert.Equal(
                 ["ACME-1", "GLOBEX-1"],
-                (await Ledger.Read.Select(l => l.Reference).ToListAsync()).Order(StringComparer.Ordinal));
+                (await Ledger.Select(l => l.Reference).ToListAsync()).Order(StringComparer.Ordinal));
         }
     }
 
@@ -162,7 +162,7 @@ public sealed class TenancyTests : IDisposable
         {
             Assert.Equal(
                 ["ACME-1"],
-                await Ledger.Read.IgnoreQueryFilters().Select(l => l.Reference).ToListAsync());
+                await Ledger.IgnoreQueryFilters().Select(l => l.Reference).ToListAsync());
         }
     }
 
@@ -195,12 +195,12 @@ public sealed class TenancyTests : IDisposable
         // read — a static call, outside any DI scope — resolves the tenant of the user that session is for.
         using (Db.UseScope(ScopeFor(_acme)))
         {
-            Assert.Equal(["ACME-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference).ToListAsync());
         }
 
         using (Db.UseScope(ScopeFor(_globex)))
         {
-            Assert.Equal(["GLOBEX-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["GLOBEX-1"], await Ledger.Select(l => l.Reference).ToListAsync());
         }
     }
 
@@ -212,12 +212,12 @@ public sealed class TenancyTests : IDisposable
 
         using (Db.UseScope(ScopeFor(_acme)))
         {
-            Assert.Single(await Ledger.Read.ToListAsync());
+            Assert.Single(await Ledger.ToListAsync());
         }
 
         // The failure this guards against is the worst one available: a scope that leaked past the work it
         // bracketed would hand the NEXT session the previous user's tenant.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Ledger.Read.ToListAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Ledger.ToListAsync());
     }
 
     [Fact]
@@ -233,10 +233,10 @@ public sealed class TenancyTests : IDisposable
         {
             using (Db.UseScope(ScopeFor(_globex)))
             {
-                Assert.Equal(["GLOBEX-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+                Assert.Equal(["GLOBEX-1"], await Ledger.Select(l => l.Reference).ToListAsync());
             }
 
-            Assert.Equal(["ACME-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference).ToListAsync());
         }
     }
 
@@ -252,7 +252,7 @@ public sealed class TenancyTests : IDisposable
         using (Db.UseScope(ScopeFor(_acme)))
         using (Tenant.Use(_globex))
         {
-            Assert.Equal(["GLOBEX-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["GLOBEX-1"], await Ledger.Select(l => l.Reference).ToListAsync());
         }
     }
 
@@ -271,7 +271,7 @@ public sealed class TenancyTests : IDisposable
             await database.Context.SaveChangesAsync();
 
             Assert.Equal(_acme, ledger.TenantId);
-            Assert.Equal(["ACME-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference).ToListAsync());
         }
     }
 

@@ -48,13 +48,13 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
-        var order = await Order.Read.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(Current.Cancellation);
+        var order = await Order.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(Current.Cancellation);
         // … process the order …
     }
 }
 ```
 
-There's nothing to inject for that read. `Order.Read` opens its own context and disposes it before it
+There's nothing to inject for that read. `Order.Where(…)` opens its own context and disposes it before it
 returns, which is as right on a background worker as it is on a page.
 
 ## 2. What's already wired
@@ -94,7 +94,7 @@ public sealed partial class CreateOrder(Navigator navigator) : Component
     {
         try
         {
-            var order = await Order.CreateAsync(model, cancellationToken: CancellationToken);
+            var order = await Order.Create(model, cancellationToken: CancellationToken);
             await Jobs.Enqueue(new SendOrderReceipt(order.Id));   // ← enqueue
             navigator.NavigateTo(Routes.OrdersPage());
         }
@@ -106,7 +106,7 @@ public sealed partial class CreateOrder(Navigator navigator) : Component
 }
 ```
 
-`Order.CreateAsync` hands back the saved order, with the `Id` it was given. The enqueue returns as soon as the
+`Order.Create` hands back the saved order, with the `Id` it was given. The enqueue returns as soon as the
 job row is written — the customer's request finishes immediately, and the worker runs the job moments later.
 Need it *later*? `Jobs.Enqueue(job).In(24.Hours)`, or `.At(aMoment)`. Need it *repeatedly*? That one is code,
 in `Program.cs`:

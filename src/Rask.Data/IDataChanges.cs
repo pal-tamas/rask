@@ -8,7 +8,7 @@ namespace Rask.Data;
 ///     <para>
 ///         A Rask app gets one for free: the host registers an implementation that invalidates every
 ///         <c>Rask.Query</c> query about those types — <c>QueryKey.For&lt;Person&gt;(…)</c>, or anything a
-///         command's <c>[Invalidates(typeof(Person))]</c> would reach — so <c>Person.CreateAsync(model)</c>
+///         command's <c>[Invalidates(typeof(Person))]</c> would reach — so <c>Person.Create(model)</c>
 ///         refreshes the list beside the form without anyone writing the invalidation. It lives here rather
 ///         than in <c>Rask.Query</c> because Rask.Data must not reference the front-end packages.
 ///     </para>

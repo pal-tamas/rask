@@ -25,8 +25,8 @@ namespace Rask.Cli.E2E.Tests;
 /// the old <c>--force</c> regeneration papered over and a reader patching by hand cannot.
 /// </para>
 /// <para>
-/// The pages read through the generated read face — <c>Product.Read.AsQueryable()</c> — write through the
-/// aggregate type — <c>Product.CreateAsync(model)</c> — and fill a form with <c>Product.ModelAsync(id)</c>,
+/// The pages read through the generated read face — <c>Product.AsQueryable()</c> — write through the
+/// aggregate type — <c>Product.Create(model)</c> — and fill a form with <c>Product.Model(id)</c>,
 /// binding the generated <c>ProductModel</c>, which only exists once the
 /// model generator has run over the chapter's <c>Product</c>. So this walk is what proves the generated form
 /// model binds to the Ui kit's controls the way the chapter types it.
@@ -109,7 +109,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // --- Chapter 4: a durable job, whose handler reads the Order chapter 3 added ---
             // The chapter shows the record and the filled-in handler as separate snippets, the handler's
             // `using` above it; they are joined into one file the way a reader would join them.
-            var jobHandler = Pick(ch4, "Order.Read.Where(o => o.Id == job.OrderId", "4");
+            var jobHandler = Pick(ch4, "Order.Where(o => o.Id == job.OrderId", "4");
             var shared = Path.Combine(projectDir, "Features", "Shared");
             Write(
                 fs, shared, "SendOrderReceipt.cs",
@@ -131,7 +131,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // it — a fragment could not replace the file chapter 3 wrote.
             //
             // PlaceOrder is a whole component precisely so it is compiled here: it is the chapter's one
-            // create from an aggregate built by its own factory — Order.Place, then Order.CreateAsync(order).
+            // create from an aggregate built by its own factory — Order.Place, then Order.Create(order).
             Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderPlaced", "7"));
             Write(fs, orders, "Order.cs", Pick(ch7, "Raise(new OrderPlaced", "7"));
             Write(fs, orders, "PlaceOrder.cs", Pick(ch7, "Order.Place(ProductId", "7"));

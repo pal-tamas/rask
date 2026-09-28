@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
@@ -50,7 +51,12 @@ internal static class TestCompilation
         return path;
     }
 
-    private static IEnumerable<MetadataReference> References()
+    // Once per process: Roslyn shares loaded metadata only between compilations handed the SAME reference instances.
+    private static readonly ImmutableArray<MetadataReference> CachedReferences = [.. CreateReferences()];
+
+    private static IEnumerable<MetadataReference> References() => CachedReferences;
+
+    private static IEnumerable<MetadataReference> CreateReferences()
     {
         var trusted = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);

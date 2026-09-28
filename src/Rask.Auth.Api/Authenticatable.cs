@@ -14,7 +14,7 @@ namespace Rask.Auth;
 /// <para>
 /// The credentials change only through Rask.Auth: registering, resetting and confirming go through <c>IAuth</c>, which
 /// hashes, checks tokens and ends sessions. They have private setters and are never on the generated form model. Roles
-/// are the app's to change: <c>User.UpdateAsync(id, u =&gt; u.GrantRole("editor"))</c>.
+/// are the app's to change: <c>User.Update(id, u =&gt; u.GrantRole("editor"))</c>.
 /// </para>
 /// </remarks>
 public abstract class Authenticatable : Aggregate<Guid>

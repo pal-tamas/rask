@@ -148,7 +148,7 @@ The returned `StoredFile` carries `Id`, the display `Name` (reduced to a safe le
 (UTC). Keep the `Id` on your own entity; every other call is addressed by it.
 
 `StoredFile` is a Rask.Data entity with a read face, so listing what has been uploaded is a query like any
-other, with no context of your own: `StoredFile.Read.OrderByDescending(f => f.CreatedAt).Take(50).ToListAsync()`.
+other, with no context of your own: `StoredFile.OrderByDescending(f => f.CreatedAt).Take(50).ToListAsync()`.
 
 **The row is committed on its own `DbContext`, not inside a transaction your handler has open.** The bytes
 are written first and the row second, so a save that fails half way leaves bytes with no row (the

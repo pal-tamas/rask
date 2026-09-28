@@ -52,5 +52,5 @@ work by polling and writing sequentially. Need a job to commit atomically with a
 **A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
 multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
 `Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the
-`UserId` column: `rask db add AddJobUser && rask db update`. `Job.Read` queries the queue with no context of your
+`UserId` column: `rask db add AddJobUser && rask db update`. `Job.Where(…)` queries the queue with no context of your
 own.

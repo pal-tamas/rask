@@ -119,14 +119,14 @@ public sealed class ValueCollectionTests : IDisposable
         // spellings are pinned by Rask.Providers.E2E.Tests.
         Assert.Equal(
             "grand tour",
-            (await Journey.Read.AsQueryable().Where(j => j.Tags.Contains("urgent")).SingleAsync()).Title);
+            (await Journey.AsQueryable().Where(j => j.Tags.Contains("urgent")).SingleAsync()).Title);
 
         Assert.Equal(
             "weekend",
-            (await Journey.Read.AsQueryable().Where(j => j.Waypoints.Any(w => w.City == "Rome")).SingleAsync()).Title);
+            (await Journey.AsQueryable().Where(j => j.Waypoints.Any(w => w.City == "Rome")).SingleAsync()).Title);
 
         // A non-string member of the document, so the comparison is typed rather than textual.
-        Assert.Equal(2, await Journey.Read.AsQueryable().CountAsync(j => j.Waypoints.Any(w => w.Day == 1)));
+        Assert.Equal(2, await Journey.AsQueryable().CountAsync(j => j.Waypoints.Any(w => w.Day == 1)));
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public sealed class ValueCollectionTests : IDisposable
         await database.Context.SaveChangesAsync();
 
         // The edit shape, as a form reads it: plain values as themselves, value objects as nested models.
-        var model = await Journey.ModelAsync(journey.Id);
+        var model = await Journey.Model(journey.Id);
         Assert.NotNull(model);
         Assert.Equal(["urgent"], model.Tags);
         Assert.Equal([("Vienna", 1)], model.Waypoints.Select(w => (w.City, w.Day)));
@@ -151,7 +151,7 @@ public sealed class ValueCollectionTests : IDisposable
         model.Tags = ["calm", "slow"];
         model.Waypoints.Add(new JourneyModel.WaypointModel { City = "Prague", Day = 2 });
 
-        await Journey.UpdateAsync(journey.Id, model);
+        await Journey.Update(journey.Id, model);
 
         await using var fresh = new RaskDbContext(Options());
         var saved = await fresh.Set<Journey>().SingleAsync();
@@ -171,11 +171,11 @@ public sealed class ValueCollectionTests : IDisposable
         database.Context.Add(journey);
         await database.Context.SaveChangesAsync();
 
-        var model = await Journey.ModelAsync(journey.Id);
+        var model = await Journey.Model(journey.Id);
         model!.Tags = [];
         model.Waypoints = [];
 
-        await Journey.UpdateAsync(journey.Id, model);
+        await Journey.Update(journey.Id, model);
 
         await using var fresh = new RaskDbContext(Options());
         var saved = await fresh.Set<Journey>().SingleAsync();
@@ -195,7 +195,7 @@ public sealed class ValueCollectionTests : IDisposable
         database.Context.Add(journey);
         await database.Context.SaveChangesAsync();
 
-        var read = await Journey.Read.Where(j => j.Id == journey.Id).SingleOrDefaultAsync();
+        var read = await Journey.Where(j => j.Id == journey.Id).SingleOrDefaultAsync();
 
         Assert.NotNull(read);
         Assert.Equal(["urgent"], read.Tags);

@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK094, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK096, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -18,6 +18,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 | **RASK084** | makes the accessor `private set` / `private init`, or the field `private` |
 | **RASK085** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
+| **RASK095** | adds the missing required steps right after the chain so far (or moves one taken too late) |
+| **RASK096** | declares the event as a non-nullable `Callback` and fires it with `.Invoke(…)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -120,7 +122,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
 | [RASK084](#rask084) | Error | Model state can be changed from outside the type |
 | [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
-| [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `CreateAsync` is not generated |
+| [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `Create` is not generated |
 | [RASK087](#rask087) | Error | Aggregate reaches across a boundary instead of holding an id |
 | [RASK088](#rask088) | Warning | Child collection cannot be synced, so a save cannot add or remove one |
 | [RASK089](#rask089) | Warning | Id looks like a reference but no navigation was inferred |
@@ -129,6 +131,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK092](#rask092) | Warning | A unit reads wrong for its count (`2.Hour`, `1.Hours`) |
 | [RASK093](#rask093) | Error | An awaitable result is dropped, so the call never runs |
 | [RASK094](#rask094) | Warning | A scoped TypeScript export gets no typed method on its component |
+| [RASK095](#rask095) | Error | A chain skips a required step |
+| [RASK096](#rask096) | Error | An event is declared as a delegate, so its chain setter is unreachable |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1855,7 +1859,7 @@ public sealed partial class MuiToggle : ReactComponent
 ```
 
 ## RASK081
-*Retired.* It warned that an entity with no parameterless constructor got no generated `CreateAsync(model)`.
+*Retired.* It warned that an entity with no parameterless constructor got no generated `Create(model)`.
 The generated writes were dropped, and the id retired with them; when the writes came back, the same rule
 returned as [RASK086](#rask086). The id is retired, not reused.
 
@@ -1869,7 +1873,7 @@ Every aggregate gets a generated form model emitted beside it, in the same names
 hand-written, non-`partial` type of that name, often a request model written before the generator existed,
 would collide with it as `CS0101`, a message that names neither the generator nor the way out. So the
 generator stands down for that aggregate and says why: no `ProductModel` is generated, and neither are the
-`CreateAsync`, `UpdateAsync` and `DeleteAsync` that take it.
+`Create`, `Update` and `Delete` that take it.
 
 ```csharp
 public sealed class Product : Aggregate<Guid> { /* … */ }
@@ -1929,7 +1933,7 @@ public sealed class Product : Aggregate<Guid> { }      // ✓ gets ProductModel
 An aggregate, an entity and every value object they hold change only through their own methods, so their
 rules and their domain events stay in one place. A public setter lets any caller skip those methods. Nothing
 in Rask needs one: EF Core materialises through private setters, and the generated form model writes through
-them too (`Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`). So it is an error, not a hint.
+them too (`Product.Create(model)`, `Product.Update(id, model)`). So it is an error, not a hint.
 
 Checked: every class deriving from `Rask.Data.Entity<TId>` (and so every `Aggregate<TId>`), including your own
 abstract bases between them, and every value object one of them holds. A value object carries no marker: it
@@ -2044,11 +2048,11 @@ type split across several files, or a member that already has the field's name.
 
 ## RASK086
 
-**Aggregate has no parameterless constructor, so `CreateAsync` is not generated** · Warning
+**Aggregate has no parameterless constructor, so `Create` is not generated** · Warning
 
 Every `Aggregate<TId>` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
-([data guide](data.md#writing-create-update-delete)). `Product.CreateAsync(model)` and
-`Product.CreateAsync(p => …)` both start from a new, empty aggregate, and so does `new ProductModel()`, which
+([data guide](data.md#writing-create-update-delete)). `Product.Create(model)` and
+`Product.Create(p => …)` both start from a new, empty aggregate, and so does `new ProductModel()`, which
 holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
 no constructor has one for free. Declaring one that takes arguments removes it.
 
@@ -2072,9 +2076,9 @@ public sealed class Product : Aggregate<Guid>
 }
 ```
 
-An aggregate built by its factory is inserted with `Product.CreateAsync(Product.Create("Anvil"))`. Until the
+An aggregate built by its factory is inserted with `Product.Create(Product.Create("Anvil"))`. Until the
 constructor goes, everything that works on a row that already exists is still generated: `ProductModel`,
-`Product.UpdateAsync(id, model)`, `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`.
+`Product.Update(id, model)`, `Product.Update(id, p => …)` and `Product.Delete(id)`.
 
 This rule was RASK081 before the generated writes were dropped and brought back; a retired id is never
 recycled, so it returned under a new one.
@@ -2132,8 +2136,8 @@ public sealed class Shipment : Aggregate<Guid>
 from exactly that id — so it is still one expression:
 
 ```csharp
-await Order.Read.Where(o => o.Customer.Country == "HU").ToListAsync();
-await Shipment.Read.Where(s => s.Order.Status == OrderStatus.Open).ToListAsync();
+await Order.Where(o => o.Customer.Country == "HU").ToListAsync();
+await Shipment.Where(s => s.Order.Status == OrderStatus.Open).ToListAsync();
 ```
 
 It is an error rather than a warning because the alternative is worse than either fix: a navigation that
@@ -2471,3 +2475,85 @@ A name the component only *inherits* is not a clash: `export function stop()` be
 SVG `<stop>` entry inside that component, where `Markup.Stop` still reaches the tag.
 
 The string call still works for anything left out: `js.InvokeAsync<T>("Rask.Card.pairs")`.
+
+## RASK095
+
+**A chain skips a required step** · Error · quick-fix
+
+A non-nullable property with no initializer is a **required step** ([RASK001](#rask001)): the chain is not
+the component until every one is taken. The chain's type already enforces that, but the compiler says so
+in the names of generated types nobody wrote — and a half-built chain used as a **child** is not a compile
+error at all: the children indexer takes it and it throws while rendering. This says what is missing, in
+the chain's own words, at the same place:
+
+```csharp
+public sealed partial class Card : Component
+{
+    public string Title { get; set; }          // required
+    public string Body  { get; set; }          // required
+    public string? Note { get; set; }          // optional
+}
+
+Card.Note("x")            // ❌ RASK095: 'Card' needs 'Title' and 'Body' before anything else — write Card.Title(…).Body(…).Note(…)
+return Card.Title("Q3");  // ❌ RASK095: 'Card' needs 'Body' — write Card.Title(…).Body(…)
+Div[Card]                 // ❌ RASK095: 'Card' needs 'Title' and 'Body' — write Card.Title(…).Body(…)
+```
+
+Before, the same three lines read `CS1929 'RaskSeed_Card' does not contain a definition for 'Note'`,
+`CS0029 Cannot implicitly convert type 'RaskPending_Card_Title' to 'Component'`, and — for the child —
+nothing until the page threw.
+
+The required steps can come in any order and `Key` can go anywhere; a chain stored in a local
+(`var card = Card;`) is left alone until it is used as something other than itself.
+
+**Fix:** take the missing steps first (**quick-fix available** — the lightbulb inserts them right after the
+chain so far, with a placeholder for you to replace: `""` for a string, `default` for a value type,
+`default!` otherwise; a required step the chain takes *later* is moved up with its own argument instead,
+since the finished component has no setter for it):
+
+```csharp
+Card.Note("x")                  →  Card.Title("").Body("").Note("x")
+Card.Note("x").Title("Q3")      →  Card.Title("Q3").Body("").Note("x")
+```
+
+The fix is not offered when a missing step is overloaded or generic, where a placeholder would be
+ambiguous. A form control's bare entry (`Input`, owing `Bind` *or* `Value`) is not reported: its openings are
+alternatives, not a list of steps to take.
+
+## RASK096
+
+**An event is declared as a delegate** · Error · quick-fix
+
+Every event on a component is a `Callback`, `Callback<T>` or `Callback<T1, T2>` — a struct, not a delegate.
+That is what keeps its chain step reachable: the chain receives on the component, so `Editor.OnSave(fn)`
+has to fall through member lookup to the generated setter, and a delegate-typed property is *invocable* —
+lookup stops at it and the call binds as an invocation of the property (CS1593).
+
+```csharp
+public sealed partial class Editor : Component
+{
+    public Action<Order>? OnSave { get; set; }        // ❌ RASK096: Declare 'OnSave' as Callback<Order>, not Action<Order>
+    public Func<Order, Task>? OnSubmit { get; set; }  // ❌ RASK096: Declare 'OnSubmit' as Callback<Order>, not Func<Order, Task>
+    public Func<Order, Component>? Row { get; set; }  // ✓ a template, not an event
+    public Func<Order, bool>? Filter { get; set; }    // ✓ a selector
+}
+```
+
+It reports a public settable property of a component whose type is `Action`, `Action<T>`,
+`Action<T1, T2>`, or a `Func` of up to two arguments returning a bare `Task` or `ValueTask`. A delegate
+that returns anything else is a template or a selector and is left alone, as is one with more than two
+arguments (no `Callback` takes them — pass one object).
+
+**Fix:** declare it non-nullable — an unset `Callback` is an empty slot whose `Invoke` does nothing — and
+fire it with `await OnSave.Invoke(order)` (**quick-fix available** — the lightbulb rewrites the type and,
+inside the same type declaration, `OnSave?.Invoke(x)` / `OnSave(x)` to `OnSave.Invoke(x)`, adding `await`
+where the statement is in an `async` method or lambda):
+
+```csharp
+public Callback<Order> OnSave { get; set; }
+
+async Task Save() => await OnSave.Invoke(order);
+```
+
+A caller's handler is unchanged: `Editor.OnSave(o => …)` and `Editor.OnSave(async o => …)` both bind.
+Null checks (`OnSave != null`) are not rewritten — use `OnSave.HasValue`, or just call `Invoke`.

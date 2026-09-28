@@ -40,7 +40,7 @@ in finds the user, and the user says which tenant they belong to. It travels on 
 with nothing passed to it:
 
 ```csharp
-var invoices = await Invoice.Read.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();
+var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();
 ```
 
 A restored session carries the claim too, so a reconnect comes back in the same tenant. The same holds for
@@ -74,12 +74,12 @@ A user with no tenant — an administrator — carries no claim, and is covered 
 ```csharp
 using (Tenant.Use(acmeId))          // work as this tenant
 {
-    await Invoice.CreateAsync(model);
+    await Invoice.Create(model);
 }
 
 using (Tenant.Across())             // deliberately span tenants — an admin tool, a migration
 {
-    var total = await Invoice.Read.CountAsync();
+    var total = await Invoice.CountAsync();
 }
 ```
 
@@ -99,7 +99,7 @@ private async Task LoadAsync()
 {
     using (Tenant.Use(_tenant))
     {
-        _invoices = await Invoice.Read.OrderByDescending(i => i.CreatedAt).ToListAsync();
+        _invoices = await Invoice.OrderByDescending(i => i.CreatedAt).ToListAsync();
     }
 }
 ```
@@ -109,7 +109,7 @@ A report over every tenant is `Tenant.Across()` — one greppable thing a review
 ## A read with no tenant throws
 
 ```csharp
-await Invoice.Read.ToListAsync();   // InvalidOperationException, when nothing says which tenant
+await Invoice.ToListAsync();   // InvalidOperationException, when nothing says which tenant
 ```
 
 Deliberately, and it is the decision most worth understanding. Returning *nothing* would be safe against
@@ -119,7 +119,7 @@ Returning *everything* would be the leak itself. So it refuses, and says how to 
 ## `IgnoreQueryFilters()` does not cross tenants
 
 ```csharp
-await Invoice.Read.IgnoreQueryFilters().ToListAsync();   // includes soft-deleted; SAME tenant
+await Invoice.IgnoreQueryFilters().ToListAsync();   // includes soft-deleted; SAME tenant
 ```
 
 It means "include soft-deleted rows" and leaves the tenant filter exactly where it is, so an existing call

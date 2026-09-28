@@ -8,7 +8,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         A Rask read or write is a static call that opens its own context — <c>Product.Read.Where(…)</c>,
+///         A Rask read or write is a static call that opens its own context — <c>Product.Where(…)</c>,
 ///         a <c>Product.Create(…)</c> factory — so there is no constructor to inject a user into. These values
 ///         are ambient instead, and flow on <see cref="AsyncLocal{T}" /> so they follow an <c>await</c>:
 ///         <code>
@@ -29,7 +29,7 @@ namespace Rask.Data;
 ///     <para>
 ///         The user is an id, not the app's <c>User</c> row: loading the row is a query, and a property that
 ///         silently queried the database on every read would be the wrong thing to hide. Load it when you
-///         need it — <c>await User.Read.FirstOrDefaultAsync(u => u.Id == Current.UserId)</c>.
+///         need it — <c>await User.FirstOrDefaultAsync(u => u.Id == Current.UserId)</c>.
 ///     </para>
 /// </remarks>
 // Rask.Wire declares Current — every app has it, and it carries Current.Cancellation. The data layer adds who the

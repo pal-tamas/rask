@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# gate-inputs: .*\.csproj$
 # Tests for scripts/lib/affected_projects.py — the graph that decides whether a pre-commit run may
 # narrow to a few projects or must do the whole solution.
 #
@@ -74,7 +75,7 @@ expect "the test-wide props"          "tests/Directory.Build.props"             
 expect "the test-wide runner config"  "tests/xunit.runner.json"                  full
 expect "a packaged MSBuild import"    "src/Rask.Core/build/Rask.Core.targets"    full
 expect "the formatting configuration" ".editorconfig"                            full
-expect "a file outside the projects"  "docs/routing.md"                          full
+expect "a root file nobody reads"     "LICENSE"                                  full
 expect "nothing staged at all"        ""                                         full
 
 # A shared, source-linked file belongs to no project of its own. The graph cannot see which
@@ -113,6 +114,89 @@ expect "a template file does not force the whole solution" \
 # future narrowing of the graph cannot quietly make the most load-bearing project in the repo cheap.
 expect "Rask.Core reaches Rask.Server.Tests" \
   "src/Rask.Core/Components/Div.cs" scoped "tests/Rask.Server.Tests/Rask.Server.Tests.csproj"
+
+# --- files a test reads at runtime (<RaskTestReads/> in the test's csproj) ------------------------
+# A file outside src/ and tests/ scopes to the tests that declare reading it, instead of FULL — which
+# is what nearly every commit used to be, because a feature carries its CHANGELOG line and its docs.
+expect "the CHANGELOG reaches the repo-wide Bootstrap scan" \
+  "CHANGELOG.md" scoped "tests/Rask.Ui.Tests/Rask.Ui.Tests.csproj"
+expect "the CHANGELOG does not force the whole solution" \
+  "CHANGELOG.md" absent "tests/Rask.Server.Tests/Rask.Server.Tests.csproj"
+expect "a docs page reaches the tests that walk docs/" \
+  "docs/routing.md" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
+expect "a docs page rebuilds the site that embeds it" \
+  "docs/routing.md" scoped "src/Rask.Site/Rask.Site.csproj"
+expect "llms.txt reaches the test that regenerates it" \
+  "llms.txt" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
+expect "a release workflow reaches the pack-list test" \
+  ".github/workflows/release.yml" scoped "tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj"
+
+# ...and a file inside src/ reaches a test the project graph cannot see. Each of these was a blind spot:
+# a change to it ran none of the tests that pin it.
+expect "the server runtime's rask.ts reaches the Core client-contract tests" \
+  "src/Rask.Server/Resources/rask.ts" scoped "tests/Rask.Core.Tests/Rask.Core.Tests.csproj"
+expect "the site shell reaches the WASM prerender test" \
+  "src/Rask.Site/wwwroot/index.html" scoped "tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj"
+expect "the kit stylesheet reaches the site's contrast tests" \
+  "src/Rask.Ui/Styles/ui.css" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
+expect "a precise glob keeps its extension filter" \
+  "docs/installation.md" absent "tests/Rask.Blazor.Tests/Rask.Blazor.Tests.csproj"
+
+# A packed <None Include="..\..."/> is a build input like a linked Compile item.
+expect "the shared browser layer reaches the SPA host that packs it" \
+  "src/Rask.Core/Resources/browser/storage.ts" scoped "src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj"
+
+# The declarations must never be EVALUATED: MSBuild expands an item glob at every evaluation, and
+# "..\..\**\*.cs" would walk the whole repo — bin/, obj/, node_modules/ — on every build of the project.
+checks=$((checks + 1))
+unguarded=""
+for csproj in "$root"/tests/*/*.csproj; do
+  grep -q 'RaskTestReads' "$csproj" || continue
+  if ! grep -B20 'RaskTestReads' "$csproj" | grep -q '<ItemGroup Condition="false">'; then
+    unguarded="$unguarded ${csproj#"$root"/}"
+  fi
+done
+if [ -z "$unguarded" ]; then
+  echo "  ok   every RaskTestReads declaration sits in an ItemGroup that is never evaluated"
+else
+  echo "  FAIL RaskTestReads outside an <ItemGroup Condition=\"false\">:$unguarded" >&2
+  failures=$((failures + 1))
+fi
+
+# --- which gate-script tests a scoped run executes (the `# gate-inputs:` header) ------------------
+# Mirrors rask_gate_test_applies in scripts/run-unit-local.sh: scripts/ and .githooks/ run every test,
+# anything else runs a test only when its header names it.
+gate_test_runs() {
+  inputs="$(sed -n 's/^# gate-inputs: //p' "$root/scripts/tests/$1.test.sh" | head -1)"
+  if printf '%s\n' "$2" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null; then
+    printf yes
+  else
+    printf no
+  fi
+}
+
+gate_expect() {
+  checks=$((checks + 1))
+  got="$(gate_test_runs "$2" "$3")"
+  if [ "$got" = "$4" ]; then
+    echo "  ok   $1"
+  else
+    echo "  FAIL $1: expected $4, got $got" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+gate_expect "the public-API prober runs for its probe project"   public-api-gate "src/Rask.Cache/CacheEntry.cs"       yes
+gate_expect "the public-API prober runs for a nested MSBuild import" public-api-gate "src/Directory.Build.targets"    yes
+gate_expect "the public-API prober runs for the analyzer severity" public-api-gate ".editorconfig"                    yes
+gate_expect "the public-API prober skips an unrelated component" public-api-gate "src/Rask.Ui/Components/UiSelect.cs" no
+gate_expect "the installer test runs for the installer"          install-script  "rask.ps1"                           yes
+gate_expect "the installer test runs for the install docs"       install-script  "docs/installation.md"               yes
+gate_expect "the front-doors test runs for the site hero"        front-doors     "src/Rask.Site/Features/Home/HomePage.cs" yes
+gate_expect "the graph test runs for a project file"             affected-projects "tests/Rask.Ui.Tests/Rask.Ui.Tests.csproj" yes
+gate_expect "a pure-script test runs for its script"             machine-lane    "scripts/lib/machine-lane.sh"        yes
+gate_expect "a pure-script test skips a source change"           machine-lane    "src/Rask.Core/Component.cs"         no
+gate_expect "every test runs for a hook change"                  push-verdict    ".githooks/pre-push"                 yes
 
 echo "affected-projects: $checks checks, $failures failed."
 [ "$failures" -eq 0 ]

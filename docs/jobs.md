@@ -121,7 +121,7 @@ itself — a recurring job, work at startup — records nobody, and runs for nob
 failure, once it loads a pending job.
 
 `Job` and `RecurringJobState` are Rask.Data entities with read faces, so the queue can be queried with no
-context of your own — `Job.Read.Where(j => j.ProcessedAt == null).CountAsync()` for the backlog. The
+context of your own — `Job.Where(j => j.ProcessedAt == null).CountAsync()` for the backlog. The
 [dashboard](dashboard.md) shows the same table, with retry.
 
 ## Shutdown

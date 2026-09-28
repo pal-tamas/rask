@@ -10,15 +10,15 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Every read on a model — <c>Product.Where(…)</c>, <c>Product.FindAsync(id)</c>,
+///         Every read on a model — <c>Product.Where(…)</c>, <c>Product.Model(id)</c>,
 ///         <c>Product.AsQueryable()</c> — opens a fresh context from here and disposes it before it
 ///         returns. Nothing is ambient and nothing stays tracked between
 ///         calls, which is what makes a model safe to read from a page that lives as long as the browser
 ///         keeps its socket open.
 ///     </para>
 ///     <para>
-///         <b>The writes on a model use it the same way.</b> <c>Product.CreateAsync(model)</c>,
-///         <c>Product.UpdateAsync(id, model)</c> and <c>Product.DeleteAsync(id)</c> open a context here, save
+///         <b>The writes on a model use it the same way.</b> <c>Product.Create(model)</c>,
+///         <c>Product.Update(id, model)</c> and <c>Product.Delete(id)</c> open a context here, save
 ///         and dispose it — unless they are handed a context, which they save through and leave open. A
 ///         transaction over two aggregates is that context's <c>Database.BeginTransactionAsync</c>; there is
 ///         no Rask-owned unit of work to learn.
@@ -76,7 +76,7 @@ public static class Db
         Interlocked.Increment(ref _generation);
 
         // Both halves from one call. Forgetting the read side would not fail here — it would fail at the
-        // first Product.Read in some page, which is the worst place to learn about a line of startup you
+        // first Product.Where(…) in some page, which is the worst place to learn about a line of startup you
         // did not write. ReadDb resolves its factory lazily, so an app with no read context registered pays
         // nothing and still gets a message that names what to register.
         ReadDb.Configure(services);
@@ -129,7 +129,7 @@ public static class Db
     /// <returns>A scope that restores the previous binding.</returns>
     /// <remarks>
     ///     <para>
-    ///         A Rask read is a static call — <c>Product.Read.Where(…)</c> — so it runs outside any DI scope
+    ///         A Rask read is a static call — <c>Product.Where(…)</c> — so it runs outside any DI scope
     ///         and normally builds its context from the factory <see cref="Configure(IServiceProvider)" />
     ///         captured once at startup. That is the right default and stays the fallback.
     ///     </para>

@@ -253,7 +253,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             {
                 throw new InvalidOperationException(
                     $"FullText.{name} takes an indexed property of the searched entity directly, as in " +
-                    $"Post.Read.Search(text).Select(p => FullText.{name}(p.Title)), but was given '{node.Arguments[0]}'.");
+                    $"Post.Search(text).Select(p => FullText.{name}(p.Title)), but was given '{node.Arguments[0]}'.");
             }
 
             var index = Index.For(model, owner.Type);
@@ -267,7 +267,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             }
 
             // How the caller would have written it. A read face is reached through its entity —
-            // Post.Read.Search(…) — so naming the CLR type would print PostRead.Search, which is not a
+            // Post.Search(…) — so naming the CLR type would print PostRead.Search, which is not a
             // thing anyone can type.
             static string SearchedAs(Type queried) =>
                 typeof(global::Rask.Data.IReadModel).IsAssignableFrom(queried) &&

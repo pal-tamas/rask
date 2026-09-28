@@ -60,4 +60,16 @@
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
+  <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
+       read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test
+       that starts reading a new file outside this project must add it here. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\docs\diagnostics.md" />
+    <RaskTestReads Include="..\..\src\**\*.cs" />
+    <RaskTestReads Include="..\..\src\**\*.targets" />
+    <RaskTestReads Include="..\..\src\**\*.csproj" />
+    <RaskTestReads Include="..\..\.github\workflows\**" />
+    <RaskTestReads Include="..\..\NUGET.md" />
+  </ItemGroup>
+
 </Project>

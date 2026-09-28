@@ -106,7 +106,7 @@ public interface IQueryClient
     ///     </para>
     ///     <code>
     ///     _person = client.Query(QueryKey.For&lt;Person&gt;(), () =&gt; Id,
-    ///         (id, ct) =&gt; Person.Read.FirstAsync(p =&gt; p.Id == id, ct));
+    ///         (id, ct) =&gt; Person.FirstAsync(p =&gt; p.Id == id, ct));
     ///     </code>
     ///     <para>A null input pauses the query, as a null message does.</para>
     /// </remarks>

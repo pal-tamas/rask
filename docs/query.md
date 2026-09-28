@@ -76,11 +76,11 @@ running when the value changes caches under its own key, never the new one:
 ```csharp
 // in Render
 var hits = QueryClient.Query(QueryKey.For<Person>(), _search,
-    (s, ct) => Person.Read.Where(p => p.Name.Contains(s)).ToListAsync(ct));
+    (s, ct) => Person.Where(p => p.Name.Contains(s)).ToListAsync(ct));
 
 // in a property: the same, with a lambda for the value
 Query<List<PersonRead>> Hits => field ??= QueryClient.Query(QueryKey.For<Person>(), () => _search,
-    (s, ct) => Person.Read.Where(p => p.Name.Contains(s)).ToListAsync(ct));
+    (s, ct) => Person.Where(p => p.Name.Contains(s)).ToListAsync(ct));
 ```
 
 The key is `[..prefix, value]`. An unchanged value is compared before any key is built, so a value type —
@@ -146,7 +146,7 @@ with the type, so no string has to match between the query and whatever makes it
 
 ```csharp
 var people = QueryClient.Query(QueryKey.For<Person>("active"),
-                       ct => Person.Read.Where(p => p.Active).ToListAsync(ct));
+                       ct => Person.Where(p => p.Active).ToListAsync(ct));
 ```
 
 `QueryKey.For<Person>("active")` is `[typeof(Person), "active"]`, so `Invalidate<Person>()`,
@@ -242,7 +242,7 @@ replaces the guess; on failure every edit is put back, in reverse, and the error
 several — `.Optimistically(list.Optimistic(…), count.Optimistic(n => n - 1))` — and all of them are
 snapshotted before any is sent, so a failure never leaves half of them applied. An edit is aimed at
 whatever its query shows now, so a function query takes one as readily as a message query, and a function
-command sends one the same way: `save.Send(ct => Person.CreateAsync(…)).Optimistically(people.Optimistic(…))`.
+command sends one the same way: `save.Send(ct => Person.Create(…)).Optimistically(people.Optimistic(…))`.
 Nothing cached means nothing is edited: a row the server never confirmed is never invented.
 
 ### A function
@@ -255,7 +255,7 @@ the work on every send, so the lambda captures what this click is about:
 var save = QueryClient.Command(invalidates: typeof(Person));
 
 Button.Disabled(save.IsPending)
-      .OnClick(async () => await save.Send(ct => Person.CreateAsync(model, cancellationToken: ct)))
+      .OnClick(async () => await save.Send(ct => Person.Create(model, cancellationToken: ct)))
       ["Add"]
 ```
 
@@ -275,9 +275,9 @@ In a Rask app a Rask.Data write needs no invalidation at all. Once a save commit
 types it wrote refetches on the screen of the session that made it:
 
 ```csharp
-var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Read.Where(p => p.Active).ToListAsync(ct));
+var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Where(p => p.Active).ToListAsync(ct));
 
-.OnClick(() => Person.CreateAsync(model))   // the list above refetches — nothing else to write
+.OnClick(() => Person.Create(model))        // the list above refetches — nothing else to write
 ```
 
 The same holds in a WebAssembly app with no Rask server behind it: `AddRaskData<AppDbContext>()` beside
@@ -292,8 +292,8 @@ command still names it with `[Invalidates(typeof(GetPeople))]`.
 So a command around such a write names nothing — `QueryClient.Command()` — and is there for what a render
 wants from it: `IsPending` to grey the button, `Error` to say what went wrong.
 
-The notes below run it in the browser: the list is a query over `Note.Read`, and adding a note is a
-`Note.CreateAsync` with no invalidation written anywhere — the list refetches on its own.
+The notes below run it in the browser: the list is a query over `Note.OrderByDescending(…)`, and adding a note is a
+`Note.Create` with no invalidation written anywhere — the list refetches on its own.
 
 <!-- demo:data-notes -->
 
@@ -309,7 +309,7 @@ Three things it deliberately does not do:
 
 ## Staying fresh
 
-A save already refreshes the screen of the session that made it. `Person.CreateAsync(model)` refetches every query
+A save already refreshes the screen of the session that made it. `Person.Create(model)` refetches every query
 about people beside the form, and that costs nothing and needs no call — it is the list of exceptions just above.
 
 What it deliberately does not do is reach **anyone else's** screen. That is declared, once, in the two places the
@@ -336,7 +336,7 @@ so a Rask.Data read face is live the moment the model opts in:
 
 ```csharp
 var people = QueryClient.Query(QueryKey.For<Person>("active"),
-                       ct => Person.Read.Where(p => p.Active).ToListAsync(ct));
+                       ct => Person.Where(p => p.Active).ToListAsync(ct));
 ```
 
 **Why a message query has to say it.** `new GetOrders(Page)` is keyed by `GetOrders`, not by `Order` — a write cannot

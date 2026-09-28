@@ -362,7 +362,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
     /// <remarks>
     ///     <para>
     ///         Extension members, not properties on a generated context, so an application that brings its own
-    ///         DbContext gets them too and nothing has to be <c>partial</c> — the same way <c>Order.Read</c>
+    ///         DbContext gets them too and nothing has to be <c>partial</c> — the same way <c>Order.Where(…)</c>
     ///         reaches the aggregate.
     ///     </para>
     ///     <para>
@@ -781,7 +781,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         string? SingleValue,
         string? ColumnPrefix = null);
 
-    // Internal so the model generator's CreateAsync asks "is this a strongly-typed id, and over what" of the same
+    // Internal so the model generator's Create asks "is this a strongly-typed id, and over what" of the same
     // definition the registry registers the value converter from.
     internal readonly record struct StronglyTypedId(string? TypeName, string? ValueTypeName, string? ValueMember, string? Problem)
     {

@@ -8,7 +8,7 @@ public sealed partial class CancellationProbe : Component
     private int _logged;
     private string _status = "pending";
 
-    public required Action<string> Log { get; set; }
+    public Callback<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
     protected override async Task OnMount()
@@ -45,7 +45,7 @@ public sealed partial class CancellationProbe : Component
                 probe._watch.Stop();
             }
 
-            probe.Log.Invoke($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
+            _ = probe.Log.Invoke($"#{probe.InstanceId} cancelled ({probe._watch.ElapsedMilliseconds} ms)");
         }, this);
 
         // Cooperative cancellation in 100ms slices. We poll the captured token
@@ -70,7 +70,7 @@ public sealed partial class CancellationProbe : Component
 
         _watch.Stop();
         _status = "completed";
-        Log.Invoke($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
+        await Log.Invoke($"#{InstanceId} completed ({_watch.ElapsedMilliseconds} ms)");
     }
 
     protected override Component? Render()

@@ -69,7 +69,12 @@ public class WasmCompatibilityTests
             string.Join("\n", diagnostics.Select(d => d.ToString())));
     }
 
-    private static ImmutableArray<MetadataReference> BuildWasmStyleReferences()
+    // Once per process: see GeneratorDriverFixture.BuildReferences.
+    private static readonly ImmutableArray<MetadataReference> WasmStyleReferences = CreateWasmStyleReferences();
+
+    private static ImmutableArray<MetadataReference> BuildWasmStyleReferences() => WasmStyleReferences;
+
+    private static ImmutableArray<MetadataReference> CreateWasmStyleReferences()
     {
         // Filter the test runtime's assemblies to those a net10.0-browser project would have.
         // Excludes Microsoft.AspNetCore.* (the shared framework that WASM cannot consume).

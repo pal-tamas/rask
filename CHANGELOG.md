@@ -9,6 +9,26 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The gate's own script tests run only when something they cover changed.** Each `scripts/tests/*.test.sh`
+  that tests more than scripts names its inputs on a `# gate-inputs:` line; a scoped commit that touches
+  none of them skips it, and a `scripts/`/`.githooks/` change still runs them all. Saves ~45 s per narrow
+  commit — nearly all of it the public-API prober's four builds of Rask.Cache.
+- **BREAKING: `Product.Read` is gone — query off the type (`Product.Where(…)`); `Product.Find(id)` loads the
+  aggregate and `product.Save()` writes it back.** `Product.Read.Where(p => p.Id == id)` is now
+  `Product.Where(p => p.Id == id)`, and every other opening operator and terminal moved the same way; the rows
+  are still `ProductRead`. `Find` returns the aggregate whole and untracked through a filtered query by key, so a
+  soft-deleted or another tenant's row is `null`. `Save()` inserts an aggregate with no row yet, otherwise writes
+  only the columns changed since `Find` read it, syncs children by id, raises its domain events and refuses a stale `Version`;
+  with `db:` it only stages. `Create`/`Update`/`Delete`/`Model` are unchanged.
+- **A commit that carries its CHANGELOG line and its docs no longer tests the whole solution.** Those files
+  sat outside `src/`/`tests/`, so the scoped gate fell back to FULL on ~90% of commits. Each test project now
+  declares the files it reads from disk (`<RaskTestReads/>` in its csproj), and a change scopes to exactly
+  those readers — which also closes blind spots where a change to, say, `src/Rask.Server/Resources/rask.ts`
+  ran none of the Core tests that pin it. See `docs/development-workflow.md`.
+- **The generator test suites run about 15× faster.** Their harnesses built a fresh Roslyn reference set for every
+  test, so each of ~950 tests re-read every framework assembly's metadata; the set is now built once per process.
+  `Rask.Generators.Tests` went from 67 s to 4 s and `Rask.Batteries.Generators.Tests` from 37 s to 3 s, taking the
+  longest assembly off the unit gate's critical path.
 - **BREAKING: MDN is the source of truth for the HTML elements.** Every element type, its base, its tags and its
   attribute properties are now generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`,
   `@mdn/browser-compat-data`), kept in `src/Rask.Core/Dom/mdn.snapshot.json`. Nothing generated is committed,
@@ -125,6 +145,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **[RASK095](docs/diagnostics.md#rask095): a chain that skips a required step says which one, in the chain's
+  words.** `Card.Note("x")` used to read `'RaskSeed_Card' does not contain a definition for 'Note'`, and
+  `Div[Card]` compiled and threw while rendering; both now read `'Card' needs 'Title' before anything else —
+  write Card.Title(…).Note(…)`. The quick-fix inserts the missing steps right after the chain so far (`""`,
+  `default` or `default!` to replace), moving a required step the chain took too late instead of inventing one.
+- **[RASK096](docs/diagnostics.md#rask096): an event declared as a delegate is an error.** `public Action<Order>?
+  OnSave` is invocable, so `Editor.OnSave(fn)` binds as a call of it and its chain setter is unreachable; the
+  error reads `Declare 'OnSave' as Callback<Order>, not Action<Order>`. Templates and selectors
+  (`Func<T, Component>`, `Func<T, bool>`) are left alone. The quick-fix declares `Callback<Order> OnSave` and
+  rewrites `OnSave?.Invoke(x)` / `OnSave(x)` in the same type to `OnSave.Invoke(x)`, awaited where it is async.
 - **A scoped script's tuples and arrow functions reach C# too.** `export function pair(): [number, string]` is
   `ValueTask<(double, string)> Pair()` (labels name the elements: `[x: number, y: string]` → `(double X, string Y)`),
   a tuple parameter crosses as the array the script expects, and `export const double = (x: number) => x * 2` is
@@ -156,6 +186,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask.Data's verbs drop `Async`: `Product.Create(model)`, `Update`, `Delete`, `Model`.** An aggregate is
+  written with `await Product.Create(model)`, `await Product.Update(id, model)`, `await Product.Delete(id, version)`
+  and its edit form filled with `await Product.Model(id)`, where it used to be `CreateAsync`/`UpdateAsync`/
+  `DeleteAsync`/`ModelAsync` — the same parameters (`db:`, `cancellationToken:` included), return types and
+  behaviour, now named like the rest of the framework (`Mail.Send`, `Cache.Remember`). It is a rename with no alias:
+  the old names are gone, so replace them at each call site. `Product.Create(entity)` for an aggregate its own
+  factory built is renamed the same way; a static `CreateAsync`/`DeleteAsync` you declared on an aggregate to replace
+  the generated write must be renamed too, or the generated one is what every call site now reaches. EF
+  Core's own `…Async` methods (`SaveChangesAsync`, `FindAsync`, `ToListAsync`, `FirstOrDefaultAsync`) are unchanged.
 - **An event is `Callback<T>`, not `Callback<T>?`, and fires with `await OnRate.Invoke(n)`.** A component declares
   `public Callback<int> OnRate { get; set; }` and calls it back with one await, where it used to write
   `if (OnRate?.Invoke(n) is { } t) await t;`. An unset callback is a no-op, and a non-nullable `Callback`,

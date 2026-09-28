@@ -136,8 +136,7 @@ internal static class CodeFixHarness
     private static Document CreateDocument(string source, params string[] extraAssemblies)
     {
         var references = GeneratorDriverFixture.BuildReferences()
-            .AddRange(extraAssemblies.Select(static name =>
-                (MetadataReference)MetadataReference.CreateFromFile(System.Reflection.Assembly.Load(name).Location)));
+            .AddRange(extraAssemblies.Select(GeneratorDriverFixture.AssemblyReference));
         var workspace = new AdhocWorkspace();
         var project = workspace.AddProject(ProjectInfo.Create(
             ProjectId.CreateNewId(),

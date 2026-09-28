@@ -94,7 +94,7 @@ it with `builder.Services.AddSession()` and `AddRaskCache` provides the store.
   are simply never read again.
 
 `CacheEntry` is a Rask.Data entity with a read face, so the table can be looked at like any other —
-`CacheEntry.Read.OrderBy(e => e.Key).ToListAsync()` — without a context of your own.
+`CacheEntry.OrderBy(e => e.Key).ToListAsync()` — without a context of your own.
 
 ## One cache, isolated per tenant
 

@@ -116,7 +116,7 @@ rask db update
 
 Chapter 7's handler already reacts to an order being placed. Shipping has the same shape: give `Order` a
 `Ship()` method that raises an `OrderShipped` event — an `IOutboxEvent`, like `OrderPlaced` — and call it with
-`Order.UpdateAsync(id, o => o.Ship())`, which saves the change and the event in one transaction. Push is then one more handler hanging
+`Order.Update(id, o => o.Ship())`, which saves the change and the event in one transaction. Push is then one more handler hanging
 off that event:
 
 ```csharp
@@ -128,7 +128,7 @@ public sealed class OrderShippedHandler : INotificationHandler<OrderShipped>
 {
     public async Task Handle(OrderShipped notification)
     {
-        var order = await Order.Read.Where(o => o.Id == notification.Id).FirstOrDefaultAsync(Current.Cancellation);
+        var order = await Order.Where(o => o.Id == notification.Id).FirstOrDefaultAsync(Current.Cancellation);
         if (order?.CustomerId is not { } customer) return;
 
         await Push.Send(WebPushMessage.Text("Order shipped", $"Order {order.Id} is on its way.", $"/orders/{order.Id}"))

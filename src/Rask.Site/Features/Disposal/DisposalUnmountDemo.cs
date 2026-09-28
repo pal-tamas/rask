@@ -21,7 +21,7 @@ public sealed partial class DisposalUnmountDemo : Component
                     .OnClick(UnmountHook)[Ui.Icon.Name(Ui.IconName.Stop), "Stop ticker"]
             ],
             _hookMounted
-                ? UnmountTimerProbe.Log(AppendHookLog).InstanceId(_nextHookId)
+                ? UnmountTimerProbe.InstanceId(_nextHookId).Log(AppendHookLog)
                 : P.Class("text-ui-muted italic mb-0")["Ticker not running."],
             DisposalDemoLog.Entries(_hookLog).ListId("unmount-hook-log")
         ];

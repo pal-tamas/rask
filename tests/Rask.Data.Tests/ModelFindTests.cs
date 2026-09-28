@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-// Product.FindAsync(key): an untracked query by primary key, built from the EF model's key metadata. The
+// TestDatabase.LoadAsync<T>(key): an untracked query by primary key, built from the EF model's key metadata. The
 // key parameter is typed object (a key may be composite, and its type cannot be inferred at a static call
 // site), so what the compiler cannot check — the count, the nulls, the type — is checked here instead.
 [Collection(DataDbCollection.Name)]
@@ -43,7 +43,7 @@ public sealed class ModelFindTests : IDisposable
         await database.Context.SaveChangesAsync();
 
         Assert.Null(await database.LoadAsync<Widget>(doomed.Id));
-        Assert.NotNull(await Widget.Read.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == doomed.Id));
+        Assert.NotNull(await Widget.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == doomed.Id));
     }
 
     [Fact]
