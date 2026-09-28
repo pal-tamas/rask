@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
+using Rask.Core;
 using Rask.Core.Live;
 
 namespace Rask.Benchmarks;
@@ -20,7 +21,7 @@ namespace Rask.Benchmarks;
 public class HandlerFrameShapeBenchmarks
 {
     private readonly Action _parameterless = () => { };
-    private readonly Action<ScrollEvent> _scroll = _ => { };
+    private readonly Action<Event> _scroll = _ => { };
     private JsonDocument _click = null!;
     private JsonDocument _input = null!;
     private JsonDocument _scrollFrame = null!;
@@ -32,7 +33,7 @@ public class HandlerFrameShapeBenchmarks
         _click = JsonDocument.Parse("""{"id":"h17","type":"click"}"""u8.ToArray());
         _input = JsonDocument.Parse("""{"id":"h17","type":"input","value":"hello world"}"""u8.ToArray());
         _scrollFrame = JsonDocument.Parse(
-            """{"id":"h17","type":"scroll","scrollTop":400,"clientHeight":800,"scrollHeight":9000}"""u8
+            """{"id":"h17","type":"scroll","target":{"scrollTop":400,"clientHeight":800,"scrollHeight":9000}}"""u8
                 .ToArray());
         _unknown = JsonDocument.Parse("""{"id":"h17","type":"someFutureEvent"}"""u8.ToArray());
     }

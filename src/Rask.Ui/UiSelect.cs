@@ -327,7 +327,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             // answer to a question with one. Hearing this is what keeps aria-expanded truthful.
             .OnToggle(e =>
             {
-                _open = e.IsOpen;
+                _open = e.NewState == "open";
                 _cursor = _open
                     ? UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled)
                     : -1;
@@ -522,7 +522,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     }
 
     private async Task OnKeyAsync(
-        KeyboardEventArgs e,
+        KeyboardEvent e,
         ExpressionAccessor.Accessor? acc,
         EditContext? ctx,
         IReadOnlyList<(T Value, string Text)> flat,
@@ -578,7 +578,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             default:
                 // Type-ahead, the way a native select answers a letter — but only with focus on the BOX. In the
                 // search field the same keystroke is what is being searched for.
-                if (!fromSearch && e.Key.Length == 1 && e.Key != " " && !e.Ctrl && !e.Alt && !e.Meta)
+                if (!fromSearch && e.Key.Length == 1 && e.Key != " " && !e.CtrlKey && !e.AltKey && !e.MetaKey)
                 {
                     var texts = new string?[count];
                     for (var i = 0; i < count; i++)

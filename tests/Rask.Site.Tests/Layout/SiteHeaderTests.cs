@@ -68,7 +68,7 @@ public sealed class SiteHeaderTests
     {
         Assert.Equal(
             FromTheWordmark(Render("/")),
-            FromTheWordmark(Render(global::Rask.Site.Features.Routes.GuidesIndexPage())));
+            FromTheWordmark(Render(global::Rask.Site.Routes.GuidesIndexPage())));
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class SiteHeaderTests
         Assert.Contains(expected, Header(Render("/")), StringComparison.Ordinal);
         Assert.Contains(
             expected,
-            Header(Render(global::Rask.Site.Features.Routes.GuidesIndexPage())),
+            Header(Render(global::Rask.Site.Routes.GuidesIndexPage())),
             StringComparison.Ordinal);
     }
 
@@ -94,7 +94,7 @@ public sealed class SiteHeaderTests
         Assert.DoesNotContain("hamburger-btn", Header(Render("/")), StringComparison.Ordinal);
         Assert.Contains(
             "hamburger-btn",
-            Header(Render(global::Rask.Site.Features.Routes.GuidesIndexPage())),
+            Header(Render(global::Rask.Site.Routes.GuidesIndexPage())),
             StringComparison.Ordinal);
     }
 
@@ -111,7 +111,7 @@ public sealed class SiteHeaderTests
     {
         Assert.DoesNotContain(
             retired,
-            Header(Render(global::Rask.Site.Features.Routes.GuidesIndexPage())),
+            Header(Render(global::Rask.Site.Routes.GuidesIndexPage())),
             StringComparison.Ordinal);
     }
 }

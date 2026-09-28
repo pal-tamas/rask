@@ -1,10 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 
-// The generated Routes class is per-namespace, and this page lives in Features.Shared while the
-// home page lives in Features.Home — alias it rather than fully qualifying at the call site.
-using HomeRoutes = Company.RaskServer.Features.Home.Routes;
-
 namespace Company.RaskServer.Features.Shared;
 
 // [AllowAnonymous] because an error page that redirects to /login is worse than the error: if you
@@ -32,7 +28,7 @@ public sealed partial class ErrorPage : Component
                     ]
                     : null,
                 NavLink
-                    .Href(HomeRoutes.HomePage())
+                    .Href(Routes.HomePage())
                     .Class("text-violet-600 underline underline-offset-2 hover:text-violet-500")[
                     "Back to the app"
                 ]

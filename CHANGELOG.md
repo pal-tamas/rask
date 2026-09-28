@@ -14,6 +14,14 @@ them until tagged releases begin.
   about half the suite's test time. They now wait for the server to attach the socket (`AttachedAsync`), which
   takes milliseconds. Summed test time 240 s → ~148 s; the two sites that do receive a catch-up frame and the
   multi-socket reconnect tests keep their receive.
+- **One `Routes` class per project.** The route generator used to emit a `Routes` class per namespace, so a page in
+  `Features.Shared` reaching the home page needed `using HomeRoutes = MyApp.Features.Home.Routes;`. There is now ONE
+  `Routes`, in the project's root namespace (`RootNamespace`, else the assembly name), and `Routes.HomePage()` works
+  from any folder with no using. Pages that share a type name nest by the folder that tells them apart
+  (`Routes.Admin.HomePage()`, `Routes.Shop.HomePage()`); a page named like such a folder is the new
+  [RASK097](docs/diagnostics.md#rask097) instead of a CS0102 inside generated code. `SomePage.Url()`/`Go()` are
+  unchanged. Existing `Features.Home.Routes.X()` qualifications and `using … = ….Routes;` aliases must become plain
+  `Routes.X()` (or `MyApp.Routes.X()` from outside the root namespace, such as top-level `Program.cs`).
 - **The gate's own script tests run only when something they cover changed.** Each `scripts/tests/*.test.sh`
   that tests more than scripts names its inputs on a `# gate-inputs:` line; a scoped commit that touches
   none of them skips it, and a `scripts/`/`.githooks/` change still runs them all. Saves ~45 s per narrow
@@ -63,6 +71,28 @@ them until tagged releases begin.
   - **Tag-specific attributes render in IDL order** after the globals, and a typed control's derived `type`,
     `name`, `value`, `checked` and `step` render after those. Each generated member's doc comment gives its
     browser support and links to MDN and the spec.
+- **BREAKING: element events are generated from MDN too** (`@webref/events` joins the snapshot). Every event
+  MDN's `GlobalEventHandlers` lists that ships in two engines is on every element — 103 of them —
+  named and typed the way MDN names them:
+  - **Arguments are MDN's event types, inheritance included:** `PointerEvent : MouseEvent : UIEvent : Event`,
+    with MDN's member names. `MouseEventArgs`/`PointerEventArgs`/`KeyboardEventArgs`/`WheelEventArgs`/
+    `TouchEventArgs`/`ClipboardEventArgs`/`ToggleEventArgs`/`MediaEventArgs`/`ScrollEvent` are gone:
+    `e.Mouse.ClientX` → `e.ClientX`, `e.Shift` → `e.ShiftKey` (`CtrlKey`/`AltKey`/`MetaKey`),
+    `e.IsOpen` → `e.NewState == "open"`, `e.Text` on paste → `e.ClipboardData?.GetData("text/plain")`,
+    `e.TouchCount` → `e.Touches.Count`, `OnBeforeInput(s => …)` → `OnBeforeInput(e => … e.Data …)`.
+  - **Handler names are MDN's event names:** `OnDoubleClick` → `OnDblClick`.
+  - **`OnClick` carries its `PointerEvent`,** and every event takes a parameterless handler as well —
+    `Button.OnClick(() => n++)` and `Button.OnClick(e => _shift = e.ShiftKey)` both work. A component's own
+    `Callback` forwards straight in (`Button.OnClick(OnClick)`), and a handler typed to a base event receives
+    the whole derived one.
+  - **Scroll and media state travel as the target's**, the way JavaScript reads `e.target`:
+    `e.ScrollTop` → `e.Target!.ScrollTop`, `e.CurrentTime` → `e.Target!.CurrentTime`. Media events are
+    universal now, so they render with the other events, before the element's own attributes.
+  - **The quirks come from the data:** an event MDN marks non-bubbling reaches only its own element, and
+    only `contextmenu`/`dragover`/`drop` are `preventDefault`-ed; every other listener is passive. Events
+    render in MDN's IDL order.
+  - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
+    stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
 
 ### Security
 

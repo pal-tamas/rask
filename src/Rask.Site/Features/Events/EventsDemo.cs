@@ -37,7 +37,7 @@ public sealed partial class EventsDemo : Component
             // Double-click + context menu (preventDefault'd client-side so the native menu is suppressed).
             Div.Class("col-span-12 md:col-span-6")[
                 Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("w-full py-4")
-                    .OnDoubleClick(_ => _doubleClicks++)
+                    .OnDblClick(_ => _doubleClicks++)
                     .OnContextMenu(_ => _contextMenu = !_contextMenu)["Double-click or right-click me"],
                 Div.Class("text-ui-muted mt-2")[
                     $"double-clicks: {_doubleClicks} · context-menu toggled: {_contextMenu}"]
@@ -60,7 +60,7 @@ public sealed partial class EventsDemo : Component
             Div.Class("col-span-12 md:col-span-6")[
                 Div
                     .Class("border rounded p-4")
-                    .OnPaste(e => _pasted = e.Text)[
+                    .OnPaste(e => _pasted = e.ClipboardData?.GetData("text/plain") ?? "")[
                     Strong["Paste text here"],
                     Div.Class("text-ui-muted mt-2")[$"pasted: {_pasted}"]
                 ]

@@ -17,6 +17,8 @@
       front-end file to import, and there is none.
     -->
     <RaskExternalPropTypes>false</RaskExternalPropTypes>
+    <!-- The linked site sources call the site's ONE generated Routes class, which lands in the root namespace. -->
+    <RootNamespace>Rask.Site</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -181,3 +181,6 @@ src/Rask.Wasm/Browser/rask-sw.js
 # The tsconfig fragment Rask writes for the @rask/* prop-type mapping. Generated, never committed.
 **/obj/rask-external/
 
+
+# The browser half of the MDN element events, written by src/Rask.Core/Dom/Rask.Dom.targets on every build.
+src/Rask.Core/Resources/generated/

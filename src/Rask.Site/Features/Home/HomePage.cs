@@ -126,7 +126,7 @@ public sealed partial class HomePage : Component
                         P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — or bring React, Vue, Angular or Nuxt to the same back end."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
                             NavLink
-                                .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage()))
+                                .Href(PageMeta.LinkTo(Routes.GuidesIndexPage()))
                                 .Id("cta-docs")
                                 .ActiveClass("")
                                 .Class(BtnPrimary)["Docs"],
@@ -177,7 +177,7 @@ public sealed partial class HomePage : Component
     private static Component LaneCard(
         Ui.IconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
         NavLink
-            .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage(guide)))
+            .Href(PageMeta.LinkTo(Routes.GuidePage(guide)))
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-6 no-underline transition-colors "
@@ -263,7 +263,7 @@ public sealed partial class HomePage : Component
     /// </remarks>
     private static Component Feature(Ui.IconName icon, string title, string guide, params Component?[] desc) =>
         NavLink
-            .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage(guide)))
+            .Href(PageMeta.LinkTo(Routes.GuidePage(guide)))
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-5 no-underline transition-colors "
@@ -385,7 +385,7 @@ public sealed partial class HomePage : Component
                         // "Docs", not "Open the live demo". The hero's CTA was renamed when calling the
                         // docs "the live demo" left the docs themselves with no name; this one was
                         // missed, so the same page called the same destination two different things.
-                        NavLink.Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage())).ActiveClass("").Class(BtnPrimary)["Docs"],
+                        NavLink.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).ActiveClass("").Class(BtnPrimary)["Docs"],
                         A
                             .Class(BtnGhost)
                             .Href("https://github.com/pal-tamas/rask")
@@ -402,7 +402,7 @@ public sealed partial class HomePage : Component
                     Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-ui-muted "
                               + "[&>a]:no-underline [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center "
                               + "[&>a]:px-2 hover:[&>a]:text-ui-ink")[
-                        NavLink.Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage())).ActiveClass("")["Docs"],
+                        NavLink.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).ActiveClass("")["Docs"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],
