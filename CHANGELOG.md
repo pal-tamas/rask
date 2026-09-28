@@ -13,6 +13,10 @@ them until tagged releases begin.
   EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
   `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
   on a server app included. The file is generated from the scaffold's own files, no longer a committed fragment.
+- **The gate's own script tests run only when something they cover changed.** Each `scripts/tests/*.test.sh`
+  that tests more than scripts names its inputs on a `# gate-inputs:` line; a scoped commit that touches
+  none of them skips it, and a `scripts/`/`.githooks/` change still runs them all. Saves ~45 s per narrow
+  commit — nearly all of it the public-API prober's four builds of Rask.Cache.
 - **BREAKING: `Product.Read` is gone — query off the type (`Product.Where(…)`); `Product.Find(id)` loads the
   aggregate and `product.Save()` writes it back.** `Product.Read.Where(p => p.Id == id)` is now
   `Product.Where(p => p.Id == id)`, and every other opening operator and terminal moved the same way; the rows

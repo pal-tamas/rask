@@ -75,67 +75,6 @@ esac
 
 echo "run-unit-local: taking $lane_slots of $(rask_lane_budget) slots on this machine."
 
-# Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
-# you your branch is broken or your machine is busy, and it is plain bash, so nothing else would catch a
-# regression in it.
-#
-# Run CONCURRENTLY, with ONE exception below. They are independent bash scripts that stub `ps`/`pgrep`
-# rather than touching the machine, and the slowest (machine-lane, 54 cases) sets the floor for all of
-# them either way. `wait -n` is deliberately not used: it needs bash 4.3+, and macOS still ships bash
-# 3.2 as /bin/bash, so this collects statuses by pid instead.
-gate_tests_failed=0
-
-# The exception, and the reason the blanket "no shared state" this comment used to claim is not true:
-# public-api-gate proves the analyzer by writing src/Rask.Cache/__PublicApiGateProbe.cs into the REAL
-# worktree and briefly moving that project's PublicAPI baselines aside (it restores both on exit, so
-# nothing is left behind). attribution-guard ends by asserting the working tree is exactly where it
-# was. Run concurrently, the guard sees the prober's mutations and fails with "a git env var leaked
-# into the temp repo" — naming a cause that is not the one, on a run where nothing is wrong.
-#
-# It is the GUARD that runs alone rather than the prober: the guard is pure bash and costs about a
-# second, while the prober is four builds of Rask.Cache and is precisely what the concurrency is for.
-serial_test="scripts/tests/attribution-guard.test.sh"
-if [ -e "$serial_test" ]; then
-  echo "==> Gate script test (alone: it asserts the working tree is untouched)"
-  serial_log="${TMPDIR:-/tmp}/rask-gate-test-$$-attribution-guard.log"
-  if bash "$serial_test" >"$serial_log" 2>&1; then
-    cat "$serial_log"
-  else
-    cat "$serial_log" >&2
-    echo "run-unit-local: gate script test FAILED: $serial_test" >&2
-    gate_tests_failed=1
-  fi
-fi
-
-echo "==> Gate script tests (concurrent)"
-gate_test_pids=""
-gate_test_names=""
-for t in scripts/tests/*.test.sh; do
-  [ -e "$t" ] || continue
-  if [ "$t" = "$serial_test" ]; then continue; fi   # already run, alone, above
-  bash "$t" >"${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$t" .test.sh).log" 2>&1 &
-  gate_test_pids="$gate_test_pids $!"
-  gate_test_names="$gate_test_names $t"
-done
-
-# shellcheck disable=SC2086  # deliberate word split: the names line up with the pids collected above
-set -- $gate_test_names
-for pid in $gate_test_pids; do
-  gate_test_name="$1"; shift
-  gate_test_log="${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$gate_test_name" .test.sh).log"
-  # Output is printed either way. A gate test that passes silently is one nobody notices has stopped
-  # asserting anything, which is the failure this repository keeps paying for.
-  if wait "$pid"; then
-    cat "$gate_test_log"
-  else
-    cat "$gate_test_log" >&2
-    echo "run-unit-local: gate script test FAILED: $gate_test_name" >&2
-    gate_tests_failed=1
-  fi
-  rm -f "$gate_test_log"
-done
-[ "$gate_tests_failed" -eq 0 ] || exit 1
-
 # --- Scope: which projects can this change actually reach? --------------------------------------
 #
 # The pre-commit hook sets RASK_TEST_SCOPE=affected, because a commit is the one moment where the
@@ -185,6 +124,82 @@ if [ "${RASK_TEST_SCOPE:-}" = "affected" ]; then
     esac
   fi
 fi
+
+# Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
+# you your branch is broken or your machine is busy, and it is plain bash, so nothing else would catch a
+# regression in it.
+#
+# Run CONCURRENTLY, with ONE exception below. They are independent bash scripts that stub `ps`/`pgrep`
+# rather than touching the machine, and the slowest (machine-lane, 54 cases) sets the floor for all of
+# them either way. `wait -n` is deliberately not used: it needs bash 4.3+, and macOS still ships bash
+# 3.2 as /bin/bash, so this collects statuses by pid instead.
+gate_tests_failed=0
+
+# Which of them this change can reach. Each test is about the script it sits beside, so scripts/ and
+# .githooks/ run all of them; a test whose subject lives elsewhere names it on a `# gate-inputs:` line
+# (an ERE over repo-relative paths) -- the public-API prober's is src/Rask.Cache and the MSBuild
+# imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
+# paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
+rask_gate_test_applies() {
+  [ -z "$scope_projects" ] && return 0
+  inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
+  printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
+}
+
+# The exception, and the reason the blanket "no shared state" this comment used to claim is not true:
+# public-api-gate proves the analyzer by writing src/Rask.Cache/__PublicApiGateProbe.cs into the REAL
+# worktree and briefly moving that project's PublicAPI baselines aside (it restores both on exit, so
+# nothing is left behind). attribution-guard ends by asserting the working tree is exactly where it
+# was. Run concurrently, the guard sees the prober's mutations and fails with "a git env var leaked
+# into the temp repo" — naming a cause that is not the one, on a run where nothing is wrong.
+#
+# It is the GUARD that runs alone rather than the prober: the guard is pure bash and costs about a
+# second, while the prober is four builds of Rask.Cache and is precisely what the concurrency is for.
+serial_test="scripts/tests/attribution-guard.test.sh"
+if [ -e "$serial_test" ] && rask_gate_test_applies "$serial_test"; then
+  echo "==> Gate script test (alone: it asserts the working tree is untouched)"
+  serial_log="${TMPDIR:-/tmp}/rask-gate-test-$$-attribution-guard.log"
+  if bash "$serial_test" >"$serial_log" 2>&1; then
+    cat "$serial_log"
+  else
+    cat "$serial_log" >&2
+    echo "run-unit-local: gate script test FAILED: $serial_test" >&2
+    gate_tests_failed=1
+  fi
+fi
+
+echo "==> Gate script tests (concurrent)"
+gate_test_pids=""
+gate_test_names=""
+for t in scripts/tests/*.test.sh; do
+  [ -e "$t" ] || continue
+  if [ "$t" = "$serial_test" ]; then continue; fi   # already run, alone, above
+  if ! rask_gate_test_applies "$t"; then
+    echo "    skipped $t -- nothing it covers changed"
+    continue
+  fi
+  bash "$t" >"${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$t" .test.sh).log" 2>&1 &
+  gate_test_pids="$gate_test_pids $!"
+  gate_test_names="$gate_test_names $t"
+done
+
+# shellcheck disable=SC2086  # deliberate word split: the names line up with the pids collected above
+set -- $gate_test_names
+for pid in $gate_test_pids; do
+  gate_test_name="$1"; shift
+  gate_test_log="${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$gate_test_name" .test.sh).log"
+  # Output is printed either way. A gate test that passes silently is one nobody notices has stopped
+  # asserting anything, which is the failure this repository keeps paying for.
+  if wait "$pid"; then
+    cat "$gate_test_log"
+  else
+    cat "$gate_test_log" >&2
+    echo "run-unit-local: gate script test FAILED: $gate_test_name" >&2
+    gate_tests_failed=1
+  fi
+  rm -f "$gate_test_log"
+done
+[ "$gate_tests_failed" -eq 0 ] || exit 1
 
 if [ -n "$scope_projects" ]; then
   # ONE MSBuild invocation over the affected set, not a loop of `dotnet build` per project. The set
