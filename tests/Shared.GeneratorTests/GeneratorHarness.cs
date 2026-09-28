@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -131,7 +132,16 @@ internal static class GeneratorHarness
             options.TryGetValue(key, out value);
     }
 
-    private static ImmutableArray<MetadataReference> BuildReferences(string[] excludedAssemblies, string[] extraAssemblies)
+    // Built once per distinct set. Roslyn shares loaded metadata only between compilations handed the SAME
+    // reference instances, so a fresh set per test re-read every framework assembly (37 s -> 3 s, batteries).
+    private static readonly ConcurrentDictionary<string, ImmutableArray<MetadataReference>> References = new(StringComparer.Ordinal);
+
+    private static ImmutableArray<MetadataReference> BuildReferences(string[] excludedAssemblies, string[] extraAssemblies) =>
+        References.GetOrAdd(
+            string.Join('|', excludedAssemblies) + '#' + string.Join('|', extraAssemblies),
+            _ => CreateReferences(excludedAssemblies, extraAssemblies));
+
+    private static ImmutableArray<MetadataReference> CreateReferences(string[] excludedAssemblies, string[] extraAssemblies)
     {
         var trusted = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)

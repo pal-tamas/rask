@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
@@ -272,7 +273,19 @@ internal static class GeneratorDriverFixture
         }
     }
 
-    internal static ImmutableArray<MetadataReference> BuildReferences()
+    // Built ONCE per test process. Roslyn shares loaded metadata only between compilations handed the SAME
+    // reference instances, so a fresh set per test re-read every framework assembly: 67 s -> 4 s for this suite.
+    private static readonly ImmutableArray<MetadataReference> References = CreateReferences();
+
+    private static readonly ConcurrentDictionary<string, MetadataReference> AssemblyReferences = new(StringComparer.Ordinal);
+
+    internal static ImmutableArray<MetadataReference> BuildReferences() => References;
+
+    /// <summary>A reference to one loaded assembly, shared across tests for the same reason as <see cref="BuildReferences" />.</summary>
+    internal static MetadataReference AssemblyReference(string name) =>
+        AssemblyReferences.GetOrAdd(name, static n => MetadataReference.CreateFromFile(Assembly.Load(n).Location));
+
+    private static ImmutableArray<MetadataReference> CreateReferences()
     {
         var trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);

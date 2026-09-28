@@ -19,7 +19,7 @@ public sealed partial class CancellationDemo : Component
                     .OnClick(UnmountProbe)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount probe"]
             ],
             _mounted
-                ? CancellationProbe.Log(AppendLog).InstanceId(_nextInstance)
+                ? CancellationProbe.InstanceId(_nextInstance).Log(AppendLog)
                 : P.Class("text-ui-muted italic mb-0")["Probe is not mounted."],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             _log.Count == 0

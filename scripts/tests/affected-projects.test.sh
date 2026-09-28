@@ -74,7 +74,7 @@ expect "the test-wide props"          "tests/Directory.Build.props"             
 expect "the test-wide runner config"  "tests/xunit.runner.json"                  full
 expect "a packaged MSBuild import"    "src/Rask.Core/build/Rask.Core.targets"    full
 expect "the formatting configuration" ".editorconfig"                            full
-expect "a file outside the projects"  "docs/routing.md"                          full
+expect "a root file nobody reads"     "LICENSE"                                  full
 expect "nothing staged at all"        ""                                         full
 
 # A shared, source-linked file belongs to no project of its own. The graph cannot see which
@@ -113,6 +113,54 @@ expect "a template file does not force the whole solution" \
 # future narrowing of the graph cannot quietly make the most load-bearing project in the repo cheap.
 expect "Rask.Core reaches Rask.Server.Tests" \
   "src/Rask.Core/Components/Div.cs" scoped "tests/Rask.Server.Tests/Rask.Server.Tests.csproj"
+
+# --- files a test reads at runtime (<RaskTestReads/> in the test's csproj) ------------------------
+# A file outside src/ and tests/ scopes to the tests that declare reading it, instead of FULL — which
+# is what nearly every commit used to be, because a feature carries its CHANGELOG line and its docs.
+expect "the CHANGELOG reaches the repo-wide Bootstrap scan" \
+  "CHANGELOG.md" scoped "tests/Rask.Ui.Tests/Rask.Ui.Tests.csproj"
+expect "the CHANGELOG does not force the whole solution" \
+  "CHANGELOG.md" absent "tests/Rask.Server.Tests/Rask.Server.Tests.csproj"
+expect "a docs page reaches the tests that walk docs/" \
+  "docs/routing.md" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
+expect "a docs page rebuilds the site that embeds it" \
+  "docs/routing.md" scoped "src/Rask.Site/Rask.Site.csproj"
+expect "llms.txt reaches the test that regenerates it" \
+  "llms.txt" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
+expect "a release workflow reaches the pack-list test" \
+  ".github/workflows/release.yml" scoped "tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj"
+
+# ...and a file inside src/ reaches a test the project graph cannot see. Each of these was a blind spot:
+# a change to it ran none of the tests that pin it.
+expect "the server runtime's rask.ts reaches the Core client-contract tests" \
+  "src/Rask.Server/Resources/rask.ts" scoped "tests/Rask.Core.Tests/Rask.Core.Tests.csproj"
+expect "the site shell reaches the WASM prerender test" \
+  "src/Rask.Site/wwwroot/index.html" scoped "tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj"
+expect "the kit stylesheet reaches the site's contrast tests" \
+  "src/Rask.Ui/Styles/ui.css" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
+expect "a precise glob keeps its extension filter" \
+  "docs/installation.md" absent "tests/Rask.Blazor.Tests/Rask.Blazor.Tests.csproj"
+
+# A packed <None Include="..\..."/> is a build input like a linked Compile item.
+expect "the shared browser layer reaches the SPA host that packs it" \
+  "src/Rask.Core/Resources/browser/storage.ts" scoped "src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj"
+
+# The declarations must never be EVALUATED: MSBuild expands an item glob at every evaluation, and
+# "..\..\**\*.cs" would walk the whole repo — bin/, obj/, node_modules/ — on every build of the project.
+checks=$((checks + 1))
+unguarded=""
+for csproj in "$root"/tests/*/*.csproj; do
+  grep -q 'RaskTestReads' "$csproj" || continue
+  if ! grep -B20 'RaskTestReads' "$csproj" | grep -q '<ItemGroup Condition="false">'; then
+    unguarded="$unguarded ${csproj#"$root"/}"
+  fi
+done
+if [ -z "$unguarded" ]; then
+  echo "  ok   every RaskTestReads declaration sits in an ItemGroup that is never evaluated"
+else
+  echo "  FAIL RaskTestReads outside an <ItemGroup Condition=\"false\">:$unguarded" >&2
+  failures=$((failures + 1))
+fi
 
 echo "affected-projects: $checks checks, $failures failed."
 [ "$failures" -eq 0 ]

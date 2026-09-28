@@ -10,7 +10,7 @@ public sealed partial class CancellationProbeTests : global::Rask.Core.RaskMarku
         var log = new LifecycleLog();
         var mounted = true;
         var page = Page.Render(
-            () => mounted ? CancellationProbe.Log(log.Add).InstanceId(1) : null,
+            () => mounted ? CancellationProbe.InstanceId(1).Log(log.Add) : null,
             TestServices.Default());
         // Wait until the probe is in the "running" state (its post-StateHasChanged render).
         await WaitFor.True(() => page.Render().Contains("running"), TimeSpan.FromSeconds(2));
@@ -28,7 +28,7 @@ public sealed partial class CancellationProbeTests : global::Rask.Core.RaskMarku
         var log = new LifecycleLog();
         var mounted = true;
         var page = Page.Render(
-            () => mounted ? CancellationProbe.Log(log.Add).InstanceId(9) : null,
+            () => mounted ? CancellationProbe.InstanceId(9).Log(log.Add) : null,
             TestServices.Default());
         await WaitFor.True(() => page.Render().Contains("running"), TimeSpan.FromSeconds(2));
 

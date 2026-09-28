@@ -88,6 +88,8 @@ is the one commit that skips the gate.
 - **Every test is named as a sentence and shaped in three blocks** (setup · action · checks, blank-line separated):
   `Remember_loads_once_then_serves_from_the_cache`. `tests/Shared/TestNamesReadAsSentences.cs`, linked into every
   `*.Tests` project, fails the build's tests on a name that isn't one.
+- **A test that reads a file from disk outside its project DECLARES it** (`<RaskTestReads/>` in a `Condition="false"`
+  ItemGroup of its csproj) — the gates are scoped, and an undeclared read is skipped when that file changes.
 - `tests/Rask.*.Tests` — unit/integration, one per `src/` project. `tests/Rask.*.E2E.Tests` — the
   end-to-end suites. `tests/Rask.Benchmarks*` — BenchmarkDotNet; not test projects, so `dotnet test`
   skips them and the scoped runner filters them out by the `.Tests` suffix.
@@ -141,15 +143,15 @@ dotnet run --project src/Rask.Site
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 53-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–094, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–096, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, refreshed daily by the local build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–094 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK095). **Grep `src/`
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–096 are documented in `docs/diagnostics.md`
+  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK097). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

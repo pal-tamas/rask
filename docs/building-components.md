@@ -114,6 +114,8 @@ public Fn<Product, Component>? Template { get; set; }
 The chain's receiver is the component itself, and both are **structs**, not delegates. That is what keeps
 `.OnPick(fn)` a setter: a delegate-typed property on the receiver would be *invocable*, and C# would read
 the call as invoking it (CS1593) and never reach the step. There is no `OnPickAsync` twin to declare.
+Declare an event as `Action<T>` or `Func<T, Task>` and [RASK096](diagnostics.md#rask096) stops the build with
+`Declare 'OnPick' as Callback<int>, not Action<int>` — its quick-fix rewrites the type and the `?.Invoke` calls.
 
 Fire an event with `await OnPick.Invoke();`. An unset event does nothing, so there is no null check, and a
 non-nullable `Callback` is never a required step — leave it off the chain and it stays unset. `Invoke` returns a
@@ -167,7 +169,9 @@ ProductCard.Title("Coffee").Subtitle("Dark roast").OnPick(Pick)
 
 A non-nullable property with no initializer is required — the same rule
 [RASK001](diagnostics.md#rask001) describes — so it becomes a step. Give it a nullable type or an
-initializer if it is genuinely optional.
+initializer if it is genuinely optional. Skip one and [RASK095](diagnostics.md#rask095) names it —
+`'ProductCard' needs 'Title' before anything else — write ProductCard.Title(…).Subtitle(…)` — and its
+quick-fix inserts the step.
 
 ## Lists of components
 
@@ -207,5 +211,5 @@ without `.Key(…)` is reported in every one of the shapes above.
 
 - [Composition](composition.md) — context, callbacks, and passing components around.
 - [Forms](forms.md) — binding, validation, and the form controls in full.
-- [Diagnostics](diagnostics.md) — RASK001 and RASK038, which are the rules above stated as
+- [Diagnostics](diagnostics.md) — RASK001, RASK038, RASK095 and RASK096, which are the rules above stated as
   errors.

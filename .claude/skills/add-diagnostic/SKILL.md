@@ -10,8 +10,9 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 already taken on a branch base that was ahead of the checkout it was picked against. Run the grep, and
 run it again before you merge.
 
-At the last edit the highest allocated here was RASK091 (RASK087–091 the aggregate/form-model rules in
-`Rask.Batteries.Generators`), so the next free is **RASK092** — and note this line once said RASK087 while
+At the last edit the highest allocated here was RASK096 (RASK095/096 the incomplete-chain and delegate-event
+analyzers in `Rask.Generators`), so the next free is **RASK097** — and note this line once said RASK092 while
+RASK092–094 were already taken, once said RASK087 while
 RASK087–091 were already taken, once said RASK076 while RASK076 was already taken, and the form model's ids
 were first written as RASK077–081 while package islands held RASK077–080 on main, which is the staleness it
 warns about; RASK063/065 are
