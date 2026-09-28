@@ -9,6 +9,10 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A scaffold's `.vscode/extensions.json` recommends what the project actually uses.** Every template adds
+  EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
+  `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
+  on a server app included. The file is generated from the scaffold's own files, no longer a committed fragment.
 - **BREAKING: `Product.Read` is gone — query off the type (`Product.Where(…)`); `Product.Find(id)` loads the
   aggregate and `product.Save()` writes it back.** `Product.Read.Where(p => p.Id == id)` is now
   `Product.Where(p => p.Id == id)`, and every other opening operator and terminal moved the same way; the rows

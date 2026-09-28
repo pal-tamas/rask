@@ -55,8 +55,8 @@ internal static class VsCodeAssembly
 
     /// <summary>
     ///     The fragment roots each setup is assembled from, in order; a later one wins a path. Every setup ends
-    ///     with the editor settings (<c>_vscode-editor</c>), which <c>_vscode-tailwind</c> replaces — together
-    ///     with the extension recommendations — for a template that compiles Tailwind.
+    ///     with the editor settings (<c>_vscode-editor</c>), which <c>_vscode-tailwind</c> replaces for a template
+    ///     that compiles Tailwind. The extension recommendations are no fragment: see <see cref="Recommendations" />.
     /// </summary>
     internal static IReadOnlyList<string> FragmentRoots(VsCodeSetup setup, bool tailwind)
     {
@@ -79,6 +79,61 @@ internal static class VsCodeAssembly
     internal static bool CompilesTailwind(string targetDirectory, IReadOnlyList<ScaffoldFile> files) =>
         files.Any(f => Path.GetRelativePath(targetDirectory, f.Path).Replace('\\', '/') == TailwindEntry
                        && f.Content.Contains("@import \"tailwindcss\"", StringComparison.Ordinal));
+
+    /// <summary>
+    ///     What <c>.vscode/extensions.json</c> recommends, why, and whether this project needs it — read from the
+    ///     files the scaffold wrote, so vue islands on a server app get Volar as the vue template does.
+    /// </summary>
+    /// <remarks>
+    ///     Generated rather than a fragment: a fragment replaces the whole file, and Tailwind × front-end framework ×
+    ///     islands is a product no set of committed files keeps in step.
+    /// </remarks>
+    private static readonly (string Id, string Why, Func<string, IReadOnlyList<ScaffoldFile>, bool> Wanted)[] Recommendations =
+    [
+        ("ms-dotnettools.csdevkit",
+            "C# Dev Kit: C# editing, and the C# debugger F5 runs a host under. C# in the browser needs nothing more —\n"
+            + "    // VS Code's built-in JavaScript debugger attaches through the WebAssembly debug proxy.",
+            static (_, _) => true),
+        ("editorconfig.editorconfig",
+            "EditorConfig: .editorconfig for the files C# Dev Kit does not format — TypeScript, CSS, JSON.",
+            static (_, _) => true),
+        ("usernamehw.errorlens",
+            "Error Lens: diagnostics inline on their line — the build treats every analyzer warning as an error.",
+            static (_, _) => true),
+        ("bradlc.vscode-tailwindcss",
+            "Tailwind CSS IntelliSense: class completion inside Div.Class(\"…\"), set up in settings.json.",
+            CompilesTailwind),
+        ("dbaeumer.vscode-eslint", "ESLint: the front end's eslint.config.mjs, as you type.",
+            static (_, files) => Any(files, name => name.StartsWith("eslint.config.", StringComparison.Ordinal))),
+        ("esbenp.prettier-vscode", "Prettier: the front end's .prettierrc, on format.",
+            static (_, files) => Any(files, name => name == ".prettierrc")),
+        ("vue.volar", "Vue (Official): .vue single-file components.",
+            static (_, files) => Any(files, name => name.EndsWith(".vue", StringComparison.Ordinal))),
+        ("svelte.svelte-vscode", "Svelte: .svelte components.",
+            static (_, files) => Any(files, name => name.EndsWith(".svelte", StringComparison.Ordinal))),
+        ("angular.ng-template", "Angular Language Service: completion and checking inside Angular templates.",
+            static (_, files) => Any(files, name => name == "angular.json")),
+    ];
+
+    private static bool Any(IReadOnlyList<ScaffoldFile> files, Func<string, bool> name) =>
+        files.Any(f => name(Path.GetFileName(f.Path)));
+
+    private static ScaffoldFile ExtensionsJson(string targetDirectory, IReadOnlyList<ScaffoldFile> files)
+    {
+        var wanted = Recommendations.Where(r => r.Wanted(targetDirectory, files)).ToList();
+        var json = new StringBuilder()
+            .Append("{\n  // VS Code offers to install these when the folder opens; each is here for something this project holds.\n")
+            .Append("  \"recommendations\": [\n");
+
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            json.Append("    // ").Append(wanted[i].Why).Append('\n')
+                .Append("    \"").Append(wanted[i].Id).Append(i < wanted.Count - 1 ? "\",\n" : "\"\n");
+        }
+
+        json.Append("  ]\n}\n");
+        return new ScaffoldFile(Path.Combine(targetDirectory, ".vscode", "extensions.json"), json.ToString());
+    }
 
     /// <summary>
     ///     <paramref name="existing" /> plus the <c>.vscode/</c> files for <paramref name="setup" />, named for
@@ -106,6 +161,6 @@ internal static class VsCodeAssembly
             }
         }
 
-        return [.. existing, .. fragment.Values];
+        return fragment.Count == 0 ? existing : [.. existing, .. fragment.Values, ExtensionsJson(targetDirectory, existing)];
     }
 }
