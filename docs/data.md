@@ -8,7 +8,7 @@ no `IDbContextFactory` injected into every page that reads a row.
 
 Underneath it is ordinary EF Core, and nothing is hidden from you. **The aggregate type writes**:
 `Product.Create(model)`, `Product.Update(id, model)`, `Product.Delete(id)`
-([below](#writing-create-update-delete)). **Its read face queries**: `Product.Read.Where(…)`
+([below](#writing-create-update-delete)). **Its read face queries**: `Product.Where(…)`
 ([below](#reading-the-read-face)). Anything richer is EF Core exactly as you know it, a domain method
 saved through a context ([below](#writing-plain-ef-core)), and an app that outgrows the conventions writes its
 own context and Rask steps aside ([below](#using-ef-core-the-usual-way)).
@@ -50,13 +50,13 @@ public sealed class Product : Aggregate<Guid>
 ```
 
 That compiles into a mapped table, a generated `ProductModel` [for its forms](#a-create-and-an-edit-form),
-a `db.Products` accessor on any `DbContext`, and a read face — `ProductRead`, reached as `Product.Read` —
-which is everything a screen needs:
+a `db.Products` accessor on any `DbContext`, a read face — `ProductRead`, queried straight off the type — and
+`Product.Find(id)` + `product.Save()` for changing one. That is everything a screen needs:
 
 ```csharp
-var cheap = await Product.Read.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name).ToListAsync();
-var anvil = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();
-var grid  = Product.Read.OrderBy(p => p.Name).AsQueryable();   // for Ui.DataGrid, sorted and paged in SQL
+var cheap = await Product.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name).ToListAsync();
+var anvil = await Product.Where(p => p.Id == id).FirstOrDefaultAsync();
+var grid  = Product.OrderBy(p => p.Name).AsQueryable();   // for Ui.DataGrid, sorted and paged in SQL
 ```
 
 Note `p.PriceAmount`: the read face is **primitives**, so the `Money Price` value object arrives as the two
@@ -103,7 +103,7 @@ framework writes them:
 | `DeletedAt` | `Aggregate<TId>` | **Only when the aggregate asks.** A delete removes the row unless it declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carries). |
 
 ```csharp
-var recent = await Product.Read.OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
+var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
 ```
 
 `Aggregate<TId>` also carries the domain-events buffer: `Raise(…)` inside a method, and the events are
@@ -168,11 +168,11 @@ when you want them — listing a thousand orders should not drag in every line e
 ```csharp
 await Order.Update(id, o => o.Add("anvil", 1));                      // loaded whole, changed, saved
 
-var open = await Order.Read.Where(o => o.Reference.StartsWith("2026")).ToListAsync();   // Lines EMPTY
-var withLines = await Order.Read.QueryAsync((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
+var open = await Order.Where(o => o.Reference.StartsWith("2026")).ToListAsync();   // Lines EMPTY
+var withLines = await Order.QueryAsync((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
 
 // …and a child is queryable on its own, because the read side has no borders:
-var heavy = await OrderLine.Read.Where(l => l.Quantity > 10 && l.Order.Reference.StartsWith("2026"))
+var heavy = await OrderLine.Where(l => l.Quantity > 10 && l.Order.Reference.StartsWith("2026"))
                                .ToListAsync();
 ```
 
@@ -219,7 +219,7 @@ so: `DeletedAt` is stamped rather than the row removed, so nothing cascades and 
 order comes back.
 
 The child gets a table, `CreatedAt` and `UpdatedAt`, a model so its parent's form can carry it, and a read
-face of its own — `OrderLine.Read` — because the read side has no borders. It gets no **writes** of its own:
+face of its own — `OrderLine.Where(…)` — because the read side has no borders. It gets no **writes** of its own:
 there is no `OrderLine.Create`, no version and no soft delete, because it is not a thing you save on its
 own. A collection of another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a
 collection Rask cannot write is [RASK088](diagnostics.md#rask088).
@@ -251,8 +251,8 @@ public sealed record Stop(string City, int Day);
 the read face, and both are **queryable in SQL**:
 
 ```csharp
-await Trip.Read.Where(t => t.Tags.Contains("urgent")).ToListAsync();
-await Trip.Read.Where(t => t.Stops.Any(s => s.City == "Vienna" && s.Day >= 2)).ToListAsync();
+await Trip.Where(t => t.Tags.Contains("urgent")).ToListAsync();
+await Trip.Where(t => t.Stops.Any(s => s.City == "Vienna" && s.Day >= 2)).ToListAsync();
 ```
 
 **Values are replaced wholesale, not reconciled.** A child has an id, so a form post updates the rows it names
@@ -277,32 +277,40 @@ filter over *any* element of the collection is a scan. If that filter is hot on 
 `Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
 so is any collection that `Configure` already mapped.
 
-Here is a whole model running — a `Note` aggregate, read through `Note.Read`, written with `Note.Create`, and
-searched with `Note.Read.Search`, in a SQLite database that lives in this browser tab and survives a reload:
+Here is a whole model running — a `Note` aggregate, queried with `Note.OrderByDescending(…)`, written with `Note.Create`, and
+searched with `Note.Search`, in a SQLite database that lives in this browser tab and survives a reload:
 
 <!-- demo:data-notes -->
 
 ## Reading: the read face
 
-An aggregate is not a query surface. Querying goes through its generated **read face** — `Product.Read`,
-which returns rows of `ProductRead`:
+There are three doors on the aggregate type, one per need:
+
+| To… | Write | You get |
+|---|---|---|
+| show one, many, or joined | `Product.Where(…)`, `Product.OrderBy(…)`, … | rows of `ProductRead` — the read face |
+| change one | `Product.Find(id)` → its methods → `product.Save()` | the aggregate itself |
+| fill an edit form | `Product.Model(id)` | a `ProductModel` |
+
+A query is called on `Product`, but its rows are the generated **read face**, `ProductRead` — primitives and
+navigations, no behaviour:
 
 ```csharp
-await Product.Read.ToListAsync();
-await Product.Read.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync();
-await Product.Read.Where(p => p.PriceAmount > 10).OrderByDescending(p => p.PriceAmount).Skip(20).Take(20).ToListAsync();
-await Product.Read.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();   // reads one column
-await Product.Read.IgnoreQueryFilters().ToListAsync();                       // soft-deleted rows too
-await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();             // by id
-await Product.Read.FirstOrDefaultAsync(p => p.Name == "Anvil");
-await Product.Read.CountAsync(p => p.Active);
-await Product.Read.AnyAsync();
-await Product.Read.Search("red anvil").Take(20).ToListAsync();               // full-text, best match first
-await foreach (var p in Product.Read.AsAsyncEnumerable()) { }
+await Product.ToListAsync();
+await Product.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync();
+await Product.Where(p => p.PriceAmount > 10).OrderByDescending(p => p.PriceAmount).Skip(20).Take(20).ToListAsync();
+await Product.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();   // reads one column
+await Product.IgnoreQueryFilters().ToListAsync();                       // soft-deleted rows too
+await Product.Where(p => p.Id == id).FirstOrDefaultAsync();             // by id
+await Product.FirstOrDefaultAsync(p => p.Name == "Anvil");
+await Product.CountAsync(p => p.Active);
+await Product.AnyAsync();
+await Product.Search("red anvil").Take(20).ToListAsync();               // full-text, best match first
+await foreach (var p in Product.AsAsyncEnumerable()) { }
 ```
 
-`Read` is a C# 14 static extension member, which is why nothing has to be declared or derived from a second
-base. A member declared on the aggregate itself always wins, so your own `Read` would be untouched.
+These are C# 14 static extension members, which is why nothing has to be declared or derived from a second
+base. A member declared on the aggregate itself always wins, so your own static `Where` would be untouched.
 
 ### What the read face is
 
@@ -311,7 +319,7 @@ queryable on its own even though it is only writable through its root.
 
 **A read face is generated into the assembly that DECLARES the aggregate**, the same as the form model and
 the writes. Your own aggregates have one, and so do the aggregates a Rask package declares —
-`Session.Read` and `Passkey.Read` are [Rask.Auth's](authentication.md). A package can ask for the read faces
+`Session.Where(…)` and `Passkey.Where(…)` are [Rask.Auth's](authentication.md). A package can ask for the read faces
 *alone* with `<RaskReadFacesOnly>true</RaskReadFacesOnly>`, which is what those two do: they are mapped by
 `modelBuilder.AddRaskAuth()` rather than by the registry, and nothing should be able to create a passkey
 from a form.
@@ -345,7 +353,7 @@ The navigation is named after the **property**, not the target, so two reference
 collide. And it is the one thing the write model cannot do, so this is the join you came for:
 
 ```csharp
-await Order.Read
+await Order
     .Where(o => o.Customer.Country == "HU"
              && o.ShippedByUser!.Name == "ada"
              && o.TotalAmount > 100
@@ -357,17 +365,17 @@ await Order.Read
 
 Four aggregates in one statement, from a write model that holds nothing but ids.
 
-### There is no `Read.FindAsync`
+### By id: a row, or the aggregate
 
-By id is the narrowest query, and it is spelled as one:
+To *show* one, it is the narrowest query; to *change* one, `Find` it:
 
 ```csharp
-var product = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();
+ProductRead? row = await Product.Where(p => p.Id == id).FirstOrDefaultAsync();
+Product? product = await Product.Find(id);   // whole, children loaded — see "Find, change, Save"
 ```
 
-Deliberately, there is no `FindAsync` beside it. EF Core's `Find` **bypasses query filters**, so it would
-return a soft-deleted row that `Where` hides — two spellings of one read, disagreeing about deleted rows. One
-spelling that is always right beats two that are usually the same.
+`Find` is a filtered query by key, not EF Core's `Find` — which **bypasses query filters** and would return a
+soft-deleted row that `Where` hides. Both spellings agree: a soft-deleted or another tenant's row is `null`.
 
 **Every read is untracked, and every read opens and disposes its own context.** Composing holds nothing
 open: the terminal call opens a context, runs, and disposes it before it returns — so this is a complete
@@ -375,7 +383,7 @@ statement anywhere, including a component's `OnMount`:
 
 ```csharp
 protected override async Task OnMount() =>
-    _products = await Product.Read.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync(CancellationToken);
+    _products = await Product.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync(CancellationToken);
 ```
 
 That is the shape a live page needs, not a default to tune. A Rask page lives as long as the browser
@@ -386,14 +394,14 @@ identity-map entry to buy nothing.
 
 **The consequence is now in the type system.** A `ProductRead` has no behaviour and is not in the write
 context, so there is nothing on it to change and nothing that could save it. A change goes back through
-[a write on the type](#writing-create-update-delete) or [a context](#writing-plain-ef-core), and both load
-the entity they are about to change.
+[`Find` and `Save`](#find-change-save), [a write on the type](#writing-create-update-delete) or
+[a context](#writing-plain-ef-core), and each loads the aggregate it is about to change.
 
 For a shape this does not wrap — a group-by, a join, an aggregate — `QueryAsync` hands you the live
 `IQueryable` inside a managed context:
 
 ```csharp
-var byMonth = await Product.Read.QueryAsync((q, ct) =>
+var byMonth = await Product.QueryAsync((q, ct) =>
     q.GroupBy(p => p.CreatedAt.Month)
      .Select(g => new { Month = g.Key, Total = g.Sum(p => p.PriceAmount) })
      .ToListAsync(ct));
@@ -403,7 +411,7 @@ var byMonth = await Product.Read.QueryAsync((q, ct) =>
 
 A data grid composes its own LINQ — it sorts with `OrderBy`, pages with `Skip`/`Take`, counts with
 `Count()` — so what it wants is a standard `IQueryable<T>`, not a query somebody has to run.
-`Product.Read.AsQueryable()` is that, and it holds no context either: **each time it is executed, a context is
+`Product.AsQueryable()` is that, and it holds no context either: **each time it is executed, a context is
 opened for that one execution and disposed after it.** So it is safe to keep in a field for as long as
 the page lives:
 
@@ -411,7 +419,7 @@ the page lives:
 [Route("/products")]
 public sealed partial class ProductsPage : Component
 {
-    private readonly IQueryable<ProductRead> _products = Product.Read.Where(p => p.PriceAmount > 0).AsQueryable();
+    private readonly IQueryable<ProductRead> _products = Product.Where(p => p.PriceAmount > 0).AsQueryable();
 
     protected override Component Render() =>
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
@@ -434,10 +442,10 @@ extension methods, and EF applies them only to its own query provider — called
 `AsQueryable()` returns, they do nothing, silently. Put them on the model query, before the hand-off:
 
 ```csharp
-Product.Read.Include(p => p.Reviews).AsQueryable();        // ✓ travels with the queryable
-Product.Read.IgnoreQueryFilters().AsQueryable();           // ✓ soft-deleted rows too
+Product.Include(p => p.Reviews).AsQueryable();        // ✓ travels with the queryable
+Product.IgnoreQueryFilters().AsQueryable();           // ✓ soft-deleted rows too
 
-Product.Read.AsQueryable().Include(p => p.Reviews);        // ✗ compiles, loads no reviews
+Product.AsQueryable().Include(p => p.Reviews);        // ✗ compiles, loads no reviews
 ```
 
 ## Writing: create, update, delete
@@ -486,6 +494,32 @@ with no invalidation to write. See [Writes refresh queries by themselves](query.
 A create needs the parameterless constructor an aggregate has when it declares none. One that declares a
 constructor with arguments still gets `Update` and `Delete`, and the build says why it has no
 `Create` ([RASK086](diagnostics.md#rask086)).
+
+### Find, change, Save
+
+When the change is the aggregate's own method, load it, call it, save it:
+
+```csharp
+var order = await Order.Find(id) ?? throw new KeyNotFoundException();
+order.Ship("1Z999");
+await order.Save();
+
+await Order.Place("A-1001").Save();   // a new aggregate is inserted
+```
+
+- **Inserted or written over.** An aggregate with no row yet is inserted; one that has a row is compared with
+  what `Find` read, and only the columns you changed are written — a column someone else changed meanwhile keeps
+  their value.
+- **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
+  updated.
+- **A stale copy is refused.** The `Version` compared is the one `Find` read, so if someone saved in between,
+  `Save()` throws `DbUpdateConcurrencyException`. A row soft-deleted since it was read is `KeyNotFoundException`.
+- **The interceptors run** as for any write: times stamped, `Version` bumped, domain events published after the
+  commit.
+- **Nothing is held open.** `Find` returns the aggregate untracked and closes its context, so it is safe to keep in
+  a page field between `Find` and `Save`. Pass `db:` to `Save` to stage it in your own unit of work instead.
+
+`Order.Update(id, o => o.Ship("1Z999"))` does the same in one call when there is nothing to show in between.
 
 ### Changing two aggregates together: `db:`
 
@@ -615,7 +649,7 @@ public sealed partial class EditProductPage(Navigator nav) : Component
 }
 ```
 
-The list those pages link from is a [data grid](data-grid.md) over `Product.Read.AsQueryable()`
+The list those pages link from is a [data grid](data-grid.md) over `Product.AsQueryable()`
 ([above](#handing-a-query-to-a-component-asqueryable)): the rows are read faces, read-only by construction, and
 each links to its edit page.
 
@@ -747,7 +781,7 @@ public sealed class Passkey : Aggregate<Guid>
 await Passkey.Create(p => p.Rename("laptop"));            // behaviour — takes no model
 await Passkey.Update(id, p => p.Rename("desktop"));       // behaviour
 await Passkey.Delete(id);                                 // never took a model (gone under Deletes = Deletion.None)
-await Passkey.Read.Where(p => p.UserId == me).ToListAsync();   // the read face is not negotiable
+await Passkey.Where(p => p.UserId == me).ToListAsync();   // the read face is not negotiable
 ```
 
 The read face stays because querying works through read models: an aggregate that could switch its own off
@@ -804,6 +838,9 @@ await Order.Update(order.Id, o => o.Pay());                          // load who
 await Order.Update(order.Id, o => o.Ship("1Z999"), version: v); // stale version throws
 await Order.Update(order.Id, o => o.Cancel());
 ```
+
+When a page shows the order between loading and changing it, the same rules run through
+[`Find` and `Save`](#find-change-save): `var o = await Order.Find(id); o!.Pay(); await o.Save();`.
 
 - **Only the methods are callable.** The properties have private setters, so `o => o.Status = OrderStatus.Shipped`
   is a compile error (CS0272) — the lambda can do what the aggregate's public surface allows and nothing else.
@@ -868,7 +905,7 @@ On the wire a model's properties are **camelCase**. Only validation attributes a
 
 ## The current user — `Current`
 
-A read or a write on a model is a static call — `Product.Read.Where(…)`, a `Product.Create(…)` factory — so there
+A read or a write on a model is a static call — `Product.Where(…)`, a `Product.Create(…)` factory — so there
 is no constructor to inject the signed-in user into. `Current` answers from anywhere instead, with nothing
 injected:
 
@@ -905,7 +942,7 @@ job row records `UserId` and the runner re-enters it. Anywhere else (a hosted se
 database on every read would be the wrong thing to hide. Load it when you need it:
 
 ```csharp
-var me = await User.Read.FirstOrDefaultAsync(u => u.Id == Current.UserId);
+var me = await User.FirstOrDefaultAsync(u => u.Id == Current.UserId);
 ```
 
 Inside a component, inject `IUserProvider` as before — it also raises `Changed` so the UI re-renders on sign-in.
@@ -921,7 +958,7 @@ public sealed class Invoice : Aggregate<Guid>
     public const Tenancy Scope = Tenancy.PerTenant;
 }
 
-var invoices = await Invoice.Read.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();   // this tenant's
+var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();   // this tenant's
 ```
 
 That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
@@ -1152,7 +1189,7 @@ Assert.Equal(12.50m, (await database.LoadAsync<Product>(anvil.Id))!.Price);
 database.Context.AddRange(Order.Place("B-2"), Order.Place("B-3"));
 await database.Context.SaveChangesAsync();
 
-Assert.Equal(2, await Order.Read.CountAsync());
+Assert.Equal(2, await Order.CountAsync());
 ```
 
 `TestDatabase.StartAsync` maps every entity the build found — so no fixture has to list entities — creates the
@@ -1315,7 +1352,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskD
 ```
 
 Over plain `DbContext` this compiles, boots and migrates with every entity silently absent, so the first
-`Product.Read.Where(…)` throws saying the type is not part of the model. If you
+`Product.Where(…)` throws saying the type is not part of the model. If you
 cannot change the base type — it is already someone else's — call `ModelRegistry.Apply(modelBuilder)` in
 place of `base.OnModelCreating`, and `ModelRegistry.ApplyConventions(configurationBuilder)` from an
 overridden `ConfigureConventions`.
@@ -1571,9 +1608,9 @@ modelBuilder.Entity<Product>().HasFullTextSearch(p => new { p.Name, p.Descriptio
 Then search from the read face, a context, or a grid:
 
 ```csharp
-await Product.Read.Search(query).Where(p => p.Active).Take(20).ToListAsync();
+await Product.Search(query).Where(p => p.Active).Take(20).ToListAsync();
 await db.Set<Product>().Search(query).CountAsync();
-Ui.DataGrid.Data(Product.Read.Search(query).AsQueryable())
+Ui.DataGrid.Data(Product.Search(query).AsQueryable())
 ```
 
 `Search(text)` keeps every row containing all of the typed words — any order, any case, diacritics

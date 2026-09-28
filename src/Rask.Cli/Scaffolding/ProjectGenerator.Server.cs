@@ -164,7 +164,7 @@ internal static partial class ProjectGenerator
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");
             steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it into app.db. Read it off\n");
-            steps.Append("its generated read face — Product.Read.Where(...) — fill a form with Product.Model(id),\n");
+            steps.Append("its generated read face — Product.Where(...) — fill a form with Product.Model(id),\n");
             steps.Append("and write it off the type — Product.Create(model),\n");
             steps.Append("Product.Update(id, model), Product.Delete(id).\n");
         }

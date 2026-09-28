@@ -110,10 +110,9 @@ export RASK_FORMAT_SCOPE=staged
 # repo-root import, a gate script, a source-linked file owned by no project — and the run always
 # prints which of the two it chose and why.
 #
-# What makes narrowing safe here is that NOTHING LEAVES THE MACHINE on a scoped run: .githooks/pre-push
-# still runs the whole solution, plus the browser E2E and the benchmark gates, before a commit can
-# reach the remote. This trades "every commit proves the whole tree" for "every push does" — a
-# broken commit can exist locally, and cannot be pushed.
+# .githooks/pre-push scopes the same way, over the whole push (origin/main...HEAD), so the graph IS the
+# safety: a test that reads a file no reference brings in must declare it with <RaskTestReads/> in its
+# csproj, or a change to that file will not run it. The browser E2E runs by hand (run-all-gates.sh).
 export RASK_TEST_SCOPE=affected
 echo "            build -> dotnet format --verify-no-changes -> tests. bypass with"
 echo "            'git commit --no-verify' or RASK_SKIP_UNIT=1."

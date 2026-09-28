@@ -105,13 +105,13 @@ public sealed partial class HeroCode : Component
             public sealed partial class ProductsPage : Component
             {
                 private readonly IQueryable<ProductRead> _products =
-                    Product.Read.OrderBy(p => p.Name).AsQueryable();
+                    Product.OrderBy(p => p.Name).AsQueryable();
 
                 protected override Component? Render()
                 {
                     // Cached, and refetched after any Product write.
                     var count = QueryClient.Query(QueryKey.For<Product>(),
-                        ct => Product.Read.CountAsync(ct));
+                        ct => Product.CountAsync(ct));
 
                     return
                     [

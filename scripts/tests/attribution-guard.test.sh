@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# gate-inputs: \.github/workflows/commitlint\.yml$
 # Table test for the attribution guard (scripts/lib/attribution.sh) and the two hooks that use it.
 #
 # The guard exists because GitHub's contributor list credits `Co-authored-by:` trailers as well as

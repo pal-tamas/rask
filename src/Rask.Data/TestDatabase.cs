@@ -28,7 +28,7 @@ namespace Rask.Data;
 ///         It builds the generated model (so every <see cref="Aggregate{TId}" /> in the test assembly is mapped),
 ///         creates the schema, wires the auditing and soft-delete interceptors so the conventions behave
 ///         as they do in production, and points both <see cref="Db" /> and <see cref="ReadDb" /> at it —
-///         so <c>Order.Read</c> queries the same rows the write side just saved. Disposing clears them
+///         so <c>Order.Where(…)</c> queries the same rows the write side just saved. Disposing clears them
 ///         again, so one test cannot leak its database into the next.
 ///     </para>
 ///     <para>
@@ -94,7 +94,7 @@ public sealed class TestDatabase : IAsyncDisposable
 
         Db.Configure(Create);
 
-        // The read side is the same database through a context of its own, so `Order.Read` works in a test
+        // The read side is the same database through a context of its own, so `Order.Where(…)` works in a test
         // exactly as it does in an app — and it is configured AFTER Db, because building the read model
         // mirrors the write model and so needs the write side already pointed somewhere.
         RaskReadDbContext CreateRead()
@@ -111,7 +111,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
     /// <remarks>
     ///     One long-lived, tracking context for the fixture's lifetime, so an entity added through it stays
-    ///     tracked here. The model surface (<c>Product.Read.Where(…)</c>, <c>Product.Create(model)</c>) opens contexts of
+    ///     tracked here. The model surface (<c>Product.Where(…)</c>, <c>Product.Create(model)</c>) opens contexts of
     ///     its own and sees only what was saved.
     /// </remarks>
     public RaskDbContext Context => _schemaOwner;
@@ -125,7 +125,7 @@ public sealed class TestDatabase : IAsyncDisposable
     ///     </para>
     ///     <para>
     ///         <b>Deliberately a fixture member and not an aggregate one.</b> An application does not need
-    ///         this: it shows rows with <c>Product.Read</c>, fills a form with <c>Product.Model(id)</c>
+    ///         this: it shows rows with <c>Product.Where(…)</c>, fills a form with <c>Product.Model(id)</c>
     ///         and changes one with <c>Product.Update(id, …)</c> or a context it saves. Asserting that a
     ///         save really happened is a test's need, so it lives on the test fixture.
     ///     </para>
@@ -151,7 +151,7 @@ public sealed class TestDatabase : IAsyncDisposable
 
     /// <summary>A fresh read context, for asserting on the read model itself.</summary>
     /// <remarks>
-    ///     <c>Order.Read</c> opens its own and disposes it, so a test only needs this to look at what the
+    ///     <c>Order.Where(…)</c> opens its own and disposes it, so a test only needs this to look at what the
     ///     read side was MAPPED to — a column name, a navigation, an empty change tracker.
     /// </remarks>
     public RaskReadDbContext OpenRead() => _openRead();

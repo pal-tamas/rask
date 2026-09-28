@@ -32,8 +32,9 @@ internal static class AggregateLoad
     /// <param name="context">The context to read through. Not disposed here.</param>
     /// <param name="keyValues">The key's values, in the order the key declares them.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
+    /// <param name="tracked">Track what is loaded — for a context about to be discarded whose tracker is read first.</param>
     internal static async Task<TEntity?> FindAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
-        DbContext context, object?[] keyValues, CancellationToken cancellationToken)
+        DbContext context, object?[] keyValues, CancellationToken cancellationToken, bool tracked = false)
         where TEntity : class, IAggregate
     {
         var primaryKey = context.Model.FindEntityType(typeof(TEntity))?.FindPrimaryKey()
@@ -52,10 +53,10 @@ internal static class AggregateLoad
         if (KeyPredicate<TEntity>(primaryKey, keyValues) is { } predicate)
         {
             // Loading ONE root by its key loads the aggregate whole — its children come with it. A query
-            // (Product.Read.Where(…)) deliberately does not: listing a thousand roots should not drag in
+            // (Product.Where(…)) deliberately does not: listing a thousand roots should not drag in
             // every line each of them holds. See docs/data.md.
-            return await context.Set<TEntity>()
-                .AsNoTracking()
+            var set = context.Set<TEntity>().AsQueryable();
+            return await (tracked ? set : set.AsNoTracking())
                 .WithChildren(context)
                 .FirstOrDefaultAsync(predicate, cancellationToken)
                 .ConfigureAwait(false);
@@ -74,6 +75,18 @@ internal static class AggregateLoad
         }
 
         return found;
+    }
+
+    /// <summary>Whether a row with the key exists at all, soft-deleted or another tenant's included.</summary>
+    internal static Task<bool> ExistsIgnoringFiltersAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        DbContext context, object?[] keyValues, CancellationToken cancellationToken)
+        where TEntity : class, IAggregate
+    {
+        var primaryKey = context.Model.FindEntityType(typeof(TEntity))!.FindPrimaryKey()!;
+
+        return KeyPredicate<TEntity>(primaryKey, keyValues) is { } predicate
+            ? context.Set<TEntity>().IgnoreQueryFilters().AnyAsync(predicate, cancellationToken)
+            : Task.FromResult(false);
     }
 
     // row => row.K1 == @k1 && row.K2 == @k2. The values are read through a StrongBox rather than inlined

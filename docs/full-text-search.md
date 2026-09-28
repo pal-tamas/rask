@@ -13,8 +13,8 @@ it: declare the index on the model, and search it from LINQ. The same declaratio
 builder.HasFullTextSearch(p => new { p.Title, p.Body });   // in the entity's configuration
 
 var hits = await db.Set<Post>().Search(query).Where(p => p.Published).Take(20).ToListAsync();
-var page = await Post.Read.Search(query).Take(20).ToListAsync();      // Rask.Data's read face
-Ui.DataGrid.Data(Post.Read.Search(query).AsQueryable())                // a grid that sorts and pages in SQL
+var page = await Post.Search(query).Take(20).ToListAsync();      // Rask.Data's read face
+Ui.DataGrid.Data(Post.Search(query).AsQueryable())                // a grid that sorts and pages in SQL
 ```
 
 ## What `Search(text)` does
@@ -35,7 +35,7 @@ word in it (empty, blank, punctuation) filters nothing, so an empty box lists ev
 Project the matched terms:
 
 ```csharp
-var hits = await Post.Read.Search(query)
+var hits = await Post.Search(query)
     .Select(p => new { p.Id, Title = FullText.Highlight(p.Title), Excerpt = FullText.Snippet(p.Body, 12) })
     .ToListAsync();
 

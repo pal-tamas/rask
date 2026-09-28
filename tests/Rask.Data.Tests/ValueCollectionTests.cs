@@ -119,14 +119,14 @@ public sealed class ValueCollectionTests : IDisposable
         // spellings are pinned by Rask.Providers.E2E.Tests.
         Assert.Equal(
             "grand tour",
-            (await Journey.Read.AsQueryable().Where(j => j.Tags.Contains("urgent")).SingleAsync()).Title);
+            (await Journey.AsQueryable().Where(j => j.Tags.Contains("urgent")).SingleAsync()).Title);
 
         Assert.Equal(
             "weekend",
-            (await Journey.Read.AsQueryable().Where(j => j.Waypoints.Any(w => w.City == "Rome")).SingleAsync()).Title);
+            (await Journey.AsQueryable().Where(j => j.Waypoints.Any(w => w.City == "Rome")).SingleAsync()).Title);
 
         // A non-string member of the document, so the comparison is typed rather than textual.
-        Assert.Equal(2, await Journey.Read.AsQueryable().CountAsync(j => j.Waypoints.Any(w => w.Day == 1)));
+        Assert.Equal(2, await Journey.AsQueryable().CountAsync(j => j.Waypoints.Any(w => w.Day == 1)));
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class ValueCollectionTests : IDisposable
         database.Context.Add(journey);
         await database.Context.SaveChangesAsync();
 
-        var read = await Journey.Read.Where(j => j.Id == journey.Id).SingleOrDefaultAsync();
+        var read = await Journey.Where(j => j.Id == journey.Id).SingleOrDefaultAsync();
 
         Assert.NotNull(read);
         Assert.Equal(["urgent"], read.Tags);

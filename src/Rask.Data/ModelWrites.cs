@@ -19,7 +19,7 @@ namespace Rask.Data;
 ///         <b>It reaches the form surface and nothing else.</b> The behaviour writes —
 ///         <c>Create(p =&gt; …)</c>, <c>Update(id, p =&gt; …)</c> and <c>Delete(id)</c> — are
 ///         always generated, because none of them takes a model — except <c>Delete</c> under
-///         <c>Deletes = </c><see cref="Deletion.None" />, for an aggregate that is never removed. So is the read face (<c>Passkey.Read</c>),
+///         <c>Deletes = </c><see cref="Deletion.None" />, for an aggregate that is never removed. So is the read face (<c>Passkey.Where(…)</c>),
 ///         which is not negotiable: querying works through read models, so an aggregate that could switch its
 ///         read face off would be an aggregate nothing can read.
 ///     </para>

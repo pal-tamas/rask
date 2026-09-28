@@ -17,6 +17,22 @@ them until tagged releases begin.
   [RASK097](docs/diagnostics.md#rask097) instead of a CS0102 inside generated code. `SomePage.Url()`/`Go()` are
   unchanged. Existing `Features.Home.Routes.X()` qualifications and `using … = ….Routes;` aliases must become plain
   `Routes.X()` (or `MyApp.Routes.X()` from outside the root namespace, such as top-level `Program.cs`).
+- **The gate's own script tests run only when something they cover changed.** Each `scripts/tests/*.test.sh`
+  that tests more than scripts names its inputs on a `# gate-inputs:` line; a scoped commit that touches
+  none of them skips it, and a `scripts/`/`.githooks/` change still runs them all. Saves ~45 s per narrow
+  commit — nearly all of it the public-API prober's four builds of Rask.Cache.
+- **BREAKING: `Product.Read` is gone — query off the type (`Product.Where(…)`); `Product.Find(id)` loads the
+  aggregate and `product.Save()` writes it back.** `Product.Read.Where(p => p.Id == id)` is now
+  `Product.Where(p => p.Id == id)`, and every other opening operator and terminal moved the same way; the rows
+  are still `ProductRead`. `Find` returns the aggregate whole and untracked through a filtered query by key, so a
+  soft-deleted or another tenant's row is `null`. `Save()` inserts an aggregate with no row yet, otherwise writes
+  only the columns changed since `Find` read it, syncs children by id, raises its domain events and refuses a stale `Version`;
+  with `db:` it only stages. `Create`/`Update`/`Delete`/`Model` are unchanged.
+- **A commit that carries its CHANGELOG line and its docs no longer tests the whole solution.** Those files
+  sat outside `src/`/`tests/`, so the scoped gate fell back to FULL on ~90% of commits. Each test project now
+  declares the files it reads from disk (`<RaskTestReads/>` in its csproj), and a change scopes to exactly
+  those readers — which also closes blind spots where a change to, say, `src/Rask.Server/Resources/rask.ts`
+  ran none of the Core tests that pin it. See `docs/development-workflow.md`.
 - **The generator test suites run about 15× faster.** Their harnesses built a fresh Roslyn reference set for every
   test, so each of ~950 tests re-read every framework assembly's metadata; the set is now built once per process.
   `Rask.Generators.Tests` went from 67 s to 4 s and `Rask.Batteries.Generators.Tests` from 37 s to 3 s, taking the

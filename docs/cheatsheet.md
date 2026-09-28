@@ -50,10 +50,10 @@ A vertical slice under `Features/<Plural>/` is one aggregate and the components 
 | `CreateProduct.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.Create(model)` |
 | `UpdateProduct.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.Model(id)` through `QueryClient.Query`, saves with `Product.Update(id, model)` |
 | `DeleteProduct.cs` | a button per row — `Product.Delete(id, version)` behind a command |
-| `ProductsPage.cs` | `[Route("/products")]` — a `Ui.DataGrid` over `Product.Read.OrderBy(…).AsQueryable()` |
+| `ProductsPage.cs` | `[Route("/products")]` — a `Ui.DataGrid` over `Product.OrderBy(…).AsQueryable()` |
 
-Nothing else is written: the build generates `ProductModel`, the read face (`Product.Read`, rows of
-`ProductRead`) and the writes, `RaskDbContext` maps the aggregate, and a write refreshes every query keyed
+Nothing else is written: the build generates `ProductModel`, the queries off the type (`Product.Where(…)`,
+rows of `ProductRead`), `Product.Find(id)` + `product.Save()`, and the writes, `RaskDbContext` maps the aggregate, and a write refreshes every query keyed
 `QueryKey.For<Product>(…)` by itself. Then `rask db add AddProducts && rask db update`.
 [Chapter 2](tutorial/02-first-feature.md) writes all of it out.
 
@@ -69,11 +69,11 @@ builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));   // audit/soft-delete/events/outbox
 
 var app = builder.Build();
-Db.Configure(app.Services);                            // Product.Read.Where(…) now knows which database
+Db.Configure(app.Services);                            // Product.Where(…) now knows which database
 ```
 
 The type argument and `Db.Configure` are a pair: the bare `AddRaskData()` registers only the
-interceptors, and without both, the first `Product.Read.Where(…)` throws `The model database has not been
+interceptors, and without both, the first `Product.Where(…)` throws `The model database has not been
 configured`. Your context should derive from `RaskDbContext`, which is what maps the models you declare.
 
 The other pillars are **one registration + one `modelBuilder` line + a migration** you add by hand:
@@ -121,23 +121,26 @@ public const Tenancy Scope = Tenancy.PerTenant;     // a TenantId, a filter, ten
 OwnerId = Current.RequiredUserId,                   // Current.UserId is null when nobody is
 using (Tenant.Use(tenantId)) { /* … */ }           // work as one tenant; Tenant.Across() spans them
 
-// One row by id — there is no FindAsync on the read face, because Find would skip the query filters:
-var one = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync(CancellationToken);
+// One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
+var one = await Product.Where(p => p.Id == id).FirstOrDefaultAsync(CancellationToken);
+var agg = await Product.Find(id, cancellationToken: CancellationToken);   // Product? — whole, untracked
+agg!.Rename("Anvil");
+await agg.Save(cancellationToken: CancellationToken);                     // only what changed; stale Version throws
 
 // Ranked full-text search — builder.HasFullTextSearch(p => new { p.Name, p.Description }) in static Configure, then:
-var hits = await Product.Read.Search(query).Take(20).ToListAsync(CancellationToken);
+var hits = await Product.Search(query).Take(20).ToListAsync(CancellationToken);
 
 // Read and write it — no context injected; or send a command whose handler does the save:
-var products = await Product.Read.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
+var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
 var product  = await Product.Create(model, cancellationToken: CancellationToken);               // ProductModel from a form
 var edit     = product.ToModel();                                                               // fills an edit form
 await Product.Update(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);        // + values not from the form
 await Product.Delete(id, db: db, cancellationToken: CancellationToken);                        // join a context you hold
 await dispatcher.Send(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
-Ui.DataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
+Ui.DataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
 // Cache a query for the session, from Render — refetched by itself after any Product write (Rask.Query):
-var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.Read.CountAsync(ct));
+var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.CountAsync(ct));
 count.IsLoading ? Ui.Loading.Text("Loading…") : Text($"{count.Data} products")
 var save = QueryClient.Command();                    // pending/error state for a write; save.IsPending disables Save
 

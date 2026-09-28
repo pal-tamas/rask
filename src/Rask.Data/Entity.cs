@@ -111,7 +111,7 @@ public abstract class Entity<TId> : IEntity
 /// </summary>
 /// <remarks>
 /// <para>
-/// Only an aggregate is read and written off its type — <c>Product.Read.Where(…)</c>,
+/// Only an aggregate is read and written off its type — <c>Product.Where(…)</c>,
 /// <c>Product.Create(model)</c> — and only an aggregate gets a generated form model. What it holds is part
 /// of it: a property of another composite type is a value object, stored as columns on the aggregate's row.
 /// </para>

@@ -63,7 +63,7 @@ form checks it as the user types. `[Range]` is only for the form. `InStock`'s `=
 product starts with, on the create form too.
 
 **Reading needs nothing more.** The build generates a **read face** beside the aggregate —
-`Product.Read.Where(…)`, `Product.Read.AsQueryable()` — whose rows are `ProductRead`: plain columns, no
+`Product.Where(…)`, `Product.AsQueryable()` — whose rows are `ProductRead`: plain columns, no
 behaviour, nothing to save. Each read opens its own database context, runs, and disposes it before it
 returns. That's what makes it safe to call straight from a page: a Rask page lives as long as the browser
 keeps its socket open, and nothing here holds a context between calls.
@@ -315,7 +315,7 @@ public sealed partial class ProductsPage : Component
 {
     // An IQueryable, not a list. It holds no database connection: the grid runs it — sorted and paged in
     // SQL — each time it renders, and each run opens and disposes its own context.
-    private readonly IQueryable<ProductRead> _products = Product.Read.OrderBy(p => p.Name).AsQueryable();
+    private readonly IQueryable<ProductRead> _products = Product.OrderBy(p => p.Name).AsQueryable();
 
     protected override Component? HeadAssets => Title["Products"];
 
@@ -323,7 +323,7 @@ public sealed partial class ProductsPage : Component
     {
         // Cached for this session, and refetched by itself after any Product write — a create, an edit, a
         // delete — because its key is about Product.
-        var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.Read.CountAsync(ct));
+        var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.CountAsync(ct));
 
         return
         [
@@ -345,7 +345,7 @@ public sealed partial class ProductsPage : Component
 }
 ```
 
-`Product.Read.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
+`Product.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
 shape [`Ui.DataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager
 becomes `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required —
 it is what the grid identifies a row by when it redraws. The grid shows read faces, read-only by
@@ -380,7 +380,7 @@ What that one line did for this slice:
   the app handles concurrent writers — the jobs, email and outbox of later chapters — without hitting
   `database is locked`. A deploy overrides the connection string with `Rask__ConnectionStrings__App`, which
   is how it points at a persistent volume.
-- It pointed the model surface at that context, which is what lets `Product.Read.Where(…)` and
+- It pointed the model surface at that context, which is what lets `Product.Where(…)` and
   `Product.Create(…)` open a database with nothing injected.
 - It added the interceptors that fill in timestamps and versions, publish events, and soft-delete an
   aggregate that asks for it.
@@ -426,7 +426,7 @@ it's on disk in `app.db`.
 
 > **Troubleshooting.** `rask db` can't find the project → make sure you `cd`'d into `Shop` first.
 > `/products` fails with `no such table` → you skipped `rask db update`. The build can't find
-> `Routes.ProductsPage()`, `ProductModel` or `Product.Read` → those are generated; build once and the IDE
+> `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
 > catches up. For a route, the generator also needs the `[Route]` attribute on the page.
 
 **Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [data grid](../data-grid.md) ·
