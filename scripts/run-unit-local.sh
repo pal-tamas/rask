@@ -216,7 +216,11 @@ if [ -n "$scope_projects" ]; then
     done
     echo '  </ItemGroup>'
     echo '  <Target Name="Build">'
-    echo '    <MSBuild Projects="@(ScopedProject)" Targets="Restore" />'
+    # The session id is what `dotnet build -restore` passes too. Without a global property that differs,
+    # Build reuses the evaluation Restore made BEFORE it wrote the NuGet imports, so a never-restored test
+    # project (any fresh worktree) builds without Microsoft.NET.Test.Sdk's targets: no runtimeconfig, no
+    # testhost, and the run aborts with "Could not find testhost". Measured: 22 files out -> 81.
+    echo '    <MSBuild Projects="@(ScopedProject)" Targets="Restore" Properties="MSBuildRestoreSessionId=$([System.Guid]::NewGuid())" />'
     echo '    <MSBuild Projects="@(ScopedProject)" Targets="Build" BuildInParallel="true" />'
     echo '  </Target>'
     echo '</Project>'
