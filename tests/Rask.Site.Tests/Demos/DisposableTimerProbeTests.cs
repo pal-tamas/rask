@@ -10,7 +10,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
         var log = new LifecycleLog();
         var mounted = true;
         var page = Page.Render(
-            () => mounted ? DisposableTimerProbe.Log(log.Add).InstanceId(1) : null,
+            () => mounted ? DisposableTimerProbe.InstanceId(1).Log(log.Add) : null,
             TestServices.Default());
         Assert.Contains(log.Snapshot(), e => e == "#1 mounted");
 
@@ -27,7 +27,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
         var log = new LifecycleLog();
         var mounted = true;
         var page = Page.Render(
-            () => mounted ? UnmountTimerProbe.Log(log.Add).InstanceId(2) : null,
+            () => mounted ? UnmountTimerProbe.InstanceId(2).Log(log.Add) : null,
             TestServices.Default());
         Assert.Contains(log.Snapshot(), e => e == "#2 ticker started");
 
@@ -44,7 +44,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
         var log = new LifecycleLog();
         var mounted = true;
         var page = Page.Render(
-            () => mounted ? DisposableAsyncProbe.Log(log.Add).InstanceId(3) : null,
+            () => mounted ? DisposableAsyncProbe.InstanceId(3).Log(log.Add) : null,
             TestServices.Default());
         Assert.Contains(log.Snapshot(), e => e == "#3 async-mounted");
 

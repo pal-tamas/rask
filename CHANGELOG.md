@@ -103,6 +103,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **[RASK095](docs/diagnostics.md#rask095): a chain that skips a required step says which one, in the chain's
+  words.** `Card.Note("x")` used to read `'RaskSeed_Card' does not contain a definition for 'Note'`, and
+  `Div[Card]` compiled and threw while rendering; both now read `'Card' needs 'Title' before anything else —
+  write Card.Title(…).Note(…)`. The quick-fix inserts the missing steps right after the chain so far (`""`,
+  `default` or `default!` to replace), moving a required step the chain took too late instead of inventing one.
+- **[RASK096](docs/diagnostics.md#rask096): an event declared as a delegate is an error.** `public Action<Order>?
+  OnSave` is invocable, so `Editor.OnSave(fn)` binds as a call of it and its chain setter is unreachable; the
+  error reads `Declare 'OnSave' as Callback<Order>, not Action<Order>`. Templates and selectors
+  (`Func<T, Component>`, `Func<T, bool>`) are left alone. The quick-fix declares `Callback<Order> OnSave` and
+  rewrites `OnSave?.Invoke(x)` / `OnSave(x)` in the same type to `OnSave.Invoke(x)`, awaited where it is async.
 - **A scoped script's tuples and arrow functions reach C# too.** `export function pair(): [number, string]` is
   `ValueTask<(double, string)> Pair()` (labels name the elements: `[x: number, y: string]` → `(double X, string Y)`),
   a tuple parameter crosses as the array the script expects, and `export const double = (x: number) => x * 2` is

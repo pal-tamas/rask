@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK094, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK096, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -18,6 +18,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 | **RASK084** | makes the accessor `private set` / `private init`, or the field `private` |
 | **RASK085** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
+| **RASK095** | adds the missing required steps right after the chain so far (or moves one taken too late) |
+| **RASK096** | declares the event as a non-nullable `Callback` and fires it with `.Invoke(…)` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -129,6 +131,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK092](#rask092) | Warning | A unit reads wrong for its count (`2.Hour`, `1.Hours`) |
 | [RASK093](#rask093) | Error | An awaitable result is dropped, so the call never runs |
 | [RASK094](#rask094) | Warning | A scoped TypeScript export gets no typed method on its component |
+| [RASK095](#rask095) | Error | A chain skips a required step |
+| [RASK096](#rask096) | Error | An event is declared as a delegate, so its chain setter is unreachable |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2471,3 +2475,85 @@ A name the component only *inherits* is not a clash: `export function stop()` be
 SVG `<stop>` entry inside that component, where `Markup.Stop` still reaches the tag.
 
 The string call still works for anything left out: `js.InvokeAsync<T>("Rask.Card.pairs")`.
+
+## RASK095
+
+**A chain skips a required step** · Error · quick-fix
+
+A non-nullable property with no initializer is a **required step** ([RASK001](#rask001)): the chain is not
+the component until every one is taken. The chain's type already enforces that, but the compiler says so
+in the names of generated types nobody wrote — and a half-built chain used as a **child** is not a compile
+error at all: the children indexer takes it and it throws while rendering. This says what is missing, in
+the chain's own words, at the same place:
+
+```csharp
+public sealed partial class Card : Component
+{
+    public string Title { get; set; }          // required
+    public string Body  { get; set; }          // required
+    public string? Note { get; set; }          // optional
+}
+
+Card.Note("x")            // ❌ RASK095: 'Card' needs 'Title' and 'Body' before anything else — write Card.Title(…).Body(…).Note(…)
+return Card.Title("Q3");  // ❌ RASK095: 'Card' needs 'Body' — write Card.Title(…).Body(…)
+Div[Card]                 // ❌ RASK095: 'Card' needs 'Title' and 'Body' — write Card.Title(…).Body(…)
+```
+
+Before, the same three lines read `CS1929 'RaskSeed_Card' does not contain a definition for 'Note'`,
+`CS0029 Cannot implicitly convert type 'RaskPending_Card_Title' to 'Component'`, and — for the child —
+nothing until the page threw.
+
+The required steps can come in any order and `Key` can go anywhere; a chain stored in a local
+(`var card = Card;`) is left alone until it is used as something other than itself.
+
+**Fix:** take the missing steps first (**quick-fix available** — the lightbulb inserts them right after the
+chain so far, with a placeholder for you to replace: `""` for a string, `default` for a value type,
+`default!` otherwise; a required step the chain takes *later* is moved up with its own argument instead,
+since the finished component has no setter for it):
+
+```csharp
+Card.Note("x")                  →  Card.Title("").Body("").Note("x")
+Card.Note("x").Title("Q3")      →  Card.Title("Q3").Body("").Note("x")
+```
+
+The fix is not offered when a missing step is overloaded or generic, where a placeholder would be
+ambiguous. A form control's bare entry (`Input`, owing `Bind` *or* `Value`) is not reported: its openings are
+alternatives, not a list of steps to take.
+
+## RASK096
+
+**An event is declared as a delegate** · Error · quick-fix
+
+Every event on a component is a `Callback`, `Callback<T>` or `Callback<T1, T2>` — a struct, not a delegate.
+That is what keeps its chain step reachable: the chain receives on the component, so `Editor.OnSave(fn)`
+has to fall through member lookup to the generated setter, and a delegate-typed property is *invocable* —
+lookup stops at it and the call binds as an invocation of the property (CS1593).
+
+```csharp
+public sealed partial class Editor : Component
+{
+    public Action<Order>? OnSave { get; set; }        // ❌ RASK096: Declare 'OnSave' as Callback<Order>, not Action<Order>
+    public Func<Order, Task>? OnSubmit { get; set; }  // ❌ RASK096: Declare 'OnSubmit' as Callback<Order>, not Func<Order, Task>
+    public Func<Order, Component>? Row { get; set; }  // ✓ a template, not an event
+    public Func<Order, bool>? Filter { get; set; }    // ✓ a selector
+}
+```
+
+It reports a public settable property of a component whose type is `Action`, `Action<T>`,
+`Action<T1, T2>`, or a `Func` of up to two arguments returning a bare `Task` or `ValueTask`. A delegate
+that returns anything else is a template or a selector and is left alone, as is one with more than two
+arguments (no `Callback` takes them — pass one object).
+
+**Fix:** declare it non-nullable — an unset `Callback` is an empty slot whose `Invoke` does nothing — and
+fire it with `await OnSave.Invoke(order)` (**quick-fix available** — the lightbulb rewrites the type and,
+inside the same type declaration, `OnSave?.Invoke(x)` / `OnSave(x)` to `OnSave.Invoke(x)`, adding `await`
+where the statement is in an `async` method or lambda):
+
+```csharp
+public Callback<Order> OnSave { get; set; }
+
+async Task Save() => await OnSave.Invoke(order);
+```
+
+A caller's handler is unchanged: `Editor.OnSave(o => …)` and `Editor.OnSave(async o => …)` both bind.
+Null checks (`OnSave != null`) are not rewritten — use `OnSave.HasValue`, or just call `Invoke`.
