@@ -4,19 +4,16 @@ public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
 {
     private DateTimeOffset _mountedAt;
 
-    public required Action<string> Log { get; set; }
+    public Callback<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
-    public ValueTask DisposeAsync()
-    {
+    public ValueTask DisposeAsync() =>
         Log.Invoke($"#{InstanceId} async-disposed (lived {(TimeProvider.System.GetLocalNow() - _mountedAt).TotalMilliseconds:F0} ms)");
-        return ValueTask.CompletedTask;
-    }
 
     protected override async Task OnMount()
     {
         _mountedAt = TimeProvider.System.GetLocalNow();
-        Log.Invoke($"#{InstanceId} async-mounted");
+        await Log.Invoke($"#{InstanceId} async-mounted");
     }
 
     protected override Component? Render() =>

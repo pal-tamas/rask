@@ -21,7 +21,7 @@ public sealed partial class DisposalAsyncDemo : Component
                     .OnClick(UnmountAsync)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount async probe"]
             ],
             _asyncMounted
-                ? DisposableAsyncProbe.Log(AppendAsyncLog).InstanceId(_nextAsyncId)
+                ? DisposableAsyncProbe.InstanceId(_nextAsyncId).Log(AppendAsyncLog)
                 : P.Class("text-ui-muted italic mb-0")["Probe not mounted."],
             DisposalDemoLog.Entries(_asyncLog).ListId("dispose-async-log")
         ];

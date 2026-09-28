@@ -19,7 +19,9 @@ namespace Rask.Testing;
 ///         "what the user reads" usually means).
 ///     </para>
 /// </remarks>
+#pragma warning disable S4545 // `,nq` is the debugger's no-quotes format specifier, which S4545 parses as an expression
 [DebuggerDisplay("{Tag,nq} {DebugAttributes,nq}")]
+#pragma warning restore S4545
 public sealed class HtmlNode
 {
     // Content in document order: each item is either a text run (string) or a child element. Keeping the

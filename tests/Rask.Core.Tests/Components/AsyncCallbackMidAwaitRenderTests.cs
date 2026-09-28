@@ -123,7 +123,11 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
     // the mid-await render would serve it from cache and "state: busy" would never appear.
     private sealed class Child : Component
     {
+        // A raw Func<Task> on purpose: this pins AutoCallback.Wrap itself, and the class is built with `new`, never
+        // through a chain, so RASK096's unreachable-setter concern does not apply.
+#pragma warning disable RASK096
         public Func<Task>? OnActAsync { get; set; }
+#pragma warning restore RASK096
 
         protected override Component? Render() =>
             Button.OnClick(() => AutoCallback.Wrap(OnActAsync)!())["go"];

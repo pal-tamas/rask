@@ -47,4 +47,20 @@
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
+  <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
+       read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test
+       that starts reading a new file outside this project must add it here. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.Ui\Styles\**" />
+    <RaskTestReads Include="..\*.E2E.Tests\**" />
+    <RaskTestReads Include="..\..\**\*.csproj" />
+    <RaskTestReads Include="..\..\**\*.targets" />
+    <RaskTestReads Include="..\..\**\*.props" />
+    <RaskTestReads Include="..\..\rask.sh" />
+    <RaskTestReads Include="..\..\rask.ps1" />
+    <RaskTestReads Include="..\..\docs\installation.md" />
+    <RaskTestReads Include="..\..\src\Rask.Tailwind\**" />
+    <RaskTestReads Include="..\..\src\Rask.Tailwind.Tasks\**" />
+  </ItemGroup>
+
 </Project>

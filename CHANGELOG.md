@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A commit that carries its CHANGELOG line and its docs no longer tests the whole solution.** Those files
+  sat outside `src/`/`tests/`, so the scoped gate fell back to FULL on ~90% of commits. Each test project now
+  declares the files it reads from disk (`<RaskTestReads/>` in its csproj), and a change scopes to exactly
+  those readers — which also closes blind spots where a change to, say, `src/Rask.Server/Resources/rask.ts`
+  ran none of the Core tests that pin it. See `docs/development-workflow.md`.
+- **The generator test suites run about 15× faster.** Their harnesses built a fresh Roslyn reference set for every
+  test, so each of ~950 tests re-read every framework assembly's metadata; the set is now built once per process.
+  `Rask.Generators.Tests` went from 67 s to 4 s and `Rask.Batteries.Generators.Tests` from 37 s to 3 s, taking the
+  longest assembly off the unit gate's critical path.
 - **BREAKING: MDN is the source of truth for the HTML elements.** Every element type, its base, its tags and its
   attribute properties are now generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`,
   `@mdn/browser-compat-data`), kept in `src/Rask.Core/Dom/mdn.snapshot.json`. Nothing generated is committed,
@@ -103,6 +112,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **[RASK095](docs/diagnostics.md#rask095): a chain that skips a required step says which one, in the chain's
+  words.** `Card.Note("x")` used to read `'RaskSeed_Card' does not contain a definition for 'Note'`, and
+  `Div[Card]` compiled and threw while rendering; both now read `'Card' needs 'Title' before anything else —
+  write Card.Title(…).Note(…)`. The quick-fix inserts the missing steps right after the chain so far (`""`,
+  `default` or `default!` to replace), moving a required step the chain took too late instead of inventing one.
+- **[RASK096](docs/diagnostics.md#rask096): an event declared as a delegate is an error.** `public Action<Order>?
+  OnSave` is invocable, so `Editor.OnSave(fn)` binds as a call of it and its chain setter is unreachable; the
+  error reads `Declare 'OnSave' as Callback<Order>, not Action<Order>`. Templates and selectors
+  (`Func<T, Component>`, `Func<T, bool>`) are left alone. The quick-fix declares `Callback<Order> OnSave` and
+  rewrites `OnSave?.Invoke(x)` / `OnSave(x)` in the same type to `OnSave.Invoke(x)`, awaited where it is async.
 - **A scoped script's tuples and arrow functions reach C# too.** `export function pair(): [number, string]` is
   `ValueTask<(double, string)> Pair()` (labels name the elements: `[x: number, y: string]` → `(double X, string Y)`),
   a tuple parameter crosses as the array the script expects, and `export const double = (x: number) => x * 2` is

@@ -86,4 +86,12 @@
        fixtures use to import the bundle under test. -->
   <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
 
+  <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
+       read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test
+       that starts reading a new file outside this project must add it here. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.Site\wwwroot\index.html" />
+    <RaskTestReads Include="..\..\src\Rask.Wasm\**" />
+  </ItemGroup>
+
 </Project>

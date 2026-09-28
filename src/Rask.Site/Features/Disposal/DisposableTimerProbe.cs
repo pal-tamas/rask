@@ -4,16 +4,16 @@ public sealed partial class DisposableTimerProbe : Component, IDisposable
 {
     private DateTimeOffset _mountedAt;
 
-    public required Action<string> Log { get; set; }
+    public Callback<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
     public void Dispose() =>
-        Log.Invoke($"#{InstanceId} disposed (lived {(TimeProvider.System.GetLocalNow() - _mountedAt).TotalMilliseconds:F0} ms)");
+        _ = Log.Invoke($"#{InstanceId} disposed (lived {(TimeProvider.System.GetLocalNow() - _mountedAt).TotalMilliseconds:F0} ms)").AsTask();
 
     protected override async Task OnMount()
     {
         _mountedAt = TimeProvider.System.GetLocalNow();
-        Log.Invoke($"#{InstanceId} mounted");
+        await Log.Invoke($"#{InstanceId} mounted");
     }
 
     protected override Component? Render() =>

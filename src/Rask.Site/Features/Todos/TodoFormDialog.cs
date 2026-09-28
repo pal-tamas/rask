@@ -10,8 +10,8 @@ public sealed partial class TodoFormDialog : Component
     public bool Open { get; set; }
     public TodoForm Model { get; set; }
     public bool IsAdding { get; set; }
-    public Action OnCancel { get; set; }
-    public Action<TodoForm> OnSave { get; set; }
+    public Callback OnCancel { get; set; }
+    public Callback<TodoForm> OnSave { get; set; }
 #pragma warning restore CS8618
 
     // OnClose fires for Escape, a backdrop click, and the header close button — all route back to /todos
@@ -32,16 +32,16 @@ public sealed partial class TodoFormDialog : Component
             // dimming the page and nothing to click outside the dialog. It carries the click that cancels.
             !Open
                 ? null
-                : Div.Class("dialog-backdrop fixed inset-0 z-40 bg-black/40").OnClick(() => OnCancel?.Invoke()),
+                : Div.Class("dialog-backdrop fixed inset-0 z-40 bg-black/40").OnClick(OnCancel),
             Dialog.Open(Open).Class(
                 "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-ui-bg p-5 shadow-xl")
                 // Escape dismisses. A non-modal dialog fires no `cancel` event, so the key is read
                 // where it lands — no client script, just the same routed cancel the backdrop uses.
-                .OnKeyDown(e =>
+                .OnKeyDown(async e =>
                 {
                     if (e.Key is "Escape")
                     {
-                        OnCancel?.Invoke();
+                        await OnCancel.Invoke();
                     }
                 })[
                 H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],

@@ -24,6 +24,14 @@ Two kinds of edge are followed, because ProjectReference alone is not the whole 
     Globs are handled by taking the directory prefix before the first wildcard and treating the
     whole of it as the dependency. That is coarser than the glob and never narrower, which is the
     safe direction. MSBuild also splits an Include on ';', so each item is split the same way.
+    EmbeddedResource / None / Content / AdditionalFiles items reaching out of the project are
+    build inputs in exactly the same way, and are followed the same way.
+
+  * <RaskTestReads Include="..."/> - a file a TEST reads from disk at runtime (a contract test on
+    another project's rask.ts, a scan of docs/**/*.md). No reference carries that edge, so the test
+    project declares it, and the glob is matched precisely, extension filter included. This is also
+    what lets a file outside src/ and tests/ - CHANGELOG.md, docs/, llms.txt - scope to the tests
+    that read it instead of forcing FULL. A file outside them that nobody declares is still FULL.
 """
 
 from __future__ import annotations
@@ -87,6 +95,34 @@ def item_includes(text: str, tag: str) -> list[str]:
     return values
 
 
+def repo_relative(project_dir: str, include: str) -> str:
+    """An Include resolved against its project's directory, repo-relative, wildcards kept."""
+    return os.path.normpath(os.path.join(project_dir, include.replace("\\", "/"))).replace("\\", "/")
+
+
+def glob_regex(pattern: str) -> re.Pattern[str]:
+    """An MSBuild glob as a regex over repo-relative paths: ** spans directories, * and ? do not."""
+    out = []
+    i = 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out.append("(?:.*/)?")
+            i += 3
+        elif pattern.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif pattern[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif pattern[i] == "?":
+            out.append("[^/]")
+            i += 1
+        else:
+            out.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+
 def owning_project(rel: str, project_dirs: dict[str, Path]) -> Path | None:
     """The project whose directory is the nearest ancestor of this file."""
     d = os.path.dirname(rel)
@@ -126,6 +162,8 @@ def main() -> None:
     dependents: dict[str, set[str]] = {}
     # A source directory linked into a project by <Compile Include="..\..."/>.
     linked_dirs: list[tuple[str, str]] = []  # (directory, dependent project key)
+    # A file a test reads at runtime, declared by <RaskTestReads/>, matched exactly.
+    test_reads: list[tuple[re.Pattern[str], str]] = []
 
     for p in projects:
         key = str(p.relative_to(root)).replace("\\", "/")
@@ -142,26 +180,45 @@ def main() -> None:
                 continue
             dependents.setdefault(tkey, set()).add(key)
 
-        for inc in item_includes(text, "Compile"):
-            norm = inc.replace("\\", "/")
-            if not norm.startswith(".."):
-                continue  # a file inside the project itself; the owning-project rule covers it
-            # Cut the glob off: everything before the first wildcard segment.
-            segments = norm.split("/")
-            keep = [s for s in segments if "*" not in s and "?" not in s]
-            if keep and ("." in keep[-1]) and keep[-1] == segments[len(keep) - 1] and len(keep) == len(segments):
-                keep = keep[:-1]  # a concrete file: depend on its directory
-            target = (p.parent / "/".join(keep)).resolve()
-            try:
-                tdir = str(target.relative_to(root)).replace("\\", "/")
-            except ValueError:
-                continue
-            linked_dirs.append((tdir, key))
+        project_dir = str(p.parent.relative_to(root)).replace("\\", "/")
+
+        for tag in ("Compile", "EmbeddedResource", "None", "Content", "AdditionalFiles"):
+            for inc in item_includes(text, tag):
+                norm = inc.replace("\\", "/")
+                if not norm.startswith(".."):
+                    continue  # a file inside the project itself; the owning-project rule covers it
+                # Cut the glob off: everything before the first wildcard (or MSBuild property) segment.
+                segments = norm.split("/")
+                keep = []
+                for s in segments:
+                    if "*" in s or "?" in s or "$(" in s:
+                        break
+                    keep.append(s)
+                target = repo_relative(project_dir, "/".join(keep))
+                if len(keep) == len(segments) and "." in keep[-1]:
+                    parent = os.path.dirname(target)
+                    # A concrete file: depend on its directory — unless that is the repo root, where
+                    # "its directory" would be every file there is; there, the file itself.
+                    target = parent if parent else target
+                if target.startswith("../") or target == "..":
+                    continue
+                linked_dirs.append((target, key))
+
+        for inc in item_includes(text, "RaskTestReads"):
+            target = repo_relative(project_dir, inc)
+            if not target.startswith("../"):
+                test_reads.append((glob_regex(target), key))
 
     affected: set[str] = set()
     for rel in changed:
+        readers = {dependent for tdir, dependent in linked_dirs if rel == tdir or rel.startswith(tdir + "/")}
+        readers |= {reader for pattern, reader in test_reads if pattern.match(rel)}
+        affected |= readers
+
         if not rel.startswith(PROJECT_ROOTS):
-            full(f"{rel} is outside src/, tests/, site/ and benchmarks/")
+            if readers:
+                continue  # CHANGELOG.md, docs/, llms.txt: exactly the projects that read it
+            full(f"{rel} is outside src/ and tests/, and no project declares reading it")
 
         # The template trees hold no project of their own: they are embedded into the CLI, which is
         # what has to rebuild (and be retested) when one of them changes. Without this they map to
@@ -177,10 +234,6 @@ def main() -> None:
         if owner is None:
             full(f"{rel} belongs to no project (a source-linked or shared file)")
         affected.add(str(owner.relative_to(root)).replace("\\", "/"))
-
-        for tdir, dependent in linked_dirs:
-            if rel == tdir or rel.startswith(tdir + "/"):
-                affected.add(dependent)
 
     # Transitive closure over "is depended upon by".
     queue = list(affected)
