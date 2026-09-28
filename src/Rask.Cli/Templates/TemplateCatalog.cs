@@ -50,9 +50,12 @@ internal static class TemplateCatalog
         // Server is just a server. It used to carry a --wasm flag that turned it into a two-half app, and
         // that shape is the wasm-hosted template below now (#1103): a project type answers "what is this
         // app" far better than a yes/no asked after the type has already been chosen.
+        //
+        // "tests" — the <name>.Tests project — is on this and the wasm template only. The front-end-plus-host
+        // lanes are two halves with two test stories, and neither has a scaffolded one yet.
         new("server", "Rask Server app",
             new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags, "ops", "push"],
+                [.. WebFlags, .. DatabaseFlags, "ops", "push", "tests"],
                 StringComparer.Ordinal),
             // The server runtime carries ICU regardless, so scaffolding the registration costs nothing.
             ShipsLocalization: true),
@@ -60,7 +63,7 @@ internal static class TemplateCatalog
         // is roughly a megabyte, and it is the one part Program.cs cannot turn on by itself. The csproj
         // carries <RaskGlobalization> commented with the reason beside it.
         new("wasm", "Rask browser-WASM SPA",
-            new HashSet<string>(WebFlags, StringComparer.Ordinal)),
+            new HashSet<string>([.. WebFlags, "tests"], StringComparer.Ordinal)),
         // The same lane as react/angular below — a front end on an ASP.NET host — except the front end is
         // C#. It lives in Client/ (capital, because it IS a C# project; the JS lanes use lowercase
         // client/), the host serves it with MapRaskSpa, and the two halves talk over remote CQRS.

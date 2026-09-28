@@ -40,6 +40,15 @@
     <NoWarn>$(NoWarn);IL2104</NoWarn>
   </PropertyGroup>
 
+  <!-- rask:if tests -->
+  <PropertyGroup>
+    <!-- The test project lives in a folder of this one, and its files are its own: kept out of this
+         project's sources, content and scoped CSS/TypeScript, or this app would compile them too. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Company.RaskServer.Tests/**</DefaultItemExcludes>
+    <RaskScopedSourceExclude>$(RaskScopedSourceExclude);Company.RaskServer.Tests\**</RaskScopedSourceExclude>
+  </PropertyGroup>
+  <!-- rask:end -->
+
   <ItemGroup>
     <PackageReference Include="Rask.Wasm" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>

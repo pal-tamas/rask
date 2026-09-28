@@ -3,6 +3,12 @@
     ".dockerignore": [
       "docker"
     ],
+    "Company.RaskServer.Tests/Company.RaskServer.Tests.csproj": [
+      "tests"
+    ],
+    "Company.RaskServer.Tests/Features/Home/HomePageTests.cs": [
+      "tests"
+    ],
     "Dockerfile": [
       "docker"
     ],

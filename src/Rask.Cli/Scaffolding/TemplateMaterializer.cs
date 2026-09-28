@@ -245,7 +245,7 @@ internal static class TemplateMaterializer
     {
         ArgumentNullException.ThrowIfNull(batteries);
 
-        var on = new List<string>(15);
+        var on = new List<string>(16);
         Add(batteries.Pwa, "pwa");
         Add(batteries.Cqrs, "cqrs");
         Add(batteries.Data, "data");
@@ -259,6 +259,7 @@ internal static class TemplateMaterializer
         Add(batteries.Snapshots, "snapshots");
         Add(batteries.Logs, "logs");
         Add(batteries.Ops, "ops");
+        Add(batteries.Tests, "tests");
 
         // Not a `rask new` flag — it is whether the template ships the language registration at all
         // (TemplateInfo.ShipsLocalization, true for the server template and false in the browser, where

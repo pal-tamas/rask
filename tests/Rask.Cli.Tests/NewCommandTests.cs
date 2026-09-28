@@ -315,7 +315,7 @@ public sealed class NewCommandTests
         Assert.Contains("nothing to change for: --no-cqrs", console.ErrorText, StringComparison.Ordinal);
         // localization is no longer listed, because it is no longer a flag (#854). Listing it here would
         // name something the user cannot then pass.
-        Assert.Contains("It supports: docker, pwa.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("It supports: docker, pwa, tests.", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>

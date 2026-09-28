@@ -82,6 +82,10 @@ internal sealed record ServerBatteries
     /// <summary>The operator dashboard at <c>/_rask</c> over every battery's table.</summary>
     public bool Ops { get; init; }
 
+    /// <summary>A test project beside the app, with one passing test, so `dotnet test` is green from the start.</summary>
+    /// <remarks>Not a battery the app runs with, but decided the same way: on unless <c>--no-tests</c>.</remarks>
+    public bool Tests { get; init; }
+
     /// <summary>True when any battery needs a <c>TContext</c> — i.e. a database-backed pillar is on.</summary>
     public bool AnyDbPillar => Jobs || Mail || Cache || Storage || Outbox;
 

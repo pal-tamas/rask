@@ -98,6 +98,7 @@ rask new MyApp                       # everything: a server app with the whole s
 rask new MyApp -t wasm-hosted        # a WebAssembly app in Client/, served by an ASP.NET host
 rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
+rask new Shop --no-tests             # no Shop.Tests project beside the app
 rask new Spa --template wasm         # an installable browser-WASM PWA
 rask new Shop --template react       # a React client on an ASP.NET host (no Node needed to scaffold)
 rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
@@ -164,6 +165,10 @@ plain error instead, and bare `rask` prints the command list — so automation s
 Every project also gets a `.gitignore`, an `.editorconfig`, a `.slnx` solution and a `global.json`, and
 is initialized as a git repository with one commit — `--no-git` skips that, and it is skipped
 automatically inside an existing repository.
+
+A `server` or `wasm` app also gets a test project, `<Name>.Tests/`, listed in the `.slnx` beside the app,
+with one passing test — so `dotnet test` is green before you have written anything. `--no-tests` leaves
+it out.
 
 **`global.json` decides which SDK compiles the app**, and it names the band your `--framework` asked
 for:
@@ -257,6 +262,10 @@ MyApp/
   Resources/Strings.en.json       the text of the UI, compiled into typed members
   wwwroot/                        manifest.webmanifest, icon.svg, offline.html
   Properties/launchSettings.json
+  MyApp.slnx                      the app and its tests, for `dotnet test` and your IDE
+  MyApp.Tests/
+    MyApp.Tests.csproj            references the app, Rask.Testing and xUnit
+    Features/Home/HomePageTests.cs  renders the home page and checks its greeting
 ```
 
 The shell lives in `Features/Shared/`; the welcome page is its own `Features/Home/` slice. The account
@@ -302,6 +311,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
 | `--no-ops` | Leave out the [operator dashboard](dashboard.md) at `/_rask` over every battery's table — queue depth, dead letters and the error behind each, the log, the live SQLite pragmas. It is gated on the `admin` role — the one the first account to register holds — because it shows job payloads, stored email bodies and log lines. |
 | `--no-docker` | Leave out the production `Dockerfile` and `.dockerignore`. |
+| `--no-tests` | Leave out the `<Name>.Tests` project — on `server` and `wasm`, the templates that scaffold one. It references the app and [`Rask.Testing`](testing.md) and carries one passing test, `Home_page_greets_the_visitor`, so `dotnet test` works before you have written anything. |
 | `--output`, `-o` | Target directory (defaults to a folder named after the project). |
 | `--dry-run` | Print the files that would be created and write nothing (skips the restore, the build and the migration). |
 | `--force` | Scaffold into a directory that already contains files, overwriting on collision. Without it, any existing file the template would overwrite stops the command. |

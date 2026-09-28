@@ -36,7 +36,7 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(files, ServerNextSteps(name, batteries))
         {
-            Packages = ServerPackages(),
+            Packages = ServerPackages(batteries),
         };
     }
 
@@ -119,7 +119,9 @@ internal static partial class ProjectGenerator
     // The package list, in the same order the csproj emits them, so `rask new`'s summary matches the file.
     // Rask.Server carries every battery; one turned off is a line in Program.cs, never a missing reference.
     // Rask.DevTools is named directly because its build/ hooks are what keep it out of a Release publish.
-    private static List<string> ServerPackages() => ["Rask.Server", "Rask.DevTools"];
+    // Rask.Testing is the test project's, listed so the summary names every package the scaffold pins.
+    private static List<string> ServerPackages(ServerBatteries batteries) =>
+        batteries.Tests ? ["Rask.Server", "Rask.DevTools", "Rask.Testing"] : ["Rask.Server", "Rask.DevTools"];
 
     private static string ServerNextSteps(string name, ServerBatteries batteries)
     {
@@ -127,6 +129,7 @@ internal static partial class ProjectGenerator
         steps.Append("Created ").Append(name).Append(" (Rask server app).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
         steps.Append("  rask dev            # run with hot reload (or: dotnet run)\n");
+        AppendTestStep(steps, batteries.Tests);
         if (batteries.Docker)
         {
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");
@@ -135,6 +138,15 @@ internal static partial class ProjectGenerator
         AppendBatteryNextSteps(steps, batteries);
 
         return steps.ToString();
+    }
+
+    /// <summary>The <c>dotnet test</c> line, when the scaffold has a test project to run.</summary>
+    private static void AppendTestStep(StringBuilder steps, bool tests)
+    {
+        if (tests)
+        {
+            steps.Append("  dotnet test         # run the tests — the first one already passes\n");
+        }
     }
 
     /// <summary>

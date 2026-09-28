@@ -82,6 +82,7 @@ public sealed class FeedCoverageTests
             Snapshots = true,
             Logs = true,
             Ops = true,
+            Tests = true,
             Localization = true,
             CultureList = "en",
         };
@@ -105,6 +106,10 @@ public sealed class FeedCoverageTests
 
         AssertFeedCovers(
             ProjectGenerator.GenerateServer(Root, "App", batteries, Version), "the server template with every battery");
+
+        AssertFeedCovers(
+            ProjectGenerator.GenerateWasm(Root, "App", pwa: true, docker: true, Version, batteries),
+            "the wasm template with its test project");
 
         // wasm-hosted supports the same batteries AND adds two packages of its own, so the combination
         // that pulls in the most is this one rather than the server's.

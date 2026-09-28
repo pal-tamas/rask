@@ -169,6 +169,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` scaffolds a test project with one passing test.** `rask new Shop` writes `Shop.Tests/` beside the
+  app — referencing it, `Rask.Testing` and xUnit, listed in `Shop.slnx` — with `Home_page_greets_the_visitor`,
+  which renders `HomePage` in-process and checks its greeting, so `dotnet test` is green from the first commit.
+  On the `server` and `wasm` templates; the app's csproj keeps the folder out of its own globs. `--no-tests`
+  leaves it out. See [the CLI](docs/cli.md#rask-new--scaffold-a-project) and [Testing](docs/testing.md).
 - **[RASK095](docs/diagnostics.md#rask095): a chain that skips a required step says which one, in the chain's
   words.** `Card.Note("x")` used to read `'RaskSeed_Card' does not contain a definition for 'Note'`, and
   `Div[Card]` compiled and threw while rendering; both now read `'Card' needs 'Title' before anything else —

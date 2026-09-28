@@ -93,6 +93,8 @@ The `server` template is deliberately small — a handful of files, no example p
   raw tags and class strings.
 - **`Features/Auth/`** — the sign-in, registration, sign-out, confirmation, password-reset and devices pages,
   as your own code: the flows come from `Rask.Auth`, the pages are yours to restyle.
+- **`Shop.Tests/`** — the app's test project, with one test that renders the home page and checks its
+  greeting. `dotnet test` runs it — see [Testing](../testing.md).
 
 Everything the CLI generates lands under `Features/`: a screen is its own `Features/<Name>/` slice, and
 cross-cutting code (the app root, the `User` account, components, jobs, emails) sits in `Features/Shared/`.
@@ -108,6 +110,7 @@ For the component model itself — state, event handlers, the chain, routing —
 - Browsing to `/login` shows a sign-in form and `/register` offers to claim the app (proof the accounts battery
   wired in).
 - Editing `HomePage` in `Features/Home/HomePage.cs` and saving updates the page without a manual refresh.
+- `dotnet test` reports one test passed.
 
 **Learn more:** [the `rask` CLI](../cli.md) · [authentication](../authentication.md)
 
