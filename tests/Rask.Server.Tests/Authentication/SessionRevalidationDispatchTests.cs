@@ -108,7 +108,7 @@ public class SessionRevalidationDispatchTests
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = cookie;
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         return (ws, sessionId, handler);
     }

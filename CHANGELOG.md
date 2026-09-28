@@ -13,6 +13,11 @@ them until tagged releases begin.
   EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
   `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
   on a server app included. The file is generated from the scaffold's own files, no longer a committed fragment.
+- **`Rask.Server.Tests` spends ~40% less time waiting.** After a `hello`, 26 tests drained a frame with a 2 s
+  timeout — but a hello is answered with nothing unless a render is owed, so each waited out the whole 2 s,
+  about half the suite's test time. They now wait for the server to attach the socket (`AttachedAsync`), which
+  takes milliseconds. Summed test time 240 s → ~148 s; the two sites that do receive a catch-up frame and the
+  multi-socket reconnect tests keep their receive.
 - **One `Routes` class per project.** The route generator used to emit a `Routes` class per namespace, so a page in
   `Features.Shared` reaching the home page needed `using HomeRoutes = MyApp.Features.Home.Routes;`. There is now ONE
   `Routes`, in the project's root namespace (`RootNamespace`, else the assembly name), and `Routes.HomePage()` works
