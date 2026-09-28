@@ -20,7 +20,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("public static partial class Routes", output);
         Assert.Contains("public static global::Rask.Core.Routing.RouteUrl HomePage()", output);
@@ -44,7 +44,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("UserPage(int Id)", output);
         Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Id)", output);
@@ -67,7 +67,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("CounterPage(string? Name = null)", output);
         Assert.Contains("Name is null ? \"\" : \"/\" + global::Rask.Core.Routing.RouteValueFormatter.Format(Name)",
@@ -152,7 +152,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("CounterPage(string? Name = null, string? Greeting = null)", output);
         Assert.Contains("Greeting=", output);
@@ -175,7 +175,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("\"q=\"", output);
         Assert.DoesNotContain("\"Search=\"", output);
@@ -199,7 +199,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("\"a%20b%26c=\"", output);
         Assert.DoesNotContain("\"a b&c=\"", output);
@@ -226,7 +226,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("DashOverview()", output);
         Assert.Contains("\"/dashboard/overview\"", output);
@@ -269,7 +269,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("OrderPage(global::System.Guid Id)", output);
     }
@@ -290,7 +290,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("BlogPostPage(string Slug)", output);
         Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Slug)", output);
@@ -458,7 +458,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("UserPage(int UserId)", output);
         Assert.DoesNotContain("RASK004", output);
@@ -637,7 +637,7 @@ public class RoutesGeneratorTests
         var run = GeneratorDriverFixture.RunRoutes(src);
 
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("CustomerPage(global::Demo.CustomerId Id)", output);
         Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Id)", output);
@@ -672,7 +672,7 @@ public class RoutesGeneratorTests
         var run = GeneratorDriverFixture.RunRoutes(src);
 
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("ListPage(global::Demo.PageNumber? Page = null)", output);
         Assert.Contains("global::Rask.Core.Routing.RouteValueFormatter.Format(Page)", output);
@@ -728,7 +728,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         // Canonical formatter derives from the first template (/todos), which takes no params.
         Assert.Contains("public static global::Rask.Core.Routing.RouteUrl TodosPage()", output);
@@ -752,8 +752,8 @@ public class RoutesGeneratorTests
                   }
                   """;
 
-        var a = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Demo.Routes.g.cs");
-        var b = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Demo.Routes.g.cs");
+        var a = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Routes.g.cs");
+        var b = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Routes.g.cs");
 
         Assert.Equal(a, b);
     }

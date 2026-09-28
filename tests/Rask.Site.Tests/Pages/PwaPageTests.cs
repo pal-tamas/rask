@@ -80,7 +80,7 @@ public sealed class PwaPageTests
         //
         // Rendered through the app so the route resolves and CodeSample gets its services — the page
         // cannot be newed up and rendered on its own, because CodeSample is DI-constructed.
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.PwaPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.PwaPage() };
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 

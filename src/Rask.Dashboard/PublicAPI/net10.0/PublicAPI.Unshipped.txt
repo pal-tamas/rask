@@ -65,7 +65,7 @@ override Rask.Dashboard.Panels.StorageStats.GetHashCode() -> int
 override Rask.Dashboard.Panels.StoredFileRow.Equals(object? obj) -> bool
 override Rask.Dashboard.Panels.StoredFileRow.GetHashCode() -> int
 override Rask.Dashboard.Panels.StoredFileRow.ToString() -> string!
-static Rask.Dashboard.Pages.Routes.StoragePage(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Routes.StoragePage(string? Search = null) -> Rask.Core.Routing.RouteUrl
 static Rask.Dashboard.Pages.__RaskNav_StoragePage.Go(string? Search = null, bool replace = false) -> void
 static Rask.Dashboard.Pages.__RaskNav_StoragePage.Url(string? Search = null) -> Rask.Core.Routing.RouteUrl
 static Rask.Dashboard.Pages.__RaskNav_StoragePage.extension(Rask.Dashboard.Pages.StoragePage!).Go(string? Search = null, bool replace = false) -> void
@@ -146,7 +146,7 @@ Rask.Dashboard.Pages.QueuePage.Queue.set -> void
 Rask.Dashboard.Pages.QueuePage.QueuePage(System.Collections.Generic.IEnumerable<Rask.Dashboard.Panels.IQueuePanel!>! queues, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
 Rask.Dashboard.Pages.QueuePage.Show.get -> string?
 Rask.Dashboard.Pages.QueuePage.Show.set -> void
-Rask.Dashboard.Pages.Routes
+Rask.Dashboard.Routes
 Rask.Dashboard.Pages.SystemPage
 Rask.Dashboard.Pages.SystemPage.SystemPage(Rask.Dashboard.Panels.ISystemPanelReader! system, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider) -> void
 Rask.Dashboard.Pages.__RaskNav_CachePage
@@ -381,12 +381,12 @@ override Rask.Dashboard.Panels.RecurringJobRow.GetHashCode() -> int
 override Rask.Dashboard.Panels.RecurringJobRow.ToString() -> string!
 static Rask.Dashboard.Logging.DashboardLogEntry.operator !=(Rask.Dashboard.Logging.DashboardLogEntry? left, Rask.Dashboard.Logging.DashboardLogEntry? right) -> bool
 static Rask.Dashboard.Logging.DashboardLogEntry.operator ==(Rask.Dashboard.Logging.DashboardLogEntry? left, Rask.Dashboard.Logging.DashboardLogEntry? right) -> bool
-static Rask.Dashboard.Pages.Routes.CachePage(string? Search = null) -> Rask.Core.Routing.RouteUrl
-static Rask.Dashboard.Pages.Routes.DashboardLayout() -> Rask.Core.Routing.RouteUrl
-static Rask.Dashboard.Pages.Routes.LogsPage(string? View = null, string? Level = null, string? Category = null, string? Query = null, int? Page = null) -> Rask.Core.Routing.RouteUrl
-static Rask.Dashboard.Pages.Routes.OverviewPage() -> Rask.Core.Routing.RouteUrl
-static Rask.Dashboard.Pages.Routes.QueuePage(string! Queue, string? Show = null) -> Rask.Core.Routing.RouteUrl
-static Rask.Dashboard.Pages.Routes.SystemPage() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Routes.CachePage(string? Search = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Routes.DashboardLayout() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Routes.LogsPage(string? View = null, string? Level = null, string? Category = null, string? Query = null, int? Page = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Routes.OverviewPage() -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Routes.QueuePage(string! Queue, string? Show = null) -> Rask.Core.Routing.RouteUrl
+static Rask.Dashboard.Routes.SystemPage() -> Rask.Core.Routing.RouteUrl
 static Rask.Dashboard.Pages.__RaskNav_CachePage.Go(string? Search = null, bool replace = false) -> void
 static Rask.Dashboard.Pages.__RaskNav_CachePage.Url(string? Search = null) -> Rask.Core.Routing.RouteUrl
 static Rask.Dashboard.Pages.__RaskNav_CachePage.extension(Rask.Dashboard.Pages.CachePage!).Go(string? Search = null, bool replace = false) -> void

@@ -103,7 +103,7 @@ public sealed partial class GuideChrome : Component
 
     private static Component BackLink() =>
         NavLink
-            .Href(PageMeta.LinkTo(Features.Routes.GuidesIndexPage()))
+            .Href(PageMeta.LinkTo(Routes.GuidesIndexPage()))
             .ActiveClass("")
             .Class("inline-flex items-center mb-3 no-underline text-sm guide-backlink")[
             Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("me-1"), "All guides"
@@ -219,7 +219,7 @@ public sealed partial class GuideChrome : Component
             prev is null
                 ? Span.Class("guide-prevnext-spacer")
                 : NavLink
-                    .Href(PageMeta.LinkTo(Features.Routes.GuidePage(prev.Slug)))
+                    .Href(PageMeta.LinkTo(Routes.GuidePage(prev.Slug)))
                     .ActiveClass("")
                     .Class("guide-prevnext-link guide-prevnext-prev")[
                     Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("me-2"),
@@ -231,7 +231,7 @@ public sealed partial class GuideChrome : Component
             next is null
                 ? Span.Class("guide-prevnext-spacer")
                 : NavLink
-                    .Href(PageMeta.LinkTo(Features.Routes.GuidePage(next.Slug)))
+                    .Href(PageMeta.LinkTo(Routes.GuidePage(next.Slug)))
                     .ActiveClass("")
                     .Class("guide-prevnext-link guide-prevnext-next")[
                     Span.Class("guide-prevnext-body")[
