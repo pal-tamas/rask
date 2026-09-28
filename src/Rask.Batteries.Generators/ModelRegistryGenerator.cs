@@ -362,7 +362,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
     /// <remarks>
     ///     <para>
     ///         Extension members, not properties on a generated context, so an application that brings its own
-    ///         DbContext gets them too and nothing has to be <c>partial</c> — the same way <c>Order.Read</c>
+    ///         DbContext gets them too and nothing has to be <c>partial</c> — the same way <c>Order.Where(…)</c>
     ///         reaches the aggregate.
     ///     </para>
     ///     <para>

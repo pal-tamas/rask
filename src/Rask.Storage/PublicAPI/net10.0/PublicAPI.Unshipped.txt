@@ -99,8 +99,6 @@ const Rask.Storage.StoredFile.Writes = Rask.Data.ModelWrites.None -> Rask.Data.M
 static Rask.Storage.RaskStorageEndpointExtensions.MapRaskStorage(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
 static Rask.Storage.RaskStorageServiceCollectionExtensions.AddRaskStorage<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Storage.StorageOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Storage.StorageModelBuilderExtensions.AddRaskStorage(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Read.get -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
-static Rask.Storage.StoredFileReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 Rask.Batteries.Counting<T>
 Rask.Batteries.Counting<T>.Count.get -> int
 Rask.Batteries.Counting<T>.Counting() -> void
@@ -108,7 +106,6 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
@@ -191,8 +188,59 @@ static Rask.Storage.SavedFileCounting.Named(this Rask.Batteries.Counting<Rask.St
 static Rask.Storage.SavedFileCounting.Private(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
 static Rask.Storage.SavedFileCounting.Public(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
 static Rask.Storage.Files.IsOn.get -> bool
+static Rask.Storage.StoredFileReadAccess.AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Storage.StoredFileReadAccess.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Storage.StoredFileReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Storage.StoredFileReadAccess.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Storage.StoredFileReadAccess.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Storage.StoredFileReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Storage.StoredFileRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Storage.StoredFileReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Storage.StoredFileRead!, TResult>!
+static Rask.Storage.StoredFileReadAccess.SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead![]!>!
+static Rask.Storage.StoredFileReadAccess.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Storage.StoredFileRead!>!>!
+static Rask.Storage.StoredFileReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).AsQueryable() -> System.Linq.IQueryable<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Storage.StoredFileRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Storage.StoredFileRead!, TResult>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead?>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Take(int count) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFileRead![]!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Storage.StoredFileRead!>!>!
+static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Storage.StoredFileRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+Rask.Batteries.Counting<T>.Only() -> T
+Rask.Batteries.CountingException.CountingException() -> void
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
 Rask.Storage.FileRejectedException.FileRejectedException() -> void
 Rask.Storage.FileRejectedException.FileRejectedException(string! message) -> void
 Rask.Storage.FileRejectedException.FileRejectedException(string! message, System.Exception! innerException) -> void
-Rask.Batteries.CountingException.CountingException() -> void
-Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void

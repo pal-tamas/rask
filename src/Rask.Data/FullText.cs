@@ -44,5 +44,5 @@ public static class FullText
 
     internal static InvalidOperationException OutsideQuery(string member) => new(
         $"FullText.{member} runs in the database: call it inside Select(...) on a query that calls Search(text), " +
-        $"as in Post.Read.Search(text).Select(p => FullText.{member}(p.Title)).");
+        $"as in Post.Search(text).Select(p => FullText.{member}(p.Title)).");
 }

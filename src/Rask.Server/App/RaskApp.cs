@@ -196,7 +196,7 @@ public sealed partial class RaskApp
         // the Data battery having been wired — an app with `c.Data.Off()` has no database to point at.
         if (app.Services.GetService<AmbientContextBinding>() is not null)
         {
-            // Points BOTH halves: the aggregates at the app's context, and `Order.Read` at the read
+            // Points BOTH halves: the aggregates at the app's context, and `Order.Where(…)` at the read
             // context registered beside it in RaskBatteryWiring.
             Db.Configure(app.Services);
         }

@@ -6,7 +6,7 @@ using Rask.Testing;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The calling site of <c>Product.Read.AsQueryable()</c>: a data grid handed a Rask.Data read face,
+///     The calling site of <c>Product.AsQueryable()</c>: a data grid handed a Rask.Data read face,
 ///     rendered against a real SQLite file.
 /// </summary>
 /// <remarks>
@@ -62,7 +62,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
     [Fact]
     public void A_sorted_page_of_a_model_query_is_read_from_the_database()
     {
-        var html = Ui.DataGrid.Data(Gizmo.Read.AsQueryable()).RowKey(g => g.Id).PageSize(2).Sort("stock")[c => [
+        var html = Ui.DataGrid.Data(Gizmo.AsQueryable()).RowKey(g => g.Id).PageSize(2).Sort("stock")[c => [
             c.Field(g => g.Name).Title("Gizmo"),
             c.Field(g => g.Stock).Title("Stock").Sortable(true),
         ]].ToHtml();
@@ -75,7 +75,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
     [Fact]
     public async Task Sorting_and_paging_by_click_query_the_database_again()
     {
-        var page = Page.Render(Ui.DataGrid.Data(Gizmo.Read.AsQueryable()).RowKey(g => g.Id).PageSize(2)[c => [
+        var page = Page.Render(Ui.DataGrid.Data(Gizmo.AsQueryable()).RowKey(g => g.Id).PageSize(2)[c => [
             c.Field(g => g.Name).Title("Gizmo").Sortable(true),
             c.Field(g => g.Stock).Title("Stock"),
         ]]);

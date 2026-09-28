@@ -281,8 +281,6 @@ static Rask.Auth.EmailConfirmed.operator !=(Rask.Auth.EmailConfirmed? left, Rask
 static Rask.Auth.EmailConfirmed.operator ==(Rask.Auth.EmailConfirmed? left, Rask.Auth.EmailConfirmed? right) -> bool
 static Rask.Auth.PasskeyAdded.operator !=(Rask.Auth.PasskeyAdded? left, Rask.Auth.PasskeyAdded? right) -> bool
 static Rask.Auth.PasskeyAdded.operator ==(Rask.Auth.PasskeyAdded? left, Rask.Auth.PasskeyAdded? right) -> bool
-static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Read.get -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
-static Rask.Auth.PasskeyReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
 static Rask.Auth.PasskeyRemoved.operator !=(Rask.Auth.PasskeyRemoved? left, Rask.Auth.PasskeyRemoved? right) -> bool
 static Rask.Auth.PasskeyRemoved.operator ==(Rask.Auth.PasskeyRemoved? left, Rask.Auth.PasskeyRemoved? right) -> bool
 static Rask.Auth.PasswordReset.operator !=(Rask.Auth.PasswordReset? left, Rask.Auth.PasswordReset? right) -> bool
@@ -291,12 +289,110 @@ static Rask.Auth.RaskAuthEndpointExtensions.MapRaskAuth(this Microsoft.AspNetCor
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskRoles.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
-static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Read.get -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
-static Rask.Auth.SessionReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 static Rask.Auth.SignedIn.operator !=(Rask.Auth.SignedIn? left, Rask.Auth.SignedIn? right) -> bool
 static Rask.Auth.SignedIn.operator ==(Rask.Auth.SignedIn? left, Rask.Auth.SignedIn? right) -> bool
 static Rask.Auth.SignedOut.operator !=(Rask.Auth.SignedOut? left, Rask.Auth.SignedOut? right) -> bool
 static Rask.Auth.SignedOut.operator ==(Rask.Auth.SignedOut? left, Rask.Auth.SignedOut? right) -> bool
 static Rask.Auth.UserRegistered.operator !=(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool
 static Rask.Auth.UserRegistered.operator ==(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool
+static Rask.Auth.PasskeyReadAccess.AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.PasskeyReadAccess.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.PasskeyReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.PasskeyReadAccess.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.PasskeyReadAccess.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Auth.PasskeyReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Auth.PasskeyRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Auth.PasskeyReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Auth.PasskeyRead!, TResult>!
+static Rask.Auth.PasskeyReadAccess.SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead![]!>!
+static Rask.Auth.PasskeyReadAccess.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Auth.PasskeyRead!>!>!
+static Rask.Auth.PasskeyReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).AsQueryable() -> System.Linq.IQueryable<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Auth.PasskeyRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Auth.PasskeyRead!, TResult>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead?>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Take(int count) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.PasskeyRead![]!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Auth.PasskeyRead!>!>!
+static Rask.Auth.PasskeyReadAccess.extension(Rask.Auth.Passkey!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Auth.PasskeyRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Auth.PasskeyRead!>!
+static Rask.Auth.SessionReadAccess.AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.SessionReadAccess.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.SessionReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.SessionReadAccess.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.SessionReadAccess.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Auth.SessionReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Auth.SessionRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Auth.SessionReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Auth.SessionRead!, TResult>!
+static Rask.Auth.SessionReadAccess.SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead![]!>!
+static Rask.Auth.SessionReadAccess.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Auth.SessionRead!>!>!
+static Rask.Auth.SessionReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).AsQueryable() -> System.Linq.IQueryable<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Auth.SessionRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Auth.SessionRead!, TResult>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Take(int count) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead![]!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Auth.SessionRead!>!>!
+static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Auth.SessionRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
 Rask.Auth.AuthInstanceClaimConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Auth.AuthInstanceClaim!>! builder) -> void

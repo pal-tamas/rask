@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# gate-inputs: src/Rask\.Cache/|([^/]+/)*Directory\.[^/]+$|([^/]+/)*\.editorconfig$|[^/]+\.globalconfig$
 # Proves the public-API gate (docs/api-style.md) actually fails.
 #
 # The gate's whole value is that an unrecorded public member cannot land. A green build says nothing

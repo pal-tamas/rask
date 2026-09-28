@@ -172,7 +172,7 @@ public static class ReadModelRegistry
     {
         // Rask's own annotations travel with the face. The full-text index is declared on the ENTITY —
         // builder.HasFullTextSearch(x => new { x.Title, x.Body }) — and Search is now a read-side operator,
-        // so without this Post.Read.Search would refuse with "no full-text index" while the table plainly
+        // so without this Post.Search would refuse with "no full-text index" while the table plainly
         // has one. Copied rather than re-derived, like every other part of the mapping.
         if (write?.FindAnnotation(FullTextSearchSpec.AnnotationName)?.Value is { } fullText)
         {

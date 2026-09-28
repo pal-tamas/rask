@@ -195,8 +195,6 @@ static Rask.Mailing.EmailAddress.operator ==(Rask.Mailing.EmailAddress? left, Ra
 static Rask.Mailing.EmailAttachment.operator !=(Rask.Mailing.EmailAttachment? left, Rask.Mailing.EmailAttachment? right) -> bool
 static Rask.Mailing.EmailAttachment.operator ==(Rask.Mailing.EmailAttachment? left, Rask.Mailing.EmailAttachment? right) -> bool
 static Rask.Mailing.MailModelBuilderExtensions.AddRaskMail(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Read.get -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
-static Rask.Mailing.QueuedMailReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
 static Rask.Mailing.RaskMailServiceCollectionExtensions.AddRaskMail<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Mailing.MailOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Mailing.IMail.Add(Rask.Mailing.Email! email, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mailing.Mail
@@ -220,7 +218,6 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
@@ -266,6 +263,57 @@ static Rask.Mailing.SentEmailCounting.Saying(this Rask.Batteries.Counting<Rask.M
 static Rask.Mailing.SentEmailCounting.To(this Rask.Batteries.Counting<Rask.Mailing.SentEmail!> sent, string! address) -> Rask.Batteries.Counting<Rask.Mailing.SentEmail!>
 static Rask.Mailing.SentEmailCounting.WithSubject(this Rask.Batteries.Counting<Rask.Mailing.SentEmail!> sent, string! subject) -> Rask.Batteries.Counting<Rask.Mailing.SentEmail!>
 static Rask.Mailing.Mail.IsOn.get -> bool
-Rask.Mailing.QueuedMailConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Mailing.QueuedMail!>! builder) -> void
+static Rask.Mailing.QueuedMailReadAccess.AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Mailing.QueuedMailReadAccess.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Mailing.QueuedMailReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Mailing.QueuedMailReadAccess.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Mailing.QueuedMailReadAccess.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Mailing.QueuedMailReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Mailing.QueuedMailRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Mailing.QueuedMailReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Mailing.QueuedMailRead!, TResult>!
+static Rask.Mailing.QueuedMailReadAccess.SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead![]!>!
+static Rask.Mailing.QueuedMailReadAccess.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Mailing.QueuedMailRead!>!>!
+static Rask.Mailing.QueuedMailReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).AsQueryable() -> System.Linq.IQueryable<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Mailing.QueuedMailRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Mailing.QueuedMailRead!, TResult>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead?>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Take(int count) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Mailing.QueuedMailRead![]!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Mailing.QueuedMailRead!>!>!
+static Rask.Mailing.QueuedMailReadAccess.extension(Rask.Mailing.QueuedMail!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Mailing.QueuedMailRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Mailing.QueuedMailRead!>!
+Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.CountingException.CountingException() -> void
 Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
+Rask.Mailing.QueuedMailConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Mailing.QueuedMail!>! builder) -> void

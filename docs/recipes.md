@@ -30,7 +30,7 @@ open alongside.
 
 Declare the aggregate under `Features/Orders/` and its pages beside it. Nothing goes on the context — no
 `DbSet`, no configuration class: `RaskDbContext` maps every aggregate you declare, and the build generates
-its form model (`OrderModel`), read face (`Order.Read`) and writes (`Order.Create(model)`).
+its form model (`OrderModel`), read face (`OrderRead`, queried as `Order.Where(…)`), `Order.Find(id)` + `order.Save()`, and writes (`Order.Create(model)`).
 
 ```csharp
 public sealed class Order : Aggregate<Guid>
@@ -54,7 +54,7 @@ build error ([RASK087](diagnostics.md#rask087)). The read face infers the join f
 ```csharp
 public Guid CustomerId { get; private set; }            // on Order
 
-var mine = await Order.Read.Where(o => o.Customer.Country == "HU").ToListAsync();   // navigation, inferred
+var mine = await Order.Where(o => o.Customer.Country == "HU").ToListAsync();   // navigation, inferred
 ```
 
 **A part of the aggregate** — an order's lines — is an `Entity<TId>` kept in a private list and changed only
@@ -71,7 +71,7 @@ public const Deletion Deletes = Deletion.Soft;   // Order.Delete stamps DeletedA
 public const Deletion Deletes = Deletion.None;   // no Order.Delete at all — cancel it instead
 ```
 
-Then `rask db add OrderDeletes && rask db update`. `Order.Read.IgnoreQueryFilters()` brings soft-deleted rows
+Then `rask db add OrderDeletes && rask db update`. `Order.IgnoreQueryFilters()` brings soft-deleted rows
 back into a read.
 
 → Reference: [choosing what a table carries](data.md#choosing-what-a-table-carries)
@@ -85,8 +85,8 @@ face — ranked, word-aware and accent-insensitive, on SQLite, in the browser an
 public static void Configure(EntityTypeBuilder<Product> builder) =>
     builder.HasFullTextSearch(p => new { p.Name, p.Description });   // then: rask db add ProductSearch && rask db update
 
-var hits = await Product.Read.Search(query).Take(20).ToListAsync(CancellationToken);
-Ui.DataGrid.Data(Product.Read.Search(query).AsQueryable())           // best match first, paged in SQL
+var hits = await Product.Search(query).Take(20).ToListAsync(CancellationToken);
+Ui.DataGrid.Data(Product.Search(query).AsQueryable())           // best match first, paged in SQL
 ```
 
 → Reference: [full-text search](full-text-search.md)
@@ -127,7 +127,7 @@ using (Tenant.Use(tenantId)) { /* an admin working in one tenant */ }
 by the aggregate, it refreshes itself after any write to that aggregate — no invalidation to write:
 
 ```csharp
-var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.Read.CountAsync(ct));
+var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.CountAsync(ct));
 ```
 
 → Reference: [Rask.Query](query.md) · Learn it: [Tutorial Ch 2](tutorial/02-first-feature.md)

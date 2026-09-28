@@ -128,15 +128,32 @@ public class ReadModelGeneratorTests
     }
 
     [Fact]
-    public void Read_is_put_on_the_entity_itself()
+    public void Queries_open_off_the_entity_itself()
     {
         var source = Run(Shop).GeneratedSource("Shop_OrderRead");
 
         Assert.Contains("extension(global::Shop.Order)", source, StringComparison.Ordinal);
         Assert.Contains(
-            "public static global::Rask.Data.ModelQuery<global::Shop.OrderRead> Read =>",
+            "public static global::Rask.Data.ModelQuery<global::Shop.OrderRead> Where(",
             source,
             StringComparison.Ordinal);
+        Assert.DoesNotContain(" Read =>", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Every_opening_operator_of_ModelQuery_is_on_the_entity()
+    {
+        // ThenBy continues an order, so it only exists once a query does.
+        var operators = typeof(Rask.Data.ModelQuery<>)
+            .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance |
+                        System.Reflection.BindingFlags.DeclaredOnly)
+            .Select(m => m.Name)
+            .Where(name => !name.StartsWith("ThenBy", StringComparison.Ordinal))
+            .Distinct();
+
+        var source = Run(Shop).GeneratedSource("Shop_OrderRead");
+
+        Assert.All(operators, name => Assert.Matches($@"public static [^\n]* {name}(<\w+>)?\(", source));
     }
 
     [Fact]

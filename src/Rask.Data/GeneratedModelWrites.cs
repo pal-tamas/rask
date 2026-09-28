@@ -52,6 +52,39 @@ public static class GeneratedModelWrites
     }
 
     /// <summary>
+    ///     Saves <paramref name="entity" /> as it now stands — what <c>order.Save()</c> does: inserted when it
+    ///     has no row yet, otherwise written over its row, children synced by key.
+    /// </summary>
+    /// <param name="entity">The aggregate, from <c>Find</c> or freshly built.</param>
+    /// <param name="db">
+    ///     The context to save through, or <c>null</c> to open one. A given context is only STAGED — the
+    ///     caller saves it, and it is not disposed.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the load and the save.</param>
+    /// <returns>The saved aggregate, its version and times refreshed.</returns>
+    /// <exception cref="KeyNotFoundException">Its row has been soft-deleted since it was read.</exception>
+    /// <exception cref="DbUpdateConcurrencyException">Its row was saved by someone else since it was read.</exception>
+    public static async Task<TEntity> Save<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        TEntity entity,
+        DbContext? db = null,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        if (db is not null)
+        {
+            await AggregateSave.StageAsync(db, entity, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await AggregateSave.SaveAsync(entity, cancellationToken).ConfigureAwait(false);
+        }
+
+        return entity;
+    }
+
+    /// <summary>
     ///     Loads the row with <paramref name="key" />, applies <paramref name="apply" /> to it and saves —
     ///     so only the columns whose values actually changed are written.
     /// </summary>
@@ -165,6 +198,41 @@ public static class GeneratedModelWrites
         var context = Db.CreateContext();
         await using var contextScope = context.ConfigureAwait(false);
         return await AggregateLoad.FindAsync<TEntity>(context, [key], cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Loads the aggregate with <paramref name="key" /> whole and untracked — what <c>Product.Find(id)</c>
+    ///     returns, to change through its own methods and <c>Save()</c>.
+    /// </summary>
+    /// <param name="key">The primary key of the row to load.</param>
+    /// <param name="db">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
+    /// <returns>The aggregate and its children, or <c>null</c> when no row has that key or it is soft-deleted.</returns>
+    public static async Task<TEntity?> Find<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        object key,
+        DbContext? db = null,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        if (db is not null)
+        {
+            return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken).ConfigureAwait(false);
+        }
+
+        // Tracked in a context about to be discarded, only so what was read can be remembered for Save().
+        var context = Db.CreateContext();
+        await using var contextScope = context.ConfigureAwait(false);
+        var found = await AggregateLoad.FindAsync<TEntity>(context, [key], cancellationToken, tracked: true)
+            .ConfigureAwait(false);
+
+        if (found is not null)
+        {
+            AggregateSave.Remember(context, found);
+        }
+
+        return found;
     }
 
     // The one place the "given or owned" rule lives, and it decides BOTH questions: a caller's context is

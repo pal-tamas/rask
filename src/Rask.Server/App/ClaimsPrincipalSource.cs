@@ -13,7 +13,7 @@ namespace Rask;
 ///     <para>
 ///         The tenant is an outcome of authentication, not an input to routing: sign-in finds the user, and
 ///         the user says which tenant they belong to. So both travel on the <c>ClaimsPrincipal</c>, and
-///         Rask.Data reads them back from here — which is what lets <c>Invoice.Read.Where(…)</c> filter
+///         Rask.Data reads them back from here — which is what lets <c>Invoice.Where(…)</c> filter
 ///         correctly and <c>Product.Create(…)</c> read <c>Current.UserId</c> with nothing passed to either.
 ///     </para>
 ///     <para>

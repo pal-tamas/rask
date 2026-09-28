@@ -89,7 +89,7 @@ public static class QueryClient
     /// <remarks>
     ///     <code>
     ///     var hits = QueryClient.Query(QueryKey.For&lt;Person&gt;(), _search,
-    ///         (s, ct) =&gt; Person.Read.Where(p =&gt; p.Name.Contains(s)).ToListAsync(ct));
+    ///         (s, ct) =&gt; Person.Where(p =&gt; p.Name.Contains(s)).ToListAsync(ct));
     ///     </code>
     ///     A null input pauses the query until there is one.
     /// </remarks>

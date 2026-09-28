@@ -5,7 +5,7 @@ A small browser-WASM app that shows the whole Rask data stack running **inside t
 - a `Note : Aggregate<Guid>` (Rask.Data) in a real SQLite database, through EF Core;
 - `Note.Create(model)` from a kit form, and a list that refreshes itself because the save tells
   `Rask.Query` it wrote a `Note`;
-- `Note.Read.Search(text)` with `FullText.Highlight` / `FullText.Snippet`, rendered by `Ui.Highlight`;
+- `Note.Search(text)` with `FullText.Highlight` / `FullText.Snippet`, rendered by `Ui.Highlight`;
 - `Rask.SQLite.Browser` keeping the database across reloads (IndexedDB snapshots every two seconds).
 
 It is served at **`https://rask.sh/demos/data/`** and embedded as a lazy iframe on the data, full-text-search and

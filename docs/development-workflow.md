@@ -148,6 +148,12 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   `scripts/tests/affected-projects.test.sh` enforces this). Forget the declaration and a change to that
   file skips the test that pins it, which is how `CHANGELOG.md` and `docs/` could map to their readers
   instead of forcing FULL on almost every commit.
+- **The gate's own tests (`scripts/tests/*.test.sh`) are scoped the same way.** A change under `scripts/`
+  or `.githooks/` runs all of them, and so does any unscoped or FULL run. Otherwise a test runs only when
+  the change touches what its `# gate-inputs:` header names — an ERE over repo-relative paths, e.g. the
+  public-API prober's `src/Rask\.Cache/|…Directory\.…`. A test that starts reading something outside
+  `scripts/` adds it there, or a change to that thing will not run it. This took ~45 s off a narrow
+  commit, nearly all of it the prober's four builds of Rask.Cache.
 - **Format + unit tests run locally, enforced before commit.** `scripts/run-unit-local.sh` builds the
   solution once, then runs the full `dotnet format Rask.slnx --verify-no-changes` (whitespace + style +
   analyzers, one workspace load) **concurrently with** every test except the browser E2E. The two share
@@ -475,8 +481,8 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 - **The install gate runs locally, on pushes that touch the public installer.** `rask.sh` and `rask.ps1`
   at the repo root are what [`docs/installation.md`](installation.md) tells people to `curl | sh`, and
   they are published to GitHub Pages by `pages.yml`. Two things cover them.
-  `scripts/tests/install-script.test.sh` runs on **every** commit (it is a `scripts/tests/*.test.sh`, so
-  `run-unit-local.sh` picks it up): it sources `rask.sh` with `RASK_INSTALL_LIB_ONLY=1` to table-test the
+  `scripts/tests/install-script.test.sh` runs on every commit that touches the installer, the pages that
+  quote it, or the gate scripts (its `# gate-inputs:` header — see below): it sources `rask.sh` with `RASK_INSTALL_LIB_ONLY=1` to table-test the
   pure helpers, drives the real `step_path` against a throwaway `HOME`, asserts the file stays POSIX `sh`
   (`dash -n` plus greps for the bashisms `dash` accepts and then dies on), asserts truncation safety by
   *running prefixes of the file* and requiring that none reaches `main`, and checks that the install URL

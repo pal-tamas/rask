@@ -39,7 +39,7 @@ same transaction; the processor drains and publishes them just after commit. Any
 (Rask.Data) or via the outbox.
 
 In a multi-tenant app each message records the tenant the change was saved in, and the processor re-enters it
-before publishing, so a handler reading a tenant-scoped table sees that tenant. `OutboxMessage.Read` queries
+before publishing, so a handler reading a tenant-scoped table sees that tenant. `OutboxMessage.Where(…)` queries
 the table with no context of your own.
 
 **Server-side.** The processor is a hosted `BackgroundService` and the store is your EF Core database

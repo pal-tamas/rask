@@ -47,7 +47,7 @@ internal static class ReadModelShape
     ///     A read face is always emitted at the top level — nesting it would need the containing type to be
     ///     <c>partial</c>, which is not something declaring an entity should require. The containing names
     ///     are carried into the face's own name so two entities called <c>Post</c> under different parents
-    ///     do not collide, and nobody types the result: <c>Post.Read</c> is the door.
+    ///     do not collide, and nobody types the result: <c>Post.Where(…)</c> is the door.
     /// </remarks>
     public static string ReadName(INamedTypeSymbol entity)
     {

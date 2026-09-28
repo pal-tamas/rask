@@ -12,10 +12,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **Value objects with no marker**: any record, struct or class an entity holds that is not an entity maps as an
   EF **complex type**, columns on the owner's row. **Strongly-typed ids** get a generated value converter with
   nothing declared; mapping rules live in a plain `public static void Configure(EntityTypeBuilder<T>)` on the type.
-- **Reads through a generated read face**: `Product.Read.Where(...)`, `Product.Read.CountAsync()`,
-  `Product.Read.Search(text)`, `Product.Read.AsQueryable()` — one by id is
-  `Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync()`, since EF Core's `Find` would bypass the query
-  filters. A C# 14 static extension member, so an aggregate that compiles today has it.
+- **Queries off the type, rows from a generated read face**: `Product.Where(...)`, `Product.CountAsync()`,
+  `Product.Search(text)`, `Product.AsQueryable()` return `ProductRead` rows — primitives plus the joins its ids
+  imply. C# 14 static extension members, so an aggregate that compiles today has them.
   **Every read is untracked and opens and disposes its own context**, which is what makes them safe on a
   page that lives as long as a browser's socket. `AsQueryable()` is a standard `IQueryable<T>` that opens a
   context per execution: hand it to a data grid and it sorts and pages in the database.
@@ -30,6 +29,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   writes what the form holds; values that do not come from the form go in an optional `p => …`; the id is always
   the caller's, never the form's; a stale `Version` is refused. Each takes an optional `DbContext` to join a
   caller's transaction.
+- **Find, change, Save**: `var order = await Order.Find(id);` loads the aggregate whole (a filtered query by key,
+  so a soft-deleted row is `null`), `order.Ship(…)` runs its rule, `await order.Save()` writes only what changed,
+  syncs its children by id and refuses a stale `Version`. `Save()` on a new aggregate inserts it.
 - **State stays inside**: a public setter or mutable field on an aggregate, entity or value object is a build
   error with a lightbulb fix (RASK084), and an entity exposing a mutable collection of entities is a warning
   (RASK085).
@@ -61,12 +63,17 @@ public sealed class Product : Aggregate<Guid>
 public sealed record Money(decimal Amount, string Currency);
 
 // read: no context in scope, nothing left open, nothing tracked
-var products = await Product.Read.OrderBy(p => p.Name).ToListAsync();
+var products = await Product.OrderBy(p => p.Name).ToListAsync();
 
 // write: off the type too; the form model carries the values, the id is yours
 var product = await Product.Create(model);
 await Product.Update(product.Id, edit);        // only changed columns; a stale Version throws
 await Product.Delete(product.Id);              // removes the row
+
+// a domain method: load the aggregate, run it, save it
+var order = await Order.Find(orderId);
+order!.Cancel(DateTime.UtcNow);
+await order.Save();                            // only changed columns, children synced, stale Version throws
 
 // anything richer: plain EF Core, one context, one transaction (the writes above join it with db: db)
 await using var db = await contexts.CreateDbContextAsync(ct);
@@ -137,8 +144,8 @@ Declare which text is searchable, and search it from LINQ — ranked, word-aware
 ```csharp
 modelBuilder.Entity<Post>().HasFullTextSearch(p => new { p.Title, p.Body });
 
-var hits = await Post.Read.Search(query).Where(p => p.Published).Take(20).ToListAsync();
-var marked = await Post.Read.Search(query).Select(p => FullText.Snippet(p.Body)).ToListAsync();
+var hits = await Post.Search(query).Where(p => p.Published).Take(20).ToListAsync();
+var marked = await Post.Search(query).Select(p => FullText.Snippet(p.Body)).ToListAsync();
 ```
 
 `Search(text)` works on a read face, on a `ModelQuery` and on any EF Core `IQueryable`; it returns best

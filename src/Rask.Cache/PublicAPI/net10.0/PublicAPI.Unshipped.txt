@@ -52,8 +52,6 @@ Rask.Caching.RaskDistributedCache<TContext>.Set(string! key, byte[]! value, Micr
 Rask.Caching.RaskDistributedCache<TContext>.SetAsync(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 const Rask.Caching.CacheEntry.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 static Rask.Caching.CacheEntry.For(string! key, byte[]! value, System.DateTime expiresAt, System.DateTime savedAt, System.DateTime? absoluteExpiration = null, double? slidingSeconds = null) -> Rask.Caching.CacheEntry!
-static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Read.get -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
-static Rask.Caching.CacheEntryReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
 static Rask.Caching.CacheModelBuilderExtensions.AddRaskCache(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Caching.RaskCacheServiceCollectionExtensions.AddRaskCache<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Caching.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Caching.CacheExtensions
@@ -118,7 +116,6 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
@@ -141,6 +138,57 @@ Rask.Caching.CacheFakes.extension(Rask.Caching.Cache!)
 static Rask.Caching.CacheFakes.Fake() -> Rask.Caching.CacheFake!
 static Rask.Caching.CacheFakes.extension(Rask.Caching.Cache!).Fake() -> Rask.Caching.CacheFake!
 static Rask.Caching.Cache.IsOn.get -> bool
-Rask.Caching.CacheEntryConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Caching.CacheEntry!>! builder) -> void
+static Rask.Caching.CacheEntryReadAccess.AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Caching.CacheEntryReadAccess.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Caching.CacheEntryReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Caching.CacheEntryReadAccess.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Caching.CacheEntryReadAccess.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Caching.CacheEntryReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Caching.CacheEntryRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Caching.CacheEntryReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Caching.CacheEntryRead!, TResult>!
+static Rask.Caching.CacheEntryReadAccess.SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead![]!>!
+static Rask.Caching.CacheEntryReadAccess.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Caching.CacheEntryRead!>!>!
+static Rask.Caching.CacheEntryReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).AnyAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).AsQueryable() -> System.Linq.IQueryable<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).CountAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).QueryAsync<TResult>(System.Func<System.Linq.IQueryable<Rask.Caching.CacheEntryRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Caching.CacheEntryRead!, TResult>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead?>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Take(int count) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Caching.CacheEntryRead![]!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Caching.CacheEntryRead!>!>!
+static Rask.Caching.CacheEntryReadAccess.extension(Rask.Caching.CacheEntry!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Caching.CacheEntryRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Caching.CacheEntryRead!>!
+Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.CountingException.CountingException() -> void
 Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
+Rask.Caching.CacheEntryConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Caching.CacheEntry!>! builder) -> void

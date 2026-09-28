@@ -26,8 +26,8 @@ public sealed class Order : Aggregate<Guid>
 }
 ```
 
-`Order` reads and writes the way `Product` does (`Order.Read.Where(…)`, `Order.Create(model)`,
-`Order.Read.AsQueryable()`) and gets its own generated `OrderModel`, with nothing to build.
+`Order` reads and writes the way `Product` does (`Order.Where(…)`, `Order.Create(model)`,
+`Order.AsQueryable()`) and gets its own generated `OrderModel`, with nothing to build.
 
 Look at `ProductId`. That is how an aggregate points at another one — an **id, never a navigation**, which is
 what stops a save here reaching into the catalogue ([RASK087](../diagnostics.md#rask087) makes it a compile
@@ -35,7 +35,7 @@ error). You lose nothing by it: because `Product` is an aggregate with a `Guid` 
 and puts the join on the read face for you, named after the property:
 
 ```csharp
-await Order.Read.Where(o => o.Product.Name == "Anvil").ToListAsync();   // declared nothing
+await Order.Where(o => o.Product.Name == "Anvil").ToListAsync();   // declared nothing
 ```
 
 Then the same four

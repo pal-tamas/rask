@@ -13,7 +13,7 @@ namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Generates the read face of every mapped entity — <c>OrderRead</c> for <c>Order</c> — and the
-/// <c>Order.Read</c> that queries it.
+/// <c>Order.Where(…)</c>, <c>Order.OrderBy(…)</c>, … that query it.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -35,6 +35,65 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
     private const string Query = "global::Rask.Data.ModelQuery";
     private const string Registry = "global::Rask.Data.ReadModelRegistry";
     private const string Mapping = "global::Rask.Data.ReadEntityMapping";
+
+    private const string Token = "global::System.Threading.CancellationToken cancellationToken = default";
+    private const string Predicate = "global::System.Linq.Expressions.Expression<global::System.Func<{R}, bool>> predicate";
+
+    // Every opening operator of ModelQuery, reachable off the type itself: `Product.Where(…)`. ThenBy is not
+    // here — it continues an order, so it only exists once a query does. A test holds this list to
+    // ModelQuery's public surface, so an operator added there cannot be missing here.
+    private static readonly (string Summary, string Signature, string Call)[] Forwarders =
+    [
+        ("Filters the rows.", "{Q} Where(" + Predicate + ")", "Where(predicate)"),
+        ("The rows whose indexed text contains every word of <paramref name=\"text\" />, best match first.",
+            "{Q} Search(string? text)", "Search(text)"),
+        ("Orders the rows by <paramref name=\"keySelector\" />.",
+            "{Q} OrderBy<TKey>(global::System.Linq.Expressions.Expression<global::System.Func<{R}, TKey>> keySelector)",
+            "OrderBy(keySelector)"),
+        ("Orders the rows by <paramref name=\"keySelector\" />, descending.",
+            "{Q} OrderByDescending<TKey>(global::System.Linq.Expressions.Expression<global::System.Func<{R}, TKey>> keySelector)",
+            "OrderByDescending(keySelector)"),
+        ("Skips the first <paramref name=\"count\" /> rows.", "{Q} Skip(int count)", "Skip(count)"),
+        ("Takes at most <paramref name=\"count\" /> rows.", "{Q} Take(int count)", "Take(count)"),
+        ("Loads <paramref name=\"navigation\" /> with each row.",
+            "{Q} Include<TProperty>(global::System.Linq.Expressions.Expression<global::System.Func<{R}, TProperty>> navigation)",
+            "Include(navigation)"),
+        ("Loads the navigation at <paramref name=\"navigationPropertyPath\" /> with each row.",
+            "{Q} Include(string navigationPropertyPath)", "Include(navigationPropertyPath)"),
+        ("Includes soft-deleted rows.", "{Q} IgnoreQueryFilters()", "IgnoreQueryFilters()"),
+        ("Loads included collections in separate queries.", "{Q} AsSplitQuery()", "AsSplitQuery()"),
+        ("Projects each row through <paramref name=\"selector\" />.",
+            "global::Rask.Data.Projection<{R}, TResult> Select<TResult>(global::System.Linq.Expressions.Expression<global::System.Func<{R}, TResult>> selector)",
+            "Select(selector)"),
+        ("The rows as an <see cref=\"global::System.Linq.IQueryable{T}\" />, for a grid or LINQ of your own.",
+            "global::System.Linq.IQueryable<{R}> AsQueryable()", "AsQueryable()"),
+        ("Every row.", "global::System.Threading.Tasks.Task<global::System.Collections.Generic.List<{R}>> ToListAsync(" + Token + ")",
+            "ToListAsync(cancellationToken)"),
+        ("Every row.", "global::System.Threading.Tasks.Task<{R}[]> ToArrayAsync(" + Token + ")", "ToArrayAsync(cancellationToken)"),
+        ("The first row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> FirstOrDefaultAsync(" + Token + ")",
+            "FirstOrDefaultAsync(cancellationToken)"),
+        ("The first matching row, or <c>null</c>.",
+            "global::System.Threading.Tasks.Task<{R}?> FirstOrDefaultAsync(" + Predicate + ", " + Token + ")",
+            "FirstOrDefaultAsync(predicate, cancellationToken)"),
+        ("The only row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> SingleOrDefaultAsync(" + Token + ")",
+            "SingleOrDefaultAsync(cancellationToken)"),
+        ("The only matching row, or <c>null</c>.",
+            "global::System.Threading.Tasks.Task<{R}?> SingleOrDefaultAsync(" + Predicate + ", " + Token + ")",
+            "SingleOrDefaultAsync(predicate, cancellationToken)"),
+        ("How many rows there are.", "global::System.Threading.Tasks.Task<int> CountAsync(" + Token + ")", "CountAsync(cancellationToken)"),
+        ("How many rows match.", "global::System.Threading.Tasks.Task<int> CountAsync(" + Predicate + ", " + Token + ")",
+            "CountAsync(predicate, cancellationToken)"),
+        ("How many rows there are.", "global::System.Threading.Tasks.Task<long> LongCountAsync(" + Token + ")",
+            "LongCountAsync(cancellationToken)"),
+        ("Whether there is any row.", "global::System.Threading.Tasks.Task<bool> AnyAsync(" + Token + ")", "AnyAsync(cancellationToken)"),
+        ("Whether any row matches.", "global::System.Threading.Tasks.Task<bool> AnyAsync(" + Predicate + ", " + Token + ")",
+            "AnyAsync(predicate, cancellationToken)"),
+        ("Streams every row.", "global::System.Collections.Generic.IAsyncEnumerable<{R}> AsAsyncEnumerable(" + Token + ")",
+            "AsAsyncEnumerable(cancellationToken)"),
+        ("Runs <paramref name=\"query\" /> over the rows, in a context opened and disposed around it.",
+            "global::System.Threading.Tasks.Task<TResult> QueryAsync<TResult>(global::System.Func<global::System.Linq.IQueryable<{R}>, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task<TResult>> query, " + Token + ")",
+            "QueryAsync(query, cancellationToken)"),
+    ];
 
     private static readonly DiagnosticDescriptor Rask089 = new(
         "RASK089",
@@ -201,7 +260,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             .AppendLine("\" />: its columns, and the navigations its ids imply.</summary>");
         s.AppendLine("/// <remarks>");
         s.AppendLine("/// Generated, and read-only by construction — no behaviour, and not in the write context, so");
-        s.AppendLine("/// there is nothing here to change or save. Query it with <c>" + shape.SourceName + ".Read</c>.");
+        s.AppendLine("/// there is nothing here to change or save. Query it with <c>" + shape.SourceName + ".Where(…)</c>.");
         s.AppendLine("/// </remarks>");
         s.Append(shape.Accessibility).Append(" sealed class ").Append(shape.Name)
             .AppendLine(" : global::Rask.Data.IReadModel");
@@ -268,21 +327,30 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
 
     private static void AppendReadAccess(StringBuilder s, ReadShape shape)
     {
-        s.Append("/// <summary>Puts <c>Read</c> on <see cref=\"").Append(shape.SourceTypeName)
-            .AppendLine("\" />.</summary>");
+        s.Append("/// <summary>Queries <see cref=\"").Append(shape.SourceTypeName)
+            .Append("\" /> through its read face, <see cref=\"").Append(shape.FullyQualifiedName).AppendLine("\" />.</summary>");
+        // Every terminal ends in a defaulted CancellationToken, so CountAsync() beside CountAsync(predicate) trips
+        // RS0026 by construction; .editorconfig turns it off for the same reason, but its [*.cs] never matches a
+        // generated tree.
+        s.AppendLine("#pragma warning disable RS0026");
         s.Append(shape.Accessibility).Append(" static class ").Append(shape.SourceName).AppendLine("ReadAccess");
         s.AppendLine("{");
         s.Append("    extension(").Append(shape.SourceTypeName).AppendLine(")");
         s.AppendLine("    {");
-        s.Append("        /// <summary>Queries <see cref=\"").Append(shape.FullyQualifiedName)
-            .AppendLine("\" /> — the read side, where there are no aggregate borders.</summary>");
-        s.AppendLine("        /// <example>");
-        s.Append("        ///     <code>await ").Append(shape.SourceName)
-            .AppendLine(".Read.Where(x =&gt; x.CreatedAt &gt; since).ToListAsync();</code>");
-        s.AppendLine("        /// </example>");
-        s.Append("        public static ").Append(Query).Append('<').Append(shape.FullyQualifiedName)
-            .Append("> Read => global::Rask.Data.GeneratedReadQuery.Of<").Append(shape.FullyQualifiedName)
-            .AppendLine(">();");
+
+        var read = shape.FullyQualifiedName;
+        var query = Query + "<" + read + ">";
+        var open = "global::Rask.Data.GeneratedReadQuery.Of<" + read + ">()";
+
+        foreach (var (summary, signature, call) in Forwarders)
+        {
+            s.Append("        /// <summary>").Append(summary).AppendLine("</summary>");
+            s.Append("        public static ").Append(signature.Replace("{Q}", query).Replace("{R}", read))
+                .Append(" =>").AppendLine();
+            s.Append("            ").Append(open).Append('.').Append(call).AppendLine(";");
+            s.AppendLine();
+        }
+
         s.AppendLine("    }");
         s.AppendLine("}");
     }

@@ -16,7 +16,7 @@ namespace Rask.Data;
 ///     <para>
 ///         <b>An aggregate is not a query surface.</b> <c>Product.Where(…)</c>, <c>Product.All</c>,
 ///         <c>Product.FindAsync(id)</c> and the terminals that went with them are gone: querying works
-///         through the generated read face, <c>Product.Read</c>, which is made of primitives and carries the
+///         through the generated read face, <c>Product.Where(…)</c>, which is made of primitives and carries the
 ///         navigations an aggregate is not allowed to have. An aggregate holds another's id and nothing more,
 ///         so the two sides cannot be the same surface — a query that reached across a border on the write
 ///         side would be the border failing.
@@ -27,9 +27,9 @@ namespace Rask.Data;
 ///     <list type="bullet">
 ///         <item>
 ///             <description>
-///                 <b>Show one, or many, or joined</b> — <c>Product.Read.Where(p =&gt; p.Active)</c>. Untracked,
+///                 <b>Show one, or many, or joined</b> — <c>Product.Where(p =&gt; p.Active)</c>. Untracked,
 ///                 opens its own context, and by-id is just the narrowest case:
-///                 <c>Product.Read.Where(p =&gt; p.Id == id).FirstOrDefaultAsync()</c>.
+///                 <c>Product.Where(p =&gt; p.Id == id).FirstOrDefaultAsync()</c>.
 ///             </description>
 ///         </item>
 ///         <item>
