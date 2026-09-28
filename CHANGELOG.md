@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Rask.Server.Tests` spends ~40% less time waiting.** After a `hello`, 26 tests drained a frame with a 2 s
+  timeout — but a hello is answered with nothing unless a render is owed, so each waited out the whole 2 s,
+  about half the suite's test time. They now wait for the server to attach the socket (`AttachedAsync`), which
+  takes milliseconds. Summed test time 240 s → ~148 s; the two sites that do receive a catch-up frame and the
+  multi-socket reconnect tests keep their receive.
 - **The gate's own script tests run only when something they cover changed.** Each `scripts/tests/*.test.sh`
   that tests more than scripts names its inputs on a `# gate-inputs:` line; a scoped commit that touches
   none of them skips it, and a `scripts/`/`.githooks/` change still runs them all. Saves ~45 s per narrow

@@ -33,7 +33,7 @@ public class SessionDisposeRaceTests
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
             // Click the button: the resulting render enters Render() and parks there, holding the
             // session's _renderLock mid-walk.

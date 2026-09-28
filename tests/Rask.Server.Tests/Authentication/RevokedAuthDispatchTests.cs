@@ -43,7 +43,7 @@ public class RevokedAuthDispatchTests
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = cookie;
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // Sanity: while authorized, the handler runs.
         await ws.SendJsonAsync(new { id = handlerId });
