@@ -1484,8 +1484,16 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // `Callback` is the sync/async pair: one name, two overloads. `Validator` is the same shape over
         // the framework's own named delegates. `Fn` returns a value and so has no async twin — its last
         // type argument is the return type, which is why it takes one overload rather than two.
+        // A Callback<T> also takes a handler that ignores its argument — `.OnClick(() => n++)` beside
+        // `.OnClick(e => Log(e.ClientX))` — stored as it is, so the parameterless form allocates nothing.
         return name switch
         {
+            CallbackFqn when args.Count == 1 => [
+                Generic("global::System.Action", args),
+                Generic("global::System.Func", [.. args, TaskFqn]),
+                "global::System.Action",
+                Generic("global::System.Func", [TaskFqn]),
+            ],
             CallbackFqn => [
                 Generic("global::System.Action", args),
                 Generic("global::System.Func", [.. args, TaskFqn]),

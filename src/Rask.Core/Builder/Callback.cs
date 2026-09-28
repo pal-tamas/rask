@@ -97,7 +97,19 @@ public readonly struct Callback<T>
     /// <inheritdoc cref="Callback(Func{Task})" />
     public Callback(Func<T, Task> handler) => _handler = handler;
 
+    /// <summary>A handler that does not need the argument: <c>.OnClick(() =&gt; n++)</c>, stored as it is.</summary>
+    public Callback(Action handler) => _handler = handler;
+
+    /// <summary>An asynchronous handler that does not need the argument.</summary>
+    public Callback(Func<Task> handler) => _handler = handler;
+
     internal Callback(Delegate? handler) => _handler = handler;
+
+    /// <summary>
+    /// A component's argument-less event forwarded to one that carries an argument — a
+    /// <c>Callback OnClick</c> handed to a button's <c>.OnClick(OnClick)</c>, which ignores the event.
+    /// </summary>
+    public static implicit operator Callback<T>(Callback callback) => new(callback.Handler);
 
     /// <inheritdoc cref="Callback.Handler" />
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -112,6 +124,8 @@ public readonly struct Callback<T>
     {
         Action<T> sync => Run(sync, arg),
         Func<T, Task> async => Callback.Await(async(arg)),
+        Action ignoring => Run(ignoring),
+        Func<Task> ignoringAsync => Callback.Await(ignoringAsync()),
         null => default,
         _ => throw Callback.Unexpected(_handler),
     };
@@ -119,6 +133,12 @@ public readonly struct Callback<T>
     private static ValueTask Run(Action<T> sync, T arg)
     {
         sync(arg);
+        return default;
+    }
+
+    private static ValueTask Run(Action sync)
+    {
+        sync();
         return default;
     }
 }

@@ -228,8 +228,8 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
     // rule anybody can break. Pinned by reflection because the markup is identical either way: nothing
     // would fail if these quietly split back into a pair.
     [Theory]
-    [InlineData("OnClick", typeof(Rask.Core.Callback))]
-    [InlineData("OnMouseDown", typeof(Rask.Core.Callback<Rask.Core.Live.MouseEventArgs>))]
+    [InlineData("OnClick", typeof(Rask.Core.Callback<PointerEvent>))]
+    [InlineData("OnMouseDown", typeof(Rask.Core.Callback<MouseEvent>))]
     public void A_dom_event_is_one_carrier_typed_property(string prop, Type expected)
     {
         var element = typeof(Rask.Core.Element);

@@ -70,6 +70,28 @@ them until tagged releases begin.
   - **Tag-specific attributes render in IDL order** after the globals, and a typed control's derived `type`,
     `name`, `value`, `checked` and `step` render after those. Each generated member's doc comment gives its
     browser support and links to MDN and the spec.
+- **BREAKING: element events are generated from MDN too** (`@webref/events` joins the snapshot). Every event
+  MDN's `GlobalEventHandlers` lists that ships in two engines is on every element — 103 of them —
+  named and typed the way MDN names them:
+  - **Arguments are MDN's event types, inheritance included:** `PointerEvent : MouseEvent : UIEvent : Event`,
+    with MDN's member names. `MouseEventArgs`/`PointerEventArgs`/`KeyboardEventArgs`/`WheelEventArgs`/
+    `TouchEventArgs`/`ClipboardEventArgs`/`ToggleEventArgs`/`MediaEventArgs`/`ScrollEvent` are gone:
+    `e.Mouse.ClientX` → `e.ClientX`, `e.Shift` → `e.ShiftKey` (`CtrlKey`/`AltKey`/`MetaKey`),
+    `e.IsOpen` → `e.NewState == "open"`, `e.Text` on paste → `e.ClipboardData?.GetData("text/plain")`,
+    `e.TouchCount` → `e.Touches.Count`, `OnBeforeInput(s => …)` → `OnBeforeInput(e => … e.Data …)`.
+  - **Handler names are MDN's event names:** `OnDoubleClick` → `OnDblClick`.
+  - **`OnClick` carries its `PointerEvent`,** and every event takes a parameterless handler as well —
+    `Button.OnClick(() => n++)` and `Button.OnClick(e => _shift = e.ShiftKey)` both work. A component's own
+    `Callback` forwards straight in (`Button.OnClick(OnClick)`), and a handler typed to a base event receives
+    the whole derived one.
+  - **Scroll and media state travel as the target's**, the way JavaScript reads `e.target`:
+    `e.ScrollTop` → `e.Target!.ScrollTop`, `e.CurrentTime` → `e.Target!.CurrentTime`. Media events are
+    universal now, so they render with the other events, before the element's own attributes.
+  - **The quirks come from the data:** an event MDN marks non-bubbling reaches only its own element, and
+    only `contextmenu`/`dragover`/`drop` are `preventDefault`-ed; every other listener is passive. Events
+    render in MDN's IDL order.
+  - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
+    stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
 
 ### Security
 

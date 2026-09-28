@@ -39,7 +39,7 @@ public sealed class VirtualizeModel : Component
     private int _clientHeight;
     private IEnumerable? _lastItems;
     private Delegate? _lastProvider;
-    private Action<ScrollEvent>? _onScrollDelegate;
+    private Action<Event>? _onScrollDelegate;
     private int _scrollTop;
     private int _totalCount;
     private bool _totalCountKnown;
@@ -369,12 +369,18 @@ public sealed class VirtualizeModel : Component
         }
     }
 
-    private void HandleScroll(ScrollEvent e)
+    // The scroll box travels with a scroll as e.Target, as MDN's JavaScript reads it: e.target.scrollTop.
+    private void HandleScroll(Event e)
     {
-        _scrollTop = Math.Max(0, e.ScrollTop);
-        if (e.ClientHeight > 0)
+        if (e.Target is not { } box)
         {
-            _clientHeight = e.ClientHeight;
+            return;
+        }
+
+        _scrollTop = Math.Max(0, (int)box.ScrollTop);
+        if (box.ClientHeight > 0)
+        {
+            _clientHeight = box.ClientHeight;
         }
         // The dispatcher's post-handler render already picks up this state mutation —
         // the owner is marked _stateDirty when TryInvokeHandlerAsync looks up the handler.

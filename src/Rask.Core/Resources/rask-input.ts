@@ -11,6 +11,7 @@
 
 import { inRoot, send } from "./rask-host.js";
 import { raskNoteDirtyField } from "./rask-morph.js";
+import { raskTargetState } from "./rask-dom-payload.js";
 
 /** Any element this module reads a `value` off. */
 type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -92,13 +93,8 @@ function flushScroll(): void {
         if (!el.isConnected) return;
         const id = el.getAttribute("data-rask-on-scroll");
         if (!id) return;
-        send({
-            id,
-            type: "scroll",
-            scrollTop: el.scrollTop | 0,
-            clientHeight: el.clientHeight | 0,
-            scrollHeight: el.scrollHeight | 0
-        });
+        // The scroll box travels as e.Target, the way MDN's JavaScript reads it (e.target.scrollTop).
+        send({ id, type: "scroll", target: raskTargetState(el, 1) });
     });
     scrollPending.clear();
 }

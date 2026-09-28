@@ -140,7 +140,7 @@ public sealed partial class UiModal : Component
         {
             // The dialog's own toggle event: the platform reports every way it closed, the ones no handler here
             // saw included — Escape, the backdrop, a button inside the body.
-            dialog = dialog.OnToggle(e => e.IsOpen ? Task.CompletedTask : OnClose.Invoke().AsTask());
+            dialog = dialog.OnToggle(e => e.NewState == "open" ? Task.CompletedTask : OnClose.Invoke().AsTask());
         }
 
         // Escape, and a light dismiss where the browser does one: the platform raises cancel for those and

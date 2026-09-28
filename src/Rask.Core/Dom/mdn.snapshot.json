@@ -3,6 +3,7 @@
  "sources": {
   "@mdn/browser-compat-data": "8.1.3",
   "@webref/elements": "2.9.0",
+  "@webref/events": "1.26.0",
   "@webref/idl": "3.84.0",
   "webidl2": "24.5.0",
   "webref/dfns": "89e7d68c6612fbedb740c1632d36e482ca39e999"
@@ -3094,7 +3095,1758 @@
    }
   ]
  },
+ "events": [
+  {
+   "type": "animationstart",
+   "interface": "AnimationEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "79",
+    "firefox": "51",
+    "safari": "9"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/animationstart_event",
+   "spec": "https://drafts.csswg.org/css-animations/#eventdef-globaleventhandlers-animationstart"
+  },
+  {
+   "type": "animationiteration",
+   "interface": "AnimationEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "79",
+    "firefox": "51",
+    "safari": "9"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/animationiteration_event",
+   "spec": "https://drafts.csswg.org/css-animations/#eventdef-globaleventhandlers-animationiteration"
+  },
+  {
+   "type": "animationend",
+   "interface": "AnimationEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "79",
+    "firefox": "51",
+    "safari": "9"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/animationend_event",
+   "spec": "https://drafts.csswg.org/css-animations/#eventdef-globaleventhandlers-animationend"
+  },
+  {
+   "type": "animationcancel",
+   "interface": "AnimationEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "83",
+    "firefox": "54",
+    "safari": "13.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/animationcancel_event",
+   "spec": "https://drafts.csswg.org/css-animations/#eventdef-globaleventhandlers-animationcancel"
+  },
+  {
+   "type": "transitionrun",
+   "interface": "TransitionEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "74",
+    "firefox": "53",
+    "safari": "13.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/transitionrun_event",
+   "spec": "https://drafts.csswg.org/css-transitions/#transitionrun"
+  },
+  {
+   "type": "transitionstart",
+   "interface": "TransitionEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "74",
+    "firefox": "53",
+    "safari": "13.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/transitionstart_event",
+   "spec": "https://drafts.csswg.org/css-transitions/#transitionstart"
+  },
+  {
+   "type": "transitionend",
+   "interface": "TransitionEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "26",
+    "firefox": "51",
+    "safari": "7"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/transitionend_event",
+   "spec": "https://drafts.csswg.org/css-transitions/#transitionend"
+  },
+  {
+   "type": "transitioncancel",
+   "interface": "TransitionEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "87",
+    "firefox": "53",
+    "safari": "13.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/transitioncancel_event",
+   "spec": "https://drafts.csswg.org/css-transitions/#transitioncancel"
+  },
+  {
+   "type": "abort",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/abort_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-abort"
+  },
+  {
+   "type": "auxclick",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "53",
+    "safari": "18.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/auxclick_event",
+   "spec": "https://w3c.github.io/pointerevents/#auxclick"
+  },
+  {
+   "type": "beforeinput",
+   "interface": "InputEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "60",
+    "firefox": "87",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/beforeinput_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-beforeinput"
+  },
+  {
+   "type": "beforematch",
+   "interface": "Event",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "102",
+    "firefox": "139",
+    "safari": "26.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/beforematch_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-beforematch"
+  },
+  {
+   "type": "beforetoggle",
+   "interface": "ToggleEvent",
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "114",
+    "firefox": "125",
+    "safari": "17"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/beforetoggle_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-beforetoggle"
+  },
+  {
+   "type": "blur",
+   "interface": "FocusEvent",
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "24",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/blur_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-blur"
+  },
+  {
+   "type": "cancel",
+   "interface": "Event",
+   "cancelable": true,
+   "on": "HTMLDialogElement",
+   "support": {
+    "chrome": "37",
+    "firefox": "98",
+    "safari": "15.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/cancel_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-cancel"
+  },
+  {
+   "type": "canplay",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/canplay_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-canplay"
+  },
+  {
+   "type": "canplaythrough",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/canplaythrough_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-canplaythrough"
+  },
+  {
+   "type": "change",
+   "interface": "Event",
+   "bubbles": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "1",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/change_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-change"
+  },
+  {
+   "type": "click",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/click_event",
+   "spec": "https://w3c.github.io/pointerevents/#click"
+  },
+  {
+   "type": "close",
+   "interface": "Event",
+   "on": "HTMLDialogElement",
+   "support": {
+    "chrome": "37",
+    "firefox": "98",
+    "safari": "15.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/close_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-close"
+  },
+  {
+   "type": "command",
+   "interface": "CommandEvent",
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "135",
+    "firefox": "144",
+    "safari": "26.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/command_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-command"
+  },
+  {
+   "type": "contextlost",
+   "interface": "Event",
+   "cancelable": true,
+   "on": "HTMLCanvasElement",
+   "support": {
+    "chrome": "99",
+    "firefox": "125"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/contextlost_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-contextlost"
+  },
+  {
+   "type": "contextmenu",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/contextmenu_event",
+   "spec": "https://w3c.github.io/pointerevents/#contextmenu"
+  },
+  {
+   "type": "contextrestored",
+   "interface": "Event",
+   "on": "HTMLCanvasElement",
+   "support": {
+    "chrome": "99",
+    "firefox": "125"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement/contextrestored_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-contextrestored"
+  },
+  {
+   "type": "copy",
+   "interface": "ClipboardEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "22",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/copy_event",
+   "spec": "https://w3c.github.io/clipboard-apis/#clipboard-event-copy"
+  },
+  {
+   "type": "cuechange",
+   "interface": "Event",
+   "on": "HTMLTrackElement",
+   "support": {
+    "chrome": "32",
+    "firefox": "68",
+    "safari": "10"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLTrackElement/cuechange_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-cuechange"
+  },
+  {
+   "type": "cut",
+   "interface": "ClipboardEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "22",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/cut_event",
+   "spec": "https://w3c.github.io/clipboard-apis/#clipboard-event-cut"
+  },
+  {
+   "type": "dblclick",
+   "interface": "MouseEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/dblclick_event",
+   "spec": "https://w3c.github.io/pointerevents/#dblclick"
+  },
+  {
+   "type": "drag",
+   "interface": "DragEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/drag_event",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#handler-ondrag"
+  },
+  {
+   "type": "dragend",
+   "interface": "DragEvent",
+   "bubbles": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/dragend_event",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#handler-ondragend"
+  },
+  {
+   "type": "dragenter",
+   "interface": "DragEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/dragenter_event",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#handler-ondragenter"
+  },
+  {
+   "type": "dragleave",
+   "interface": "DragEvent",
+   "bubbles": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/dragleave_event",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#handler-ondragleave"
+  },
+  {
+   "type": "dragover",
+   "interface": "DragEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/dragover_event",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#handler-ondragover"
+  },
+  {
+   "type": "dragstart",
+   "interface": "DragEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/dragstart_event",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#handler-ondragstart"
+  },
+  {
+   "type": "drop",
+   "interface": "DragEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "9",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/drop_event",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#handler-ondrop"
+  },
+  {
+   "type": "durationchange",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/durationchange_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-durationchange"
+  },
+  {
+   "type": "emptied",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/emptied_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-emptied"
+  },
+  {
+   "type": "ended",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/ended_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-ended"
+  },
+  {
+   "type": "error",
+   "interface": "Event",
+   "cancelable": true,
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "1",
+    "safari": "1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/error_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-error"
+  },
+  {
+   "type": "focus",
+   "interface": "FocusEvent",
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "24",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/focus_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-focus"
+  },
+  {
+   "type": "formdata",
+   "interface": "FormDataEvent",
+   "bubbles": true,
+   "on": "HTMLFormElement",
+   "support": {
+    "chrome": "77",
+    "firefox": "72",
+    "safari": "15"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLFormElement/formdata_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-formdata"
+  },
+  {
+   "type": "input",
+   "interface": "InputEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/input_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-input"
+  },
+  {
+   "type": "invalid",
+   "interface": "Event",
+   "cancelable": true,
+   "on": "HTMLInputElement",
+   "support": {
+    "chrome": "10",
+    "firefox": "4",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLInputElement/invalid_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-invalid"
+  },
+  {
+   "type": "keydown",
+   "interface": "KeyboardEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "1.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/keydown_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-keydown"
+  },
+  {
+   "type": "keyup",
+   "interface": "KeyboardEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "1.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/keyup_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-keyup"
+  },
+  {
+   "type": "load",
+   "interface": "Event",
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "1",
+    "safari": "1.3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/load_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-load"
+  },
+  {
+   "type": "loadeddata",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/loadeddata_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-loadeddata"
+  },
+  {
+   "type": "loadedmetadata",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/loadedmetadata_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-loadedmetadata"
+  },
+  {
+   "type": "loadstart",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "6",
+    "safari": "4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/loadstart_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-loadstart"
+  },
+  {
+   "type": "mousedown",
+   "interface": "MouseEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "2",
+    "firefox": "6",
+    "safari": "4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/mousedown_event",
+   "spec": "https://w3c.github.io/pointerevents/#mousedown"
+  },
+  {
+   "type": "mouseenter",
+   "interface": "MouseEvent",
+   "on": "Element",
+   "support": {
+    "chrome": "30",
+    "firefox": "10",
+    "safari": "7"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/mouseenter_event",
+   "spec": "https://w3c.github.io/pointerevents/#mouseenter"
+  },
+  {
+   "type": "mouseleave",
+   "interface": "MouseEvent",
+   "on": "Element",
+   "support": {
+    "chrome": "30",
+    "firefox": "10",
+    "safari": "7"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/mouseleave_event",
+   "spec": "https://w3c.github.io/pointerevents/#mouseleave"
+  },
+  {
+   "type": "mousemove",
+   "interface": "MouseEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "2",
+    "firefox": "6",
+    "safari": "4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/mousemove_event",
+   "spec": "https://w3c.github.io/pointerevents/#mousemove"
+  },
+  {
+   "type": "mouseout",
+   "interface": "MouseEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/mouseout_event",
+   "spec": "https://w3c.github.io/pointerevents/#mouseout"
+  },
+  {
+   "type": "mouseover",
+   "interface": "MouseEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "2",
+    "firefox": "6",
+    "safari": "4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/mouseover_event",
+   "spec": "https://w3c.github.io/pointerevents/#mouseover"
+  },
+  {
+   "type": "mouseup",
+   "interface": "MouseEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "2",
+    "firefox": "6",
+    "safari": "4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/mouseup_event",
+   "spec": "https://w3c.github.io/pointerevents/#mouseup"
+  },
+  {
+   "type": "paste",
+   "interface": "ClipboardEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "22",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/paste_event",
+   "spec": "https://w3c.github.io/clipboard-apis/#clipboard-event-paste"
+  },
+  {
+   "type": "pause",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/pause_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-pause"
+  },
+  {
+   "type": "play",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/play_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-play"
+  },
+  {
+   "type": "playing",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/playing_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-playing"
+  },
+  {
+   "type": "progress",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "6",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/progress_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-progress"
+  },
+  {
+   "type": "ratechange",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/ratechange_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-ratechange"
+  },
+  {
+   "type": "reset",
+   "interface": "Event",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "HTMLFormElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLFormElement/reset_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-reset"
+  },
+  {
+   "type": "resize",
+   "interface": "Event",
+   "on": "HTMLVideoElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLVideoElement/resize_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-resize"
+  },
+  {
+   "type": "scroll",
+   "interface": "Event",
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "1.3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/scroll_event",
+   "spec": "https://drafts.csswg.org/cssom-view/#eventdef-document-scroll"
+  },
+  {
+   "type": "scrollend",
+   "interface": "Event",
+   "on": "Element",
+   "support": {
+    "chrome": "114",
+    "firefox": "109",
+    "safari": "26.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/scrollend_event",
+   "spec": "https://drafts.csswg.org/cssom-view/#eventdef-document-scrollend"
+  },
+  {
+   "type": "securitypolicyviolation",
+   "interface": "SecurityPolicyViolationEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "41",
+    "firefox": "63",
+    "safari": "10"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/securitypolicyviolation_event",
+   "spec": "https://w3c.github.io/webappsec-csp/#eventdef-globaleventhandlers-securitypolicyviolation"
+  },
+  {
+   "type": "seeked",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/seeked_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-seeked"
+  },
+  {
+   "type": "seeking",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/seeking_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-seeking"
+  },
+  {
+   "type": "select",
+   "interface": "Event",
+   "bubbles": true,
+   "on": "HTMLInputElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "6",
+    "safari": "1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLInputElement/select_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-select"
+  },
+  {
+   "type": "slotchange",
+   "interface": "Event",
+   "bubbles": true,
+   "on": "HTMLSlotElement",
+   "support": {
+    "chrome": "53",
+    "firefox": "63",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLSlotElement/slotchange_event",
+   "spec": "https://dom.spec.whatwg.org/#eventdef-htmlslotelement-slotchange"
+  },
+  {
+   "type": "stalled",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/stalled_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-stalled"
+  },
+  {
+   "type": "submit",
+   "interface": "SubmitEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "HTMLFormElement",
+   "support": {
+    "chrome": "1",
+    "firefox": "1",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLFormElement/submit_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-submit"
+  },
+  {
+   "type": "suspend",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/suspend_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-suspend"
+  },
+  {
+   "type": "timeupdate",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/timeupdate_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-timeupdate"
+  },
+  {
+   "type": "toggle",
+   "interface": "ToggleEvent",
+   "on": "HTMLElement",
+   "support": {
+    "chrome": "36",
+    "firefox": "49",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/toggle_event",
+   "spec": "https://html.spec.whatwg.org/multipage/indices.html#event-toggle"
+  },
+  {
+   "type": "volumechange",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "6",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/volumechange_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-volumechange"
+  },
+  {
+   "type": "waiting",
+   "interface": "Event",
+   "on": "HTMLMediaElement",
+   "support": {
+    "chrome": "3",
+    "firefox": "6",
+    "safari": "3.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLMediaElement/waiting_event",
+   "spec": "https://html.spec.whatwg.org/multipage/media.html#event-media-waiting"
+  },
+  {
+   "type": "wheel",
+   "interface": "WheelEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "31",
+    "firefox": "17",
+    "safari": "7"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/wheel_event",
+   "spec": "https://w3c.github.io/pointerevents/#wheel"
+  },
+  {
+   "type": "pointerover",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointerover_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointerover"
+  },
+  {
+   "type": "pointerenter",
+   "interface": "PointerEvent",
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointerenter_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointerenter"
+  },
+  {
+   "type": "pointerdown",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointerdown_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointerdown"
+  },
+  {
+   "type": "pointermove",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointermove_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointermove"
+  },
+  {
+   "type": "pointerrawupdate",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "77",
+    "firefox": "148"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointerrawupdate_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointerrawupdate"
+  },
+  {
+   "type": "pointerup",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointerup_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointerup"
+  },
+  {
+   "type": "pointercancel",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointercancel_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointercancel"
+  },
+  {
+   "type": "pointerout",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointerout_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointerout"
+  },
+  {
+   "type": "pointerleave",
+   "interface": "PointerEvent",
+   "on": "Element",
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/pointerleave_event",
+   "spec": "https://w3c.github.io/pointerevents/#pointerleave"
+  },
+  {
+   "type": "gotpointercapture",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "57",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/gotpointercapture_event",
+   "spec": "https://w3c.github.io/pointerevents/#gotpointercapture"
+  },
+  {
+   "type": "lostpointercapture",
+   "interface": "PointerEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "57",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/lostpointercapture_event",
+   "spec": "https://w3c.github.io/pointerevents/#lostpointercapture"
+  },
+  {
+   "type": "selectionchange",
+   "interface": "Event",
+   "bubbles": true,
+   "on": "HTMLInputElement",
+   "support": {
+    "chrome": "127",
+    "firefox": "92",
+    "safari": "18"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLInputElement/selectionchange_event",
+   "spec": "https://w3c.github.io/selection-api/#selectionchange-event"
+  },
+  {
+   "type": "touchstart",
+   "interface": "TouchEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "22",
+    "firefox": "52",
+    "safari_ios": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/touchstart_event",
+   "spec": "https://w3c.github.io/touch-events/#event-touchstart"
+  },
+  {
+   "type": "touchend",
+   "interface": "TouchEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "22",
+    "firefox": "52",
+    "safari_ios": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/touchend_event",
+   "spec": "https://w3c.github.io/touch-events/#event-touchend"
+  },
+  {
+   "type": "touchmove",
+   "interface": "TouchEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "22",
+    "firefox": "52",
+    "safari_ios": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/touchmove_event",
+   "spec": "https://w3c.github.io/touch-events/#event-touchmove"
+  },
+  {
+   "type": "touchcancel",
+   "interface": "TouchEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "22",
+    "firefox": "52",
+    "safari_ios": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/touchcancel_event",
+   "spec": "https://w3c.github.io/touch-events/#event-touchcancel"
+  },
+  {
+   "type": "compositionend",
+   "interface": "CompositionEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "15",
+    "firefox": "9",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/compositionend_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-compositionend"
+  },
+  {
+   "type": "compositionstart",
+   "interface": "CompositionEvent",
+   "bubbles": true,
+   "cancelable": true,
+   "on": "Element",
+   "support": {
+    "chrome": "15",
+    "firefox": "9",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/compositionstart_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-compositionstart"
+  },
+  {
+   "type": "compositionupdate",
+   "interface": "CompositionEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "18",
+    "firefox": "9",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/compositionupdate_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-compositionupdate"
+  },
+  {
+   "type": "contentvisibilityautostatechange",
+   "interface": "ContentVisibilityAutoStateChangeEvent",
+   "on": "Element",
+   "support": {
+    "chrome": "108",
+    "firefox": "130",
+    "safari": "18"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/contentvisibilityautostatechange_event",
+   "spec": "https://drafts.csswg.org/css-contain/#content-visibility-auto-state-change"
+  },
+  {
+   "type": "focusin",
+   "interface": "FocusEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "52",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/focusin_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-focusin"
+  },
+  {
+   "type": "focusout",
+   "interface": "FocusEvent",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "1",
+    "firefox": "52",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/focusout_event",
+   "spec": "https://w3c.github.io/uievents/#event-type-focusout"
+  },
+  {
+   "type": "fullscreenchange",
+   "interface": "Event",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "71",
+    "firefox": "64",
+    "safari": "16.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/fullscreenchange_event",
+   "spec": "https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenchange"
+  },
+  {
+   "type": "fullscreenerror",
+   "interface": "Event",
+   "bubbles": true,
+   "on": "Element",
+   "support": {
+    "chrome": "71",
+    "firefox": "64",
+    "safari": "16.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Element/fullscreenerror_event",
+   "spec": "https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror"
+  }
+ ],
  "interfaces": {
+  "AnimationEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "43",
+    "firefox": "5",
+    "safari": "9"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/AnimationEvent",
+   "spec": "https://drafts.csswg.org/css-animations/#interface-animationevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "animation",
+     "type": "CSSAnimation?",
+     "readonly": true,
+     "support": {
+      "chrome": "151",
+      "firefox": "152",
+      "safari": "27"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/AnimationEvent/animation",
+     "spec": "https://drafts.csswg.org/css-animations-2/#dom-animationevent-animation"
+    },
+    {
+     "kind": "attribute",
+     "name": "animationName",
+     "type": "CSSOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "43",
+      "firefox": "5",
+      "safari": "9"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/AnimationEvent/animationName",
+     "spec": "https://drafts.csswg.org/css-animations/#dom-animationevent-animationname"
+    },
+    {
+     "kind": "attribute",
+     "name": "elapsedTime",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "43",
+      "firefox": "5",
+      "safari": "9"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/AnimationEvent/elapsedTime",
+     "spec": "https://drafts.csswg.org/css-animations/#dom-animationevent-elapsedtime"
+    },
+    {
+     "kind": "attribute",
+     "name": "pseudoElement",
+     "type": "CSSOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "68",
+      "firefox": "23",
+      "safari": "13.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/AnimationEvent/pseudoElement",
+     "spec": "https://drafts.csswg.org/css-animations/#dom-animationevent-pseudoelement"
+    }
+   ]
+  },
+  "CSSAnimation": {
+   "parent": "Animation",
+   "abstract": true,
+   "support": {
+    "chrome": "84",
+    "firefox": "75",
+    "safari": "13.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/CSSAnimation",
+   "spec": "https://drafts.csswg.org/css-animations-2/#the-CSSAnimation-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "animationName",
+     "type": "CSSOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "84",
+      "firefox": "75",
+      "safari": "13.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CSSAnimation/animationName",
+     "spec": "https://drafts.csswg.org/css-animations-2/#dom-cssanimation-animationname"
+    }
+   ]
+  },
+  "CSSTransition": {
+   "parent": "Animation",
+   "abstract": true,
+   "support": {
+    "chrome": "84",
+    "firefox": "75",
+    "safari": "13.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/CSSTransition",
+   "spec": "https://drafts.csswg.org/css-transitions-2/#the-CSSTransition-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "transitionProperty",
+     "type": "CSSOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "84",
+      "firefox": "75",
+      "safari": "13.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CSSTransition/transitionProperty",
+     "spec": "https://drafts.csswg.org/css-transitions-2/#dom-csstransition-transitionproperty"
+    }
+   ]
+  },
+  "ClipboardEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "41",
+    "firefox": "22",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ClipboardEvent",
+   "spec": "https://w3c.github.io/clipboard-apis/#clipboard-event-interfaces",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "clipboardData",
+     "type": "DataTransfer?",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "22",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ClipboardEvent/clipboardData",
+     "spec": "https://w3c.github.io/clipboard-apis/#clipboardevent-clipboarddata"
+    }
+   ]
+  },
+  "CommandEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "135",
+    "firefox": "144",
+    "safari": "26.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/CommandEvent",
+   "spec": "https://html.spec.whatwg.org/multipage/interaction.html#commandevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "source",
+     "type": "Element?",
+     "readonly": true,
+     "support": {
+      "chrome": "135",
+      "firefox": "144",
+      "safari": "26.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CommandEvent/source",
+     "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-commandevent-source"
+    },
+    {
+     "kind": "attribute",
+     "name": "command",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "135",
+      "firefox": "144",
+      "safari": "26.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CommandEvent/command",
+     "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-commandevent-command"
+    }
+   ]
+  },
+  "CompositionEvent": {
+   "parent": "UIEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "15",
+    "firefox": "9",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/CompositionEvent",
+   "spec": "https://w3c.github.io/uievents/#interface-compositionevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "data",
+     "type": "USVString",
+     "readonly": true,
+     "support": {
+      "chrome": "15",
+      "firefox": "9",
+      "safari": "5"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CompositionEvent/data",
+     "spec": "https://w3c.github.io/uievents/#dom-compositionevent-data"
+    }
+   ]
+  },
+  "ContentVisibilityAutoStateChangeEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "108",
+    "firefox": "125",
+    "safari": "18"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ContentVisibilityAutoStateChangeEvent",
+   "spec": "https://drafts.csswg.org/css-contain/#content-visibility-auto-state-change",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "skipped",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "108",
+      "firefox": "125",
+      "safari": "18"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ContentVisibilityAutoStateChangeEvent/skipped",
+     "spec": "https://drafts.csswg.org/css-contain/#dom-contentvisibilityautostatechangeevent-skipped"
+    }
+   ]
+  },
+  "DataTransfer": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "3",
+    "firefox": "3.5",
+    "safari": "4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer",
+   "spec": "https://html.spec.whatwg.org/multipage/dnd.html#the-datatransfer-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "dropEffect",
+     "type": "DOMString",
+     "support": {
+      "chrome": "3",
+      "firefox": "3.5",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/dropEffect",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-dropeffect-dev"
+    },
+    {
+     "kind": "attribute",
+     "name": "effectAllowed",
+     "type": "DOMString",
+     "support": {
+      "chrome": "3",
+      "firefox": "3.5",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/effectAllowed",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-effectallowed-dev"
+    },
+    {
+     "kind": "attribute",
+     "name": "items",
+     "type": "DataTransferItemList",
+     "readonly": true,
+     "support": {
+      "chrome": "3",
+      "firefox": "50",
+      "safari": "11.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/items",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-items-dev"
+    },
+    {
+     "kind": "operation",
+     "name": "setDragImage",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "image",
+       "type": "Element"
+      },
+      {
+       "name": "x",
+       "type": "long"
+      },
+      {
+       "name": "y",
+       "type": "long"
+      }
+     ],
+     "support": {
+      "chrome": "3",
+      "firefox": "3.5",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/setDragImage",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-setdragimage-dev"
+    },
+    {
+     "kind": "attribute",
+     "name": "types",
+     "type": "FrozenArray<DOMString>",
+     "readonly": true,
+     "support": {
+      "chrome": "3",
+      "firefox": "3.5",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/types",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-types-dev"
+    },
+    {
+     "kind": "operation",
+     "name": "getData",
+     "returns": "DOMString",
+     "args": [
+      {
+       "name": "format",
+       "type": "DOMString"
+      }
+     ],
+     "support": {
+      "chrome": "3",
+      "firefox": "3.5",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/getData",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-getdata-dev"
+    },
+    {
+     "kind": "operation",
+     "name": "setData",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "format",
+       "type": "DOMString"
+      },
+      {
+       "name": "data",
+       "type": "DOMString"
+      }
+     ],
+     "support": {
+      "chrome": "3",
+      "firefox": "3.5",
+      "safari": "5"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/setData",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-setdata-dev"
+    },
+    {
+     "kind": "operation",
+     "name": "clearData",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "format",
+       "type": "DOMString",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "3",
+      "firefox": "3.5",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/clearData",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-cleardata-dev"
+    },
+    {
+     "kind": "attribute",
+     "name": "files",
+     "type": "FileList",
+     "readonly": true,
+     "support": {
+      "chrome": "3",
+      "firefox": "3.6",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransfer/files",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-files-dev"
+    }
+   ]
+  },
+  "DragEvent": {
+   "parent": "MouseEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "46",
+    "firefox": "3.5",
+    "safari": "14"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DragEvent",
+   "spec": "https://html.spec.whatwg.org/multipage/dnd.html#the-dragevent-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "dataTransfer",
+     "type": "DataTransfer?",
+     "readonly": true,
+     "support": {
+      "chrome": "46",
+      "firefox": "3.5",
+      "safari": "14"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DragEvent/dataTransfer",
+     "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-dragevent-datatransfer-dev"
+    }
+   ]
+  },
   "Element": {
    "parent": "Node",
    "abstract": true,
@@ -5286,6 +7038,201 @@
     }
    ]
   },
+  "Event": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "1",
+    "firefox": "1",
+    "safari": "1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Event",
+   "spec": "https://dom.spec.whatwg.org/#interface-event",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "type",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/type",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-type④"
+    },
+    {
+     "kind": "attribute",
+     "name": "target",
+     "type": "EventTarget?",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/target",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-target③"
+    },
+    {
+     "kind": "attribute",
+     "name": "currentTarget",
+     "type": "EventTarget?",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/currentTarget",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-currenttarget②"
+    },
+    {
+     "kind": "operation",
+     "name": "composedPath",
+     "returns": "sequence<EventTarget>",
+     "args": [],
+     "support": {
+      "chrome": "53",
+      "firefox": "59",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/composedPath",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-composedpath①"
+    },
+    {
+     "kind": "attribute",
+     "name": "eventPhase",
+     "type": "unsigned short",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/eventPhase",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-eventphase③"
+    },
+    {
+     "kind": "operation",
+     "name": "stopPropagation",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/stopPropagation",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-stoppropagation①"
+    },
+    {
+     "kind": "operation",
+     "name": "stopImmediatePropagation",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "5",
+      "firefox": "10",
+      "safari": "5"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/stopImmediatePropagation",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-stopimmediatepropagation①"
+    },
+    {
+     "kind": "attribute",
+     "name": "bubbles",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/bubbles",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-bubbles③"
+    },
+    {
+     "kind": "attribute",
+     "name": "cancelable",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/cancelable",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-cancelable②"
+    },
+    {
+     "kind": "operation",
+     "name": "preventDefault",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/preventDefault",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-preventdefault③"
+    },
+    {
+     "kind": "attribute",
+     "name": "defaultPrevented",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "5",
+      "firefox": "6",
+      "safari": "5"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/defaultPrevented",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-defaultprevented①"
+    },
+    {
+     "kind": "attribute",
+     "name": "composed",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "53",
+      "firefox": "52",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/composed",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-composed①"
+    },
+    {
+     "kind": "attribute",
+     "name": "isTrusted",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "46",
+      "firefox": "1.5",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/isTrusted",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-istrusted①"
+    },
+    {
+     "kind": "attribute",
+     "name": "timeStamp",
+     "type": "DOMHighResTimeStamp",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Event/timeStamp",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-event-timestamp①"
+    }
+   ]
+  },
   "EventTarget": {
    "parent": null,
    "abstract": true,
@@ -5368,6 +7315,221 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent",
      "spec": "https://dom.spec.whatwg.org/#ref-for-dom-eventtarget-dispatchevent③"
+    }
+   ]
+  },
+  "FocusEvent": {
+   "parent": "UIEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "26",
+    "firefox": "24",
+    "safari": "7"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/FocusEvent",
+   "spec": "https://w3c.github.io/uievents/#interface-focusevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "relatedTarget",
+     "type": "EventTarget?",
+     "readonly": true,
+     "support": {
+      "chrome": "26",
+      "firefox": "24",
+      "safari": "7"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FocusEvent/relatedTarget",
+     "spec": "https://w3c.github.io/uievents/#dom-focusevent-relatedtarget"
+    }
+   ]
+  },
+  "FormData": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "5",
+    "firefox": "4",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/FormData",
+   "spec": "https://xhr.spec.whatwg.org/#interface-formdata",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "append",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      },
+      {
+       "name": "value",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "5",
+      "firefox": "4",
+      "safari": "5"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FormData/append",
+     "spec": "https://xhr.spec.whatwg.org/#dom-formdata-append",
+     "overloads": [
+      [
+       {
+        "name": "name",
+        "type": "USVString"
+       },
+       {
+        "name": "blobValue",
+        "type": "Blob"
+       },
+       {
+        "name": "filename",
+        "type": "USVString",
+        "optional": true
+       }
+      ]
+     ]
+    },
+    {
+     "kind": "operation",
+     "name": "delete",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "50",
+      "firefox": "39",
+      "safari": "11.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FormData/delete",
+     "spec": "https://xhr.spec.whatwg.org/#dom-formdata-delete"
+    },
+    {
+     "kind": "operation",
+     "name": "get",
+     "returns": "FormDataEntryValue?",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "50",
+      "firefox": "39",
+      "safari": "11.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FormData/get",
+     "spec": "https://xhr.spec.whatwg.org/#dom-formdata-get"
+    },
+    {
+     "kind": "operation",
+     "name": "getAll",
+     "returns": "sequence<FormDataEntryValue>",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "50",
+      "firefox": "39",
+      "safari": "11.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FormData/getAll",
+     "spec": "https://xhr.spec.whatwg.org/#dom-formdata-getall"
+    },
+    {
+     "kind": "operation",
+     "name": "has",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "50",
+      "firefox": "39",
+      "safari": "11.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FormData/has",
+     "spec": "https://xhr.spec.whatwg.org/#dom-formdata-has"
+    },
+    {
+     "kind": "operation",
+     "name": "set",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      },
+      {
+       "name": "value",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "50",
+      "firefox": "39",
+      "safari": "11.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FormData/set",
+     "spec": "https://xhr.spec.whatwg.org/#dom-formdata-set",
+     "overloads": [
+      [
+       {
+        "name": "name",
+        "type": "USVString"
+       },
+       {
+        "name": "blobValue",
+        "type": "Blob"
+       },
+       {
+        "name": "filename",
+        "type": "USVString",
+        "optional": true
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  "FormDataEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "77",
+    "firefox": "72",
+    "safari": "15"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/FormDataEvent",
+   "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#the-formdataevent-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "formData",
+     "type": "FormData",
+     "readonly": true,
+     "support": {
+      "chrome": "77",
+      "firefox": "72",
+      "safari": "15"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FormDataEvent/formData",
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#the-formdataevent-interface:dom-formdataevent-formdata-2"
     }
    ]
   },
@@ -15994,6 +18156,547 @@
     }
    ]
   },
+  "InputDeviceCapabilities": {
+   "parent": null,
+   "abstract": true,
+   "experimental": true,
+   "support": {
+    "chrome": "47"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/InputDeviceCapabilities",
+   "spec": "https://wicg.github.io/input-device-capabilities/#dom-inputdevicecapabilities",
+   "members": []
+  },
+  "InputEvent": {
+   "parent": "UIEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "60",
+    "firefox": "31",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/InputEvent",
+   "spec": "https://w3c.github.io/input-events/#interface-InputEvent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "dataTransfer",
+     "type": "DataTransfer?",
+     "readonly": true,
+     "support": {
+      "chrome": "60",
+      "firefox": "67",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/InputEvent/dataTransfer",
+     "spec": "https://w3c.github.io/input-events/#dom-inputevent-datatransfer"
+    },
+    {
+     "kind": "operation",
+     "name": "getTargetRanges",
+     "returns": "sequence<StaticRange>",
+     "args": [],
+     "support": {
+      "chrome": "60",
+      "firefox": "87",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/InputEvent/getTargetRanges",
+     "spec": "https://w3c.github.io/input-events/#dom-inputevent-gettargetranges"
+    },
+    {
+     "kind": "attribute",
+     "name": "data",
+     "type": "USVString?",
+     "readonly": true,
+     "support": {
+      "chrome": "60",
+      "firefox": "67",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/InputEvent/data",
+     "spec": "https://w3c.github.io/input-events/#dfn-data"
+    },
+    {
+     "kind": "attribute",
+     "name": "isComposing",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "60",
+      "firefox": "31",
+      "safari": "27"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/InputEvent/isComposing",
+     "spec": "https://w3c.github.io/uievents/#dom-inputevent-iscomposing"
+    },
+    {
+     "kind": "attribute",
+     "name": "inputType",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "60",
+      "firefox": "66",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/InputEvent/inputType",
+     "spec": "https://w3c.github.io/uievents/#dom-inputevent-inputtype"
+    }
+   ]
+  },
+  "KeyboardEvent": {
+   "parent": "UIEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "1",
+    "firefox": "1.5",
+    "safari": "1.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent",
+   "spec": "https://w3c.github.io/uievents/#interface-keyboardevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "key",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "51",
+      "firefox": "23",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/key",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-key"
+    },
+    {
+     "kind": "attribute",
+     "name": "code",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "48",
+      "firefox": "38",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/code",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-code"
+    },
+    {
+     "kind": "attribute",
+     "name": "location",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "30",
+      "firefox": "15",
+      "safari": "8"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/location",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-location"
+    },
+    {
+     "kind": "attribute",
+     "name": "ctrlKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/ctrlKey",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-ctrlkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "shiftKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/shiftKey",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-shiftkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "altKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/altKey",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-altkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "metaKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/metaKey",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-metakey"
+    },
+    {
+     "kind": "attribute",
+     "name": "repeat",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "137",
+      "firefox": "28",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/repeat",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-repeat"
+    },
+    {
+     "kind": "attribute",
+     "name": "isComposing",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "56",
+      "firefox": "31",
+      "safari": "27"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/isComposing",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-iscomposing"
+    },
+    {
+     "kind": "operation",
+     "name": "getModifierState",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "keyArg",
+       "type": "DOMString"
+      }
+     ],
+     "support": {
+      "chrome": "30",
+      "firefox": "15",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/getModifierState",
+     "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate"
+    }
+   ]
+  },
+  "MouseEvent": {
+   "parent": "UIEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "1",
+    "firefox": "1",
+    "safari": "1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent",
+   "spec": "https://w3c.github.io/pointerevents/#mouseevent-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "pageX",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/pageX",
+     "spec": "https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagex"
+    },
+    {
+     "kind": "attribute",
+     "name": "pageY",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/pageY",
+     "spec": "https://drafts.csswg.org/cssom-view/#dom-mouseevent-pagey"
+    },
+    {
+     "kind": "attribute",
+     "name": "x",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "53",
+      "safari": "3.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/x",
+     "spec": "https://drafts.csswg.org/cssom-view/#dom-mouseevent-x"
+    },
+    {
+     "kind": "attribute",
+     "name": "y",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "53",
+      "safari": "3.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/y",
+     "spec": "https://drafts.csswg.org/cssom-view/#dom-mouseevent-y"
+    },
+    {
+     "kind": "attribute",
+     "name": "offsetX",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "39",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/offsetX",
+     "spec": "https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx"
+    },
+    {
+     "kind": "attribute",
+     "name": "offsetY",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "39",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/offsetY",
+     "spec": "https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety"
+    },
+    {
+     "kind": "attribute",
+     "name": "screenX",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/screenX",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-screenx"
+    },
+    {
+     "kind": "attribute",
+     "name": "screenY",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/screenY",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-screeny"
+    },
+    {
+     "kind": "attribute",
+     "name": "clientX",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/clientX",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-clientx"
+    },
+    {
+     "kind": "attribute",
+     "name": "clientY",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/clientY",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-clienty"
+    },
+    {
+     "kind": "attribute",
+     "name": "layerX",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/layerX",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-layerx"
+    },
+    {
+     "kind": "attribute",
+     "name": "layerY",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/layerY",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-layery"
+    },
+    {
+     "kind": "attribute",
+     "name": "ctrlKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/ctrlKey",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-ctrlkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "shiftKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/shiftKey",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-shiftkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "altKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/altKey",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-altkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "metaKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/metaKey",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-metakey"
+    },
+    {
+     "kind": "attribute",
+     "name": "button",
+     "type": "short",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/button",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-button"
+    },
+    {
+     "kind": "attribute",
+     "name": "buttons",
+     "type": "unsigned short",
+     "readonly": true,
+     "support": {
+      "chrome": "43",
+      "firefox": "15",
+      "safari": "11.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/buttons",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-buttons"
+    },
+    {
+     "kind": "attribute",
+     "name": "relatedTarget",
+     "type": "EventTarget?",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1.5",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/relatedTarget",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-relatedtarget"
+    },
+    {
+     "kind": "operation",
+     "name": "getModifierState",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "keyArg",
+       "type": "DOMString"
+      }
+     ],
+     "support": {
+      "chrome": "47",
+      "firefox": "15",
+      "safari": "12.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/getModifierState",
+     "spec": "https://w3c.github.io/pointerevents/#dom-mouseevent-getmodifierstate"
+    },
+    {
+     "kind": "attribute",
+     "name": "movementX",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "37",
+      "firefox": "41",
+      "safari": "9"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/movementX",
+     "spec": "https://w3c.github.io/pointerlock/#dom-mouseevent-movementx"
+    },
+    {
+     "kind": "attribute",
+     "name": "movementY",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "37",
+      "firefox": "41",
+      "safari": "9"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/MouseEvent/movementY",
+     "spec": "https://w3c.github.io/pointerlock/#dom-mouseevent-movementy"
+    }
+   ]
+  },
   "Node": {
    "parent": "EventTarget",
    "abstract": true,
@@ -16454,6 +19157,213 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/Node/removeChild",
      "spec": "https://dom.spec.whatwg.org/#dom-node-removechild"
+    }
+   ]
+  },
+  "PointerEvent": {
+   "parent": "MouseEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "55",
+    "firefox": "59",
+    "safari": "13"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent",
+   "spec": "https://w3c.github.io/pointerevents/#pointerevent-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "pointerId",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/pointerId",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid"
+    },
+    {
+     "kind": "attribute",
+     "name": "width",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/width",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-width"
+    },
+    {
+     "kind": "attribute",
+     "name": "height",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/height",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-height"
+    },
+    {
+     "kind": "attribute",
+     "name": "pressure",
+     "type": "float",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/pressure",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-pressure"
+    },
+    {
+     "kind": "attribute",
+     "name": "tangentialPressure",
+     "type": "float",
+     "readonly": true,
+     "support": {
+      "chrome": "57",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/tangentialPressure",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-tangentialpressure"
+    },
+    {
+     "kind": "attribute",
+     "name": "tiltX",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/tiltX",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-tiltx"
+    },
+    {
+     "kind": "attribute",
+     "name": "tiltY",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/tiltY",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-tilty"
+    },
+    {
+     "kind": "attribute",
+     "name": "twist",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "57",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/twist",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-twist"
+    },
+    {
+     "kind": "attribute",
+     "name": "altitudeAngle",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "86",
+      "firefox": "131",
+      "safari": "18.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/altitudeAngle",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-altitudeangle"
+    },
+    {
+     "kind": "attribute",
+     "name": "azimuthAngle",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "86",
+      "firefox": "131",
+      "safari": "18.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/azimuthAngle",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-azimuthangle"
+    },
+    {
+     "kind": "attribute",
+     "name": "pointerType",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/pointerType",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-pointertype"
+    },
+    {
+     "kind": "attribute",
+     "name": "isPrimary",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "55",
+      "firefox": "59",
+      "safari": "13"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/isPrimary",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-isprimary"
+    },
+    {
+     "kind": "attribute",
+     "name": "persistentDeviceId",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "128",
+      "firefox": "141"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/persistentDeviceId",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-persistentdeviceid"
+    },
+    {
+     "kind": "operation",
+     "name": "getCoalescedEvents",
+     "returns": "sequence<PointerEvent>",
+     "args": [],
+     "support": {
+      "chrome": "58",
+      "firefox": "59",
+      "safari": "18.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/getCoalescedEvents",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-getcoalescedevents"
+    },
+    {
+     "kind": "operation",
+     "name": "getPredictedEvents",
+     "returns": "sequence<PointerEvent>",
+     "args": [],
+     "support": {
+      "chrome": "77",
+      "firefox": "89",
+      "safari": "18.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PointerEvent/getPredictedEvents",
+     "spec": "https://w3c.github.io/pointerevents/#dom-pointerevent-getpredictedevents"
     }
    ]
   },
@@ -25552,6 +28462,739 @@
      "spec": "https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGFitToViewBox__preserveAspectRatio"
     }
    ]
+  },
+  "SecurityPolicyViolationEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "41",
+    "firefox": "63",
+    "safari": "10"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent",
+   "spec": "https://w3c.github.io/webappsec-csp/#securitypolicyviolationevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "documentURI",
+     "type": "USVString",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/documentURI",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-documenturi"
+    },
+    {
+     "kind": "attribute",
+     "name": "referrer",
+     "type": "USVString",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/referrer",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-referrer"
+    },
+    {
+     "kind": "attribute",
+     "name": "blockedURI",
+     "type": "USVString",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/blockedURI",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-blockeduri"
+    },
+    {
+     "kind": "attribute",
+     "name": "effectiveDirective",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/effectiveDirective",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-effectivedirective"
+    },
+    {
+     "kind": "attribute",
+     "name": "violatedDirective",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/violatedDirective",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-violateddirective"
+    },
+    {
+     "kind": "attribute",
+     "name": "originalPolicy",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/originalPolicy",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-originalpolicy"
+    },
+    {
+     "kind": "attribute",
+     "name": "sourceFile",
+     "type": "USVString",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/sourceFile",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-sourcefile"
+    },
+    {
+     "kind": "attribute",
+     "name": "sample",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "59",
+      "firefox": "63",
+      "safari": "15"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/sample",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-sample"
+    },
+    {
+     "kind": "attribute",
+     "name": "disposition",
+     "type": "SecurityPolicyViolationEventDisposition",
+     "readonly": true,
+     "support": {
+      "chrome": "56",
+      "firefox": "63",
+      "safari": "15"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/disposition",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-disposition"
+    },
+    {
+     "kind": "attribute",
+     "name": "statusCode",
+     "type": "unsigned short",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/statusCode",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-statuscode"
+    },
+    {
+     "kind": "attribute",
+     "name": "lineNumber",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/lineNumber",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-linenumber"
+    },
+    {
+     "kind": "attribute",
+     "name": "columnNumber",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "41",
+      "firefox": "63",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SecurityPolicyViolationEvent/columnNumber",
+     "spec": "https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-columnnumber"
+    }
+   ]
+  },
+  "SubmitEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "81",
+    "firefox": "75",
+    "safari": "15"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/SubmitEvent",
+   "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#the-submitevent-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "submitter",
+     "type": "HTMLElement?",
+     "readonly": true,
+     "support": {
+      "chrome": "81",
+      "firefox": "75",
+      "safari": "15.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/SubmitEvent/submitter",
+     "spec": "https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#the-submitevent-interface:dom-submitevent-submitter-2"
+    }
+   ]
+  },
+  "ToggleEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "114",
+    "firefox": "120",
+    "safari": "17"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ToggleEvent",
+   "spec": "https://html.spec.whatwg.org/multipage/interaction.html#toggleevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "oldState",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "114",
+      "firefox": "120",
+      "safari": "17"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ToggleEvent/oldState",
+     "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-toggleevent-oldstate"
+    },
+    {
+     "kind": "attribute",
+     "name": "newState",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "114",
+      "firefox": "120",
+      "safari": "17"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ToggleEvent/newState",
+     "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-toggleevent-newstate"
+    },
+    {
+     "kind": "attribute",
+     "name": "source",
+     "type": "Element?",
+     "readonly": true,
+     "support": {
+      "chrome": "140",
+      "firefox": "145",
+      "safari": "26.5"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ToggleEvent/source",
+     "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-toggleevent-source"
+    }
+   ]
+  },
+  "Touch": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "22",
+    "firefox": "52",
+    "safari_ios": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Touch",
+   "spec": "https://w3c.github.io/touch-events/#touch-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "identifier",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/identifier",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-identifier"
+    },
+    {
+     "kind": "attribute",
+     "name": "target",
+     "type": "EventTarget",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/target",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-target"
+    },
+    {
+     "kind": "attribute",
+     "name": "screenX",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/screenX",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-screenx"
+    },
+    {
+     "kind": "attribute",
+     "name": "screenY",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/screenY",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-screeny"
+    },
+    {
+     "kind": "attribute",
+     "name": "clientX",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/clientX",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-clientx"
+    },
+    {
+     "kind": "attribute",
+     "name": "clientY",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/clientY",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-clienty"
+    },
+    {
+     "kind": "attribute",
+     "name": "pageX",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/pageX",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-pagex"
+    },
+    {
+     "kind": "attribute",
+     "name": "pageY",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/pageY",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-pagey"
+    },
+    {
+     "kind": "attribute",
+     "name": "radiusX",
+     "type": "float",
+     "readonly": true,
+     "support": {
+      "chrome": "38",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/radiusX",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-radiusx"
+    },
+    {
+     "kind": "attribute",
+     "name": "radiusY",
+     "type": "float",
+     "readonly": true,
+     "support": {
+      "chrome": "38",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/radiusY",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-radiusy"
+    },
+    {
+     "kind": "attribute",
+     "name": "rotationAngle",
+     "type": "float",
+     "readonly": true,
+     "support": {
+      "chrome": "43",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/rotationAngle",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-rotationangle"
+    },
+    {
+     "kind": "attribute",
+     "name": "force",
+     "type": "float",
+     "readonly": true,
+     "support": {
+      "chrome": "38",
+      "firefox": "52",
+      "safari_ios": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Touch/force",
+     "spec": "https://w3c.github.io/touch-events/#dom-touch-force"
+    }
+   ]
+  },
+  "TouchEvent": {
+   "parent": "UIEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "22",
+    "firefox": "52",
+    "safari_ios": "3.2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent",
+   "spec": "https://w3c.github.io/touch-events/#touchevent-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "touches",
+     "type": "TouchList",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "3.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent/touches",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchevent-touches"
+    },
+    {
+     "kind": "attribute",
+     "name": "targetTouches",
+     "type": "TouchList",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "3.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent/targetTouches",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchevent-targettouches"
+    },
+    {
+     "kind": "attribute",
+     "name": "changedTouches",
+     "type": "TouchList",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "3.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent/changedTouches",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchevent-changedtouches"
+    },
+    {
+     "kind": "attribute",
+     "name": "altKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "3.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent/altKey",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchevent-altkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "metaKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "3.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent/metaKey",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchevent-metakey"
+    },
+    {
+     "kind": "attribute",
+     "name": "ctrlKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "3.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent/ctrlKey",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchevent-ctrlkey"
+    },
+    {
+     "kind": "attribute",
+     "name": "shiftKey",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "22",
+      "firefox": "52",
+      "safari_ios": "3.2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchEvent/shiftKey",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchevent-shiftkey"
+    }
+   ]
+  },
+  "TouchList": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "18",
+    "firefox": "52",
+    "safari_ios": "2"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TouchList",
+   "spec": "https://w3c.github.io/touch-events/#touchlist-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "length",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "18",
+      "firefox": "52",
+      "safari_ios": "2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchList/length",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchlist-length"
+    },
+    {
+     "kind": "operation",
+     "name": "item",
+     "returns": "Touch?",
+     "args": [
+      {
+       "name": "index",
+       "type": "unsigned long"
+      }
+     ],
+     "support": {
+      "chrome": "18",
+      "firefox": "52",
+      "safari_ios": "2"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TouchList/item",
+     "spec": "https://w3c.github.io/touch-events/#dom-touchlist-item"
+    }
+   ]
+  },
+  "TransitionEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "27",
+    "firefox": "4",
+    "safari": "7"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TransitionEvent",
+   "spec": "https://drafts.csswg.org/css-transitions/#interface-transitionevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "animation",
+     "type": "CSSTransition?",
+     "readonly": true,
+     "support": {
+      "chrome": "151",
+      "firefox": "152",
+      "safari": "27"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransitionEvent/animation",
+     "spec": "https://drafts.csswg.org/css-transitions-2/#Events-TransitionEvent-animation"
+    },
+    {
+     "kind": "attribute",
+     "name": "propertyName",
+     "type": "CSSOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "4",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransitionEvent/propertyName",
+     "spec": "https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName"
+    },
+    {
+     "kind": "attribute",
+     "name": "elapsedTime",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "4",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransitionEvent/elapsedTime",
+     "spec": "https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-elapsedTime"
+    },
+    {
+     "kind": "attribute",
+     "name": "pseudoElement",
+     "type": "CSSOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "23",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransitionEvent/pseudoElement",
+     "spec": "https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-pseudoElement"
+    }
+   ]
+  },
+  "UIEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "support": {
+    "chrome": "1",
+    "firefox": "1",
+    "safari": "1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/UIEvent",
+   "spec": "https://w3c.github.io/uievents/#idl-uievent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "view",
+     "type": "Window?",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/UIEvent/view",
+     "spec": "https://w3c.github.io/uievents/#dom-uievent-view"
+    },
+    {
+     "kind": "attribute",
+     "name": "detail",
+     "type": "long",
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/UIEvent/detail",
+     "spec": "https://w3c.github.io/uievents/#dom-uievent-detail"
+    }
+   ]
+  },
+  "WheelEvent": {
+   "parent": "MouseEvent",
+   "abstract": true,
+   "support": {
+    "chrome": "1",
+    "firefox": "17",
+    "safari": "3"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/WheelEvent",
+   "spec": "https://w3c.github.io/pointerevents/#interface-wheelevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "deltaX",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "31",
+      "firefox": "17",
+      "safari": "8"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaX",
+     "spec": "https://w3c.github.io/pointerevents/#dom-wheelevent-deltax"
+    },
+    {
+     "kind": "attribute",
+     "name": "deltaY",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "31",
+      "firefox": "17",
+      "safari": "8"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaY",
+     "spec": "https://w3c.github.io/pointerevents/#dom-wheelevent-deltay"
+    },
+    {
+     "kind": "attribute",
+     "name": "deltaZ",
+     "type": "double",
+     "readonly": true,
+     "support": {
+      "chrome": "31",
+      "firefox": "17",
+      "safari": "8"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaZ",
+     "spec": "https://w3c.github.io/pointerevents/#dom-wheelevent-deltaz"
+    },
+    {
+     "kind": "attribute",
+     "name": "deltaMode",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "26",
+      "firefox": "17",
+      "safari": "7"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WheelEvent/deltaMode",
+     "spec": "https://w3c.github.io/pointerevents/#dom-wheelevent-deltamode"
+    }
+   ]
   }
  },
  "enums": {
@@ -25612,6 +29255,10 @@
    "center",
    "end",
    "nearest"
+  ],
+  "SecurityPolicyViolationEventDisposition": [
+   "enforce",
+   "report"
   ],
   "ShadowRootMode": [
    "open",
