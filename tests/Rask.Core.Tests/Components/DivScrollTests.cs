@@ -5,13 +5,12 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Components;
 
-// Div.OnScroll / OnScrollAsync: the `scroll` event wired through data-rask-on-scroll, dispatched
-// into a typed ScrollEvent. Sync Action<ScrollEvent> and async Func<ScrollEvent, Task> siblings,
-// the same typed-pair convention as OnClick/OnClickAsync.
+// Div.OnScroll: the `scroll` event wired through data-rask-on-scroll. MDN's scroll is a plain Event, so the scroll
+// box travels the way JavaScript reads it — as the target's state, e.Target.ScrollTop.
 public partial class DivScrollTests : global::Rask.Core.RaskMarkup
 {
     private static JsonElement Payload =>
-        JsonDocument.Parse("{\"scrollTop\":120,\"clientHeight\":300,\"scrollHeight\":2000}").RootElement;
+        JsonDocument.Parse("{\"target\":{\"scrollTop\":120,\"clientHeight\":300,\"scrollHeight\":2000}}").RootElement;
 
     [Fact]
     public void Scroll_outside_live_context_not_emitted() =>
@@ -28,24 +27,25 @@ public partial class DivScrollTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Scroll_sync_handler_receives_parsed_scroll_event()
+    public async Task Scroll_sync_handler_reads_the_scroll_box_from_its_target()
     {
-        ScrollEvent? seen = null;
+        Event? seen = null;
         var view = new StubComponent(() => Div.OnScroll(e => seen = e));
         var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-scroll")!;
 
         await view.TryInvokeHandlerAsync(id, Payload);
 
-        Assert.NotNull(seen);
-        Assert.Equal(120, seen!.ScrollTop);
-        Assert.Equal(300, seen.ClientHeight);
-        Assert.Equal(2000, seen.ScrollHeight);
+        var box = seen?.Target;
+        Assert.NotNull(box);
+        Assert.Equal(120, box!.ScrollTop);
+        Assert.Equal(300, box.ClientHeight);
+        Assert.Equal(2000, box.ScrollHeight);
     }
 
     [Fact]
     public async Task Scroll_async_handler_is_awaited()
     {
-        ScrollEvent? seen = null;
+        Event? seen = null;
         var view = new StubComponent(() => Div
             .OnScroll(e =>
         {
@@ -56,7 +56,6 @@ public partial class DivScrollTests : global::Rask.Core.RaskMarkup
 
         await view.TryInvokeHandlerAsync(id, Payload);
 
-        Assert.NotNull(seen);
-        Assert.Equal(120, seen!.ScrollTop);
+        Assert.Equal(120, seen?.Target?.ScrollTop);
     }
 }

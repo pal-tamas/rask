@@ -17,7 +17,7 @@ internal static class MdnLatest
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("rask-build");
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var package in new[] { "@mdn/browser-compat-data", "@webref/idl", "@webref/elements", "webidl2" })
+        foreach (var package in new[] { "@mdn/browser-compat-data", "@webref/idl", "@webref/elements", "@webref/events", "webidl2" })
         {
             var url = string.Format(CultureInfo.InvariantCulture, NpmDistTags, package.Replace("/", "%2F"));
             var tags = DomEmitter.Parse(http.GetStringAsync(url).Result);

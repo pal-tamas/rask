@@ -143,10 +143,10 @@ public class NotFoundGeneratorTests
 
         var run = GeneratorDriverFixture.RunRoutes(src);
 
-        var hasNamespaceRoutesFile = run.RunResult.Results
+        var hasRoutesFile = run.RunResult.Results
             .SelectMany(r => r.GeneratedSources)
-            .Any(s => s.HintName == "Demo.Routes.g.cs");
-        Assert.False(hasNamespaceRoutesFile);
+            .Any(s => s.HintName == "Routes.g.cs");
+        Assert.False(hasRoutesFile);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public class NotFoundGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var routes = run.GeneratedSource("Demo.Routes.g.cs");
+        var routes = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("public static global::Rask.Core.Routing.RouteUrl HomePage()", routes);
         Assert.DoesNotContain("MyNotFound(", routes);

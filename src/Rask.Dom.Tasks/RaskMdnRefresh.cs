@@ -70,6 +70,7 @@ public sealed class RaskMdnRefresh : Task
         info.Environment["RASK_MDN_BCD"] = pins["@mdn/browser-compat-data"];
         info.Environment["RASK_MDN_IDL"] = pins["@webref/idl"];
         info.Environment["RASK_MDN_ELEMENTS"] = pins["@webref/elements"];
+        info.Environment["RASK_MDN_EVENTS"] = pins["@webref/events"];
         info.Environment["RASK_MDN_WEBREF"] = pins["webref/dfns"];
         info.Environment["RASK_MDN_WEBIDL2"] = pins["webidl2"];
         using var process = Process.Start(info)!;

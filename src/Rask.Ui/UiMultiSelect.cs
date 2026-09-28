@@ -349,7 +349,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
             // its own copy is a second answer to a question with one, and the two race over the socket.
             .OnToggle(e =>
             {
-                _open = e.IsOpen;
+                _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
                 _cursor = _open ? UiSelectNav.Seed(FirstChosen(flat, chosen), flat.Count, off) : -1;
                 if (!_open)
                 {

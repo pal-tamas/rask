@@ -26,14 +26,14 @@ public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Cancel_comes_first_among_the_dialog_handlers_because_it_fires_first()
     {
-        // Appended after toggle, so no earlier attribute moves; cancel before close, as the browser
-        // raises them. The ids follow the emit order, not the order the handlers were wired in.
+        // MDN's GlobalEventHandlers order puts cancel before close, as the browser raises them. The ids
+        // follow the emit order, not the order the handlers were wired in.
         var view = new StubComponent(() => Dialog
             .OnClose(() => Task.CompletedTask)
             .OnToggle(_ => { })
             .OnCancel(() => Task.CompletedTask));
         Assert.Equal(
-            "<dialog data-rask-on-toggle=\"h0\" data-rask-on-cancel=\"h1\" data-rask-on-close=\"h2\"></dialog>",
+            "<dialog data-rask-on-cancel=\"h0\" data-rask-on-close=\"h1\" data-rask-on-toggle=\"h2\"></dialog>",
             view.RenderAsLiveRoot());
     }
 
@@ -80,14 +80,14 @@ public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
     [InlineData("close")]
     [InlineData("click")]
     [InlineData("reset")]
-    public void Both_feed_a_parameterless_handler_through_the_one_list(string eventName) =>
+    [InlineData("toggle")]
+    public void Every_dom_event_feeds_a_parameterless_handler_through_the_one_list(string eventName) =>
         // The list Rask.Blazor reads too, rather than a copy of it.
         Assert.True(HandlerFrameShape.FeedsParameterless(eventName));
 
     [Theory]
-    [InlineData("toggle")]
     [InlineData("input")]
     [InlineData("Cancel")]
-    public void Nothing_else_feeds_a_parameterless_handler(string eventName) =>
+    public void An_owned_or_unknown_event_does_not_feed_a_parameterless_handler(string eventName) =>
         Assert.False(HandlerFrameShape.FeedsParameterless(eventName));
 }

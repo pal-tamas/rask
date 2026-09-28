@@ -2470,7 +2470,20 @@ public abstract partial class Component : RaskMarkup
     // pumped through InvokeWithRenderingAsync so mid-await state renders and a fault reaches the boundary.
     private async ValueTask<bool> DispatchAsync(Delegate handler, JsonElement payload, Component owner)
     {
-        if (TryInvokeSync(handler, payload) || TryInvokeSyncEvent(handler, payload))
+        // A DOM event handler (e => … over MDN's MouseEvent, KeyboardEvent, …): the generated dispatch reads the
+        // typed argument and runs a synchronous handler itself; an asynchronous one comes back as a Func<Task> and
+        // takes the Func<Task> arm below — no await of its own, so this state machine stays the size it was.
+        if (DomEventDispatch.TryInvoke(handler, payload, out var pendingDomEvent))
+        {
+            if (pendingDomEvent is null)
+            {
+                return true;
+            }
+
+            handler = pendingDomEvent;
+        }
+
+        if (TryInvokeSync(handler, payload))
         {
             return true;
         }
@@ -2511,9 +2524,6 @@ public abstract partial class Component : RaskMarkup
             case Action a:
                 a();
                 return true;
-            case Action<MouseModifiers> am:
-                am(ExtractModifiers(payload));
-                return true;
             case Action<string> a:
                 a(ExtractString(payload, "value"));
                 return true;
@@ -2523,15 +2533,6 @@ public abstract partial class Component : RaskMarkup
             case Action<FormData> a:
                 a(FormData.FromJson(payload));
                 return true;
-            case Action<ScrollEvent> a:
-                a(ScrollEvent.FromJson(payload));
-                return true;
-            case Action<KeyboardEvent> a:
-                a(KeyboardEvent.FromJson(payload));
-                return true;
-            case Action<ToggleEvent> a:
-                a(ToggleEvent.FromJson(payload));
-                return true;
             case Action<IReadOnlyList<IRaskFile>> a:
             {
                 var files = FileListReader.Read(payload);
@@ -2540,35 +2541,6 @@ public abstract partial class Component : RaskMarkup
 
                 return true;
             }
-            default:
-                return false;
-        }
-    }
-
-    // Extended GlobalEventHandlers args (mouse/wheel/pointer/touch/clipboard/media). Each parses the flat
-    // client payload into its typed record.
-    private static bool TryInvokeSyncEvent(Delegate handler, JsonElement payload)
-    {
-        switch (handler)
-        {
-            case Action<MouseEvent> c:
-                c(MouseEvent.FromJson(payload));
-                return true;
-            case Action<WheelEvent> c:
-                c(WheelEvent.FromJson(payload));
-                return true;
-            case Action<PointerEvent> c:
-                c(PointerEvent.FromJson(payload));
-                return true;
-            case Action<TouchEvent> c:
-                c(TouchEvent.FromJson(payload));
-                return true;
-            case Action<ClipboardEvent> c:
-                c(ClipboardEvent.FromJson(payload));
-                return true;
-            case Action<MediaEvent> c:
-                c(MediaEvent.FromJson(payload));
-                return true;
             // The shape an external component's callback arrives as (see Rask.External). Its
             // generated wrapper reads the argument out of the frame with code the generator
             // emitted, so an Action<int> or Action<SomeRecord> is fed without reflection and
@@ -2592,19 +2564,9 @@ public abstract partial class Component : RaskMarkup
     private static Func<Task>? AsyncInvocation(Delegate handler, JsonElement payload) => handler switch
     {
         Func<Task> f => f,
-        Func<MouseModifiers, Task> f => Bind(f, ExtractModifiers(payload)),
         Func<string, Task> f => Bind(f, ExtractString(payload, "value")),
         Func<IReadOnlyList<string>, Task> f => Bind<IReadOnlyList<string>>(f, ExtractStringList(payload)),
         Func<FormData, Task> f => Bind(f, FormData.FromJson(payload)),
-        Func<ScrollEvent, Task> f => Bind(f, ScrollEvent.FromJson(payload)),
-        Func<KeyboardEvent, Task> f => Bind(f, KeyboardEvent.FromJson(payload)),
-        Func<ToggleEvent, Task> f => Bind(f, ToggleEvent.FromJson(payload)),
-        Func<MouseEvent, Task> f => Bind(f, MouseEvent.FromJson(payload)),
-        Func<WheelEvent, Task> f => Bind(f, WheelEvent.FromJson(payload)),
-        Func<PointerEvent, Task> f => Bind(f, PointerEvent.FromJson(payload)),
-        Func<TouchEvent, Task> f => Bind(f, TouchEvent.FromJson(payload)),
-        Func<ClipboardEvent, Task> f => Bind(f, ClipboardEvent.FromJson(payload)),
-        Func<MediaEvent, Task> f => Bind(f, MediaEvent.FromJson(payload)),
         Func<JsonElement, Task> f => Bind(f, payload),
         _ => null,
     };
@@ -3029,22 +2991,6 @@ public abstract partial class Component : RaskMarkup
         // "" is what an empty select reports, and it is not a selection — reporting it as one option
         // named "" would make "nothing picked" indistinguishable from "picked the blank option".
         return single.Length == 0 ? [] : new[] { single };
-    }
-
-    private static MouseModifiers ExtractModifiers(JsonElement payload) =>
-        new(ExtractBool(payload, "shiftKey"),
-            ExtractBool(payload, "ctrlKey"),
-            ExtractBool(payload, "altKey"),
-            ExtractBool(payload, "metaKey"));
-
-    private static bool ExtractBool(JsonElement payload, string property)
-    {
-        if (payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty(property, out var v))
-        {
-            return false;
-        }
-
-        return v.ValueKind == JsonValueKind.True;
     }
 
     private static void ReleaseFiles(IReadOnlyList<IRaskFile> files)

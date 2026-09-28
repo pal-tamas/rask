@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK096, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK097, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -133,6 +133,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK094](#rask094) | Warning | A scoped TypeScript export gets no typed method on its component |
 | [RASK095](#rask095) | Error | A chain skips a required step |
 | [RASK096](#rask096) | Error | An event is declared as a delegate, so its chain setter is unreachable |
+| [RASK097](#rask097) | Error | A route helper's name collides with a nested `Routes` class |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2557,3 +2558,23 @@ async Task Save() => await OnSave.Invoke(order);
 
 A caller's handler is unchanged: `Editor.OnSave(o => …)` and `Editor.OnSave(async o => …)` both bind.
 Null checks (`OnSave != null`) are not rewritten — use `OnSave.HasValue`, or just call `Invoke`.
+
+## RASK097
+
+**Route helper name collides** · Error
+
+The project has one `Routes` class, and pages that share a type name nest under the folders that tell them
+apart — `Features.Admin.HomePage` becomes `Routes.Admin.HomePage()`. A page whose own type name is one of
+those folder names would need `Routes.Admin()` *and* the class `Routes.Admin` side by side, which C# does not
+allow (CS0102), so the generator reports this instead of emitting code that cannot compile. The same holds
+for a helper or nested class that would share its enclosing class's name (CS0542).
+
+```csharp
+namespace MyApp.Features.Admin    { [Route("/admin")]    public sealed partial class HomePage : Component { } }
+namespace MyApp.Features.Shop     { [Route("/shop")]     public sealed partial class HomePage : Component { } }
+namespace MyApp.Features.Settings { [Route("/settings")] public sealed partial class Admin : Component { } }
+// ❌ RASK097: The route helper for 'MyApp.Features.Settings.Admin' cannot be generated as 'MyApp.Routes.Admin()' …
+```
+
+**Fix:** rename the page (`AdminSettingsPage`) or the folder, or give the clashing pages distinct type names
+so they stay flat.

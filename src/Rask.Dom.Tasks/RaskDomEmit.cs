@@ -21,6 +21,9 @@ public sealed class RaskDomEmit : Task
 
     [Required] public string OutputDirectory { get; set; } = "";
 
+    // Where the browser half (rask-dom-events.ts) goes: beside the scripts that import it.
+    [Required] public string ScriptDirectory { get; set; } = "";
+
     [Output] public ITaskItem[] Generated { get; set; } = Array.Empty<ITaskItem>();
 
     public override bool Execute()
@@ -39,9 +42,10 @@ public sealed class RaskDomEmit : Task
 
         Directory.CreateDirectory(OutputDirectory);
         var written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Directory.CreateDirectory(ScriptDirectory);
         foreach (var file in files)
         {
-            var path = Path.Combine(OutputDirectory, file.Key);
+            var path = Path.Combine(file.Key.EndsWith(".ts", StringComparison.Ordinal) ? ScriptDirectory : OutputDirectory, file.Key);
             written.Add(path);
             // Only-if-changed, so an unchanged snapshot never retriggers the compile.
             if (!File.Exists(path) || !string.Equals(File.ReadAllText(path), file.Value, StringComparison.Ordinal))

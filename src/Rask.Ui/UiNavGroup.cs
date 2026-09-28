@@ -54,7 +54,7 @@ public sealed partial class UiNavGroup : Component
         var details = Details.Open(Expanded != false);
         if (OnToggle.HasValue)
         {
-            details = details.OnToggle(e => OnToggle.Invoke(e.IsOpen).AsTask());
+            details = details.OnToggle(e => OnToggle.Invoke(string.Equals(e.NewState, "open", StringComparison.Ordinal)).AsTask());
         }
 
         return Li.Class(Class)[

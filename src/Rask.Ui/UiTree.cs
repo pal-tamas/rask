@@ -367,7 +367,7 @@ public sealed partial class UiTree<T, TKey> : Component
     private async Task OnKeyAsync(KeyboardEvent e, List<UiTreeRow<T, TKey>> rows)
     {
         // A modified key belongs to the browser or the app, not to the tree.
-        if (rows.Count == 0 || e.Ctrl || e.Alt || e.Meta)
+        if (rows.Count == 0 || e.CtrlKey || e.AltKey || e.MetaKey)
         {
             return;
         }

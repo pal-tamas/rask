@@ -52,10 +52,10 @@ public sealed partial class UiTabs : Component
 
     // The tabs pattern, activating as it moves: ArrowLeft/Right step and SHOW, Home and End jump to the ends.
     // Wraps, because a tab row is a ring — there is no "past the last tab" for a reader to fall off.
-    private static Task OnKeyAsync(Rask.Core.Live.KeyboardEvent e, UiTabScope scope)
+    private static Task OnKeyAsync(KeyboardEvent e, UiTabScope scope)
     {
         var names = scope.Names;
-        if (names.Count == 0 || e.Ctrl || e.Alt || e.Meta)
+        if (names.Count == 0 || e.CtrlKey || e.AltKey || e.MetaKey)
         {
             return Task.CompletedTask;
         }

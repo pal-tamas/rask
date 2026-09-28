@@ -538,13 +538,27 @@ public abstract partial class SharedSmokeTests
         await eForm.Locator("button[type=submit]").ClickAsync();
         await Expect(eForm).ToContainTextAsync("Last submitted: Ada", contains);
 
-        // Full surface demo: OnDoubleClick (MouseEvent) + OnFocus (parameterless) reach C# and re-render
+        // Full surface demo: OnDblClick (MouseEvent) + OnFocus (parameterless) reach C# and re-render
         // — proving the universal event store dispatches over both transports, not just OnClick.
         var eSurface = Page.Locator(".guide-demo").Filter(new LocatorFilterOptions { HasText = "double-clicks:" });
         await eSurface.Locator("button:has-text('Double-click')").DblClickAsync();
         await Expect(eSurface).ToContainTextAsync("double-clicks: 1", contains);
         await eSurface.Locator("div[tabindex='0']").ClickAsync();
         await Expect(eSurface).ToContainTextAsync("focused", contains);
+        await Page.Keyboard.PressAsync("q");
+        await Expect(eSurface).ToContainTextAsync("last key: q", contains);
+
+        // A paste's text crosses as MDN's ClipboardEvent.clipboardData — read by format with GetData, the
+        // way JavaScript reads it — so the paste box proves the snapshotted DataTransfer, not a bare string.
+        await eSurface.Locator("div:has-text('Paste text here')").Last.EvaluateAsync(
+            """
+            el => {
+                const data = new DataTransfer();
+                data.setData("text/plain", "from MDN");
+                el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true }));
+            }
+            """);
+        await Expect(eSurface).ToContainTextAsync("pasted: from MDN", contains);
 
         // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
         await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");

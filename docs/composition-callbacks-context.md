@@ -70,15 +70,23 @@ Ask `OnRate.HasValue` only when *whether* anyone listens changes what you render
 already wrote still works. **Wrapping is unchanged:** a component callback is auto-wrapped, a DOM handler
 is not.
 
-**DOM events on elements.** `Element` exposes the full DOM **`GlobalEventHandlers`** surface — so
-**every** element (not a hand-picked few) carries the complete event set, just like the real DOM
-mixin. Every event is **one** property, `OnXxx`, typed `Callback` (or `Callback<TArgs>`), and the step
-takes **either shape**:
+**DOM events on elements.** The events are **generated from MDN's data**: every event MDN's
+`GlobalEventHandlers` lists that ships in two browser engines, on **every** element, named the way MDN
+names it (`click` → `OnClick`, `dblclick` → `OnDblClick`) and carrying MDN's own event type, inheritance
+included — `PointerEvent : MouseEvent : UIEvent : Event`, with MDN's member names (`e.ClientX`,
+`e.ShiftKey`). Every event is **one** property, `OnXxx`, typed `Callback<TEvent>`, and the step takes
+the event **or nothing**, sync or async:
 
 ```csharp
-Button.OnClick(Refresh)                        // sync
+Button.OnClick(Refresh)                        // () => … — the event is optional
+Button.OnClick(e => _shift = e.ShiftKey)       // e is MDN's PointerEvent
 Button.OnClick(async () => await SaveAsync())  // async — awaited before the re-render
+Div.OnScroll(e => _top = e.Target!.ScrollTop)  // the target's state, as JavaScript reads it
 ```
+
+A component's own argument-less `Callback` forwards straight in — `Button.OnClick(OnClick)` — and a
+handler typed to a base event (`Action<MouseEvent>`) still receives the whole `PointerEvent`. Each
+property's doc comment carries the browser versions and links to MDN and the spec.
 
 There is nothing to choose between and no pair to get wrong: one name, one slot. An `async` lambda
 binds the asynchronous overload, never async void. Writing the step twice is simply a duplicated step
@@ -87,34 +95,34 @@ binds the asynchronous overload, never async void. Writing the step twice is sim
 Pass a **bare lambda or method group** — `.OnMouseMove(e => { _x = e.OffsetX; })`, `.OnKeyDown(OnKey)`
 — never `new Action<T>(…)`: the step already gives the lambda its type. The surface:
 
-- **Mouse** — `OnClick` (parameterless), `OnDoubleClick`, `OnContextMenu`, `OnMouseDown`/`Up`/`Move`/
-  `Enter`/`Leave`/`Over`/`Out`, all taking `MouseEvent` (button/buttons, client/screen/page/offset/
-  movement coords, modifiers).
-- **Wheel** — `OnWheel` (`WheelEvent`: the mouse geometry plus `DeltaX/Y/Z` + `DeltaMode`).
-- **Pointer & touch** — `OnPointerDown`/`Up`/`Move`/`Enter`/`Leave`/`Over`/`Out`/`Cancel`
-  (`PointerEvent`: mouse geometry + `PointerId`/`Pressure`/`PointerType`/`IsPrimary`/tilt);
-  `OnTouchStart`/`End`/`Move`/`Cancel` (`TouchEvent`).
-- **Focus** — `OnFocus`/`OnBlur`/`OnFocusIn`/`OnFocusOut` (parameterless; reach the element via
-  capture-phase delegation).
-- **Keyboard** — `OnKeyDown`/`OnKeyUp` (`KeyboardEvent`: `Key` `"Escape"`, `Code` `"KeyA"`, the
-  `Shift`/`Ctrl`/`Alt`/`Meta` modifiers, `Repeat`). Focus-scoped; never `preventDefault`-ed, so
-  handlers compose with normal typing.
-- **Clipboard** — `OnCopy`/`OnCut`/`OnPaste` (`ClipboardEvent.Text`).
-- **Scroll & drag** — `OnScroll` (`ScrollEvent`, rAF-coalesced); `OnDragStart`/`Over`/`Drop`/`End`
-  plus `OnDrag`/`OnDragEnter`/`OnDragLeave` (parameterless — the dragged item's identity rides the
-  handler's closure).
-- **Forms** — `OnBeforeInput` (`Callback<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
-- **Open state** — `OnToggle`/`OnBeforeToggle` (`ToggleEvent`: `OldState`/`NewState`/`IsOpen`) for a
-  popover or `<details>`; a `<dialog>`'s `OnCancel` (a dismissal — Escape or a light dismiss) and `OnClose` (any
-  close, after `OnCancel`), both parameterless. None of them can veto the change: the client never
-  `preventDefault`s.
-- **Media** — `Audio`/`Video` add the `HTMLMediaElement` events `OnPlay`/`OnPause`/`OnEnded`/
-  `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEvent`: current time, duration, paused, volume, …).
+- **Mouse & pointer** — `OnClick`/`OnAuxClick`/`OnContextMenu` (`PointerEvent`), `OnDblClick` and
+  `OnMouseDown`/`Up`/`Move`/`Enter`/`Leave`/`Over`/`Out` (`MouseEvent`), `OnPointerDown`/`Up`/`Move`/…
+  (`PointerEvent`), `OnWheel` (`WheelEvent`).
+- **Touch** — `OnTouchStart`/`End`/`Move`/`Cancel` (`TouchEvent`: `Touches`, `TargetTouches`,
+  `ChangedTouches` — lists of `Touch` in MDN's shape).
+- **Keyboard** — `OnKeyDown`/`OnKeyUp` (`KeyboardEvent`: `Key` `"Escape"`, `Code` `"KeyA"`,
+  `ShiftKey`/`CtrlKey`/`AltKey`/`MetaKey`, `Repeat`). Never `preventDefault`-ed, so handlers compose
+  with normal typing.
+- **Clipboard** — `OnCopy`/`OnCut`/`OnPaste` (`ClipboardEvent.ClipboardData.GetData("text/plain")`).
+- **Focus, forms, drag** — `OnFocus`/`OnBlur`/`OnFocusIn`/`OnFocusOut` (`FocusEvent`),
+  `OnBeforeInput` (`InputEvent`: `Data`, `InputType`), `OnSelect`/`OnInvalid`/`OnReset`, and the drag
+  events (`DragEvent`).
+- **Open state** — `OnToggle`/`OnBeforeToggle` (`ToggleEvent`: `OldState`/`NewState`, `"open"` or
+  `"closed"`); a `<dialog>`'s `OnCancel` (Escape or a light dismiss) and `OnClose` (any close, after
+  `OnCancel`).
+- **Scroll & media** — MDN's `scroll` and media events are plain `Event`s, so their state travels as
+  the target's, the way JavaScript reads `e.target`: `e.Target.ScrollTop`/`ClientHeight`/`ScrollHeight`
+  (rAF-coalesced) and `e.Target.CurrentTime`/`Duration`/`Paused`/`Volume`/`PlaybackRate`/… for
+  `OnTimeUpdate`, `OnPlay`, `OnVolumeChange` and the rest.
+
+The quirks come from MDN's data too: an event that does not bubble (`focus`, `scroll`, the media
+events) reaches only the element it fired on, and only `contextmenu`/`dragover`/`drop` — which need it
+to work at all — are `preventDefault`-ed; every other listener is passive.
 
 You never name the `Callback`: you pass the lambda or method group and the step does the rest. It exists
 so a property and its builder setter can share a name — a delegate-typed property *is* invocable, which would make
 `.OnClick(Save)` try to call the handler (CS1593). Reading a handler back off an element is the one
-place it shows: `await el.OnClick.Invoke()`. DOM handlers are **never** auto-wrapped — they go straight to the
+place it shows: `await el.OnClick.Invoke(e)`. DOM handlers are **never** auto-wrapped — they go straight to the
 DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module

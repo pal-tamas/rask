@@ -15,6 +15,7 @@ if (!out) throw new Error("usage: node refresh.mjs <node_modules dir> <snapshot 
 const webidl = require("webidl2");
 const idlPkg = require("@webref/idl");
 const elementsPkg = require("@webref/elements");
+const eventsPkg = require("@webref/events");
 const bcd = require("@mdn/browser-compat-data");
 const version = name => JSON.parse(readFileSync(resolve(process.argv[2], "node_modules", name, "package.json"), "utf8")).version;
 
@@ -22,7 +23,7 @@ const version = name => JSON.parse(readFileSync(resolve(process.argv[2], "node_m
 // mobile: `<input capture>` exists only on phones, and that is where it matters.
 const ENGINES = { chrome: ["chrome", "chrome_android"], firefox: ["firefox", "firefox_android"], safari: ["safari", "safari_ios"] };
 // IDL types a content attribute can reflect directly.
-const PLAIN = new Set(["DOMString", "USVString", "DOMString?", "boolean", "long", "unsigned long", "double", "unrestricted double"]);
+const PLAIN = new Set(["DOMString", "USVString", "CSSOMString", "DOMString?", "boolean", "long", "unsigned long", "double", "unrestricted double"]);
 // https://html.spec.whatwg.org/multipage/syntax.html#void-elements
 const VOID = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"];
 // Specs whose elements are HTML or SVG. MathML is out of scope.
@@ -138,9 +139,63 @@ for (const ns of ["html", "svg"]) {
     .map(([name]) => name).sort();
 }
 
+// ---- Events every element can fire: GlobalEventHandlers' EventHandler attributes ------------------
+// The IDL names them; @webref/events says which interface each is dispatched with and whether it bubbles;
+// BCD says whether it ships, on an element (an event only a Window or Document fires is not an element's).
+const ELEMENTISH = /^(Element|HTMLElement|SVGElement|GlobalEventHandlers|HTML\w*Element)$/;
+const webrefEvents = await eventsPkg.listAll();
+const globalHandlers = mixins.get("GlobalEventHandlers")?.members ?? [];
+const eventTypes = globalHandlers
+  .filter(m => m.type === "attribute" && m.name?.startsWith("on") && typeOf(m.idlType).includes("EventHandler"))
+  .map(m => m.name.slice(2));
+// …and the element events that have no on-attribute (focusin, compositionend, fullscreenchange), which BCD files
+// on Element/HTMLElement: MDN documents them as element events all the same.
+for (const i of ["Element", "HTMLElement"])
+  for (const k of Object.keys(bcd.api[i] ?? {}).sort())
+    if (k.endsWith("_event") && !eventTypes.includes(k.slice(0, -6))) eventTypes.push(k.slice(0, -6));
+const events = [];
+const isEvent = name => { for (let n = name; n; n = interfaces.get(n)?.inheritance) if (n === "Event") return true; return false; };
+for (const type of eventTypes) {
+  // The first element interface on which it SHIPS: cancel is filed on HTMLInputElement (a file picker's, newer)
+  // before HTMLDialogElement (a dialog's, everywhere).
+  const on = Object.keys(bcd.api).find(i => ELEMENTISH.test(i) && ships(bcd.api[i][`${type}_event`]?.__compat));
+  if (!on) continue;
+  const compat = bcd.api[on][`${type}_event`].__compat;
+  const dispatched = webrefEvents.filter(e => e.type === type);
+  const onElement = dispatched.filter(e => (e.targets ?? []).some(t => ELEMENTISH.test(t.target)));
+  // Another spec's event of the same name (a stream's cancel) must not lend it its interface or bubbling, so the
+  // entry dispatched at the interface it ships on wins, then any element's.
+  const atOn = dispatched.filter(e => (e.targets ?? []).some(t => t.target === on));
+  const pick = atOn.length ? atOn : onElement.length ? onElement : dispatched;
+  const iface = pick.map(e => e.interface).find(i => i && i !== "Event" && isEvent(i)) ?? "Event";
+  const targets = pick.flatMap(e => (e.targets ?? []).filter(t => ELEMENTISH.test(t.target)));
+  events.push({
+    type, interface: iface,
+    bubbles: targets.some(t => t.bubbles === true) || undefined,
+    cancelable: pick.some(e => e.cancelable === true) || undefined,
+    on, ...meta(compat),
+  });
+}
+
 // ---- Interfaces: every element interface plus its ancestors ---------------------------------------
 const wanted = new Set();
 for (const e of elements) for (let n = e.interface; n && !wanted.has(n); n = interfaces.get(n)?.inheritance) wanted.add(n);
+// …every event interface and its ancestors, and the interfaces an event's members hold (TouchEvent.touches is a
+// TouchList of Touch; ClipboardEvent.clipboardData a DataTransfer), one level deep.
+const eventInterfaces = new Set();
+for (const e of events) for (let n = e.interface; n && !eventInterfaces.has(n); n = interfaces.get(n)?.inheritance) eventInterfaces.add(n);
+for (const n of [...eventInterfaces]) {
+  for (const m of interfaces.get(n)?.members ?? []) {
+    if (m.type !== "attribute" || !m.name) continue;
+    const held = typeOf(m.idlType).replace(/\?$/, "");
+    if (!interfaces.has(held) || held === "EventTarget" || held === "Window") continue;
+    eventInterfaces.add(held);
+    const item = interfaces.get(held).members.find(x => x.type === "operation" && x.name === "item");
+    const itemType = item && typeOf(item.idlType).replace(/\?$/, "");
+    if (itemType && interfaces.has(itemType)) eventInterfaces.add(itemType);
+  }
+}
+for (const n of eventInterfaces) wanted.add(n);
 
 function membersOf(name) {
   const def = interfaces.get(name), api = bcd.api[name] ?? {};
@@ -274,7 +329,7 @@ const sortObj = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.l
 
 const snapshot = {
   schema: 1,
-  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/idl", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha },
+  sources: { ...Object.fromEntries(["@mdn/browser-compat-data", "@webref/elements", "@webref/events", "@webref/idl", "webidl2"].map(p => [p, version(p)])), "webref/dfns": webrefSha },
   engines: Object.keys(ENGINES),
   elements,
   // Each global attribute with the IDL attribute that reflects it, searched from HTMLElement / SVGElement up.
@@ -283,9 +338,10 @@ const snapshot = {
     const compat = bcd[ns].global_attributes[attr]?.__compat;
     return { attr, property: idl?.name, type: idl?.type, url: idl?.url, reflect: idl?.reflect, on: idl?.on, ...meta(compat) };
   })])),
+  events,
   interfaces: interfaceOut,
   enums: sortObj(reachedEnums),
   dictionaries: sortObj(reachedDicts),
 };
 writeFileSync(out, JSON.stringify(snapshot, null, 1) + "\n");
-console.log(`${elements.length} elements, ${Object.keys(interfaceOut).length} interfaces → ${out}`);
+console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces → ${out}`);

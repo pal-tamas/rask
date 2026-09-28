@@ -130,15 +130,15 @@ public abstract partial class UiMenuSurface : Component
 
     private async Task OnPanelToggleAsync(ToggleEvent e)
     {
-        _open = e.IsOpen;
+        _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
         _openSubs.Clear();
-        _cursor = e.IsOpen && _scope is { } scope ? FirstEnabled(scope.Entries, -1) : -1;
+        _cursor = string.Equals(e.NewState, "open", StringComparison.Ordinal) && _scope is { } scope ? FirstEnabled(scope.Entries, -1) : -1;
 
         // Controlled: tell the page only about a change it did not make itself — the runtime showing the popover
         // because Open became true fires this same event.
-        if (e.IsOpen != Open)
+        if (string.Equals(e.NewState, "open", StringComparison.Ordinal) != Open)
         {
-            await OnToggle.Invoke(e.IsOpen).ConfigureAwait(false);
+            await OnToggle.Invoke(string.Equals(e.NewState, "open", StringComparison.Ordinal)).ConfigureAwait(false);
         }
     }
 
@@ -168,7 +168,7 @@ public abstract partial class UiMenuSurface : Component
     private Task OnKeyAsync(KeyboardEvent e)
     {
         // A modified key belongs to the browser or the app, not to the menu.
-        if (_scope is not { } scope || scope.Entries.Count == 0 || e.Ctrl || e.Alt || e.Meta)
+        if (_scope is not { } scope || scope.Entries.Count == 0 || e.CtrlKey || e.AltKey || e.MetaKey)
         {
             return Task.CompletedTask;
         }

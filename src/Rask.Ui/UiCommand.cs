@@ -144,7 +144,7 @@ public sealed partial class UiCommand : Component
             .Attributes(("data-rask-close-on-pick", null))
             .OnToggle(e =>
             {
-                if (!e.IsOpen)
+                if (!string.Equals(e.NewState, "open", StringComparison.Ordinal))
                 {
                     // Reopened, it starts over: yesterday's query is a narrowed list nobody asked for.
                     _query = string.Empty;
@@ -211,7 +211,7 @@ public sealed partial class UiCommand : Component
 
     private void OnKey(KeyboardEvent e)
     {
-        if (_scope is not { } scope || scope.Entries.Count == 0 || e.Ctrl || e.Alt || e.Meta)
+        if (_scope is not { } scope || scope.Entries.Count == 0 || e.CtrlKey || e.AltKey || e.MetaKey)
         {
             return;
         }

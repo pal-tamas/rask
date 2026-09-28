@@ -13,7 +13,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public void Rendering_through_the_app_emits_the_navbar_sidebar_and_brand()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.GuidesIndexPage() };
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
@@ -49,7 +49,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public void Rendering_through_the_app_groups_links_under_group_toggles()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.GuidesIndexPage() };
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
@@ -75,7 +75,7 @@ public sealed class ShowcaseLayoutTests
         // Guides-first: the guide category groups are expanded by default so the narrative spine is
         // visible on landing, while the demoted Examples groups stay collapsed so the ~90-item list isn't
         // dumped at once. The five guide groups (Overview + the four categories) are open.
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.GuidesIndexPage() };
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
@@ -94,7 +94,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public void Rendering_through_the_app_at_the_root_path_marks_at_least_one_nav_link_active()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.GuidesIndexPage() };
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
@@ -161,7 +161,7 @@ public sealed class ShowcaseLayoutTests
         // The layout no longer bypasses the render cache — it subscribes to
         // RouteState.Changed instead, so it only re-renders when the route changes
         // (not on every keystroke in a child form).
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.GuidesIndexPage() };
         var layout = new ShowcaseLayout(routeState, []);
 
         var prop = typeof(Component).GetProperty("BypassRenderCache",
@@ -180,7 +180,7 @@ public sealed class ShowcaseLayoutTests
         // real job — NOT the sidebar's active CSS class, which each NavLink owns and refreshes off its own
         // RouteState.Changed subscription. This test asserts the two effects, so deleting the layout's
         // subscription (which leaves the drawer open and the group collapsed) turns it red.
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.GuidesIndexPage() };
         var services = TestServices.Default(routeState: routeState);
         // One handle across frames: the same App/layout instance re-renders after the path change.
         var page = Page.Render(new global::Rask.Site.App(), services);
@@ -200,7 +200,7 @@ public sealed class ShowcaseLayoutTests
         // Navigate to /todos → RouteState.Changed fires → OnRouteChanged closes the drawer and expands the
         // group holding /todos. Without the subscription neither happens (the drawer stays open, Apps stays
         // collapsed) even though the layout still re-renders.
-        routeState.Path = Rask.Site.Features.Routes.TodosPage();
+        routeState.Path = global::Rask.Site.Routes.TodosPage();
 
         var atTodos = CollapseWhitespace(page.Render());
         Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded

@@ -226,7 +226,7 @@ public static partial class PageMeta
         }
 
         var root = Origin + LiveOptions.PathBase;
-        var docs = CanonicalPath(Features.Routes.GuidesIndexPage());
+        var docs = CanonicalPath(Routes.GuidesIndexPage());
         var crumbs = new List<StructuredData.Crumb> { new(SiteIdentity.Name, root + "/") };
 
         if (canonicalPath.StartsWith(docs, StringComparison.Ordinal))

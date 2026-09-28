@@ -229,8 +229,8 @@ public sealed class PageMetaTests
         Assert.Equal("/docs/guides/forms/#binding", (string)PageMeta.LinkTo("/docs/guides/forms#binding"));
         Assert.Equal("/docs/todos/?filter=open", (string)PageMeta.LinkTo("/docs/todos?filter=open"));
         // The generated routes, not "/" and "/docs/": RASK033 holds tests to the same rule as the site.
-        Assert.Equal("/", (string)PageMeta.LinkTo(Rask.Site.Pages.Routes.HomePage()));
-        Assert.Equal("/docs/", (string)PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage()));
+        Assert.Equal("/", (string)PageMeta.LinkTo(global::Rask.Site.Routes.HomePage()));
+        Assert.Equal("/docs/", (string)PageMeta.LinkTo(global::Rask.Site.Routes.GuidesIndexPage()));
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public sealed class PageMetaTests
     {
         // A kit button or link navigates in place only for a URL that still knows its page. Losing the type
         // to the slash turned it back into a string, which the browser follows with a full reload.
-        var route = Rask.Site.Features.Routes.GuidesIndexPage();
+        var route = global::Rask.Site.Routes.GuidesIndexPage();
 
         Assert.NotNull(route.PageType);
         Assert.Equal(route.PageType, PageMeta.LinkTo(route).PageType);
@@ -274,7 +274,7 @@ public sealed class PageMetaTests
     [Fact]
     public async Task A_guide_is_an_article_with_its_section_its_date_and_its_Markdown_twin()
     {
-        var head = await HeadAt((string)Rask.Site.Features.Routes.GuidePage("cqrs"));
+        var head = await HeadAt((string)global::Rask.Site.Routes.GuidePage("cqrs"));
         var guide = GuideCatalog.Find("cqrs")!;
         var modified = GuideHistory.LastModified("cqrs");
 
@@ -296,16 +296,16 @@ public sealed class PageMetaTests
     [Fact]
     public async Task A_guide_that_moved_still_answers_at_its_old_slug_and_names_the_new_one_canonical()
     {
-        var head = await HeadAt((string)Rask.Site.Features.Routes.GuidePage("broadcast"));
+        var head = await HeadAt((string)global::Rask.Site.Routes.GuidePage("broadcast"));
         var moved = GuideCatalog.Find("subscriptions")!;
 
         // The old URL keeps rendering the guide, so a link from elsewhere still lands — and says where it lives now,
         // which is also what keeps it out of the sitemap.
         Assert.Equal(moved.SearchTitle + PageMeta.TitleSuffix, WebUtility.HtmlDecode(TitleOf(head)));
         Assert.Equal(
-            PageMeta.Origin + PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage("subscriptions")),
+            PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.GuidePage("subscriptions")),
             CanonicalOf(head));
-        Assert.Contains((string)Rask.Site.Features.Routes.GuidePage("broadcast"), new GuidePrerenderPaths().Paths());
+        Assert.Contains((string)global::Rask.Site.Routes.GuidePage("broadcast"), new GuidePrerenderPaths().Paths());
     }
 
     [Theory]
@@ -407,7 +407,7 @@ public sealed class PageMetaTests
         Assert.NotEmpty(supplied);
         foreach (var guide in GuideCatalog.All)
         {
-            Assert.Contains((string)Rask.Site.Features.Routes.GuidePage(guide.Slug), supplied);
+            Assert.Contains((string)global::Rask.Site.Routes.GuidePage(guide.Slug), supplied);
         }
     }
 

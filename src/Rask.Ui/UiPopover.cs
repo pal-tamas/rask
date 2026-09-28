@@ -166,13 +166,13 @@ public sealed partial class UiPopover : Component
 
     private async Task OnPanelToggleAsync(ToggleEvent e)
     {
-        _open = e.IsOpen;
+        _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
 
         // Controlled: tell the page only about a change it did not make itself — the runtime showing the
         // popover because Open became true fires this same event.
-        if (e.IsOpen != Open)
+        if (string.Equals(e.NewState, "open", StringComparison.Ordinal) != Open)
         {
-            await OnToggle.Invoke(e.IsOpen).ConfigureAwait(false);
+            await OnToggle.Invoke(string.Equals(e.NewState, "open", StringComparison.Ordinal)).ConfigureAwait(false);
         }
     }
 }

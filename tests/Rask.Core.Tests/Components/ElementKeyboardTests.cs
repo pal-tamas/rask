@@ -88,9 +88,9 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(seen);
         Assert.Equal("Escape", seen!.Key);
         Assert.Equal("Escape", seen.Code);
-        Assert.True(seen.Shift);
-        Assert.False(seen.Ctrl);
-        Assert.True(seen.Meta);
+        Assert.True(seen.ShiftKey);
+        Assert.False(seen.CtrlKey);
+        Assert.True(seen.MetaKey);
         Assert.True(seen.Repeat);
     }
 
@@ -144,7 +144,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(seen);
         Assert.Equal("", seen!.Key);
         Assert.Equal("", seen.Code);
-        Assert.False(seen.Shift);
+        Assert.False(seen.ShiftKey);
         Assert.False(seen.Repeat);
     }
 }

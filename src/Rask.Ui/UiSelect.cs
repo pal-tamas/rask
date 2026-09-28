@@ -347,7 +347,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             // answer to a question with one. Hearing this is what keeps aria-expanded truthful.
             .OnToggle(e =>
             {
-                _open = e.IsOpen;
+                _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
                 _cursor = _open
                     ? UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled)
                     : -1;
@@ -602,7 +602,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
     private void TypeAhead(KeyboardEvent e, ListView view, int cursor)
     {
-        if (e.Key.Length != 1 || string.Equals(e.Key, " ", StringComparison.Ordinal) || e.Ctrl || e.Alt || e.Meta)
+        if (e.Key.Length != 1 || string.Equals(e.Key, " ", StringComparison.Ordinal) || e.CtrlKey || e.AltKey || e.MetaKey)
         {
             return;
         }

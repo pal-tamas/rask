@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Text;
 using System.Text.Json;
 using Rask.Core.Forms;
@@ -29,102 +28,32 @@ namespace Rask.Core.Live;
 // are both empty.
 internal static class HandlerFrameShape
 {
-    /// <summary>The argument a handler demands — equivalently, the payload a frame has to carry to feed it.</summary>
+    /// <summary>The argument a non-DOM handler demands — equivalently, the payload a frame has to carry to feed it.</summary>
     internal enum Shape
     {
         None = 0,
-        Modifiers,
         Value,
         Values,
         Form,
         Files,
-        Scroll,
-        Keyboard,
-        Mouse,
-        Wheel,
-        Pointer,
-        Touch,
-        Clipboard,
-        Media,
-        Toggle
     }
 
-    // The frame types that legitimately feed each shape, indexed by (int)Shape. Rows overlap on purpose:
-    // `click` feeds a parameterless handler, the legacy MouseModifiers one, and a MouseEvent one, so
-    // it appears in three rows. Kept in step with the client's send sites (rask.js / rask.wasm.js /
-    // the shared rask-input.js / rask-events.js splices) and with the delegate cases in
-    // Component.TryInvokeHandlerAsync.
+    // The frames that feed each non-DOM shape, indexed by (int)Shape: a typed control's own input/change, a form's
+    // submit, a file input's files. Every DOM event (click, keydown, pointermove, …) is judged by the generated
+    // DomEventDispatch instead, from MDN's interfaces: a handler taking T is fed the events whose interface is T or
+    // derives from it, and a handler taking nothing is fed any of them.
     //
-    // Held as UTF-8 so the comparison runs against the frame's raw bytes — JsonElement.ValueEquals over a
-    // byte span, the same shape the inbound type routing uses, so no frame type is ever materialised as a
-    // string. Built once at class init.
+    // Held as UTF-8 so the comparison runs against the frame's raw bytes — JsonElement.ValueEquals over a byte
+    // span, the same shape the inbound type routing uses, so no frame type is ever materialised as a string.
     private static readonly byte[][][] Feeders =
     {
-        // None — parameterless. The frames that carry nothing beyond their id.
-        new[]
-        {
-            "click"u8.ToArray(), "dragstart"u8.ToArray(), "dragover"u8.ToArray(), "drop"u8.ToArray(),
-            "dragend"u8.ToArray(), "drag"u8.ToArray(), "dragenter"u8.ToArray(), "dragleave"u8.ToArray(),
-            "focus"u8.ToArray(), "blur"u8.ToArray(), "focusin"u8.ToArray(), "focusout"u8.ToArray(),
-            "select"u8.ToArray(), "invalid"u8.ToArray(), "reset"u8.ToArray(), "cancel"u8.ToArray(),
-            "close"u8.ToArray()
-        },
-        // Modifiers — MouseModifiers (click only).
-        new[] { "click"u8.ToArray() },
-        // Value — the string payload.
-        new[] { "input"u8.ToArray(), "change"u8.ToArray(), "beforeinput"u8.ToArray() },
-        // Values — the whole selection of a <select multiple>. Only `change` carries it: the clients add
-        // `values` on the change dispatch alone, so an `input` frame could never feed this shape.
+        Array.Empty<byte[]>(),
+        new[] { "input"u8.ToArray(), "change"u8.ToArray() },
         new[] { "change"u8.ToArray() },
-        // Form — FormData.
         new[] { "submit"u8.ToArray() },
-        // Files — the uploaded-file metadata.
         new[] { "files"u8.ToArray() },
-        // Scroll — ScrollEvent.
-        new[] { "scroll"u8.ToArray() },
-        // Keyboard — KeyboardEvent.
-        new[] { "keydown"u8.ToArray(), "keyup"u8.ToArray() },
-        // Mouse — MouseEvent.
-        new[]
-        {
-            "click"u8.ToArray(), "dblclick"u8.ToArray(), "mousedown"u8.ToArray(), "mouseup"u8.ToArray(),
-            "mousemove"u8.ToArray(), "mouseenter"u8.ToArray(), "mouseleave"u8.ToArray(),
-            "mouseover"u8.ToArray(), "mouseout"u8.ToArray(), "contextmenu"u8.ToArray()
-        },
-        // Wheel — WheelEvent.
-        new[] { "wheel"u8.ToArray() },
-        // Pointer — PointerEvent.
-        new[]
-        {
-            "pointerdown"u8.ToArray(), "pointerup"u8.ToArray(), "pointermove"u8.ToArray(),
-            "pointerenter"u8.ToArray(), "pointerleave"u8.ToArray(), "pointerover"u8.ToArray(),
-            "pointerout"u8.ToArray(), "pointercancel"u8.ToArray()
-        },
-        // Touch — TouchEvent.
-        new[]
-        {
-            "touchstart"u8.ToArray(), "touchend"u8.ToArray(),
-            "touchmove"u8.ToArray(), "touchcancel"u8.ToArray()
-        },
-        // Clipboard — ClipboardEvent.
-        new[] { "copy"u8.ToArray(), "cut"u8.ToArray(), "paste"u8.ToArray() },
-        // Media — MediaEvent.
-        new[]
-        {
-            "play"u8.ToArray(), "pause"u8.ToArray(), "playing"u8.ToArray(), "ended"u8.ToArray(),
-            "timeupdate"u8.ToArray(), "volumechange"u8.ToArray(), "ratechange"u8.ToArray(),
-            "durationchange"u8.ToArray(), "loadedmetadata"u8.ToArray(), "seeked"u8.ToArray(),
-            "seeking"u8.ToArray(), "waiting"u8.ToArray()
-        },
-        // Toggle — ToggleEvent.
-        new[] { "toggle"u8.ToArray(), "beforetoggle"u8.ToArray() }
     };
 
-    /// <summary>
-    ///     Whether <paramref name="handler" /> may be invoked for this frame. True when the frame declares
-    ///     no type (a host that doesn't tag frames, or a direct <c>Test</c> dispatch), when the type
-    ///     feeds the handler's shape, or when no shape claims the type at all.
-    /// </summary>
     public static bool Accepts(JsonElement payload, Delegate handler)
     {
         if (payload.ValueKind != JsonValueKind.Object
@@ -134,15 +63,20 @@ internal static class HandlerFrameShape
             return true;
         }
 
-        // The happy path is one row: the shape the handler demands, scanned against the frame's raw
-        // UTF-8. Nothing is allocated, and nothing else is consulted unless the frame is refused.
-        if (Contains(Feeders[(int)ShapeOf(handler)], type))
+        var shape = ShapeOf(handler);
+        var dom = DomEventDispatch.IndexOf(type);
+        if (dom >= 0)
+        {
+            // A DOM event frame: a DOM event handler (or a parameterless one) is judged by its interface; a handler
+            // for a control's value, a form or files is provably the wrong one; anything else is not ours to refuse.
+            return shape == Shape.None && (DomEventDispatch.Accepts(dom, handler) || !DomEventDispatch.IsDomHandler(handler));
+        }
+
+        if (Contains(Feeders[(int)shape], type))
         {
             return true;
         }
 
-        // Not a feeder for this shape. Refuse only if some OTHER shape claims it; an unrecognised type
-        // is a client this build doesn't know, not a misfire.
 #pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var row in Feeders)
 #pragma warning restore S3267
@@ -156,16 +90,9 @@ internal static class HandlerFrameShape
         return true;
     }
 
-    /// <summary>
-    ///     Whether a frame named <paramref name="eventName" /> feeds a parameterless handler. The one list, read by
-    ///     every host that registers such handlers — Rask.Blazor kept a hand copy of it until #1116, and a copy is
-    ///     how a new event ends up wired in one place and silently refused in the other.
-    /// </summary>
-    internal static bool FeedsParameterless(string eventName) => Parameterless.Contains(eventName);
-
-    // Declared after Feeders: static fields initialise in textual order, and this one reads it.
-    private static readonly FrozenSet<string> Parameterless =
-        Feeders[(int)Shape.None].Select(Encoding.UTF8.GetString).ToFrozenSet(StringComparer.Ordinal);
+    // Whether a parameterless handler can be fed an event of this name: every DOM event can (BlazorFrameWriter asks
+    // before it wires a hosted component's @onclick-style handler).
+    internal static bool FeedsParameterless(string eventName) => DomEventDispatch.Names.Contains(eventName);
 
     private static bool Contains(byte[][] types, JsonElement type)
     {
@@ -182,35 +109,14 @@ internal static class HandlerFrameShape
         return false;
     }
 
-    // Mirrors the delegate cases of Component.TryInvokeHandlerAsync one-for-one. Anything it doesn't
-    // recognise is parameterless as far as dispatch is concerned: the switch's `default` arm reaches it
-    // through DynamicInvoke() with NO arguments, so a data-carrying frame has nothing to give it.
+    // The Values arm is last on purpose: IReadOnlyList<string> is the widest match, and every narrower shape
+    // above it must win first.
     private static Shape ShapeOf(Delegate handler) => handler switch
     {
-        Action or Func<Task> or Action or Func<Task> => Shape.None,
-        Action<MouseModifiers> or Func<MouseModifiers, Task>
-            or Action<MouseModifiers> or Func<MouseModifiers, Task> => Shape.Modifiers,
-        Action<string> or Func<string, Task> or Action<string> or Func<string, Task> => Shape.Value,
-        Action<FormData> or Func<FormData, Task> or Action<FormData> or Func<FormData, Task> => Shape.Form,
-        Action<IReadOnlyList<IRaskFile>> or Func<IReadOnlyList<IRaskFile>, Task>
-            or Action<IReadOnlyList<IRaskFile>> or Func<IReadOnlyList<IRaskFile>, Task> => Shape.Files,
-        Action<ScrollEvent> or Func<ScrollEvent, Task>
-            or Action<ScrollEvent> or Func<ScrollEvent, Task> => Shape.Scroll,
-        Action<KeyboardEvent> or Func<KeyboardEvent, Task>
-            or Action<KeyboardEvent> or Func<KeyboardEvent, Task> => Shape.Keyboard,
-        Action<MouseEvent> or Func<MouseEvent, Task> => Shape.Mouse,
-        Action<WheelEvent> or Func<WheelEvent, Task> => Shape.Wheel,
-        Action<PointerEvent> or Func<PointerEvent, Task> => Shape.Pointer,
-        Action<TouchEvent> or Func<TouchEvent, Task> => Shape.Touch,
-        Action<ClipboardEvent> or Func<ClipboardEvent, Task> => Shape.Clipboard,
-        Action<MediaEvent> or Func<MediaEvent, Task> => Shape.Media,
-        Action<ToggleEvent> or Func<ToggleEvent, Task> => Shape.Toggle,
-        // Last on purpose. This switch is a linear sequence of type tests, so an arm's position is a
-        // cost paid by every arm below it — and measurably: placed next to its Shape.Value sibling, the
-        // four patterns here cost the scroll path ~1.7ns (+6%) on every frame. A multi-select change
-        // happens at human speed; scroll, pointer and mouse frames do not.
-        Action<IReadOnlyList<string>> or Func<IReadOnlyList<string>, Task>
-            or Action<IReadOnlyList<string>> or Func<IReadOnlyList<string>, Task> => Shape.Values,
-        _ => Shape.None
+        Action<string> or Func<string, Task> => Shape.Value,
+        Action<FormData> or Func<FormData, Task> => Shape.Form,
+        Action<IReadOnlyList<IRaskFile>> or Func<IReadOnlyList<IRaskFile>, Task> => Shape.Files,
+        Action<IReadOnlyList<string>> or Func<IReadOnlyList<string>, Task> => Shape.Values,
+        _ => Shape.None,
     };
 }

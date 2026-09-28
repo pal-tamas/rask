@@ -199,7 +199,7 @@ public class BuilderSetterEmissionTests
                   public abstract partial class Element : Component
                   {
                       public Action? OnClick { get; set; }
-                      public Action<global::Rask.Core.Live.MouseEvent>? OnMouseDown { get; set; }
+                      public Action<global::Rask.Core.MouseEvent>? OnMouseDown { get; set; }
                       public Func<Task>? OnClickAsync { get; set; }
                   }
                   """;
@@ -214,7 +214,7 @@ public class BuilderSetterEmissionTests
             StringComparison.Ordinal);
         Assert.Contains(
             "OnMouseDown<T>(this T __b, "
-            + "global::System.Action<global::Rask.Core.Live.MouseEvent>? value)",
+            + "global::System.Action<global::Rask.Core.MouseEvent>? value)",
             output,
             StringComparison.Ordinal);
         Assert.Contains(

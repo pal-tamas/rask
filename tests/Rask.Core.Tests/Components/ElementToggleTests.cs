@@ -66,7 +66,6 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(seen);
         Assert.Equal("closed", seen!.OldState);
         Assert.Equal("open", seen.NewState);
-        Assert.True(seen.IsOpen);
     }
 
     [Fact]
@@ -81,7 +80,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
         using var payload = JsonDocument.Parse("{\"oldState\":\"open\",\"newState\":\"closed\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
 
-        Assert.False(seen!.IsOpen);
+        Assert.Equal("closed", seen!.NewState);
     }
 
     [Fact]
@@ -114,7 +113,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
 
         Assert.Equal("", seen!.OldState);
-        Assert.False(seen.IsOpen);
+        Assert.Equal("", seen!.NewState);
     }
 
     [Fact]

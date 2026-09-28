@@ -24,10 +24,10 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // exact-match only.
     private static readonly (string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)[] Links =
     [
-        // Paths are type-safe, generator-emitted route URLs (Features.Routes.*) — RouteUrl converts
+        // Paths are type-safe, generator-emitted route URLs (Routes.*) — RouteUrl converts
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
-        (Features.Routes.TodosPage(), "Todos", Ui.IconName.CheckCircle, "Apps", null)
+        (Routes.TodosPage(), "Todos", Ui.IconName.CheckCircle, "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
         // APIs (docs/browser-apis.md); Events + Toast messages → Composition (docs/composition.md); the
@@ -146,10 +146,10 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
     private static IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
-        yield return (Features.Routes.GuidesIndexPage(), "All guides", Ui.IconName.Book, "Overview", null);
+        yield return (Routes.GuidesIndexPage(), "All guides", Ui.IconName.Book, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
         {
-            yield return (Features.Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
+            yield return (Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
         }
     }
 

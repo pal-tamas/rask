@@ -141,6 +141,7 @@ internal static class DomEmitter
             }
         }
 
+        DomEventEmitter.Emit(root, files);
         return files;
     }
 
@@ -493,7 +494,7 @@ internal static class DomEmitter
 
         if (data["support"] is { Kind: JsonKind.Object } support)
         {
-            var line = string.Join(" · ", support.Members.Select(p => $"{Browser(p.Key)} {p.Value.AsString()}"));
+            var line = string.Join(" · ", support.Members.Select(p => $"{BrowserName(p.Key)} {p.Value.AsString()}"));
             if (line.Length > 0)
             {
                 remarks.Add(line + ".");
@@ -516,7 +517,7 @@ internal static class DomEmitter
         }
     }
 
-    private static string Browser(string id) => id switch
+    internal static string BrowserName(string id) => id switch
     {
         "chrome" => "Chrome",
         "chrome_android" => "Chrome Android",

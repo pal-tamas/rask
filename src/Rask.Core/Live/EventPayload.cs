@@ -7,7 +7,7 @@ namespace Rask.Core.Live;
 // PointerEvent, …). The client serialises each DOM event into a flat JSON object; these helpers
 // pull individual fields out defensively (missing/wrong-typed fields fall back to a zero/empty
 // default) so a record's FromJson stays a one-liner per field. Mirrors the inline readers that
-// KeyboardEvent/ScrollEvent grew first; centralised here now that many records need them.
+// KeyboardEvent/Event grew first; centralised here now that many records need them.
 internal static class EventPayload
 {
     public static string ReadString(JsonElement p, string name) =>
@@ -52,5 +52,66 @@ internal static class EventPayload
                 v.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var d) => d,
             _ => 0
         };
+    }
+    public static long ReadLong(JsonElement p, string name) =>
+        p.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var n) ? n : 0;
+
+    // A list of snapshots (a TouchList's Touch entries), each read by `read`; empty when the field is absent.
+    public static IReadOnlyList<T> ReadList<T>(JsonElement p, string name, Func<JsonElement, T> read)
+    {
+        if (!p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var list = new List<T>(v.GetArrayLength());
+        foreach (var item in v.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.Object)
+            {
+                list.Add(read(item));
+            }
+        }
+
+        return list;
+    }
+
+    public static IReadOnlyList<string> ReadStrings(JsonElement p, string name)
+    {
+        if (!p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var list = new List<string>(v.GetArrayLength());
+        foreach (var item in v.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String)
+            {
+                list.Add(item.GetString()!);
+            }
+        }
+
+        return list;
+    }
+
+    // A string-to-string object (a DataTransfer's data by format); null when the field is absent.
+    public static IReadOnlyDictionary<string, string>? ReadMap(JsonElement p, string name)
+    {
+        if (!p.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in v.EnumerateObject())
+        {
+            if (entry.Value.ValueKind == JsonValueKind.String)
+            {
+                map[entry.Name] = entry.Value.GetString()!;
+            }
+        }
+
+        return map;
     }
 }

@@ -185,6 +185,18 @@ public sealed class RoutesGenerator : IIncrementalGenerator
                      + "well asks it to be both a specific path and the catch-all for every other one.",
         helpLinkUri: DiagnosticHelp.Link("RASK013"));
 
+    private static readonly DiagnosticDescriptor Rask097 = new(
+        "RASK097",
+        "Route helper name collides",
+        "The route helper for '{0}' cannot be generated as '{1}': {2} — rename the page or move it to another folder",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Error,
+        true,
+        description: "Every page gets one method on the project's single Routes class. Pages that share a type name "
+                     + "are grouped under nested classes named after the folders that tell them apart "
+                     + "(Routes.Admin.HomePage), so a folder name cannot also be the name of a page at the same level.",
+        helpLinkUri: DiagnosticHelp.Link("RASK097"));
+
     // RASK047 ("Page.Route must be a compile-time constant") is retired along with the Page base class:
     // a route is declared by [Route], whose argument is an attribute argument and therefore constant by
     // construction. The id stays retired, not reused.
@@ -211,8 +223,19 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         var supportsExtensionMembers = context.ParseOptionsProvider.Select(static (options, _) =>
             options is CSharpParseOptions cs && cs.LanguageVersion >= LanguageVersion.CSharp14);
 
-        var grouped = candidates.Collect().Combine(supportsExtensionMembers);
-        context.RegisterSourceOutput(grouped, static (spc, pair) => Emit(spc, pair.Left, pair.Right));
+        // The ONE Routes class lives in the project's root namespace, so code anywhere under it reaches
+        // every page with no using. The assembly name stands in when RootNamespace is not set.
+        var rootNamespace = context.AnalyzerConfigOptionsProvider
+            .Combine(context.CompilationProvider.Select(static (c, _) => c.AssemblyName ?? string.Empty))
+            .Select(static (pair, _) =>
+                pair.Left.GlobalOptions.TryGetValue("build_property.RootNamespace", out var root)
+                && !string.IsNullOrWhiteSpace(root)
+                    ? root.Trim()
+                    : SanitizeNamespace(pair.Right));
+
+        var grouped = candidates.Collect().Combine(supportsExtensionMembers).Combine(rootNamespace);
+        context.RegisterSourceOutput(grouped,
+            static (spc, pair) => Emit(spc, pair.Left.Left, pair.Left.Right, pair.Right));
 
         var orphanCandidates = context.SyntaxProvider
             .CreateSyntaxProvider(
@@ -642,7 +665,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     }
 
     private static void Emit(SourceProductionContext spc, ImmutableArray<Candidate> candidates,
-        bool supportsExtensionMembers)
+        bool supportsExtensionMembers, string rootNamespace)
     {
         if (candidates.IsDefaultOrEmpty)
         {
@@ -664,22 +687,11 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             .GroupBy(c => c.FullyQualifiedName, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
-        var byNamespace = filtered
-            .GroupBy(c => c.Namespace, StringComparer.Ordinal)
-            .OrderBy(g => g.Key, StringComparer.Ordinal);
-
-        foreach (var group in byNamespace)
+        // NotFound pages don't get Routes.X() factories — nobody navigates to NotFound by name.
+        var routed = byFqn.Values.Where(c => !c.IsNotFound).ToList();
+        if (routed.Count > 0)
         {
-            // NotFound pages don't get Routes.X() factories — nobody navigates to NotFound
-            // by name. Skip emitting a Routes partial entirely when the namespace has only
-            // NotFound candidates.
-            var routedInGroup = group.Where(c => !c.IsNotFound).ToList();
-            if (routedInGroup.Count == 0)
-            {
-                continue;
-            }
-
-            EmitRoutesPartial(spc, group, routedInGroup, byFqn, supportsExtensionMembers);
+            EmitRoutesClass(spc, routed, byFqn, supportsExtensionMembers, rootNamespace);
         }
 
         // Deduplicate by fully-qualified type name before emitting the registry. A `partial`
@@ -794,13 +806,50 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
     }
 
-    private static void EmitRoutesPartial(
-        SourceProductionContext spc,
-        IGrouping<string, Candidate> group,
-        List<Candidate> routedInGroup,
-        Dictionary<string, Candidate> byFqn,
-        bool supportsExtensionMembers)
+    /// <summary>
+    ///     Emits the project's ONE <c>Routes</c> class, in its root namespace. A page whose type name is
+    ///     unique is a flat <c>Routes.{Page}(...)</c>; pages sharing a type name nest under the namespace
+    ///     segments that follow the group's common prefix (<c>Routes.Admin.HomePage()</c>).
+    /// </summary>
+    private static void EmitRoutesClass(SourceProductionContext spc, List<Candidate> routed,
+        Dictionary<string, Candidate> byFqn, bool supportsExtensionMembers, string rootNamespace)
     {
+        var root = new RoutesNode("Routes");
+        foreach (var group in routed.GroupBy(c => c.TypeName, StringComparer.Ordinal))
+        {
+            var pages = group.OrderBy(c => c.FullyQualifiedName, StringComparer.Ordinal).ToList();
+            if (pages.Count == 1)
+            {
+                root.Pages.Add(pages[0]);
+                continue;
+            }
+
+            var segments = pages.Select(c => SplitNamespace(c.Namespace)).ToList();
+            var common = CommonPrefixLength(segments);
+            for (var i = 0; i < pages.Count; i++)
+            {
+                var node = root;
+                foreach (var segment in segments[i].Skip(common))
+                {
+                    node = node.Child(segment);
+                }
+
+                // Two pages with one namespace and one type name are nested types of different classes;
+                // the first keeps the helper, as it always has.
+                if (node.Pages.All(p => !string.Equals(p.TypeName, pages[i].TypeName, StringComparison.Ordinal)))
+                {
+                    node.Pages.Add(pages[i]);
+                }
+            }
+        }
+
+        var routesFqn = string.IsNullOrEmpty(rootNamespace) ? "global::Routes" : $"global::{rootNamespace}.Routes";
+        RejectCollisions(spc, root, routesFqn);
+
+        var body = new StringBuilder();
+        var extensions = new SortedDictionary<string, StringBuilder>(StringComparer.Ordinal);
+        EmitRoutesNode(spc, body, root, routesFqn, byFqn, supportsExtensionMembers ? extensions : null, isRoot: true);
+
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("#nullable enable");
@@ -809,47 +858,202 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         // every parameter left undocumented and would break every consumer's build, not ours.
         sb.AppendLine("#pragma warning disable CS1573 // parameter has no matching param tag");
         sb.AppendLine();
+        AppendInNamespace(sb, rootNamespace, body.ToString());
 
-        var hasNs = !string.IsNullOrEmpty(group.Key);
-        if (hasNs)
+        // The per-page Url()/Go() blocks live in each PAGE's namespace, so the import that brings the page
+        // into scope brings its helpers too; they forward to the fully qualified Routes method.
+        foreach (var entry in extensions)
         {
-            sb.Append("namespace ").Append(group.Key).AppendLine(";");
             sb.AppendLine();
+            AppendInNamespace(sb, entry.Key, entry.Value.ToString());
         }
 
-        sb.AppendLine("/// <summary>");
-        sb.AppendLine("///     Type-safe URLs for this assembly's <c>[Route]</c> pages — one method per page, taking that");
-        sb.AppendLine("///     page's route parameters. Build links with these rather than with path strings.");
-        sb.AppendLine("/// </summary>");
-        sb.AppendLine("public static partial class Routes");
+        spc.AddSource("Routes.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static void EmitRoutesNode(SourceProductionContext spc, StringBuilder sb, RoutesNode node,
+        string fqn, Dictionary<string, Candidate> byFqn, SortedDictionary<string, StringBuilder>? extensions,
+        bool isRoot)
+    {
+        if (isRoot)
+        {
+            sb.AppendLine("/// <summary>");
+            sb.AppendLine("///     Type-safe URLs for this assembly's <c>[Route]</c> pages — one method per page, taking that");
+            sb.AppendLine("///     page's route parameters. Build links with these rather than with path strings.");
+            sb.AppendLine("/// </summary>");
+        }
+        else
+        {
+            sb.Append("/// <summary>The URLs of the <c>").Append(EscapeXml(node.Name))
+                .AppendLine("</c> pages whose type name another page shares.</summary>");
+        }
+
+        sb.Append("public static partial class ").AppendLine(node.Name);
         sb.AppendLine("{");
 
-        // Collected separately and appended as a second partial below, because the extension blocks
-        // must not interleave with the factory methods they forward to.
-        var extSb = supportsExtensionMembers ? new StringBuilder() : null;
-
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var c in routedInGroup.OrderBy(c => c.TypeName, StringComparer.Ordinal))
+        var members = new StringBuilder();
+        foreach (var c in node.Pages.OrderBy(c => c.TypeName, StringComparer.Ordinal))
         {
-            if (!seen.Add(c.TypeName))
+            StringBuilder? ext = null;
+            if (extensions is not null)
             {
+                if (!extensions.TryGetValue(c.Namespace, out ext))
+                {
+                    ext = new StringBuilder();
+                    extensions[c.Namespace] = ext;
+                }
+                else
+                {
+                    ext.AppendLine();
+                }
+            }
+
+            EmitRouteFactory(spc, members, ext, c, byFqn, $"{fqn}.{c.TypeName}");
+            members.AppendLine();
+        }
+
+        foreach (var child in node.Children.Values)
+        {
+            var nested = new StringBuilder();
+            EmitRoutesNode(spc, nested, child, $"{fqn}.{child.Name}", byFqn, extensions, isRoot: false);
+            AppendIndented(members, nested.ToString(), "    ");
+            members.AppendLine();
+        }
+
+        sb.Append(members);
+        sb.AppendLine("}");
+    }
+
+    // A nested class can share neither a name with a helper beside it (CS0102) nor with the class that
+    // holds it (CS0542). Either is reported once, and the page that cannot be emitted is dropped, so the
+    // author reads what to rename instead of a compile error inside generated code.
+    private static void RejectCollisions(SourceProductionContext spc, RoutesNode node, string fqn)
+    {
+        foreach (var page in node.Pages.ToList())
+        {
+            string? reason = null;
+            if (string.Equals(page.TypeName, node.Name, StringComparison.Ordinal))
+            {
+                reason = "a member cannot share the name of the class that holds it";
+            }
+            else if (node.Children.ContainsKey(page.TypeName))
+            {
+                reason = $"'{page.TypeName}' is also the nested class holding the pages from the '{page.TypeName}' "
+                         + "folder that share a type name with another page";
+            }
+
+            if (reason is not null)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(Rask097, page.RouteAttrLocation.ToLocation(),
+                    page.FullyQualifiedName, $"{fqn.Replace("global::", string.Empty)}.{page.TypeName}()", reason));
+                node.Pages.Remove(page);
+            }
+        }
+
+        foreach (var child in node.Children.Values.ToList())
+        {
+            if (string.Equals(child.Name, node.Name, StringComparison.Ordinal))
+            {
+                foreach (var page in child.AllPages())
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(Rask097, page.RouteAttrLocation.ToLocation(),
+                        page.FullyQualifiedName, $"{fqn.Replace("global::", string.Empty)}.{child.Name}",
+                        "a nested class cannot share the name of the class that holds it"));
+                }
+
+                node.Children.Remove(child.Name);
                 continue;
             }
 
-            EmitRouteFactory(spc, sb, extSb, c, byFqn);
-            sb.AppendLine();
+            RejectCollisions(spc, child, $"{fqn}.{child.Name}");
         }
+    }
 
-        sb.AppendLine("}");
+    private static string[] SplitNamespace(string ns) =>
+        string.IsNullOrEmpty(ns) ? [] : ns.Split('.');
 
-        if (extSb is { Length: > 0 })
+    private static int CommonPrefixLength(List<string[]> segments)
+    {
+        var length = segments.Min(s => s.Length);
+        for (var i = 0; i < length; i++)
         {
-            sb.AppendLine();
-            sb.Append(extSb);
+            var segment = segments[0][i];
+            if (segments.Any(s => !string.Equals(s[i], segment, StringComparison.Ordinal)))
+            {
+                return i;
+            }
         }
 
-        var hint = hasNs ? $"{group.Key}.Routes.g.cs" : "Routes.g.cs";
-        spc.AddSource(hint, SourceText.From(sb.ToString(), Encoding.UTF8));
+        return length;
+    }
+
+    private static void AppendInNamespace(StringBuilder sb, string ns, string body)
+    {
+        if (string.IsNullOrEmpty(ns))
+        {
+            sb.Append(body);
+            return;
+        }
+
+        sb.Append("namespace ").AppendLine(ns);
+        sb.AppendLine("{");
+        AppendIndented(sb, body, "    ");
+        sb.AppendLine("}");
+    }
+
+    private static void AppendIndented(StringBuilder sb, string text, string indent)
+    {
+        foreach (var line in text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n'))
+        {
+            if (line.Length > 0)
+            {
+                sb.Append(indent);
+            }
+
+            sb.AppendLine(line);
+        }
+    }
+
+    // A project's assembly name can carry characters a namespace cannot (My-App); MSBuild's own default
+    // RootNamespace maps them to '_', and the fallback does the same.
+    private static string SanitizeNamespace(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return string.Empty;
+        }
+
+        var segments = name.Split('.').Select(segment =>
+        {
+            var chars = segment.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray();
+            var id = new string(chars);
+            return id.Length == 0 || char.IsDigit(id[0]) ? "_" + id : id;
+        });
+        return string.Join(".", segments);
+    }
+
+    private sealed class RoutesNode(string name)
+    {
+        public string Name { get; } =
+            SyntaxFacts.GetKeywordKind(name.TrimStart('@')) != SyntaxKind.None ? "@" + name.TrimStart('@') : name;
+
+        public List<Candidate> Pages { get; } = [];
+
+        public SortedDictionary<string, RoutesNode> Children { get; } = new(StringComparer.Ordinal);
+
+        public RoutesNode Child(string segment)
+        {
+            if (!Children.TryGetValue(segment, out var child))
+            {
+                child = new RoutesNode(segment);
+                Children[segment] = child;
+            }
+
+            return child;
+        }
+
+        public IEnumerable<Candidate> AllPages() =>
+            Pages.Concat(Children.Values.SelectMany(c => c.AllPages()));
     }
 
     private static void EmitRegistryInitializer(SourceProductionContext spc, IReadOnlyList<Candidate> candidates)
@@ -960,7 +1164,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     }
 
     private static void EmitRouteFactory(SourceProductionContext spc, StringBuilder sb, StringBuilder? extSb,
-        Candidate c, Dictionary<string, Candidate> byFqn)
+        Candidate c, Dictionary<string, Candidate> byFqn, string helperFqn)
     {
         if (ReportUnbindable(spc, c))
         {
@@ -1019,7 +1223,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
         // URL formatter is built from the first template only — see TryResolveFullTemplate's
         // index-0 comment for the rationale.
-        EmitFactoryBody(sb, extSb, c, firstParts!, firstResolved!, queryProps);
+        EmitFactoryBody(sb, extSb, c, firstParts!, firstResolved!, queryProps, helperFqn);
     }
 
     // RASK011 for every [RouteParam] / [QueryParam] whose type cannot be parsed from a URL.
@@ -1111,7 +1315,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     }
 
     private static void EmitFactoryBody(StringBuilder sb, StringBuilder? extSb, Candidate c,
-        List<ITemplatePart> parts, List<ResolvedPathParam> pathParams, List<RoutePropInfo> queryProps)
+        List<ITemplatePart> parts, List<ResolvedPathParam> pathParams, List<RoutePropInfo> queryProps,
+        string helperFqn)
     {
         // Signature: required path params first (in declaration order), then optional, then query
         var orderedPath = pathParams.OrderBy(p => p.Part.Optional ? 1 : 0).ToList();
@@ -1148,7 +1353,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
         if (extSb is not null)
         {
-            EmitNavigationExtension(extSb, c, orderedPath, queryProps);
+            EmitNavigationExtension(extSb, c, orderedPath, queryProps, helperFqn);
         }
     }
 
@@ -1288,7 +1493,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     ///     </para>
     /// </summary>
     private static void EmitNavigationExtension(StringBuilder sb, Candidate c,
-        List<ResolvedPathParam> orderedPath, List<RoutePropInfo> queryProps)
+        List<ResolvedPathParam> orderedPath, List<RoutePropInfo> queryProps, string helperFqn)
     {
         // A route or query param literally named "replace" would collide with Go's history flag. The
         // page's own parameter wins and Go simply loses the flag for that page — a shadowed, silently
@@ -1307,7 +1512,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         sb.Append("        public static ").Append(RouteUrlFullName).Append(" Url(");
         AppendSignature(sb, orderedPath, queryProps);
         sb.Append(')').AppendLine();
-        sb.Append("            => Routes.").Append(c.TypeName).Append('(');
+        sb.Append("            => ").Append(helperFqn).Append('(');
         AppendArguments(sb, orderedPath, queryProps);
         sb.AppendLine(");");
         sb.AppendLine();
@@ -1325,8 +1530,8 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         sb.Append(')').AppendLine();
-        sb.Append("            => global::Rask.Core.Routing.Navigator.RequireCurrent().NavigateTo(Routes.")
-            .Append(c.TypeName).Append('(');
+        sb.Append("            => global::Rask.Core.Routing.Navigator.RequireCurrent().NavigateTo(")
+            .Append(helperFqn).Append('(');
         AppendArguments(sb, orderedPath, queryProps);
         sb.Append(')').Append(replaceFree ? ", replace" : string.Empty).AppendLine(");");
 

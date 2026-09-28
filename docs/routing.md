@@ -150,6 +150,27 @@ string, the implicit conversion (or `.ToString()`) gives it to you.
 Path values are formatted through `RouteValueFormatter.Format`, so an `int`, `Guid`, `DateOnly`, etc. round-trips
 correctly without a manual `.ToString()`.
 
+### One `Routes` class per project
+
+The generator writes **one** `Routes` class, in the project's root namespace (`RootNamespace`, else the assembly
+name), so code anywhere under it reaches every page with no `using` — a page in `Features.Shared` links to the
+one in `Features.Home` directly:
+
+```csharp
+// before: Routes was per-namespace, so another folder needed an alias
+using HomeRoutes = MyApp.Features.Home.Routes;
+NavLink.Href(HomeRoutes.HomePage())["Home"];
+
+// after: one Routes for the whole project
+NavLink.Href(Routes.HomePage())["Home"];
+```
+
+A page whose type name is unique in the project is a flat method (`Routes.ProductPage(id)`). Pages that share a
+type name nest under the folders that tell them apart — `Features.Admin.HomePage` and `Features.Shop.HomePage`
+become `Routes.Admin.HomePage()` and `Routes.Shop.HomePage()`, and one whose namespace is the part they share
+stays flat. A page named like one of those folders (a page called `Admin` beside `Routes.Admin`) cannot be
+emitted and raises [RASK097](diagnostics.md#rask097).
+
 > The generated navigation helpers and component chain symbols do not exist until the generator runs. If the
 > IDE flags them as undefined, run `dotnet build` once and reload the solution.
 
