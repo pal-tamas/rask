@@ -13,6 +13,14 @@ them until tagged releases begin.
   EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
   `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
   on a server app included. The file is generated from the scaffold's own files, no longer a committed fragment.
+- **One `Routes` class per project.** The route generator used to emit a `Routes` class per namespace, so a page in
+  `Features.Shared` reaching the home page needed `using HomeRoutes = MyApp.Features.Home.Routes;`. There is now ONE
+  `Routes`, in the project's root namespace (`RootNamespace`, else the assembly name), and `Routes.HomePage()` works
+  from any folder with no using. Pages that share a type name nest by the folder that tells them apart
+  (`Routes.Admin.HomePage()`, `Routes.Shop.HomePage()`); a page named like such a folder is the new
+  [RASK097](docs/diagnostics.md#rask097) instead of a CS0102 inside generated code. `SomePage.Url()`/`Go()` are
+  unchanged. Existing `Features.Home.Routes.X()` qualifications and `using … = ….Routes;` aliases must become plain
+  `Routes.X()` (or `MyApp.Routes.X()` from outside the root namespace, such as top-level `Program.cs`).
 - **The gate's own script tests run only when something they cover changed.** Each `scripts/tests/*.test.sh`
   that tests more than scripts names its inputs on a `# gate-inputs:` line; a scoped commit that touches
   none of them skips it, and a `scripts/`/`.githooks/` change still runs them all. Saves ~45 s per narrow

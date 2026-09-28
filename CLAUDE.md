@@ -44,7 +44,8 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
   ships the analyzers and the build hooks (`build/Rask.props|targets`, twinned into `buildTransitive/`). Both hosts
   depend on it `PrivateAssets="none"`; a component library references it alone. The tags live HERE so their entries
   land on `RaskMarkup` and reach every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
-- `src/Rask.Generators` — the chain entries, `Routes.{Type}(...)`, per-page `Url()`/`Go()`, `[Route]` registration.
+- `src/Rask.Generators` — the chain entries, ONE `Routes` class per project in its root namespace (`Routes.{Type}(...)`,
+  nested by folder only on a type-name clash: `Routes.Admin.HomePage()`), per-page `Url()`/`Go()`, `[Route]` registration.
 - `src/Rask.Server` — ASP.NET host + EVERY server battery + `RaskApp` (`App/`: `RaskApp.Create(args).Run<App>()`,
   `RaskBatteryWiring`, `RaskAppDbContext`). `AddRask()`/`MapRask<TApp>()` stay for a hand-wired host.
   `src/Rask.Wasm` — browser host + the client halves (`Batteries/`: Cqrs, Query, Auth.Client, Cqrs.Client, validation, Ui).
@@ -127,7 +128,7 @@ dotnet run --project src/Rask.Site
   declared is canonical, the rest are alternates the router matches but nothing generates); `[ParentRoute(typeof(Layout))]`
   for nesting, `[NotFound]` for the catch-all. Generates `X.Url(...)`/`X.Go(...)` (C# 14 static
   extensions, need the page's namespace imported). **Inside a markup host the bare `X` is the chain's
-  chain ENTRY, not the type**, so qualify or use `Routes.X()`.
+  chain ENTRY, not the type**, so qualify or use `Routes.X()` (reachable from anywhere under the root namespace, no using).
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
@@ -143,15 +144,15 @@ dotnet run --project src/Rask.Site
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the 53-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–096, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–097, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, refreshed daily by the local build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–096 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK097). **Grep `src/`
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–097 are documented in `docs/diagnostics.md`
+  (RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK098). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

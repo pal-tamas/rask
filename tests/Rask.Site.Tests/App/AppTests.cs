@@ -9,7 +9,7 @@ public sealed class AppTests
     // title — which used to be what "/" served, back when the guides were their own app. "/" is the
     // landing page now, so rendering there asserts the wrong document; the route is taken from the
     // generated helper so the next prefix move does not need this comment written again.
-    private static RouteState ShowcaseRoot => new() { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+    private static RouteState ShowcaseRoot => new() { Path = global::Rask.Site.Routes.GuidesIndexPage() };
 
     [Fact]
     public void A_live_render_starts_with_the_doctype_and_an_en_html_lang()

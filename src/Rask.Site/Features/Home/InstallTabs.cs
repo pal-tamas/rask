@@ -43,7 +43,7 @@ public sealed partial class InstallTabs : Component
                 // The on-site guide, through the typed route like every other card on the page: it
                 // navigates inside the app instead of leaving for GitHub's raw markdown in a new tab.
                 NavLink
-                    .Href(PageMeta.LinkTo(Features.Routes.GuidePage("getting-started")))
+                    .Href(PageMeta.LinkTo(Routes.GuidePage("getting-started")))
                     .ActiveClass("")
                     .Class("text-ui-brand-ink no-underline hover:underline")["getting-started guide"], "."
             ]

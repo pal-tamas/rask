@@ -11,7 +11,7 @@ public sealed class TodosPageTests
     [Fact]
     public void The_todos_list_route_renders_the_seeded_items()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
@@ -23,7 +23,7 @@ public sealed class TodosPageTests
     [Fact]
     public void The_new_todo_route_opens_the_dialog_in_add_mode()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() + "/new" };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() + "/new" };
 
         var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
@@ -36,14 +36,14 @@ public sealed class TodosPageTests
     {
         Assert.True(InvokeIsAdding("/todos/new"));
         Assert.True(InvokeIsAdding("/TODOS/NEW"));
-        Assert.False(InvokeIsAdding(global::Rask.Site.Features.Routes.TodosPage()));
+        Assert.False(InvokeIsAdding(global::Rask.Site.Routes.TodosPage()));
         Assert.False(InvokeIsAdding("/todos/abc/edit"));
     }
 
     [Fact]
     public void The_editing_item_is_found_by_the_route_param_id()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
         var nav = new Navigator(routeState);
         var page = new TodosPage(nav, routeState);
         var todos = GetPrivateList(page);
@@ -60,7 +60,7 @@ public sealed class TodosPageTests
     [Fact]
     public void The_editing_item_is_null_for_an_unknown_id()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
         var nav = new Navigator(routeState);
         var page = new TodosPage(nav, routeState);
         var idField = typeof(TodosPage).GetProperty("Id")!;
@@ -74,12 +74,12 @@ public sealed class TodosPageTests
     [Fact]
     public void The_dialog_shows_when_adding_or_when_an_editing_item_matches()
     {
-        var routeStateAdd = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() + "/new" };
+        var routeStateAdd = new RouteState { Path = global::Rask.Site.Routes.TodosPage() + "/new" };
         var pageAdd = new TodosPage(new Navigator(routeStateAdd), routeStateAdd);
 
         Assert.True(InvokeProperty<bool>(pageAdd, "ShowDialog"));
 
-        var routeStateList = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeStateList = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
         var pageList = new TodosPage(new Navigator(routeStateList), routeStateList);
 
         Assert.False(InvokeProperty<bool>(pageList, "ShowDialog"));
@@ -88,7 +88,7 @@ public sealed class TodosPageTests
     [Fact]
     public void Saving_while_adding_appends_a_new_todo()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() + "/new" };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() + "/new" };
         var nav = new Navigator(routeState);
         var page = new TodosPage(nav, routeState);
         var todos = GetPrivateList(page);
@@ -106,7 +106,7 @@ public sealed class TodosPageTests
     [Fact]
     public void Saving_while_editing_mutates_the_existing_title()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
         var nav = new Navigator(routeState);
         var page = new TodosPage(nav, routeState);
         var todos = GetPrivateList(page);
@@ -129,7 +129,7 @@ public sealed class TodosPageTests
     [Fact]
     public void Deleting_removes_the_item()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
         var page = new TodosPage(new Navigator(routeState), routeState);
         var todos = GetPrivateList(page);
         var victim = todos[0];
@@ -144,7 +144,7 @@ public sealed class TodosPageTests
     [Fact]
     public void An_update_syncs_the_form_title_from_the_editing_item()
     {
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
         var page = new TodosPage(new Navigator(routeState), routeState);
         var todos = GetPrivateList(page);
         var target = todos[1];
