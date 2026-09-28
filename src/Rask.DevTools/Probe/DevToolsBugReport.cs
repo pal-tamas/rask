@@ -2,17 +2,6 @@ using System.Text;
 
 namespace Rask.DevTools.Probe;
 
-/// <summary>What a stack says about who is to blame: the framework, or the app.</summary>
-/// <param name="LikelyFrameworkBug">The innermost frame that is neither the runtime's nor the base library's is Rask's.</param>
-/// <param name="Frames">
-///     The frames a report may carry, innermost first: Rask's, by name only, and every run of anything else collapsed to
-///     <c>[app code]</c>. No file paths, no arguments.
-/// </param>
-internal sealed record DevToolsStackVerdict(bool LikelyFrameworkBug, IReadOnlyList<string> Frames)
-{
-    internal static readonly DevToolsStackVerdict None = new(false, []);
-}
-
 /// <summary>
 ///     The "Report framework bug" button's report: which errors get one, and what it says.
 /// </summary>
@@ -35,12 +24,16 @@ internal sealed record DevToolsStackVerdict(bool LikelyFrameworkBug, IReadOnlyLi
 internal static class DevToolsBugReport
 {
     /// <summary>Where a report is filed.</summary>
+#pragma warning disable S1075 // the framework's own issue tracker: a fixed address, not something to configure
     internal const string NewIssueUrl = "https://github.com/pal-tamas/rask/issues/new";
+#pragma warning restore S1075
 
     /// <summary>How long an issue URL may grow; older frames are dropped until it fits.</summary>
     internal const int UrlLimit = 8000;
 
     private const string AppCode = "[app code]";
+
+    private const string Fence = "```";
     private const int FrameLimit = 30;
 
     // The script files that are Rask's own on a page: the runtimes, the island runtime, anything a Rask package serves.
@@ -130,7 +123,7 @@ internal static class DevToolsBugReport
             DevToolsErrorKind.Island => "an island",
             _ => "the framework",
         };
-        var innermost = error.ReportFrames.FirstOrDefault(f => f != AppCode);
+        var innermost = error.ReportFrames.FirstOrDefault(f => !string.Equals(f, AppCode, StringComparison.Ordinal));
         var title = innermost is null
             ? $"{error.Title} in {where}"
             : $"{error.Title} in {innermost}";
@@ -154,7 +147,7 @@ internal static class DevToolsBugReport
         body.Append("\n\n**Stack** (Rask's frames; the app's collapsed):\n```\n");
         foreach (var frame in error.ReportFrames)
         {
-            body.Append(frame == AppCode ? AppCode : "at " + frame).Append('\n');
+            body.Append(string.Equals(frame, AppCode, StringComparison.Ordinal) ? AppCode : "at " + frame).Append('\n');
         }
 
         body.Append("```\n\n**What were you doing when it happened?**\n\n")
@@ -181,8 +174,8 @@ internal static class DevToolsBugReport
 
         // The oldest frames go first: the innermost ones say where it broke.
         var lines = body.Split('\n').ToList();
-        var fence = lines.FindLastIndex(l => l == "```");
-        while (url.Length > UrlLimit && fence > 1 && lines[fence - 1] != "```" && !lines[fence - 1].StartsWith("**", StringComparison.Ordinal))
+        var fence = lines.FindLastIndex(l => string.Equals(l, Fence, StringComparison.Ordinal));
+        while (url.Length > UrlLimit && fence > 1 && !string.Equals(lines[fence - 1], Fence, StringComparison.Ordinal) && !lines[fence - 1].StartsWith("**", StringComparison.Ordinal))
         {
             lines.RemoveAt(fence - 1);
             fence--;
@@ -201,7 +194,8 @@ internal static class DevToolsBugReport
 
     private static void Add(List<string> frames, string frame)
     {
-        if (frames.Count >= FrameLimit || (frame == AppCode && frames.Count > 0 && frames[^1] == AppCode))
+        if (frames.Count >= FrameLimit
+            || (string.Equals(frame, AppCode, StringComparison.Ordinal) && frames.Count > 0 && string.Equals(frames[^1], AppCode, StringComparison.Ordinal)))
         {
             return;
         }
@@ -223,13 +217,31 @@ internal static class DevToolsBugReport
     {
         var open = line.LastIndexOf('(');
         var close = line.LastIndexOf(')');
-        var location = open >= 0 && close > open ? line[(open + 1)..close]
-            : line.StartsWith("at ", StringComparison.Ordinal) ? line[3..]
-            : line.Contains('@', StringComparison.Ordinal) ? line[(line.IndexOf('@', StringComparison.Ordinal) + 1)..]
-            : null;
+        string? location;
+        if (open >= 0 && close > open)
+        {
+            location = line[(open + 1)..close];
+        }
+        else if (line.StartsWith("at ", StringComparison.Ordinal))
+        {
+            location = line[3..];
+        }
+        else
+        {
+            var at = line.IndexOf('@', StringComparison.Ordinal);
+            location = at >= 0 ? line[(at + 1)..] : null;
+        }
+
         return location is not null && (location.Contains("://", StringComparison.Ordinal) || location.StartsWith('/'))
             ? location
             : null;
+    }
+
+    // Firefox's "fn@url": the function is everything before the @, when there is one.
+    private static string BeforeAt(string line)
+    {
+        var at = line.IndexOf('@', StringComparison.Ordinal);
+        return at >= 0 ? line[..at] : "";
     }
 
     // "fn (rask.js:1:2345)": the function and the file's name, never the host or the directory it was served from.
@@ -237,9 +249,7 @@ internal static class DevToolsBugReport
     {
         var file = url.Split('?')[0];
         file = file[(file.LastIndexOf('/') + 1)..];
-        var function = line.StartsWith("at ", StringComparison.Ordinal)
-            ? line[3..].Split(" (")[0]
-            : line.Contains('@', StringComparison.Ordinal) ? line[..line.IndexOf('@', StringComparison.Ordinal)] : "";
+        var function = line.StartsWith("at ", StringComparison.Ordinal) ? line[3..].Split(" (")[0] : BeforeAt(line);
         return function.Length == 0 || function.Contains("://", StringComparison.Ordinal) ? file : $"{function} ({file})";
     }
 }

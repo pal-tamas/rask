@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Rask.Site.Features;
 
 // Collection binding via foreach-capture — the canonical pattern.
@@ -61,22 +59,4 @@ public sealed partial class NestedListForeachDemo : Component
                 : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
         ];
     }
-}
-
-public sealed class CartModel
-{
-    public List<LineItem> Items { get; set; } = new();
-}
-
-public sealed class LineItem
-{
-    // Stable per-instance key for keyed row diffing (not bound to any input, no validation attrs).
-    public Guid Id { get; } = Guid.NewGuid();
-
-    [Required(ErrorMessage = "Description is required.")]
-    [StringLength(80)]
-    public string Description { get; set; } = "";
-
-    [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1.")]
-    public int Quantity { get; set; } = 1;
 }

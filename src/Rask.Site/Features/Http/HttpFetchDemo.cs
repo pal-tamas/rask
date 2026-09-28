@@ -22,7 +22,7 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
 
     protected override async Task OnMount()
     {
-        for (var attempt = 0; ; attempt++)
+        for (var attempt = 0; attempt <= MaxTransientRetries; attempt++)
         {
             // Every wait in this loop reads the injected clock rather than the wall clock: the system clock
             // in the app, and in a test a clock the test advances itself instead of waiting the delays out.
@@ -98,6 +98,3 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
         [property: JsonPropertyName("title")] string Title,
         [property: JsonPropertyName("body")] string Body);
 }
-
-[JsonSerializable(typeof(HttpFetchDemo.Post))]
-internal sealed partial class HttpJsonContext : JsonSerializerContext;

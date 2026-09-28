@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace Rask.Generators.Shared;
@@ -24,7 +26,7 @@ namespace Rask.Generators.Shared;
 internal sealed class WireCodecEmitter
 {
     private readonly StringBuilder _methods = new();
-    private readonly Dictionary<string, string> _emitted = new();
+    private readonly Dictionary<string, string> _emitted = new(StringComparer.Ordinal);
     private int _next;
 
     /// <summary>The generated methods, ready to drop into the codec class.</summary>
@@ -90,27 +92,7 @@ internal sealed class WireCodecEmitter
                 break;
 
             case WireKind.File:
-                // The file itself leaves the JSON entirely; what stays behind is its index in the multipart
-                // body, and -1 for "there wasn't one".
-                // A RaskFile in, a RaskFile out - the message never mentions the wire type. The conversion
-                // is emitted HERE, in the consumer's compilation, because this is the one place that sees
-                // both Rask.Core and Rask.Cqrs; neither package has to reference the other for it.
-                //
-                // The file's own Size is passed as the read ceiling. RaskFile.OpenReadStream defaults to
-                // 512 KB to stop an unbounded read of a browser-supplied file, but the size is already
-                // known here, so the ceiling can be the file itself rather than a guess that truncates
-                // anything larger.
-                write.AppendLine("        if (value is null) { writer.WriteNumberValue(-1); return; }");
-                write.AppendLine(
-                    "        files.Add(global::Rask.Wire.RemoteFile.FromStream("
-                    + "value.Name, value.ContentType, value.Size, "
-                    + "__ct => value.OpenReadStream(value.Size, __ct), "
-                    + "value.LastModified));");
-                write.AppendLine("        writer.WriteNumberValue(files.Count - 1);");
-                read.AppendLine(
-                    "        var __wire = global::Rask.Wire.WireJson.ResolveFile("
-                    + "files, global::Rask.Wire.WireJson.ReadInt32(ref reader, property), property);");
-                read.AppendLine("        return __wire is null ? null : new __RaskCqrsUploadedFile(__wire);");
+                EmitFile(write, read);
                 break;
 
             case WireKind.Nullable:
@@ -124,59 +106,12 @@ internal sealed class WireCodecEmitter
             }
 
             case WireKind.Sequence:
-            {
-                var element = Ensure(type.Inner!);
-                write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
-                write.AppendLine("        writer.WriteStartArray();");
-                write.AppendLine("        foreach (var item in value)");
-                write.AppendLine("        {");
-                write.AppendLine($"            W{element}(writer, item, files);");
-                write.AppendLine("        }");
-                write.AppendLine();
-                write.AppendLine("        writer.WriteEndArray();");
-
-                read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
-                read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartArray(ref reader, property);");
-                read.AppendLine($"        var items = new global::System.Collections.Generic.List<{type.Inner!.Fqn}>();");
-                read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndArray)");
-                read.AppendLine("        {");
-                read.AppendLine($"            items.Add(R{element}(ref reader, files, property));");
-                read.AppendLine("        }");
-                read.AppendLine();
-                read.AppendLine(type.Sequence == SequenceShape.Array
-                    ? "        return items.ToArray();"
-                    : "        return items;");
+                EmitSequence(type, write, read);
                 break;
-            }
 
             case WireKind.Dictionary:
-            {
-                var value = Ensure(type.Inner!);
-                write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
-                write.AppendLine("        writer.WriteStartObject();");
-                write.AppendLine("        foreach (var pair in value)");
-                write.AppendLine("        {");
-                write.AppendLine("            writer.WritePropertyName(pair.Key);");
-                write.AppendLine($"            W{value}(writer, pair.Value, files);");
-                write.AppendLine("        }");
-                write.AppendLine();
-                write.AppendLine("        writer.WriteEndObject();");
-
-                read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
-                read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartObject(ref reader, property);");
-                read.AppendLine(
-                    "        var map = new global::System.Collections.Generic.Dictionary<global::System.String, "
-                    + $"{type.Inner!.Fqn}>();");
-                read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndObject)");
-                read.AppendLine("        {");
-                read.AppendLine("            var key = reader.GetString();");
-                read.AppendLine("            reader.Read();");
-                read.AppendLine($"            map[key] = R{value}(ref reader, files, key);");
-                read.AppendLine("        }");
-                read.AppendLine();
-                read.AppendLine("        return map;");
+                EmitDictionary(type, write, read);
                 break;
-            }
 
             case WireKind.Object:
                 EmitObject(type, write, read);
@@ -184,13 +119,87 @@ internal sealed class WireCodecEmitter
         }
     }
 
+    // The file itself leaves the JSON entirely; what stays behind is its index in the multipart
+    // body, and -1 for "there wasn't one".
+    // An IRaskFile in, an IRaskFile out - the message never mentions the wire type. The conversion
+    // is emitted HERE, in the consumer's compilation, because this is the one place that sees
+    // both Rask.Core and Rask.Cqrs; neither package has to reference the other for it.
+    //
+    // The file's own Size is passed as the read ceiling. IRaskFile.OpenReadStream defaults to
+    // 512 KB to stop an unbounded read of a browser-supplied file, but the size is already
+    // known here, so the ceiling can be the file itself rather than a guess that truncates
+    // anything larger.
+    private static void EmitFile(StringBuilder write, StringBuilder read)
+    {
+        write.AppendLine("        if (value is null) { writer.WriteNumberValue(-1); return; }");
+        write.AppendLine(
+            "        files.Add(global::Rask.Wire.RemoteFile.FromStream("
+            + "value.Name, value.ContentType, value.Size, "
+            + "__ct => value.OpenReadStream(value.Size, __ct), "
+            + "value.LastModified));");
+        write.AppendLine("        writer.WriteNumberValue(files.Count - 1);");
+        read.AppendLine(
+            "        var __wire = global::Rask.Wire.WireJson.ResolveFile("
+            + "files, global::Rask.Wire.WireJson.ReadInt32(ref reader, property), property);");
+        read.AppendLine("        return __wire is null ? null : new __RaskCqrsUploadedFile(__wire);");
+    }
+
+    private void EmitSequence(WireType type, StringBuilder write, StringBuilder read)
+    {
+        var element = Ensure(type.Inner!);
+        write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
+        write.AppendLine("        writer.WriteStartArray();");
+        write.AppendLine("        foreach (var item in value)");
+        write.AppendLine("        {");
+        write.AppendLine($"            W{element}(writer, item, files);");
+        write.AppendLine("        }");
+        write.AppendLine();
+        write.AppendLine("        writer.WriteEndArray();");
+
+        read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
+        read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartArray(ref reader, property);");
+        read.AppendLine($"        var items = new global::System.Collections.Generic.List<{type.Inner!.Fqn}>();");
+        read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndArray)");
+        read.AppendLine("        {");
+        read.AppendLine($"            items.Add(R{element}(ref reader, files, property));");
+        read.AppendLine("        }");
+        read.AppendLine();
+        read.AppendLine(type.Sequence == SequenceShape.Array
+            ? "        return items.ToArray();"
+            : "        return items;");
+    }
+
+    private void EmitDictionary(WireType type, StringBuilder write, StringBuilder read)
+    {
+        var value = Ensure(type.Inner!);
+        write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
+        write.AppendLine("        writer.WriteStartObject();");
+        write.AppendLine("        foreach (var pair in value)");
+        write.AppendLine("        {");
+        write.AppendLine("            writer.WritePropertyName(pair.Key);");
+        write.AppendLine($"            W{value}(writer, pair.Value, files);");
+        write.AppendLine("        }");
+        write.AppendLine();
+        write.AppendLine("        writer.WriteEndObject();");
+
+        read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
+        read.AppendLine("        global::Rask.Wire.WireJson.ExpectStartObject(ref reader, property);");
+        read.AppendLine(
+            "        var map = new global::System.Collections.Generic.Dictionary<global::System.String, "
+            + $"{type.Inner!.Fqn}>();");
+        read.AppendLine($"        while (reader.Read() && reader.TokenType != {TokenType}.EndObject)");
+        read.AppendLine("        {");
+        read.AppendLine("            var key = reader.GetString();");
+        read.AppendLine("            reader.Read();");
+        read.AppendLine($"            map[key] = R{value}(ref reader, files, key);");
+        read.AppendLine("        }");
+        read.AppendLine();
+        read.AppendLine("        return map;");
+    }
+
     private void EmitObject(WireType type, StringBuilder write, StringBuilder read)
     {
-        var members = new List<(WireMember Member, string Id)>();
-        foreach (var member in type.Members)
-        {
-            members.Add((member, Ensure(member.Type)));
-        }
+        var members = type.Members.ConvertAll(member => (Member: member, Id: Ensure(member.Type)));
 
         if (type.IsReferenceType)
         {
@@ -206,6 +215,11 @@ internal sealed class WireCodecEmitter
 
         write.AppendLine("        writer.WriteEndObject();");
 
+        EmitObjectRead(type, members, read);
+    }
+
+    private static void EmitObjectRead(WireType type, List<(WireMember Member, string Id)> members, StringBuilder read)
+    {
         if (type.IsReferenceType)
         {
             read.AppendLine($"        if (reader.TokenType == {TokenType}.Null) return null;");
@@ -239,15 +253,19 @@ internal sealed class WireCodecEmitter
         read.AppendLine("        }");
         read.AppendLine();
 
+        EmitConstruction(type, members, read);
+    }
+
+    private static void EmitConstruction(WireType type, List<(WireMember Member, string Id)> members, StringBuilder read)
+    {
         if (type.ConstructorParameters is { Count: > 0 } parameters)
         {
-            var arguments = new List<string>();
-            foreach (var parameter in parameters)
+            var arguments = parameters.Select(parameter =>
             {
                 var match = type.Members.Find(m =>
-                    string.Equals(m.ClrName, parameter, System.StringComparison.OrdinalIgnoreCase));
-                arguments.Add(match is null ? "default" : $"v_{match.ClrName}");
-            }
+                    string.Equals(m.ClrName, parameter, StringComparison.OrdinalIgnoreCase));
+                return match is null ? "default" : $"v_{match.ClrName}";
+            });
 
             read.AppendLine($"        return new {type.Fqn}({string.Join(", ", arguments)});");
             return;

@@ -13,15 +13,18 @@ public sealed partial class UserGateDemo : Component
 
     protected override async Task OnUnmount() => _auth.Changed -= StateHasChanged;
 
+    private Component? AdminPanel() =>
+        _auth.Current.IsInRole("admin")
+            ? Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft).Class("py-2")["🔑 Admin-only panel"]
+            : null;
+
     protected override Component? Render() =>
         Div.Id("user-gate")[
             _auth.Current.Identity?.IsAuthenticated == true
                 ? [
-                    P["Signed in as ", Strong[_auth.Current.Identity!.Name ?? "?"]],
+                    P["Signed in as ", Strong[_auth.Current.Identity.Name ?? "?"]],
                     // Role-gated: only an admin sees this panel.
-                    _auth.Current.IsInRole("admin")
-                        ? Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft).Class("py-2")["🔑 Admin-only panel"]
-                        : null,
+                    AdminPanel(),
                     Ui.Button.Variant(Ui.Variant.Outline).OnClick(_auth.SignOut)["Sign out"]]
                 : [
                     P.Class("text-ui-muted")["You are signed out."],

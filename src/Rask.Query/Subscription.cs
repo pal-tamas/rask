@@ -2,7 +2,7 @@ using Rask.Core;
 using Rask.Core.Live;
 using Rask.Cqrs;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     A live view of a stream of values — every notification published for what it watches, or whatever a function
@@ -31,7 +31,7 @@ namespace Rask.Query;
 public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
 {
     private readonly SessionQueryClient _client;
-    private readonly SubscriptionSource<T>? _source;
+    private readonly ISubscriptionSource<T>? _source;
     private readonly ComponentReaders _readers = new();
     private readonly Lock _gate = new();
     private readonly Dictionary<object, Patch> _into = new(ReferenceEqualityComparer.Instance);
@@ -58,7 +58,7 @@ public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
     }
 
     /// <summary>A subscription whose target comes from a lambda re-run at every read; it opens at the first one.</summary>
-    internal Subscription(SessionQueryClient client, SubscriptionSource<T> source)
+    internal Subscription(SessionQueryClient client, ISubscriptionSource<T> source)
     {
         _client = client;
         _source = source;
@@ -315,30 +315,9 @@ public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
         var opened = false;
         while (!token.IsCancellationRequested)
         {
-            try
-            {
-                await foreach (var value in target.Open(Admitted, token).WithCancellation(token).ConfigureAwait(false))
-                {
-                    Received(value, run);
-                }
-
-                Settle(SubscriptionStatus.Ended, error: null, run);
-                return;
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            if (await OpenOnceAsync(target, run, Admitted).ConfigureAwait(false))
             {
                 return;
-            }
-            catch (Exception ex) when (IsFinal(ex))
-            {
-                Settle(SubscriptionStatus.Error, ex, run);
-                return;
-            }
-#pragma warning disable CA1031 // Anything else dropped the connection: it belongs on Error while this reopens it.
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                Settle(SubscriptionStatus.Reconnecting, ex, run);
             }
 
             try
@@ -353,33 +332,74 @@ public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
 
         void Admitted()
         {
-            Patch[] reopened = [];
-            lock (_gate)
+            if (Admit(run, reopened: opened))
             {
-                if (!IsCurrent(run))
-                {
-                    return;
-                }
-
-                _status = SubscriptionStatus.Live;
-                _error = null;
-                if (opened)
-                {
-                    reopened = [.. _into.Values];
-                }
+                opened = true;
+                attempt = 0;
             }
-
-            // Reopened after a drop: whatever was published meanwhile never arrived, so what it patches is fetched again.
-            foreach (var patch in reopened)
-            {
-                patch.Refetch();
-            }
-
-            opened = true;
-            attempt = 0;
-            _admitted.TrySetResult();
-            _readers.RenderAll();
         }
+    }
+
+    /// <summary>Reads the stream once: true when it is over for good, false when it dropped and should reopen.</summary>
+    private async Task<bool> OpenOnceAsync(SubscriptionTarget<T> target, CancellationTokenSource run, Action admitted)
+    {
+        var token = run.Token;
+        try
+        {
+            await foreach (var value in target.Open(admitted, token).WithCancellation(token).ConfigureAwait(false))
+            {
+                Received(value, run);
+            }
+
+            Settle(SubscriptionStatus.Ended, error: null, run);
+            return true;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            return true;
+        }
+        catch (Exception ex) when (IsFinal(ex))
+        {
+            Settle(SubscriptionStatus.Error, ex, run);
+            return true;
+        }
+#pragma warning disable CA1031 // Anything else dropped the connection: it belongs on Error while this reopens it.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            Settle(SubscriptionStatus.Reconnecting, ex, run);
+            return false;
+        }
+    }
+
+    /// <summary>The stream admitted <paramref name="run" />: goes live, and refetches what a drop may have missed.</summary>
+    private bool Admit(CancellationTokenSource run, bool reopened)
+    {
+        Patch[] missed = [];
+        lock (_gate)
+        {
+            if (!IsCurrent(run))
+            {
+                return false;
+            }
+
+            _status = SubscriptionStatus.Live;
+            _error = null;
+            if (reopened)
+            {
+                missed = [.. _into.Values];
+            }
+        }
+
+        // Reopened after a drop: whatever was published meanwhile never arrived, so what it patches is fetched again.
+        foreach (var patch in missed)
+        {
+            patch.Refetch();
+        }
+
+        _admitted.TrySetResult();
+        _readers.RenderAll();
+        return true;
     }
 
     private void Received(T value, CancellationTokenSource run)
@@ -532,16 +552,4 @@ public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
     }
 
     private sealed record Patch(Action<object?> Apply, Action Refetch);
-}
-
-/// <summary>What a subscription watches, and how to open it.</summary>
-/// <param name="Identity">Compared to decide whether a new call watches something else: the type and key, or the input.</param>
-/// <param name="Open">Opens the stream, calling its argument once the stream is admitted.</param>
-internal sealed record SubscriptionTarget<T>(object Identity, Func<Action, CancellationToken, IAsyncEnumerable<T>> Open);
-
-/// <summary>A lambda re-run at every read, answering what the subscription should watch now.</summary>
-internal abstract class SubscriptionSource<T>
-{
-    /// <summary>True when the answer changed since the last read; <paramref name="target" /> null means "wait".</summary>
-    public abstract bool TryAdvance(out SubscriptionTarget<T>? target);
 }

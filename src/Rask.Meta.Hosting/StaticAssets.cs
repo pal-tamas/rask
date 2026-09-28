@@ -76,7 +76,7 @@ internal sealed class StaticAssets : IDisposable
 
         foreach (var (prefix, files) in _roots)
         {
-            if (!context.Request.Path.StartsWithSegments(prefix, out var remaining))
+            if (!context.Request.Path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase, out var remaining))
             {
                 continue;
             }

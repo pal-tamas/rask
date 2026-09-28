@@ -215,7 +215,10 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
 
         // Lower-cased on both sides: providers disagree on whether a plain comparison ignores case (SQL Server's
         // default collation does, PostgreSQL's does not), and LogQuery promises it does. EF Core escapes the
-        // pattern, so a % or _ in the text is literal.
+        // pattern, so a % or _ in the text is literal. These ToLower calls are never run in .NET — the provider
+        // translates them to SQL LOWER() — so the culture and comparison overloads the analyzers ask for would not
+        // translate at all.
+#pragma warning disable CA1304, CA1311, CA1862, MA0011
         if (!string.IsNullOrWhiteSpace(query.Category))
         {
             var category = query.Category.ToLowerInvariant();
@@ -229,6 +232,7 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
                 e.Message.ToLower().Contains(search)
                 || (e.Exception != null && e.Exception.ToLower().Contains(search)));
         }
+#pragma warning restore CA1304, CA1311, CA1862, MA0011
 
         if (!string.IsNullOrWhiteSpace(query.ScopeKey))
         {

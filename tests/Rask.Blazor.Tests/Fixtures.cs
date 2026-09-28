@@ -63,7 +63,7 @@ public sealed partial class GreetingIsland : BlazorComponent<Greeting>
     public string? Heading { get; set; }
     public int? Count { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         // Nullable + null OMITS its key, so the hosted component keeps its own default.
         if (Heading is not null)
@@ -148,7 +148,7 @@ public sealed partial class ClickerIsland : BlazorComponent<Clicker>
     public string[]? Rows { get; set; }
     public Callback<int>? OnPick { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         if (Rows is not null)
         {
@@ -171,7 +171,7 @@ public sealed partial class SlowIsland : BlazorComponent<SlowGreeting>
 {
     public string? Heading { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         if (Heading is not null)
         {
@@ -212,7 +212,7 @@ public sealed partial class PreventingLinkIsland : BlazorComponent<PreventingLin
 {
     public Callback? OnPick { get; set; }
 
-    protected override void WriteParameters(Dictionary<string, object?> into)
+    protected override void WriteParameters(IDictionary<string, object?> into)
     {
         if (OnPick is not null)
         {

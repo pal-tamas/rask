@@ -63,7 +63,11 @@ public sealed class LitestreamOptions
     /// <summary>Throws <see cref="InvalidOperationException"/> if the options are incomplete.</summary>
     internal void Validate()
     {
-        ArgumentNullException.ThrowIfNull(Verification);
+        if (Verification is null)
+        {
+            throw new InvalidOperationException($"{nameof(Verification)} must not be null.");
+        }
+
         Verification.Validate();
 
         if (string.IsNullOrWhiteSpace(ExecutablePath))

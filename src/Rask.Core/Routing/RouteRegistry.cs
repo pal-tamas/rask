@@ -26,7 +26,7 @@ public static class RouteRegistry
         // matches — the fallback page renders and the host still calls it a 200.
         string.Equals(fullTemplate.TrimStart('/'), DefaultFallbackTemplate, StringComparison.Ordinal);
 
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
 
     // Registrations from direct Add() calls. Additive, exactly as before.
     private static readonly List<RouteRegistration> _manual = new();
@@ -35,7 +35,7 @@ public static class RouteRegistry
     // __RaskRoutesRegistry, which passes its own typeof(...) as the key. Grouping is what makes
     // routes hot-reloadable: a refresh Replace()s just that assembly's set, so re-running it
     // neither duplicates its own routes (Add is AddRange) nor drops another assembly's, and never
-    // touches _defaultFallback — which is seeded once by __RaskDefaultFallback's [ModuleInitializer]
+    // touches _defaultFallback — which is seeded once by RaskDefaultFallback's [ModuleInitializer]
     // and could not be restored if a refresh cleared it.
     private static readonly List<(object Key, RouteRegistration[] Items)> _groups = new();
 
@@ -158,6 +158,31 @@ public static class RouteRegistry
         }
     }
 
+    public static IReadOnlyList<Route> BuildTree()
+    {
+        lock (_lock)
+        {
+            if (_treeCache is not null)
+            {
+                return _treeCache;
+            }
+
+            var effective = Flatten();
+            if (!HasCatchAll(effective) && _defaultFallback is not null)
+            {
+                effective.Add(new RouteRegistration(_defaultFallback, DefaultFallbackTemplate, null));
+            }
+
+            var byParent = effective.ToLookup(r => r.Parent);
+
+            Route Build(RouteRegistration r) =>
+                new(r.PageType, r.Template, byParent[r.PageType].Select(Build).ToArray());
+
+            _treeCache = byParent[null].Select(Build).ToArray();
+            return _treeCache;
+        }
+    }
+
     /// <summary>
     ///     The route table for the HOST application: everything except the routes declared by
     ///     <paramref name="assembly" />.
@@ -225,31 +250,6 @@ public static class RouteRegistry
         }
     }
 
-    public static IReadOnlyList<Route> BuildTree()
-    {
-        lock (_lock)
-        {
-            if (_treeCache is not null)
-            {
-                return _treeCache;
-            }
-
-            var effective = Flatten();
-            if (!HasCatchAll(effective) && _defaultFallback is not null)
-            {
-                effective.Add(new RouteRegistration(_defaultFallback, DefaultFallbackTemplate, null));
-            }
-
-            var byParent = effective.ToLookup(r => r.Parent);
-
-            Route Build(RouteRegistration r) =>
-                new(r.PageType, r.Template, byParent[r.PageType].Select(Build).ToArray());
-
-            _treeCache = byParent[null].Select(Build).ToArray();
-            return _treeCache;
-        }
-    }
-
     // Caller holds _lock. The group key is the generated __RaskRoutesRegistry type, so the assembly that
     // declared a route is recoverable from it. A key that is not a Type belongs to no assembly — a test
     // registering its own group — and is treated as the host's, which is the safe direction: a mounted
@@ -276,7 +276,7 @@ public static class RouteRegistry
 
     // Caller holds _lock. Shares BuildTree's shape, including the fallback rule, so a subset behaves
     // like a table in its own right rather than like a filtered view of somebody else's.
-    private static IReadOnlyList<Route> BuildFrom(List<RouteRegistration> effective)
+    private static Route[] BuildFrom(List<RouteRegistration> effective)
     {
         if (!HasCatchAll(effective) && _defaultFallback is not null)
         {
@@ -383,14 +383,6 @@ public static class RouteRegistry
         // String check is sufficient: RoutePattern accepts both "{*name}" and "{**name}"
         // as catch-alls, and both contain the "{*" sequence. Literal segments that happen
         // to contain "{*" elsewhere aren't valid route templates.
-        foreach (var r in registrations)
-        {
-            if (r.Template.Contains("{*", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return registrations.Exists(r => r.Template.Contains("{*", StringComparison.Ordinal));
     }
 }

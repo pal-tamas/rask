@@ -23,7 +23,7 @@ namespace Rask.Server;
 public sealed class LiveSessionStore : IAsyncDisposable
 {
     private readonly RaskMetrics? _metrics;
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRemovals = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRemovals = new(StringComparer.Ordinal);
     private readonly IServiceScopeFactory _scopeFactory;
     // How many sessions a whole-store fan-out touches at once. Bounded so a host with thousands of
     // sessions doesn't hand the thread pool thousands of simultaneous socket writes; large enough that a
@@ -31,7 +31,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
     // planned Broadcast pillar inherits, where the fan-out is a user-facing feature.
     private const int FanOutConcurrency = 32;
 
-    private readonly ConcurrentDictionary<string, LiveSession> _sessions = new();
+    private readonly ConcurrentDictionary<string, LiveSession> _sessions = new(StringComparer.Ordinal);
     private readonly CancellationToken _stopping;
 
     // Atomic count of live + in-flight sessions, used by the hard capacity reservation in
@@ -384,14 +384,27 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(_stopping);
-        // Install the new CTS, retiring any prior pending removal for this id. A CTS must
-        // never be cancelled/disposed while it is still reachable through _pendingRemovals:
-        // a concurrent CancelPendingRemoval / CancelAllPending could TryRemove the same
-        // instance and race us into a double-dispose (ObjectDisposedException out of Cancel).
-        // So swap atomically and retire the prior CTS only after our CAS has made it
-        // unreachable — never from inside an AddOrUpdate factory, whose side effects mutate a
-        // value other threads can still observe in the dictionary. The thread whose
-        // TryUpdate/TryRemove wins is the single owner responsible for disposing that value.
+        InstallPendingRemoval(id, cts);
+
+        // Capture the token here, on the calling thread, while this CTS is freshly created and
+        // provably not disposed. Reading cts.Token *inside* the task instead would race a
+        // concurrent CancelPendingRemoval / retire that disposes this CTS first — the getter
+        // then throws ObjectDisposedException, which the OperationCanceledException catch below
+        // would miss, surfacing as an unobserved task exception.
+        var token = cts.Token;
+        _ = Task.Run(() => RemoveAfterAsync(id, cts, delay, token), CancellationToken.None);
+    }
+
+    // Install the new CTS, retiring any prior pending removal for this id. A CTS must
+    // never be cancelled/disposed while it is still reachable through _pendingRemovals:
+    // a concurrent CancelPendingRemoval / CancelAllPending could TryRemove the same
+    // instance and race us into a double-dispose (ObjectDisposedException out of Cancel).
+    // So swap atomically and retire the prior CTS only after our CAS has made it
+    // unreachable — never from inside an AddOrUpdate factory, whose side effects mutate a
+    // value other threads can still observe in the dictionary. The thread whose
+    // TryUpdate/TryRemove wins is the single owner responsible for disposing that value.
+    private void InstallPendingRemoval(string id, CancellationTokenSource cts)
+    {
         while (true)
         {
             if (_pendingRemovals.TryGetValue(id, out var existing))
@@ -408,49 +421,43 @@ public sealed class LiveSessionStore : IAsyncDisposable
                 break;
             }
         }
+    }
 
-        // Capture the token here, on the calling thread, while this CTS is freshly created and
-        // provably not disposed. Reading cts.Token *inside* the task instead would race a
-        // concurrent CancelPendingRemoval / retire that disposes this CTS first — the getter
-        // then throws ObjectDisposedException, which the OperationCanceledException catch below
-        // would miss, surfacing as an unobserved task exception.
-        var token = cts.Token;
-        _ = Task.Run(async () =>
+    private async Task RemoveAfterAsync(string id, CancellationTokenSource cts, TimeSpan delay, CancellationToken token)
+    {
+        try
         {
-            try
-            {
-                await Task.Delay(delay, token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (ObjectDisposedException)
-            {
-                // The CTS was retired (a newer ScheduleRemoval) or cancelled and disposed
-                // concurrently. Either way this removal is obsolete — the owning thread handles it.
-                return;
-            }
+            await Task.Delay(delay, token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (ObjectDisposedException)
+        {
+            // The CTS was retired (a newer ScheduleRemoval) or cancelled and disposed
+            // concurrently. Either way this removal is obsolete — the owning thread handles it.
+            return;
+        }
 
-            var entry = new KeyValuePair<string, CancellationTokenSource>(id, cts);
-            if (!((ICollection<KeyValuePair<string, CancellationTokenSource>>)_pendingRemovals).Remove(entry))
-            {
-                return;
-            }
+        var entry = new KeyValuePair<string, CancellationTokenSource>(id, cts);
+        if (!((ICollection<KeyValuePair<string, CancellationTokenSource>>)_pendingRemovals).Remove(entry))
+        {
+            return;
+        }
 
-            cts.Dispose();
+        cts.Dispose();
 
-            // A connection attached after this removal was armed. The attach cancels pending removal once it has
-            // published its transport, but a stale connection's cleanup can arm one in between (#1076's race,
-            // one step later) — and removing a session under a connected tab is the one outcome that must not
-            // happen. Its own disconnect will arm a fresh removal.
-            if (_sessions.TryGetValue(id, out var live) && live.HasOpenTransport)
-            {
-                return;
-            }
+        // A connection attached after this removal was armed. The attach cancels pending removal once it has
+        // published its transport, but a stale connection's cleanup can arm one in between (#1076's race,
+        // one step later) — and removing a session under a connected tab is the one outcome that must not
+        // happen. Its own disconnect will arm a fresh removal.
+        if (_sessions.TryGetValue(id, out var live) && live.HasOpenTransport)
+        {
+            return;
+        }
 
-            await RemoveAsync(id).ConfigureAwait(false);
-        });
+        await RemoveAsync(id).ConfigureAwait(false);
     }
 
     internal void CancelPendingRemoval(string id)

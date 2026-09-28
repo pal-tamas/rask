@@ -205,6 +205,12 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             return Entity.Refused(name, symbol.Name, location, Refusal.Clash, existing.ToDisplayString());
         }
 
+        return Accepted(symbol, name, location, cancellationToken);
+    }
+
+    private static Entity Accepted(
+        INamedTypeSymbol symbol, string name, SymbolLocation? location, CancellationToken cancellationToken)
+    {
         var shape = GeneratedModelShape.Describe(symbol, cancellationToken);
         var converted = new Dictionary<ModelValueObject, ValueObjectShape>();
         var constructible = symbol.InstanceConstructors.Any(static c => c.Parameters.Length == 0);
@@ -395,7 +401,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 return (KeySource.Store, null);
         }
 
-        if (idType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System.Guid")
+        if (idType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is "global::System.Guid")
         {
             return (KeySource.Guid, "global::System.Guid.CreateVersion7()");
         }
@@ -444,7 +450,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 property.OriginalDefinition.Type.ToDisplayString(TypeFormat),
                 string.Join(", ", definition.TypeParameters.Select(static t => t.Name)),
                 string.Join(", ", declaring.TypeArguments.Select(static t => t.ToDisplayString(TypeFormat))),
-                Constraints(definition.TypeParameters),
+                ConstraintClauses(definition.TypeParameters),
                 byRef);
         }
 
@@ -461,7 +467,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
     // Every constraint, in the order C# requires: the primary one (class, struct, unmanaged, notnull), the
     // types — which may name other type parameters of the same declaration — then new(), then allows ref struct.
-    private static string Constraints(ImmutableArray<ITypeParameterSymbol> typeParameters)
+    private static string ConstraintClauses(ImmutableArray<ITypeParameterSymbol> typeParameters)
     {
         var clauses = new StringBuilder();
         foreach (var parameter in typeParameters)
@@ -577,14 +583,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             return false;
         }
 
-        if (type.ContainingNamespace?.ToDisplayString() == DataAnnotationsNamespace)
+        if (type.ContainingNamespace?.ToDisplayString() is DataAnnotationsNamespace)
         {
             return type.Name is not ("KeyAttribute" or "ConcurrencyCheckAttribute" or "TimestampAttribute");
         }
 
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
-            if (current.ToDisplayString() == ValidationAttribute)
+            if (current.ToDisplayString() is ValidationAttribute)
             {
                 return true;
             }
@@ -636,12 +642,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         {
             // A child's form surface is the ROOT's, always — its own const is reported by RASK091 and then
             // genuinely ignored, rather than half-obeyed into a root model holding a type nobody generated.
-            var entity = candidate.IsChild
-                ? candidate with
+            var entity = candidate;
+            if (candidate.IsChild)
+            {
+                entity = candidate with
                 {
                     Writes = childrenWithAForm.Contains(candidate.FullyQualifiedName) ? AllWrites : NoWrites,
-                }
-                : candidate;
+                };
+            }
 
             switch (entity.Refusal)
             {
@@ -655,81 +663,74 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                     continue;
             }
 
-            if (!entity.Constructible)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(Rask086, entity.Location?.ToLocation(), entity.Name));
-            }
-
-            if (entity.IsChild && entity.DeclaresWrites)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(Rask091, entity.Location?.ToLocation(), entity.Name));
-            }
-
-            foreach (var held in entity.AggregateReferences)
-            {
-                var parts = held.Split('|');
-                var (property, target, idType, many) = (parts[0], parts[1], parts[2], parts[3] == "many");
-
-                // The diagnosis is one rule; the fix is not. A single reference becomes an id on THIS side and
-                // a collection becomes an id on the OTHER, so telling an author to add '{target}Id' to an
-                // aggregate that needs the parent's id instead would name the wrong half of the relationship.
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Rask087,
-                    entity.Location?.ToLocation(),
-                    entity.Name,
-                    property,
-                    target,
-                    many ? $"a collection of '{target}'" : $"a reference to '{target}'",
-                    many
-                        ? $"let each '{target}' hold {entity.Name}'s id and read them back through "
-                          + $"{target}.Where(…), whose navigation those ids infer, or derive '{target}' from "
-                          + $"Entity<TId> if they are genuinely part of {entity.Name}"
-                        : $"hold its id instead — '{idType} {property}Id' — and read the join through "
-                          + $"{entity.Name}.Where(…), where it is inferred back as '{property}', or derive "
-                          + $"'{target}' from Entity<TId> if it is genuinely part of {entity.Name}"));
-            }
-
-            foreach (var unsyncable in entity.UnsyncableChildren)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Rask088,
-                    entity.Location?.ToLocation(),
-                    entity.Name,
-                    unsyncable,
-                    "no single field of that collection type"));
-            }
+            ReportShapeProblems(context, entity);
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
             context.AddSource(hint, SourceText.From(Render(entity), Encoding.UTF8));
         }
     }
 
+    private static void ReportShapeProblems(SourceProductionContext context, Entity entity)
+    {
+        if (!entity.Constructible)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(Rask086, entity.Location?.ToLocation(), entity.Name));
+        }
+
+        if (entity.IsChild && entity.DeclaresWrites)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(Rask091, entity.Location?.ToLocation(), entity.Name));
+        }
+
+        foreach (var held in entity.AggregateReferences)
+        {
+            var parts = held.Split('|');
+            var (property, target, idType, many) = (parts[0], parts[1], parts[2], parts[3] is "many");
+
+            // The diagnosis is one rule; the fix is not. A single reference becomes an id on THIS side and
+            // a collection becomes an id on the OTHER, so telling an author to add '{target}Id' to an
+            // aggregate that needs the parent's id instead would name the wrong half of the relationship.
+            context.ReportDiagnostic(Diagnostic.Create(
+                Rask087,
+                entity.Location?.ToLocation(),
+                entity.Name,
+                property,
+                target,
+                many ? $"a collection of '{target}'" : $"a reference to '{target}'",
+                many
+                    ? $"let each '{target}' hold {entity.Name}'s id and read them back through "
+                      + $"{target}.Where(…), whose navigation those ids infer, or derive '{target}' from "
+                      + $"Entity<TId> if they are genuinely part of {entity.Name}"
+                    : $"hold its id instead — '{idType} {property}Id' — and read the join through "
+                      + $"{entity.Name}.Where(…), where it is inferred back as '{property}', or derive "
+                      + $"'{target}' from Entity<TId> if it is genuinely part of {entity.Name}"));
+        }
+
+        foreach (var unsyncable in entity.UnsyncableChildren)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Rask088,
+                entity.Location?.ToLocation(),
+                entity.Name,
+                unsyncable,
+                "no single field of that collection type"));
+        }
+    }
+
     private static string Render(Entity entity)
     {
-        var modelName = entity.Name + ModelSuffix;
-        var modelType = (entity.Namespace.Length == 0 ? "global::" : "global::" + entity.Namespace + ".") + modelName;
-        var entityType = entity.FullyQualifiedName;
-        const string Task = "global::System.Threading.Tasks.Task";
-        const string Token = "global::System.Threading.CancellationToken";
-        const string Writes = "global::Rask.Data.GeneratedModelWrites";
-
         // What `public const ModelWrites Writes` narrows. It reaches the FORM surface only: the behaviour
         // writes below take no model, and the read face is generated elsewhere and not negotiable.
         var formCreate = (entity.Writes & CreateWrite) != 0;
         var formUpdate = (entity.Writes & UpdateWrite) != 0;
         var formModel = entity.Writes != NoWrites;
 
-        var s = new StringBuilder();
+        // A child is created, changed and removed as part of the aggregate that holds it — never off its own
+        // type — so it gets the model and the plumbing, and none of the writes.
+        var idLessCreate = !entity.IsChild && IdLessCreate(entity);
+        var createWithId = !entity.IsChild && CreateWithId(entity);
 
-        // A section is written and then dropped rather than guarded line by line, so there is ONE piece of
-        // code deciding what a form write looks like instead of two that have to agree about it.
-        void Keep(bool wanted, int from)
-        {
-            if (!wanted)
-            {
-                s.Length = from;
-            }
-        }
+        var s = new StringBuilder();
         s.AppendLine("// <auto-generated/>");
         s.AppendLine("#nullable enable");
         s.AppendLine();
@@ -740,18 +741,72 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine();
         }
 
-        // ---- the model ----
         var modelMark = s.Length;
+        AppendModel(s, entity, idLessCreate, createWithId);
+        Keep(s, formModel, modelMark);
+
+        AppendWrites(s, entity, idLessCreate, createWithId, formCreate, formUpdate, formModel);
+
+        var toModelMark = s.Length;
+        AppendToModel(s, entity);
+        Keep(s, formModel, toModelMark);
+
+        var plumbingMark = s.Length;
+        AppendApply(s, entity);
+        AppendFill(s, entity);
+        AppendToModelByName(s, entity);
+
+        // Everything above reads or writes a MODEL, so it goes with one. Everything below is still needed:
+        // a behaviour create constructs the entity through __New and stamps its key, neither of which is a
+        // form write.
+        Keep(s, formModel, plumbingMark);
+
+        AppendEntityPlumbing(s, entity);
+
+        var accessorMark = s.Length;
+        AppendModelAccessors(s, entity);
+        Keep(s, formModel, accessorMark);
+
+        s.AppendLine("}");
+        return s.ToString();
+    }
+
+    private static string FormModelType(Entity entity) =>
+        (entity.Namespace.Length == 0 ? "global::" : "global::" + entity.Namespace + ".") + entity.Name + ModelSuffix;
+
+    // A section is written and then dropped rather than guarded line by line, so there is ONE piece of
+    // code deciding what a form write looks like instead of two that have to agree about it.
+    private static void Keep(StringBuilder s, bool wanted, int from)
+    {
+        if (!wanted)
+        {
+            s.Length = from;
+        }
+    }
+
+    private static void AppendModel(StringBuilder s, Entity entity, bool idLessCreate, bool createWithId)
+    {
+        var modelName = entity.Name + ModelSuffix;
+        AppendModelSummary(s, entity, idLessCreate, createWithId);
+        s.Append(entity.Accessibility).Append(" sealed partial class ").AppendLine(modelName);
+        s.AppendLine("{");
+        AppendModelConstructors(s, entity);
+        AppendModelLists(s, entity);
+        AppendModelMembers(s, entity);
+
+        s.AppendLine("}");
+        s.AppendLine();
+    }
+
+    private static void AppendModelSummary(StringBuilder s, Entity entity, bool idLessCreate, bool createWithId)
+    {
+        var entityType = entity.FullyQualifiedName;
         s.Append("/// <summary>The form model for <see cref=\"").Append(entityType)
             .AppendLine("\" />, generated by Rask from its mapped properties.</summary>");
         s.AppendLine("/// <remarks>");
         // Names only the writes this entity actually got — a model without a parameterless constructor has
         // no Create at all, one whose key only the caller can supply has no id-less one, and one without
         // no id has none to create or update by.
-        // A child is created, changed and removed as part of the aggregate that holds it — never off its own
-        // type — so it gets the model and the plumbing, and none of the writes.
-        var idLessCreate = !entity.IsChild && IdLessCreate(entity);
-        var createWithId = !entity.IsChild && CreateWithId(entity);
         var writes = new List<string>();
         if (idLessCreate)
         {
@@ -785,9 +840,12 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
         s.AppendLine("/// Every property is nullable: a null clears a property the aggregate declares nullable, and leaves the others as they are.");
         s.AppendLine("/// </remarks>");
-        s.Append(entity.Accessibility).Append(" sealed partial class ").AppendLine(modelName);
-        s.AppendLine("{");
+    }
 
+    private static void AppendModelConstructors(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelName = entity.Name + ModelSuffix;
         if (entity.Constructible)
         {
             s.Append("    /// <summary>A model holding <see cref=\"").Append(entityType)
@@ -811,7 +869,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.Append("    public ").Append(entity.IdTypeName).AppendLine("? Id { get; set; }");
             s.AppendLine();
         }
+    }
 
+    private static void AppendModelLists(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
         foreach (var child in entity.Children)
         {
             s.Append("    /// <summary>The form models of <see cref=\"").Append(entityType).Append('.')
@@ -841,7 +903,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 .AppendLine(" { get; set; } = [];");
             s.AppendLine();
         }
+    }
 
+    private static void AppendModelMembers(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
         foreach (var member in entity.Members)
         {
             s.Append("    /// <summary>The form value of <see cref=\"").Append(entityType).Append('.')
@@ -876,21 +942,28 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine("    }");
             s.AppendLine();
         }
+    }
 
-        s.AppendLine("}");
-        s.AppendLine();
+    private const string TaskFqn = "global::System.Threading.Tasks.Task";
+    private const string TokenFqn = "global::System.Threading.CancellationToken";
+    private const string WritesFqn = "global::Rask.Data.GeneratedModelWrites";
+    private const string DbParameter = "global::Microsoft.EntityFrameworkCore.DbContext? db = null, ";
+    private const string ApplyDoc = "        /// <param name=\"apply\">Sets values that do not come from the form, after the model's; <c>null</c> for none.</param>";
+    private const string DbDoc = "        /// <param name=\"db\">The context to work in, or <c>null</c> to open one. A given context is only STAGED — the caller saves it — and is not disposed.</param>";
+    private const string NotFoundDoc = "        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">No row has the id, or it is soft-deleted.</exception>";
+    private const string ConflictDoc = "        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">The row was saved by someone else since it was read.</exception>";
+    private const string VersionDoc = "        /// <param name=\"version\">The version last read, to refuse a write to a row saved since; <c>null</c> skips the check.</param>";
 
-        Keep(formModel, modelMark);
-
-        // ---- the members on the entity ----
-        // Every write ends in the same two optional parameters: `apply`, for values that do not come from the form
-        // (a timestamp, the signed-in user), run after the model so it has the last word; and `db`, a context to
-        // join instead of opening one.
-        var applyParameter = "global::System.Action<" + entityType + ">? apply = null, ";
-        const string DbParameter = "global::Microsoft.EntityFrameworkCore.DbContext? db = null, ";
-        const string ApplyDoc = "        /// <param name=\"apply\">Sets values that do not come from the form, after the model's; <c>null</c> for none.</param>";
-        const string DbDoc = "        /// <param name=\"db\">The context to work in, or <c>null</c> to open one. A given context is only STAGED — the caller saves it — and is not disposed.</param>";
-
+    // ---- the members on the entity ----
+    // Every write ends in the same two optional parameters: `apply`, for values that do not come from the form
+    // (a timestamp, the signed-in user), run after the model so it has the last word; and `db`, a context to
+    // join instead of opening one.
+    private static void AppendWrites(
+        StringBuilder s, Entity entity, bool idLessCreate, bool createWithId, bool formCreate, bool formUpdate, bool formModel)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
+        var modelName = entity.Name + ModelSuffix;
         s.Append("/// <summary>The writes Rask generates for <see cref=\"").Append(entityType)
             .Append("\" />, taking its <see cref=\"").Append(modelType).AppendLine("\" />.</summary>");
         s.Append(entity.Accessibility).Append(" static class ").Append(modelName).AppendLine("Extensions");
@@ -903,225 +976,21 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         // `Create(apply)` beside `Update(id, apply)` for a row with no form behind it.
         if (idLessCreate)
         {
-            var createMark = s.Length;
-            s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
-                .AppendLine("\" /> built from <paramref name=\"model\" />.</summary>");
-            s.AppendLine("        /// <param name=\"model\">The values to create it with.</param>");
-            s.AppendLine(ApplyDoc);
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
-            s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
-            AppendKeyRemarks(s, entity);
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(")
-                .Append(modelType).Append(" model, ").Append(applyParameter).Append(DbParameter).Append(Token)
-                .AppendLine(" cancellationToken = default)");
-            s.AppendLine("        {");
-            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-            AppendNewEntity(s, entity, withId: false);
-            s.AppendLine("            __Apply(entity, model);");
-            s.AppendLine("            apply?.Invoke(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
-            s.AppendLine("        }");
-            s.AppendLine();
-
-            Keep(formCreate, createMark);
-
-            s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
-                .AppendLine("\" /> whose values <paramref name=\"apply\" /> sets.</summary>");
-            s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
-            s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
-            AppendKeyRemarks(s, entity);
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(global::System.Action<")
-                .Append(entityType).Append("> apply, ").Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
-            s.AppendLine("        {");
-            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
-            AppendNewEntity(s, entity, withId: false);
-            s.AppendLine("            apply(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
-            s.AppendLine("        }");
-            s.AppendLine();
+            AppendIdLessCreates(s, entity, formCreate);
         }
 
         if (createWithId)
         {
-            var keyedMark = s.Length;
-            s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
-                .AppendLine("\" /> under <paramref name=\"id\" />, built from <paramref name=\"model\" />.</summary>");
-            s.AppendLine("        /// <param name=\"id\">The key of the new row.</param>");
-            s.AppendLine("        /// <param name=\"model\">The values to create it with.</param>");
-            s.AppendLine(ApplyDoc);
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
-            s.AppendLine("        /// <returns>The inserted entity.</returns>");
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(")
-                .Append(entity.IdTypeName).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
-                .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
-            s.AppendLine("        {");
-            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-            AppendNewEntity(s, entity, withId: true);
-            s.AppendLine("            __Apply(entity, model);");
-            s.AppendLine("            apply?.Invoke(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
-            s.AppendLine("        }");
-            s.AppendLine();
-
-            Keep(formCreate, keyedMark);
-
-            s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
-                .AppendLine("\" /> under <paramref name=\"id\" />, whose values <paramref name=\"apply\" /> sets.</summary>");
-            s.AppendLine("        /// <param name=\"id\">The key of the new row.</param>");
-            s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
-            s.AppendLine("        /// <returns>The inserted entity.</returns>");
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Create(")
-                .Append(entity.IdTypeName).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ")
-                .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
-            s.AppendLine("        {");
-            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
-            AppendNewEntity(s, entity, withId: true);
-            s.AppendLine("            apply(entity);");
-            s.Append("            return ").Append(Writes).AppendLine(".Create(entity, db, cancellationToken);");
-            s.AppendLine("        }");
-            s.AppendLine();
+            AppendKeyedCreates(s, entity, formCreate);
         }
 
         if (!entity.IsChild && entity.IdTypeName is { } idType)
         {
-            var version = entity.Versioned ? "model.Version" : "null";
-            const string NotFoundDoc = "        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">No row has the id, or it is soft-deleted.</exception>";
-            const string ConflictDoc = "        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">The row was saved by someone else since it was read.</exception>";
-            const string VersionDoc = "        /// <param name=\"version\">The version last read, to refuse a write to a row saved since; <c>null</c> skips the check.</param>";
-
-            var updateMark = s.Length;
-            s.Append("        /// <summary>Writes <paramref name=\"model\" /> onto the stored <see cref=\"").Append(entityType)
-                .AppendLine("\" /> with <paramref name=\"id\" /> — only the values that changed.</summary>");
-            s.AppendLine("        /// <param name=\"id\">The id of the row to update.</param>");
-            s.AppendLine("        /// <param name=\"model\">The edited values" +
-                         (entity.Versioned ? ", carrying the version they were read at" : "") + ".</param>");
-            s.AppendLine(ApplyDoc);
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
-            s.AppendLine("        /// <returns>The updated entity.</returns>");
-            s.AppendLine(NotFoundDoc);
-            if (entity.Versioned)
-            {
-                s.AppendLine(ConflictDoc);
-            }
-
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Update(")
-                .Append(idType).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
-                .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
-            s.AppendLine("        {");
-            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-            s.Append("            return ").Append(Writes).Append(".Update<").Append(entityType)
-                .Append(">(id!, ").Append(version)
-                .AppendLine(", entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);");
-            s.AppendLine("        }");
-            s.AppendLine();
-
-            Keep(formUpdate, updateMark);
-
-            // The write with no form behind it: `Product.Update(id, p => p.ShippedAt = now)`.
-            s.Append("        /// <summary>Loads the stored <see cref=\"").Append(entityType)
-                .AppendLine("\" /> with <paramref name=\"id\" />, applies <paramref name=\"apply\" /> and saves — only the values that changed.</summary>");
-            s.AppendLine("        /// <param name=\"id\">The id of the row to update.</param>");
-            s.AppendLine("        /// <param name=\"apply\">Sets the new values on the loaded row.</param>");
-            if (entity.Versioned)
-            {
-                s.AppendLine(VersionDoc);
-            }
-
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
-            s.AppendLine("        /// <returns>The updated entity.</returns>");
-            s.AppendLine(NotFoundDoc);
-            if (entity.Versioned)
-            {
-                s.AppendLine(ConflictDoc);
-            }
-
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> Update(")
-                .Append(idType).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ");
-            if (entity.Versioned)
-            {
-                s.Append("int? version = null, ");
-            }
-
-            s.Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default) =>");
-            s.Append("            ").Append(Writes).Append(".Update<").Append(entityType).Append(">(id!, ")
-                .Append(entity.Versioned ? "version" : "null").AppendLine(", apply, db, cancellationToken);");
-            s.AppendLine();
-
-            // `Deletes = Deletion.None`: the aggregate is cancelled or archived through its own methods, so a
-            // delete it cannot be asked for is one nobody can call by mistake.
-            var deleteMark = s.Length;
-            s.Append("        /// <summary>Deletes the stored <see cref=\"").Append(entityType)
-                .AppendLine("\" /> with <paramref name=\"id\" />, through the interceptors.</summary>");
-            s.AppendLine("        /// <param name=\"id\">The id of the row to delete.</param>");
-            if (entity.Versioned)
-            {
-                s.AppendLine(VersionDoc);
-            }
-
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
-            s.AppendLine(NotFoundDoc);
-            s.Append("        public static ").Append(Task).Append(" Delete(").Append(idType).Append(" id, ");
-            if (entity.Versioned)
-            {
-                s.Append("int? version = null, ");
-            }
-
-            s.Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default) =>");
-            s.Append("            ").Append(Writes).Append(".Delete<").Append(entityType).Append(">(id!, ")
-                .Append(entity.Versioned ? "version" : "null").AppendLine(", db, cancellationToken);");
-            s.AppendLine();
-            Keep(entity.Deletable, deleteMark);
-
-            // The aggregate itself, to call its methods and `Save()`. A query by key, not EF's Find, so a
-            // soft-deleted or another tenant's row is not found here either.
-            s.Append("        /// <summary>Loads the <see cref=\"").Append(entityType)
-                .AppendLine("\" /> with <paramref name=\"id\" />, whole, to change through its methods and <c>Save()</c>.</summary>");
-            s.AppendLine("        /// <param name=\"id\">The id of the aggregate.</param>");
-            s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>");
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
-            s.AppendLine("        /// <returns>The aggregate and its children, or <c>null</c> when none has that id or it is soft-deleted.</returns>");
-            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("?> Find(")
-                .Append(idType).Append(" id, ").Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default) =>");
-            s.Append("            ").Append(Writes).Append(".Find<").Append(entityType)
-                .AppendLine(">(id!, db, cancellationToken);");
-            s.AppendLine();
-
-            var modelFillMark = s.Length;
-
-            // The form loop's fill. Deliberately not a read-face query: the read face is flat primitives and
-            // the form model keeps value objects nested, so this loads the aggregate and reuses __Fill rather
-            // than maintaining a second projection that could drift from it.
-            s.Append("        /// <summary>The edit shape of the <see cref=\"").Append(entityType)
-                .AppendLine("\" /> with <paramref name=\"id\" />, ready to bind to a form.</summary>");
-            s.AppendLine("        /// <param name=\"id\">The id of the row to fill the form from.</param>");
-            s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>");
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
-            s.Append("        /// <returns>The model, or <c>null</c> when no <see cref=\"").Append(entityType)
-                .AppendLine("\" /> has that id.</returns>");
-            s.AppendLine("        /// <remarks>");
-            s.Append("        ///     The aggregate is loaded whole, so its children arrive as child models. A soft-deleted")
-                .AppendLine();
-            s.AppendLine("        ///     row is not found, exactly as it is not found by a query.");
-            s.AppendLine("        /// </remarks>");
-            s.Append("        public static async ").Append(Task).Append('<').Append(modelType)
-                .Append("?> Model(").Append(idType).Append(" id, ").Append(DbParameter).Append(Token)
-                .AppendLine(" cancellationToken = default)");
-            s.AppendLine("        {");
-            s.Append("            var entity = await ").Append(Writes).Append(".ModelSource<").Append(entityType)
-                .AppendLine(">(id!, db, cancellationToken).ConfigureAwait(false);");
-            s.AppendLine("            return entity?.ToModel();");
-            s.AppendLine("        }");
-
-            Keep(formModel, modelFillMark);
+            AppendModelUpdate(s, entity, idType, formUpdate);
+            AppendApplyUpdate(s, entity, idType);
+            AppendDelete(s, entity, idType);
+            AppendFind(s, entity, idType);
+            AppendModelFill(s, entity, idType, formModel);
         }
 
         s.AppendLine("    }");
@@ -1129,25 +998,279 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
         if (!entity.IsChild && entity.IdTypeName is not null)
         {
-            s.Append("    extension(").Append(entityType).AppendLine(" entity)");
-            s.AppendLine("    {");
-            s.AppendLine("        /// <summary>Saves this aggregate as it now stands: inserted when it has no row yet, otherwise written over it — only what changed, children synced by id.</summary>");
-            s.AppendLine(DbDoc);
-            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
-            s.AppendLine("        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">Its row has been soft-deleted since it was read.</exception>");
-            if (entity.Versioned)
-            {
-                s.AppendLine("        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">Its row was saved by someone else since it was read.</exception>");
-            }
+            AppendSave(s, entity);
+        }
+    }
 
-            s.Append("        public ").Append(Task).Append(" Save(").Append(DbParameter).Append(Token)
-                .AppendLine(" cancellationToken = default) =>");
-            s.Append("            ").Append(Writes).AppendLine(".Save(entity, db, cancellationToken);");
-            s.AppendLine("    }");
-            s.AppendLine();
+    private static void AppendIdLessCreates(StringBuilder s, Entity entity, bool formCreate)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
+        var applyParameter = "global::System.Action<" + entityType + ">? apply = null, ";
+        var createMark = s.Length;
+        s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
+            .AppendLine("\" /> built from <paramref name=\"model\" />.</summary>");
+        s.AppendLine("        /// <param name=\"model\">The values to create it with.</param>");
+        s.AppendLine(ApplyDoc);
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
+        s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
+        AppendKeyRemarks(s, entity);
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
+            .Append(modelType).Append(" model, ").Append(applyParameter).Append(DbParameter).Append(TokenFqn)
+            .AppendLine(" cancellationToken = default)");
+        s.AppendLine("        {");
+        s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
+        AppendNewEntity(s, entity, withId: false);
+        s.AppendLine("            __Apply(entity, model);");
+        s.AppendLine("            apply?.Invoke(entity);");
+        s.Append("            return ").Append(WritesFqn).AppendLine(".Create(entity, db, cancellationToken);");
+        s.AppendLine("        }");
+        s.AppendLine();
+
+        Keep(s, formCreate, createMark);
+
+        s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
+            .AppendLine("\" /> whose values <paramref name=\"apply\" /> sets.</summary>");
+        s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
+        s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
+        AppendKeyRemarks(s, entity);
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(global::System.Action<")
+            .Append(entityType).Append("> apply, ").Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
+        s.AppendLine("        {");
+        s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
+        AppendNewEntity(s, entity, withId: false);
+        s.AppendLine("            apply(entity);");
+        s.Append("            return ").Append(WritesFqn).AppendLine(".Create(entity, db, cancellationToken);");
+        s.AppendLine("        }");
+        s.AppendLine();
+    }
+
+    private static void AppendKeyedCreates(StringBuilder s, Entity entity, bool formCreate)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
+        var applyParameter = "global::System.Action<" + entityType + ">? apply = null, ";
+        var keyedMark = s.Length;
+        s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
+            .AppendLine("\" /> under <paramref name=\"id\" />, built from <paramref name=\"model\" />.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The key of the new row.</param>");
+        s.AppendLine("        /// <param name=\"model\">The values to create it with.</param>");
+        s.AppendLine(ApplyDoc);
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
+        s.AppendLine("        /// <returns>The inserted entity.</returns>");
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
+            .Append(entity.IdTypeName).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
+            .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
+        s.AppendLine("        {");
+        s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
+        AppendNewEntity(s, entity, withId: true);
+        s.AppendLine("            __Apply(entity, model);");
+        s.AppendLine("            apply?.Invoke(entity);");
+        s.Append("            return ").Append(WritesFqn).AppendLine(".Create(entity, db, cancellationToken);");
+        s.AppendLine("        }");
+        s.AppendLine();
+
+        Keep(s, formCreate, keyedMark);
+
+        s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
+            .AppendLine("\" /> under <paramref name=\"id\" />, whose values <paramref name=\"apply\" /> sets.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The key of the new row.</param>");
+        s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
+        s.AppendLine("        /// <returns>The inserted entity.</returns>");
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
+            .Append(entity.IdTypeName).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ")
+            .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
+        s.AppendLine("        {");
+        s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
+        AppendNewEntity(s, entity, withId: true);
+        s.AppendLine("            apply(entity);");
+        s.Append("            return ").Append(WritesFqn).AppendLine(".Create(entity, db, cancellationToken);");
+        s.AppendLine("        }");
+        s.AppendLine();
+    }
+
+    private static void AppendModelUpdate(StringBuilder s, Entity entity, string idType, bool formUpdate)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
+        var applyParameter = "global::System.Action<" + entityType + ">? apply = null, ";
+        var version = entity.Versioned ? "model.Version" : "null";
+        var updateMark = s.Length;
+        s.Append("        /// <summary>Writes <paramref name=\"model\" /> onto the stored <see cref=\"").Append(entityType)
+            .AppendLine("\" /> with <paramref name=\"id\" /> — only the values that changed.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The id of the row to update.</param>");
+        s.AppendLine("        /// <param name=\"model\">The edited values" +
+                     (entity.Versioned ? ", carrying the version they were read at" : "") + ".</param>");
+        s.AppendLine(ApplyDoc);
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
+        s.AppendLine("        /// <returns>The updated entity.</returns>");
+        s.AppendLine(NotFoundDoc);
+        if (entity.Versioned)
+        {
+            s.AppendLine(ConflictDoc);
         }
 
-        var toModelMark = s.Length;
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Update(")
+            .Append(idType).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
+            .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
+        s.AppendLine("        {");
+        s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
+        s.Append("            return ").Append(WritesFqn).Append(".Update<").Append(entityType)
+            .Append(">(id!, ").Append(version)
+            .AppendLine(", entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);");
+        s.AppendLine("        }");
+        s.AppendLine();
+
+        Keep(s, formUpdate, updateMark);
+    }
+
+    // The write with no form behind it: `Product.Update(id, p => p.ShippedAt = now)`.
+    private static void AppendApplyUpdate(StringBuilder s, Entity entity, string idType)
+    {
+        var entityType = entity.FullyQualifiedName;
+        s.Append("        /// <summary>Loads the stored <see cref=\"").Append(entityType)
+            .AppendLine("\" /> with <paramref name=\"id\" />, applies <paramref name=\"apply\" /> and saves — only the values that changed.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The id of the row to update.</param>");
+        s.AppendLine("        /// <param name=\"apply\">Sets the new values on the loaded row.</param>");
+        if (entity.Versioned)
+        {
+            s.AppendLine(VersionDoc);
+        }
+
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
+        s.AppendLine("        /// <returns>The updated entity.</returns>");
+        s.AppendLine(NotFoundDoc);
+        if (entity.Versioned)
+        {
+            s.AppendLine(ConflictDoc);
+        }
+
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Update(")
+            .Append(idType).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ");
+        if (entity.Versioned)
+        {
+            s.Append("int? version = null, ");
+        }
+
+        s.Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default) =>");
+        s.Append("            ").Append(WritesFqn).Append(".Update<").Append(entityType).Append(">(id!, ")
+            .Append(entity.Versioned ? "version" : "null").AppendLine(", apply, db, cancellationToken);");
+        s.AppendLine();
+    }
+
+    // `Deletes = Deletion.None`: the aggregate is cancelled or archived through its own methods, so a
+    // delete it cannot be asked for is one nobody can call by mistake.
+    private static void AppendDelete(StringBuilder s, Entity entity, string idType)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var deleteMark = s.Length;
+        s.Append("        /// <summary>Deletes the stored <see cref=\"").Append(entityType)
+            .AppendLine("\" /> with <paramref name=\"id\" />, through the interceptors.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The id of the row to delete.</param>");
+        if (entity.Versioned)
+        {
+            s.AppendLine(VersionDoc);
+        }
+
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
+        s.AppendLine(NotFoundDoc);
+        s.Append("        public static ").Append(TaskFqn).Append(" Delete(").Append(idType).Append(" id, ");
+        if (entity.Versioned)
+        {
+            s.Append("int? version = null, ");
+        }
+
+        s.Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default) =>");
+        s.Append("            ").Append(WritesFqn).Append(".Delete<").Append(entityType).Append(">(id!, ")
+            .Append(entity.Versioned ? "version" : "null").AppendLine(", db, cancellationToken);");
+        s.AppendLine();
+        Keep(s, entity.Deletable, deleteMark);
+    }
+
+    // The aggregate itself, to call its methods and `Save()`. A query by key, not EF's Find, so a
+    // soft-deleted or another tenant's row is not found here either.
+    private static void AppendFind(StringBuilder s, Entity entity, string idType)
+    {
+        var entityType = entity.FullyQualifiedName;
+        s.Append("        /// <summary>Loads the <see cref=\"").Append(entityType)
+            .AppendLine("\" /> with <paramref name=\"id\" />, whole, to change through its methods and <c>Save()</c>.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The id of the aggregate.</param>");
+        s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>");
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
+        s.AppendLine("        /// <returns>The aggregate and its children, or <c>null</c> when none has that id or it is soft-deleted.</returns>");
+        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("?> Find(")
+            .Append(idType).Append(" id, ").Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default) =>");
+        s.Append("            ").Append(WritesFqn).Append(".Find<").Append(entityType)
+            .AppendLine(">(id!, db, cancellationToken);");
+        s.AppendLine();
+    }
+
+    // `product.Save()`: inserted when it has no row yet, otherwise only what changed since Find read it.
+    private static void AppendSave(StringBuilder s, Entity entity)
+    {
+        s.Append("    extension(").Append(entity.FullyQualifiedName).AppendLine(" entity)");
+        s.AppendLine("    {");
+        s.AppendLine("        /// <summary>Saves this aggregate as it now stands: inserted when it has no row yet, otherwise written over it — only what changed, children synced by id.</summary>");
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
+        s.AppendLine("        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">Its row has been soft-deleted since it was read.</exception>");
+        if (entity.Versioned)
+        {
+            s.AppendLine("        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">Its row was saved by someone else since it was read.</exception>");
+        }
+
+        s.Append("        public ").Append(TaskFqn).Append(" Save(").Append(DbParameter).Append(TokenFqn)
+            .AppendLine(" cancellationToken = default) =>");
+        s.Append("            ").Append(WritesFqn).AppendLine(".Save(entity, db, cancellationToken);");
+        s.AppendLine("    }");
+        s.AppendLine();
+    }
+
+    // The form loop's fill. Deliberately not a read-face query: the read face is flat primitives and
+    // the form model keeps value objects nested, so this loads the aggregate and reuses __Fill rather
+    // than maintaining a second projection that could drift from it.
+    private static void AppendModelFill(StringBuilder s, Entity entity, string idType, bool formModel)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
+        var modelFillMark = s.Length;
+        s.Append("        /// <summary>The edit shape of the <see cref=\"").Append(entityType)
+            .AppendLine("\" /> with <paramref name=\"id\" />, ready to bind to a form.</summary>");
+        s.AppendLine("        /// <param name=\"id\">The id of the row to fill the form from.</param>");
+        s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>");
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
+        s.Append("        /// <returns>The model, or <c>null</c> when no <see cref=\"").Append(entityType)
+            .AppendLine("\" /> has that id.</returns>");
+        s.AppendLine("        /// <remarks>");
+        s.Append("        ///     The aggregate is loaded whole, so its children arrive as child models. A soft-deleted")
+            .AppendLine();
+        s.AppendLine("        ///     row is not found, exactly as it is not found by a query.");
+        s.AppendLine("        /// </remarks>");
+        s.Append("        public static async ").Append(TaskFqn).Append('<').Append(modelType)
+            .Append("?> Model(").Append(idType).Append(" id, ").Append(DbParameter).Append(TokenFqn)
+            .AppendLine(" cancellationToken = default)");
+        s.AppendLine("        {");
+        s.Append("            var entity = await ").Append(WritesFqn).Append(".ModelSource<").Append(entityType)
+            .AppendLine(">(id!, db, cancellationToken).ConfigureAwait(false);");
+        s.AppendLine("            return entity?.ToModel();");
+        s.AppendLine("        }");
+
+        Keep(s, formModel, modelFillMark);
+    }
+
+    private static void AppendToModel(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
         s.Append("    extension(").Append(entityType).AppendLine(" entity)");
         s.AppendLine("    {");
         s.Append("        /// <summary>Copies this aggregate into a new <see cref=\"").Append(modelType)
@@ -1160,15 +1283,16 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("        }");
         s.AppendLine("    }");
         s.AppendLine();
+    }
 
-        Keep(formModel, toModelMark);
-
-        var plumbingMark = s.Length;
-
-        // ---- plumbing ----
-        // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
-        // emptied that field — and leaves a non-nullable one as it is, since it can only mean the form never set it. A
-        // nested value-object model merges what it gives over the value object the aggregate holds.
+    // ---- plumbing ----
+    // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
+    // emptied that field — and leaves a non-nullable one as it is, since it can only mean the form never set it. A
+    // nested value-object model merges what it gives over the value object the aggregate holds.
+    private static void AppendApply(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
         s.Append("    internal static void __Apply(").Append(entityType).Append(" entity, ").Append(modelType)
             .AppendLine(" model)");
         s.AppendLine("    {");
@@ -1209,7 +1333,12 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
         s.AppendLine("    }");
         s.AppendLine();
+    }
 
+    private static void AppendFill(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
         s.Append("    internal static void __Fill(").Append(modelType).Append(" model, ").Append(entityType).AppendLine(" entity)");
         s.AppendLine("    {");
         foreach (var member in entity.Members)
@@ -1244,11 +1373,12 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.Append("            model.").Append(collection.Name).Append(".Add(")
                 // The trailing `!` because ToModelExpression guards a reference-typed value object against
                 // null, and an element of the collection is never null — the list holds values, not slots.
-                .Append(collection.ElementModel is { SingleValue: false } elementShape
-                    ? ToModelExpression("__value", elementShape, nullable: false, modelType) + "!"
-                    : collection.ElementModel is { } single
-                        ? ToModelExpression("__value", single, nullable: false, modelType)
-                        : "__value")
+                .Append(collection.ElementModel switch
+                {
+                    { SingleValue: false } elementShape => ToModelExpression("__value", elementShape, nullable: false, modelType) + "!",
+                    { } single => ToModelExpression("__value", single, nullable: false, modelType),
+                    null => "__value",
+                })
                 .AppendLine(");");
             s.AppendLine("        }");
             s.AppendLine();
@@ -1257,9 +1387,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("    }");
 
         s.AppendLine();
+    }
 
-        // The same thing ToModel() does, callable by name: a parent fills its children through this rather than
-        // through the extension member, which would have to be in scope where the parent's file is generated.
+    // The same thing ToModel() does, callable by name: a parent fills its children through this rather than
+    // through the extension member, which would have to be in scope where the parent's file is generated.
+    private static void AppendToModelByName(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
+        var modelType = FormModelType(entity);
         s.Append("    internal static ").Append(modelType).Append(" __ToModel(").Append(entityType)
             .AppendLine(" entity)");
         s.AppendLine("    {");
@@ -1267,12 +1402,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("        __Fill(model, entity);");
         s.AppendLine("        return model;");
         s.AppendLine("    }");
+    }
 
-        // Everything above reads or writes a MODEL, so it goes with one. Everything below is still needed:
-        // a behaviour create constructs the entity through __New and stamps its key, neither of which is a
-        // form write.
-        Keep(formModel, plumbingMark);
-
+    private static void AppendEntityPlumbing(StringBuilder s, Entity entity)
+    {
+        var entityType = entity.FullyQualifiedName;
         if (entity.Constructible)
         {
             s.AppendLine();
@@ -1320,9 +1454,10 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         {
             EmitAccessor(s, key, "Id");
         }
+    }
 
-        var accessorMark = s.Length;
-
+    private static void AppendModelAccessors(StringBuilder s, Entity entity)
+    {
         foreach (var member in entity.Members)
         {
             if (member.Write is { Kind: not ModelWriteKind.Public } write)
@@ -1335,11 +1470,6 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         {
             EmitValueObjectBuild(s, valueObject);
         }
-
-        Keep(formModel, accessorMark);
-
-        s.AppendLine("}");
-        return s.ToString();
     }
 
     private static void AppendKeyRemarks(StringBuilder s, Entity entity)
@@ -1515,25 +1645,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             .Append(" is { } __given ? __given : new global::System.Collections.Generic.List<")
             .Append(child.ChildModelName).AppendLine(">();");
         s.AppendLine();
-        s.AppendLine("                foreach (var __stored in global::System.Linq.Enumerable.ToArray(__children))");
-        s.AppendLine("                {");
-        s.AppendLine("                    var __keep = false;");
-        s.AppendLine();
-        s.AppendLine("                    foreach (var __row in __posted)");
-        s.AppendLine("                    {");
-        s.Append("                        if (__row.Id is { } __rowId && ").Append(comparer)
-            .AppendLine(".Equals(__rowId, __stored.Id))");
-        s.AppendLine("                        {");
-        s.AppendLine("                            __keep = true;");
-        s.AppendLine("                            break;");
-        s.AppendLine("                        }");
-        s.AppendLine("                    }");
-        s.AppendLine();
-        s.AppendLine("                    if (!__keep)");
-        s.AppendLine("                    {");
-        s.AppendLine("                        __children.Remove(__stored);");
-        s.AppendLine("                    }");
-        s.AppendLine("                }");
+        EmitStaleChildRemoval(s, comparer);
         s.AppendLine();
         s.AppendLine("                foreach (var __row in __posted)");
         s.AppendLine("                {");
@@ -1561,6 +1673,30 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("                }");
         s.AppendLine("            }");
         s.AppendLine("        }");
+    }
+
+    // A stored child whose id no posted row carries is removed: the posted list is what the aggregate holds.
+    private static void EmitStaleChildRemoval(StringBuilder s, string comparer)
+    {
+        s.AppendLine("                foreach (var __stored in global::System.Linq.Enumerable.ToArray(__children))");
+        s.AppendLine("                {");
+        s.AppendLine("                    var __keep = false;");
+        s.AppendLine();
+        s.AppendLine("                    foreach (var __row in __posted)");
+        s.AppendLine("                    {");
+        s.Append("                        if (__row.Id is { } __rowId && ").Append(comparer)
+            .AppendLine(".Equals(__rowId, __stored.Id))");
+        s.AppendLine("                        {");
+        s.AppendLine("                            __keep = true;");
+        s.AppendLine("                            break;");
+        s.AppendLine("                        }");
+        s.AppendLine("                    }");
+        s.AppendLine();
+        s.AppendLine("                    if (!__keep)");
+        s.AppendLine("                    {");
+        s.AppendLine("                        __children.Remove(__stored);");
+        s.AppendLine("                    }");
+        s.AppendLine("                }");
     }
 
     private static void EmitAccessor(StringBuilder s, Write write, string memberName)
@@ -1609,7 +1745,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     private static string BuildExpression(ValueObjectShape shape, Func<ValueObjectMember, string> value)
     {
         string InConstructorOrder() =>
-            string.Join(", ", shape.ConstructorOrder.Select(name => value(shape.Members.First(m => m.Name == name))));
+            string.Join(", ", shape.ConstructorOrder.Select(name => value(shape.Members.First(m => string.Equals(m.Name, name, StringComparison.Ordinal)))));
 
         return shape.Build switch
         {

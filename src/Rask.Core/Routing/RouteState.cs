@@ -27,13 +27,13 @@ public sealed class RouteState
         get => _path;
         set
         {
-            if (_path == value)
+            if (string.Equals(_path, value, StringComparison.Ordinal))
             {
                 return;
             }
 
             _path = value;
-            Changed?.Invoke();
+            Changed?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -53,7 +53,7 @@ public sealed class RouteState
             }
 
             _query = value;
-            Changed?.Invoke();
+            Changed?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -62,7 +62,7 @@ public sealed class RouteState
     ///     <c>OnMount</c> and unsubscribe in <c>OnUnmount</c>. Components inside the routed page
     ///     subtree usually don't need this — the router re-renders them on navigation.
     /// </summary>
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     /// <summary>
     ///     The route table this session navigates within, or <c>null</c> for every page in every assembly.

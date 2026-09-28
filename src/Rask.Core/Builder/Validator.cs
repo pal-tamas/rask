@@ -59,8 +59,8 @@ public readonly struct Validator<T>
     /// <param name="cancellationToken">Cancelled when a later edit supersedes this check.</param>
     public ValueTask<IEnumerable<string>> Invoke(T value, CancellationToken cancellationToken) => _rule switch
     {
-        Validate<T> sync => new ValueTask<IEnumerable<string>>(sync(value)),
-        ValidateAsync<T> async => async(value, cancellationToken),
+        Validate<T> syncRule => new ValueTask<IEnumerable<string>>(syncRule(value)),
+        ValidateAsync<T> asyncRule => asyncRule(value, cancellationToken),
         null => new ValueTask<IEnumerable<string>>([]),
         _ => throw Callback.Unexpected(_rule),
     };

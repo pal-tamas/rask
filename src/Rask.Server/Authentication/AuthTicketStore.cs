@@ -5,27 +5,13 @@ using Rask.Core.Authentication;
 
 namespace Rask.Server.Authentication;
 
-internal interface IAuthTicketStore
-{
-    string Issue(AuthAction action, ClaimsPrincipal? principal, string? scheme, string sessionId, bool persistent = false);
-    bool TryRedeem(string ticketId, string sessionId, out AuthTicket ticket);
-}
-
-internal sealed record AuthTicket(
-    AuthAction Action,
-    ClaimsPrincipal? Principal,
-    string? Scheme,
-    string SessionId,
-    DateTime ExpiresUtc,
-    bool Persistent = false);
-
 internal sealed class AuthTicketStore : IAuthTicketStore
 {
     // Lifetime of a one-shot sign-in/out redeem ticket. Short by design (the ticket is the authority
     // for setting the cookie). Mutable static so tests can force expiry; not a public knob.
-    internal static TimeSpan Ttl = TimeSpan.FromSeconds(30);
+    internal static TimeSpan Ttl { get; set; } = TimeSpan.FromSeconds(30);
 
-    private readonly ConcurrentDictionary<string, AuthTicket> _tickets = new();
+    private readonly ConcurrentDictionary<string, AuthTicket> _tickets = new(StringComparer.Ordinal);
     private int _opsSinceLastSweep;
 
     public string Issue(

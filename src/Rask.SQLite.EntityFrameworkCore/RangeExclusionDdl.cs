@@ -57,38 +57,7 @@ internal static class RangeExclusionDdl
             .ToHashSet(StringComparer.Ordinal)!;
 
         var builder = new MigrationCommandListBuilder(dependencies);
-        var emitted = false;
-
-        // SQLite carries a trigger across ALTER TABLE ... RENAME, so the pre-rename pair would survive under
-        // its old name and double up with the pair emitted below.
-        foreach (var rename in operations.OfType<RenameTableOperation>())
-        {
-            Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{rename.Name}_NoOverlap_Insert")};");
-            Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{rename.Name}_NoOverlap_Update")};");
-            emitted = true;
-        }
-
-        // The declaration changed or went away. Reported on the table (RaskSqliteAnnotationProvider), so either is an
-        // AlterTableOperation. A removed rule takes its triggers and index with it; a changed one drops its index too,
-        // which `CREATE INDEX IF NOT EXISTS` below would otherwise keep over the OLD columns.
-        foreach (var alter in operations.OfType<AlterTableOperation>())
-        {
-            var was = alter.OldTable[RangeExclusionSpec.AnnotationName] as string;
-            var now = alter[RangeExclusionSpec.AnnotationName] as string;
-            if (was is null || string.Equals(was, now, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (now is null)
-            {
-                Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{alter.Name}_NoOverlap_Insert")};");
-                Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{alter.Name}_NoOverlap_Update")};");
-            }
-
-            Append(builder, $"DROP INDEX IF EXISTS {Quote($"IX_{alter.Name}_Range")};");
-            emitted = true;
-        }
+        var emitted = DropStale(builder, operations);
 
         foreach (var entityType in model.GetEntityTypes())
         {
@@ -110,6 +79,45 @@ internal static class RangeExclusionDdl
         return emitted ? builder.GetCommandList() : [];
     }
 
+    // Drops the triggers and indexes a rename or a changed declaration leaves behind; returns whether it emitted any.
+    private static bool DropStale(MigrationCommandListBuilder builder, IReadOnlyList<MigrationOperation> operations)
+    {
+        var emitted = false;
+
+        // SQLite carries a trigger across ALTER TABLE ... RENAME, so the pre-rename pair would survive under
+        // its old name and double up with the pair emitted after it.
+        foreach (var renamed in operations.OfType<RenameTableOperation>().Select(rename => rename.Name))
+        {
+            Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{renamed}_NoOverlap_Insert")};");
+            Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{renamed}_NoOverlap_Update")};");
+            emitted = true;
+        }
+
+        // The declaration changed or went away. Reported on the table (RaskSqliteAnnotationProvider), so either is an
+        // AlterTableOperation. A removed rule takes its triggers and index with it; a changed one drops its index too,
+        // which `CREATE INDEX IF NOT EXISTS` would otherwise keep over the OLD columns.
+        foreach (var alter in operations.OfType<AlterTableOperation>())
+        {
+            var was = alter.OldTable[RangeExclusionSpec.AnnotationName] as string;
+            var now = alter[RangeExclusionSpec.AnnotationName] as string;
+            if (was is null || string.Equals(was, now, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (now is null)
+            {
+                Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{alter.Name}_NoOverlap_Insert")};");
+                Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{alter.Name}_NoOverlap_Update")};");
+            }
+
+            Append(builder, $"DROP INDEX IF EXISTS {Quote($"IX_{alter.Name}_Range")};");
+            emitted = true;
+        }
+
+        return emitted;
+    }
+
     private static void Emit(
         MigrationCommandListBuilder builder,
         IEntityType entityType,
@@ -128,22 +136,7 @@ internal static class RangeExclusionDdl
                 "row cannot be told apart from itself when the rule is checked.");
 
         var keyColumns = key.Properties.Select(property => Column(entityType, property.Name, store)).ToArray();
-
-        // Only an entity that declares Deletes = Deletion.Soft has the column. The builder refuses the flag
-        // otherwise, but an annotation written by an older build (or by hand in a migration) can still carry it,
-        // so say what is wrong rather than fail on an unmapped column (#1131).
-        if (spec.IgnoreSoftDeleted && entityType.FindProperty(Columns.DeletedAt) is null)
-        {
-            throw new InvalidOperationException(
-                $"'{entityType.DisplayName()}' declares a non-overlapping range that ignores soft-deleted rows, " +
-                "but it does not soft delete, so it has no DeletedAt column. Declare " +
-                "'public const Deletion Deletes = Deletion.Soft;' on it, or re-create the migration so the rule " +
-                "no longer asks for it.");
-        }
-
-        var deletedAt = spec.IgnoreSoftDeleted
-            ? Column(entityType, Columns.DeletedAt, store)
-            : null;
+        var deletedAt = DeletedAtColumn(entityType, spec, store);
 
         var indexName = $"IX_{table}_Range";
         var insertTrigger = $"TR_{table}_NoOverlap_Insert";
@@ -179,6 +172,29 @@ internal static class RangeExclusionDdl
         Append(builder, $"CREATE INDEX IF NOT EXISTS {Quote(indexName)} ON {Quote(table)} ({indexColumns});");
         Append(builder, $"CREATE TRIGGER {Quote(insertTrigger)} BEFORE INSERT ON {Quote(table)}\nBEGIN\n{body}\nEND;");
         Append(builder, $"CREATE TRIGGER {Quote(updateTrigger)} BEFORE UPDATE OF {watchedColumns} ON {Quote(table)}\nBEGIN\n{body}\nEND;");
+    }
+
+    // The soft-delete column a rule that ignores deleted rows reads, or null when the rule counts every row.
+    private static string? DeletedAtColumn(IEntityType entityType, RangeExclusionSpec spec, StoreObjectIdentifier store)
+    {
+        if (!spec.IgnoreSoftDeleted)
+        {
+            return null;
+        }
+
+        // Only an entity that declares Deletes = Deletion.Soft has the column. The builder refuses the flag
+        // otherwise, but an annotation written by an older build (or by hand in a migration) can still carry it,
+        // so say what is wrong rather than fail on an unmapped column (#1131).
+        if (entityType.FindProperty(Columns.DeletedAt) is null)
+        {
+            throw new InvalidOperationException(
+                $"'{entityType.DisplayName()}' declares a non-overlapping range that ignores soft-deleted rows, " +
+                "but it does not soft delete, so it has no DeletedAt column. Declare " +
+                "'public const Deletion Deletes = Deletion.Soft;' on it, or re-create the migration so the rule " +
+                "no longer asks for it.");
+        }
+
+        return Column(entityType, Columns.DeletedAt, store);
     }
 
     private static void Append(MigrationCommandListBuilder builder, string sql)

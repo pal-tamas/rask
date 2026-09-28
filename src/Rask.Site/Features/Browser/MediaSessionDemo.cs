@@ -28,7 +28,7 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
         if (!await media.IsSupportedAsync())
         {
             _status = "Media Session not supported";
-            StateHasChanged();
+            await StateHasChangedAsync();
             return;
         }
 

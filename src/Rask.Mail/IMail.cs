@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// The app's outgoing mail. Reach it without injecting anything — <c>await Mail.Send(email)</c> — or inject

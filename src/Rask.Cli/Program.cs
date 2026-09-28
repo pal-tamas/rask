@@ -23,7 +23,7 @@ Console.CancelKeyPress += OnCancel;
 
 try
 {
-    return await app.RunAsync(args, cts.Token);
+    return await app.RunAsync(args, cts.Token).ConfigureAwait(false);
 }
 catch (OperationCanceledException)
 {
@@ -36,10 +36,10 @@ catch (Exception exception) when (exception is IOException or UnauthorizedAccess
     // scaffolder writes through raw File/Directory calls, so before this these surfaced as a .NET stack
     // trace: alarming, and it buried the one line that says which path failed.
     SystemConsole.Instance.WriteErrorLine(exception.Message, ConsoleStyle.Error);
-    SystemConsole.Instance.Error.WriteLine("Check the path is writable and not open elsewhere. Set RASK_DEBUG=1 for the full stack trace.");
-    if (Environment.GetEnvironmentVariable("RASK_DEBUG") == "1")
+    await SystemConsole.Instance.Error.WriteLineAsync("Check the path is writable and not open elsewhere. Set RASK_DEBUG=1 for the full stack trace.").ConfigureAwait(false);
+    if (string.Equals(Environment.GetEnvironmentVariable("RASK_DEBUG"), "1", StringComparison.Ordinal))
     {
-        SystemConsole.Instance.Error.WriteLine(exception.ToString());
+        await SystemConsole.Instance.Error.WriteLineAsync(exception.ToString()).ConfigureAwait(false);
     }
 
     return 1;

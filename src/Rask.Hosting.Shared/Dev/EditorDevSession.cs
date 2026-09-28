@@ -42,21 +42,10 @@ internal static class EditorDevSession
     /// <summary>Whether the build that produced <paramref name="assembly" /> was a dev session.</summary>
     internal static bool IsDevSessionBuild(Assembly? assembly)
     {
-        if (assembly is null)
-        {
-            return false;
-        }
-
-        foreach (var attribute in assembly.GetCustomAttributes<AssemblyMetadataAttribute>())
-        {
-            if (string.Equals(attribute.Key, MetadataKey, StringComparison.Ordinal)
-                && string.Equals(attribute.Value, "true", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return assembly is not null
+               && assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Any(attribute =>
+                   string.Equals(attribute.Key, MetadataKey, StringComparison.Ordinal)
+                   && string.Equals(attribute.Value, "true", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

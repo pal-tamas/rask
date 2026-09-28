@@ -38,10 +38,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Storage\Rask.Storage.csproj"/>
-    <!-- TestFileBackend stages a real RaskFile, the type SaveAsync takes. -->
+    <!-- TestFileBackend stages a real IRaskFile, the type SaveAsync takes. -->
     <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
     <!-- Rask.Storage references Core with PrivateAssets="all", so the tests name it themselves to see
-         RaskFile and LiveOptions. -->
+         IRaskFile and LiveOptions. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 

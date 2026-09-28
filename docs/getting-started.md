@@ -157,6 +157,10 @@ WASM templates differ mainly in `Program.cs`):
 - **`{Project}.csproj`** and **`Properties/launchSettings.json`** — the project file (framework package
   references, source generators) and the local run profile (URLs, environment).
 
+- **`{Project}.Tests/`** — a test project with one passing test, `Home_page_greets_the_visitor`, which
+  renders `HomePage` in-process with [`Rask.Testing`](testing.md) and checks its greeting. `dotnet test`
+  runs it; `{Project}.slnx` lists both projects. `rask new --no-tests` leaves it out.
+
 That's the whole starter app — no example `Counter` or `Weather` pages to clean up. You'll add your own
 screens next; a **scoped `.css`** or **`.ts`** file is as easy as dropping `{Component}.css` next to a
 `{Component}.cs` (same folder, same base name) — its selectors apply only to that component, no leaks.

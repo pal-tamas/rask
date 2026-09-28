@@ -1,9 +1,9 @@
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>Options for the <see cref="JobProcessor{TContext}"/>.</summary>
 public sealed class JobsOptions
 {
-    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="Validate"/> for why there is one.</summary>
+    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="JobsOptionsValidator"/> for why there is one.</summary>
     internal const int MaxBatchSize = 1000;
 
     /// <summary>How often the processor polls the jobs table for due work. Default 5s.</summary>
@@ -74,91 +74,6 @@ public sealed class JobsOptions
     /// </summary>
     public IReadOnlyList<RecurringJob> RecurringJobs => Recurring;
 
-    /// <summary>Validates the option values once <c>Rask:Jobs</c> and the callback have applied (checked at host start, so a bad value fails fast rather than tearing down the host later).</summary>
-    internal void Validate()
-    {
-        if (PollInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(PollInterval), PollInterval, "PollInterval must be positive.");
-        }
-
-        if (BatchSize is < 1 or > MaxBatchSize)
-        {
-            // Capped because the claim sends the candidate ids as an IN list. EF translates a parameterized
-            // Contains to json_each / = ANY / OPENJSON rather than one parameter per id, so the classic
-            // 999/2100 ceilings shouldn't bite — this is the belt to that pair of braces.
-            throw new ArgumentOutOfRangeException(
-                nameof(BatchSize), BatchSize, $"BatchSize must be between 1 and {MaxBatchSize}.");
-        }
-
-        if (LeaseDuration <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(LeaseDuration), LeaseDuration, "LeaseDuration must be positive.");
-        }
-
-        if (LeaseDuration <= PollInterval)
-        {
-            // A lease that expires within one poll guarantees every job is stolen mid-flight by the next
-            // instance to look — strictly worse than no lease at all, so it is refused rather than warned about.
-            throw new ArgumentOutOfRangeException(
-                nameof(LeaseDuration),
-                LeaseDuration,
-                $"LeaseDuration must be longer than PollInterval ({PollInterval}), or every claimed job is stolen before it finishes.");
-        }
-
-        if (MaxAttempts < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxAttempts), MaxAttempts, "MaxAttempts must be at least 1.");
-        }
-
-        if (BaseRetryDelay < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(BaseRetryDelay), BaseRetryDelay, "BaseRetryDelay cannot be negative.");
-        }
-
-        if (MaxRetryDelay < BaseRetryDelay)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxRetryDelay), MaxRetryDelay, "MaxRetryDelay cannot be less than BaseRetryDelay.");
-        }
-
-        if (RetentionPeriod < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(RetentionPeriod), RetentionPeriod, "RetentionPeriod cannot be negative.");
-        }
-
-        ValidateShutdownGracePeriod(ShutdownGracePeriod);
-
-        // `o.Run<Backup>();` with no cadence compiles and would then never run — the quietest possible
-        // failure, so it is refused at boot instead.
-        if (Recurring.FirstOrDefault(r => r.Schedule is null) is { } unscheduled)
-        {
-            throw new InvalidOperationException(
-                $"Run<{unscheduled.Name}>() has no schedule. Finish it with .Every(1.Hour), .Daily.At(3, 00), "
-                + ".Weekly.On(DayOfWeek.Monday).At(9, 00) or .Monthly.On(1).At(6, 00).");
-        }
-    }
-
-    /// <summary>
-    /// Range check for the shutdown grace. The upper bound is not pedantry:
-    /// <see cref="CancellationTokenSource.CancelAfter(TimeSpan)"/> throws above <see cref="int.MaxValue"/>
-    /// milliseconds, and it would throw from the shutdown path — the worst place to find out. Each
-    /// battery carries its own copy; they are independent packages that must not reference each other.
-    /// </summary>
-    private static void ValidateShutdownGracePeriod(TimeSpan value)
-    {
-        if (value < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownGracePeriod), value, "ShutdownGracePeriod cannot be negative (Zero cancels immediately).");
-        }
-
-        if (value.TotalMilliseconds > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownGracePeriod), value, $"ShutdownGracePeriod must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
-        }
-    }
-
     /// <summary>
     /// The delay before the next retry of a job on its <paramref name="attempts"/>-th attempt: an
     /// exponential backoff (<see cref="BaseRetryDelay"/> × 2^(attempts-1)) capped at <see cref="MaxRetryDelay"/>.
@@ -176,7 +91,6 @@ public sealed class JobsOptions
             ? MaxRetryDelay
             : TimeSpan.FromTicks((long)scaled);
     }
-
 
     /// <summary>
     /// Runs <typeparamref name="TJob"/> on a schedule, durably — the cadence is a step:
@@ -200,172 +114,5 @@ public sealed class JobsOptions
         job.RefuseADuplicateName(job.Name);
         Recurring.Add(job);
         return job;
-    }
-}
-
-/// <summary>A job on a schedule, still being worded: the cadence comes next.</summary>
-/// <remarks>
-/// <code>
-/// o.Run&lt;PurgeStaleCarts&gt;().Every(1.Hour);
-/// o.Run&lt;Backup&gt;().Daily.At(3, 00);
-/// o.Run&lt;Digest&gt;().Weekly.On(DayOfWeek.Monday).At(9, 00);
-/// o.Run&lt;CloseBooks&gt;().Monthly.On(1).At(6, 00);
-/// </code>
-/// <para>
-/// The durable name defaults to the job's type name; <see cref="Named"/> overrides it. It is what the
-/// <see cref="RecurringJobState"/> row is keyed by, so renaming the type — or the name — re-arms the job
-/// as if it had never run.
-/// </para>
-/// </remarks>
-public sealed class RecurringJob
-{
-    private readonly List<RecurringJob> _siblings;
-
-    internal RecurringJob(string name, Func<IJob> factory, List<RecurringJob> siblings)
-    {
-        Name = name;
-        Factory = factory;
-        _siblings = siblings;
-    }
-
-    /// <summary>The durable name this job's last run is recorded under.</summary>
-    public string Name { get; private set; }
-
-    /// <summary>When it is due. Null until a cadence step is taken, which the host refuses to start without.</summary>
-    public Schedule? Schedule { get; private set; }
-
-    /// <summary>Builds the job to enqueue on each tick. Call it to run one off-schedule.</summary>
-    public Func<IJob> Factory { get; }
-
-    /// <summary>Runs it every <paramref name="interval"/>, measured from its last run.</summary>
-    public RecurringJob Every(TimeSpan interval)
-    {
-        if (interval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(interval), interval, "A recurring interval must be positive.");
-        }
-
-        return With(new EverySchedule(interval));
-    }
-
-    /// <summary>Runs it once a day, at the time the next step gives.</summary>
-    public DailyJob Daily => new(this);
-
-    /// <summary>Runs it once a week, on the day the next step gives.</summary>
-    public WeeklyJob Weekly => new(this);
-
-    /// <summary>Runs it once a month, on the date the next step gives.</summary>
-    public MonthlyJob Monthly => new(this);
-
-    /// <summary>Records its runs under <paramref name="name"/> instead of the job's type name.</summary>
-    public RecurringJob Named(string name)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        RefuseADuplicateName(name);
-        Name = name;
-        return this;
-    }
-
-    /// <summary>
-    /// Refuses a name another schedule already answers to. Two schedules sharing a name share one
-    /// <see cref="RecurringJobState"/> row, so each would keep marking the other as having just run, and
-    /// between them they would fire once — the failure that looks like "the second one never runs".
-    /// </summary>
-    internal void RefuseADuplicateName(string name)
-    {
-        if (_siblings.Any(r => !ReferenceEquals(r, this) && string.Equals(r.Name, name, StringComparison.Ordinal)))
-        {
-            throw new ArgumentException(
-                $"'{name}' is already scheduled. Two schedules for one job need distinct names: "
-                + $"give one of them .Named(\"{name.ToLowerInvariant()}-nightly\").",
-                nameof(name));
-        }
-    }
-
-    internal RecurringJob With(Schedule schedule)
-    {
-        Schedule = schedule;
-        return this;
-    }
-}
-
-/// <summary>A daily job still being worded: <c>.Daily.At(3, 00)</c>.</summary>
-/// <param name="job">The job being scheduled.</param>
-public readonly struct DailyJob(RecurringJob job)
-{
-    /// <summary>Runs it at <paramref name="hour"/>:<paramref name="minute"/>, in the app's time zone.</summary>
-    public RecurringJob At(int hour, int minute = 0) => At(Schedules.Time(hour, minute));
-
-    /// <summary>Runs it at <paramref name="time"/>, in the app's time zone.</summary>
-    public RecurringJob At(TimeOnly time) => job.With(new CalendarSchedule(Cadence.Daily, time, null, null));
-}
-
-/// <summary>A weekly job still being worded: <c>.Weekly.On(DayOfWeek.Monday).At(9, 00)</c>.</summary>
-/// <param name="job">The job being scheduled.</param>
-public readonly struct WeeklyJob(RecurringJob job)
-{
-    /// <summary>Runs it on <paramref name="day"/>, at the time the next step gives.</summary>
-    public WeeklyDayJob On(DayOfWeek day) => new(job, day);
-}
-
-/// <summary>A weekly job with its day chosen: <c>.At(9, 00)</c> finishes it.</summary>
-/// <param name="job">The job being scheduled.</param>
-/// <param name="day">The weekday it runs on.</param>
-public readonly struct WeeklyDayJob(RecurringJob job, DayOfWeek day)
-{
-    /// <summary>Runs it at <paramref name="hour"/>:<paramref name="minute"/>, in the app's time zone.</summary>
-    public RecurringJob At(int hour, int minute = 0) => At(Schedules.Time(hour, minute));
-
-    /// <summary>Runs it at <paramref name="time"/>, in the app's time zone.</summary>
-    public RecurringJob At(TimeOnly time) => job.With(new CalendarSchedule(Cadence.Weekly, time, day, null));
-}
-
-/// <summary>A monthly job still being worded: <c>.Monthly.On(1).At(6, 00)</c>.</summary>
-/// <param name="job">The job being scheduled.</param>
-public readonly struct MonthlyJob(RecurringJob job)
-{
-    /// <summary>
-    /// Runs it on the <paramref name="day"/>th of each month. A month too short for it runs on its last
-    /// day, so <c>On(31)</c> never skips February.
-    /// </summary>
-    public MonthlyDayJob On(int day)
-    {
-        if (day is < 1 or > 31)
-        {
-            throw new ArgumentOutOfRangeException(nameof(day), day, "A day of the month is between 1 and 31.");
-        }
-
-        return new MonthlyDayJob(job, day);
-    }
-}
-
-/// <summary>A monthly job with its date chosen: <c>.At(6, 00)</c> finishes it.</summary>
-/// <param name="job">The job being scheduled.</param>
-/// <param name="day">The day of the month it runs on.</param>
-public readonly struct MonthlyDayJob(RecurringJob job, int day)
-{
-    /// <summary>Runs it at <paramref name="hour"/>:<paramref name="minute"/>, in the app's time zone.</summary>
-    public RecurringJob At(int hour, int minute = 0) => At(Schedules.Time(hour, minute));
-
-    /// <summary>Runs it at <paramref name="time"/>, in the app's time zone.</summary>
-    public RecurringJob At(TimeOnly time) => job.With(new CalendarSchedule(Cadence.Monthly, time, null, day));
-}
-
-/// <summary>Range checks shared by the calendar steps, so each one reads the same way when it is wrong.</summary>
-internal static class Schedules
-{
-    internal static TimeOnly Time(int hour, int minute)
-    {
-        if (hour is < 0 or > 23)
-        {
-            throw new ArgumentOutOfRangeException(nameof(hour), hour, "An hour of the day is between 0 and 23.");
-        }
-
-        if (minute is < 0 or > 59)
-        {
-            throw new ArgumentOutOfRangeException(nameof(minute), minute, "A minute is between 0 and 59.");
-        }
-
-        return new TimeOnly(hour, minute);
     }
 }

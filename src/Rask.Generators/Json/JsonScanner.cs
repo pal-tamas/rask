@@ -123,33 +123,10 @@ internal sealed class JsonScanner(string text)
                     break;
                 }
 
-                var esc = Text[Position];
-                switch (esc)
+                defect = AppendEscape(sb);
+                if (defect is not null)
                 {
-                    case '"': sb.Append('"'); break;
-                    case '\\': sb.Append('\\'); break;
-                    case '/': sb.Append('/'); break;
-                    case 'b': sb.Append('\b'); break;
-                    case 'f': sb.Append('\f'); break;
-                    case 'n': sb.Append('\n'); break;
-                    case 'r': sb.Append('\r'); break;
-                    case 't': sb.Append('\t'); break;
-                    case 'u':
-                        if (Position + 4 < Text.Length && TryParseHex(Text.Substring(Position + 1, 4), out var code))
-                        {
-                            sb.Append((char)code);
-                            Position += 4;
-                        }
-                        else
-                        {
-                            defect = "malformed \\u escape";
-                            return false;
-                        }
-
-                        break;
-                    default:
-                        defect = $"unknown escape '\\{esc}'";
-                        return false;
+                    return false;
                 }
 
                 Position++;
@@ -168,6 +145,37 @@ internal sealed class JsonScanner(string text)
 
         defect = "unterminated text value";
         return false;
+    }
+
+    // The character an escape (the scanner is at the letter after the backslash) stands for, or why
+    // it stands for nothing.
+    private string? AppendEscape(StringBuilder sb)
+    {
+        var esc = Text[Position];
+        switch (esc)
+        {
+            case '"': sb.Append('"'); break;
+            case '\\': sb.Append('\\'); break;
+            case '/': sb.Append('/'); break;
+            case 'b': sb.Append('\b'); break;
+            case 'f': sb.Append('\f'); break;
+            case 'n': sb.Append('\n'); break;
+            case 'r': sb.Append('\r'); break;
+            case 't': sb.Append('\t'); break;
+            case 'u':
+                if (Position + 4 < Text.Length && TryParseHex(Text.Substring(Position + 1, 4), out var code))
+                {
+                    sb.Append((char)code);
+                    Position += 4;
+                    break;
+                }
+
+                return "malformed \\u escape";
+            default:
+                return $"unknown escape '\\{esc}'";
+        }
+
+        return null;
     }
 
     private static bool TryParseHex(string s, out int value)

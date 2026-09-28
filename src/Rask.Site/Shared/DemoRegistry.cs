@@ -20,7 +20,7 @@ public static partial class DemoRegistry
         {
             // --- Routing guide (code-only samples; the running showcase *is* the live demo) ---
             ["routing-nested-layout"] = () => CodeSample
-                .Files(["RoutingLayoutDemo.cs"])
+                .Files(["RoutingLayoutDemo.cs", "RoutingNestedProfile.cs"])
                 .Notes("Component templates are joined to the parent's. An empty child template (\"\") means "
                 + "\"default child for this layout\". This very showcase is built that way — every page "
                 + "declares [ParentRoute(typeof(ShowcaseLayout))]."),
@@ -63,12 +63,12 @@ public static partial class DemoRegistry
                 + "message appears once the field is touched and clears when it becomes valid.")
                 .Result(ValidationFieldsDemo),
             ["validation-inline"] = () => CodeSample
-                .Files(["InlineValidateDemo.cs"])
+                .Files(["InlineValidateDemo.cs", "LoginModel.cs"])
                 .Notes("Inline Validate: on a field or the whole form — no extra package. Return the error "
                 + "strings for the value; an empty result means valid.")
                 .Result(InlineValidateDemo),
             ["validation-fluent"] = () => CodeSample
-                .Files(["FluentValidationDemo.cs"])
+                .Files(["FluentValidationDemo.cs", "OrderModel.cs", "OrderValidator.cs"])
                 .Notes("An AbstractValidator<TModel>, discovered at compile time and run by the form with nothing "
                 + "declared — the RuleFor chains drive the same Validation.Message/Validation.Summary UI.")
                 .Result(FluentValidationDemo),
@@ -142,25 +142,25 @@ public static partial class DemoRegistry
             ["form-controls-textarea"] = () => CodeSample.Files(["FormControlsTextareaDemo.cs"]).Result(FormControlsTextareaDemo),
             ["form-controls-select"] = () => CodeSample.Files(["FormControlsSelectDemo.cs"]).Result(FormControlsSelectDemo),
             ["form-submit-state"] = () => CodeSample.Files(["FormSubmitStateDemo.cs"]).Result(FormSubmitStateDemo),
-            ["floating-labels"] = () => CodeSample.Files(["FloatingLabelsDemo.cs"]).Result(FloatingLabelsDemo),
+            ["floating-labels"] = () => CodeSample.Files(["FloatingLabelsDemo.cs", "AccountModel.cs"]).Result(FloatingLabelsDemo),
 
             // --- Forms guide: the remaining validation demos (their standalone /validation page folded in). ---
             ["validation-summary"] = () => CodeSample.Files(["ValidationSummaryDemo.cs"]).Result(ValidationSummaryDemo),
-            ["validation-inline-async"] = () => CodeSample.Files(["InlineAsyncValidateDemo.cs"]).Result(InlineAsyncValidateDemo),
-            ["validation-custom-attribute"] = () => CodeSample.Files(["CustomAttributeDemo.cs"]).Result(CustomAttributeDemo),
-            ["validation-validatable-object"] = () => CodeSample.Files(["ValidatableObjectDemo.cs"]).Result(ValidatableObjectDemo),
-            ["validation-fluent-async"] = () => CodeSample.Files(["FluentValidationAsyncDemo.cs"]).Result(FluentValidationAsyncDemo),
-            ["validation-async"] = () => CodeSample.Files(["AsyncValidationDemo.cs"]).Result(AsyncValidationDemo),
-            ["validation-programmatic"] = () => CodeSample.Files(["ProgrammaticValidateDemo.cs"]).Result(ProgrammaticValidateDemo),
-            ["validation-first-error-wins"] = () => CodeSample.Files(["FirstErrorWinsDemo.cs"]).Result(FirstErrorWinsDemo),
-            ["validation-cross-field"] = () => CodeSample.Files(["CrossFieldSummaryDemo.cs"]).Result(CrossFieldSummaryDemo),
-            ["validation-nested-async"] = () => CodeSample.Files(["NestedAsyncWithLiveTotalsDemo.cs"]).Result(NestedAsyncWithLiveTotalsDemo),
+            ["validation-inline-async"] = () => CodeSample.Files(["InlineAsyncValidateDemo.cs", "PromoModel.cs"]).Result(InlineAsyncValidateDemo),
+            ["validation-custom-attribute"] = () => CodeSample.Files(["CustomAttributeDemo.cs", "CustomAttributeModel.cs", "StrongPasswordAttribute.cs", "MatchesPropertyAttribute.cs", "NotBannedAttribute.cs"]).Result(CustomAttributeDemo),
+            ["validation-validatable-object"] = () => CodeSample.Files(["ValidatableObjectDemo.cs", "BookingModel.cs"]).Result(ValidatableObjectDemo),
+            ["validation-fluent-async"] = () => CodeSample.Files(["FluentValidationAsyncDemo.cs", "TicketModel.cs", "TicketValidator.cs"]).Result(FluentValidationAsyncDemo),
+            ["validation-async"] = () => CodeSample.Files(["AsyncValidationDemo.cs", "SignupModel.cs", "UniqueUsernameValidator.cs"]).Result(AsyncValidationDemo),
+            ["validation-programmatic"] = () => CodeSample.Files(["ProgrammaticValidateDemo.cs", "TaskModel.cs", "SlowTitleValidator.cs"]).Result(ProgrammaticValidateDemo),
+            ["validation-first-error-wins"] = () => CodeSample.Files(["FirstErrorWinsDemo.cs", "LicenseModel.cs"]).Result(FirstErrorWinsDemo),
+            ["validation-cross-field"] = () => CodeSample.Files(["CrossFieldSummaryDemo.cs", "TripModel.cs"]).Result(CrossFieldSummaryDemo),
+            ["validation-nested-async"] = () => CodeSample.Files(["NestedAsyncWithLiveTotalsDemo.cs", "StorefrontModel.cs", "StorefrontAddress.cs", "StorefrontLineItem.cs"]).Result(NestedAsyncWithLiveTotalsDemo),
 
             // --- Forms guide: nested / complex models (their standalone /nested-forms page folded in). ---
-            ["nested-subobject"] = () => CodeSample.Files(["NestedSubObjectDemo.cs"]).Result(NestedSubObjectDemo),
-            ["nested-list-foreach"] = () => CodeSample.Files(["NestedListForeachDemo.cs"]).Result(NestedListForeachDemo),
-            ["nested-list-indexer"] = () => CodeSample.Files(["NestedListIndexerDemo.cs"]).Result(NestedListIndexerDemo),
-            ["nested-fluent"] = () => CodeSample.Files(["NestedFluentValidationDemo.cs"]).Result(NestedFluentValidationDemo),
+            ["nested-subobject"] = () => CodeSample.Files(["NestedSubObjectDemo.cs", "CheckoutModel.cs", "AddressModel.cs"]).Result(NestedSubObjectDemo),
+            ["nested-list-foreach"] = () => CodeSample.Files(["NestedListForeachDemo.cs", "CartModel.cs", "LineItem.cs"]).Result(NestedListForeachDemo),
+            ["nested-list-indexer"] = () => CodeSample.Files(["NestedListIndexerDemo.cs", "InvoiceModel.cs", "SkuRow.cs"]).Result(NestedListIndexerDemo),
+            ["nested-fluent"] = () => CodeSample.Files(["NestedFluentValidationDemo.cs", "NestedOrderModel.cs", "NestedOrderAddress.cs", "NestedOrderLine.cs", "NestedOrderValidator.cs", "NestedOrderAddressValidator.cs", "NestedOrderLineValidator.cs"]).Result(NestedFluentValidationDemo),
 
             // --- Forms guide: radio/checkbox groups + multi-select example components. ---
 
@@ -169,9 +169,9 @@ public static partial class DemoRegistry
             // The three ways to author a reusable unit — static method, stateless component, stateful
             // component — shown side by side; the three code tabs are the tiers themselves.
             ["component-tiers"] = () => CodeSample
-                .Files(["TierStaticHelperDemo.cs", "TierStatelessGreetingDemo.cs", "TierStatefulCounterDemo.cs"])
+                .Files(["TierStaticHelperDemo.cs", "TierStaticHelper.cs", "TierStatelessGreetingDemo.cs", "TierGreeting.cs", "TierStatefulCounterDemo.cs"])
                 .Result(ComponentTiersDemo),
-            ["context-theme"] = () => CodeSample.Files(["ContextThemeDemo.cs"]).Result(ContextThemeDemo),
+            ["context-theme"] = () => CodeSample.Files(["ContextThemeDemo.cs", "Theme.cs"]).Result(ContextThemeDemo),
             ["callback-rating"] = () => CodeSample.Files(["RatingStars.cs", "CallbackRatingDemo.cs"]).Result(CallbackRatingDemo),
             ["virtualize-items"] = () => CodeSample.Files(["VirtualizeItemsDemo.cs"]).Result(VirtualizeItemsDemo),
             ["virtualize-provider"] = () => CodeSample.Files(["VirtualizeProviderDemo.cs"]).Result(VirtualizeProviderDemo),
@@ -185,7 +185,7 @@ public static partial class DemoRegistry
 
             // --- Subscriptions guide: a publisher, two boards subscribed to every order, and a tracker watching one. ---
             ["subscription-orders"] = () => CodeSample
-                .Files(["SubscriptionDemo.cs", "OrderBoard.cs", "OrderEvents.cs"])
+                .Files(["SubscriptionDemo.cs", "OrderBoard.cs", "OrderPlaced.cs", "OrderShipped.cs", "WatchOrder.cs", "WatchingOrders.cs"])
                 .Notes("The boards know nothing about the buttons: each subscribes to OrderPlaced in Render, and a publish "
                 + "through IDispatcher reaches them — as it would from a command handler or a background job. The tracker "
                 + "above them watches ONE order, through a WatchOrder record its policy admits.")
@@ -221,7 +221,7 @@ public static partial class DemoRegistry
             // --- CQRS guide: one vertical slice (query + result-command + notification + a pipeline
             //     behaviour), dispatched reflection-free by the Rask.Cqrs source generator. ---
             ["cqrs-counter"] = () => CodeSample
-                .Files(["CqrsCounterDemo.cs", "CounterSlice.cs"])
+                .Files(["CqrsCounterDemo.cs", "CqrsCounterStore.cs", "CounterState.cs", "GetCounterState.cs", "GetCounterStateHandler.cs", "IncrementCounter.cs", "IncrementCounterHandler.cs", "CounterIncremented.cs", "CounterIncrementedHandler.cs", "DispatchLogBehavior.cs"])
                 .Notes("One slice, all four message shapes: a query (GetCounterState), a command that returns "
                 + "a value (IncrementCounter), a notification the command publishes (CounterIncremented), "
                 + "and a pipeline behaviour (DispatchLogBehavior) that wraps every dispatch — the "
@@ -231,7 +231,7 @@ public static partial class DemoRegistry
             // --- Rask.Query guide: a Render query on ?page=, a dependent query, a function query and a
             //     per-row command, over the in-process parcel slice. ---
             ["query-parcels"] = () => CodeSample
-                .Files(["QueryParcelsDemo.cs", "ParcelSlice.cs"])
+                .Files(["QueryParcelsDemo.cs", "ParcelStore.cs", "Parcel.cs", "ParcelPage.cs", "GetParcelPage.cs", "GetParcelPageHandler.cs", "GetParcel.cs", "GetParcelHandler.cs", "ShipParcel.cs", "ShipParcelHandler.cs"])
                 .Notes("Nothing here loads data by hand: each query follows its input, keeps its cache, and refetches "
                 + "when a Ship command it is named by succeeds.")
                 .Result(QueryParcelsDemo),
@@ -301,14 +301,14 @@ public static partial class DemoRegistry
                 + "any sub-path) — read it lazily inside the factory so it fires after the JS module imports.")
                 .Result(HttpRegisterDemo),
             ["data-http-fetch"] = () => CodeSample
-                .Files(["HttpFetchDemo.cs"])
+                .Files(["HttpFetchDemo.cs", "HttpJsonContext.cs"])
                 .Notes("OnMount runs once on first render. The framework's async lifecycle handler triggers a "
                 + "re-render when the awaited task completes. Component.CancellationToken cancels on unmount — "
                 + "navigate away mid-fetch and the in-flight request aborts.")
                 .Result(HttpFetchDemo),
             ["data-upload"] = () => CodeSample
                 .Files(["UploadDemo.cs"])
-                .Notes("The handler runs once per change event. RaskFile is only valid while the handler is on the "
+                .Notes("The handler runs once per change event. IRaskFile is only valid while the handler is on the "
                 + "stack — read whatever you need (bytes, metadata) before returning. The same component code "
                 + "runs unchanged on both hosts.")
                 .Result(UploadDemo),
@@ -351,18 +351,18 @@ public static partial class DemoRegistry
 
             // --- User components (factory generation) → getting-started.md §6 (its /components page folded in). ---
             ["components-greeting"] = () => CodeSample
-                .Files(["ComponentsGreetingDemo.cs"])
+                .Files(["ComponentsGreetingDemo.cs", "Greeting.cs"])
                 .Notes("Non-nullable property without an initializer → required factory parameter. Nullable property "
                 + "→ optional with default null. Property with an initializer → excluded from the factory.")
                 .Result(ComponentsGreetingDemo),
             ["components-di"] = () => CodeSample
-                .Files(["ComponentsDiDemo.cs"])
+                .Files(["ComponentsDiDemo.cs", "WeatherCard.cs", "WeatherJsonContext.cs"])
                 .Notes("Inject services (HttpClient/Navigator/RouteState) through the constructor, never as a public "
                 + "settable property — that would become a required factory parameter, and `required` on a "
                 + "property with a DI-only constructor is RASK002. Constructor params resolve from DI via "
                 + "ActivatorUtilities; only public settable properties feed the generated factory."),
             ["components-skipfactory"] = () => CodeSample
-                .Files(["ComponentsSkipFactoryDemo.cs"])
+                .Files(["ComponentsSkipFactoryDemo.cs", "SkipFactoryCounter.cs"])
                 .Notes("[SkipFactory] keeps a property settable in code while removing it from the generated factory "
                 + "signature. The counter below started at 7 — click it and the state persists across re-renders.")
                 .Result(ComponentsSkipFactoryDemo),

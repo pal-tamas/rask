@@ -16,7 +16,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         await c.Started.Task;
@@ -48,7 +48,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         await c.Done.Task;
@@ -73,7 +73,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         await c.Done.Task;
@@ -94,7 +94,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         using (var ctx = LiveRenderContext.Begin(c, sp))
         {
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         await Task.Delay(20);

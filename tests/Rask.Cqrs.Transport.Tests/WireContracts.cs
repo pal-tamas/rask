@@ -19,9 +19,9 @@ public sealed record Touch(string Note) : ICommand;
 
 public sealed record Announce(string Text) : INotification;
 
-public sealed record Attach(string Note, RaskFile File) : ICommand<string>;
+public sealed record Attach(string Note, IRaskFile File) : ICommand<string>;
 
-public sealed record AttachTwo(RaskFile First, RaskFile Second) : ICommand<string>;
+public sealed record AttachTwo(IRaskFile First, IRaskFile Second) : ICommand<string>;
 
 public sealed record Export(int Year) : IQuery<FileDownload>;
 
@@ -154,17 +154,17 @@ public sealed class PurgeHandler(Ledger ledger) : ICommandHandler<Purge>
 }
 
 /// <summary>What a file input hands a component — the type a message declares, on every host.</summary>
-public sealed class PickedFile(string name, string contentType, byte[] bytes) : RaskFile
+public sealed class PickedFile(string name, string contentType, byte[] bytes) : IRaskFile
 {
-    public override string Name => name;
+    public string Name => name;
 
-    public override long Size => bytes.Length;
+    public long Size => bytes.Length;
 
-    public override string ContentType => contentType;
+    public string ContentType => contentType;
 
-    public override DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
+    public DateTimeOffset LastModified => DateTimeOffset.UnixEpoch;
 
-    public override Stream OpenReadStream(
+    public Stream OpenReadStream(
         long maxAllowedSize = 512 * 1024,
         CancellationToken cancellationToken = default) =>
         bytes.Length > maxAllowedSize

@@ -14,7 +14,7 @@ internal sealed class ServerFileBackend : IBrowserFileBackend
         _session = session;
     }
 
-    public RaskFile Create(JsonElement metadata)
+    public IRaskFile Create(JsonElement metadata)
     {
         var token = metadata.TryGetProperty("token", out var t) && t.ValueKind == JsonValueKind.String
             ? t.GetString() ?? string.Empty
@@ -36,7 +36,7 @@ internal sealed class ServerFileBackend : IBrowserFileBackend
         return new ServerRaskFile(entry, _store);
     }
 
-    public void Release(IEnumerable<RaskFile> files)
+    public void Release(IEnumerable<IRaskFile> files)
     {
         foreach (var file in files)
         {

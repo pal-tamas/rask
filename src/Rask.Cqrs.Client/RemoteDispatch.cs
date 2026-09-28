@@ -28,17 +28,24 @@ internal sealed class RemoteDispatch(
     // whole response — and an event stream's whole response arrives when the subscription ends.
     private static readonly HttpRequestOptionsKey<bool> StreamingResponse = new("WebAssemblyEnableStreamingResponse");
 
-    public async IAsyncEnumerable<INotification> Subscribe(
+    public IAsyncEnumerable<INotification> Subscribe(
+        RemoteContract contract,
+        object? subscription,
+        Action? connected,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contract);
+        return Stream(contract, subscription, connected, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<INotification> Stream(
         RemoteContract contract,
         object? subscription,
         Action? connected,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(contract);
-
         // The subscription record travels exactly as a query's message does: its generated JSON, url-encoded.
-        var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment
-                   + "/" + Uri.EscapeDataString(contract.Name)
+        var path = Endpoint($"{RemoteEndpointDefaults.EventsSegment}/{Uri.EscapeDataString(contract.Name)}")
                    + (subscription is null
                        ? string.Empty
                        : "?" + RemoteEndpointDefaults.MessageQueryParameter + "="
@@ -57,7 +64,8 @@ internal sealed class RemoteDispatch(
         // No per-attempt timeout here: the answer is meant to last as long as the page does. Reaching the server is
         // bounded by the caller's reconnect loop, which cancels this token when it gives up on it.
         using var response = await OpenAsync(contract, request, cancellationToken).ConfigureAwait(false);
-        await using var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var disposeBody = body.ConfigureAwait(false);
         using var reader = new StreamReader(body, Encoding.UTF8);
 
         var data = new StringBuilder();
@@ -77,7 +85,7 @@ internal sealed class RemoteDispatch(
             }
 
             // A blank line ends an event.
-            if (name == RemoteEndpointDefaults.ReadyEvent)
+            if (string.Equals(name, RemoteEndpointDefaults.ReadyEvent, StringComparison.Ordinal))
             {
                 connected?.Invoke();
             }
@@ -107,11 +115,11 @@ internal sealed class RemoteDispatch(
             value = value[1..];
         }
 
-        if (field == "event")
+        if (string.Equals(field, "event", StringComparison.Ordinal))
         {
             name = value;
         }
-        else if (field == "data")
+        else if (string.Equals(field, "data", StringComparison.Ordinal))
         {
             data.Append(value);
         }
@@ -200,31 +208,14 @@ internal sealed class RemoteDispatch(
         object message,
         CancellationToken cancellationToken)
     {
-        // Before anything is encoded, uploaded or sent. An invalid command should cost the user a
-        // message, not a round trip — and on a slow connection the round trip is the whole delay
-        // between pressing the button and being told which field is wrong.
-        //
-        // This is a convenience, never a control. The server runs the same rules again through
-        // ValidationBehavior before any handler sees the request, so a caller that skips this (a
-        // hand-written client, a replayed request) gains nothing by it.
-        // Requests only. ValidationBehavior wraps the request pipeline, and Publish does not go
-        // through it — so validating a notification here would reject in the browser something the
-        // server and every in-process publish accept, which is a worse failure than not checking.
-        if (validator is not null && contract.Kind != RemoteMessageKind.Notification)
-        {
-            var errors = await validator.Validate(message).ConfigureAwait(false);
-            if (errors is { Count: > 0 })
-            {
-                throw new RaskValidationException(errors);
-            }
-        }
+        await ValidateAsync(contract, message).ConfigureAwait(false);
 
         var files = new List<RemoteFile>();
         var json = Encode(contract, message, files);
 
         // Anything large goes up in bounded pieces BEFORE the message does. A browser's fetch reads a
         // request body into memory before sending it, so a single-shot upload of a 500 MB file costs
-        // 500 MB in the tab — the file is read in slices either way (that is what RaskFile does on every
+        // 500 MB in the tab — the file is read in slices either way (that is what IRaskFile does on every
         // host), but only chunking keeps the REQUEST small too.
         var uploadId = await UploadLargeFilesAsync(files, cancellationToken).ConfigureAwait(false);
 
@@ -243,6 +234,38 @@ internal sealed class RemoteDispatch(
             await configure(request, cancellationToken).ConfigureAwait(false);
         }
 
+        return await SendAsync(contract, request, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Before anything is encoded, uploaded or sent. An invalid command should cost the user a
+    // message, not a round trip — and on a slow connection the round trip is the whole delay
+    // between pressing the button and being told which field is wrong.
+    //
+    // This is a convenience, never a control. The server runs the same rules again through
+    // ValidationBehavior before any handler sees the request, so a caller that skips this (a
+    // hand-written client, a replayed request) gains nothing by it.
+    // Requests only. ValidationBehavior wraps the request pipeline, and Publish does not go
+    // through it — so validating a notification here would reject in the browser something the
+    // server and every in-process publish accept, which is a worse failure than not checking.
+    private async Task ValidateAsync(RemoteContract contract, object message)
+    {
+        if (validator is null || contract.Kind == RemoteMessageKind.Notification)
+        {
+            return;
+        }
+
+        var errors = await validator.Validate(message).ConfigureAwait(false);
+        if (errors is { Count: > 0 })
+        {
+            throw new RaskValidationException(errors);
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendAsync(
+        RemoteContract contract,
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
         // The timeout is applied HERE, per attempt, rather than on the HttpClient — because on the path
         // most clients take the client is not ours to configure. ResolveHttpClient only sets
         // HttpClient.Timeout when it constructs the client itself, and a same-origin browser app takes
@@ -296,11 +319,7 @@ internal sealed class RemoteDispatch(
         List<RemoteFile> files,
         string? uploadId = null)
     {
-        // PathBase first: a sub-path deploy (a WASM bundle served under /myapp/) reaches its own host
-        // only through that prefix, and the server maps the endpoint pair under the same one. Without it
-        // the request leaves for the site root and 404s — visible only once someone deploys under a path.
-        var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix
-                   + "/" + Uri.EscapeDataString(contract.Name);
+        var path = Endpoint(Uri.EscapeDataString(contract.Name));
 
         // With an upload session the bytes are already on the server, so the message travels as plain
         // JSON and carries only the session id. Without one, the files ride along as multipart.
@@ -364,61 +383,82 @@ internal sealed class RemoteDispatch(
 
         for (var index = 0; index < files.Count; index++)
         {
-            long offset = 0;
-            var attemptsLeft = MaxResumeAttempts;
-
-            while (true)
-            {
-                // Re-opened rather than sought on a resume: a RaskFile reads in slices on every host —
-                // Blob.slice in the browser, a FileStream on the server — and re-opening is the one thing
-                // guaranteed to work on both. The file is never materialised whole either way.
-                await using var source = files[index].OpenReadStream(cancellationToken);
-                await SkipAsync(source, offset, buffer, cancellationToken).ConfigureAwait(false);
-
-                try
-                {
-                    int read;
-                    while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
-                    {
-                        await SendChunkAsync(
-                                uploadId, index, offset, files[index], buffer, read, cancellationToken)
-                            .ConfigureAwait(false);
-                        offset += read;
-                    }
-
-                    break;
-                }
-                catch (ChunkOffsetMismatch mismatch) when (attemptsLeft > 0 && mismatch.ServerOffset != offset)
-                {
-                    // Resume from what the server actually holds, in either direction: less than we sent
-                    // (a chunk was lost) or more (a retry we thought had failed did land).
-                    //
-                    // Requiring the offset to CHANGE is what stops this looping: a server repeatedly
-                    // answering with the offset we are already at is a disagreement retrying cannot fix,
-                    // so it falls through to the failure below rather than spinning until the budget runs
-                    // out. In-session only — a browser's File handle dies with the page, so a resume
-                    // across a reload remains impossible and is documented as such.
-                    attemptsLeft--;
-                    offset = mismatch.ServerOffset;
-                }
-                catch (ChunkOffsetMismatch mismatch)
-                {
-                    // Out of attempts, or the server keeps naming the offset we are already at. Either
-                    // way this is a disagreement retrying cannot settle, and it must leave as the same
-                    // kind of failure every other refused chunk does — an internal exception type
-                    // reaching a caller would be a leak, and one they could not catch.
-                    throw new RemoteDispatchException(
-                        "The upload could not resume: the server holds "
-                        + $"{mismatch.ServerOffset.ToString(CultureInfo.InvariantCulture)} bytes and the "
-                        + "client could not reconcile with that.")
-                    {
-                        StatusCode = (int)HttpStatusCode.Conflict,
-                    };
-                }
-            }
+            await UploadFileAsync(uploadId, index, files[index], buffer, cancellationToken).ConfigureAwait(false);
         }
 
         return uploadId;
+    }
+
+    private async Task UploadFileAsync(
+        string uploadId,
+        int index,
+        RemoteFile file,
+        byte[] buffer,
+        CancellationToken cancellationToken)
+    {
+        long offset = 0;
+        var attemptsLeft = MaxResumeAttempts;
+        while (await SendFromAsync(uploadId, index, file, offset, buffer, cancellationToken).ConfigureAwait(false)
+               is var (sent, held))
+        {
+            // Resume from what the server actually holds, in either direction: less than we sent
+            // (a chunk was lost) or more (a retry we thought had failed did land).
+            //
+            // Requiring the offset to CHANGE is what stops this looping: a server repeatedly
+            // answering with the offset we are already at is a disagreement retrying cannot fix,
+            // so it becomes the failure below rather than spinning until the budget runs
+            // out. In-session only — a browser's File handle dies with the page, so a resume
+            // across a reload remains impossible and is documented as such.
+            if (attemptsLeft == 0 || held == sent)
+            {
+                // Either way this is a disagreement retrying cannot settle, and it leaves as the same
+                // kind of failure every other refused chunk does.
+                throw new RemoteDispatchException(
+                    "The upload could not resume: the server holds "
+                    + $"{held.ToString(CultureInfo.InvariantCulture)} bytes and the "
+                    + "client could not reconcile with that.")
+                {
+                    StatusCode = (int)HttpStatusCode.Conflict,
+                };
+            }
+
+            attemptsLeft--;
+            offset = held;
+        }
+    }
+
+    // Sends the file from `offset` to its end. Null once every chunk landed; otherwise the offset of the chunk the
+    // server turned away and the offset it holds instead.
+    private async Task<(long Sent, long Held)?> SendFromAsync(
+        string uploadId,
+        int index,
+        RemoteFile file,
+        long offset,
+        byte[] buffer,
+        CancellationToken cancellationToken)
+    {
+        // Re-opened rather than sought on a resume: an IRaskFile reads in slices on every host —
+        // Blob.slice in the browser, a FileStream on the server — and re-opening is the one thing
+        // guaranteed to work on both. The file is never materialised whole either way.
+        var source = file.OpenReadStream(cancellationToken);
+        await using (source.ConfigureAwait(false))
+        {
+            await SkipAsync(source, offset, buffer, cancellationToken).ConfigureAwait(false);
+
+            int read;
+            while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                if (await SendChunkAsync(uploadId, index, offset, file, buffer, read, cancellationToken)
+                        .ConfigureAwait(false) is { } held)
+                {
+                    return (offset, held);
+                }
+
+                offset += read;
+            }
+
+            return null;
+        }
     }
 
     /// <summary>How many times one file may restart from a server-reported offset before giving up.</summary>
@@ -475,13 +515,9 @@ internal sealed class RemoteDispatch(
                && offset >= 0;
     }
 
-    /// <summary>A 409 carrying the offset the server holds — recoverable, unlike every other refusal.</summary>
-    private sealed class ChunkOffsetMismatch(long serverOffset) : Exception
-    {
-        public long ServerOffset { get; } = serverOffset;
-    }
-
-    private async Task SendChunkAsync(
+    // Null once the chunk landed. A 409 answers with the offset the server holds instead — recoverable, unlike every
+    // other refusal, which throws.
+    private async Task<long?> SendChunkAsync(
         string uploadId,
         int index,
         long offset,
@@ -490,30 +526,7 @@ internal sealed class RemoteDispatch(
         int count,
         CancellationToken cancellationToken)
     {
-        var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix
-                   + "/" + RemoteEndpointDefaults.UploadSegment;
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, path)
-        {
-            // A copy, because the buffer is reused for the next chunk while this content is still owned
-            // by the request — and because a retry has to be able to send the same bytes again.
-            Content = new ByteArrayContent(buffer, 0, count),
-        };
-
-        request.Headers.TryAddWithoutValidation(
-            RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
-        request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.UploadHeader, uploadId);
-        request.Headers.TryAddWithoutValidation(
-            RemoteEndpointDefaults.UploadFileHeader, index.ToString(CultureInfo.InvariantCulture));
-        request.Headers.TryAddWithoutValidation(
-            RemoteEndpointDefaults.UploadOffsetHeader, offset.ToString(CultureInfo.InvariantCulture));
-
-        // Url-encoded: a filename is user input, and a raw one can carry CR/LF or non-ASCII, neither of
-        // which belongs in a header value.
-        request.Headers.TryAddWithoutValidation(
-            RemoteEndpointDefaults.UploadNameHeader, Uri.EscapeDataString(file.Name));
-        request.Headers.TryAddWithoutValidation(
-            RemoteEndpointDefaults.UploadTypeHeader, Uri.EscapeDataString(file.ContentType));
+        using var request = ChunkRequest(uploadId, index, offset, file, buffer, count);
 
         if (options.ConfigureRequestAsync is { } configure)
         {
@@ -535,7 +548,7 @@ internal sealed class RemoteDispatch(
         {
             if (response.IsSuccessStatusCode)
             {
-                return;
+                return null;
             }
 
             // 409 is the one refusal that is not the end: the server is saying "not where I am", and it
@@ -545,7 +558,7 @@ internal sealed class RemoteDispatch(
             if (response.StatusCode == HttpStatusCode.Conflict
                 && TryReadOffset(response, out var serverOffset))
             {
-                throw new ChunkOffsetMismatch(serverOffset);
+                return serverOffset;
             }
 
             throw new RemoteDispatchException(
@@ -555,6 +568,44 @@ internal sealed class RemoteDispatch(
             };
         }
     }
+
+    private HttpRequestMessage ChunkRequest(
+        string uploadId,
+        int index,
+        long offset,
+        RemoteFile file,
+        byte[] buffer,
+        int count)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, Endpoint(RemoteEndpointDefaults.UploadSegment))
+        {
+            // A copy, because the buffer is reused for the next chunk while this content is still owned
+            // by the request — and because a retry has to be able to send the same bytes again.
+            Content = new ByteArrayContent(buffer, 0, count),
+        };
+
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
+        request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.UploadHeader, uploadId);
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadFileHeader, index.ToString(CultureInfo.InvariantCulture));
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadOffsetHeader, offset.ToString(CultureInfo.InvariantCulture));
+
+        // Url-encoded: a filename is user input, and a raw one can carry CR/LF or non-ASCII, neither of
+        // which belongs in a header value.
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadNameHeader, Uri.EscapeDataString(file.Name));
+        request.Headers.TryAddWithoutValidation(
+            RemoteEndpointDefaults.UploadTypeHeader, Uri.EscapeDataString(file.ContentType));
+        return request;
+    }
+
+    // PathBase first: a sub-path deploy (a WASM bundle served under /myapp/) reaches its own host
+    // only through that prefix, and the server maps its endpoints under the same one. Without it
+    // the request leaves for the site root and 404s — visible only once someone deploys under a path.
+    private string Endpoint(string segment) =>
+        $"{Rask.Core.Live.LiveOptions.PathBase}{options.RoutePrefix}/{segment}";
 
     private static MultipartFormDataContent Multipart(byte[] json, List<RemoteFile> files)
     {

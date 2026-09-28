@@ -18,7 +18,19 @@ public partial class App : Component
     //
     // `crossorigin` is required even though these are same-origin: a font is fetched in CORS mode, and
     // a preload without it is a SECOND, unshared request — the preload is simply wasted.
-    private static Component FontPreload(string path) =>
+    //
+    // What was here was the standard non-blocking-CDN pattern: <link media="print"> plus an onload
+    // that flips it to "all". It was a real defect on this site. A head asset is reconciled by key,
+    // so every full-document morph — the WASM first frame, and every cross-route navigation — put
+    // `media` back to the rendered "print", un-applied the faces, reflowed the page to fallback
+    // metrics, and reflowed back when the onload re-fired. On rask.sh: 5757px -> 5705px -> 5757px
+    // of document height in about 8ms, the <h1> line box 56px -> 61px. That was the flicker people
+    // saw "when it hydrates" (#1058), and it repeated on every navigation.
+    //
+    // Preloading the local files instead means the face is there for the first paint: no swap, no
+    // reflow, nothing for a morph to revert, and no cross-origin round trip (802ms of a 2.9s first
+    // paint, measured). It also means the site no longer tells a font CDN who reads its docs.
+    private static Rask.Core.Components.HTMLLinkElement FontPreload(string path) =>
         Link
             .Rel("preload")
             .Type("font/woff2")
@@ -48,44 +60,12 @@ public partial class App : Component
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),
         // The showcase type system: Space Grotesk (display), Inter (body), JetBrains Mono (code) — see
         // the --font-* tokens and the @font-face block in global.css. SELF-HOSTED, so there is no
-        // second origin to connect to and no deferred stylesheet to flip on.
-        //
-        // What was here was the standard non-blocking-CDN pattern: <link media="print"> plus an onload
-        // that flips it to "all". It was a real defect on this site. A head asset is reconciled by key,
-        // so every full-document morph — the WASM first frame, and every cross-route navigation — put
-        // `media` back to the rendered "print", un-applied the faces, reflowed the page to fallback
-        // metrics, and reflowed back when the onload re-fired. On rask.sh: 5757px -> 5705px -> 5757px
-        // of document height in about 8ms, the <h1> line box 56px -> 61px. That was the flicker people
-        // saw "when it hydrates" (#1058), and it repeated on every navigation.
-        //
-        // Preloading the local files instead means the face is there for the first paint: no swap, no
-        // reflow, nothing for a morph to revert, and no cross-origin round trip (802ms of a 2.9s first
-        // paint, measured). It also means the site no longer tells a font CDN who reads its docs.
+        // second origin to connect to and no deferred stylesheet to flip on (see FontPreload).
         FontPreload("/fonts/inter-latin.woff2"),
         FontPreload("/fonts/space-grotesk-latin.woff2"),
         FontPreload("/fonts/jetbrains-mono-latin.woff2"),
-        // The KIT's sheet, inlined, and FIRST.
-        //
-        // Tailwind scans the project it runs in, so the classes Rask.Ui's components write are compiled
-        // into its sheet and cannot appear in this one — and since the kit took daisyUI, that sheet is
-        // also the only place --color-primary and the rest of the palette are defined. This app's own
-        // @theme expresses --color-ui-* in terms of them, so without this every colour on every page
-        // resolves to nothing: not wrong, absent. Layout and structure survive it, which is why it
-        // looked fine until a browser test compared two custom properties and found both empty.
-        //
-        // First, because the tokens below are meant to override the kit's, and an override only wins
-        // while it is the copy the cascade reads last.
-        // Linked rather than inlined: 36.8 KB gzipped on every document of a site read page to
-        // page is the cost #1018 was filed about. The build writes it into wwwroot; the href carries
-        // the sheet's content hash so it caches hard and busts only when it changes.
-        // App-root paths, not _content/{assembly}/. The showcase used to live in a separate library and
-        // its sheets were served from that library's static web assets; one project means one wwwroot,
-        // and UiStylesheet.Path's app-root default is now simply correct. Worth stating because the
-        // failure is invisible either way round: a 404 stylesheet renders the page unstyled and fails
-        // nothing.
-        Link
-            .Rel("stylesheet")
-            .Href(UiStylesheet.Href(LiveOptions.PathBase)),
+        // The KIT's sheet, FIRST — see KitStylesheet.
+        KitStylesheet(),
         // Tailwind, compiled from Styles/app.css at this project's build. It replaced a three-sheet
         // stack — Bootstrap, the design tokens, then global.css overriding both — where the cascade
         // ORDER was what decided the outcome and a comment was the only thing keeping it right.
@@ -99,6 +79,30 @@ public partial class App : Component
             .Rel("stylesheet")
             .Href(LiveOptions.PathBase + "/global.css")
     ];
+
+    // The KIT's sheet, and first.
+    //
+    // Tailwind scans the project it runs in, so the classes Rask.Ui's components write are compiled
+    // into its sheet and cannot appear in this one — and since the kit took daisyUI, that sheet is
+    // also the only place --color-primary and the rest of the palette are defined. This app's own
+    // @theme expresses --color-ui-* in terms of them, so without this every colour on every page
+    // resolves to nothing: not wrong, absent. Layout and structure survive it, which is why it
+    // looked fine until a browser test compared two custom properties and found both empty.
+    //
+    // First, because the tokens below are meant to override the kit's, and an override only wins
+    // while it is the copy the cascade reads last.
+    // Linked rather than inlined: 36.8 KB gzipped on every document of a site read page to
+    // page is the cost #1018 was filed about. The build writes it into wwwroot; the href carries
+    // the sheet's content hash so it caches hard and busts only when it changes.
+    // App-root paths, not _content/{assembly}/. The showcase used to live in a separate library and
+    // its sheets were served from that library's static web assets; one project means one wwwroot,
+    // and UiStylesheet.Path's app-root default is now simply correct. Worth stating because the
+    // failure is invisible either way round: a 404 stylesheet renders the page unstyled and fails
+    // nothing.
+    private static Rask.Core.Components.HTMLLinkElement KitStylesheet() =>
+        Link
+            .Rel("stylesheet")
+            .Href(UiStylesheet.Href(LiveOptions.PathBase));
 
     protected override string? BodyClass => "bg-ui-well";
 

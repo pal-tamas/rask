@@ -11,7 +11,7 @@ public class EditContextTests
         var ctx = new EditContext(m);
         var fid = new FieldIdentifier(m, "Name");
         var fired = 0;
-        ctx.FieldChanged += _ => fired++;
+        ctx.FieldChanged += (_, _) => fired++;
         Assert.False(ctx.IsModified(fid));
 
         ctx.NotifyFieldChanged(fid);
@@ -52,7 +52,7 @@ public class EditContextTests
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
         var fired = 0;
-        ctx.ValidationStateChanged += () => fired++;
+        ctx.ValidationStateChanged += (_, _) => fired++;
 
         ctx.AddValidationMessage(fid, "bad");
 

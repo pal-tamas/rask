@@ -57,6 +57,19 @@ public sealed partial class CodeSample : Component
         await Copy(source, _copyButton);
     }
 
+    private Component? TitleLine() => Title is null ? null : H5.Class("mb-0 font-semibold")[Title];
+
+    private Component? NotesLine()
+    {
+        if (Notes is null)
+        {
+            return null;
+        }
+
+        var spacing = Title is null ? "" : "mt-1";
+        return P.Class($"text-ui-muted text-sm mb-0 {spacing}")[Notes];
+    }
+
     // The header sits in the row daisyUI's `mockup-code` opens with its three window dots, to their right. The dots
     // are the component's own ::before now — the three spans and their literal traffic-light colours are gone.
     private Component Header()
@@ -108,10 +121,8 @@ public sealed partial class CodeSample : Component
                 // bg-ui-bg, not the bg-white this used to hard-code: the panel is the palette's, and a
                 // literal white was the one colour on this card that could not follow a theme.
                 : Div.Class("border-b border-ui-line px-5 py-3 font-medium bg-ui-bg")[
-                    Title is null ? null : H5.Class("mb-0 font-semibold")[Title],
-                    Notes is null
-                        ? null
-                        : P.Class($"text-ui-muted text-sm mb-0 {(Title is null ? "" : "mt-1")}")[Notes]
+                    TitleLine(),
+                    NotesLine()
                 ],
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either
@@ -123,7 +134,7 @@ public sealed partial class CodeSample : Component
                 Header(),
                 Pre.Class("sample-code m-0 overflow-x-auto px-5 pb-1 text-[0.82rem] leading-relaxed")[
                     Code.Class(codeClass)[
-                        // A known language is tokenized server-side and injected verbatim;
+                        // A known language is tokenized server-side and injected verbatim, while
                         // an unknown extension falls back to plain, HTML-encoded text.
                         activeLanguage is null
                             ? Text.Value(activeSource.TrimEnd())
@@ -135,7 +146,7 @@ public sealed partial class CodeSample : Component
                 // The output side of the pairing: daisyUI's `status` dot, pulsing unless the visitor asked for less
                 // motion, beside a mono label that rhymes with the code header above.
                 Div.Class("sample-result-label mb-3 inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-ui-brand-ink")[
-                    Span.Class("status status-primary motion-safe:animate-pulse").Aria(new Dictionary<string, string?> { ["hidden"] = "true" }),
+                    Span.Class("status status-primary motion-safe:animate-pulse").Aria("hidden", "true"),
                     "Live result"
                 ],
                 Div.Class("sample-result-body flex-1")[Result ?? null]

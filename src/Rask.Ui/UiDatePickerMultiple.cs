@@ -66,7 +66,7 @@ public sealed partial class UiDatePickerMultiple : UiFormField<ICollection<DateO
                 FieldId,
                 Text(chosen),
                 Placeholder ?? "Choose dates",
-                ControlAria(),
+                BuildControlAria(),
                 _open,
                 Disabled == true,
                 UiClass.Compose(UiDayGrid.BoxClass(Tone, Size, Variant), Class),

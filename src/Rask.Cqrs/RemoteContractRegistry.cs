@@ -14,7 +14,7 @@ namespace Rask.Cqrs;
 /// </remarks>
 public static class RemoteContractRegistry
 {
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
 
     // One entry per contributing assembly, keyed by that assembly's generated registry type, so a
     // hot-reload re-run swaps that assembly's contribution instead of merging into it — the same
@@ -23,10 +23,10 @@ public static class RemoteContractRegistry
 
     // Rebuilt under the gate and installed in a single store, so a dispatch in flight observes either
     // the complete old pair of tables or the complete new one.
-    private static volatile IReadOnlyDictionary<Type, RemoteContract> _byType =
+    private static volatile Dictionary<Type, RemoteContract> _byType =
         new Dictionary<Type, RemoteContract>();
 
-    private static volatile IReadOnlyDictionary<string, RemoteContract> _byName =
+    private static volatile Dictionary<string, RemoteContract> _byName =
         new Dictionary<string, RemoteContract>(StringComparer.Ordinal);
 
     private static volatile RemoteContract[] _all = [];

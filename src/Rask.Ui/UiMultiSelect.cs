@@ -40,9 +40,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     private const int DefaultChips = 3;
 
     // Per-instance, so two id-less controls on one page cannot collide on option ids — see Ui.Select.
-    private static int _instances;
-
-    private readonly int _instance = Interlocked.Increment(ref _instances);
+    private readonly int _instance = UiInstanceCounter.Next();
 
     private bool _open;
     private int _cursor = -1;
@@ -211,35 +209,14 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
         // Filtering narrows the option list BEFORE the layout is built, so the flat cursor space and the
         // rendered rows are the same list — which is what lets an arrow key follow the eye after a search.
         var shown = Filter is { } match && !string.IsNullOrEmpty(_filter)
-            ? Options.Where(o => match.Invoke(o.Value, _filter) == true).ToArray()
+            ? Options.Where(o => match.Invoke(o.Value, _filter)).ToArray()
             : Options;
         var layout = UiSelectNav.Build(shown, OptionGroup is { } g ? o => g.Invoke(o.Value) ?? string.Empty : null);
         var flat = layout.Flat;
         var off = Disabledness(flat);
         var cursor = UiSelectNav.Normalize(_cursor, flat.Count, off);
 
-        var invoker = Button
-            .Type("button")
-            // min-h-6 is load-bearing, not spacing. This button says nothing at all whenever every
-            // answer fitted into chips — Summary returns "" — and an empty flex child collapses to zero
-            // height, which leaves the control with no region to click to open the list and a combobox
-            // that assistive tooling and Playwright alike report as not visible. The caret beside it is
-            // daisyUI's `.select` background image, painted on the box rather than on this button, so it
-            // is no help: it looks clickable and is not. Only a browser catches this, and one did.
-            .Class("flex min-h-6 flex-1 items-center justify-between gap-2 text-left")
-            .Id(FieldId)
-            .Role("combobox")
-            .Disabled(disabled)
-            .Aria(Aria(expanded: _open, activeDescendant: _open && cursor >= 0
-                ? UiSelectNav.OptId(Prefix, cursor)
-                : null))
-            .Attributes(("popovertarget", PanelId))
-            // Deliberately does NOT touch _open — see the toggle handler below, which is its sole writer.
-            // All this does is have a cursor ready for the frame that opens.
-            .OnClick(() => _cursor = UiSelectNav.Seed(FirstChosen(flat, chosen), flat.Count, off))
-            .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, off, chosen, fromSearch: false))[
-            Span.Class("truncate")[Summary(chosen)]
-        ];
+        var invoker = Invoker(acc, ctx, flat, off, chosen, cursor);
 
         // Presentational, and deliberately so: no role and no aria of its own. The combobox is the
         // button inside it — a second role="combobox" here would announce two controls where there is
@@ -258,22 +235,55 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
         return Div.Class(UiClass.Compose("w-full", Class))[
             box,
             Panel(acc, ctx, layout, flat, off, chosen, cursor, disabled),
-            // A listbox of buttons submits nothing. One hidden input per answer, all sharing the name, is
-            // exactly what <select multiple> posts — so a server reading the native control reads this one
-            // unchanged, and nothing has to know which mode drew it.
-            //
-            // Unseen answers post too. They are part of the field's value, and a plain form has no model
-            // to carry them separately — leaving them out would drop on submit exactly what the commit
-            // path takes care to keep, which is the same data loss arriving by the other road.
-            Name is { } name
-                ? chosen.Shown.Concat(chosen.Unseen).Select(v => Input
-                    .Value(OptionText(v))
-                    .Key("h-" + OptionText(v))
-                    .Type(InputType.Hidden)
-                    .Name(name))
-                : null
+            HiddenFields(chosen)
         ];
     }
+
+    private Component Invoker(
+        ExpressionAccessor.Accessor? acc,
+        EditContext? ctx,
+        IReadOnlyList<(T Value, string Text)> flat,
+        Func<int, bool> off,
+        Picked chosen,
+        int cursor) =>
+        Button
+            .Type("button")
+            // min-h-6 is load-bearing, not spacing. This button says nothing at all whenever every
+            // answer fitted into chips — Summary returns "" — and an empty flex child collapses to zero
+            // height, which leaves the control with no region to click to open the list and a combobox
+            // that assistive tooling and Playwright alike report as not visible. The caret beside it is
+            // daisyUI's `.select` background image, painted on the box rather than on this button, so it
+            // is no help: it looks clickable and is not. Only a browser catches this, and one did.
+            .Class("flex min-h-6 flex-1 items-center justify-between gap-2 text-left")
+            .Id(FieldId)
+            .Role("combobox")
+            .Disabled(Disabled == true)
+            .Aria(Aria(expanded: _open, activeDescendant: _open && cursor >= 0
+                ? UiSelectNav.OptId(Prefix, cursor)
+                : null))
+            .Attributes(("popovertarget", PanelId))
+            // Deliberately does NOT touch _open — see the toggle handler below, which is its sole writer.
+            // All this does is have a cursor ready for the frame that opens.
+            .OnClick(() => _cursor = UiSelectNav.Seed(FirstChosen(flat, chosen), flat.Count, off))
+            .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, off, chosen, fromSearch: false))[
+            Span.Class("truncate")[Summary(chosen)]
+        ];
+
+    // A listbox of buttons submits nothing. One hidden input per answer, all sharing the name, is exactly what
+    // <select multiple> posts — so a server reading the native control reads this one unchanged, and nothing has
+    // to know which mode drew it.
+    //
+    // Unseen answers post too. They are part of the field's value, and a plain form has no model to carry them
+    // separately — leaving them out would drop on submit exactly what the commit path takes care to keep, which
+    // is the same data loss arriving by the other road.
+    private IEnumerable<Component>? HiddenFields(Picked chosen) =>
+        Name is { } name
+            ? chosen.Shown.Concat(chosen.Unseen).Select(v => Input
+                .Value(OptionText(v))
+                .Key("h-" + OptionText(v))
+                .Type(InputType.Hidden)
+                .Name(name))
+            : null;
 
     // The chips, and the control that clears them all. Empty (not a placeholder span) when nothing is
     // chosen: the invoker beside it already shows the placeholder, and two of them would be two answers.
@@ -293,7 +303,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                     : Button
                         .Type("button")
                         .Class("cursor-pointer opacity-70 hover:opacity-100")
-                        .Aria(new Dictionary<string, string?> { ["label"] = "Remove " + TextOf(value) })
+                        .Aria("label", "Remove " + TextOf(value))
                         .OnClick(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))[
                         Ui.Icon.Name(Ui.IconName.Close).Class("size-3")
                     ]
@@ -305,7 +315,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
             yield return Button
                 .Type("button")
                 .Class("cursor-pointer opacity-60 hover:opacity-100")
-                .Aria(new Dictionary<string, string?> { ["label"] = "Clear all" })
+                .Aria("label", "Clear all")
                 // Clears the answers this control drew, and only those.
                 .OnClick(() => CommitAsync(acc, ctx, chosen, []))[
                 Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
@@ -339,7 +349,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
             // its own copy is a second answer to a question with one, and the two race over the socket.
             .OnToggle(e =>
             {
-                _open = e.NewState == "open";
+                _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
                 _cursor = _open ? UiSelectNav.Seed(FirstChosen(flat, chosen), flat.Count, off) : -1;
                 if (!_open)
                 {
@@ -352,13 +362,11 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                 .Id(ListId)
                 .Role("listbox")
                 .Class("menu w-full flex-nowrap p-0")
-                .Aria(new Dictionary<string, string?>
-                {
-                    ["label"] = Label ?? AccessibleLabel,
+                .Aria(
+                    ("label", Label ?? AccessibleLabel),
                     // What actually announces "you may pick several". Without it a reader meets a listbox
                     // whose options each say aria-selected and has no way to know a second one is allowed.
-                    ["multiselectable"] = "true"
-                })[
+                    ("multiselectable", "true"))[
                 flat.Count == 0
                     ? Li.Class("menu-disabled")[Span["No matches"]]
                     : Rows(layout, acc, ctx, chosen, cursor)
@@ -387,7 +395,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                 .Placeholder("Search…")
                 .Autocomplete("off")
                 .Autofocus(true)
-                .Aria(new Dictionary<string, string?> { ["label"] = "Search " + (Label ?? AccessibleLabel ?? "options") })
+                .Aria("label", "Search " + (Label ?? AccessibleLabel ?? "options"))
                 // Back to the top of the narrowed list, which Normalize then snaps onto the first option
                 // a reader can actually land on.
                 .OnInput(raw =>
@@ -482,11 +490,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                 selected ? "menu-active" : "",
                 cursor == row.FlatIndex ? "menu-focus" : ""))
             .Disabled(off)
-            // aria-disabled is OMITTED when the option is enabled, never nulled: a valueless aria-disabled
-            // reads as "true", so the tidy conditional value would mark every option unavailable.
-            .Aria(off
-                ? new Dictionary<string, string?> { ["selected"] = "false", ["disabled"] = "true" }
-                : new Dictionary<string, string?> { ["selected"] = selected ? "true" : "false" });
+            .Aria(UiOptionAria.For(disabled: off, selected: selected));
 
         // No popovertargetaction="hide", and that omission is the feature: picking one answer out of
         // several must not close the list, or choosing three means opening it three times.
@@ -567,7 +571,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     // The picked option values, mapped back through this control's own option list. Never parsed: the
     // strings that arrive are ones this control rendered, so matching them against the same formatting is
     // exact and needs no IParsable, no enum lookup and no reflection.
-    private IReadOnlyList<T> Map(IReadOnlyList<string> picked)
+    private List<T> Map(IReadOnlyList<string> picked)
     {
         var wanted = new HashSet<string>(picked, StringComparer.Ordinal);
         var mapped = new List<T>(picked.Count);
@@ -601,15 +605,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
             }
         }
 
-        var unseen = new List<T>();
-        foreach (var value in current)
-        {
-            if (!Contains(shown, value))
-            {
-                unseen.Add(value);
-            }
-        }
-
+        var unseen = current.Where(value => !Contains(shown, value)).ToList();
         return new Picked(shown, unseen);
     }
 
@@ -646,9 +642,9 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     }
 
     private Func<int, bool> Disabledness(IReadOnlyList<(T Value, string Text)> flat) =>
-        OptionDisabled is { } off ? i => off.Invoke(flat[i].Value) == true : _ => false;
+        OptionDisabled is { } off ? i => off.Invoke(flat[i].Value) : _ => false;
 
-    private int FirstChosen(IReadOnlyList<(T Value, string Text)> flat, Picked chosen)
+    private static int FirstChosen(IReadOnlyList<(T Value, string Text)> flat, Picked chosen)
     {
         for (var i = 0; i < flat.Count; i++)
         {
@@ -673,7 +669,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     // to write aria-label from Label beside the visible legend, and copy the invalid rule.
     private Dictionary<string, string?> Aria(bool? expanded, string? activeDescendant = null)
     {
-        var aria = ControlAria();
+        var aria = BuildControlAria();
 
         if (expanded is { } open)
         {
@@ -699,18 +695,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     private static IReadOnlyList<T> Union(IReadOnlyList<T> chosen, IReadOnlyList<T> adding) =>
         [.. chosen, .. adding.Where(v => !Contains(chosen, v))];
 
-    private static bool Contains(IEnumerable<T> values, T value)
-    {
-        foreach (var candidate in values)
-        {
-            if (Same(candidate, value))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool Contains(IEnumerable<T> values, T value) => values.Any(candidate => Same(candidate, value));
 
     private static bool Same(T? a, T? b) => EqualityComparer<T?>.Default.Equals(a, b);
 

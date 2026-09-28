@@ -71,7 +71,7 @@ public sealed partial class DashboardLayout(
     /// The path every queue page hangs off, taken from the generated URL rather than spelled again — so
     /// moving the route moves this with it.
     /// </summary>
-    private string QueuesPrefix
+    private static string QueuesPrefix
     {
         get
         {
@@ -125,16 +125,16 @@ public sealed partial class DashboardLayout(
 
     // Named Tab, not NavTab: a private method named after a chain entry would shadow the entry it needs to
     // call, and the entry is a member of this markup host rather than a type it can qualify.
-    private Component Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
+    private UiNavTab Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
         Ui.NavTab
             .Label(label)
             .Href(url)
             .Active(IsActive(prefix ?? url.Path, exact));
 
-    private Component? QueueSeparator() =>
+    private UiCrumbSeparator? QueueSeparator() =>
         CurrentQueue() is null ? null : Ui.CrumbSeparator;
 
-    private Component? QueueSwitcher()
+    private UiCrumbSwitcher? QueueSwitcher()
     {
         // Only while you are looking at one. Elsewhere the crumb would be asserting a scope the page below
         // it does not actually have.
@@ -181,7 +181,7 @@ public sealed partial class DashboardLayout(
     {
         var path = route.Path.TrimEnd('/');
         var target = href.TrimEnd('/');
-        return exact ? path == target : path.StartsWith(target, StringComparison.Ordinal);
+        return exact ? string.Equals(path, target, StringComparison.Ordinal) : path.StartsWith(target, StringComparison.Ordinal);
     }
 
     // The fail-closed default is permissive in Development so `rask dev` just works. That convenience is

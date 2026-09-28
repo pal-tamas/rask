@@ -5,7 +5,7 @@ namespace Rask.Wasm.Files;
 
 internal sealed class WasmFileBackend : IBrowserFileBackend
 {
-    public RaskFile Create(JsonElement metadata)
+    public IRaskFile Create(JsonElement metadata)
     {
         var @ref = metadata.TryGetProperty("ref", out var r) && r.ValueKind == JsonValueKind.String
             ? r.GetString() ?? string.Empty
@@ -31,7 +31,7 @@ internal sealed class WasmFileBackend : IBrowserFileBackend
         return new WasmRaskFile(@ref, name, size, contentType, lastModified);
     }
 
-    public void Release(IEnumerable<RaskFile> files)
+    public void Release(IEnumerable<IRaskFile> files)
     {
         // JS-side file registry holds File references; entries are cleared by JS on the next
         // change/submit, so no synchronous release is needed here. The dispatcher still calls

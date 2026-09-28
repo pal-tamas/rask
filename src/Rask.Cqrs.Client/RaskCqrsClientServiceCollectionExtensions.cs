@@ -36,12 +36,11 @@ public static class RaskCqrsClientServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        if (services.Any(static d => d.ServiceType == typeof(ClientMarker)))
+        // RemoteDispatch is registered by this method alone, so it doubles as the marker of a second call.
+        if (services.Any(static d => d.ServiceType == typeof(RemoteDispatch)))
         {
             return services;
         }
-
-        services.AddSingleton(new ClientMarker());
 
         var options = new RaskCqrsClientOptions();
         configure?.Invoke(options);
@@ -165,7 +164,4 @@ public static class RaskCqrsClientServiceCollectionExtensions
             + "or register an HttpClient whose BaseAddress is the app's own origin, which is what a "
             + "same-origin client wants so its session cookie rides every request.");
     }
-
-    // Sentinel marking that AddRaskCqrsClient already ran on this collection.
-    private sealed class ClientMarker;
 }

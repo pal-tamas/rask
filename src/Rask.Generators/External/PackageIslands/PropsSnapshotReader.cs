@@ -39,23 +39,9 @@ internal static class PropsSnapshotReader
             return Defective(path, "a props snapshot must be a JSON object", root.Line, root.Column);
         }
 
-        if (root["schema"] is not { } schemaNode)
+        if (SchemaDefect(path, root, out var schema) is { } schemaDefect)
         {
-            return Defective(path, "it has no 'schema' version", root.Line, root.Column);
-        }
-
-        if (!TryReadSchema(schemaNode, out var schema) || schema < 1)
-        {
-            return Defective(path, "its 'schema' is not a version this reader recognises", schemaNode.Line, schemaNode.Column);
-        }
-
-        if (schema > MaxSchema)
-        {
-            return Defective(
-                path,
-                $"it was written by a newer extractor (schema {schema}), and this Rask.External reads schema {MaxSchema}",
-                schemaNode.Line,
-                schemaNode.Column);
+            return schemaDefect;
         }
 
         var runtime = root["runtime"]?.AsString();
@@ -70,48 +56,14 @@ internal static class PropsSnapshotReader
             return Defective(path, "it has no 'props' array", root.Line, root.Column);
         }
 
-        var props = new List<SnapshotProp>();
-        foreach (var item in propsNode.Items)
+        if (PropsDefect(path, propsNode, out var props) is { } propsDefect)
         {
-            if (item.Kind != JsonKind.Object || item["name"]?.AsString() is not { Length: > 0 } name)
-            {
-                return Defective(path, "a prop without a 'name'", item.Line, item.Column);
-            }
-
-            props.Add(new SnapshotProp(
-                name,
-                item["wire"]?.AsString() ?? name,
-                item["required"]?.AsBoolean() ?? false,
-                item["doc"]?.AsString(),
-                Raw(item["default"]),
-                ReadType(item["type"], 0),
-                item.Line,
-                item.Column));
+            return propsDefect;
         }
 
-        var skipped = new List<SnapshotSkip>();
-        if (root["skipped"] is { Kind: JsonKind.Array } skippedNode)
-        {
-            foreach (var item in skippedNode.Items)
-            {
-                if (item["name"]?.AsString() is { } name)
-                {
-                    skipped.Add(new SnapshotSkip(
-                        name,
-                        item["reason"]?.AsString() ?? "unsupported",
-                        item["detail"]?.AsString()));
-                }
-            }
-        }
+        var skipped = ReadSkipped(root);
 
-        var types = new List<SnapshotNamedType>();
-        if (root["types"] is { Kind: JsonKind.Object } typesNode)
-        {
-            foreach (var member in typesNode.Members)
-            {
-                types.Add(new SnapshotNamedType(member.Key, ReadType(member.Value, 0)));
-            }
-        }
+        var types = ReadNamedTypes(root);
 
         var package = root["package"];
 
@@ -133,13 +85,98 @@ internal static class PropsSnapshotReader
             0);
     }
 
+    private static List<SnapshotSkip> ReadSkipped(JsonNode root)
+    {
+        var skipped = new List<SnapshotSkip>();
+        if (root["skipped"] is { Kind: JsonKind.Array } skippedNode)
+        {
+            foreach (var item in skippedNode.Items)
+            {
+                if (item["name"]?.AsString() is { } name)
+                {
+                    skipped.Add(new SnapshotSkip(
+                        name,
+                        item["reason"]?.AsString() ?? "unsupported",
+                        item["detail"]?.AsString()));
+                }
+            }
+        }
+
+        return skipped;
+    }
+
+    private static List<SnapshotNamedType> ReadNamedTypes(JsonNode root)
+    {
+        var types = new List<SnapshotNamedType>();
+        if (root["types"] is { Kind: JsonKind.Object } typesNode)
+        {
+            foreach (var member in typesNode.Members)
+            {
+                types.Add(new SnapshotNamedType(member.Key, ReadType(member.Value, 0)));
+            }
+        }
+
+        return types;
+    }
+
+    // The snapshot a missing or unreadable 'schema' makes, or null with the version it declares.
+    private static PropsSnapshot? SchemaDefect(string path, JsonNode root, out int schema)
+    {
+        schema = 0;
+        if (root["schema"] is not { } schemaNode)
+        {
+            return Defective(path, "it has no 'schema' version", root.Line, root.Column);
+        }
+
+        if (!TryReadSchema(schemaNode, out schema) || schema < 1)
+        {
+            return Defective(path, "its 'schema' is not a version this reader recognises", schemaNode.Line, schemaNode.Column);
+        }
+
+        if (schema > MaxSchema)
+        {
+            return Defective(
+                path,
+                $"it was written by a newer extractor (schema {schema}), and this Rask.External reads schema {MaxSchema}",
+                schemaNode.Line,
+                schemaNode.Column);
+        }
+
+        return null;
+    }
+
+    // The snapshot an unnamed prop makes, or null with every prop read.
+    private static PropsSnapshot? PropsDefect(string path, JsonNode propsNode, out List<SnapshotProp> props)
+    {
+        props = new List<SnapshotProp>();
+        foreach (var item in propsNode.Items)
+        {
+            if (item.Kind != JsonKind.Object || item["name"]?.AsString() is not { Length: > 0 } name)
+            {
+                return Defective(path, "a prop without a 'name'", item.Line, item.Column);
+            }
+
+            props.Add(new SnapshotProp(
+                name,
+                item["wire"]?.AsString() ?? name,
+                item["required"]?.AsBoolean() ?? false,
+                item["doc"]?.AsString(),
+                Raw(item["default"]),
+                ReadType(item["type"], 0),
+                item.Line,
+                item.Column));
+        }
+
+        return null;
+    }
+
     private static bool TryReadSchema(JsonNode node, out int schema)
     {
         schema = 0;
         if (node.TryGetNumber(out var number))
         {
             schema = (int)number;
-            return number >= 1 && number == System.Math.Floor(number) && number < int.MaxValue;
+            return number >= 1 && number - System.Math.Floor(number) < double.Epsilon && number < int.MaxValue;
         }
 
         // "1.3" reads as major 1: a minor version is additive by definition.
@@ -165,6 +202,53 @@ internal static class PropsSnapshotReader
         var kind = node["kind"]?.AsString() ?? "?";
         var nullable = node["nullable"]?.AsBoolean() ?? false;
 
+        var values = ReadLiterals(node);
+
+        var element = node["element"] ?? node["value"];
+        var of = new List<SnapshotType>();
+        if (node["of"] is { } ofNode)
+        {
+            if (ofNode.Kind == JsonKind.Array)
+            {
+                foreach (var alternative in ofNode.Items)
+                {
+                    of.Add(ReadType(alternative, depth + 1));
+                }
+            }
+            else
+            {
+                element ??= ofNode;
+            }
+        }
+
+        var members = ReadMembers(node, depth);
+
+        var args = ReadArgs(node, depth);
+
+        var returns = node["returns"] switch
+        {
+            null => false,
+            { Kind: JsonKind.False } => false,
+            { Kind: JsonKind.Null } => false,
+            { Kind: JsonKind.String } r => !string.Equals(r.Text, "void", System.StringComparison.Ordinal),
+            _ => true,
+        };
+
+        return new SnapshotType(
+            kind,
+            nullable,
+            new EquatableArray<SnapshotLiteral>(values),
+            node["open"]?.AsBoolean() ?? false,
+            element is null ? null : ReadType(element, depth + 1),
+            new EquatableArray<SnapshotType>(of),
+            new EquatableArray<SnapshotMember>(members),
+            node["name"]?.AsString(),
+            new EquatableArray<SnapshotArg>(args),
+            returns);
+    }
+
+    private static List<SnapshotLiteral> ReadLiterals(JsonNode node)
+    {
         var values = new List<SnapshotLiteral>();
         if (node["values"] is { Kind: JsonKind.Array } valuesNode)
         {
@@ -188,23 +272,11 @@ internal static class PropsSnapshotReader
             }
         }
 
-        var element = node["element"] ?? node["value"];
-        var of = new List<SnapshotType>();
-        if (node["of"] is { } ofNode)
-        {
-            if (ofNode.Kind == JsonKind.Array)
-            {
-                foreach (var alternative in ofNode.Items)
-                {
-                    of.Add(ReadType(alternative, depth + 1));
-                }
-            }
-            else
-            {
-                element ??= ofNode;
-            }
-        }
+        return values;
+    }
 
+    private static List<SnapshotMember> ReadMembers(JsonNode node, int depth)
+    {
         var members = new List<SnapshotMember>();
         if (node["members"] is { Kind: JsonKind.Array } membersNode)
         {
@@ -221,6 +293,11 @@ internal static class PropsSnapshotReader
             }
         }
 
+        return members;
+    }
+
+    private static List<SnapshotArg> ReadArgs(JsonNode node, int depth)
+    {
         var args = new List<SnapshotArg>();
         if (node["args"] is { Kind: JsonKind.Array } argsNode)
         {
@@ -237,26 +314,7 @@ internal static class PropsSnapshotReader
             }
         }
 
-        var returns = node["returns"] switch
-        {
-            null => false,
-            { Kind: JsonKind.False } => false,
-            { Kind: JsonKind.Null } => false,
-            { Kind: JsonKind.String } r => !string.Equals(r.Text, "void", System.StringComparison.Ordinal),
-            _ => true,
-        };
-
-        return new SnapshotType(
-            kind,
-            nullable,
-            new EquatableArray<SnapshotLiteral>(values),
-            node["open"]?.AsBoolean() ?? false,
-            element is null ? null : ReadType(element, depth + 1),
-            new EquatableArray<SnapshotType>(of),
-            new EquatableArray<SnapshotMember>(members),
-            node["name"]?.AsString(),
-            new EquatableArray<SnapshotArg>(args),
-            returns);
+        return args;
     }
 
     // A default is documentation, so any JSON value is accepted and kept as the text a reader would see.

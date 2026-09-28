@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Browser;
 
 namespace Rask.Site.Features;
@@ -37,5 +38,5 @@ public sealed partial class StorageEstimateDemo(IStorageEstimator storage) : Com
         catch (Exception ex) { _status = "Read failed: " + ex.Message; }
     }
 
-    private static string Mb(long bytes) => (bytes / 1024.0 / 1024.0).ToString("N1");
+    private static string Mb(long bytes) => (bytes / 1024.0 / 1024.0).ToString("N1", CultureInfo.InvariantCulture);
 }

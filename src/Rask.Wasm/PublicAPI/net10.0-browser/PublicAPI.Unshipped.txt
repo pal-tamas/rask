@@ -411,7 +411,6 @@ Rask.Wasm.WasmHostBuilder
 Rask.Wasm.WasmHostBuilder.RunAsync<TApp>() -> System.Threading.Tasks.Task!
 Rask.Wasm.WasmHostBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Wasm.WasmHostBuilder.UseCulture(System.Action<Rask.Core.Globalization.RaskCultureOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!
-Rask.Wasm.WasmHostBuilder.UseManifest(Rask.Core.Browser.WebAppManifest! manifest) -> Rask.Wasm.WasmHostBuilder!
 Rask.Wasm.WasmHostBuilder.UsePwa(Rask.Core.Browser.WebAppManifest! manifest) -> Rask.Wasm.WasmHostBuilder!
 Rask.Wasm.WasmPrerender
 RaskBuilderSettersRask_Wasm

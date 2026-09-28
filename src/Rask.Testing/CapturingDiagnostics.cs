@@ -51,6 +51,10 @@ public sealed class CapturingDiagnostics : IDisposable
 
     private readonly Lock _gate = new();
     private readonly List<CapturedDiagnostic> _captured = [];
+
+    // The error-level ones, republished whole on each capture: errors are rare, reads are not, and a reader
+    // gets a snapshot no later capture can change under it.
+    private CapturedDiagnostic[] _errors = [];
     private bool _disposed;
 
     private CapturingDiagnostics()
@@ -109,8 +113,7 @@ public sealed class CapturingDiagnostics : IDisposable
     }
 
     /// <summary>Captured events at error level — the ones that mean something was swallowed.</summary>
-    public IReadOnlyList<CapturedDiagnostic> Errors =>
-        Captured.Where(e => e.Level == DiagnosticLevel.Error).ToArray();
+    public IReadOnlyList<CapturedDiagnostic> Errors => Volatile.Read(ref _errors);
 
     /// <summary>Captured events from one subsystem, e.g. <c>"Rask.Lifecycle"</c> or <c>"Rask.JsInvoke"</c>.</summary>
     public IReadOnlyList<CapturedDiagnostic> OfCategory(string category) =>
@@ -130,48 +133,34 @@ public sealed class CapturingDiagnostics : IDisposable
             }
 
             _disposed = true;
-            Installed.Remove(this);
-
-            if (Installed.Count == 0)
-            {
-                RaskDiagnostics.Sink = _outerSink;
-                _outerSink = null;
-            }
-
-            RaskDiagnostics.ResetReportOnceForTests();
+            Uninstall(this);
         }
+    }
+
+    // Callers hold InstallGate.
+    private static void Uninstall(CapturingDiagnostics capture)
+    {
+        Installed.Remove(capture);
+
+        if (Installed.Count == 0)
+        {
+            RaskDiagnostics.Sink = _outerSink;
+            _outerSink = null;
+        }
+
+        RaskDiagnostics.ResetReportOnceForTests();
     }
 
     private void Capture(RaskDiagnosticEvent e)
     {
         lock (_gate)
         {
-            _captured.Add(new CapturedDiagnostic(
-                (DiagnosticLevel)e.Level, e.Category, e.Message, e.Exception));
+            var captured = new CapturedDiagnostic((DiagnosticLevel)e.Level, e.Category, e.Message, e.Exception);
+            _captured.Add(captured);
+            if (captured.Level == DiagnosticLevel.Error)
+            {
+                Volatile.Write(ref _errors, [.. _errors, captured]);
+            }
         }
     }
 }
-
-/// <summary>Severity of a captured framework diagnostic.</summary>
-public enum DiagnosticLevel
-{
-    /// <summary>Something worth knowing that is not a fault.</summary>
-    Information,
-
-    /// <summary>A degradation the app survives — a budget exceeded, a feature falling back.</summary>
-    Warning,
-
-    /// <summary>A fault the framework caught and did not let escape.</summary>
-    Error,
-}
-
-/// <summary>One framework diagnostic, as captured by <see cref="CapturingDiagnostics" />.</summary>
-/// <param name="Level">Severity.</param>
-/// <param name="Category">The subsystem that raised it, e.g. <c>Rask.Lifecycle</c>.</param>
-/// <param name="Message">The human-readable message, without the exception text appended.</param>
-/// <param name="Exception">The associated exception, or <c>null</c> for a message-only diagnostic.</param>
-public sealed record CapturedDiagnostic(
-    DiagnosticLevel Level,
-    string Category,
-    string Message,
-    Exception? Exception);

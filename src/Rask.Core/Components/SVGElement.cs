@@ -85,6 +85,12 @@ public abstract partial class SVGElement
     // First, where they have always rendered: before the rarer globals and the tag's own attributes.
     partial void WriteOwnedAttributesFirst(StringBuilder sb)
     {
+        WritePaintAttributes(sb);
+        WritePresentationAttributes(sb);
+    }
+
+    private void WritePaintAttributes(StringBuilder sb)
+    {
         if (Fill is not null)
         {
             AppendAttr(sb, "fill", Fill);
@@ -134,7 +140,10 @@ public abstract partial class SVGElement
         {
             AppendAttr(sb, "stroke-dashoffset", StrokeDashoffset);
         }
+    }
 
+    private void WritePresentationAttributes(StringBuilder sb)
+    {
         if (Opacity is not null)
         {
             AppendAttr(sb, "opacity", Opacity);

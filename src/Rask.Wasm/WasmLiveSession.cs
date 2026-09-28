@@ -15,7 +15,7 @@ namespace Rask.Wasm;
 // the Server host. WasmLiveSession adds the in-process transport: the JSImport ApplyRender push,
 // the single dispatch lock, the route-auth guard, the navigate/dispatch handlers, and the byte[]-
 // per-frame model the JSExport boundary needs.
-internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
+internal sealed class WasmLiveSession : LiveSessionBase
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 
@@ -59,7 +59,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
     // Browser WebAssembly runtime — in-process in the browser page (shell stays Web, platform None).
     protected override RenderEngine EngineCore => RenderEngine.Wasm;
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
         // Unsubscribe first so a late Changed can't fire OnUserChanged on the now-disposed _lock.
         if (_userProvider is not null)
@@ -72,6 +72,8 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         DetachCulture();
 
         ComponentLifecycle.DisposeComponentTree(View);
+        // Single-threaded in the browser: no render can race this, so the arrays go straight back to the pool.
+        _htmlBuffers.Dispose();
         _lock.Dispose();
     }
 
@@ -181,7 +183,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         return RequestPublishRenderAsync();
     }
 
-    private void OnUserChanged() => _ = RequestRenderAsync();
+    private void OnUserChanged(object? sender, EventArgs e) => _ = RequestRenderAsync();
 
     public async Task<byte[]> InitialRenderAsync()
     {
@@ -217,25 +219,25 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         }
     }
 
-    public async Task<byte[]> DispatchAsync(byte[] json)
+    private static readonly Task<byte[]> NoFrame = Task.FromResult(Array.Empty<byte>());
+
+    // Push model: produce the render payload, then either return it to the caller
+    // (tests) OR call JSInterop.ApplyRender from inside .NET (production). The JSExport
+    // generator doesn't support Task<byte[]> as a return type — Task<string> works but
+    // would force a base64 round-trip — so production callers use the push side.
+    // Returning bytes preserves the test seam: tests can assert against the payload
+    // without standing up a JS interop bridge.
+    //
+    // Not async itself: it only routes, and handing back the branch's own task keeps a frame to one
+    // state machine.
+    public Task<byte[]> DispatchAsync(byte[] json)
     {
-        // Push model: produce the render payload, then either return it to the caller
-        // (tests) OR call JSInterop.ApplyRender from inside .NET (production). The JSExport
-        // generator doesn't support Task<byte[]> as a return type — Task<string> works but
-        // would force a base64 round-trip — so production callers use the push side.
-        // Returning bytes preserves the test seam: tests can assert against the payload
-        // without standing up a JS interop bridge.
         if (json is null || json.Length == 0)
         {
-            return Array.Empty<byte>();
+            return NoFrame;
         }
 
-        JsonElement root;
-        // Parse straight from the UTF-8 byte payload — no UTF-16 string materialisation.
-        // JS hands the bytes across the interop boundary directly via TextEncoder.encode
-        // on the send path, replacing the prior JSON.stringify + string-marshalled call.
-        using var doc = JsonDocument.Parse(json.AsMemory());
-        root = doc.RootElement.Clone();
+        var root = ParseFrame(json);
 
         var type = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String
             ? t.GetString()
@@ -247,19 +249,28 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             devTools.FrameReceived(this, json.Length, root);
         }
 
-        if (type == "navigate")
+        if (string.Equals(type, "navigate", StringComparison.Ordinal))
         {
-            return await HandleNavigateAsync(root).ConfigureAwait(false);
+            return HandleNavigateAsync(root);
         }
 
         var handlerId = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
             ? idEl.GetString()
             : null;
-        if (handlerId is null)
-        {
-            return Array.Empty<byte>();
-        }
+        return handlerId is null ? NoFrame : DispatchHandlerAsync(handlerId, root);
+    }
 
+    // Parse straight from the UTF-8 byte payload — no UTF-16 string materialisation.
+    // JS hands the bytes across the interop boundary directly via TextEncoder.encode
+    // on the send path, replacing the prior JSON.stringify + string-marshalled call.
+    private static JsonElement ParseFrame(byte[] json)
+    {
+        using var doc = JsonDocument.Parse(json.AsMemory());
+        return doc.RootElement.Clone();
+    }
+
+    private async Task<byte[]> DispatchHandlerAsync(string handlerId, JsonElement root)
+    {
         using var work = EnterWorkScope();
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
@@ -331,11 +342,11 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             : string.Empty;
         var replace = root.TryGetProperty("replace", out var rEl) && rEl.ValueKind == JsonValueKind.True;
 
-        var fullUrl = string.IsNullOrEmpty(navQueryString)
-            ? navPath
-            : navQueryString.StartsWith("?", StringComparison.Ordinal)
-                ? navPath + navQueryString
-                : navPath + "?" + navQueryString;
+        var fullUrl = navPath;
+        if (!string.IsNullOrEmpty(navQueryString))
+        {
+            fullUrl += navQueryString.StartsWith('?') ? navQueryString : "?" + navQueryString;
+        }
 
         using var work = EnterWorkScope();
         await _lock.WaitAsync().ConfigureAwait(false);

@@ -71,74 +71,10 @@ public sealed class WriteExternalBuildInputsTask : Task
     public override bool Execute()
     {
         var entryDirectory = Path.Combine(IntermediateDirectory, "entries");
-        var islands = new List<ExternalEntry>();
-        var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var declared = Runtimes();
-
-        foreach (var item in Islands)
+        var islands = CollectIslands();
+        if (islands is null)
         {
-            var source = item.GetMetadata("FullPath");
-            var name = item.GetMetadata("IslandName");
-            if (string.IsNullOrEmpty(name))
-            {
-                name = Path.GetFileNameWithoutExtension(source);
-            }
-
-            // The browser resolves a module by this name, so two islands sharing one would collide in
-            // the manifest — silently, and differently depending on build order. The generator reports
-            // the same collision as RASK058 against the C# declarations; this catches the case where
-            // two front-end files collide before any class has claimed them.
-            if (seen.TryGetValue(name, out var already))
-            {
-                Log.LogError(
-                    $"Rask islands: '{source}' and '{already}' would both register as '{name}'. "
-                    + "The island name is the key the browser resolves a module by, so it has to be "
-                    + "unique. Rename one of the files.");
-                return false;
-            }
-
-            seen[name] = source;
-
-            // The C# class first, the file extension only as a fallback. An extension used to name a
-            // runtime; with seven of them it names a FAMILY — React, Preact and Solid all write .tsx,
-            // Lit and Angular both write .ts — so the glob that discovered this file cannot know which
-            // one it belongs to, and guessing is silent: a Solid island handed React's adapter builds,
-            // bundles, ships, loads, and mounts nothing.
-            var runtime = declared.TryGetValue(name, out var fromCSharp)
-                ? fromCSharp
-                : item.GetMetadata("Runtime");
-
-            if (string.IsNullOrEmpty(runtime))
-            {
-                runtime = ExternalRuntime.React.Key;
-            }
-
-            // Refused rather than defaulted. An unknown runtime used to fall through to React, which
-            // meant a typo in a hand-written <RaskExternal Runtime="vue3"/> generated a React entry
-            // for a Vue component: the build succeeds, the bundle ships, the chunk loads, and nothing
-            // mounts — with the browser reporting a failure that names none of this.
-            if (ExternalRuntime.Find(runtime) is null)
-            {
-                Log.LogError(
-                    $"Rask islands: '{source}' declares the runtime '{runtime}', which Rask has no adapter for. "
-                    + $"Known runtimes: {ExternalRuntime.KeyList}.");
-                return false;
-            }
-
-            var package = item.GetMetadata("PackageModule");
-            var export = item.GetMetadata("PackageExport");
-            islands.Add(new ExternalEntry
-            {
-                Name = name,
-                Source = source,
-                Runtime = runtime,
-                Package = string.IsNullOrEmpty(package) ? null : package,
-                Export = string.IsNullOrEmpty(export) ? "default" : export,
-                // A Lit element named by its class mounts by the tag its snapshot recorded; the item IS the snapshot.
-                Tag = !string.IsNullOrEmpty(package) && runtime == ExternalRuntime.Lit.Key && File.Exists(source)
-                    ? ExternalBuildPlan.SnapshotTag(File.ReadAllText(source))
-                    : null,
-            });
+            return false;
         }
 
         if (islands.Count == 0)
@@ -148,6 +84,122 @@ public sealed class WriteExternalBuildInputsTask : Task
             return true;
         }
 
+        if (WriteEntries(islands, entryDirectory) is not { } entries
+            || WriteConfigs(islands, entryDirectory) is not { } configs)
+        {
+            return false;
+        }
+
+        var written = entries + configs;
+        Log.LogMessage(
+            written > 0 ? MessageImportance.High : MessageImportance.Low,
+            $"Rask islands: {islands.Count} island(s), {written} build input(s) written.");
+
+        return true;
+    }
+
+    /// <summary>Every island as the bundler sees it, or null when one of them was refused (and logged).</summary>
+    private List<ExternalEntry>? CollectIslands()
+    {
+        var islands = new List<ExternalEntry>();
+        var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var declared = Runtimes();
+
+        foreach (var item in Islands)
+        {
+            if (EntryFor(item, seen, declared) is not { } entry)
+            {
+                return null;
+            }
+
+            islands.Add(entry);
+        }
+
+        return islands;
+    }
+
+    private ExternalEntry? EntryFor(ITaskItem item, Dictionary<string, string> seen, Dictionary<string, string> declared)
+    {
+        var source = item.GetMetadata("FullPath");
+        var name = item.GetMetadata("IslandName");
+        if (string.IsNullOrEmpty(name))
+        {
+            name = Path.GetFileNameWithoutExtension(source);
+        }
+
+        // The browser resolves a module by this name, so two islands sharing one would collide in
+        // the manifest — silently, and differently depending on build order. The generator reports
+        // the same collision as RASK058 against the C# declarations; this catches the case where
+        // two front-end files collide before any class has claimed them.
+        if (seen.TryGetValue(name, out var already))
+        {
+            Log.LogError(
+                $"Rask islands: '{source}' and '{already}' would both register as '{name}'. "
+                + "The island name is the key the browser resolves a module by, so it has to be "
+                + "unique. Rename one of the files.");
+            return null;
+        }
+
+        seen[name] = source;
+
+        if (RuntimeFor(item, name, source, declared) is not { } runtime)
+        {
+            return null;
+        }
+
+        var package = item.GetMetadata("PackageModule");
+        var export = item.GetMetadata("PackageExport");
+        return new ExternalEntry
+        {
+            Name = name,
+            Source = source,
+            Runtime = runtime,
+            Package = string.IsNullOrEmpty(package) ? null : package,
+            Export = string.IsNullOrEmpty(export) ? "default" : export,
+            // A Lit element named by its class mounts by the tag its snapshot recorded; the item IS the snapshot.
+            Tag = !string.IsNullOrEmpty(package)
+                  && string.Equals(runtime, ExternalRuntime.Lit.Key, StringComparison.Ordinal)
+                  && File.Exists(source)
+                ? ExternalBuildPlan.SnapshotTag(File.ReadAllText(source))
+                : null,
+        };
+    }
+
+    /// <summary>The island's runtime, or null when it names one Rask has no adapter for (and that was logged).</summary>
+    private string? RuntimeFor(ITaskItem item, string name, string source, Dictionary<string, string> declared)
+    {
+        // The C# class first, the file extension only as a fallback. An extension used to name a
+        // runtime; with seven of them it names a FAMILY — React, Preact and Solid all write .tsx,
+        // Lit and Angular both write .ts — so the glob that discovered this file cannot know which
+        // one it belongs to, and guessing is silent: a Solid island handed React's adapter builds,
+        // bundles, ships, loads, and mounts nothing.
+        var runtime = declared.TryGetValue(name, out var fromCSharp)
+            ? fromCSharp
+            : item.GetMetadata("Runtime");
+
+        if (string.IsNullOrEmpty(runtime))
+        {
+            runtime = ExternalRuntime.React.Key;
+        }
+
+        // Refused rather than defaulted. An unknown runtime used to fall through to React, which
+        // meant a typo in a hand-written <RaskExternal Runtime="vue3"/> generated a React entry
+        // for a Vue component: the build succeeds, the bundle ships, the chunk loads, and nothing
+        // mounts — with the browser reporting a failure that names none of this.
+        if (ExternalRuntime.Find(runtime) is null)
+        {
+            Log.LogError(
+                $"Rask islands: '{source}' declares the runtime '{runtime}', which Rask has no adapter for. "
+                + $"Known runtimes: {ExternalRuntime.KeyList}.");
+            return null;
+        }
+
+        return runtime;
+    }
+
+    /// <summary>Writes one entry module per island; returns how many changed, or null when one was refused.</summary>
+    private int? WriteEntries(List<ExternalEntry> islands, string entryDirectory)
+    {
         var written = 0;
         foreach (var island in islands)
         {
@@ -161,12 +213,20 @@ public sealed class WriteExternalBuildInputsTask : Task
                 // A declaration no entry can be written for — a Lit element named by its class whose snapshot records no
                 // tag. Reported as the build error it is, naming the fix, rather than as MSB4018 and a stack trace.
                 Log.LogError(ex.Message);
-                return false;
+                return null;
             }
 
             var entry = Path.Combine(entryDirectory, island.Name + ".entry.ts");
             written += ExternalBuildPlan.WriteIfDifferent(entry, module) ? 1 : 0;
         }
+
+        return written;
+    }
+
+    /// <summary>Writes the Angular tsconfig, the Vite config and the dev manifest; returns how many changed, or null.</summary>
+    private int? WriteConfigs(List<ExternalEntry> islands, string entryDirectory)
+    {
+        var written = 0;
 
         // The Angular plugin has to be told which tsconfig to compile against, and it has to be one
         // Rask writes: the app's own carries "noEmit", which makes ngtsc emit nothing and every .ts
@@ -194,7 +254,7 @@ public sealed class WriteExternalBuildInputsTask : Task
             // because both alternatives are silent: one ships a bundle that mounts nothing, the other
             // fails inside npm with a message naming neither island.
             Log.LogError(ex.Message);
-            return false;
+            return null;
         }
 
         written += ExternalBuildPlan.WriteIfDifferent(ConfigPath, config) ? 1 : 0;
@@ -211,11 +271,7 @@ public sealed class WriteExternalBuildInputsTask : Task
                 : 0;
         }
 
-        Log.LogMessage(
-            written > 0 ? MessageImportance.High : MessageImportance.Low,
-            $"Rask islands: {islands.Count} island(s), {written} build input(s) written.");
-
-        return true;
+        return written;
     }
 
     /// <summary>

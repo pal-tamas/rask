@@ -6,7 +6,7 @@ dependency-injected `HttpClient`, the typed file-picker input, and the `Navigato
 wiring differs. This guide walks the three, each with a live demo.
 
 - [Fetching data with `HttpClient`](#fetching-data-with-httpclient) — register a DI'd client, fetch in `OnMount`
-- [Uploading files](#uploading-files) — a typed file picker and `RaskFile` metadata
+- [Uploading files](#uploading-files) — a typed file picker and `IRaskFile` metadata
 - [Keeping an upload](#keeping-an-upload) — where the bytes go once the handler returns
 - [Downloading files](#downloading-files) — stage bytes with `Navigator.Download`
 
@@ -43,13 +43,13 @@ unmount, so navigating away mid-fetch aborts the in-flight request instead of wr
 ## Uploading files
 
 `Input.Of<string>().Type(InputType.File).Files(…)` wires a file picker to a typed handler. Each change event
-hands the handler an `IReadOnlyList<RaskFile>`; `RaskFile` carries the metadata (name, size, content type,
+hands the handler an `IReadOnlyList<IRaskFile>`; `IRaskFile` carries the metadata (name, size, content type,
 last-modified) and `OpenReadStream` gives you a `Stream` for the bytes — over a multipart POST on the
 Server, via JS chunked reads on WASM. The same component code runs unchanged on both hosts:
 
 <!-- demo:data-upload -->
 
-> A `RaskFile` is only valid while the handler is on the stack — read whatever you need (bytes, metadata)
+> A `IRaskFile` is only valid while the handler is on the stack — read whatever you need (bytes, metadata)
 > before returning. The mutating handler lives inside the component so its field updates re-render the right
 > subtree.
 
@@ -57,7 +57,7 @@ Server, via JS chunked reads on WASM. The same component code runs unchanged on 
 
 ## Keeping an upload
 
-Because a `RaskFile` stops being readable when its handler returns, a file you mean to keep has to be written
+Because a `IRaskFile` stops being readable when its handler returns, a file you mean to keep has to be written
 somewhere before then. That is what [file storage](file-storage.md) is for, and in a `RaskApp` it is already
 on — save from the handler with nothing injected, then keep the id on your own entity:
 

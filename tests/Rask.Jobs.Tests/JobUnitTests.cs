@@ -1,4 +1,4 @@
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 public sealed class JobOptionsTests
 {
@@ -69,9 +69,26 @@ public sealed class JobOptionsTests
     }
 
     [Fact]
-    public void Validate_rejects_a_non_positive_poll_interval()
+    public void Validate_rejects_a_non_positive_poll_interval_naming_the_key()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new JobsOptions { PollInterval = TimeSpan.Zero }.Validate());
+        var options = new JobsOptions { PollInterval = TimeSpan.Zero };
+
+        var result = new JobsOptionsValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Rask:Jobs:PollInterval", result.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_reports_every_bad_setting_at_once()
+    {
+        var options = new JobsOptions { BatchSize = 0, MaxAttempts = 0 };
+
+        var result = new JobsOptionsValidator().Validate(null, options);
+
+        Assert.Equal(2, result.Failures!.Count());
+        Assert.Contains("Rask:Jobs:BatchSize", result.FailureMessage, StringComparison.Ordinal);
+        Assert.Contains("Rask:Jobs:MaxAttempts", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,7 +96,9 @@ public sealed class JobOptionsTests
     {
         var options = new JobsOptions { BaseRetryDelay = TimeSpan.FromMinutes(5), MaxRetryDelay = TimeSpan.FromMinutes(1) };
 
-        Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
+        var result = new JobsOptionsValidator().Validate(null, options);
+
+        Assert.Contains("Rask:Jobs:MaxRetryDelay", result.FailureMessage, StringComparison.Ordinal);
     }
 }
 

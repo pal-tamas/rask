@@ -130,7 +130,7 @@ Rask.Cqrs.RemoteMessageReader
 Rask.Cqrs.RemoteMessageWriter
 Rask.Cqrs.RemoteResultReader
 Rask.Cqrs.RemoteResultWriter
-Rask.Cqrs.RequestHandlerDelegate<TResult>
+Rask.Cqrs.RequestHandler<TResult>
 Rask.Cqrs.RequestValidationError
 Rask.Cqrs.RequestValidationError.Deconstruct(out string! Field, out string! Message) -> void
 Rask.Cqrs.RequestValidationError.Equals(Rask.Cqrs.RequestValidationError other) -> bool
@@ -205,7 +205,7 @@ virtual Rask.Cqrs.RemoteMessageReader.Invoke(ref System.Text.Json.Utf8JsonReader
 virtual Rask.Cqrs.RemoteMessageWriter.Invoke(System.Text.Json.Utf8JsonWriter! writer, object! message, System.Collections.Generic.IList<Rask.Wire.RemoteFile!>! files) -> void
 virtual Rask.Cqrs.RemoteResultReader.Invoke(ref System.Text.Json.Utf8JsonReader reader) -> object?
 virtual Rask.Cqrs.RemoteResultWriter.Invoke(System.Text.Json.Utf8JsonWriter! writer, object? result) -> void
-virtual Rask.Cqrs.RequestHandlerDelegate<TResult>.Invoke() -> System.Threading.Tasks.Task<TResult>!
+virtual Rask.Cqrs.RequestHandler<TResult>.Invoke() -> System.Threading.Tasks.Task<TResult>!
 ~override Rask.Cqrs.RequestValidationError.Equals(object obj) -> bool
 ~override Rask.Cqrs.RequestValidationError.ToString() -> string
 Rask.Cqrs.Dispatcher
@@ -218,13 +218,16 @@ Rask.Cqrs.IDispatcher.Send<TResult>(Rask.Cqrs.ICommand<TResult>! command, System
 Rask.Cqrs.IDispatcher.Subscribe<TNotification>(Rask.Cqrs.ISubscription<TNotification>! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TNotification>!
 Rask.Cqrs.IDispatcher.Subscribe<TNotification>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TNotification>!
 Rask.Cqrs.INotificationHandler<TNotification>.Handle(TNotification notification) -> System.Threading.Tasks.Task!
-Rask.Cqrs.IPipelineBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandlerDelegate<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IPipelineBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandler<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IQueryHandler<TQuery, TResult>.Handle(TQuery query) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IRemoteRequestValidator.Validate(object! request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.IRequestValidator<TRequest>.Validate(TRequest request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
-Rask.Cqrs.ValidationBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandlerDelegate<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.ValidationBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandler<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
 static Rask.Cqrs.Dispatcher.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Query<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 static Rask.Cqrs.Dispatcher.Send(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Send<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IRemoteDispatch.Publish(Rask.Cqrs.RemoteContract! contract, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.RaskValidationException.RaskValidationException() -> void
+Rask.Cqrs.RaskValidationException.RaskValidationException(string! message) -> void
+Rask.Cqrs.RaskValidationException.RaskValidationException(string! message, System.Exception! innerException) -> void

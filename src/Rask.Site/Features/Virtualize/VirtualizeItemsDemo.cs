@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Virtualization;
 
 namespace Rask.Site.Features;
@@ -21,7 +22,7 @@ public sealed partial class VirtualizeItemsDemo : Component
             ctx => Div
                 .Class("border rounded bg-white")
                 .Style("height:360px; overflow:auto;")
-                .Data(new Dictionary<string, string?> { ["testid"] = "virtualize-scroller" })
+                .Data("testid", "virtualize-scroller")
                 .OnScroll(ctx.OnScroll)[
                 Ui.Table
                     .Class("mb-0")
@@ -54,15 +55,13 @@ public sealed partial class VirtualizeItemsDemo : Component
         {
             yield return Tr
                 .Style($"height:{ctx.ItemSize}px;")
-                .Data(new Dictionary<string, string?>
-                {
-                    ["row-index"] = item.Index.ToString(),
-                    ["rask-key"] = item.Index.ToString()
-                })[
-                Td[item.Value?.Index.ToString() ?? ""],
+                .Data(
+                    ("row-index", item.Index.ToString(CultureInfo.InvariantCulture)),
+                    ("rask-key", item.Index.ToString(CultureInfo.InvariantCulture)))[
+                Td[item.Value?.Index.ToString(CultureInfo.InvariantCulture) ?? ""],
                 Td[item.Value?.Name ?? ""],
                 Td[item.Value?.City ?? ""],
-                Td.Style("text-align:right;")[item.Value?.Balance.ToString("0.00") ?? ""]
+                Td.Style("text-align:right;")[item.Value?.Balance.ToString("0.00", CultureInfo.InvariantCulture) ?? ""]
             ];
         }
 
@@ -72,7 +71,7 @@ public sealed partial class VirtualizeItemsDemo : Component
     private static Component Spacer(int height, string key) =>
         Tr
             .Style($"height:{height}px;")
-            .Data(new Dictionary<string, string?> { ["rask-key"] = key })[
+            .Data("rask-key", key)[
             Td.ColSpan(4)
         ];
 }

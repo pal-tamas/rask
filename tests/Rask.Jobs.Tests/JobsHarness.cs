@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Data;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 // ── Test jobs + handlers. ────────────────────────────────────────────────────────────────────────────────
 // These are top-level purely for readability; nesting is fine now that the generator keys registrations on

@@ -82,11 +82,11 @@ internal sealed partial class DevToolsFlashEmitter : Component
     protected override Component? Render() =>
     [
         Span.Key("flash").Hidden(true)
-            .Data(new Dictionary<string, string?> { ["rask-devtools-flash"] = On ? "on" : "off" })
+            .Data("rask-devtools-flash", On ? "on" : "off")
             .OnKeyDown(e => Reported(e.Key)),
         On
             ? Span.Key("flashes").Hidden(true)
-                .Data(new Dictionary<string, string?> { ["rask-devtools-flashes"] = Flashes(Feed.CommitsSnapshot()) })
+                .Data("rask-devtools-flashes", Flashes(Feed.CommitsSnapshot()))
             : null
     ];
 
@@ -104,7 +104,7 @@ internal sealed partial class DevToolsFlashEmitter : Component
         }
     }
 
-    private void OnFeedChanged()
+    private void OnFeedChanged(object? sender, EventArgs e)
     {
         if (On)
         {
@@ -119,12 +119,14 @@ internal sealed partial class DevToolsFlashEmitter : Component
             return Task.CompletedTask;
         }
 
-        return key.AsSpan(SettingKeyPrefix.Length) switch
+        bool? on = key.AsSpan(SettingKeyPrefix.Length) switch
         {
-            "on" => OnChange.Invoke(true).AsTask(),
-            "off" => OnChange.Invoke(false).AsTask(),
-            _ => Task.CompletedTask,
+            "on" => true,
+            "off" => false,
+            _ => null,
         };
+
+        return on is { } value ? OnChange.Invoke(value).AsTask() : Task.CompletedTask;
     }
 
     /// <summary>

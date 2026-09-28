@@ -91,18 +91,10 @@ internal sealed class DevCommand(
             return Fail(parsed.Errors);
         }
 
-        var target = DevTarget.Detect(_fileSystem, _workingDirectory, parsed.Option("project"));
+        var target = DetectTarget(parsed);
         if (target is null)
         {
-            Console.WriteErrorLine(
-                $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a project, or pass --project.",
-                ConsoleStyle.Error);
             return 1;
-        }
-
-        if (target.Kind == DevTemplateKind.WasmHosted && parsed.Option("project") is null)
-        {
-            Console.WriteLine($"Using {target.Name} (the host project).", ConsoleStyle.Dim);
         }
 
         var once = parsed.HasFlag("once");
@@ -130,13 +122,7 @@ internal sealed class DevCommand(
         // run that showed only the command line would hide the half people actually come asking about.
         if (parsed.HasFlag("dry-run"))
         {
-            WriteDryRun("run", $"dotnet {string.Join(' ', dotnetArgs)}");
-            WriteDryRun("run it in", target.ProjectDirectory);
-            foreach (var (key, value) in environment.OrderBy(e => e.Key, StringComparer.Ordinal))
-            {
-                WriteDryRun("set", $"{key}={value}");
-            }
-
+            WriteDryRunPlan(target, dotnetArgs, environment);
             return 0;
         }
 
@@ -145,13 +131,7 @@ internal sealed class DevCommand(
         var devHost = await TryPrepareDevHostAsync(target, parsed, nonInteractive, cancellationToken).ConfigureAwait(false);
         if (devHost is not null)
         {
-            var withHost = new Dictionary<string, string>(environment, StringComparer.Ordinal);
-            foreach (var (key, value) in devHost.Environment)
-            {
-                withHost[key] = value;
-            }
-
-            environment = withHost;
+            environment = Overlay(environment, devHost.Environment);
         }
 
         if (!parsed.HasFlag("no-banner") && !Console.IsOutputRedirected)
@@ -162,6 +142,59 @@ internal sealed class DevCommand(
         var open = ResolveBrowserOpen(target, parsed.HasFlag("open"), parsed.HasFlag("no-open"), parsed.Option("urls"), devHost?.Url);
         var opening = open is null ? Task.CompletedTask : OpenWhenListeningAsync(open, cancellationToken);
 
+        return await RunSessionAsync(target, dotnetArgs, environment, once, opening, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The project to run, or null (with the reason reported) when there is none.</summary>
+    private DevTarget? DetectTarget(ParsedArguments parsed)
+    {
+        var target = DevTarget.Detect(_fileSystem, _workingDirectory, parsed.Option("project"));
+        if (target is null)
+        {
+            Console.WriteErrorLine(
+                $"{ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory)} Run this inside a project, or pass --project.",
+                ConsoleStyle.Error);
+            return null;
+        }
+
+        if (target.Kind == DevTemplateKind.WasmHosted && parsed.Option("project") is null)
+        {
+            Console.WriteLine($"Using {target.Name} (the host project).", ConsoleStyle.Dim);
+        }
+
+        return target;
+    }
+
+    private void WriteDryRunPlan(DevTarget target, IReadOnlyList<string> dotnetArgs, IReadOnlyDictionary<string, string> environment)
+    {
+        WriteDryRun("run", $"dotnet {string.Join(' ', dotnetArgs)}");
+        WriteDryRun("run it in", target.ProjectDirectory);
+        foreach (var (key, value) in environment.OrderBy(e => e.Key, StringComparer.Ordinal))
+        {
+            WriteDryRun("set", $"{key}={value}");
+        }
+    }
+
+    private static Dictionary<string, string> Overlay(
+        IReadOnlyDictionary<string, string> environment, IEnumerable<KeyValuePair<string, string>> overrides)
+    {
+        var merged = new Dictionary<string, string>(environment, StringComparer.Ordinal);
+        foreach (var (key, value) in overrides)
+        {
+            merged[key] = value;
+        }
+
+        return merged;
+    }
+
+    /// <summary>
+    ///     Runs the host under watch (or once), with the client and island dev servers beside it, and waits
+    ///     for <paramref name="opening" /> before returning.
+    /// </summary>
+    private async Task<int> RunSessionAsync(
+        DevTarget target, IReadOnlyList<string> dotnetArgs, IReadOnlyDictionary<string, string> environment, bool once,
+        Task opening, CancellationToken cancellationToken)
+    {
         // The build-status channel (#603). A failed rebuild leaves the app process DOWN, so the browser
         // sees a socket close and — with nothing else to go on — reports a network problem, offering a
         // "Retry now" that can never succeed. Nothing inside the app can tell it otherwise, because the
@@ -171,17 +204,11 @@ internal sealed class DevCommand(
         var watcher = new DevBuildWatcher();
         using var status = once ? null : DevStatusServer.TryStart(watcher);
 
-        var runEnvironment = environment;
-        if (status is not null)
-        {
-            // Overlaid here rather than in BuildEnvironment because the port is only known once the
-            // listener is bound, and BuildEnvironment is a pure function the dry run prints.
-            var withStatus = new Dictionary<string, string>(environment, StringComparer.Ordinal)
-            {
-                [DevStatusEnvironmentVariable] = status.Url,
-            };
-            runEnvironment = withStatus;
-        }
+        // Overlaid here rather than in BuildEnvironment because the port is only known once the
+        // listener is bound, and BuildEnvironment is a pure function the dry run prints.
+        var runEnvironment = status is null
+            ? environment
+            : Overlay(environment, [new(DevStatusEnvironmentVariable, status.Url)]);
 
         // The bundler's dev server, beside the host. Its own token, so the host exiting takes it with it —
         // a Vite left listening on 5173 after `rask dev` returns is picked up by the NEXT session, which
@@ -355,53 +382,7 @@ internal sealed class DevCommand(
         }
         else
         {
-            args.Add("watch");
-            AddProject(args, project);
-            if (nonInteractive)
-            {
-                args.Add("--non-interactive");
-            }
-
-            if (noHotReload)
-            {
-                args.Add("--no-hot-reload");
-            }
-
-            if (launchProfile is { Length: > 0 })
-            {
-                args.Add("-lp");
-                args.Add(launchProfile);
-            }
-
-            args.Add("run");
-
-            // ONE switch for the whole dev session, expanded by each referenced package's own props into
-            // what that package needs — and ignored by every package the project does not reference:
-            //
-            //   • Rask.Spa.Hosting serves a WebAssembly client's BUILD output. The published bundle is republished
-            //     by a nested emscripten relink on every save, and it is trimmed — trimming folds
-            //     MetadataUpdater.IsSupported to false, so an applied delta could never reach the page.
-            //   • Rask.Spa.Hosting and Rask.Meta.Hosting skip their production front-end build: the
-            //     framework's own dev server owns the client and is what the browser talks to. The
-            //     generated TypeScript is emitted anyway, because a dev server compiling last build's
-            //     contracts is exactly the failure that pipeline exists to prevent.
-            //   • Rask.External serves islands from a Vite dev server instead of bundling them. NOT
-            //     RaskExternalBuild=false, which turns the feature off outright and leaves islands that
-            //     never mount.
-            //
-            // The scaffolded VS Code build task passes the very same property, which is what keeps an F5
-            // session and this one from drifting apart. Not passed under --once, which is deliberately a
-            // plain run against a real build.
-            //
-            // `--property:`, not `-p:`: on `dotnet run` the short form is ambiguous with --project.
-            args.Add($"--property:{DevSessionProperty}=true");
-
-            // Under --no-hot-reload there is nothing to apply, so a wasm-hosted app serves its published
-            // bundle as it always did. Explicit, because an explicit value beats the dev session's.
-            if (kind == DevTemplateKind.WasmHosted && noHotReload)
-            {
-                args.Add("--property:RaskSpaBuild=true");
-            }
+            AddWatchArguments(args, project, noHotReload, launchProfile, nonInteractive, kind);
         }
 
         if (once && launchProfile is { Length: > 0 })
@@ -595,7 +576,7 @@ internal sealed class DevCommand(
     ///     Where Vite listens by default, for a scaffold too old to have baked the real answer into its
     ///     csproj. Not probed from the running bundler, which is not up yet when this is decided.
     /// </summary>
-    internal const string ViteDevServerUrl = "http://localhost:5173";
+    internal const string ViteDevServerUrl = LocalDevServers.Vite;
 
     private async Task OpenWhenListeningAsync(string url, CancellationToken cancellationToken)
     {
@@ -618,9 +599,9 @@ internal sealed class DevCommand(
             {
                 return;
             }
-            catch (Exception)
+            catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException)
             {
-                // Not listening yet.
+                // Not listening yet, or too slow to answer within the poll's timeout.
             }
 
             try
@@ -693,6 +674,59 @@ internal sealed class DevCommand(
 
     private static string? FirstUrl(string? urls) =>
         urls?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+
+    /// <summary>The <c>dotnet watch … run</c> half of <see cref="BuildDotnetArguments" />.</summary>
+    private static void AddWatchArguments(
+        List<string> args, string? project, bool noHotReload, string? launchProfile, bool nonInteractive, DevTemplateKind kind)
+    {
+        args.Add("watch");
+        AddProject(args, project);
+        if (nonInteractive)
+        {
+            args.Add("--non-interactive");
+        }
+
+        if (noHotReload)
+        {
+            args.Add("--no-hot-reload");
+        }
+
+        if (launchProfile is { Length: > 0 })
+        {
+            args.Add("-lp");
+            args.Add(launchProfile);
+        }
+
+        args.Add("run");
+
+        // ONE switch for the whole dev session, expanded by each referenced package's own props into
+        // what that package needs — and ignored by every package the project does not reference:
+        //
+        //   • Rask.Spa.Hosting serves a WebAssembly client's BUILD output. The published bundle is republished
+        //     by a nested emscripten relink on every save, and it is trimmed — trimming folds
+        //     MetadataUpdater.IsSupported to false, so an applied delta could never reach the page.
+        //   • Rask.Spa.Hosting and Rask.Meta.Hosting skip their production front-end build: the
+        //     framework's own dev server owns the client and is what the browser talks to. The
+        //     generated TypeScript is emitted anyway, because a dev server compiling last build's
+        //     contracts is exactly the failure that pipeline exists to prevent.
+        //   • Rask.External serves islands from a Vite dev server instead of bundling them. NOT
+        //     RaskExternalBuild=false, which turns the feature off outright and leaves islands that
+        //     never mount.
+        //
+        // The scaffolded VS Code build task passes the very same property, which is what keeps an F5
+        // session and this one from drifting apart. Not passed under --once, which is deliberately a
+        // plain run against a real build.
+        //
+        // `--property:`, not `-p:`: on `dotnet run` the short form is ambiguous with --project.
+        args.Add($"--property:{DevSessionProperty}=true");
+
+        // Under --no-hot-reload there is nothing to apply, so a wasm-hosted app serves its published
+        // bundle as it always did. Explicit, because an explicit value beats the dev session's.
+        if (kind == DevTemplateKind.WasmHosted && noHotReload)
+        {
+            args.Add("--property:RaskSpaBuild=true");
+        }
+    }
 
     private static void AddProject(List<string> args, string? project)
     {

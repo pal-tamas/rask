@@ -90,7 +90,7 @@ public class ComponentHotReloadTests
     internal static async Task RunUpdateApplicationAsync()
     {
         var applied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        void OnApplied() => applied.TrySetResult();
+        void OnApplied(object? sender, EventArgs e) => applied.TrySetResult();
 
         RaskHotReload.Applied += OnApplied;
         try
@@ -126,7 +126,7 @@ public class ComponentHotReloadTests
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, false);
+            LiveRenderContext.NotifyParameters(c, false);
             return c;
         }
     }
@@ -139,6 +139,11 @@ public class ComponentHotReloadTests
 
         public TestLiveSession(Component view, IServiceProvider services)
             : base(view, services, LiveDiffMode.Auto)
+        {
+        }
+
+        // Nothing to tear down: the test owns the view and no pooled buffer was ever rented.
+        protected override void Dispose(bool disposing)
         {
         }
 

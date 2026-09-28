@@ -1,20 +1,4 @@
-using Microsoft.JSInterop;
-
 namespace Rask.Core.Browser;
-
-/// <summary>
-///     Identifies one live <c>MediaStream</c> held in the browser. A <c>MediaStream</c> can't cross interop,
-///     so the framework keeps it under this id and C# passes the id around instead — to attach it to a
-///     <c>&lt;video&gt;</c>, to stop it, or to send it to a WebRTC peer.
-/// </summary>
-/// <remarks>
-///     You get one from <c>IMediaDevices</c> (WASM), from <see cref="Rask.Core.Components.MediaCaptureTrigger" />
-///     (Server and WASM), or from a peer's remote stream via <c>RtcHandlers.OnTrack</c>. It lives in
-///     <c>Rask.Core</c> rather than beside <c>IMediaDevices</c> so every host — and
-///     <see cref="IWebRtc" /> — can name one without depending on the WASM-only capture service.
-/// </remarks>
-/// <param name="Value">The browser-side id. Opaque; only meaningful to the framework's JS helpers.</param>
-public readonly record struct MediaStreamId(int Value);
 
 /// <summary>
 ///     Attach or stop a live media stream, wherever it came from
@@ -48,22 +32,4 @@ public interface IMediaStreams
     ///     already-stopped stream is a no-op.
     /// </summary>
     ValueTask StopAsync(MediaStreamId stream);
-}
-
-/// <summary>
-///     Default <see cref="IMediaStreams" />, backed by the unified <see cref="IJSRuntime" /> and the
-///     framework's <c>__raskMedia</c> helper — the same id-keyed map that <c>IMediaDevices</c> and the
-///     <c>media.start</c> gesture capability write into.
-/// </summary>
-public sealed class MediaStreams(IJSRuntime js) : IMediaStreams
-{
-    /// <inheritdoc />
-    public ValueTask AttachAsync(MediaStreamId stream, ElementRef video)
-    {
-        ArgumentNullException.ThrowIfNull(video);
-        return js.InvokeVoidAsync("__raskMedia.attach", stream.Value, video);
-    }
-
-    /// <inheritdoc />
-    public ValueTask StopAsync(MediaStreamId stream) => js.InvokeVoidAsync("__raskMedia.stop", stream.Value);
 }

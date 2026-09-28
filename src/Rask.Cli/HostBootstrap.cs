@@ -2,55 +2,6 @@ using System.Globalization;
 
 namespace Rask.Cli;
 
-/// <summary>What the user asked <c>rask deploy</c> to do to the host (after flags and defaults are merged).</summary>
-/// <param name="DeployUser">The non-root login to create and switch to, or <c>null</c> to keep the current one.</param>
-/// <param name="PublishedPort">The <c>--port</c> to open, or <c>null</c> in domain mode (which opens 80/443 for Caddy).</param>
-/// <param name="ConnectPort">
-/// The SSH port this session is actually connected on, resolved locally by <c>ssh -G</c>. Always
-/// allowed through the firewall on top of whatever <c>sshd -T</c> reports — those differ when sshd is
-/// socket-activated, and the port we're using is the one we cannot afford to close.
-/// </param>
-/// <param name="ContainerPort">
-/// The port <em>inside</em> the app container that <see cref="PublishedPort"/> maps to. Needed on top
-/// of the published port because Docker's DNAT happens in <c>nat/PREROUTING</c>, <em>before</em> the
-/// filter rules run: by the time a packet reaches <c>DOCKER-USER</c> its destination port is already
-/// the container's, so that — not the host's — is the number the firewall has to allow.
-/// </param>
-internal sealed record BootstrapOptions(string? DeployUser, bool Firewall, bool HardenSsh, int? PublishedPort, int? ConnectPort = null, int? ContainerPort = null)
-{
-    /// <summary>The default non-root login <c>rask deploy</c> creates on a box it's handed as root.</summary>
-    public const string DefaultDeployUser = "deploy";
-}
-
-/// <summary>One idempotent remote step: what we'd tell the user we're doing, and the shell that does it.</summary>
-/// <param name="Undo">
-/// For a risky step, the shell that puts this box back as it was — and <em>only</em> what this step
-/// changed. The rollback guard is built by joining these, so it can never revert state this run didn't
-/// create (a firewall the user already ran, or a previous deploy's sshd drop-in).
-/// </param>
-internal sealed record BootstrapStep(string Description, string Script, string? Undo = null);
-
-/// <summary>
-/// An ordered plan for turning a host into one <c>rask deploy</c> can use.
-///
-/// <para>The split between <see cref="Preparation"/> and <see cref="Risky"/> is the safety contract:
-/// preparation can't cost you access to the box, <see cref="Risky"/> can. Everything in
-/// <see cref="Risky"/> runs only after a fresh connection has proved the <see cref="NewUser"/> login
-/// works, and only behind the rollback guard.</para>
-/// </summary>
-/// <param name="NewUser">The login to deploy as once the plan has run, or <c>null</c> to keep the current one.</param>
-/// <param name="Warnings">Things we deliberately refused to do, and why — never silently dropped.</param>
-internal sealed record BootstrapPlan(
-    IReadOnlyList<BootstrapStep> Preparation,
-    IReadOnlyList<BootstrapStep> Risky,
-    string? NewUser,
-    IReadOnlyList<string> Warnings)
-{
-    public bool IsEmpty => Preparation.Count == 0 && Risky.Count == 0;
-
-    public IEnumerable<BootstrapStep> AllSteps => Preparation.Concat(Risky);
-}
-
 /// <summary>
 /// Turns <see cref="HostFacts"/> into the shell that fixes the host. Everything here is a pure
 /// function of the facts and the options — no I/O — so the entire risky surface (installing Docker,
@@ -196,6 +147,19 @@ internal static class HostBootstrap
             return;
         }
 
+        var ports = FirewallPorts(facts, options);
+        var opened = string.Join(", ", ports.Select(p => p.ToString(CultureInfo.InvariantCulture)));
+        risky.Add(new BootstrapStep(
+            $"Enable the firewall (allow {opened}; deny everything else inbound)",
+            Privileged(EnableFirewallScript(facts, ports), facts.IsRoot),
+            // ufw was inactive before this step, so disabling it restores exactly the prior state.
+            Undo: "ufw --force disable;"));
+
+        AddDockerFirewall(facts, options, risky, warnings);
+    }
+
+    private static List<int> FirewallPorts(HostFacts facts, BootstrapOptions options)
+    {
         var ports = new List<int>(facts.SshPorts);
 
         // The port we're actually connected on, always. `sshd -T` reports sshd_config's Port, which is
@@ -208,7 +172,11 @@ internal static class HostBootstrap
 
         ports.Sort();
         ports.AddRange(options.PublishedPort is { } port ? [port] : [80, 443]);
+        return ports;
+    }
 
+    private static string EnableFirewallScript(HostFacts facts, List<int> ports)
+    {
         var script = new List<string> { "set -e" };
         if (!facts.UfwInstalled)
         {
@@ -216,23 +184,12 @@ internal static class HostBootstrap
         }
 
         // Allow BEFORE enable, always — the ordering that keeps you in the box.
-        foreach (var p in ports)
-        {
-            script.Add($"ufw allow {p.ToString(CultureInfo.InvariantCulture)}/tcp");
-        }
+        script.AddRange(ports.Select(p => $"ufw allow {p.ToString(CultureInfo.InvariantCulture)}/tcp"));
 
         script.Add("ufw default deny incoming");
         script.Add("ufw default allow outgoing");
         script.Add("ufw --force enable");
-
-        var opened = string.Join(", ", ports.Select(p => p.ToString(CultureInfo.InvariantCulture)));
-        risky.Add(new BootstrapStep(
-            $"Enable the firewall (allow {opened}; deny everything else inbound)",
-            Privileged(string.Join('\n', script), facts.IsRoot),
-            // ufw was inactive before this step, so disabling it restores exactly the prior state.
-            Undo: "ufw --force disable;"));
-
-        AddDockerFirewall(facts, options, risky, warnings);
+        return string.Join('\n', script);
     }
 
     /// <summary>

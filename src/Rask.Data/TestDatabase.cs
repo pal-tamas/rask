@@ -168,7 +168,8 @@ public sealed class TestDatabase : IAsyncDisposable
         Func<DbContext> openContext, object?[] keyValues, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {
-        await using var context = openContext();
+        var context = openContext();
+        await using var contextScope = context.ConfigureAwait(false);
         return await AggregateLoad.FindAsync<TEntity>(context, keyValues, cancellationToken).ConfigureAwait(false);
     }
 }

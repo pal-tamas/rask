@@ -1,4 +1,4 @@
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>Where a <see cref="Subscription{T}" /> is: opening, open, reopening, finished or refused.</summary>
 public enum SubscriptionStatus

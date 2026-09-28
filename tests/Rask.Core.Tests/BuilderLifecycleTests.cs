@@ -58,7 +58,7 @@ public class BuilderLifecycleTests
     {
         using var ctx = LiveRenderContext.Begin(host, sp);
         var resolved = ctx.GetOrCreate(_ => host);
-        ctx.NotifyParameters(resolved, propsChanged: true);
+        LiveRenderContext.NotifyParameters(resolved, propsChanged: true);
         return resolved.ToHtml();
     }
 

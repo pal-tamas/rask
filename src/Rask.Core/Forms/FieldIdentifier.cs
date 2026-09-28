@@ -39,7 +39,7 @@ public readonly struct FieldIdentifier : IEquatable<FieldIdentifier>
     /// </summary>
     /// <param name="other">The identifier to compare with.</param>
     public bool Equals(FieldIdentifier other) =>
-        ReferenceEquals(Model, other.Model) && FieldName == other.FieldName;
+        ReferenceEquals(Model, other.Model) && string.Equals(FieldName, other.FieldName, StringComparison.Ordinal);
 
     /// <inheritdoc cref="Equals(FieldIdentifier)" />
     public override bool Equals(object? obj) => obj is FieldIdentifier f && Equals(f);
@@ -48,6 +48,16 @@ public readonly struct FieldIdentifier : IEquatable<FieldIdentifier>
     ///     dictionary key.</summary>
     public override int GetHashCode() =>
         HashCode.Combine(RuntimeHelpers.GetHashCode(Model), FieldName);
+
+    /// <summary>Whether both identify the same field, as <see cref="Equals(FieldIdentifier)" />.</summary>
+    /// <param name="left">One identifier.</param>
+    /// <param name="right">The other.</param>
+    public static bool operator ==(FieldIdentifier left, FieldIdentifier right) => left.Equals(right);
+
+    /// <summary>Whether the two identify different fields.</summary>
+    /// <param name="left">One identifier.</param>
+    /// <param name="right">The other.</param>
+    public static bool operator !=(FieldIdentifier left, FieldIdentifier right) => !left.Equals(right);
 
     /// <summary><c>TypeName.FieldName</c>, for diagnostics.</summary>
     public override string ToString() => $"{Model.GetType().Name}.{FieldName}";

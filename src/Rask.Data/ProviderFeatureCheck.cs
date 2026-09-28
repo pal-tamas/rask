@@ -9,32 +9,6 @@ using Microsoft.Extensions.Hosting;
 namespace Rask.Data;
 
 /// <summary>
-/// Marks an <see cref="IMigrationsSqlGenerator"/> that emits the DDL enforcing
-/// <see cref="RangeExclusionBuilderExtensions.HasNonOverlappingRange{TEntity}"/>.
-/// </summary>
-/// <remarks>
-/// Implemented by each Rask provider package's migrations generator. It is internal on purpose: nobody but a
-/// provider ever implements it, so it stays out of every app's completion list and reaches the providers
-/// through <c>InternalsVisibleTo</c>, the way the SQLite packages already share internals.
-/// </remarks>
-internal interface IRangeExclusionEnforcer;
-
-/// <summary>
-/// Marks an <see cref="IMigrationsSqlGenerator"/> whose provider creates the index
-/// <see cref="FullTextSearchBuilderExtensions.HasFullTextSearch{TEntity}"/> declares, and whose queries
-/// translate <see cref="FullTextQueryableExtensions.Search{TEntity}"/>.
-/// </summary>
-/// <remarks>Internal for the same reason as <see cref="IRangeExclusionEnforcer"/>.</remarks>
-internal interface IFullTextSearchEnforcer;
-
-/// <summary>
-/// Marks an <see cref="IMigrationsSqlGenerator"/> whose provider creates the expression indexes
-/// <see cref="JsonIndexBuilderExtensions.HasJsonIndex{TEntity}"/> declares.
-/// </summary>
-/// <remarks>Internal for the same reason as <see cref="IRangeExclusionEnforcer"/>.</remarks>
-internal interface IJsonIndexEnforcer;
-
-/// <summary>
 /// Model metadata the context's provider would silently ignore — a
 /// <see cref="RangeExclusionBuilderExtensions.HasNonOverlappingRange{TEntity}"/> rule or a
 /// <see cref="FullTextSearchBuilderExtensions.HasFullTextSearch{TEntity}"/> index — reported at boot.

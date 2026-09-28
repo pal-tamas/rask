@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Rask.Batteries;
 using Rask.Data;
 using Rask.Hosting.Shared;
@@ -36,8 +37,8 @@ public static class RaskOutboxServiceCollectionExtensions
         // Validated when the host starts, the way AddRaskJobs/AddRaskMail/AddRaskCache are. Without it a value
         // like PollInterval = Zero throws out of `new PeriodicTimer(...)` on the background thread, which
         // (BackgroundServiceExceptionBehavior.StopHost) tears the host down at an unrelated moment.
-        services.AddRaskOptions<OutboxOptions>("Rask:Outbox", static (section, o) => section.Bind(o), configure,
-            static o => o.Validate());
+        services.AddRaskOptions<OutboxOptions>("Rask:Outbox", static (section, o) => section.Bind(o), configure, validate: null);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<OutboxOptions>, OutboxOptionsValidator>());
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<OutboxMetrics>();
 

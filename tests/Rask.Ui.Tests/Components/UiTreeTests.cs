@@ -33,6 +33,26 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Trees_of_different_node_types_never_share_an_id()
+    {
+        // Row types no other test builds a tree of, so each is its type's FIRST tree — a counter per closed type
+        // would number both of them 1.
+        var longs = (UiTree<long, long>)Ui.Tree.Roots(new[] { 1L })
+            .NodeKey(n => n)
+            .Item(n => Span["long"])
+            .Label("Longs")[_ => null];
+        var shorts = (UiTree<short, short>)Ui.Tree.Roots(new short[] { 1 })
+            .NodeKey(n => n)
+            .Item(n => Span["short"])
+            .Label("Shorts")[_ => null];
+
+        var first = IdPrefix(longs.ToHtml());
+        var second = IdPrefix(shorts.ToHtml());
+
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
     public void A_collapsed_tree_draws_no_group()
     {
         var html = Tree().ToHtml();
@@ -72,7 +92,7 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
     public void Nothing_is_selectable_until_a_mode_is_named()
     {
         Assert.DoesNotContain("aria-selected", Tree().ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("aria-selected", Tree().Selection(Ui.TreeSelection.Single).ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("aria-selected", Tree().Selection(Ui.TreeSelection.One).ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,11 +105,11 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Multiple_says_so_on_the_tree()
     {
-        var html = Tree().Selection(Ui.TreeSelection.Multiple).ToHtml();
+        var html = Tree().Selection(Ui.TreeSelection.Many).ToHtml();
 
         Assert.Contains("aria-multiselectable=\"true\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            "aria-multiselectable", Tree().Selection(Ui.TreeSelection.Single).ToHtml(), StringComparison.Ordinal);
+            "aria-multiselectable", Tree().Selection(Ui.TreeSelection.One).ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -170,6 +190,13 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
         var error = Assert.Throws<ArgumentOutOfRangeException>(() => tree.ToHtml());
 
         Assert.Contains(".ItemSize(28)", error.Message, StringComparison.Ordinal);
+    }
+
+    private static string IdPrefix(string html)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(html, "uitree-[0-9]+");
+        Assert.True(match.Success, html);
+        return match.Value;
     }
 
     private static string Between(string html, string start, string end)

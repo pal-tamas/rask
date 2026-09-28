@@ -49,7 +49,7 @@ public partial class QuiescentRenderMidRenderPaintTests : global::Rask.Core.Rask
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => child);
-            ctx.NotifyParameters(c, false);
+            LiveRenderContext.NotifyParameters(c, false);
             return c;
         }
     }

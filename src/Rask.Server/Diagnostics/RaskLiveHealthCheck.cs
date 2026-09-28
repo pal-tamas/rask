@@ -74,7 +74,7 @@ public sealed class RaskLiveHealthCheck(LiveSessionStore store) : IHealthCheck
         var max = store.MaxSessions;
         var connected = store.ConnectedCount;
         var memoryLoad = MemoryLoadReader();
-        var data = new Dictionary<string, object>
+        var data = new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["activeSessions"] = active,
             ["connectedSessions"] = connected,

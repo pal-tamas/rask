@@ -78,7 +78,7 @@ internal sealed class PublishedRequiredProperties
     {
         foreach (var attribute in assembly.GetAttributes())
         {
-            if (attribute.AttributeClass?.ToDisplayString() != AttributeFullName
+            if (!string.Equals(attribute.AttributeClass?.ToDisplayString(), AttributeFullName, StringComparison.Ordinal)
                 || attribute.ConstructorArguments.Length != 2
                 || attribute.ConstructorArguments[0].Value is not string key
                 || key.Length == 0)

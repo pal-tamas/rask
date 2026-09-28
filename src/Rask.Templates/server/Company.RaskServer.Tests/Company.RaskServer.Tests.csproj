@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The app's tests: `dotnet test` from the folder above runs them. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Renders a page in-process and drives it the way a person would. No browser, no server. -->
+    <PackageReference Include="Rask.Testing" Version="{{RaskVersion}}"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0"/>
+    <PackageReference Include="xunit" Version="2.9.3"/>
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Rask.Testing"/>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Company.RaskServer.csproj"/>
+  </ItemGroup>
+
+</Project>

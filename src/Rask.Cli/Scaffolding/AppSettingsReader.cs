@@ -31,6 +31,15 @@ internal static class AppSettingsReader
         ArgumentNullException.ThrowIfNull(fileSystem);
         ArgumentNullException.ThrowIfNull(projectDirectory);
 
+        return ReadStringsIterator(fileSystem, projectDirectory, environment, keyPath);
+    }
+
+    private static IEnumerable<string> ReadStringsIterator(
+        IFileSystem fileSystem,
+        string projectDirectory,
+        string? environment,
+        string[] keyPath)
+    {
         var candidates = new List<string>();
         if (!string.IsNullOrWhiteSpace(environment))
         {

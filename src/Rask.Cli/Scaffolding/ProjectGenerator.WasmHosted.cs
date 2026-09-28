@@ -123,52 +123,27 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.Auth");
         }
 
-        if (batteries.Outbox)
-        {
-            packages.Add("Rask.Outbox");
-        }
-
-        if (batteries.Jobs)
-        {
-            packages.Add("Rask.Jobs");
-        }
-
-        if (batteries.Mail)
-        {
-            packages.Add("Rask.Mail");
-        }
-
-        if (batteries.Cache)
-        {
-            packages.Add("Rask.Cache");
-        }
-
-        if (batteries.Storage)
-        {
-            packages.Add("Rask.Storage");
-        }
-
-        if (batteries.AnySqliteOps)
-        {
-            packages.Add("Rask.SQLite.Snapshots");
-        }
-
-        if (batteries.Logs)
-        {
-            packages.Add("Rask.Logging");
-        }
-
-        if (batteries.Push)
-        {
-            packages.Add("Rask.WebPush");
-        }
-
-        if (batteries.Ops)
-        {
-            packages.Add("Rask.Dashboard");
-        }
-
+        packages.AddRange(OnePackageBatteries(batteries));
         return packages;
+    }
+
+    // The batteries that are exactly one package each, in csproj order.
+    private static IEnumerable<string> OnePackageBatteries(ServerBatteries batteries)
+    {
+        (bool On, string Package)[] each =
+        [
+            (batteries.Outbox, "Rask.Outbox"),
+            (batteries.Jobs, "Rask.Jobs"),
+            (batteries.Mail, "Rask.Mail"),
+            (batteries.Cache, "Rask.Cache"),
+            (batteries.Storage, "Rask.Storage"),
+            (batteries.AnySqliteOps, "Rask.SQLite.Snapshots"),
+            (batteries.Logs, "Rask.Logging"),
+            (batteries.Push, "Rask.WebPush"),
+            (batteries.Ops, "Rask.Dashboard"),
+        ];
+
+        return each.Where(battery => battery.On).Select(battery => battery.Package);
     }
 
     private static string WasmHostedNextSteps(string name, ServerBatteries batteries)

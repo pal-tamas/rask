@@ -46,7 +46,7 @@ internal sealed class TemporaryUrlProtector
     /// <summary>Never throws: every token is attacker-controlled, and a refusal is an ordinary answer.</summary>
     internal bool TryUnprotect(string? token, out Guid id)
     {
-        id = default;
+        id = Guid.Empty;
         if (string.IsNullOrEmpty(token) || token.Length > MaxTokenChars)
         {
             return false;

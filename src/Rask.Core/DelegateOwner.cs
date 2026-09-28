@@ -97,8 +97,10 @@ internal static class DelegateOwner
             return null;
         }
 
+#pragma warning disable S3011 // a closure's captured fields are compiler-generated and private: reading them IS the lookup
         foreach (var f in target.GetType()
                      .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+#pragma warning restore S3011
         {
             var value = f.GetValue(target);
             if (value is Component component and not Element)
@@ -135,8 +137,10 @@ internal static class DelegateOwner
             "`this`. The compiler writes that field on the closure type it also instantiates, so the " +
             "trimmer preserves it; if it is ever absent GetField returns null and the caller falls back " +
             "to the element's render-owner — no crash, just the pre-existing behaviour.")]
+#pragma warning disable S3011 // the compiler's captured-`this` field on a closure type is not public
     private static FieldInfo? FindCapturedThisField(Type closureType) =>
         closureType.GetField(
             CapturedThisField,
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+#pragma warning restore S3011
 }

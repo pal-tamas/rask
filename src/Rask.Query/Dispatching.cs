@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     A <c>Send</c> still being worded: <c>await ship.Send(cmd).Optimistically(…)</c>. Nothing is

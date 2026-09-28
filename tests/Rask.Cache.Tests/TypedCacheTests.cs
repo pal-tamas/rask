@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 [Collection(CacheDbCollection.Name)]
 public sealed class TypedCacheTests

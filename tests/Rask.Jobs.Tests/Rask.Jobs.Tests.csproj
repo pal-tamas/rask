@@ -34,7 +34,7 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Cqrs"/>
-    <Using Include="Rask.Jobs"/>
+    <Using Include="Rask.Background"/>
   </ItemGroup>
 
   <ItemGroup>

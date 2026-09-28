@@ -100,7 +100,7 @@ internal static class JsonIndexDdl
             // An index keeps its name across ALTER TABLE ... RENAME, so the one built under the old name would sit
             // beside the one built below. The declaration is the same one, so its old names are this one's with the
             // old table in them.
-            foreach (var rename in operations.OfType<RenameTableOperation>().Where(r => (r.NewName ?? r.Name) == table))
+            foreach (var rename in operations.OfType<RenameTableOperation>().Where(r => string.Equals(r.NewName ?? r.Name, table, StringComparison.Ordinal)))
             {
                 foreach (var (name, _) in Parse(TableAnnotation(entityType, rename.Name)))
                 {
@@ -148,10 +148,10 @@ internal static class JsonIndexDdl
             }
         }
 
-        foreach (var name in jsonNames.Where(n => !n.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')))
+        // EF quotes such a name inside the JSON path, and the index would have to match that spelling exactly.
+        if (jsonNames.Find(n => !n.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')) is { } quoted)
         {
-            // EF quotes such a name inside the JSON path, and the index would have to match that spelling exactly.
-            throw Unresolvable(entityType, path, $"the JSON property name '{name}' is not a plain identifier");
+            throw Unresolvable(entityType, path, $"the JSON property name '{quoted}' is not a plain identifier");
         }
 
         var jsonPath = jsonNames.Count == 1 ? jsonNames[0] : "$." + string.Join('.', jsonNames);

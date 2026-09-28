@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Rask.Site.Features;
 
 // Collection binding via indexer — the for-loop variant. Useful when the row index matters
@@ -70,22 +68,4 @@ public sealed partial class NestedListIndexerDemo : Component
                 : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
         ];
     }
-}
-
-public sealed class InvoiceModel
-{
-    public List<SkuRow> Skus { get; set; } = new();
-}
-
-public sealed class SkuRow
-{
-    // Stable per-instance key for keyed row diffing — survives the up/down reorder.
-    public Guid Id { get; } = Guid.NewGuid();
-
-    [Required(ErrorMessage = "SKU is required.")]
-    [RegularExpression("^[A-Z0-9-]{3,12}$", ErrorMessage = "Use uppercase letters, digits, and dashes (3-12 chars).")]
-    public string Code { get; set; } = "";
-
-    [Range(0.01, 99999.99, ErrorMessage = "Price must be greater than 0.")]
-    public decimal Price { get; set; } = 0.01m;
 }

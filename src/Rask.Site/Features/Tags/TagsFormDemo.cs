@@ -14,7 +14,7 @@ public sealed partial class TagsFormDemo : Component
         Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)["Submit"]
     ];
 
-    private sealed class Fields
+    public sealed class Fields
     {
         public string? Name { get; set; }
     }

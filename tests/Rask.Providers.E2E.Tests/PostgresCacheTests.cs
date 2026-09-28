@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Cache;
+using Rask.Caching;
 
 namespace Rask.Providers.E2E.Tests;
 

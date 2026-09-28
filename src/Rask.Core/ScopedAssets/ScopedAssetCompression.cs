@@ -16,7 +16,7 @@ public static class ScopedAssetCompression
 {
     // Keyed "{hash}.{ext}.{encoding}". Bounded by (distinct asset hashes × 2 encodings); a hot-reload
     // hash change simply adds a new key and leaves the now-unreferenced old one (bounded by reloads).
-    private static readonly ConcurrentDictionary<string, byte[]> _cache = new();
+    private static readonly ConcurrentDictionary<string, byte[]> _cache = new(StringComparer.Ordinal);
 
     /// <summary>
     ///     Picks the best content-encoding the client advertises — brotli over gzip — or <c>null</c> for
@@ -94,7 +94,7 @@ public static class ScopedAssetCompression
     private static byte[] Compress(ReadOnlySpan<byte> data, string encoding)
     {
         using var ms = new MemoryStream();
-        if (encoding == "br")
+        if (string.Equals(encoding, "br", StringComparison.Ordinal))
         {
             using (var br = new BrotliStream(ms, CompressionLevel.Optimal, leaveOpen: true))
             {

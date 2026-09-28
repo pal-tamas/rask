@@ -11,7 +11,6 @@ Rask.Core.AttrBag.Values.get -> System.Collections.Generic.IEnumerable<string?>!
 Rask.Core.AttrBag.this[string! key].get -> string?
 Rask.Core.Authentication.AnonymousUserProvider
 Rask.Core.Authentication.AnonymousUserProvider.AnonymousUserProvider() -> void
-Rask.Core.Authentication.AnonymousUserProvider.Changed -> System.Action?
 Rask.Core.Authentication.AnonymousUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
 Rask.Core.Authentication.AuthAction
 Rask.Core.Authentication.AuthAction.SignIn = 0 -> Rask.Core.Authentication.AuthAction
@@ -49,7 +48,6 @@ Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, stri
 Rask.Core.Authentication.ISessionRevalidator
 Rask.Core.Authentication.ISessionRevalidator.RevalidateAsync(System.Security.Claims.ClaimsPrincipal! principal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
 Rask.Core.Authentication.IUserProvider
-Rask.Core.Authentication.IUserProvider.Changed -> System.Action?
 Rask.Core.Authentication.IUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
 Rask.Core.Authentication.IUserProvider.EnsureLoadedAsync() -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IUserProvider.IsLoading.get -> bool
@@ -229,13 +227,13 @@ Rask.Core.Browser.Crypto.RandomUuidAsync() -> System.Threading.Tasks.ValueTask<s
 Rask.Core.Browser.DeviceMotion
 Rask.Core.Browser.DeviceMotion.DeviceMotion(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.DeviceMotion.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.DeviceMotion.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermission>
+Rask.Core.Browser.DeviceMotion.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
 Rask.Core.Browser.DeviceMotion.WatchAsync(System.Func<Rask.Core.Browser.MotionReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.DeviceMotionInterop
 Rask.Core.Browser.DeviceOrientation
 Rask.Core.Browser.DeviceOrientation.DeviceOrientation(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.DeviceOrientation.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.DeviceOrientation.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermission>
+Rask.Core.Browser.DeviceOrientation.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
 Rask.Core.Browser.DeviceOrientation.WatchAsync(System.Func<Rask.Core.Browser.OrientationReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.DeviceOrientationInterop
 Rask.Core.Browser.DisplayMode
@@ -267,7 +265,6 @@ Rask.Core.Browser.FileHandler.Equals(Rask.Core.Browser.FileHandler? other) -> bo
 Rask.Core.Browser.FileHandler.FileHandler(string! Action, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! Accept) -> void
 Rask.Core.Browser.FilePickerOptions
 Rask.Core.Browser.FilePickerOptions.<Clone>$() -> Rask.Core.Browser.FilePickerOptions!
-Rask.Core.Browser.FilePickerOptions.Accept.get -> System.Collections.Generic.Dictionary<string!, string![]!>?
 Rask.Core.Browser.FilePickerOptions.Accept.init -> void
 Rask.Core.Browser.FilePickerOptions.Description.get -> string?
 Rask.Core.Browser.FilePickerOptions.Description.init -> void
@@ -379,11 +376,11 @@ Rask.Core.Browser.ICrypto.RandomBytesAsync(int length) -> System.Threading.Tasks
 Rask.Core.Browser.ICrypto.RandomUuidAsync() -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.Browser.IDeviceMotion
 Rask.Core.Browser.IDeviceMotion.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IDeviceMotion.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermission>
+Rask.Core.Browser.IDeviceMotion.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
 Rask.Core.Browser.IDeviceMotion.WatchAsync(System.Func<Rask.Core.Browser.MotionReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.IDeviceOrientation
 Rask.Core.Browser.IDeviceOrientation.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IDeviceOrientation.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermission>
+Rask.Core.Browser.IDeviceOrientation.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
 Rask.Core.Browser.IDeviceOrientation.WatchAsync(System.Func<Rask.Core.Browser.OrientationReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.IDirectoryHandle
 Rask.Core.Browser.IDirectoryHandle.GetFileAsync(string! name, bool create = false) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IFileHandle!>
@@ -444,8 +441,8 @@ Rask.Core.Browser.INetworkInfo.GetStatusAsync() -> System.Threading.Tasks.ValueT
 Rask.Core.Browser.INetworkInfo.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.INotifications
 Rask.Core.Browser.INotifications.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.INotifications.PermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
-Rask.Core.Browser.INotifications.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
+Rask.Core.Browser.INotifications.PermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
+Rask.Core.Browser.INotifications.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
 Rask.Core.Browser.INotifications.ShowAsync(string! title, Rask.Core.Browser.NotificationOptions? options = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IOriginPrivateFileSystem
 Rask.Core.Browser.IOriginPrivateFileSystem.DeleteAsync(string! path, bool recursive = false) -> System.Threading.Tasks.ValueTask
@@ -537,7 +534,7 @@ Rask.Core.Browser.IWebPush
 Rask.Core.Browser.IWebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription?>
 Rask.Core.Browser.IWebPush.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebPush.RegisterServiceWorkerAsync(string? swUrl = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IWebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
+Rask.Core.Browser.IWebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
 Rask.Core.Browser.IWebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription!>
 Rask.Core.Browser.IWebPush.UnsubscribeAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebRtc
@@ -801,15 +798,15 @@ Rask.Core.Browser.NotificationOptions.Silent.get -> bool?
 Rask.Core.Browser.NotificationOptions.Silent.init -> void
 Rask.Core.Browser.NotificationOptions.Tag.get -> string?
 Rask.Core.Browser.NotificationOptions.Tag.init -> void
-Rask.Core.Browser.NotificationPermission
-Rask.Core.Browser.NotificationPermission.Default = 0 -> Rask.Core.Browser.NotificationPermission
-Rask.Core.Browser.NotificationPermission.Denied = 2 -> Rask.Core.Browser.NotificationPermission
-Rask.Core.Browser.NotificationPermission.Granted = 1 -> Rask.Core.Browser.NotificationPermission
+Rask.Core.Browser.NotificationPermissionState
+Rask.Core.Browser.NotificationPermissionState.Default = 0 -> Rask.Core.Browser.NotificationPermissionState
+Rask.Core.Browser.NotificationPermissionState.Denied = 2 -> Rask.Core.Browser.NotificationPermissionState
+Rask.Core.Browser.NotificationPermissionState.Granted = 1 -> Rask.Core.Browser.NotificationPermissionState
 Rask.Core.Browser.Notifications
 Rask.Core.Browser.Notifications.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.Notifications.Notifications(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.Notifications.PermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
-Rask.Core.Browser.Notifications.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
+Rask.Core.Browser.Notifications.PermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
+Rask.Core.Browser.Notifications.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
 Rask.Core.Browser.Notifications.ShowAsync(string! title, Rask.Core.Browser.NotificationOptions? options = null) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.OrientationReading
 Rask.Core.Browser.OrientationReading.<Clone>$() -> Rask.Core.Browser.OrientationReading!
@@ -1036,7 +1033,6 @@ Rask.Core.Browser.SameSiteMode.None = 2 -> Rask.Core.Browser.SameSiteMode
 Rask.Core.Browser.SameSiteMode.Strict = 1 -> Rask.Core.Browser.SameSiteMode
 Rask.Core.Browser.SaveFilePickerOptions
 Rask.Core.Browser.SaveFilePickerOptions.<Clone>$() -> Rask.Core.Browser.SaveFilePickerOptions!
-Rask.Core.Browser.SaveFilePickerOptions.Accept.get -> System.Collections.Generic.Dictionary<string!, string![]!>?
 Rask.Core.Browser.SaveFilePickerOptions.Accept.init -> void
 Rask.Core.Browser.SaveFilePickerOptions.Description.get -> string?
 Rask.Core.Browser.SaveFilePickerOptions.Description.init -> void
@@ -1064,9 +1060,9 @@ Rask.Core.Browser.ScreenInfo.Width.init -> void
 Rask.Core.Browser.ScreenInfoReader
 Rask.Core.Browser.ScreenInfoReader.GetAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.ScreenInfo!>
 Rask.Core.Browser.ScreenInfoReader.ScreenInfoReader(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.SensorPermission
-Rask.Core.Browser.SensorPermission.Denied = 1 -> Rask.Core.Browser.SensorPermission
-Rask.Core.Browser.SensorPermission.Granted = 0 -> Rask.Core.Browser.SensorPermission
+Rask.Core.Browser.SensorPermissionState
+Rask.Core.Browser.SensorPermissionState.Denied = 1 -> Rask.Core.Browser.SensorPermissionState
+Rask.Core.Browser.SensorPermissionState.Granted = 0 -> Rask.Core.Browser.SensorPermissionState
 Rask.Core.Browser.ShareData
 Rask.Core.Browser.ShareData.<Clone>$() -> Rask.Core.Browser.ShareData!
 Rask.Core.Browser.ShareData.Equals(Rask.Core.Browser.ShareData? other) -> bool
@@ -1289,7 +1285,7 @@ Rask.Core.Browser.WebPush
 Rask.Core.Browser.WebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription?>
 Rask.Core.Browser.WebPush.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebPush.RegisterServiceWorkerAsync(string? swUrl = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.WebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermission>
+Rask.Core.Browser.WebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
 Rask.Core.Browser.WebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription!>
 Rask.Core.Browser.WebPush.UnsubscribeAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebPush.WebPush(Microsoft.JSInterop.IJSRuntime! js) -> void
@@ -1325,18 +1321,12 @@ Rask.Core.Component.CancellationToken.get -> System.Threading.CancellationToken
 Rask.Core.Component.Children.get -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>?
 Rask.Core.Component.Children.set -> void
 Rask.Core.Component.Component() -> void
-Rask.Core.Component.Culture.get -> System.Globalization.CultureInfo!
 Rask.Core.Component.GetEnumerator() -> System.Collections.Generic.IEnumerator<Rask.Core.Component?>!
-Rask.Core.Component.HostEngine.get -> Rask.Core.RenderEngine
-Rask.Core.Component.IsRightToLeft.get -> bool
-Rask.Core.Component.IsServer.get -> bool
-Rask.Core.Component.IsWasm.get -> bool
 Rask.Core.Component.Key.get -> object?
 Rask.Core.Component.Key.set -> void
 Rask.Core.Component.StateHasChanged() -> void
 Rask.Core.Component.StateHasChangedAsync() -> System.Threading.Tasks.Task!
 Rask.Core.Component.ToHtml() -> string!
-Rask.Core.Component.UICulture.get -> System.Globalization.CultureInfo!
 Rask.Core.Component.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.Core.Component!
 Rask.Core.Component.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
 Rask.Core.Component.this[params object?[]! children].get -> Rask.Core.Component!
@@ -1784,7 +1774,6 @@ Rask.Core.Forms.EditContext.ClearAllMessages() -> void
 Rask.Core.Forms.EditContext.ClearMessages(Rask.Core.Forms.FieldIdentifier field) -> void
 Rask.Core.Forms.EditContext.Dispose() -> void
 Rask.Core.Forms.EditContext.EditContext(object! model) -> void
-Rask.Core.Forms.EditContext.FieldChanged -> System.Action<Rask.Core.Forms.FieldIdentifier>?
 Rask.Core.Forms.EditContext.GetValidationEntries() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.ValidationEntry>!
 Rask.Core.Forms.EditContext.GetValidationMessages() -> System.Collections.Generic.IEnumerable<string!>!
 Rask.Core.Forms.EditContext.GetValidationMessages(Rask.Core.Forms.FieldIdentifier field) -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -1809,7 +1798,6 @@ Rask.Core.Forms.EditContext.ValidateField(Rask.Core.Forms.FieldIdentifier field)
 Rask.Core.Forms.EditContext.ValidateFieldAsync(Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Forms.EditContext.ValidatingStickyMs.get -> int
 Rask.Core.Forms.EditContext.ValidatingStickyMs.set -> void
-Rask.Core.Forms.EditContext.ValidationStateChanged -> System.Action?
 Rask.Core.Forms.EditContextScope
 Rask.Core.Forms.ExpressionAccessor
 Rask.Core.Forms.ExpressionAccessor.Accessor
@@ -1838,8 +1826,8 @@ Rask.Core.Forms.IAsyncFieldValidator
 Rask.Core.Forms.IAsyncFieldValidator.ValidateAsync(Rask.Core.Forms.EditContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Rask.Core.Forms.IAsyncFieldValidator.ValidateFieldAsync(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Rask.Core.Forms.IBrowserFileBackend
-Rask.Core.Forms.IBrowserFileBackend.Create(System.Text.Json.JsonElement metadata) -> Rask.Core.Forms.RaskFile!
-Rask.Core.Forms.IBrowserFileBackend.Release(System.Collections.Generic.IEnumerable<Rask.Core.Forms.RaskFile!>! files) -> void
+Rask.Core.Forms.IBrowserFileBackend.Create(System.Text.Json.JsonElement metadata) -> Rask.Core.Forms.IRaskFile!
+Rask.Core.Forms.IBrowserFileBackend.Release(System.Collections.Generic.IEnumerable<Rask.Core.Forms.IRaskFile!>! files) -> void
 Rask.Core.Forms.IFieldValidator
 Rask.Core.Forms.IFieldValidator.Validate(Rask.Core.Forms.EditContext! context) -> void
 Rask.Core.Forms.IFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field) -> void
@@ -1862,8 +1850,7 @@ Rask.Core.Forms.IFormControl<T>.Value.get -> T?
 Rask.Core.Forms.IFormControl<T>.Value.set -> void
 Rask.Core.Forms.ModelGraphWalker
 Rask.Core.Forms.RaskBinding
-Rask.Core.Forms.RaskFile
-Rask.Core.Forms.RaskFile.RaskFile() -> void
+Rask.Core.Forms.IRaskFile
 Rask.Core.Forms.RaskValidation
 Rask.Core.Forms.Validate<T>
 Rask.Core.Forms.ValidateAsync<T>
@@ -1896,7 +1883,6 @@ Rask.Core.Globalization.CultureSource.Cookie = 2 -> Rask.Core.Globalization.Cult
 Rask.Core.Globalization.CultureSource.Default = 0 -> Rask.Core.Globalization.CultureSource
 Rask.Core.Globalization.CultureSource.Query = 3 -> Rask.Core.Globalization.CultureSource
 Rask.Core.Globalization.IRaskCulture
-Rask.Core.Globalization.IRaskCulture.Changed -> System.Action?
 Rask.Core.Globalization.IRaskCulture.Culture.get -> System.Globalization.CultureInfo!
 Rask.Core.Globalization.IRaskCulture.IsRightToLeft.get -> bool
 Rask.Core.Globalization.IRaskCulture.SetAsync(System.Globalization.CultureInfo! culture) -> System.Threading.Tasks.Task<bool>!
@@ -1951,7 +1937,6 @@ Rask.Core.Globalization.RaskString.PickerPreviousMonth = 0 -> Rask.Core.Globaliz
 Rask.Core.Globalization.RaskString.PickerSecond = 4 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskStrings
 Rask.Core.Globalization.SessionCulture
-Rask.Core.Globalization.SessionCulture.Changed -> System.Action?
 Rask.Core.Globalization.SessionCulture.Culture.get -> System.Globalization.CultureInfo!
 Rask.Core.Globalization.SessionCulture.IsRightToLeft.get -> bool
 Rask.Core.Globalization.SessionCulture.SessionCulture(Rask.Core.Globalization.RaskCultureOptions! options, Rask.Core.Globalization.IRaskCulturePersistence? persistence = null) -> void
@@ -2023,9 +2008,9 @@ Rask.Core.Live.FormData
 Rask.Core.Live.FormData.ContainsKey(string! key) -> bool
 Rask.Core.Live.FormData.Count.get -> int
 Rask.Core.Live.FormData.FileKeys.get -> System.Collections.Generic.IEnumerable<string!>!
-Rask.Core.Live.FormData.Files(string! key) -> System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!
+Rask.Core.Live.FormData.Files(string! key) -> System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!
 Rask.Core.Live.FormData.FormData(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! values) -> void
-Rask.Core.Live.FormData.FormData(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! values, System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>! files) -> void
+Rask.Core.Live.FormData.FormData(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! values, System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!>! files) -> void
 Rask.Core.Live.FormData.Get(string! key) -> string!
 Rask.Core.Live.FormData.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string!, string!>>!
 Rask.Core.Live.FormData.HasFiles(string! key) -> bool
@@ -2072,13 +2057,7 @@ Rask.Core.Live.ISessionWorkScope
 Rask.Core.Live.ISessionWorkScope.Enter(System.IServiceProvider! sessionServices) -> System.IDisposable?
 Rask.Core.Live.KeyForwardScope
 Rask.Core.Live.LeanFrame
-Rask.Core.Live.LeanFrame.Kind -> Rask.Core.Live.RenderFrameKind
 Rask.Core.Live.LeanFrame.LeanFrame() -> void
-Rask.Core.Live.LeanFrame.Name -> string?
-Rask.Core.Live.LeanFrame.Opaque -> bool
-Rask.Core.Live.LeanFrame.SelfClosing -> bool
-Rask.Core.Live.LeanFrame.SubtreeLength -> int
-Rask.Core.Live.LeanFrame.Value -> string?
 Rask.Core.Live.LiveDiffMode
 Rask.Core.Live.LiveDiffMode.Auto = 1 -> Rask.Core.Live.LiveDiffMode
 Rask.Core.Live.LiveDiffMode.DisabledFull = 0 -> Rask.Core.Live.LiveDiffMode
@@ -2091,8 +2070,6 @@ Rask.Core.Live.LiveRenderContext.Dispose() -> void
 Rask.Core.Live.LiveRenderContext.GetOrCreate(System.Type! type, System.Func<System.IServiceProvider!, Rask.Core.Component!>! factory) -> Rask.Core.Component!
 Rask.Core.Live.LiveRenderContext.GetOrCreate<T>(System.Func<System.IServiceProvider!, T!>! factory) -> T!
 Rask.Core.Live.LiveRenderContext.GetOrCreateEditContext(object! model, System.Func<Rask.Core.Forms.EditContext!>? factory = null) -> Rask.Core.Forms.EditContext!
-Rask.Core.Live.LiveRenderContext.MountedTypes.get -> System.Collections.Generic.HashSet<System.Type!>!
-Rask.Core.Live.LiveRenderContext.NotifyParameters(Rask.Core.Component! component, bool propsChanged) -> void
 Rask.Core.Live.LiveRenderContext.RegisterEditContext(Rask.Core.Forms.EditContext! ctx) -> void
 Rask.Core.Live.LiveRenderContext.RegisterHandler(System.Delegate! handler) -> string!
 Rask.Core.Live.LiveRenderContext.Services.get -> System.IServiceProvider?
@@ -2160,16 +2137,7 @@ Rask.Core.Live.RaskLiveOptions.RaskLiveOptions() -> void
 Rask.Core.Live.RaskPath
 Rask.Core.Live.RaskPrerender
 Rask.Core.Live.RenderFrame
-Rask.Core.Live.RenderFrame.ComponentRef -> Rask.Core.Component?
-Rask.Core.Live.RenderFrame.HtmlEnd -> int
-Rask.Core.Live.RenderFrame.HtmlStart -> int
-Rask.Core.Live.RenderFrame.Kind -> Rask.Core.Live.RenderFrameKind
-Rask.Core.Live.RenderFrame.Name -> string?
-Rask.Core.Live.RenderFrame.Opaque -> bool
 Rask.Core.Live.RenderFrame.RenderFrame() -> void
-Rask.Core.Live.RenderFrame.SelfClosing -> bool
-Rask.Core.Live.RenderFrame.SubtreeLength -> int
-Rask.Core.Live.RenderFrame.Value -> string?
 Rask.Core.Live.RenderFrameKind
 Rask.Core.Live.RenderFrameKind.Attribute = 2 -> Rask.Core.Live.RenderFrameKind
 Rask.Core.Live.RenderFrameKind.Component = 6 -> Rask.Core.Live.RenderFrameKind
@@ -2190,7 +2158,6 @@ Rask.Core.Live.SessionRenderCache.TryComputeDiff(System.Collections.Generic.List
 Rask.Core.Live.SessionRenderCache.TryComputeDiff(System.Collections.Generic.List<Rask.Core.Live.EditOp>! output, out bool usedKeyedPath, System.ReadOnlySpan<char> newHtml, bool rotate) -> bool
 Rask.Core.Messaging.IToaster
 Rask.Core.Messaging.IToaster.Add(Rask.Core.Messaging.ToastLevel level, string! message, string? title = null) -> void
-Rask.Core.Messaging.IToaster.Changed -> System.Action?
 Rask.Core.Messaging.IToaster.Consume() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>!
 Rask.Core.Messaging.IToaster.Error(string! message, string? title = null) -> void
 Rask.Core.Messaging.IToaster.Info(string! message, string? title = null) -> void
@@ -2216,7 +2183,6 @@ Rask.Core.Messaging.ToastMessage.Title.init -> void
 Rask.Core.Messaging.ToastMessage.ToastMessage(int Id, Rask.Core.Messaging.ToastLevel Level, string! Message, string? Title = null) -> void
 Rask.Core.Messaging.Toaster
 Rask.Core.Messaging.Toaster.Add(Rask.Core.Messaging.ToastLevel level, string! message, string? title = null) -> void
-Rask.Core.Messaging.Toaster.Changed -> System.Action?
 Rask.Core.Messaging.Toaster.Consume() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>!
 Rask.Core.Messaging.Toaster.Toaster() -> void
 Rask.Core.RaskChainEntryAttribute
@@ -2339,7 +2305,6 @@ Rask.Core.Routing.RouteRegistration.Template.init -> void
 Rask.Core.Routing.RouteRegistry
 Rask.Core.Routing.RouteResolver
 Rask.Core.Routing.RouteState
-Rask.Core.Routing.RouteState.Changed -> System.Action?
 Rask.Core.Routing.RouteState.Path.get -> string!
 Rask.Core.Routing.RouteState.Path.set -> void
 Rask.Core.Routing.RouteState.Query.get -> Rask.Core.Routing.IQueryCollection!
@@ -2447,11 +2412,6 @@ Rask.Core.Virtualization.VirtualizationState.VisiblePlaceholders.get -> System.C
 Rask.Core.Virtualization.VirtualizationState.VisibleValues.get -> System.Collections.Generic.IReadOnlyList<object?>!
 RaskBuilderSettersRask_Core
 RaskEntriesRask_Core
-abstract Rask.Core.Forms.RaskFile.ContentType.get -> string!
-abstract Rask.Core.Forms.RaskFile.LastModified.get -> System.DateTimeOffset
-abstract Rask.Core.Forms.RaskFile.Name.get -> string!
-abstract Rask.Core.Forms.RaskFile.OpenReadStream(long maxAllowedSize = 524288, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
-abstract Rask.Core.Forms.RaskFile.Size.get -> long
 const Rask.Core.Authorization.RouteAuthorizationGuard.ChallengePath = "/login" -> string!
 const Rask.Core.Authorization.RouteAuthorizationGuard.ForbidPath = "/forbidden" -> string!
 const Rask.Core.BuilderRuntime.OwnPendingBit = 32 -> int
@@ -2851,7 +2811,7 @@ static Rask.Core.Component.AppendAttr(System.Text.StringBuilder! sb, string! nam
 static Rask.Core.Component.AppendMediaUrlAttr(System.Text.StringBuilder! sb, string! name, string? value) -> void
 static Rask.Core.Component.AppendUrlAttr(System.Text.StringBuilder! sb, string! name, string? value) -> void
 static Rask.Core.Component.EntryRequired<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true) -> T!
-static Rask.Core.Component.__Fragment(System.ReadOnlySpan<Rask.Core.Component?> items) -> Rask.Core.Component!
+static Rask.Core.Component.RaskFragment(System.ReadOnlySpan<Rask.Core.Component?> items) -> Rask.Core.Component!
 static Rask.Core.Component.implicit operator Rask.Core.Component!(System.DateOnly value) -> Rask.Core.Component!
 static Rask.Core.Component.implicit operator Rask.Core.Component!(System.DateTime value) -> Rask.Core.Component!
 static Rask.Core.Component.implicit operator Rask.Core.Component!(System.DateTimeOffset value) -> Rask.Core.Component!
@@ -3037,7 +2997,6 @@ static Rask.Core.ScopedAssets.ScopedAssetCompression.GetEncoded(string! hash, Ra
 static Rask.Core.ScopedAssets.ScopedAssetCompression.Negotiate(string? acceptEncoding) -> string?
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.operator !=(Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes left, Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes right) -> bool
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.operator ==(Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes left, Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes right) -> bool
-static Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetChanged -> System.Action<System.Type!, Rask.Core.ScopedAssets.AssetKind>?
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumerateAll() -> System.Collections.Generic.IEnumerable<Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry>!
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.operator !=(Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry left, Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry right) -> bool
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.operator ==(Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry left, Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry right) -> bool
@@ -3395,7 +3354,6 @@ static Rask.Core.ScopedAssets.ScopedScript.Callback(Rask.Core.Component! owner, 
 static Rask.Core.ScopedAssets.ScopedScript.Callback<T1, T2>(Rask.Core.Component! owner, Rask.Core.Callback<T1, T2> callback) -> object!
 static Rask.Core.ScopedAssets.ScopedScript.Callback<T>(Rask.Core.Component! owner, Rask.Core.Callback<T> callback) -> object!
 static Rask.Core.ScopedAssets.ScopedScript.Invoke(int id, System.Text.Json.JsonElement args) -> System.Threading.Tasks.Task!
-static Rask.Core.ScopedAssets.ScopedScript.Object<T>(Rask.Core.Component! owner, string! identifier, System.Func<Microsoft.JSInterop.IJSObjectReference!, T!>! wrap, params object?[]! args) -> System.Threading.Tasks.ValueTask<T!>
 Rask.Core.ScopedAssets.ScriptObject.CallScript(string! method, params object?[]! args) -> System.Threading.Tasks.ValueTask
 Rask.Core.ScopedAssets.ScriptObject.CallScript<T>(string! method, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>
 Rask.Core.ScopedAssets.ScriptObject.CallScriptObject<T>(string! method, System.Func<Microsoft.JSInterop.IJSObjectReference!, T!>! wrap, params object?[]! args) -> System.Threading.Tasks.ValueTask<T!>
@@ -4927,9 +4885,9 @@ static RaskBuilderSettersRask_Core.OnChange<T>(this Rask.Core.Components.HTMLSel
 static RaskBuilderSettersRask_Core.OnChange<T>(this Rask.Core.Components.HTMLTextAreaElement<T>! __b, Rask.Core.Callback<T>? value) -> Rask.Core.Components.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.OnChange<T>(this Rask.Core.Components.HTMLTextAreaElement<T>! __b, System.Action<T>? value) -> Rask.Core.Components.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.OnChange<T>(this Rask.Core.Components.HTMLTextAreaElement<T>! __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.HTMLTextAreaElement<T>!
-static RaskBuilderSettersRask_Core.OnFiles<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.OnFiles<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.OnFiles<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.OnFiles<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.OnFiles<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.OnFiles<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.OnInput<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.OnInput<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, System.Action<string!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.OnInput<T>(this Rask.Core.Components.HTMLInputElement<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.HTMLInputElement<T>!
@@ -5490,7 +5448,7 @@ Rask.Core.Components.HTMLFormElement<TModel>.OnInvalidSubmit.get -> Rask.Core.Ca
 Rask.Core.Components.HTMLFormElement<TModel>.OnSubmit.get -> Rask.Core.Callback<TModel>
 Rask.Core.Components.HTMLInputElement<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.Core.Components.HTMLInputElement<T>.OnChange.get -> Rask.Core.Callback<T>
-Rask.Core.Components.HTMLInputElement<T>.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>
+Rask.Core.Components.HTMLInputElement<T>.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!>
 Rask.Core.Components.HTMLInputElement<T>.OnInput.get -> Rask.Core.Callback<string!>
 Rask.Core.Components.HTMLSelectElement<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.Core.Components.HTMLSelectElement<T>.OnChange.get -> Rask.Core.Callback<T>
@@ -6436,6 +6394,73 @@ static RaskBuilderSettersRask_Core.OnError<T>(this T! __b, System.Action<Rask.Co
 static RaskBuilderSettersRask_Core.OnError<T>(this T! __b, System.Action? value) -> T!
 static RaskBuilderSettersRask_Core.OnError<T>(this T! __b, System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>? value) -> T!
 static RaskBuilderSettersRask_Core.OnError<T>(this T! __b, System.Func<System.Threading.Tasks.Task!>? value) -> T!
+Rask.Core.Authentication.AnonymousUserProvider.Changed -> System.EventHandler?
+Rask.Core.Authentication.IUserProvider.Changed -> System.EventHandler?
+Rask.Core.Browser.FilePickerOptions.Accept.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>?
+Rask.Core.Browser.SaveFilePickerOptions.Accept.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>?
+Rask.Core.Component.StateHasChanged(object? sender, System.EventArgs! e) -> void
+Rask.Core.Forms.EditContext.FieldChanged -> System.EventHandler<Rask.Core.Forms.FieldChangedEventArgs!>?
+Rask.Core.Forms.EditContext.ValidationStateChanged -> System.EventHandler?
+Rask.Core.Forms.FieldChangedEventArgs
+Rask.Core.Forms.FieldChangedEventArgs.Field.get -> Rask.Core.Forms.FieldIdentifier
+Rask.Core.Forms.FieldChangedEventArgs.FieldChangedEventArgs(Rask.Core.Forms.FieldIdentifier field) -> void
+Rask.Core.Forms.IRaskFile.ContentType.get -> string!
+Rask.Core.Forms.IRaskFile.LastModified.get -> System.DateTimeOffset
+Rask.Core.Forms.IRaskFile.Name.get -> string!
+Rask.Core.Forms.IRaskFile.OpenReadStream(long maxAllowedSize = 524288, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
+Rask.Core.Forms.IRaskFile.Size.get -> long
+Rask.Core.Globalization.IRaskCulture.Changed -> System.EventHandler?
+Rask.Core.Globalization.SessionCulture.Changed -> System.EventHandler?
+Rask.Core.Live.LeanFrame.Kind.get -> Rask.Core.Live.RenderFrameKind
+Rask.Core.Live.LeanFrame.Kind.set -> void
+Rask.Core.Live.LeanFrame.Name.get -> string?
+Rask.Core.Live.LeanFrame.Name.set -> void
+Rask.Core.Live.LeanFrame.Opaque.get -> bool
+Rask.Core.Live.LeanFrame.Opaque.set -> void
+Rask.Core.Live.LeanFrame.SelfClosing.get -> bool
+Rask.Core.Live.LeanFrame.SelfClosing.set -> void
+Rask.Core.Live.LeanFrame.SubtreeLength.get -> int
+Rask.Core.Live.LeanFrame.SubtreeLength.set -> void
+Rask.Core.Live.LeanFrame.Value.get -> string?
+Rask.Core.Live.LeanFrame.Value.set -> void
+Rask.Core.Live.LiveRenderContext.MountedTypes.get -> System.Collections.Generic.IReadOnlySet<System.Type!>!
+Rask.Core.Live.RenderFrame.ComponentRef.get -> Rask.Core.Component?
+Rask.Core.Live.RenderFrame.ComponentRef.set -> void
+Rask.Core.Live.RenderFrame.HtmlEnd.get -> int
+Rask.Core.Live.RenderFrame.HtmlEnd.set -> void
+Rask.Core.Live.RenderFrame.HtmlStart.get -> int
+Rask.Core.Live.RenderFrame.HtmlStart.set -> void
+Rask.Core.Live.RenderFrame.Kind.get -> Rask.Core.Live.RenderFrameKind
+Rask.Core.Live.RenderFrame.Kind.set -> void
+Rask.Core.Live.RenderFrame.Name.get -> string?
+Rask.Core.Live.RenderFrame.Name.set -> void
+Rask.Core.Live.RenderFrame.Opaque.get -> bool
+Rask.Core.Live.RenderFrame.Opaque.set -> void
+Rask.Core.Live.RenderFrame.SelfClosing.get -> bool
+Rask.Core.Live.RenderFrame.SelfClosing.set -> void
+Rask.Core.Live.RenderFrame.SubtreeLength.get -> int
+Rask.Core.Live.RenderFrame.SubtreeLength.set -> void
+Rask.Core.Live.RenderFrame.Value.get -> string?
+Rask.Core.Live.RenderFrame.Value.set -> void
+Rask.Core.Messaging.IToaster.Changed -> System.EventHandler?
+Rask.Core.Messaging.Toaster.Changed -> System.EventHandler?
+Rask.Core.Routing.RouteBindException.RouteBindException() -> void
+Rask.Core.Routing.RouteState.Changed -> System.EventHandler?
+Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs
+Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.Component.get -> System.Type!
+Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.Kind.get -> Rask.Core.ScopedAssets.AssetKind
+Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.ScopedAssetChangedEventArgs(System.Type! component, Rask.Core.ScopedAssets.AssetKind kind) -> void
+static Rask.Core.Component.Culture.get -> System.Globalization.CultureInfo!
+static Rask.Core.Component.HostEngine.get -> Rask.Core.RenderEngine
+static Rask.Core.Component.IsRightToLeft.get -> bool
+static Rask.Core.Component.IsServer.get -> bool
+static Rask.Core.Component.IsWasm.get -> bool
+static Rask.Core.Component.UICulture.get -> System.Globalization.CultureInfo!
+static Rask.Core.Forms.FieldIdentifier.operator !=(Rask.Core.Forms.FieldIdentifier left, Rask.Core.Forms.FieldIdentifier right) -> bool
+static Rask.Core.Forms.FieldIdentifier.operator ==(Rask.Core.Forms.FieldIdentifier left, Rask.Core.Forms.FieldIdentifier right) -> bool
+static Rask.Core.Live.LiveRenderContext.NotifyParameters(Rask.Core.Component! component, bool propsChanged) -> void
+static Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetChanged -> System.EventHandler<Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs!>?
+static Rask.Core.ScopedAssets.ScopedScript.NewObject<T>(Rask.Core.Component! owner, string! identifier, System.Func<Microsoft.JSInterop.IJSObjectReference!, T!>! wrap, params object?[]! args) -> System.Threading.Tasks.ValueTask<T!>
 Rask.Core.Components.SVGAElement
 Rask.Core.Components.SVGAElement.Download.get -> string?
 Rask.Core.Components.SVGAElement.Download.set -> void
@@ -6449,47 +6474,127 @@ Rask.Core.Components.SVGAElement.SVGAElement() -> void
 Rask.Core.Components.SVGAElement.Target.get -> string?
 Rask.Core.Components.SVGAElement.Target.set -> void
 Rask.Core.Components.SVGAnimateElement
+Rask.Core.Components.SVGAnimateElement.Accumulate.get -> string?
+Rask.Core.Components.SVGAnimateElement.Accumulate.set -> void
+Rask.Core.Components.SVGAnimateElement.Additive.get -> string?
+Rask.Core.Components.SVGAnimateElement.Additive.set -> void
 Rask.Core.Components.SVGAnimateElement.AttributeName.get -> string?
 Rask.Core.Components.SVGAnimateElement.AttributeName.set -> void
 Rask.Core.Components.SVGAnimateElement.AttributeType.get -> string?
 Rask.Core.Components.SVGAnimateElement.AttributeType.set -> void
+Rask.Core.Components.SVGAnimateElement.Begin.get -> string?
+Rask.Core.Components.SVGAnimateElement.Begin.set -> void
 Rask.Core.Components.SVGAnimateElement.Dur.get -> string?
 Rask.Core.Components.SVGAnimateElement.Dur.set -> void
+Rask.Core.Components.SVGAnimateElement.End.get -> string?
+Rask.Core.Components.SVGAnimateElement.End.set -> void
 Rask.Core.Components.SVGAnimateElement.From.get -> string?
 Rask.Core.Components.SVGAnimateElement.From.set -> void
 Rask.Core.Components.SVGAnimateElement.Href.get -> string?
 Rask.Core.Components.SVGAnimateElement.Href.set -> void
+Rask.Core.Components.SVGAnimateElement.KeySplines.get -> string?
+Rask.Core.Components.SVGAnimateElement.KeySplines.set -> void
+Rask.Core.Components.SVGAnimateElement.KeyTimes.get -> string?
+Rask.Core.Components.SVGAnimateElement.KeyTimes.set -> void
+Rask.Core.Components.SVGAnimateElement.Max.get -> string?
+Rask.Core.Components.SVGAnimateElement.Max.set -> void
+Rask.Core.Components.SVGAnimateElement.Min.get -> string?
+Rask.Core.Components.SVGAnimateElement.Min.set -> void
 Rask.Core.Components.SVGAnimateElement.RepeatCount.get -> string?
 Rask.Core.Components.SVGAnimateElement.RepeatCount.set -> void
+Rask.Core.Components.SVGAnimateElement.RepeatDur.get -> string?
+Rask.Core.Components.SVGAnimateElement.RepeatDur.set -> void
+Rask.Core.Components.SVGAnimateElement.Restart.get -> string?
+Rask.Core.Components.SVGAnimateElement.Restart.set -> void
 Rask.Core.Components.SVGAnimateElement.SVGAnimateElement() -> void
 Rask.Core.Components.SVGAnimateElement.To.get -> string?
 Rask.Core.Components.SVGAnimateElement.To.set -> void
+Rask.Core.Components.SVGAnimateElement.Values.get -> string?
+Rask.Core.Components.SVGAnimateElement.Values.set -> void
 Rask.Core.Components.SVGAnimateMotionElement
+Rask.Core.Components.SVGAnimateMotionElement.Accumulate.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Accumulate.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.Additive.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Additive.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.AttributeName.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.AttributeName.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.Begin.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Begin.set -> void
 Rask.Core.Components.SVGAnimateMotionElement.CalcMode.get -> string?
 Rask.Core.Components.SVGAnimateMotionElement.CalcMode.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.Dur.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Dur.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.End.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.End.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.From.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.From.set -> void
 Rask.Core.Components.SVGAnimateMotionElement.Href.get -> string?
 Rask.Core.Components.SVGAnimateMotionElement.Href.set -> void
 Rask.Core.Components.SVGAnimateMotionElement.KeyPoints.get -> string?
 Rask.Core.Components.SVGAnimateMotionElement.KeyPoints.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.KeySplines.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.KeySplines.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.KeyTimes.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.KeyTimes.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.Max.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Max.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.Min.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Min.set -> void
 Rask.Core.Components.SVGAnimateMotionElement.Origin.get -> string?
 Rask.Core.Components.SVGAnimateMotionElement.Origin.set -> void
 Rask.Core.Components.SVGAnimateMotionElement.Path.get -> string?
 Rask.Core.Components.SVGAnimateMotionElement.Path.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.RepeatCount.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.RepeatCount.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.RepeatDur.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.RepeatDur.set -> void
+Rask.Core.Components.SVGAnimateMotionElement.Restart.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Restart.set -> void
 Rask.Core.Components.SVGAnimateMotionElement.Rotate.get -> string?
 Rask.Core.Components.SVGAnimateMotionElement.Rotate.set -> void
 Rask.Core.Components.SVGAnimateMotionElement.SVGAnimateMotionElement() -> void
+Rask.Core.Components.SVGAnimateMotionElement.Values.get -> string?
+Rask.Core.Components.SVGAnimateMotionElement.Values.set -> void
 Rask.Core.Components.SVGAnimateTransformElement
+Rask.Core.Components.SVGAnimateTransformElement.Accumulate.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Accumulate.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.Additive.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Additive.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.AttributeName.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.AttributeName.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.Begin.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Begin.set -> void
 Rask.Core.Components.SVGAnimateTransformElement.By.get -> string?
 Rask.Core.Components.SVGAnimateTransformElement.By.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.Dur.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Dur.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.End.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.End.set -> void
 Rask.Core.Components.SVGAnimateTransformElement.From.get -> string?
 Rask.Core.Components.SVGAnimateTransformElement.From.set -> void
 Rask.Core.Components.SVGAnimateTransformElement.Href.get -> string?
 Rask.Core.Components.SVGAnimateTransformElement.Href.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.KeySplines.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.KeySplines.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.KeyTimes.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.KeyTimes.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.Max.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Max.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.Min.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Min.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.RepeatCount.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.RepeatCount.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.RepeatDur.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.RepeatDur.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.Restart.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Restart.set -> void
 Rask.Core.Components.SVGAnimateTransformElement.SVGAnimateTransformElement() -> void
 Rask.Core.Components.SVGAnimateTransformElement.To.get -> string?
 Rask.Core.Components.SVGAnimateTransformElement.To.set -> void
 Rask.Core.Components.SVGAnimateTransformElement.Type.get -> string?
 Rask.Core.Components.SVGAnimateTransformElement.Type.set -> void
+Rask.Core.Components.SVGAnimateTransformElement.Values.get -> string?
+Rask.Core.Components.SVGAnimateTransformElement.Values.set -> void
 Rask.Core.Components.SVGAnimationElement
 Rask.Core.Components.SVGAnimationElement.SVGAnimationElement() -> void
 Rask.Core.Components.SVGAnimationElement.SystemLanguage.get -> string?
@@ -7231,8 +7336,26 @@ Rask.Core.Components.SVGScriptElement.SVGScriptElement() -> void
 Rask.Core.Components.SVGScriptElement.Type.get -> string?
 Rask.Core.Components.SVGScriptElement.Type.set -> void
 Rask.Core.Components.SVGSetElement
+Rask.Core.Components.SVGSetElement.AttributeName.get -> string?
+Rask.Core.Components.SVGSetElement.AttributeName.set -> void
+Rask.Core.Components.SVGSetElement.Begin.get -> string?
+Rask.Core.Components.SVGSetElement.Begin.set -> void
+Rask.Core.Components.SVGSetElement.Dur.get -> string?
+Rask.Core.Components.SVGSetElement.Dur.set -> void
+Rask.Core.Components.SVGSetElement.End.get -> string?
+Rask.Core.Components.SVGSetElement.End.set -> void
 Rask.Core.Components.SVGSetElement.Href.get -> string?
 Rask.Core.Components.SVGSetElement.Href.set -> void
+Rask.Core.Components.SVGSetElement.Max.get -> string?
+Rask.Core.Components.SVGSetElement.Max.set -> void
+Rask.Core.Components.SVGSetElement.Min.get -> string?
+Rask.Core.Components.SVGSetElement.Min.set -> void
+Rask.Core.Components.SVGSetElement.RepeatCount.get -> string?
+Rask.Core.Components.SVGSetElement.RepeatCount.set -> void
+Rask.Core.Components.SVGSetElement.RepeatDur.get -> string?
+Rask.Core.Components.SVGSetElement.RepeatDur.set -> void
+Rask.Core.Components.SVGSetElement.Restart.get -> string?
+Rask.Core.Components.SVGSetElement.Restart.set -> void
 Rask.Core.Components.SVGSetElement.SVGSetElement() -> void
 Rask.Core.Components.SVGSetElement.To.get -> string?
 Rask.Core.Components.SVGSetElement.To.set -> void
@@ -7442,6 +7565,12 @@ static Rask.Markup.TextPath.get -> Rask.Core.Components.SVGTextPathElement!
 static Rask.Markup.Tspan.get -> Rask.Core.Components.SVGTSpanElement!
 static Rask.Markup.Use.get -> Rask.Core.Components.SVGUseElement!
 static Rask.Markup.View.get -> Rask.Core.Components.SVGViewElement!
+static RaskBuilderSettersRask_Core.Accumulate(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Accumulate(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Accumulate(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.Additive(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Additive(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Additive(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
 static RaskBuilderSettersRask_Core.AlignmentBaseline(this Rask.Core.Components.SVGAElement! __b, string? value) -> Rask.Core.Components.SVGAElement!
 static RaskBuilderSettersRask_Core.AlignmentBaseline(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.AlignmentBaseline(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
@@ -7510,6 +7639,9 @@ static RaskBuilderSettersRask_Core.Amplitude(this Rask.Core.Components.SVGFEFunc
 static RaskBuilderSettersRask_Core.Amplitude(this Rask.Core.Components.SVGFEFuncGElement! __b, string? value) -> Rask.Core.Components.SVGFEFuncGElement!
 static RaskBuilderSettersRask_Core.Amplitude(this Rask.Core.Components.SVGFEFuncRElement! __b, string? value) -> Rask.Core.Components.SVGFEFuncRElement!
 static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.AttributeType(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.Autofocus(this Rask.Core.Components.SVGAElement! __b, bool? value) -> Rask.Core.Components.SVGAElement!
 static RaskBuilderSettersRask_Core.Autofocus(this Rask.Core.Components.SVGAnimateElement! __b, bool? value) -> Rask.Core.Components.SVGAnimateElement!
@@ -7639,6 +7771,10 @@ static RaskBuilderSettersRask_Core.BaselineShift(this Rask.Core.Components.SVGTe
 static RaskBuilderSettersRask_Core.BaselineShift(this Rask.Core.Components.SVGTitleElement! __b, string? value) -> Rask.Core.Components.SVGTitleElement!
 static RaskBuilderSettersRask_Core.BaselineShift(this Rask.Core.Components.SVGUseElement! __b, string? value) -> Rask.Core.Components.SVGUseElement!
 static RaskBuilderSettersRask_Core.BaselineShift(this Rask.Core.Components.SVGViewElement! __b, string? value) -> Rask.Core.Components.SVGViewElement!
+static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.Bias(this Rask.Core.Components.SVGFEConvolveMatrixElement! __b, string? value) -> Rask.Core.Components.SVGFEConvolveMatrixElement!
 static RaskBuilderSettersRask_Core.By(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
 static RaskBuilderSettersRask_Core.CalcMode(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
@@ -8162,6 +8298,9 @@ static RaskBuilderSettersRask_Core.DominantBaseline(this Rask.Core.Components.SV
 static RaskBuilderSettersRask_Core.DominantBaseline(this Rask.Core.Components.SVGViewElement! __b, string? value) -> Rask.Core.Components.SVGViewElement!
 static RaskBuilderSettersRask_Core.Download(this Rask.Core.Components.SVGAElement! __b, string? value) -> Rask.Core.Components.SVGAElement!
 static RaskBuilderSettersRask_Core.Dur(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Dur(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Dur(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.Dur(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.Dx(this Rask.Core.Components.SVGFEDropShadowElement! __b, string? value) -> Rask.Core.Components.SVGFEDropShadowElement!
 static RaskBuilderSettersRask_Core.Dx(this Rask.Core.Components.SVGFEOffsetElement! __b, string? value) -> Rask.Core.Components.SVGFEOffsetElement!
 static RaskBuilderSettersRask_Core.Dx(this Rask.Core.Components.SVGTSpanElement! __b, string? value) -> Rask.Core.Components.SVGTSpanElement!
@@ -8172,6 +8311,10 @@ static RaskBuilderSettersRask_Core.Dy(this Rask.Core.Components.SVGTSpanElement!
 static RaskBuilderSettersRask_Core.Dy(this Rask.Core.Components.SVGTextElement! __b, string? value) -> Rask.Core.Components.SVGTextElement!
 static RaskBuilderSettersRask_Core.EdgeMode(this Rask.Core.Components.SVGFEConvolveMatrixElement! __b, string? value) -> Rask.Core.Components.SVGFEConvolveMatrixElement!
 static RaskBuilderSettersRask_Core.Elevation(this Rask.Core.Components.SVGFEDistantLightElement! __b, string? value) -> Rask.Core.Components.SVGFEDistantLightElement!
+static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.Exponent(this Rask.Core.Components.SVGFEFuncAElement! __b, string? value) -> Rask.Core.Components.SVGFEFuncAElement!
 static RaskBuilderSettersRask_Core.Exponent(this Rask.Core.Components.SVGFEFuncBElement! __b, string? value) -> Rask.Core.Components.SVGFEFuncBElement!
 static RaskBuilderSettersRask_Core.Exponent(this Rask.Core.Components.SVGFEFuncGElement! __b, string? value) -> Rask.Core.Components.SVGFEFuncGElement!
@@ -8998,6 +9141,7 @@ static RaskBuilderSettersRask_Core.FontWeight(this Rask.Core.Components.SVGUseEl
 static RaskBuilderSettersRask_Core.FontWeight(this Rask.Core.Components.SVGViewElement! __b, string? value) -> Rask.Core.Components.SVGViewElement!
 static RaskBuilderSettersRask_Core.Fr(this Rask.Core.Components.SVGRadialGradientElement! __b, string? value) -> Rask.Core.Components.SVGRadialGradientElement!
 static RaskBuilderSettersRask_Core.From(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.From(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
 static RaskBuilderSettersRask_Core.From(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
 static RaskBuilderSettersRask_Core.Fx(this Rask.Core.Components.SVGRadialGradientElement! __b, string? value) -> Rask.Core.Components.SVGRadialGradientElement!
 static RaskBuilderSettersRask_Core.Fy(this Rask.Core.Components.SVGRadialGradientElement! __b, string? value) -> Rask.Core.Components.SVGRadialGradientElement!
@@ -9137,6 +9281,12 @@ static RaskBuilderSettersRask_Core.KernelUnitLength(this Rask.Core.Components.SV
 static RaskBuilderSettersRask_Core.KernelUnitLength(this Rask.Core.Components.SVGFEDiffuseLightingElement! __b, string? value) -> Rask.Core.Components.SVGFEDiffuseLightingElement!
 static RaskBuilderSettersRask_Core.KernelUnitLength(this Rask.Core.Components.SVGFESpecularLightingElement! __b, string? value) -> Rask.Core.Components.SVGFESpecularLightingElement!
 static RaskBuilderSettersRask_Core.KeyPoints(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.KeySplines(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.KeySplines(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.KeySplines(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
 static RaskBuilderSettersRask_Core.LengthAdjust(this Rask.Core.Components.SVGTSpanElement! __b, string? value) -> Rask.Core.Components.SVGTSpanElement!
 static RaskBuilderSettersRask_Core.LengthAdjust(this Rask.Core.Components.SVGTextElement! __b, string? value) -> Rask.Core.Components.SVGTextElement!
 static RaskBuilderSettersRask_Core.LengthAdjust(this Rask.Core.Components.SVGTextPathElement! __b, string? value) -> Rask.Core.Components.SVGTextPathElement!
@@ -9524,8 +9674,16 @@ static RaskBuilderSettersRask_Core.Mask(this Rask.Core.Components.SVGUseElement!
 static RaskBuilderSettersRask_Core.Mask(this Rask.Core.Components.SVGViewElement! __b, string? value) -> Rask.Core.Components.SVGViewElement!
 static RaskBuilderSettersRask_Core.MaskContentUnits(this Rask.Core.Components.SVGMaskElement! __b, string? value) -> Rask.Core.Components.SVGMaskElement!
 static RaskBuilderSettersRask_Core.MaskUnits(this Rask.Core.Components.SVGMaskElement! __b, string? value) -> Rask.Core.Components.SVGMaskElement!
+static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.Media(this Rask.Core.Components.SVGStyleElement! __b, string? value) -> Rask.Core.Components.SVGStyleElement!
 static RaskBuilderSettersRask_Core.Method(this Rask.Core.Components.SVGTextPathElement! __b, string? value) -> Rask.Core.Components.SVGTextPathElement!
+static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.Mode(this Rask.Core.Components.SVGFEBlendElement! __b, string? value) -> Rask.Core.Components.SVGFEBlendElement!
 static RaskBuilderSettersRask_Core.NumOctaves(this Rask.Core.Components.SVGFETurbulenceElement! __b, string? value) -> Rask.Core.Components.SVGFETurbulenceElement!
 static RaskBuilderSettersRask_Core.Offset(this Rask.Core.Components.SVGFEFuncAElement! __b, string? value) -> Rask.Core.Components.SVGFEFuncAElement!
@@ -9823,6 +9981,13 @@ static RaskBuilderSettersRask_Core.RefY(this Rask.Core.Components.SVGMarkerEleme
 static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.Components.SVGAElement! __b, string? value) -> Rask.Core.Components.SVGAElement!
 static RaskBuilderSettersRask_Core.Rel(this Rask.Core.Components.SVGAElement! __b, string? value) -> Rask.Core.Components.SVGAElement!
 static RaskBuilderSettersRask_Core.RepeatCount(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.RepeatCount(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.RepeatCount(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.RepeatCount(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
+static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.RequiredExtensions(this Rask.Core.Components.SVGAElement! __b, string? value) -> Rask.Core.Components.SVGAElement!
 static RaskBuilderSettersRask_Core.RequiredExtensions(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
 static RaskBuilderSettersRask_Core.RequiredExtensions(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
@@ -9886,6 +10051,10 @@ static RaskBuilderSettersRask_Core.RequiredExtensions(this Rask.Core.Components.
 static RaskBuilderSettersRask_Core.RequiredExtensions(this Rask.Core.Components.SVGTitleElement! __b, string? value) -> Rask.Core.Components.SVGTitleElement!
 static RaskBuilderSettersRask_Core.RequiredExtensions(this Rask.Core.Components.SVGUseElement! __b, string? value) -> Rask.Core.Components.SVGUseElement!
 static RaskBuilderSettersRask_Core.RequiredExtensions(this Rask.Core.Components.SVGViewElement! __b, string? value) -> Rask.Core.Components.SVGViewElement!
+static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
+static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
 static RaskBuilderSettersRask_Core.Result(this Rask.Core.Components.SVGFEBlendElement! __b, string? value) -> Rask.Core.Components.SVGFEBlendElement!
 static RaskBuilderSettersRask_Core.Result(this Rask.Core.Components.SVGFEColorMatrixElement! __b, string? value) -> Rask.Core.Components.SVGFEColorMatrixElement!
 static RaskBuilderSettersRask_Core.Result(this Rask.Core.Components.SVGFEComponentTransferElement! __b, string? value) -> Rask.Core.Components.SVGFEComponentTransferElement!
@@ -11110,6 +11279,9 @@ static RaskBuilderSettersRask_Core.UnicodeBidi(this Rask.Core.Components.SVGText
 static RaskBuilderSettersRask_Core.UnicodeBidi(this Rask.Core.Components.SVGTitleElement! __b, string? value) -> Rask.Core.Components.SVGTitleElement!
 static RaskBuilderSettersRask_Core.UnicodeBidi(this Rask.Core.Components.SVGUseElement! __b, string? value) -> Rask.Core.Components.SVGUseElement!
 static RaskBuilderSettersRask_Core.UnicodeBidi(this Rask.Core.Components.SVGViewElement! __b, string? value) -> Rask.Core.Components.SVGViewElement!
+static RaskBuilderSettersRask_Core.Values(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
+static RaskBuilderSettersRask_Core.Values(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
+static RaskBuilderSettersRask_Core.Values(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
 static RaskBuilderSettersRask_Core.Values(this Rask.Core.Components.SVGFEColorMatrixElement! __b, string? value) -> Rask.Core.Components.SVGFEColorMatrixElement!
 static RaskBuilderSettersRask_Core.VectorEffect(this Rask.Core.Components.SVGAElement! __b, string? value) -> Rask.Core.Components.SVGAElement!
 static RaskBuilderSettersRask_Core.VectorEffect(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
@@ -11715,150 +11887,3 @@ static RaskEntriesRask_Core.TextPath.get -> Rask.Core.Components.SVGTextPathElem
 static RaskEntriesRask_Core.Tspan.get -> Rask.Core.Components.SVGTSpanElement!
 static RaskEntriesRask_Core.Use.get -> Rask.Core.Components.SVGUseElement!
 static RaskEntriesRask_Core.View.get -> Rask.Core.Components.SVGViewElement!
-Rask.Core.Components.SVGAnimateElement.Accumulate.get -> string?
-Rask.Core.Components.SVGAnimateElement.Accumulate.set -> void
-Rask.Core.Components.SVGAnimateElement.Additive.get -> string?
-Rask.Core.Components.SVGAnimateElement.Additive.set -> void
-Rask.Core.Components.SVGAnimateElement.Begin.get -> string?
-Rask.Core.Components.SVGAnimateElement.Begin.set -> void
-Rask.Core.Components.SVGAnimateElement.End.get -> string?
-Rask.Core.Components.SVGAnimateElement.End.set -> void
-Rask.Core.Components.SVGAnimateElement.KeySplines.get -> string?
-Rask.Core.Components.SVGAnimateElement.KeySplines.set -> void
-Rask.Core.Components.SVGAnimateElement.KeyTimes.get -> string?
-Rask.Core.Components.SVGAnimateElement.KeyTimes.set -> void
-Rask.Core.Components.SVGAnimateElement.Max.get -> string?
-Rask.Core.Components.SVGAnimateElement.Max.set -> void
-Rask.Core.Components.SVGAnimateElement.Min.get -> string?
-Rask.Core.Components.SVGAnimateElement.Min.set -> void
-Rask.Core.Components.SVGAnimateElement.RepeatDur.get -> string?
-Rask.Core.Components.SVGAnimateElement.RepeatDur.set -> void
-Rask.Core.Components.SVGAnimateElement.Restart.get -> string?
-Rask.Core.Components.SVGAnimateElement.Restart.set -> void
-Rask.Core.Components.SVGAnimateElement.Values.get -> string?
-Rask.Core.Components.SVGAnimateElement.Values.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Accumulate.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Accumulate.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Additive.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Additive.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.AttributeName.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.AttributeName.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Begin.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Begin.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Dur.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Dur.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.End.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.End.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.From.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.From.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.KeySplines.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.KeySplines.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.KeyTimes.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.KeyTimes.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Max.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Max.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Min.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Min.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.RepeatCount.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.RepeatCount.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.RepeatDur.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.RepeatDur.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Restart.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Restart.set -> void
-Rask.Core.Components.SVGAnimateMotionElement.Values.get -> string?
-Rask.Core.Components.SVGAnimateMotionElement.Values.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Accumulate.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Accumulate.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Additive.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Additive.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.AttributeName.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.AttributeName.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Begin.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Begin.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Dur.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Dur.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.End.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.End.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.KeySplines.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.KeySplines.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.KeyTimes.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.KeyTimes.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Max.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Max.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Min.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Min.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.RepeatCount.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.RepeatCount.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.RepeatDur.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.RepeatDur.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Restart.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Restart.set -> void
-Rask.Core.Components.SVGAnimateTransformElement.Values.get -> string?
-Rask.Core.Components.SVGAnimateTransformElement.Values.set -> void
-Rask.Core.Components.SVGSetElement.AttributeName.get -> string?
-Rask.Core.Components.SVGSetElement.AttributeName.set -> void
-Rask.Core.Components.SVGSetElement.Begin.get -> string?
-Rask.Core.Components.SVGSetElement.Begin.set -> void
-Rask.Core.Components.SVGSetElement.Dur.get -> string?
-Rask.Core.Components.SVGSetElement.Dur.set -> void
-Rask.Core.Components.SVGSetElement.End.get -> string?
-Rask.Core.Components.SVGSetElement.End.set -> void
-Rask.Core.Components.SVGSetElement.Max.get -> string?
-Rask.Core.Components.SVGSetElement.Max.set -> void
-Rask.Core.Components.SVGSetElement.Min.get -> string?
-Rask.Core.Components.SVGSetElement.Min.set -> void
-Rask.Core.Components.SVGSetElement.RepeatCount.get -> string?
-Rask.Core.Components.SVGSetElement.RepeatCount.set -> void
-Rask.Core.Components.SVGSetElement.RepeatDur.get -> string?
-Rask.Core.Components.SVGSetElement.RepeatDur.set -> void
-Rask.Core.Components.SVGSetElement.Restart.get -> string?
-Rask.Core.Components.SVGSetElement.Restart.set -> void
-static RaskBuilderSettersRask_Core.Accumulate(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.Accumulate(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Accumulate(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Additive(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.Additive(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Additive(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.AttributeName(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Begin(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.Dur(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Dur(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Dur(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.End(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.From(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.KeySplines(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.KeySplines(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.KeySplines(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.KeyTimes(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Max(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Min(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.RepeatCount(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.RepeatCount(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.RepeatCount(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.RepeatDur(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!
-static RaskBuilderSettersRask_Core.Restart(this Rask.Core.Components.SVGSetElement! __b, string? value) -> Rask.Core.Components.SVGSetElement!
-static RaskBuilderSettersRask_Core.Values(this Rask.Core.Components.SVGAnimateElement! __b, string? value) -> Rask.Core.Components.SVGAnimateElement!
-static RaskBuilderSettersRask_Core.Values(this Rask.Core.Components.SVGAnimateMotionElement! __b, string? value) -> Rask.Core.Components.SVGAnimateMotionElement!
-static RaskBuilderSettersRask_Core.Values(this Rask.Core.Components.SVGAnimateTransformElement! __b, string? value) -> Rask.Core.Components.SVGAnimateTransformElement!

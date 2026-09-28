@@ -25,8 +25,8 @@ public sealed partial class CrossFieldSummaryDemo : Component
             .Class("flex flex-col gap-3")
             .Validate(m =>
                 m.Return > m.Depart
-                    ? Array.Empty<string>()
-                    : new[] { "Return date must be after departure." })[
+                    ? []
+                    : ["Return date must be after departure."])[
             Validation.Summary.Template(SummaryAlert),
             Div[
                 Ui.Input.Bind(() => _model.Depart).Label("Departure").Id("v5-depart")
@@ -42,10 +42,4 @@ public sealed partial class CrossFieldSummaryDemo : Component
             ? null
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
-}
-
-public sealed class TripModel
-{
-    public DateOnly Depart { get; set; } = new(2026, 6, 1);
-    public DateOnly Return { get; set; } = new(2026, 6, 1);
 }

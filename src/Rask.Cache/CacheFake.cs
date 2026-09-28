@@ -1,37 +1,6 @@
 using Rask.Batteries;
 
-namespace Rask.Cache;
-
-/// <summary>A test's stand-in for the cache: <c>using var cache = Cache.Fake();</c>.</summary>
-public static class CacheFakes
-{
-    extension(Cache)
-    {
-        /// <summary>
-        ///     Takes the place of the cache for this test — an in-memory one that really stores, so the
-        ///     code under test behaves as it would in production — until the returned fake is disposed:
-        /// </summary>
-        /// <remarks>
-        ///     <code>
-        ///     using var cache = Cache.Fake();
-        ///
-        ///     await page.Visit("/products");
-        ///     await page.Visit("/products");
-        ///
-        ///     cache.Loaded("products").Once();   // the second visit was served from the cache
-        ///     </code>
-        ///     <para>
-        ///         Expiry is real and reads the app's clock, so <c>Clock.Fake</c> plus <c>Advance</c> proves
-        ///         a value is reloaded once it is stale. Scoped to the test's own flow, so tests running in
-        ///         parallel never see each other's keys. It stands in front of <c>Cache.Remember</c>; a
-        ///         class that takes <see cref="ICache" /> in its constructor is handed whatever the
-        ///         container holds, so register the fake there too —
-        ///         <c>services.AddSingleton&lt;ICache&gt;(cache)</c> — when the code under test injects it.
-        ///     </para>
-        /// </remarks>
-        public static CacheFake Fake() => new();
-    }
-}
+namespace Rask.Caching;
 
 /// <summary>An in-memory cache that remembers what a test asked of it.</summary>
 public sealed class CacheFake : ICache, IDisposable
@@ -56,21 +25,21 @@ public sealed class CacheFake : ICache, IDisposable
 
     /// <inheritdoc cref="Loaded()" />
     /// <param name="key">The key to ask about.</param>
-    public Counting<string> Loaded(string key) => Loaded().Where(k => k == key, $"of \"{key}\"");
+    public Counting<string> Loaded(string key) => Loaded().Where(k => string.Equals(k, key, StringComparison.Ordinal), $"of \"{key}\"");
 
     /// <summary>The keys a <c>Remember</c> or <c>Get</c> asked for, hit or miss.</summary>
     public Counting<string> Read() => Counting(TouchKind.Read, "read");
 
     /// <inheritdoc cref="Read()" />
     /// <param name="key">The key to ask about.</param>
-    public Counting<string> Read(string key) => Read().Where(k => k == key, $"of \"{key}\"");
+    public Counting<string> Read(string key) => Read().Where(k => string.Equals(k, key, StringComparison.Ordinal), $"of \"{key}\"");
 
     /// <summary>The keys <c>Forget</c> removed.</summary>
     public Counting<string> Forgotten() => Counting(TouchKind.Forgotten, "forget");
 
     /// <inheritdoc cref="Forgotten()" />
     /// <param name="key">The key to ask about.</param>
-    public Counting<string> Forgotten(string key) => Forgotten().Where(k => k == key, $"of \"{key}\"");
+    public Counting<string> Forgotten(string key) => Forgotten().Where(k => string.Equals(k, key, StringComparison.Ordinal), $"of \"{key}\"");
 
     /// <summary>Empties it and forgets what was asked of it, without putting the real cache back.</summary>
     public void Clear()
@@ -145,10 +114,12 @@ public sealed class CacheFake : ICache, IDisposable
         return Task.CompletedTask;
     }
 
-    private static DateTimeOffset? Expiry(CacheLifetime lifetime) =>
-        lifetime.For is { } span ? Clock.Now + span
-        : lifetime.Sliding is { } window ? Clock.Now + window
-        : lifetime.Until;
+    private static DateTimeOffset? Expiry(CacheLifetime lifetime) => lifetime switch
+    {
+        { For: { } span } => Clock.Now + span,
+        { Sliding: { } window } => Clock.Now + window,
+        _ => lifetime.Until,
+    };
 
     private Counting<string> Counting(TouchKind kind, string verb) =>
         new([.. _touches.Where(t => t.Kind == kind).Select(t => t.Key)], "key", verb, static k => $"\"{k}\"");

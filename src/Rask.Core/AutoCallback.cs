@@ -12,7 +12,7 @@ namespace Rask.Core;
 ///     <para>
 ///         Each <c>Wrap</c> returns a delegate of the <em>same type</em> as the input, so it drops
 ///         straight into the child's prop. The returned delegate runs the original and then calls
-///         <see cref="Component.StateHasChanged" /> on the component that <em>owns</em> the original
+///         <see cref="Component.StateHasChanged()" /> on the component that <em>owns</em> the original
 ///         (its <c>Target</c>), after awaiting any returned <see cref="System.Threading.Tasks.Task" />.
 ///     </para>
 ///     <para>

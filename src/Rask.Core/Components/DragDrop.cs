@@ -34,8 +34,7 @@ public sealed class DragDrop : Component
     public new Fn<DragDropContext, Component>? Body { get; set; }
 
     // Fired once when an item is dropped onto a zone, in whichever shape the consumer wrote — the
-    // carrier holds a sync or an async handler under the one name. Calling it back is
-    // `OnDrop?.Invoke(move)`, which hands back null when there is nothing to await.
+    // carrier holds a sync or an async handler under the one name.
 
     /// <summary>Called with what was dropped once the drop completes.</summary>
     public Callback<DragDropMove> OnDrop { get; set; }

@@ -12,6 +12,26 @@ and when to reach for end-to-end (E2E) tests instead.
 
 ## 0. The `Rask.Testing` package (start here)
 
+**A new app already has a test.** `rask new Shop` (the `server` and `wasm` templates) writes `Shop.Tests/`
+beside the app, listed in `Shop.slnx`, so `dotnet test` is green before you have written anything:
+
+```csharp
+public sealed partial class HomePageTests : RaskMarkup
+{
+    [Fact]
+    public void Home_page_greets_the_visitor()
+    {
+        var page = Page.Render(() => HomePage);
+
+        Assert.Contains("Hello, Rask!", page.Html);
+    }
+}
+```
+
+The class derives from `RaskMarkup`, which is what makes the app's pages reachable by name — `HomePage` —
+the same way they are in markup. Add a file beside it per feature. `rask new --no-tests` leaves the project
+out.
+
 Reference **`Rask.Testing`** from your test project and you can render a component, invoke its handlers,
 and assert on the re-rendered HTML through a small public API — no browser, server, or WebSocket:
 
@@ -124,7 +144,7 @@ Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
 
 ### Components that take file uploads
 
-A file input's handler receives `RaskFile`s the host reads back from the browser, so a test has to supply
+A file input's handler receives `IRaskFile`s the host reads back from the browser, so a test has to supply
 that host half. `TestFileBackend` is it — stage the bytes, register it, pick the files:
 
 ```csharp
@@ -155,7 +175,7 @@ await page.On("#form").SubmitAsync(files.FormPayload("attachment", files.Add("cv
 
 `.Staged` lists everything added; `.Released` records what the framework handed back after the handler
 returned — the browser hosts drop their client-side references at that point and the server frees its upload
-slot, so a component holding a `RaskFile` past the handler is holding something already gone.
+slot, so a component holding a `IRaskFile` past the handler is holding something already gone.
 
 ### Handing a component its services
 

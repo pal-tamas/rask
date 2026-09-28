@@ -41,7 +41,8 @@ internal static class SafeFileName
         var leaf = separator >= 0 ? fileName.AsSpan(separator + 1) : fileName.AsSpan();
 
         var sb = new StringBuilder(Math.Min(leaf.Length, MaxLength));
-        for (var i = 0; i < leaf.Length; i++)
+        var i = -1;
+        while (++i < leaf.Length)
         {
             var c = leaf[i];
             if (char.IsHighSurrogate(c))

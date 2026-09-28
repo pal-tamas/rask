@@ -10,6 +10,7 @@
   <ItemGroup>
     <Compile Include="..\Shared.DbCollection\DbCollectionGuard.cs" Link="DbCollectionGuard.cs"/>
     <Compile Include="..\..\src\Rask.Data\Browser\BrowserData.cs" Link="Browser\BrowserData.cs"/>
+    <Compile Include="..\..\src\Rask.Data\Browser\BrowserDataScope.cs" Link="Browser\BrowserDataScope.cs"/>
     <Compile Include="..\..\src\Rask.Data\Browser\QueryDataChanges.cs" Link="Browser\QueryDataChanges.cs"/>
   </ItemGroup>
 

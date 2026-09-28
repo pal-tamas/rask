@@ -10,7 +10,7 @@ public class SessionUserProviderTests
     {
         var provider = new SessionUserProvider();
         var changes = 0;
-        provider.Changed += () => changes++;
+        provider.Changed += (_, _) => changes++;
 
         provider.Set(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "test")));
 
@@ -28,7 +28,7 @@ public class SessionUserProviderTests
     {
         var provider = new SessionUserProvider();
         var changes = 0;
-        provider.Changed += () => changes++;
+        provider.Changed += (_, _) => changes++;
 
         provider.Clear();
 

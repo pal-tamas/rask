@@ -25,8 +25,8 @@ internal static class RouteTemplate
         {
             foreach (var attribute in current.GetAttributes())
             {
-                if (attribute.AttributeClass?.Name != "RouteAttribute" ||
-                    attribute.AttributeClass?.ContainingNamespace?.ToDisplayString() != MvcNamespace)
+                if (!string.Equals(attribute.AttributeClass?.Name, "RouteAttribute", StringComparison.Ordinal) ||
+                    !string.Equals(attribute.AttributeClass?.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -49,7 +49,7 @@ internal static class RouteTemplate
         {
             var name = attribute.AttributeClass?.Name;
 
-            if (attribute.AttributeClass?.ContainingNamespace?.ToDisplayString() != MvcNamespace)
+            if (!string.Equals(attribute.AttributeClass?.ContainingNamespace?.ToDisplayString(), MvcNamespace, StringComparison.Ordinal))
             {
                 continue;
             }

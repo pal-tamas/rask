@@ -41,7 +41,7 @@ public sealed partial class ContextCapture(Action<EditContext> capture) : Compon
 /// </summary>
 public sealed class CountingCulture : Rask.Core.Globalization.IRaskCulture
 {
-    private Action? _changed;
+    private EventHandler? _changed;
 
     public int SubscriberCount => _changed?.GetInvocationList().Length ?? 0;
 
@@ -54,13 +54,13 @@ public sealed class CountingCulture : Rask.Core.Globalization.IRaskCulture
 
     public bool IsRightToLeft => false;
 
-    public event Action? Changed
+    public event EventHandler? Changed
     {
         add => _changed += value;
         remove => _changed -= value;
     }
 
-    public void RaiseChanged() => _changed?.Invoke();
+    public void RaiseChanged() => _changed?.Invoke(this, EventArgs.Empty);
 
     public Task<bool> SetAsync(System.Globalization.CultureInfo culture) => Task.FromResult(false);
 

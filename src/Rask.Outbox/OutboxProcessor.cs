@@ -14,7 +14,7 @@ namespace Rask.Outbox;
 /// <see cref="OutboxOptions.MaxAttempts"/>. A publish failure never crashes the app.
 /// </summary>
 /// <typeparam name="TContext">The application's <see cref="DbContext"/> that owns the outbox table.</typeparam>
-public sealed class OutboxProcessor<TContext>(
+public sealed partial class OutboxProcessor<TContext>(
     IDbContextFactory<TContext> contextFactory,
     IServiceScopeFactory scopeFactory,
     OutboxOptions options,
@@ -23,7 +23,7 @@ public sealed class OutboxProcessor<TContext>(
     ILogger<OutboxProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
-    private static readonly TimeSpan PurgeInterval = TimeSpan.FromHours(1);
+    private static TimeSpan PurgeInterval => TimeSpan.FromHours(1);
     private DateTime _lastPurge;
 
     /// <summary>Identifies this instance in logs — not persisted; the per-batch token is what rows carry.</summary>
@@ -102,7 +102,9 @@ public sealed class OutboxProcessor<TContext>(
 
         try
         {
-            await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
+
             // Attempts goes back with the lease. ClaimAsync increments it up front so a message that takes
             // the process down still reaches MaxAttempts — but a shutdown is not that, and every row still
             // holding our lease unpublished either never started or was cut off mid-publish. Leaving the
@@ -123,7 +125,7 @@ public sealed class OutboxProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogWarning(ex, "Could not release outbox leases on shutdown; they expire in {Lease}.", options.LeaseDuration);
+            LeaseReleaseFailed(logger, ex, options.LeaseDuration);
         }
     }
 
@@ -172,21 +174,18 @@ public sealed class OutboxProcessor<TContext>(
                 // The generic message would send someone reading a stack trace instead of running two
                 // commands. This failure is also invisible without it: the exception is swallowed here,
                 // so the app looks healthy while logging the same error every poll, forever.
-                logger.LogError(
-                    ex,
-                    "Rask.Outbox added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
-                    + "Run: rask db add AddOutboxLeases && rask db update. See docs/{Doc}.",
-                    "scaling.md#running-more-than-one-instance");
+                LeaseColumnsMissing(logger, ex, "scaling.md#running-more-than-one-instance");
                 return;
             }
 
-            logger.LogError(ex, "Outbox processing cycle failed; retrying on the next poll.");
+            CycleFailed(logger, ex);
         }
     }
 
     private async Task DrainAsync(CancellationToken cancellationToken)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         var batch = await ClaimAsync(db, timeProvider.GetUtcNow().UtcDateTime, cancellationToken).ConfigureAwait(false);
 
@@ -195,7 +194,8 @@ public sealed class OutboxProcessor<TContext>(
             return;
         }
 
-        await using var scope = scopeFactory.CreateAsyncScope();
+        var scope = scopeFactory.CreateAsyncScope();
+        await using var batchScope = scope.ConfigureAwait(false);
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
         // The in-flight message gets a bounded grace after SIGTERM instead of being cancelled mid-call.
@@ -219,101 +219,108 @@ public sealed class OutboxProcessor<TContext>(
                 break;
             }
 
-            var notification = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
-            if (notification is null)
+            if (!await PublishAsync(dispatcher, message, graceToken, cancellationToken).ConfigureAwait(false))
             {
-                message.Failed($"No registered outbox event type '{message.Type}'.");
-                message.Release();
-
-                // An unregistered type is a failure like any other, and counts toward the dead letter it
-                // will become — a renamed event that nobody re-registered is the most ordinary way a
-                // production outbox starts abandoning work, so it must not be invisible to metrics.
-                metrics.Failed(message.Type);
-                if (message.Attempts >= options.MaxAttempts)
-                {
-                    metrics.DeadLettered(message.Type);
-                }
-
-                logger.LogError("Outbox message {Id} has an unregistered type '{Type}'.", message.Id, message.Type);
+                break; // leave this and the rest for the next run
             }
-            else
-            {
-                var startedAt = timeProvider.GetTimestamp();
-                try
-                {
-                    // Publish AS the tenant the message was enqueued for. Without this a handler that reads a
-                    // tenant-scoped table throws, because background work carries no principal and so has no
-                    // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
-                    using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
 
-                    await dispatcher.Publish(notification, graceToken).ConfigureAwait(false);
-                    message.Published(timeProvider.GetUtcNow().UtcDateTime);
-                    message.Release();
-                    metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Shutdown outlived the grace. Attempts is deliberately untouched: a redeploy is not a
-                    // failed attempt, and counting it would march never-failing work toward its dead
-                    // letter at the cadence you deploy. The row stays immediately eligible and is
-                    // re-published whole on restart — metered and logged so a grace period that is too
-                    // short for the work is visible rather than silent.
-                    //
-                    // The filter stays on the HOST token, not the grace token: the grace deadline is only
-                    // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
-                    // while a handler's own OperationCanceledException still falls through to the generic
-                    // catch below and counts as the real failure it is.
-                    // Attempts and the lease are both given back by StopAsync, which owns every row this
-                    // instance still holds — including ones claimed in this batch but never started. It
-                    // cannot be done here: this `break` skips the per-item SaveChanges below, so an
-                    // in-memory edit would be discarded while the claim's increment is already on disk.
-                    metrics.Interrupted(message.Type);
-                    logger.LogWarning(
-                        "Outbox message {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it "
-                        + "will be published again on restart, so its handlers must be idempotent.",
-                        message.Id, message.Type, options.ShutdownGracePeriod);
-                    break; // leave this and the rest for the next run
-                }
+            await SaveOutcomeAsync(db, message).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Publishes one claimed message, recording its outcome on the row. False when shutdown cut it off.</summary>
+    private async Task<bool> PublishAsync(
+        IDispatcher dispatcher, OutboxMessage message, CancellationToken graceToken, CancellationToken cancellationToken)
+    {
+        var notification = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
+        if (notification is null)
+        {
+            // An unregistered type is a failure like any other, and counts toward the dead letter it
+            // will become — a renamed event that nobody re-registered is the most ordinary way a
+            // production outbox starts abandoning work, so it must not be invisible to metrics.
+            Fail(message, $"No registered outbox event type '{message.Type}'.");
+            UnregisteredType(logger, message.Id, message.Type);
+            return true;
+        }
+
+        var startedAt = timeProvider.GetTimestamp();
+        try
+        {
+            // Publish AS the tenant the message was enqueued for. Without this a handler that reads a
+            // tenant-scoped table throws, because background work carries no principal and so has no
+            // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
+            using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
+
+            await dispatcher.Publish(notification, graceToken).ConfigureAwait(false);
+            message.Published(timeProvider.GetUtcNow().UtcDateTime);
+            message.Release();
+            metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
+        }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            // Shutdown outlived the grace. Attempts is deliberately untouched: a redeploy is not a
+            // failed attempt, and counting it would march never-failing work toward its dead
+            // letter at the cadence you deploy. The row stays immediately eligible and is
+            // re-published whole on restart — metered and logged so a grace period that is too
+            // short for the work is visible rather than silent.
+            //
+            // The filter stays on the HOST token, not the grace token: the grace deadline is only
+            // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
+            // while a handler's own OperationCanceledException still falls through to the generic
+            // catch below and counts as the real failure it is.
+            // Attempts and the lease are both given back by StopAsync, which owns every row this
+            // instance still holds — including ones claimed in this batch but never started. It
+            // cannot be done here: returning false skips the per-item SaveChanges, so an
+            // in-memory edit would be discarded while the claim's increment is already on disk.
+            metrics.Interrupted(message.Type);
+            InterruptedByShutdown(logger, ex, message.Id, message.Type, options.ShutdownGracePeriod);
+            return false;
+        }
 #pragma warning disable CA1031 // A failing handler must not stop the drain or crash the app — record + retry.
-                catch (Exception ex)
+        catch (Exception ex)
 #pragma warning restore CA1031
-                {
-                    message.Failed(ex.Message);
-                    message.Release();
-                    metrics.Failed(message.Type);
-                    if (message.Attempts >= options.MaxAttempts)
-                    {
-                        metrics.DeadLettered(message.Type);
-                    }
+        {
+            Fail(message, ex.Message);
+            PublishFailed(logger, ex, message.Id, message.Attempts);
+        }
 
-                    logger.LogError(ex, "Outbox message {Id} failed to publish (attempt {Attempts}).", message.Id, message.Attempts);
-                }
-            }
+        return true;
+    }
 
-            // Persist THIS message's outcome before moving on (with None so an event that already published is
-            // still marked during shutdown). Saving per message bounds an at-least-once re-publish to the single
-            // message whose save failed, never the whole batch: one row deleted or edited underneath the drain
-            // would otherwise abort the entire SaveChanges and re-publish every event already delivered from it.
-            try
-            {
-                await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                // ClaimToken is the concurrency token, so this means our lease expired mid-dispatch and
-                // another instance owns the row now. Its outcome wins; discard ours. The event was
-                // published twice — at-least-once was always the contract, and the fix for *this* cause is
-                // a longer LeaseDuration.
-                logger.LogWarning(
-                    "Outbox message {Id} lost its lease mid-dispatch on instance {Instance}; another instance owns it now. "
-                    + "Increase OutboxOptions.LeaseDuration past the time this handler takes.",
-                    message.Id,
-                    _instanceId);
+    private void Fail(OutboxMessage message, string error)
+    {
+        message.Failed(error);
+        message.Release();
+        metrics.Failed(message.Type);
+        if (message.Attempts >= options.MaxAttempts)
+        {
+            metrics.DeadLettered(message.Type);
+        }
+    }
 
-                // The context is shared across the batch: a failed entry left attached is retried by the
-                // next message's SaveChanges and fails that one too.
-                db.Entry(message).State = EntityState.Detached;
-            }
+    /// <summary>
+    /// Persists THIS message's outcome before moving on (with None so an event that already published is
+    /// still marked during shutdown). Saving per message bounds an at-least-once re-publish to the single
+    /// message whose save failed, never the whole batch: one row deleted or edited underneath the drain
+    /// would otherwise abort the entire SaveChanges and re-publish every event already delivered from it.
+    /// </summary>
+    private async Task SaveOutcomeAsync(TContext db, OutboxMessage message)
+    {
+        try
+        {
+            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // ClaimToken is the concurrency token, so this means our lease expired mid-dispatch and
+            // another instance owns the row now. Its outcome wins; discard ours. The event was
+            // published twice — at-least-once was always the contract, and the fix for *this* cause is
+            // a longer LeaseDuration.
+            LeaseLost(logger, ex, message.Id, _instanceId);
+
+            // The context is shared across the batch: a failed entry left attached is retried by the
+            // next message's SaveChanges and fails that one too.
+            db.Entry(message).State = EntityState.Detached;
         }
     }
 
@@ -360,7 +367,8 @@ public sealed class OutboxProcessor<TContext>(
         var cutoff = now - options.RetentionPeriod;
         const int page = 1000;
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         // Paged, and deleted by id rather than by predicate. Two reasons, both about the first run on an
         // app that has been writing events for months with no retention at all:
@@ -404,7 +412,8 @@ public sealed class OutboxProcessor<TContext>(
             return;
         }
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         var pending = await db.Set<OutboxMessage>()
             .CountAsync(m => m.ProcessedAt == null && m.Attempts < options.MaxAttempts, cancellationToken)
@@ -415,4 +424,34 @@ public sealed class OutboxProcessor<TContext>(
 
         metrics.ObserveQueueDepth(pending, deadLetters);
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Outbox added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
+            + "Run: rask db add AddOutboxLeases && rask db update. See docs/{Doc}.")]
+    private static partial void LeaseColumnsMissing(ILogger logger, Exception exception, string doc);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Outbox processing cycle failed; retrying on the next poll.")]
+    private static partial void CycleFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Outbox message {Id} has an unregistered type '{Type}'.")]
+    private static partial void UnregisteredType(ILogger logger, long id, string type);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Outbox message {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it "
+            + "will be published again on restart, so its handlers must be idempotent.")]
+    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, string type, TimeSpan grace);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Outbox message {Id} failed to publish (attempt {Attempts}).")]
+    private static partial void PublishFailed(ILogger logger, Exception exception, long id, int attempts);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Outbox message {Id} lost its lease mid-dispatch on instance {Instance}; another instance owns it now. "
+            + "Increase OutboxOptions.LeaseDuration past the time this handler takes.")]
+    private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not release outbox leases on shutdown; they expire in {Lease}.")]
+    private static partial void LeaseReleaseFailed(ILogger logger, Exception exception, TimeSpan lease);
 }

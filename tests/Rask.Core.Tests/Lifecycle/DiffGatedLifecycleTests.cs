@@ -16,7 +16,7 @@ public class DiffGatedLifecycleTests
         {
             using var ctx = LiveRenderContext.Begin(c, sp);
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, false);
+            LiveRenderContext.NotifyParameters(resolved, false);
         }
 
         Assert.Equal(1, c.PropsChangedCount);
@@ -33,7 +33,7 @@ public class DiffGatedLifecycleTests
         {
             using var ctx = LiveRenderContext.Begin(c, sp);
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, true);
+            LiveRenderContext.NotifyParameters(resolved, true);
         }
 
         Assert.Equal(3, c.PropsChangedCount);
@@ -50,7 +50,7 @@ public class DiffGatedLifecycleTests
 
         using var ctx = LiveRenderContext.Begin(c, sp);
         var resolved = ctx.GetOrCreate(_ => c);
-        ctx.NotifyParameters(resolved, false);
+        LiveRenderContext.NotifyParameters(resolved, false);
 
         Assert.Equal(1, c.MountCount);
         Assert.Equal(1, c.PropsChangedCount);
@@ -72,7 +72,7 @@ public class DiffGatedLifecycleTests
         {
             using var ctx = LiveRenderContext.Begin(c, sp);
             var resolved = ctx.GetOrCreate(_ => c);
-            ctx.NotifyParameters(resolved, propsChanged);
+            LiveRenderContext.NotifyParameters(resolved, propsChanged);
         }
 
         Assert.Equal(3, c.PropsChangedCount);

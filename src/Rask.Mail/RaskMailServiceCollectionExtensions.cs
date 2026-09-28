@@ -3,10 +3,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Rask.Batteries;
 using Rask.Hosting.Shared;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>Registers transactional email into an <see cref="IServiceCollection"/>.</summary>
 public static class RaskMailServiceCollectionExtensions
@@ -29,15 +30,15 @@ public static class RaskMailServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddRaskOptions<MailOptions>("Rask:Mail", static (section, o) => section.Bind(o), configure,
-            static o => o.Validate());
+        services.AddRaskOptions<MailOptions>("Rask:Mail", static (section, o) => section.Bind(o), configure, validate: null);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<MailOptions>, MailOptionsValidator>());
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<MailMetrics>();
 
         // Chosen from the BUILT options: whether SMTP is configured can come from Rask:Mail:Smtp, which is not
         // readable until the container is.
         services.TryAddSingleton<IMailSender>(static sp => CreateSender(sp, sp.GetRequiredService<MailOptions>()));
-        services.TryAddSingleton<IMail, MailQueue<TContext>>();
+        services.TryAddSingleton<IMail, MailOutbox<TContext>>();
 
         // Before the processor, so an app whose model never mapped QueuedMail fails the boot with the
         // line to type rather than on the first password reset. The processor itself tolerates a missing

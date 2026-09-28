@@ -2,22 +2,29 @@ using System.Globalization;
 
 namespace Rask.Storage;
 
-/// <summary>Why a file was refused.</summary>
-public enum FileRejection
-{
-    /// <summary>It is larger than <see cref="StorageOptions.MaxFileSize"/>.</summary>
-    TooLarge,
-
-    /// <summary>Its content is not one of <see cref="StorageOptions.AllowedTypes"/>.</summary>
-    TypeNotAllowed,
-}
-
 /// <summary>
 /// A file <c>Files.Save</c>
 /// refused. Nothing was stored. The message is safe to log; it never repeats the uploaded file name.
 /// </summary>
 public sealed class FileRejectedException : InvalidOperationException
 {
+    /// <summary>A refusal with no detail. Rask throws the specific ones; this exists for tests and serializers.</summary>
+    public FileRejectedException()
+    {
+    }
+
+    /// <summary>A refusal described by <paramref name="message"/>.</summary>
+    public FileRejectedException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>A refusal described by <paramref name="message"/>, caused by <paramref name="innerException"/>.</summary>
+    public FileRejectedException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+
     private FileRejectedException(FileRejection reason, string message, long? size, long? limit, string? contentType)
         : base(message)
     {

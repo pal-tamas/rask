@@ -1,146 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 
 namespace Rask.Generators.Shared;
-
-/// <summary>How a type is encoded on the wire.</summary>
-internal enum WireKind
-{
-    /// <summary>A value with a direct JSON representation — number, string, bool.</summary>
-    Scalar,
-
-    /// <summary>An enum, encoded as its underlying numeric value so a rename does not break the wire.</summary>
-    Enum,
-
-    /// <summary>A nullable value or reference type wrapping another shape.</summary>
-    Nullable,
-
-    /// <summary>A byte array, encoded as base64.</summary>
-    Bytes,
-
-    /// <summary>A sequence, encoded as a JSON array.</summary>
-    Sequence,
-
-    /// <summary>A string-keyed map, encoded as a JSON object.</summary>
-    Dictionary,
-
-    /// <summary>A composite with properties, encoded as a JSON object.</summary>
-    Object,
-
-    /// <summary>A <c>RemoteFile</c>, which travels as a multipart part rather than in the JSON.</summary>
-    File,
-
-    /// <summary>A type with no wire encoding. <see cref="WireType.Reason" /> says why.</summary>
-    Unsupported,
-}
-
-/// <summary>How a sequence is rebuilt after its elements are read.</summary>
-internal enum SequenceShape
-{
-    /// <summary>A <c>T[]</c>.</summary>
-    Array,
-
-    /// <summary>A concrete <c>List&lt;T&gt;</c>.</summary>
-    List,
-
-    /// <summary>An interface a <c>List&lt;T&gt;</c> satisfies.</summary>
-    Interface,
-}
-
-/// <summary>One property of an <see cref="WireKind.Object" />, as it appears on the wire.</summary>
-internal sealed class WireMember(string clrName, string wireName, WireType type, bool nullable = false)
-{
-    /// <summary>
-    ///     Whether this property may be null on the wire, for a <em>reference</em> type.
-    /// </summary>
-    /// <remarks>
-    ///     A nullable value type is already its own shape (<see cref="WireKind.Nullable" />); this
-    ///     covers the reference case, which the classifier otherwise cannot see. The codec does not
-    ///     need it — it writes JSON null for a null reference either way — but a consumer that
-    ///     generates types from this model does: saying <c>string</c> where <c>string | null</c> can
-    ///     arrive is a promise the wire does not keep.
-    ///     <para>
-    ///         Only an explicit <c>?</c> counts. In a project with nullable contexts switched off
-    ///         every reference is technically nullable, and saying so would put <c>| null</c> on every
-    ///         string in the file — noise that reads as a broken generator rather than as a warning.
-    ///         Rask projects enable nullable contexts, and so do the scaffolded templates, so the
-    ///         annotation is a reliable statement of what the author meant.
-    ///     </para>
-    /// </remarks>
-    public bool Nullable { get; } = nullable;
-
-    /// <summary>The C# property name, used to read the value off an instance.</summary>
-    public string ClrName { get; } = clrName;
-
-    /// <summary>The JSON property name — camelCase, or whatever <c>[JsonPropertyName]</c> pinned.</summary>
-    public string WireName { get; } = wireName;
-
-    /// <summary>The property's shape.</summary>
-    public WireType Type { get; } = type;
-}
-
-/// <summary>The wire shape of one type, as a tree the emitter walks.</summary>
-internal sealed class WireType
-{
-    /// <summary>What kind of encoding this type gets.</summary>
-    public WireKind Kind { get; set; }
-
-    /// <summary>The fully qualified type name, ready to emit.</summary>
-    public string Fqn { get; set; } = string.Empty;
-
-    /// <summary>For <see cref="WireKind.Scalar" />: the <c>WireJson</c> reader, or a reader expression.</summary>
-    public string? ReadExpression { get; set; }
-
-    /// <summary>For <see cref="WireKind.Scalar" />: how to write the value, with <c>{0}</c> for the value.</summary>
-    public string? WriteExpression { get; set; }
-
-    /// <summary>The wrapped shape: a nullable's underlying type, a sequence's element, a map's value.</summary>
-    public WireType? Inner { get; set; }
-
-    /// <summary>For <see cref="WireKind.Sequence" />: how to rebuild the collection.</summary>
-    public SequenceShape Sequence { get; set; }
-
-    /// <summary>
-    ///     For <see cref="WireKind.Object" />: the symbol, used to key generated codec methods. Null for a
-    ///     shape with no symbol to hold — a generated model another generator emits, which this
-    ///     compilation cannot see (see <see cref="GeneratedModelShape" />).
-    /// </summary>
-    public INamedTypeSymbol? Symbol { get; set; }
-
-    /// <summary>
-    ///     For <see cref="WireKind.Object" />: whether the type is a reference type, stated outright for a
-    ///     shape that has no <see cref="Symbol" /> to ask. Null means "ask the symbol".
-    /// </summary>
-    public bool? IsReference { get; set; }
-
-    /// <summary>
-    ///     For <see cref="WireKind.Object" />: the simple name a declaration of this shape takes, for a
-    ///     shape that has no <see cref="Symbol" /> to take it from.
-    /// </summary>
-    public string? Name { get; set; }
-
-    /// <summary>Whether a value of this shape can be null, and so needs null handling on both sides.</summary>
-    public bool IsReferenceType => IsReference ?? Symbol?.IsReferenceType == true;
-
-    /// <summary>For <see cref="WireKind.Object" />: the properties, in declaration order.</summary>
-    public List<WireMember> Members { get; } = new();
-
-    /// <summary>
-    ///     For <see cref="WireKind.Object" />: the constructor parameter names, in order, when the type is
-    ///     built by constructor. Null when it is built with an object initializer.
-    /// </summary>
-    public List<string>? ConstructorParameters { get; set; }
-
-    /// <summary>For <see cref="WireKind.Unsupported" />: what has no encoding, in the diagnostic's words.</summary>
-    public string? Reason { get; set; }
-
-    /// <summary>True when this shape, or anything inside it, carries a file.</summary>
-    public bool ContainsFile =>
-        Kind == WireKind.File
-        || (Inner?.ContainsFile ?? false)
-        || Members.Any(m => m.Type.ContainsFile);
-}
 
 /// <summary>
 ///     Decides how a contract type is encoded, or why it cannot be. This is the single place that
@@ -148,8 +11,6 @@ internal sealed class WireType
 /// </summary>
 internal static class WireShape
 {
-    private const string CqrsNamespace = "Rask.Cqrs";
-
     private static readonly SymbolDisplayFormat FqnFormat =
         SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.None);
 
@@ -200,6 +61,44 @@ internal static class WireShape
                 };
         }
 
+        if (TryClassifyLeaf(type, allowFile, compilation) is { } leaf)
+        {
+            return leaf;
+        }
+
+        if (type is IArrayTypeSymbol array)
+        {
+            return ClassifyArray(array, stack, compilation);
+        }
+
+        if (type is not INamedTypeSymbol named2)
+        {
+            return Unsupported(type, "it is not a type a codec can be generated for", compilation);
+        }
+
+        // Before anything reads the type's own members: to this compilation a generated model is either
+        // an error type with none, or the author's partial half with none of the generated ones.
+        if (compilation is not null && GeneratedModelShape.EntitiesFor(named2, compilation) is { Count: > 0 } entities)
+        {
+            return ClassifyGeneratedModel(named2, entities, stack, compilation);
+        }
+
+        if (TryClassifyDictionary(named2, stack, compilation) is { } dictionary)
+        {
+            return dictionary;
+        }
+
+        if (TryClassifySequence(named2, stack, compilation) is { } sequence)
+        {
+            return sequence;
+        }
+
+        return ClassifyObject(named2, stack, membersMayCarryFiles: allowFile, compilation);
+    }
+
+    // The shapes that need no walk: scalars, enums, a message's file, and bytes.
+    private static WireType? TryClassifyLeaf(ITypeSymbol type, bool allowFile, Compilation? compilation)
+    {
         if (Scalars.TryGetValue(type.SpecialType, out var special))
         {
             return Scalar(type, special.Read, special.Write);
@@ -232,7 +131,7 @@ internal static class WireShape
                 ? new WireType { Kind = WireKind.File, Fqn = Fqn(type, compilation) }
                 : Unsupported(
                     type,
-                    "a RaskFile is only allowed as a direct property of the message — nested inside a "
+                    "an IRaskFile is only allowed as a direct property of the message — nested inside a "
                     + "collection or another object there is no part of the multipart body that could carry it",
                     compilation);
         }
@@ -250,61 +149,48 @@ internal static class WireShape
             };
         }
 
-        if (type is IArrayTypeSymbol array)
+        return null;
+    }
+
+    private static WireType ClassifyArray(IArrayTypeSymbol array, HashSet<ITypeSymbol> stack, Compilation? compilation)
+    {
+        if (array.Rank != 1)
         {
-            if (array.Rank != 1)
+            return Unsupported(array, "only single-dimensional arrays have a JSON encoding", compilation);
+        }
+
+        var element = Classify(array.ElementType, false, stack, compilation);
+        return element.Kind == WireKind.Unsupported
+            ? element
+            : new WireType
             {
-                return Unsupported(type, "only single-dimensional arrays have a JSON encoding", compilation);
-            }
+                Kind = WireKind.Sequence,
+                Sequence = SequenceShape.Array,
+                Fqn = Fqn(array, compilation),
+                Inner = element,
+            };
+    }
 
-            var element = Classify(array.ElementType, false, stack, compilation);
-            return element.Kind == WireKind.Unsupported
-                ? element
-                : new WireType
-                {
-                    Kind = WireKind.Sequence,
-                    Sequence = SequenceShape.Array,
-                    Fqn = Fqn(type, compilation),
-                    Inner = element,
-                };
-        }
-
-        if (type is not INamedTypeSymbol named2)
+    private static WireType ClassifyGeneratedModel(
+        INamedTypeSymbol type,
+        IReadOnlyList<INamedTypeSymbol> entities,
+        HashSet<ITypeSymbol> stack,
+        Compilation compilation)
+    {
+        if (entities.Count == 1)
         {
-            return Unsupported(type, "it is not a type a codec can be generated for", compilation);
+            return ClassifyModel(type, entities[0], stack, compilation);
         }
 
-        // Before anything reads the type's own members: to this compilation a generated model is either
-        // an error type with none, or the author's partial half with none of the generated ones.
-        if (compilation is not null && GeneratedModelShape.EntitiesFor(named2, compilation) is { Count: > 0 } entities)
-        {
-            if (entities.Count == 1)
-            {
-                return ClassifyModel(named2, entities[0], stack, compilation);
-            }
-
-            // Otherwise the generic "no way to build it" below would be true, and no help at all: the type
-            // exists in the real build, and the fix is one namespace away.
-            return Unsupported(
-                type,
-                "it is the generated model of more than one entity ("
-                + string.Join(", ", entities.Select(e => "'" + e.ToDisplayString() + "'"))
-                + "), and a source generator cannot see which one the name binds to — write it with its "
-                + "namespace, as '" + GeneratedModelShape.ModelFqn(entities[0]).Substring("global::".Length) + "'",
-                compilation);
-        }
-
-        if (TryClassifyDictionary(named2, stack, compilation) is { } dictionary)
-        {
-            return dictionary;
-        }
-
-        if (TryClassifySequence(named2, stack, compilation) is { } sequence)
-        {
-            return sequence;
-        }
-
-        return ClassifyObject(named2, stack, membersMayCarryFiles: allowFile, compilation);
+        // Otherwise the generic "no way to build it" below would be true, and no help at all: the type
+        // exists in the real build, and the fix is one namespace away.
+        return Unsupported(
+            type,
+            "it is the generated model of more than one entity ("
+            + string.Join(", ", entities.Select(e => "'" + e.ToDisplayString() + "'"))
+            + "), and a source generator cannot see which one the name binds to — write it with its "
+            + "namespace, as '" + GeneratedModelShape.ModelFqn(entities[0]).Substring("global::".Length) + "'",
+            compilation);
     }
 
     private static WireType? TryClassifyDictionary(INamedTypeSymbol type, HashSet<ITypeSymbol> stack, Compilation? compilation)
@@ -367,39 +253,9 @@ internal static class WireShape
         bool membersMayCarryFiles,
         Compilation? compilation)
     {
-        if (type.TypeKind == TypeKind.Interface)
+        if (ObjectRejection(type) is { } reason)
         {
-            return Unsupported(
-                type,
-                "an interface names no single concrete type, so the receiver cannot know what to build — "
-                + "use the concrete type",
-                compilation);
-        }
-
-        if (type.IsAbstract)
-        {
-            return Unsupported(
-                type,
-                "an abstract type cannot be constructed by the receiver — use a concrete type, or model the "
-                + "alternatives as separate messages",
-                compilation);
-        }
-
-        if (type.SpecialType == SpecialType.System_Object)
-        {
-            return Unsupported(type, "'object' has no shape to encode — give the property its real type", compilation);
-        }
-
-        if (type.IsGenericType)
-        {
-            return Unsupported(type, "a generic type has no single wire shape — use a closed, concrete type", compilation);
-        }
-
-        if (type.IsRecord && type.TypeKind == TypeKind.Struct)
-        {
-            // Nothing wrong with it in principle; it just has not been exercised, and quietly emitting an
-            // untested shape is worse than saying so.
-            return Unsupported(type, "record structs are not supported as contract members yet", compilation);
+            return Unsupported(type, reason, compilation);
         }
 
         // A cycle would make the emitter recurse forever, and it has no JSON encoding anyway: the value
@@ -414,81 +270,114 @@ internal static class WireShape
 
         try
         {
-            var result = new WireType
-            {
-                Kind = WireKind.Object,
-                Fqn = Fqn(type, compilation),
-                Symbol = type,
-            };
-
-            var properties = type.GetMembers()
-                .OfType<IPropertySymbol>()
-                .Where(p => p is
-                {
-                    IsStatic: false,
-                    IsIndexer: false,
-                    DeclaredAccessibility: Accessibility.Public,
-                    GetMethod: not null,
-                })
-                .Where(p => p.Name != "EqualityContract")
-                .ToList();
-
-            var constructor = ChooseConstructor(type, properties);
-            if (constructor is null)
-            {
-                return Unsupported(
-                    type,
-                    "the receiver has no way to build it: it needs either a public constructor whose "
-                    + "parameters all match properties, or a public parameterless constructor with settable "
-                    + "properties",
-                    compilation);
-            }
-
-            if (constructor.Parameters.Length > 0)
-            {
-                result.ConstructorParameters = constructor.Parameters.Select(p => p.Name).ToList();
-            }
-
-            foreach (var property in properties)
-            {
-                // A get-only property that no constructor parameter feeds cannot be restored, so sending it
-                // would be a lie: the receiver would drop it. Skip it rather than pretend.
-                if (constructor.Parameters.Length > 0)
-                {
-                    if (!constructor.Parameters.Any(p =>
-                            string.Equals(p.Name, property.Name, System.StringComparison.OrdinalIgnoreCase)))
-                    {
-                        continue;
-                    }
-                }
-                else if (property.SetMethod is null || property.SetMethod.DeclaredAccessibility != Accessibility.Public)
-                {
-                    continue;
-                }
-
-                // Only a directly file-typed property inherits the permission; anything else gets false,
-                // which is what stops it flowing another level down.
-                var memberAllowsFile = membersMayCarryFiles && IsRemoteFile(property.Type);
-                var member = Classify(property.Type, memberAllowsFile, stack, compilation);
-                if (member.Kind == WireKind.Unsupported)
-                {
-                    return MemberUnsupported(property, member, compilation);
-                }
-
-                result.Members.Add(new WireMember(
-                    property.Name,
-                    WireName(property),
-                    member,
-                    IsNullable(property.Type, compilation)));
-            }
-
-            return result;
+            return DescribeObject(type, stack, membersMayCarryFiles, compilation);
         }
         finally
         {
             stack.Remove(type);
         }
     }
+
+    // Why an object of this type cannot travel at all, before any of its members is looked at.
+    private static string? ObjectRejection(INamedTypeSymbol type)
+    {
+        if (type.TypeKind == TypeKind.Interface)
+        {
+            return "an interface names no single concrete type, so the receiver cannot know what to build — "
+                   + "use the concrete type";
+        }
+
+        if (type.IsAbstract)
+        {
+            return "an abstract type cannot be constructed by the receiver — use a concrete type, or model the "
+                   + "alternatives as separate messages";
+        }
+
+        if (type.SpecialType == SpecialType.System_Object)
+        {
+            return "'object' has no shape to encode — give the property its real type";
+        }
+
+        if (type.IsGenericType)
+        {
+            return "a generic type has no single wire shape — use a closed, concrete type";
+        }
+
+        // Nothing wrong with a record struct in principle; it just has not been exercised, and quietly emitting
+        // an untested shape is worse than saying so.
+        return type.IsRecord && type.TypeKind == TypeKind.Struct
+            ? "record structs are not supported as contract members yet"
+            : null;
+    }
+
+    private static WireType DescribeObject(
+        INamedTypeSymbol type,
+        HashSet<ITypeSymbol> stack,
+        bool membersMayCarryFiles,
+        Compilation? compilation)
+    {
+        var result = new WireType
+        {
+            Kind = WireKind.Object,
+            Fqn = Fqn(type, compilation),
+            Symbol = type,
+        };
+
+        var properties = type.GetMembers()
+            .OfType<IPropertySymbol>()
+            .Where(p => p is
+            {
+                IsStatic: false,
+                IsIndexer: false,
+                DeclaredAccessibility: Accessibility.Public,
+                GetMethod: not null,
+            })
+            .Where(p => !string.Equals(p.Name, "EqualityContract", StringComparison.Ordinal))
+            .ToList();
+
+        var constructor = ChooseConstructor(type, properties);
+        if (constructor is null)
+        {
+            return Unsupported(
+                type,
+                "the receiver has no way to build it: it needs either a public constructor whose "
+                + "parameters all match properties, or a public parameterless constructor with settable "
+                + "properties",
+                compilation);
+        }
+
+        if (constructor.Parameters.Length > 0)
+        {
+            result.ConstructorParameters = constructor.Parameters.Select(p => p.Name).ToList();
+        }
+
+        foreach (var property in properties.Where(p => IsRestorable(p, constructor)))
+        {
+            // Only a directly file-typed property inherits the permission; anything else gets false,
+            // which is what stops it flowing another level down.
+            var memberAllowsFile = membersMayCarryFiles && IsRemoteFile(property.Type);
+            var member = Classify(property.Type, memberAllowsFile, stack, compilation);
+            if (member.Kind == WireKind.Unsupported)
+            {
+                return MemberUnsupported(property, member, compilation);
+            }
+
+            result.Members.Add(new WireMember(
+                property.Name,
+                WireName(property),
+                member,
+                IsNullable(property.Type, compilation)));
+        }
+
+        return result;
+    }
+
+    // A get-only property that no constructor parameter feeds cannot be restored, so sending it would be a
+    // lie: the receiver would drop it. It is skipped rather than pretended.
+    private static bool IsRestorable(IPropertySymbol property, IMethodSymbol constructor) =>
+        constructor.Parameters.Length > 0
+            ? constructor.Parameters.Any(p => string.Equals(p.Name, property.Name, StringComparison.OrdinalIgnoreCase))
+            : property.SetMethod is { DeclaredAccessibility: Accessibility.Public };
 
     /// <summary>
     ///     A <c>Rask.Data</c> entity's generated model, rebuilt from the entity because this compilation
@@ -557,45 +446,56 @@ internal static class WireShape
                     member.Property.Name, CamelCase(member.Property.Name), wire, true));
             }
 
-            // The author's own partial half, when there is one, is part of the same object: its settable
-            // properties travel too, named the ordinary way since they can carry their own pins.
-            if (modelType.TypeKind != TypeKind.Error)
-            {
-                foreach (var property in modelType.GetMembers().OfType<IPropertySymbol>())
-                {
-                    if (property is not
-                        {
-                            IsStatic: false,
-                            IsIndexer: false,
-                            DeclaredAccessibility: Accessibility.Public,
-                            GetMethod: not null,
-                            SetMethod.DeclaredAccessibility: Accessibility.Public,
-                        } ||
-                        result.Members.Any(m => m.ClrName == property.Name))
-                    {
-                        continue;
-                    }
-
-                    var wire = Classify(property.Type, false, stack, compilation);
-                    if (wire.Kind == WireKind.Unsupported)
-                    {
-                        return MemberUnsupported(property, wire, compilation);
-                    }
-
-                    result.Members.Add(new WireMember(
-                        property.Name,
-                        WireName(property),
-                        wire,
-                        IsNullable(property.Type, compilation)));
-                }
-            }
-
-            return result;
+            // The author's own partial half, when there is one, is part of the same object.
+            return modelType.TypeKind != TypeKind.Error
+                ? AddAuthorsHalf(modelType, result, stack, compilation)
+                : result;
         }
         finally
         {
             stack.Remove(entity);
         }
+    }
+
+    // The settable properties of the author's partial half travel too, named the ordinary way since they can
+    // carry their own pins. Hands back the model, or the first member that cannot travel.
+    private static WireType AddAuthorsHalf(
+        INamedTypeSymbol modelType,
+        WireType result,
+        HashSet<ITypeSymbol> stack,
+        Compilation compilation)
+    {
+        var settable = modelType.GetMembers().OfType<IPropertySymbol>()
+            .Where(property => property is
+            {
+                IsStatic: false,
+                IsIndexer: false,
+                DeclaredAccessibility: Accessibility.Public,
+                GetMethod: not null,
+                SetMethod.DeclaredAccessibility: Accessibility.Public,
+            });
+
+        foreach (var property in settable)
+        {
+            if (result.Members.Any(m => string.Equals(m.ClrName, property.Name, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            var wire = Classify(property.Type, false, stack, compilation);
+            if (wire.Kind == WireKind.Unsupported)
+            {
+                return MemberUnsupported(property, wire, compilation);
+            }
+
+            result.Members.Add(new WireMember(
+                property.Name,
+                WireName(property),
+                wire,
+                IsNullable(property.Type, compilation)));
+        }
+
+        return result;
     }
 
     // A value object's nested model. Every nested model is a direct member class of the entity's model,
@@ -682,7 +582,7 @@ internal static class WireShape
         var matching = candidates
             .Where(c => c.Parameters.Length > 0)
             .Where(c => c.Parameters.All(p => properties.Any(prop =>
-                string.Equals(prop.Name, p.Name, System.StringComparison.OrdinalIgnoreCase))))
+                string.Equals(prop.Name, p.Name, StringComparison.OrdinalIgnoreCase))))
             .OrderByDescending(c => c.Parameters.Length)
             .FirstOrDefault();
 
@@ -700,7 +600,10 @@ internal static class WireShape
     {
         foreach (var attribute in property.GetAttributes())
         {
-            if (attribute.AttributeClass?.ToDisplayString() != "System.Text.Json.Serialization.JsonPropertyNameAttribute")
+            if (!string.Equals(
+                    attribute.AttributeClass?.ToDisplayString(),
+                    "System.Text.Json.Serialization.JsonPropertyNameAttribute",
+                    StringComparison.Ordinal))
             {
                 continue;
             }
@@ -728,14 +631,15 @@ internal static class WireShape
             ? name
             : char.ToLowerInvariant(name[0]) + name.Substring(1);
 
-    // The file type a MESSAGE declares is Rask.Core's RaskFile - the same one a file input hands a
+    // The file type a MESSAGE declares is Rask.Core's IRaskFile - the same one a file input hands a
     // component, on every host. Matched by name because a generator reads symbols: recognising it here
     // costs Rask.Cqrs no reference to Rask.Core, and keeps the mediator standalone.
     //
     // RemoteFile is not part of this. It is the wire-side carrier the transports pass around, and the
     // conversion between the two is emitted into the consumer's own compilation, which sees both.
     private static bool IsRemoteFile(ITypeSymbol type) =>
-        type.Name == "RaskFile" && type.ContainingNamespace?.ToDisplayString() == "Rask.Core.Forms";
+        string.Equals(type.Name, "IRaskFile", StringComparison.Ordinal) &&
+        string.Equals(type.ContainingNamespace?.ToDisplayString(), "Rask.Core.Forms", StringComparison.Ordinal);
 
     private static WireType Scalar(ITypeSymbol type, string read, string write) => new()
     {
@@ -776,7 +680,7 @@ internal static class WireShape
         [SpecialType.System_DateTime] = ("global::Rask.Wire.WireJson.ReadDateTime", "writer.WriteStringValue({0})"),
     };
 
-    private static readonly Dictionary<string, (string Read, string Write)> NamedScalars = new()
+    private static readonly Dictionary<string, (string Read, string Write)> NamedScalars = new(StringComparer.Ordinal)
     {
         ["global::System.Guid"] = ("global::Rask.Wire.WireJson.ReadGuid", "writer.WriteStringValue({0})"),
         ["global::System.DateTimeOffset"] = ("global::Rask.Wire.WireJson.ReadDateTimeOffset", "writer.WriteStringValue({0})"),
@@ -786,14 +690,14 @@ internal static class WireShape
         ["global::System.Uri"] = ("global::Rask.Wire.WireJson.ReadUri", "global::Rask.Wire.WireJson.WriteUriValue(writer, {0})"),
     };
 
-    private static readonly HashSet<string> DictionaryDefinitions = new()
+    private static readonly HashSet<string> DictionaryDefinitions = new(StringComparer.Ordinal)
     {
         "global::System.Collections.Generic.Dictionary<TKey, TValue>",
         "global::System.Collections.Generic.IDictionary<TKey, TValue>",
         "global::System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>",
     };
 
-    private static readonly Dictionary<string, SequenceShape> SequenceDefinitions = new()
+    private static readonly Dictionary<string, SequenceShape> SequenceDefinitions = new(StringComparer.Ordinal)
     {
         ["global::System.Collections.Generic.List<T>"] = SequenceShape.List,
         ["global::System.Collections.Generic.IList<T>"] = SequenceShape.Interface,

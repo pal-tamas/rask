@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -35,11 +36,13 @@ public sealed class SyncExternalPropsSnapshotsTask : Task
         "\\{\\s*\"name\"\\s*:\\s*\"(?<name>(?:[^\"\\\\]|\\\\.)*)\"\\s*,\\s*\"ok\"\\s*:\\s*(?<ok>true|false)"
         + "(?:\\s*,\\s*\"code\"\\s*:\\s*\"(?<code>(?:[^\"\\\\]|\\\\.)*)\")?"
         + "(?:\\s*,\\s*\"message\"\\s*:\\s*\"(?<message>(?:[^\"\\\\]|\\\\.)*)\")?\\s*\\}",
-        RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
 
     private static readonly Regex Version = new(
         "\"package\"\\s*:\\s*\\{[^}]*\"version\"\\s*:\\s*(?:\"(?<version>[^\"]*)\"|null)",
-        RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
 
     /// <summary>
     ///     The package islands. The item is the committed snapshot path; <c>IslandName</c>, <c>DeclaringFile</c>
@@ -74,7 +77,7 @@ public sealed class SyncExternalPropsSnapshotsTask : Task
         {
             var name = island.GetMetadata("IslandName");
             var file = island.GetMetadata("DeclaringFile");
-            var line = int.TryParse(island.GetMetadata("ModuleLine"), out var parsed) ? parsed : 0;
+            var line = int.TryParse(island.GetMetadata("ModuleLine"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
 
             if (!results.TryGetValue(name, out var result))
             {
@@ -125,7 +128,7 @@ public sealed class SyncExternalPropsSnapshotsTask : Task
         foreach (Match match in ResultEntry.Matches(json))
         {
             results[JsonText.Unescape(match.Groups["name"].Value)] = (
-                match.Groups["ok"].Value == "true",
+                string.Equals(match.Groups["ok"].Value, "true", StringComparison.Ordinal),
                 JsonText.Unescape(match.Groups["code"].Value),
                 JsonText.Unescape(match.Groups["message"].Value));
         }

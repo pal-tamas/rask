@@ -44,8 +44,8 @@ public sealed partial class InlineAsyncValidateDemo : Component
                 await Task.Yield();
                 ct.ThrowIfCancellationRequested();
                 return string.IsNullOrWhiteSpace(m.Code)
-                    ? new[] { "Code is required." }
-                    : Array.Empty<string>();
+                    ? ["Code is required."]
+                    : [];
             })[
             Ui.Input.Bind(() => _model.Code).Label("Promo code")
                 .Id("v10-code")
@@ -59,9 +59,4 @@ public sealed partial class InlineAsyncValidateDemo : Component
             ? null
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
-}
-
-public sealed class PromoModel
-{
-    public string Code { get; set; } = "";
 }

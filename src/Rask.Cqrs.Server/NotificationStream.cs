@@ -51,18 +51,7 @@ internal static class NotificationStream
             return;
         }
 
-        var name = context.Request.RouteValues["name"] as string;
-        RemoteContract? contract = null;
-        // A subscription's result codec is what writes each delivered notification, so one without it is not
-        // servable — the same 404 as a name nobody registered.
-        if (!string.IsNullOrEmpty(name) && RemoteContractRegistry.TryGet(name, out var found)
-                                        && found is { CarriesFiles: false }
-                                        && (found.Kind == RemoteMessageKind.Notification
-                                            || (found.Kind == RemoteMessageKind.Subscription
-                                                && found.WriteResult is not null)))
-        {
-            contract = found;
-        }
+        var contract = Servable(context.Request.RouteValues["name"] as string);
 
         // Before the name is judged, as for a request: a 404 for an unknown name and a 401 for a known one would let
         // a signed-out caller map the app's notifications one guess at a time.
@@ -91,42 +80,71 @@ internal static class NotificationStream
             return;
         }
 
-        var encoded = context.Request.Query[RemoteEndpointDefaults.MessageQueryParameter].ToString();
-        object? subscription = null;
-        if (contract.Kind == RemoteMessageKind.Subscription)
+        var (valid, subscription) = await SubscriptionAsync(context, contract).ConfigureAwait(false);
+        if (!valid)
         {
-            try
-            {
-                subscription = string.IsNullOrEmpty(encoded)
-                    ? null
-                    : NotificationWire.DecodeMessage(contract, Encoding.UTF8.GetBytes(encoded));
-            }
-            catch (JsonException)
-            {
-                subscription = null;
-            }
-
-            if (subscription is null)
-            {
-                await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest,
-                    "Malformed subscription",
-                    $"'{contract.Name}' carries what it watches in the "
-                    + $"'{RemoteEndpointDefaults.MessageQueryParameter}' parameter, as JSON.")
-                    .ConfigureAwait(false);
-                return;
-            }
-        }
-        else if (encoded.Length > 0)
-        {
-            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest,
-                "Malformed subscription",
-                $"'{contract.Name}' goes to every subscriber, so it takes nothing to watch.").ConfigureAwait(false);
             return;
         }
 
         var dispatcher = context.RequestServices.GetService<LocalDispatcher>()
                          ?? throw new InvalidOperationException("MapRaskCqrs() needs AddRaskCqrsServer() during startup.");
         await StreamAsync(context, dispatcher, contract, subscription, options).ConfigureAwait(false);
+    }
+
+    // A subscription's result codec is what writes each delivered notification, so one without it is not
+    // servable — the same 404 as a name nobody registered.
+    private static RemoteContract? Servable(string? name) =>
+        !string.IsNullOrEmpty(name)
+        && RemoteContractRegistry.TryGet(name, out var found)
+        && found is { CarriesFiles: false }
+        && (found.Kind == RemoteMessageKind.Notification
+            || (found.Kind == RemoteMessageKind.Subscription && found.WriteResult is not null))
+            ? found
+            : null;
+
+    // What the caller watches: the decoded subscription record, or nothing for a bare notification. Not valid once
+    // the refusal has been written.
+    private static async Task<(bool Valid, object? Subscription)> SubscriptionAsync(
+        HttpContext context,
+        RemoteContract contract)
+    {
+        var encoded = context.Request.Query[RemoteEndpointDefaults.MessageQueryParameter].ToString();
+        if (contract.Kind != RemoteMessageKind.Subscription)
+        {
+            if (encoded.Length == 0)
+            {
+                return (true, null);
+            }
+
+            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest,
+                "Malformed subscription",
+                $"'{contract.Name}' goes to every subscriber, so it takes nothing to watch.").ConfigureAwait(false);
+            return (false, null);
+        }
+
+        object? subscription;
+        try
+        {
+            subscription = string.IsNullOrEmpty(encoded)
+                ? null
+                : NotificationWire.DecodeMessage(contract, Encoding.UTF8.GetBytes(encoded));
+        }
+        catch (JsonException)
+        {
+            subscription = null;
+        }
+
+        if (subscription is null)
+        {
+            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest,
+                "Malformed subscription",
+                $"'{contract.Name}' carries what it watches in the "
+                + $"'{RemoteEndpointDefaults.MessageQueryParameter}' parameter, as JSON.")
+                .ConfigureAwait(false);
+            return (false, null);
+        }
+
+        return (true, subscription);
     }
 
     private static async Task StreamAsync(
@@ -150,15 +168,8 @@ internal static class NotificationStream
         {
             // An async iterator refuses to be disposed mid-step, and the request's abort is what ends the step the
             // loop left pending — so it is drained first, whatever it ended with.
-            try
-            {
-                await step.Next.ConfigureAwait(false);
-            }
-#pragma warning disable CA1031 // Only draining: the step's outcome was already handled, or no longer matters.
-            catch (Exception)
-#pragma warning restore CA1031
-            {
-            }
+            // Only draining: the step's outcome was already handled, or no longer matters.
+            await ((Task)step.Next).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
             await notifications.DisposeAsync().ConfigureAwait(false);
         }
@@ -172,30 +183,7 @@ internal static class NotificationStream
         TimeSpan keepAlive)
     {
         var aborted = context.RequestAborted;
-        var replayed = false;
-        try
-        {
-            // The policy runs inside the first step, before anything is listening — so a refusal is still a status
-            // code rather than a stream that closes for no reason.
-            // Admitted is either signal: "connected", or a first notification — the replay comes before "connected".
-            await Task.WhenAny(ready, step.Next).ConfigureAwait(false);
-            if (step.Next.IsCompleted)
-            {
-                if (!await step.Next.ConfigureAwait(false))
-                {
-                    return;
-                }
-
-                replayed = true;
-            }
-        }
-        catch (UnauthorizedAccessException)
-        {
-            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status403Forbidden, "Forbidden", null)
-                .ConfigureAwait(false);
-            return;
-        }
-        catch (OperationCanceledException) when (aborted.IsCancellationRequested)
+        if (await AdmittedAsync(context, step, ready).ConfigureAwait(false) is not { } replayed)
         {
             return;
         }
@@ -216,43 +204,83 @@ internal static class NotificationStream
             await response.Body.WriteAsync(ReadyFrame, aborted).ConfigureAwait(false);
             await response.Body.FlushAsync(aborted).ConfigureAwait(false);
 
-            while (true)
-            {
-                if (!replayed)
-                {
-                    bool more;
-                    try
-                    {
-                        more = await step.Next.WaitAsync(keepAlive, aborted).ConfigureAwait(false);
-                    }
-                    catch (TimeoutException)
-                    {
-                        await response.Body.WriteAsync(KeepAliveFrame, aborted).ConfigureAwait(false);
-                        await response.Body.FlushAsync(aborted).ConfigureAwait(false);
-                        continue;
-                    }
-
-                    if (!more)
-                    {
-                        return;
-                    }
-                }
-
-                replayed = false;
-
-                // The codec writes compact JSON — a string's newlines are escaped — so one event is one data line.
-                await response.Body.WriteAsync(DataPrefix, aborted).ConfigureAwait(false);
-                await response.Body.WriteAsync(NotificationWire.EncodeEvent(contract, step.Current), aborted)
-                    .ConfigureAwait(false);
-                await response.Body.WriteAsync(FrameEnd, aborted).ConfigureAwait(false);
-                await response.Body.FlushAsync(aborted).ConfigureAwait(false);
-
-                step.Advance();
-            }
+            await PumpAsync(response, contract, step, replayed, keepAlive, aborted).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (aborted.IsCancellationRequested)
         {
             // The client went away, which is how every subscription ends.
+        }
+    }
+
+    // Whether the subscription was admitted — and if so, whether a replayed notification is already waiting. Null
+    // once there is nothing to stream, the refusal written if there was one.
+    private static async Task<bool?> AdmittedAsync(HttpContext context, Step step, Task ready)
+    {
+        try
+        {
+            // The policy runs inside the first step, before anything is listening — so a refusal is still a status
+            // code rather than a stream that closes for no reason.
+            // Admitted is either signal: "connected", or a first notification — the replay comes before "connected".
+            await Task.WhenAny(ready, step.Next).ConfigureAwait(false);
+            if (!step.Next.IsCompleted)
+            {
+                return false;
+            }
+
+            return await step.Next.ConfigureAwait(false) ? true : null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status403Forbidden, "Forbidden", null)
+                .ConfigureAwait(false);
+            return null;
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            return null;
+        }
+    }
+
+    private static async Task PumpAsync(
+        HttpResponse response,
+        RemoteContract contract,
+        Step step,
+        bool replayed,
+        TimeSpan keepAlive,
+        CancellationToken aborted)
+    {
+        while (true)
+        {
+            if (!replayed)
+            {
+                bool more;
+                try
+                {
+                    more = await step.Next.WaitAsync(keepAlive, aborted).ConfigureAwait(false);
+                }
+                catch (TimeoutException)
+                {
+                    await response.Body.WriteAsync(KeepAliveFrame, aborted).ConfigureAwait(false);
+                    await response.Body.FlushAsync(aborted).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (!more)
+                {
+                    return;
+                }
+            }
+
+            replayed = false;
+
+            // The codec writes compact JSON — a string's newlines are escaped — so one event is one data line.
+            await response.Body.WriteAsync(DataPrefix, aborted).ConfigureAwait(false);
+            await response.Body.WriteAsync(NotificationWire.EncodeEvent(contract, step.Current), aborted)
+                .ConfigureAwait(false);
+            await response.Body.WriteAsync(FrameEnd, aborted).ConfigureAwait(false);
+            await response.Body.FlushAsync(aborted).ConfigureAwait(false);
+
+            step.Advance();
         }
     }
 

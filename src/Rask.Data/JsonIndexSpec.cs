@@ -34,7 +34,7 @@ internal sealed record JsonIndexSpec(IReadOnlyList<IReadOnlyList<string>> Paths)
         }
 
         var parts = text.Split(FieldSeparator);
-        if (parts.Length != 2 || parts[0] != Version)
+        if (parts.Length != 2 || !string.Equals(parts[0], Version, StringComparison.Ordinal))
         {
             return false;
         }

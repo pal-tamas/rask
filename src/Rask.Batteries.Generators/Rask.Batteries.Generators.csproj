@@ -49,11 +49,34 @@
     <Compile Include="..\Rask.Generators.Shared\DiagnosticHelp.cs" Link="Shared\DiagnosticHelp.cs"/>
     <Compile Include="..\Rask.Generators.Shared\IsExternalInit.cs" Link="Shared\IsExternalInit.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireShape.cs" Link="Shared\WireShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireKind.cs" Link="Shared\WireKind.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\SequenceShape.cs" Link="Shared\SequenceShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireMember.cs" Link="Shared\WireMember.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireType.cs" Link="Shared\WireType.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireCodecEmitter.cs" Link="Shared\WireCodecEmitter.cs"/>
     <Compile Include="..\Rask.Generators.Shared\TypeScriptEmitter.cs" Link="Shared\TypeScriptEmitter.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\NestedShape.cs" Link="Shared\NestedShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ShapeDescriptor.cs" Link="Shared\ShapeDescriptor.cs"/>
     <Compile Include="..\Rask.Generators.Shared\GeneratedModelShape.cs" Link="Shared\GeneratedModelShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelMemberRole.cs" Link="Shared\ModelMemberRole.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueObjectBuild.cs" Link="Shared\ModelValueObjectBuild.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelWriteKind.cs" Link="Shared\ModelWriteKind.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelMember.cs" Link="Shared\ModelMember.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueObject.cs" Link="Shared\ModelValueObject.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueObjectMember.cs" Link="Shared\ModelValueObjectMember.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelChildAccess.cs" Link="Shared\ModelChildAccess.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelChild.cs" Link="Shared\ModelChild.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueCollection.cs" Link="Shared\ModelValueCollection.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelShape.cs" Link="Shared\ModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\AggregateShape.cs" Link="Shared\AggregateShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WriteKind.cs" Link="Shared\WriteKind.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadModelShape.cs" Link="Shared\ReadModelShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadMember.cs" Link="Shared\ReadMember.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadReference.cs" Link="Shared\ReadReference.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadNavigation.cs" Link="Shared\ReadNavigation.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadChildCollection.cs" Link="Shared\ReadChildCollection.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadValueCollection.cs" Link="Shared\ReadValueCollection.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadShape.cs" Link="Shared\ReadShape.cs"/>
   </ItemGroup>
 
 </Project>

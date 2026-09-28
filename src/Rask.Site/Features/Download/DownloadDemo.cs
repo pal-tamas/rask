@@ -24,7 +24,7 @@ public sealed partial class DownloadDemo(Navigator nav) : Component
             Ui.Button.Tone(Ui.Tone.Primary).Id("download-report").OnClick(DownloadReport)[Ui.Icon.Name(Ui.IconName.Document), "Download report"],
             Div
                 .Class("text-sm text-ui-muted mt-2")
-                .Data(new Dictionary<string, string?> { ["rask-report-count"] = "true" })[
+                .Data("rask-report-count", "true")[
                 $"Generated {_reportCount} time(s)."
             ]
         ];

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// Converts between the fluent <see cref="Email"/> / send-ready <see cref="OutgoingMail"/> and the persisted
@@ -66,7 +66,7 @@ internal static class MailSerializer
         JsonSerializer.Deserialize<EmailAddress>(json, Options)
         ?? throw new InvalidOperationException("A mail row has a malformed address.");
 
-    private static IReadOnlyList<EmailAddress> DeserializeAddresses(string? json) =>
+    private static List<EmailAddress> DeserializeAddresses(string? json) =>
         string.IsNullOrEmpty(json) ? [] : JsonSerializer.Deserialize<List<EmailAddress>>(json, Options) ?? [];
 
     private static string? ToJsonOrNull<T>(IReadOnlyList<T> items) =>

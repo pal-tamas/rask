@@ -1,0 +1,8 @@
+P:System.DateTime.Now;Read the clock through TimeProvider (injected, or TimeProvider.System) so time is testable and local-vs-UTC is explicit
+P:System.DateTime.Today;Read the clock through TimeProvider (injected, or TimeProvider.System) so time is testable and local-vs-UTC is explicit
+P:System.DateTimeOffset.Now;Read the clock through TimeProvider (injected, or TimeProvider.System) so time is testable and local-vs-UTC is explicit
+M:System.Threading.Thread.Sleep(System.Int32);Blocks a thread-pool thread; await Task.Delay (or TimeProvider.Delay) instead
+M:System.Threading.Thread.Sleep(System.TimeSpan);Blocks a thread-pool thread; await Task.Delay (or TimeProvider.Delay) instead
+M:System.Environment.Exit(System.Int32);A library never ends the process; throw, or return an exit code to the caller
+M:System.GC.Collect;Let the runtime decide when to collect; a forced GC is a latency spike for every request
+M:System.GC.Collect(System.Int32);Let the runtime decide when to collect; a forced GC is a latency spike for every request

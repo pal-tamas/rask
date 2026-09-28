@@ -16,11 +16,11 @@ public class WebPushTests
     }
 
     [Theory]
-    [InlineData("granted", NotificationPermission.Granted)]
-    [InlineData("denied", NotificationPermission.Denied)]
-    [InlineData("default", NotificationPermission.Default)]
-    [InlineData(null, NotificationPermission.Default)]
-    public async Task Requesting_permission_maps_the_result(string? raw, NotificationPermission expected)
+    [InlineData("granted", NotificationPermissionState.Granted)]
+    [InlineData("denied", NotificationPermissionState.Denied)]
+    [InlineData("default", NotificationPermissionState.Default)]
+    [InlineData(null, NotificationPermissionState.Default)]
+    public async Task Requesting_permission_maps_the_result(string? raw, NotificationPermissionState expected)
     {
         var js = new FakeJsRuntime();
         if (raw is not null)

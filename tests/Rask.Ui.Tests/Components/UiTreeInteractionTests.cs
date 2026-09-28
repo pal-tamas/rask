@@ -121,7 +121,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Enter_selects_one_node_at_a_time()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Single).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.One).OnSelectionChange(picked.Add));
 
         await KeyAsync(page, "Enter");
         await KeyAsync(page, "ArrowDown");
@@ -135,7 +135,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Space_toggles_when_more_than_one_may_be_selected()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Multiple).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Many).OnSelectionChange(picked.Add));
 
         await KeyAsync(page, " ");
         await KeyAsync(page, "ArrowDown");
@@ -182,7 +182,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Clicking_a_row_moves_the_cursor_and_selects_it()
     {
-        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Single));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.One));
 
         await page.On(".ui-tree-row:has-text(\"README.md\")").ClickAsync();
 
@@ -194,7 +194,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Clicking_the_twisty_only_opens_the_node()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Single).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.One).OnSelectionChange(picked.Add));
 
         // Every row has a twisty, so it is addressed by position: the first one belongs to the first root.
         await page.InvokeAsync(page.FindAll(".ui-tree-toggle")[0].Attributes["data-rask-on-click"]!);

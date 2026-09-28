@@ -24,7 +24,7 @@ public class InitialRenderDiffTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // The VERY FIRST interaction: bump the counter (count=0 -> count=1, a pure text-node
         // change). With the GET-seeded frame baseline this ships a diff, not full HTML.

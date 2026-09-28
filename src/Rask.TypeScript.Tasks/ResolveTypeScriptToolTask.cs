@@ -105,6 +105,11 @@ public sealed class ResolveTypeScriptToolTask : Task
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         }
 
+        return Resolve(tool, platform, packageName, native);
+    }
+
+    private bool Resolve(TypeScriptTool tool, ToolOs platform, string packageName, bool native)
+    {
         var directory = TypeScriptTools.CacheDirectory(CacheRoot, tool, Version, packageName);
         var entry = TypeScriptTools.ExecutablePath(tool, platform);
         var executable = Path.Combine(directory, entry);
@@ -150,6 +155,7 @@ public sealed class ResolveTypeScriptToolTask : Task
         return true;
     }
 
+    /// <summary>Downloads, verifies and unpacks one package into the cache.</summary>
     /// <param name="packageName">The package to fetch.</param>
     /// <param name="directory">The cache directory it lands in.</param>
     /// <param name="tarballUrl">Where the tarball is.</param>
@@ -163,6 +169,11 @@ public sealed class ResolveTypeScriptToolTask : Task
             MessageImportance.High,
             $"Rask.TypeScript: fetching {packageName}@{Version} (one-off, cached in {CacheRoot})…");
 
+        Unpack(DownloadVerified(packageName, tarballUrl), directory, executable);
+    }
+
+    private byte[] DownloadVerified(string packageName, string tarballUrl)
+    {
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
 
         var metadata = http
@@ -187,6 +198,11 @@ public sealed class ResolveTypeScriptToolTask : Task
                 $"the download did not match its published checksum (expected {expected}, got {actual})");
         }
 
+        return bytes;
+    }
+
+    private static void Unpack(byte[] bytes, string directory, string? executable)
+    {
         // Unpacked beside the target and moved into place, so a cancelled build cannot leave a
         // half-extracted tree that every later build then treats as a cache hit. tsgo is ~27 MB across
         // ~115 files, and a truncated one of those is a compiler that reports nonsense about the DOM.
@@ -246,7 +262,7 @@ public sealed class ResolveTypeScriptToolTask : Task
         //
         // Arguments rather than ArgumentList: this targets netstandard2.0, where the list form does not
         // exist. The path is ours and quoted, so a space in the cache directory is still safe.
-        using var chmod = Process.Start(new ProcessStartInfo("chmod")
+        using var chmod = Process.Start(new ProcessStartInfo(ChmodPath)
         {
             Arguments = "+x \"" + path + "\"",
             UseShellExecute = false,
@@ -254,6 +270,13 @@ public sealed class ResolveTypeScriptToolTask : Task
 
         chmod?.WaitForExit();
     }
+
+    // An absolute path, so a PATH entry cannot stand in for chmod. /bin is the norm; NixOS has neither.
+    private static readonly string ChmodPath =
+        Array.Find(
+            new[] { "/bin/chmod", "/usr/bin/chmod", "/run/current-system/sw/bin/chmod" },
+            File.Exists)
+        ?? "/bin/chmod";
 
     private static bool TryParseTool(string value, out TypeScriptTool tool)
     {

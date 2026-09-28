@@ -39,7 +39,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
         {
             _watchState = "not supported on this browser";
             _readState = "not supported on this browser";
-            StateHasChanged();
+            await StateHasChangedAsync();
             return;
         }
 
@@ -60,7 +60,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Level: ", Code.Id("battery-level")[_status is { } s ? $"{s.Level * 100:0}%" : "(none)"]],
                 Div.Class("text-sm text-ui-muted mb-1")[
-                    "Charging: ", Code.Id("battery-charging")[_status is { } c ? (c.Charging ? "yes" : "no") : "(none)"]],
+                    "Charging: ", Code.Id("battery-charging")[_status switch { null => "(none)", { Charging: true } => "yes", _ => "no" }]],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Watch: ", Code.Id("battery-watch")[_watchState]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("battery-status")[_readState]]

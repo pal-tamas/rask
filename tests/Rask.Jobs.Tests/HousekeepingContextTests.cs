@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Batteries;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 ///     The battery polls every few seconds forever, and EF Core logs every statement at

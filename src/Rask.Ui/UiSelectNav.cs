@@ -48,7 +48,7 @@ internal static class UiSelectNav
 
         // First pass: bucket items by group key in first-seen order (buckets hold the items, not yet indexed).
         var order = new List<string>();
-        var buckets = new Dictionary<string, List<TItem>>();
+        var buckets = new Dictionary<string, List<TItem>>(StringComparer.Ordinal);
         foreach (var item in filtered)
         {
             var key = group(item);

@@ -6,49 +6,6 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Rask.Generators.ScopedScripts;
 
-internal enum ReturnKind
-{
-    Void,
-    Value,
-    Object,
-
-    /// <summary>A C# tuple, read element by element from the array the script returns.</summary>
-    Tuple,
-}
-
-internal sealed class MappedParameter
-{
-    public string? Type { get; init; }
-
-    /// <summary>A callback's async-handler form; null for any other parameter.</summary>
-    public string? AsyncType { get; init; }
-
-    public string? ArgFormat { get; init; }
-    public bool Optional { get; init; }
-    public string DefaultValue { get; init; } = " = null";
-    public string? Error { get; init; }
-    public List<string> Records { get; init; } = new();
-}
-
-internal sealed class MappedReturn
-{
-    public ReturnKind Kind { get; init; }
-    public string? Type { get; init; }
-
-    /// <summary>For <see cref="ReturnKind.Tuple" />: each element's C# type, in order.</summary>
-    public List<string> Elements { get; init; } = new();
-    public string? Error { get; init; }
-    public List<string> Records { get; init; } = new();
-}
-
-internal sealed class RecordShape(string tsName, string csName, string? doc)
-{
-    public string TsName { get; } = tsName;
-    public string CsName { get; } = csName;
-    public string? Doc { get; } = doc;
-    public List<(string CsName, string JsonName, string Type, bool Required)> Properties { get; } = new();
-}
-
 /// <summary>
 ///     TypeScript → C# for a scoped script's signatures. <c>number</c> is always <c>double</c>: TypeScript
 ///     has one numeric type, and a value that crosses as JSON keeps no trace of being whole.
@@ -83,60 +40,23 @@ internal sealed class TypeMapper
 
         var type = Unwrap(Resolve(p.Type), out var nullable);
         nullable |= p.Optional;
-        var records = new List<string>();
 
         if (type is TsFunction fn)
         {
             return MapCallback(fn, nullable, p.Optional, inProxy);
         }
 
-        if (type is TsNamed { Args.Count: 0 } named)
+        if (type is TsNamed { Args.Count: 0 } named && MapReferenceParameter(named.Name, nullable, p.Optional) is { } reference)
         {
-            if (IsElement(named.Name))
-            {
-                return new MappedParameter { Type = "global::Rask.Core.ElementRef?", ArgFormat = "{0}", Optional = p.Optional };
-            }
-
-            if (IsAny(named.Name))
-            {
-                return new MappedParameter { Type = "object?", ArgFormat = "{0}", Optional = p.Optional };
-            }
-
-            if (Classes.Contains(named.Name))
-            {
-                var cs = Names.Pascal(named.Name)!;
-                return new MappedParameter
-                {
-                    Type = nullable ? cs + "?" : cs,
-                    ArgFormat = nullable ? "{0}?.Reference" : "{0}.Reference",
-                    Optional = p.Optional,
-                };
-            }
+            return reference;
         }
 
         if (type is TsTuple tuple)
         {
-            if (nullable)
-            {
-                return new MappedParameter { Error = "a tuple that may be missing — make it required" };
-            }
-
-            var tupleType = MapTuple(tuple, records, out _, out var tupleError);
-            if (tupleType is null)
-            {
-                return new MappedParameter { Error = tupleError };
-            }
-
-            // A C# tuple serializes as {} (its items are fields), so it crosses as the array the script expects.
-            var items = string.Join(", ", tuple.Elements.Select((_, i) => "{0}.Item" + (i + 1)));
-            return new MappedParameter
-            {
-                Type = tupleType,
-                ArgFormat = "new object?[] {{ " + items + " }}",
-                Records = records,
-            };
+            return MapTupleParameter(tuple, nullable);
         }
 
+        var records = new List<string>();
         var data = MapData(type, 0, records, out var error);
         if (data is null)
         {
@@ -152,7 +72,58 @@ internal sealed class TypeMapper
         };
     }
 
-    public MappedReturn MapReturn(TsType returns)
+    // A parameter that crosses by reference rather than as JSON: an element, anything, or an exported class's proxy.
+    private MappedParameter? MapReferenceParameter(string name, bool nullable, bool optional)
+    {
+        if (IsElement(name))
+        {
+            return new MappedParameter { Type = "global::Rask.Core.ElementRef?", ArgFormat = "{0}", Optional = optional };
+        }
+
+        if (IsAny(name))
+        {
+            return new MappedParameter { Type = "object?", ArgFormat = "{0}", Optional = optional };
+        }
+
+        if (Classes.Contains(name))
+        {
+            var cs = Names.Pascal(name)!;
+            return new MappedParameter
+            {
+                Type = nullable ? cs + "?" : cs,
+                ArgFormat = nullable ? "{0}?.Reference" : "{0}.Reference",
+                Optional = optional,
+            };
+        }
+
+        return null;
+    }
+
+    private MappedParameter MapTupleParameter(TsTuple tuple, bool nullable)
+    {
+        if (nullable)
+        {
+            return new MappedParameter { Error = "a tuple that may be missing — make it required" };
+        }
+
+        var records = new List<string>();
+        var tupleType = MapTuple(tuple, records, out _, out var tupleError);
+        if (tupleType is null)
+        {
+            return new MappedParameter { Error = tupleError };
+        }
+
+        // A C# tuple serializes as {} (its items are fields), so it crosses as the array the script expects.
+        var items = string.Join(", ", tuple.Elements.Select((_, i) => "{0}.Item" + (i + 1)));
+        return new MappedParameter
+        {
+            Type = tupleType,
+            ArgFormat = "new object?[] {{ " + items + " }}",
+            Records = records,
+        };
+    }
+
+    public MappedReturn MapReturn(ITsType returns)
     {
         var type = Resolve(returns);
         if (type is TsNamed { Name: "Promise", Args.Count: 1 } promise)
@@ -240,31 +211,9 @@ internal sealed class TypeMapper
 
         var records = new List<string>();
         var types = new List<string>();
-        foreach (var arg in fn.Parameters)
+        if (MapCallbackArguments(fn, records, types) is { } argumentError)
         {
-            if (arg.Rest)
-            {
-                return new MappedParameter { Error = "a callback with a rest parameter" };
-            }
-
-            var argType = Unwrap(Resolve(arg.Type), out var argNullable);
-            string? mapped;
-            if (argType is TsNamed { Args.Count: 0 } n && IsAny(n.Name))
-            {
-                mapped = JsonElement;
-            }
-            else
-            {
-                mapped = MapData(argType, 0, records, out var error);
-                if (mapped is null)
-                {
-                    return new MappedParameter { Error = $"a callback whose argument '{arg.Name}' is {error}" };
-                }
-
-                mapped = Nullable(mapped, argNullable || arg.Optional);
-            }
-
-            types.Add(mapped);
+            return new MappedParameter { Error = argumentError };
         }
 
         // Taken as a delegate, in two overloads — a lambda has no conversion to the Callback struct, so a
@@ -272,24 +221,53 @@ internal sealed class TypeMapper
         // form and an async one to the Task form, which is the same pair of shapes Callback itself takes.
         var list = string.Join(", ", types);
         var callback = types.Count == 0 ? "global::Rask.Core.Callback" : "global::Rask.Core.Callback<" + list + ">";
-        var sync = types.Count == 0 ? "global::System.Action" : "global::System.Action<" + list + ">";
-        var async = types.Count == 0
+        var syncHandler = types.Count == 0 ? "global::System.Action" : "global::System.Action<" + list + ">";
+        var asyncHandler = types.Count == 0
             ? "global::System.Func<global::System.Threading.Tasks.Task>"
             : "global::System.Func<" + list + ", global::System.Threading.Tasks.Task>";
         var make = (inProxy ? "ScriptCallback(" : "global::Rask.Core.ScopedAssets.ScopedScript.Callback(this, ")
                    + "new " + callback + "({0}))";
         return new MappedParameter
         {
-            Type = nullable ? sync + "?" : sync,
-            AsyncType = nullable ? async + "?" : async,
+            Type = nullable ? syncHandler + "?" : syncHandler,
+            AsyncType = nullable ? asyncHandler + "?" : asyncHandler,
             ArgFormat = nullable ? "{0} is null ? null : " + make : make,
             Optional = optional,
             Records = records,
         };
     }
 
+    // Each argument's C# type into `types`; the error for the first that cannot cross, or null.
+    private string? MapCallbackArguments(TsFunction fn, List<string> records, List<string> types)
+    {
+        foreach (var arg in fn.Parameters)
+        {
+            if (arg.Rest)
+            {
+                return "a callback with a rest parameter";
+            }
+
+            var argType = Unwrap(Resolve(arg.Type), out var argNullable);
+            if (argType is TsNamed { Args.Count: 0 } n && IsAny(n.Name))
+            {
+                types.Add(JsonElement);
+                continue;
+            }
+
+            var mapped = MapData(argType, 0, records, out var error);
+            if (mapped is null)
+            {
+                return $"a callback whose argument '{arg.Name}' is {error}";
+            }
+
+            types.Add(Nullable(mapped, argNullable || arg.Optional));
+        }
+
+        return null;
+    }
+
     /// <summary>A value that crosses as JSON: primitives, arrays, dictionaries, and the file's own shapes.</summary>
-    private string? MapData(TsType type, int depth, List<string> records, out string? error)
+    private string? MapData(ITsType type, int depth, List<string> records, out string? error)
     {
         error = null;
         if (depth > MaxDepth)
@@ -312,67 +290,62 @@ internal sealed class TypeMapper
                 break;
 
             case TsArray array:
-                mapped = MapData(array.Element, depth + 1, records, out error);
-                mapped = mapped is null ? null : "global::System.Collections.Generic.IReadOnlyList<" + mapped + ">";
+                mapped = MapList(array.Element, depth, records, out error);
                 break;
 
             case TsNamed { Name: "Array" or "ReadonlyArray", Args.Count: 1 } generic:
-                mapped = MapData(generic.Args[0], depth + 1, records, out error);
-                mapped = mapped is null ? null : "global::System.Collections.Generic.IReadOnlyList<" + mapped + ">";
+                mapped = MapList(generic.Args[0], depth, records, out error);
                 break;
 
             case TsNamed { Name: "Record", Args.Count: 2 } dict:
-                if (Unwrap(Resolve(dict.Args[0]), out _) is not TsNamed { Name: "string" })
-                {
-                    error = "a Record keyed by something other than string";
-                    return null;
-                }
-
-                mapped = MapData(dict.Args[1], depth + 1, records, out error);
-                mapped = mapped is null
-                    ? null
-                    : "global::System.Collections.Generic.IReadOnlyDictionary<string, " + mapped + ">";
+                mapped = MapDictionary(dict, depth, records, out error);
                 break;
 
             case TsNamed { Args.Count: 0 } named:
                 mapped = MapNamed(named.Name, depth, records, out error);
                 break;
 
-            case TsNamed named:
-                error = $"'{named.Name}<…>', which has no C# counterpart here";
-                return null;
-
-            case TsUnion:
-                error = "a union of different types — give it one type, or split the function";
-                return null;
-
-            case TsInlineObject:
-                error = "an inline object type — declare it as an interface in the file so it has a name";
-                return null;
-
-            case TsObject:
-                error = "an object type";
-                return null;
-
-            case TsFunction:
-                error = "a function, which cannot travel inside data";
-                return null;
-
-            case TsTuple:
-                error = "a tuple inside other data — a tuple crosses only as a whole parameter or return value; declare an interface instead";
-                return null;
-
-            case TsUnsupported unsupported:
-                error = unsupported.Description;
-                return null;
-
             default:
-                error = "a type Rask does not map";
+                error = Unmappable(type);
                 return null;
         }
 
         return mapped is null ? null : Nullable(mapped, nullable);
     }
+
+    private string? MapList(ITsType element, int depth, List<string> records, out string? error)
+    {
+        var mapped = MapData(element, depth + 1, records, out error);
+        return mapped is null ? null : "global::System.Collections.Generic.IReadOnlyList<" + mapped + ">";
+    }
+
+    private string? MapDictionary(TsNamed dict, int depth, List<string> records, out string? error)
+    {
+        if (Unwrap(Resolve(dict.Args[0]), out _) is not TsNamed { Name: "string" })
+        {
+            error = "a Record keyed by something other than string";
+            return null;
+        }
+
+        var mapped = MapData(dict.Args[1], depth + 1, records, out error);
+        return mapped is null
+            ? null
+            : "global::System.Collections.Generic.IReadOnlyDictionary<string, " + mapped + ">";
+    }
+
+    // Why a type that is not data cannot cross as JSON.
+    private static string Unmappable(ITsType type) => type switch
+    {
+        TsNamed named => $"'{named.Name}<…>', which has no C# counterpart here",
+        TsUnion => "a union of different types — give it one type, or split the function",
+        TsInlineObject => "an inline object type — declare it as an interface in the file so it has a name",
+        TsObject => "an object type",
+        TsFunction => "a function, which cannot travel inside data",
+        TsTuple =>
+            "a tuple inside other data — a tuple crosses only as a whole parameter or return value; declare an interface instead",
+        TsUnsupported unsupported => unsupported.Description,
+        _ => "a type Rask does not map",
+    };
 
     // `[x: number, y: string]` → `(double X, string Y)`; unlabelled elements stay Item1, Item2.
     private string? MapTuple(TsTuple tuple, List<string> records, out List<string> elements, out string? error)
@@ -385,7 +358,7 @@ internal sealed class TypeMapper
             var mapped = MapData(element.Type, 1, records, out error);
             if (mapped is null)
             {
-                error = "a tuple whose element is " + error;
+                error = $"a tuple whose element is {error}";
                 return null;
             }
 
@@ -477,34 +450,9 @@ internal sealed class TypeMapper
             return null;
         }
 
-        _records[name] = null;
+        _records.Add(name, null);
         var record = new RecordShape(name, csName, null);
-        var nested = new List<string>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var property in shape.Properties)
-        {
-            var propertyName = Names.Pascal(property.Name);
-            if (propertyName is null || propertyName == csName || !seen.Add(propertyName))
-            {
-                error = $"'{name}', whose property '{property.Name}' has no usable C# name";
-                break;
-            }
-
-            var type = MapData(property.Type, depth + 1, nested, out var propertyError);
-            if (type is null)
-            {
-                error = $"'{name}', whose property '{property.Name}' is {propertyError}";
-                break;
-            }
-
-            if (property.Optional && !type.EndsWith("?", StringComparison.Ordinal) && type != JsonElement)
-            {
-                type += "?";
-            }
-
-            record.Properties.Add((propertyName, property.Name, type, !property.Optional));
-        }
-
+        error = MapProperties(shape, depth, record);
         if (error is not null)
         {
             _records.Remove(name);
@@ -512,12 +460,47 @@ internal sealed class TypeMapper
             return null;
         }
 
+#pragma warning disable S4143 // replaces the null placeholder that kept first-use order and marked the recursion
         _records[name] = record;
+#pragma warning restore S4143
         return record;
     }
 
+    // Each of the shape's properties onto the record; the error for the first that cannot cross, or null.
+    private string? MapProperties(TsObject shape, int depth, RecordShape record)
+    {
+        var name = record.TsName;
+        var nested = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in shape.Properties)
+        {
+            var propertyName = Names.Pascal(property.Name);
+            if (propertyName is null || string.Equals(propertyName, record.CsName, StringComparison.Ordinal)
+                || !seen.Add(propertyName))
+            {
+                return $"'{name}', whose property '{property.Name}' has no usable C# name";
+            }
+
+            var type = MapData(property.Type, depth + 1, nested, out var propertyError);
+            if (type is null)
+            {
+                return $"'{name}', whose property '{property.Name}' is {propertyError}";
+            }
+
+            if (property.Optional && !type.EndsWith("?", StringComparison.Ordinal)
+                && !string.Equals(type, JsonElement, StringComparison.Ordinal))
+            {
+                type += "?";
+            }
+
+            record.Properties.Add((propertyName, property.Name, type, !property.Optional));
+        }
+
+        return null;
+    }
+
     // A type alias that is not an object shape is its target: `type Mode = "a" | "b"` is a string.
-    private TsType Resolve(TsType type)
+    private ITsType Resolve(ITsType type)
     {
         for (var i = 0; i < MaxDepth; i++)
         {
@@ -538,7 +521,7 @@ internal sealed class TypeMapper
     ///     Strips <c>null</c>/<c>undefined</c> from a union, and folds a union of literals of one kind — a
     ///     string enum — into that kind.
     /// </summary>
-    private TsType Unwrap(TsType type, out bool nullable)
+    private ITsType Unwrap(ITsType type, out bool nullable)
     {
         nullable = false;
         if (type is not TsUnion union)
@@ -546,7 +529,7 @@ internal sealed class TypeMapper
             return type;
         }
 
-        var rest = new List<TsType>();
+        var rest = new List<ITsType>();
         foreach (var member in union.Members)
         {
             var resolved = Resolve(member);
@@ -570,7 +553,7 @@ internal sealed class TypeMapper
             return rest[0];
         }
 
-        string? Kind(TsType t) => t switch
+        string? Kind(ITsType t) => t switch
         {
             TsLiteral { Kind: TsLiteralKind.String } or TsNamed { Name: "string", Args.Count: 0 } => "string",
             TsLiteral { Kind: TsLiteralKind.Number } or TsNamed { Name: "number", Args.Count: 0 } => "number",
@@ -579,11 +562,13 @@ internal sealed class TypeMapper
         };
 
         var first = Kind(rest[0]);
-        return first is not null && rest.All(r => Kind(r) == first) ? new TsNamed(first) : new TsUnion(rest);
+        return first is not null && rest.All(r => string.Equals(Kind(r), first, StringComparison.Ordinal)) ? new TsNamed(first) : new TsUnion(rest);
     }
 
     private static string Nullable(string type, bool nullable) =>
-        nullable && !type.EndsWith("?", StringComparison.Ordinal) && type != JsonElement ? type + "?" : type;
+        nullable && !type.EndsWith("?", StringComparison.Ordinal) && !string.Equals(type, JsonElement, StringComparison.Ordinal)
+            ? type + "?"
+            : type;
 
     private static bool IsAny(string name) => name is "any" or "unknown" or "object";
 
@@ -592,49 +577,4 @@ internal sealed class TypeMapper
         || (name.EndsWith("Element", StringComparison.Ordinal) && (name.StartsWith("HTML", StringComparison.Ordinal)
                                                                     || name.StartsWith("SVG", StringComparison.Ordinal)
                                                                     || name.StartsWith("MathML", StringComparison.Ordinal)));
-}
-
-internal static class Names
-{
-    /// <summary><c>width</c> → <c>Width</c>; null when the name has no C# spelling.</summary>
-    public static string? Pascal(string name)
-    {
-        var sb = new StringBuilder(name.Length);
-        var upper = true;
-        foreach (var c in name)
-        {
-            if (c is '-' or ' ' or '.')
-            {
-                upper = true;
-                continue;
-            }
-
-            if (!(char.IsLetterOrDigit(c) || c == '_'))
-            {
-                return null;
-            }
-
-            if (sb.Length == 0 && c == '_')
-            {
-                continue;
-            }
-
-            sb.Append(upper ? char.ToUpperInvariant(c) : c);
-            upper = false;
-        }
-
-        return sb.Length == 0 || char.IsDigit(sb[0]) ? null : sb.ToString();
-    }
-
-    /// <summary>A TypeScript parameter name as a C# one — a keyword is escaped (<c>@event</c>).</summary>
-    public static string Parameter(string name)
-    {
-        var clean = new string(name.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
-        if (clean.Length == 0 || char.IsDigit(clean[0]))
-        {
-            clean = "_" + clean;
-        }
-
-        return SyntaxFacts.GetKeywordKind(clean) != SyntaxKind.None ? "@" + clean : clean;
-    }
 }

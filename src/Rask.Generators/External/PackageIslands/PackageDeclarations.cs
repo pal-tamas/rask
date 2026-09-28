@@ -8,25 +8,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Rask.Generators.External.PackageIslands;
 
-/// <summary>One component a package declaration exports — <c>Button</c> of <c>Mui</c> — as an island.</summary>
-/// <param name="Name">The island's type name: the declaration's name and <paramref name="Member" />, <c>MuiButton</c>.</param>
-/// <param name="Member">Its entry on the declaration: <c>Mui.Button</c>.</param>
-/// <param name="Export">The export it imports, as written in <c>Exports</c>.</param>
-internal sealed record PackageExportIsland(string Name, string Member, string Export);
-
-/// <summary>What a package declaration's <c>Module</c> and <c>Exports</c> say, read out of its syntax.</summary>
-/// <param name="Runtime">The runtime its base class names.</param>
-/// <param name="Module">The package, or null when it could not be read.</param>
-/// <param name="Islands">One island per export, in the order written.</param>
-/// <param name="Failed">The member that is not a constant (<c>Module</c> or <c>Exports</c>), for RASK059, or null.</param>
-/// <param name="FailedAt">Where that member is.</param>
-internal sealed record PackageDeclaration(
-    string Runtime,
-    string? Module,
-    IReadOnlyList<PackageExportIsland> Islands,
-    string? Failed,
-    Location? FailedAt);
-
 /// <summary>
 ///     Package declarations — <c>sealed partial class Mui : ReactPackage</c> — expanded into the islands they export.
 /// </summary>
@@ -152,7 +133,7 @@ internal static class PackageDeclarations
         var reserved = new SortedSet<string>(StringComparer.Ordinal) { island.Name };
         for (var t = runtimeBase; t is not null; t = t.BaseType)
         {
-            if (t.OriginalDefinition.ToDisplayString() == "Rask.Core.RaskMarkup")
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), "Rask.Core.RaskMarkup", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -208,7 +189,7 @@ internal static class PackageDeclarations
     ///     The literals an <c>Exports</c> override returns — <c>=&gt; ["Button", "Card"];</c>, or the same array written
     ///     <c>new[] { … }</c> — or null when it returns anything else.
     /// </summary>
-    private static IReadOnlyList<string>? ReadExports(INamedTypeSymbol type, out Location? location)
+    private static List<string>? ReadExports(INamedTypeSymbol type, out Location? location)
     {
         var property = type.GetMembers("Exports").OfType<IPropertySymbol>().FirstOrDefault();
         location = property?.Locations.FirstOrDefault(static l => l.IsInSource);

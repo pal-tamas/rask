@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Site.Features;
 
 // UiTextarea<T> — Rask.Core's Textarea<T> underneath — in both shapes side by side.
@@ -18,7 +20,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                     .Hint("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-textarea-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
-                    "Length: ", Strong[_controlled.Length.ToString()]
+                    "Length: ", Strong[_controlled.Length.ToString(CultureInfo.InvariantCulture)]
                 ]
             ],
             Div.Class("col-span-12 md:col-span-6")[
@@ -28,7 +30,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                         .Id("fc-textarea-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-bound-out")[
-                    "Length: ", Strong[_model.Bio.Length.ToString()]
+                    "Length: ", Strong[_model.Bio.Length.ToString(CultureInfo.InvariantCulture)]
                 ]
             ]
         ];

@@ -71,7 +71,7 @@ public sealed partial class UiDropdown : UiMenuButton
             Align is { } align ? UiClassNames.DropdownAlign(align) : "",
             Class))[
             // tabindex so :focus-within can open it from the keyboard; daisyUI scopes its rules to it.
-            Button.Type("button").Class("btn").TabIndex(0).Aria(new Dictionary<string, string?> { ["haspopup"] = "menu" })[
+            Button.Type("button").Class("btn").TabIndex(0).Aria("haspopup", "menu")[
                 Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
                 Span[Trigger],
                 Ui.Icon.Name(IconTrailing ?? Ui.IconName.ChevronDown).Class("size-4 shrink-0 opacity-60")

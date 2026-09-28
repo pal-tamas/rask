@@ -14,6 +14,8 @@ internal static class RaskDocument
         new(
             kit ? UiStylesheet.Href : null,
             app.GetCustomAttributes<AssemblyMetadataAttribute>()
-                .FirstOrDefault(a => a.Key == StylesheetMetadata)?.Value,
-            kit ? new Dictionary<string, string?> { [UiStylesheet.ThemeScopeAttribute] = "" } : null);
+                .FirstOrDefault(a => string.Equals(a.Key, StylesheetMetadata, StringComparison.Ordinal))?.Value,
+            kit
+                ? new Dictionary<string, string?>(StringComparer.Ordinal) { [UiStylesheet.ThemeScopeAttribute] = "" }
+                : null);
 }

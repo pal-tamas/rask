@@ -114,6 +114,14 @@ public sealed class IncompleteChainAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        Report(context, operation, outer, state, missing, next);
+    }
+
+    // RASK095 with the chain spelled out as it should have been written, the owed steps in the order they are owed.
+    private static void Report(
+        OperationAnalysisContext context, IOperation operation, ExpressionSyntax outer, INamedTypeSymbol state,
+        List<IMethodSymbol> missing, string? next)
+    {
         var names = missing.Select(static m => m.Name).ToList();
         var written = new StringBuilder(Spell(outer));
         foreach (var name in names)
@@ -231,10 +239,12 @@ public sealed class IncompleteChainAnalyzer : DiagnosticAnalyzer
             return string.Empty;
         }
 
-        var type = step.Parameters[0].Type;
-        return type.SpecialType == SpecialType.System_String ? "\"\""
-            : type.IsValueType ? "default"
-            : "default!";
+        return step.Parameters[0].Type switch
+        {
+            { SpecialType: SpecialType.System_String } => "\"\"",
+            { IsValueType: true } => "default",
+            _ => "default!",
+        };
     }
 
     // The chain as written, each step's arguments elided: `Card.Title(…)`.

@@ -1,9 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 using Rask.Data;
 
-namespace Rask.Cache;
+namespace Rask.Caching;
 
 /// <summary>
 /// A persisted cache entry: an opaque <see cref="Value"/> stored under <see cref="Key"/> until it expires.
@@ -71,37 +68,4 @@ public sealed class CacheEntry : Entity<Guid>
     /// </summary>
     public DateTime ExpiresAt { get; internal set; }
 
-}
-
-/// <summary>The EF Core mapping for <see cref="CacheEntry"/>.</summary>
-public sealed class CacheEntryConfiguration : IEntityTypeConfiguration<CacheEntry>
-{
-    /// <inheritdoc/>
-    public void Configure(EntityTypeBuilder<CacheEntry> entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        entity.HasKey(x => x.Id);
-        entity.Property(x => x.Key).IsRequired().HasMaxLength(512);
-        // The key is still what identifies an entry, and still what a second writer collides with — as a
-        // unique index rather than as the primary key.
-        entity.HasIndex(x => x.Key).IsUnique();
-        entity.Property(x => x.Value).IsRequired();
-        // Drives the purge sweep and the "is this row still fresh?" read filter.
-        entity.HasIndex(x => x.ExpiresAt);
-    }
-}
-
-/// <summary>Model-building helper for the cache table.</summary>
-public static class CacheModelBuilderExtensions
-{
-    /// <summary>
-    /// Maps the <see cref="CacheEntry"/> table. Call from your context's <c>OnModelCreating</c>, then create the
-    /// schema with <c>rask db add AddCache &amp;&amp; rask db update</c>.
-    /// </summary>
-    public static ModelBuilder AddRaskCache(this ModelBuilder modelBuilder)
-    {
-        ArgumentNullException.ThrowIfNull(modelBuilder);
-        modelBuilder.ApplyConfiguration(new CacheEntryConfiguration());
-        return modelBuilder;
-    }
 }

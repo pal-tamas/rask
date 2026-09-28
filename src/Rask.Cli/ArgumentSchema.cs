@@ -1,65 +1,6 @@
 namespace Rask.Cli;
 
 /// <summary>
-/// The parsed form of a command's arguments: positionals, valued <c>--options</c>, boolean
-/// <c>--flags</c>, anything after a <c>--</c> separator (passthrough), plus collected errors.
-/// </summary>
-internal sealed class ParsedArguments(
-    IReadOnlyList<string> positionals,
-    IReadOnlyDictionary<string, string> options,
-    IReadOnlyDictionary<string, IReadOnlyList<string>> multiOptions,
-    IReadOnlySet<string> flags,
-    IReadOnlyList<string> passthrough,
-    IReadOnlyList<string> errors)
-{
-    public IReadOnlyList<string> Positionals { get; } = positionals;
-
-    public IReadOnlyDictionary<string, string> Options { get; } = options;
-
-    public IReadOnlyDictionary<string, IReadOnlyList<string>> MultiOptions { get; } = multiOptions;
-
-    public IReadOnlySet<string> Flags { get; } = flags;
-
-    public IReadOnlyList<string> Passthrough { get; } = passthrough;
-
-    public IReadOnlyList<string> Errors { get; } = errors;
-
-    public bool HasErrors => Errors.Count > 0;
-
-    public bool HasFlag(string longName) => Flags.Contains(longName);
-
-    public string? Option(string longName) => Options.TryGetValue(longName, out var value) ? value : null;
-
-    /// <summary>All values supplied for a repeatable <see cref="ArgumentSchema.MultiOption"/> (empty if none).</summary>
-    public IReadOnlyList<string> MultiOption(string longName) =>
-        MultiOptions.TryGetValue(longName, out var values) ? values : [];
-}
-
-/// <summary>
-/// A declared flag or option: its names, whether it takes a value (and a hint for it), a one-line
-/// description, an optional <see cref="Group"/> label so help can bucket, say, <c>generate</c>'s
-/// feature-only flags apart from the common ones, and an optional closed set of <see cref="Choices"/>.
-/// This is the single source of truth that both parses arguments and documents them — <c>--help</c> and
-/// shell completion render straight from this list, so they can never drift.
-/// </summary>
-internal sealed record OptionInfo(
-    string LongName,
-    char? ShortName,
-    bool IsFlag,
-    string? ValueHint,
-    string? Description,
-    string? Group,
-    IReadOnlyList<string>? Choices = null);
-
-/// <summary>
-/// A declared subcommand of a command, e.g. <c>add</c> under <c>rask db</c>. Recording verbs on the schema
-/// (rather than in a private array per command) means dispatch, the unknown-action error, <c>--help</c>,
-/// and shell completion all read the same list — including the aliases, which used to be invisible in
-/// both help and errors.
-/// </summary>
-internal sealed record VerbInfo(string Name, string Description, IReadOnlyList<string> Aliases);
-
-/// <summary>
 /// A tiny, dependency-free argument parser. Each command declares its boolean <see cref="Flag"/>s and
 /// valued <see cref="Option"/>s (with optional single-char aliases); <see cref="Parse"/> then turns a
 /// raw token list into a <see cref="ParsedArguments"/>. Supports <c>--name value</c>, <c>--name=value</c>,
@@ -120,17 +61,10 @@ internal sealed class ArgumentSchema
     /// </summary>
     public bool TryResolveVerb(string? token, out string name)
     {
-        foreach (var verb in _verbs)
-        {
-            if (verb.Name.Equals(token, StringComparison.Ordinal) || verb.Aliases.Contains(token, StringComparer.Ordinal))
-            {
-                name = verb.Name;
-                return true;
-            }
-        }
-
-        name = string.Empty;
-        return false;
+        var match = _verbs.Find(verb =>
+            verb.Name.Equals(token, StringComparison.Ordinal) || verb.Aliases.Contains(token, StringComparer.Ordinal));
+        name = match?.Name ?? string.Empty;
+        return match is not null;
     }
 
     /// <summary>
@@ -163,124 +97,153 @@ internal sealed class ArgumentSchema
 
     public ParsedArguments Parse(IReadOnlyList<string> args)
     {
-        var positionals = new List<string>();
-        var options = new Dictionary<string, string>(StringComparer.Ordinal);
-        var multiOptions = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        var flags = new HashSet<string>(StringComparer.Ordinal);
-        var passthrough = new List<string>();
-        var errors = new List<string>();
-
-        for (var i = 0; i < args.Count; i++)
+        var state = new ParseState();
+        var i = 0;
+        while (i < args.Count)
         {
             var token = args[i];
-
-            if (token == "--")
+            if (string.Equals(token, "--", StringComparison.Ordinal))
             {
-                for (var j = i + 1; j < args.Count; j++)
-                {
-                    passthrough.Add(args[j]);
-                }
-
+                state.Passthrough.AddRange(args.Skip(i + 1));
                 break;
             }
 
-            if (!IsOptionToken(token))
+            if (IsOptionToken(token))
             {
-                positionals.Add(token);
-                continue;
-            }
-
-            var isLong = token.StartsWith("--", StringComparison.Ordinal);
-            var body = isLong ? token[2..] : token[1..];
-            string? inlineValue = null;
-            var equals = body.IndexOf('=', StringComparison.Ordinal);
-            if (equals >= 0)
-            {
-                inlineValue = body[(equals + 1)..];
-                body = body[..equals];
-            }
-
-            if (!_aliases.TryGetValue(body, out var longName))
-            {
-                // Only long tokens get a suggestion: a mistyped single letter is as likely to be a
-                // different option as a typo of this one, so guessing there would be noise.
-                var near = isLong ? Suggest.Closest(body, _declared.Select(o => o.LongName)) : null;
-                errors.Add(near is null
-                    ? $"Unknown option '{token}'."
-                    : $"Unknown option '{token}'. Did you mean '--{near}'?");
-                continue;
-            }
-
-            if (_flags.Contains(longName))
-            {
-                ApplyFlag(longName, inlineValue, flags, errors);
-                continue;
-            }
-
-            // A valued option: take the inline value, else consume the next token — but never
-            // swallow a following option/flag (e.g. '--output --auth' must not set output="--auth"
-            // and silently drop --auth). Such a case is a missing value, not a value.
-            var value = inlineValue;
-            if (value is null)
-            {
-                if (i + 1 < args.Count && !IsOptionToken(args[i + 1]))
-                {
-                    value = args[++i];
-                }
-                else
-                {
-                    errors.Add($"Option '--{longName}' requires a value.");
-                    continue;
-                }
-            }
-
-            if (!TryNormalizeChoice(longName, ref value, errors))
-            {
-                continue;
-            }
-
-            if (_multiOptions.Contains(longName))
-            {
-                if (!multiOptions.TryGetValue(longName, out var values))
-                {
-                    multiOptions[longName] = values = [];
-                }
-
-                values.Add(value);
-
-                // A multi-option that declares CHOICES also takes several values in a row, so
-                // `--islands react angular blazor` reads the way it is written rather than forcing the
-                // flag to be repeated three times. Bounded by the choice list: consumption stops at the
-                // first token that is not one, which is what keeps `rask new --islands react Shop` from
-                // swallowing the app's name. Without declared choices there is nothing to stop on, so
-                // the option stays strictly one-value-per-occurrence.
-                var allowed = _declared
-                    .FirstOrDefault(o => o.LongName.Equals(longName, StringComparison.Ordinal))?.Choices;
-
-                if (allowed is not null)
-                {
-                    while (i + 1 < args.Count
-                        && !IsOptionToken(args[i + 1])
-                        && allowed.Contains(args[i + 1], StringComparer.OrdinalIgnoreCase))
-                    {
-                        var extra = args[++i];
-                        TryNormalizeChoice(longName, ref extra, errors);
-                        values.Add(extra);
-                    }
-                }
+                i = ParseOption(args, i, state);
             }
             else
             {
-                options[longName] = value;
+                state.Positionals.Add(token);
             }
+
+            i++;
         }
 
-        var multi = multiOptions.ToDictionary(
-            pair => pair.Key,
-            pair => (IReadOnlyList<string>)pair.Value,
-            StringComparer.Ordinal);
+        return state.ToParsed();
+    }
 
-        return new ParsedArguments(positionals, options, multi, flags, passthrough, errors);
+    /// <summary>Parses the option at <paramref name="i"/>; returns the index of the last token it consumed.</summary>
+    private int ParseOption(IReadOnlyList<string> args, int i, ParseState state)
+    {
+        var token = args[i];
+        var (isLong, body, inlineValue) = SplitOptionToken(token);
+        if (!_aliases.TryGetValue(body, out var longName))
+        {
+            // Only long tokens get a suggestion: a mistyped single letter is as likely to be a
+            // different option as a typo of this one, so guessing there would be noise.
+            var near = isLong ? Suggest.Closest(body, _declared.Select(o => o.LongName)) : null;
+            state.Errors.Add(near is null
+                ? $"Unknown option '{token}'."
+                : $"Unknown option '{token}'. Did you mean '--{near}'?");
+            return i;
+        }
+
+        if (_flags.Contains(longName))
+        {
+            ApplyFlag(longName, inlineValue, state.Flags, state.Errors);
+            return i;
+        }
+
+        // A valued option: take the inline value, else consume the next token — but never
+        // swallow a following option/flag (e.g. '--output --auth' must not set output="--auth"
+        // and silently drop --auth). Such a case is a missing value, not a value.
+        var value = inlineValue;
+        if (value is null)
+        {
+            if (i + 1 >= args.Count || IsOptionToken(args[i + 1]))
+            {
+                state.Errors.Add($"Option '--{longName}' requires a value.");
+                return i;
+            }
+
+            value = args[++i];
+        }
+
+        if (!TryNormalizeChoice(longName, ref value, state.Errors))
+        {
+            return i;
+        }
+
+        if (!_multiOptions.Contains(longName))
+        {
+            state.Options[longName] = value;
+            return i;
+        }
+
+        if (!state.MultiOptions.TryGetValue(longName, out var values))
+        {
+            state.MultiOptions[longName] = values = [];
+        }
+
+        values.Add(value);
+        return TakeChoiceRun(args, i, longName, values, state.Errors);
+    }
+
+    /// <summary><c>--name=value</c> or <c>-n</c> as the name and the inline value, if any.</summary>
+    private static (bool IsLong, string Name, string? InlineValue) SplitOptionToken(string token)
+    {
+        var isLong = token.StartsWith("--", StringComparison.Ordinal);
+        var body = isLong ? token[2..] : token[1..];
+        var equals = body.IndexOf('=', StringComparison.Ordinal);
+        return equals >= 0
+            ? (isLong, body[..equals], body[(equals + 1)..])
+            : (isLong, body, null);
+    }
+
+    /// <summary>
+    /// A multi-option that declares CHOICES also takes several values in a row, so
+    /// <c>--islands react angular blazor</c> reads the way it is written rather than forcing the
+    /// flag to be repeated three times. Bounded by the choice list: consumption stops at the
+    /// first token that is not one, which is what keeps <c>rask new --islands react Shop</c> from
+    /// swallowing the app's name. Without declared choices there is nothing to stop on, so
+    /// the option stays strictly one-value-per-occurrence.
+    /// </summary>
+    private int TakeChoiceRun(IReadOnlyList<string> args, int i, string longName, List<string> values, List<string> errors)
+    {
+        var allowed = _declared
+            .FirstOrDefault(o => o.LongName.Equals(longName, StringComparison.Ordinal))?.Choices;
+
+        if (allowed is null)
+        {
+            return i;
+        }
+
+        while (i + 1 < args.Count
+            && !IsOptionToken(args[i + 1])
+            && allowed.Contains(args[i + 1], StringComparer.OrdinalIgnoreCase))
+        {
+            var extra = args[++i];
+            TryNormalizeChoice(longName, ref extra, errors);
+            values.Add(extra);
+        }
+
+        return i;
+    }
+
+    /// <summary>What <see cref="Parse"/> collects on its way through the tokens.</summary>
+    private sealed class ParseState
+    {
+        public List<string> Positionals { get; } = [];
+
+        public Dictionary<string, string> Options { get; } = new(StringComparer.Ordinal);
+
+        public Dictionary<string, List<string>> MultiOptions { get; } = new(StringComparer.Ordinal);
+
+        public HashSet<string> Flags { get; } = new(StringComparer.Ordinal);
+
+        public List<string> Passthrough { get; } = [];
+
+        public List<string> Errors { get; } = [];
+
+        public ParsedArguments ToParsed() =>
+            new(
+                Positionals,
+                Options,
+                MultiOptions.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<string>)pair.Value, StringComparer.Ordinal),
+                Flags,
+                Passthrough,
+                Errors);
     }
 
     /// <summary>
@@ -300,13 +263,11 @@ internal sealed class ArgumentSchema
             return true;
         }
 
-        foreach (var choice in choices)
+        var typed = value;
+        if (choices.FirstOrDefault(choice => choice.Equals(typed, StringComparison.OrdinalIgnoreCase)) is { } canonical)
         {
-            if (choice.Equals(value, StringComparison.OrdinalIgnoreCase))
-            {
-                value = choice;
-                return true;
-            }
+            value = canonical;
+            return true;
         }
 
         var near = Suggest.Closest(value, choices);
@@ -335,8 +296,8 @@ internal sealed class ArgumentSchema
         token.Length > 1 && token[0] == '-' && !char.IsDigit(token[1]);
 
     private static bool IsTrue(string value) =>
-        value.Equals("true", StringComparison.OrdinalIgnoreCase) || value == "1";
+        value.Equals("true", StringComparison.OrdinalIgnoreCase) || string.Equals(value, "1", StringComparison.Ordinal);
 
     private static bool IsFalse(string value) =>
-        value.Equals("false", StringComparison.OrdinalIgnoreCase) || value == "0";
+        value.Equals("false", StringComparison.OrdinalIgnoreCase) || string.Equals(value, "0", StringComparison.Ordinal);
 }

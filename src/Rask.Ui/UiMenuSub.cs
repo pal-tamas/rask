@@ -87,7 +87,7 @@ public sealed partial class UiMenuSub : Component
                 .Id(subMenuId)
                 .Role("menu")
                 .Class("menu ui-menu-flyout w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-sm")
-                .Aria(new Dictionary<string, string?> { ["label"] = Heading })[
+                .Aria("label", Heading)[
                 Context.Provide(new UiMenuLevel(scope, ordinal))[Children ?? []]
             ]
         ];

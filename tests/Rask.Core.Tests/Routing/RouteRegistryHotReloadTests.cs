@@ -76,7 +76,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     [Fact]
     public void Replacing_does_not_clear_the_default_fallback()
     {
-        // The sharp edge. _defaultFallback is seeded once by __RaskDefaultFallback's
+        // The sharp edge. _defaultFallback is seeded once by RaskDefaultFallback's
         // [ModuleInitializer], which never re-runs — so a refresh implemented via Reset() would
         // make every 404 after the first hot reload an unhandled route, invisibly.
         RouteRegistry.SetDefaultFallback(typeof(Fallback));

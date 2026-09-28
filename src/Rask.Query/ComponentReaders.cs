@@ -1,7 +1,7 @@
 using Rask.Core;
 using Rask.Core.Live;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     The components that read a piece of query state during a render, and are therefore owed a

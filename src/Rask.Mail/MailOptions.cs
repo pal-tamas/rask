@@ -1,39 +1,4 @@
-namespace Rask.Mail;
-
-/// <summary>Transport security for the SMTP connection.</summary>
-public enum SmtpSecurity
-{
-    /// <summary>Let MailKit choose based on the port (STARTTLS on 587, implicit TLS on 465). The default.</summary>
-    Auto,
-
-    /// <summary>Connect in the clear then upgrade with STARTTLS (typically port 587).</summary>
-    StartTls,
-
-    /// <summary>Implicit TLS from connect (typically port 465).</summary>
-    SslOnConnect,
-
-    /// <summary>No transport encryption (development / a local relay only).</summary>
-    None,
-}
-
-/// <summary>SMTP server connection settings.</summary>
-public sealed class SmtpOptions
-{
-    /// <summary>The SMTP server host name.</summary>
-    public string Host { get; set; } = "";
-
-    /// <summary>The SMTP server port. Default 587 (submission).</summary>
-    public int Port { get; set; } = 587;
-
-    /// <summary>The user name for SMTP authentication, or <c>null</c> to connect unauthenticated.</summary>
-    public string? User { get; set; }
-
-    /// <summary>The password for SMTP authentication.</summary>
-    public string? Password { get; set; }
-
-    /// <summary>The transport security mode. Default <see cref="SmtpSecurity.Auto"/>.</summary>
-    public SmtpSecurity Security { get; set; } = SmtpSecurity.Auto;
-}
+namespace Rask.Mailing;
 
 /// <summary>Options for <see cref="MailProcessor{TContext}"/> and the sender it uses.</summary>
 public sealed class MailOptions
@@ -57,7 +22,7 @@ public sealed class MailOptions
     /// </summary>
     public string? PickupDirectory { get; set; }
 
-    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="Validate"/> for why there is one.</summary>
+    /// <summary>The ceiling on <see cref="BatchSize"/> — see <see cref="MailOptionsValidator"/> for why there is one.</summary>
     internal const int MaxBatchSize = 1000;
 
     /// <summary>How often the processor polls the mail table for due messages. Default 5s.</summary>
@@ -111,83 +76,6 @@ public sealed class MailOptions
     /// </para>
     /// </summary>
     public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(10);
-
-    /// <summary>Validates the option values once <c>Rask:Mail</c> and the callback have applied (checked at host start, so a bad value fails fast rather than tearing down the host later).</summary>
-    internal void Validate()
-    {
-        if (string.IsNullOrWhiteSpace(From))
-        {
-            throw new ArgumentException("MailOptions.From is required — set a default sender address.", nameof(From));
-        }
-
-        if (Smtp is not null && string.IsNullOrWhiteSpace(Smtp.Host))
-        {
-            throw new ArgumentException("MailOptions.Smtp.Host is required when SMTP is configured.", nameof(Smtp));
-        }
-
-        if (PollInterval <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(PollInterval), PollInterval, "PollInterval must be positive.");
-        }
-
-        if (BatchSize is < 1 or > MaxBatchSize)
-        {
-            // Capped because the claim sends the candidate ids as an IN list. EF translates a parameterized
-            // Contains to json_each / = ANY / OPENJSON rather than one parameter per id, so the classic
-            // 999/2100 ceilings shouldn't bite — this is the belt to that pair of braces.
-            throw new ArgumentOutOfRangeException(
-                nameof(BatchSize), BatchSize, $"BatchSize must be between 1 and {MaxBatchSize}.");
-        }
-
-        if (LeaseDuration <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(LeaseDuration), LeaseDuration, "LeaseDuration must be positive.");
-        }
-
-        if (LeaseDuration <= PollInterval)
-        {
-            // A lease that expires within one poll guarantees every email is stolen mid-flight by the next
-            // instance to look — and a stolen send is a second copy in someone's inbox.
-            throw new ArgumentOutOfRangeException(
-                nameof(LeaseDuration),
-                LeaseDuration,
-                $"LeaseDuration must be longer than PollInterval ({PollInterval}), or every claimed email is stolen before it finishes.");
-        }
-
-        if (MaxAttempts < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxAttempts), MaxAttempts, "MaxAttempts must be at least 1.");
-        }
-
-        if (BaseRetryDelay < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(BaseRetryDelay), BaseRetryDelay, "BaseRetryDelay cannot be negative.");
-        }
-
-        if (MaxRetryDelay < BaseRetryDelay)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxRetryDelay), MaxRetryDelay, "MaxRetryDelay cannot be less than BaseRetryDelay.");
-        }
-
-        if (RetentionPeriod < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(RetentionPeriod), RetentionPeriod, "RetentionPeriod cannot be negative.");
-        }
-
-        if (ShutdownGracePeriod < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownGracePeriod), ShutdownGracePeriod, "ShutdownGracePeriod cannot be negative (Zero cancels immediately).");
-        }
-
-        // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds, and it would throw
-        // from the shutdown path — the worst place to find out.
-        if (ShutdownGracePeriod.TotalMilliseconds > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownGracePeriod), ShutdownGracePeriod, $"ShutdownGracePeriod must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
-        }
-    }
 
     /// <summary>
     /// The delay before the next retry of a message on its <paramref name="attempts"/>-th attempt: an

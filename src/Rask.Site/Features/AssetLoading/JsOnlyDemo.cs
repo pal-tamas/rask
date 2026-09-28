@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Site.Features;
 
 /// <summary>
@@ -19,6 +21,6 @@ public sealed partial class JsOnlyDemo : Component
     private async Task HandleClickAsync()
     {
         var next = await Bump();
-        _clicks = next.ToString();
+        _clicks = next.ToString(CultureInfo.InvariantCulture);
     }
 }

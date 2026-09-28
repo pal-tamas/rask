@@ -15,7 +15,6 @@ Rask.Outbox.OutboxMessage.Published(System.DateTime at) -> void
 Rask.Outbox.OutboxMessage.Release() -> void
 Rask.Outbox.OutboxMessage.Type.get -> string!
 Rask.Outbox.OutboxMessageConfiguration
-Rask.Outbox.OutboxMessageConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Outbox.OutboxMessage!>! entity) -> void
 Rask.Outbox.OutboxMessageConfiguration.OutboxMessageConfiguration() -> void
 Rask.Outbox.OutboxMessageRead
 Rask.Outbox.OutboxMessageRead.Attempts.get -> int
@@ -134,3 +133,4 @@ static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!)
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Outbox.OutboxMessageRead![]!>!
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<Rask.Outbox.OutboxMessageRead!>!>!
 static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Outbox.OutboxMessageRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
+Rask.Outbox.OutboxMessageConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Outbox.OutboxMessage!>! builder) -> void

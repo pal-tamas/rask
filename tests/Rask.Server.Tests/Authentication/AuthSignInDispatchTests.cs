@@ -23,7 +23,7 @@ public class AuthSignInDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { id = signInHandlerId });
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -116,7 +116,7 @@ public class AuthSignInDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { id = signInHandlerId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));

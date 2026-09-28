@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.DragAndDrop;
 
 namespace Rask.Site.Features;
@@ -7,14 +8,14 @@ public sealed partial class DragDropKanbanDemo : Component
 {
     private static readonly string[] _columns = ["todo", "doing", "done"];
 
-    private static readonly Dictionary<string, string> _columnLabels = new()
+    private static readonly Dictionary<string, string> _columnLabels = new(StringComparer.Ordinal)
     {
         ["todo"] = "To do",
         ["doing"] = "In progress",
         ["done"] = "Done"
     };
 
-    private readonly Dictionary<string, List<Card>> _board = new()
+    private readonly Dictionary<string, List<Card>> _board = new(StringComparer.Ordinal)
     {
         ["todo"] =
             [new Card(1, "Sketch the API"), new Card(2, "Write the primitive"), new Card(3, "Add the events")],
@@ -24,71 +25,71 @@ public sealed partial class DragDropKanbanDemo : Component
 
     protected override Component? Render() => DragDrop.Body(KanbanBody).OnDrop(MoveCard);
 
-    private Component KanbanBody(DragDropContext ctx)
+    private Component KanbanBody(DragDropContext ctx) =>
+        Div.Class("grid grid-cols-12 gap-4 dd-board")[_columns.Select(zone => KanbanColumn(ctx, zone))];
+
+    private Component KanbanColumn(DragDropContext ctx, string zone)
     {
-        var cols = new List<Component>(_columns.Length);
-        foreach (var zone in _columns)
+        var cards = _board[zone];
+        var cardChildren = new List<Component>(cards.Count);
+        for (var i = 0; i < cards.Count; i++)
         {
-            var cards = _board[zone];
-            var cardChildren = new List<Component>(cards.Count);
-            for (var i = 0; i < cards.Count; i++)
-            {
-                var card = cards[i];
-                var index = i;
-                var cls = "card dd-card";
-                if (ctx.IsSource(zone, index))
-                {
-                    cls += " dd-dragging";
-                }
-
-                if (ctx.IsDropTarget(zone, index))
-                {
-                    cls += " dd-drop-target";
-                }
-
-                cardChildren.Add(Div
-                    .Key(card.Id)
-                    .Class(cls)
-                    .Draggable(true)
-                    .OnDragStart(ctx.DragStart(zone, index))
-                    .OnDragOver(ctx.DragOver(zone, index))
-                    .OnDrop(ctx.Drop(zone, index))
-                    .OnDragEnd(ctx.DragEnd)
-                    .Data(new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
-                    Div.Class("p-2 flex items-center gap-2")[
-                        Ui.Icon.Name(Ui.IconName.Grip).Class("text-ui-muted"),
-                        Span[card.Title]
-                    ]
-                ]);
-            }
-
-            // The whole column body is the drop-at-end zone, so a card can land in empty space, at
-            // the tail of a column, or into an empty column. Cards inside carry their own per-index
-            // drop handlers; the client's e.target.closest(...) resolves the innermost match, so
-            // hovering a card targets that card and hovering empty space targets the column end.
-            var dropAtEnd = cards.Count;
-            var bodyCls = "dd-column-body";
-            if (ctx.IsDropTarget(zone, dropAtEnd))
-            {
-                bodyCls += " dd-drop-target";
-            }
-
-            cols.Add(Div.Key(zone).Class("col-span-12")[
-                Div.Class("dd-column h-full")[
-                    Div.Class("dd-column-header flex justify-between items-center")[
-                        Span.Class("font-semibold")[_columnLabels[zone]],
-                        Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[cards.Count.ToString()]
-                    ],
-                    Div
-                        .Class(bodyCls)
-                        .OnDragOver(ctx.DragOver(zone, dropAtEnd))
-                        .OnDrop(ctx.Drop(zone, dropAtEnd))
-                        .Data(new Dictionary<string, string?> { ["testid"] = $"col-{zone}" })[cardChildren]
-                ]
-            ]);
+            cardChildren.Add(KanbanCard(ctx, zone, i, cards[i]));
         }
 
-        return Div.Class("grid grid-cols-12 gap-4 dd-board")[cols];
+        // The whole column body is the drop-at-end zone, so a card can land in empty space, at
+        // the tail of a column, or into an empty column. Cards inside carry their own per-index
+        // drop handlers; the client's e.target.closest(...) resolves the innermost match, so
+        // hovering a card targets that card and hovering empty space targets the column end.
+        var dropAtEnd = cards.Count;
+        var bodyCls = "dd-column-body";
+        if (ctx.IsDropTarget(zone, dropAtEnd))
+        {
+            bodyCls += " dd-drop-target";
+        }
+
+        return Div.Key(zone).Class("col-span-12")[
+            Div.Class("dd-column h-full")[
+                Div.Class("dd-column-header flex justify-between items-center")[
+                    Span.Class("font-semibold")[_columnLabels[zone]],
+                    Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[cards.Count.ToString(CultureInfo.InvariantCulture)]
+                ],
+                Div
+                    .Class(bodyCls)
+                    .OnDragOver(ctx.DragOver(zone, dropAtEnd))
+                    .OnDrop(ctx.Drop(zone, dropAtEnd))
+                    .Data("testid", $"col-{zone}")[cardChildren]
+            ]
+        ];
+    }
+
+    private static Component KanbanCard(DragDropContext ctx, string zone, int index, Card card)
+    {
+        var cls = "card dd-card";
+        if (ctx.IsSource(zone, index))
+        {
+            cls += " dd-dragging";
+        }
+
+        if (ctx.IsDropTarget(zone, index))
+        {
+            cls += " dd-drop-target";
+        }
+
+        return Div
+            .Key(card.Id)
+            .Class(cls)
+            .Draggable(true)
+            .OnDragStart(ctx.DragStart(zone, index))
+            .OnDragOver(ctx.DragOver(zone, index))
+            .OnDrop(ctx.Drop(zone, index))
+            .OnDragEnd(ctx.DragEnd)
+            .Data("testid", $"card-{card.Id}")[
+            Div.Class("p-2 flex items-center gap-2")[
+                Ui.Icon.Name(Ui.IconName.Grip).Class("text-ui-muted"),
+                Span[card.Title]
+            ]
+        ];
     }
 
     private void MoveCard(DragDropMove move)

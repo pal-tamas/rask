@@ -1,3 +1,5 @@
+using System.Globalization;
+using Rask.Core;
 using Rask.Core.Browser;
 
 namespace Rask.Site.Features;
@@ -31,8 +33,8 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
             // Request both permissions up front, before any WatchAsync — iOS only honours
             // requestPermission() while the click's user activation is still live, so the motion request
             // must not wait behind the orientation watch.
-            var orientationGranted = await orientation.RequestPermissionAsync() == SensorPermission.Granted;
-            var motionGranted = await motion.RequestPermissionAsync() == SensorPermission.Granted;
+            var orientationGranted = await orientation.RequestPermissionAsync() == SensorPermissionState.Granted;
+            var motionGranted = await motion.RequestPermissionAsync() == SensorPermissionState.Granted;
 
             if (!orientationGranted)
             {
@@ -87,7 +89,7 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
                 ]
             ];
 
-    private static string Fmt(double? value) => value is null ? "—" : value.Value.ToString("0.0");
+    private static string Fmt(double? value) => value is null ? "—" : value.Value.ToString("0.0", CultureInfo.InvariantCulture);
 
     public async ValueTask DisposeAsync()
     {

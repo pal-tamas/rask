@@ -4,20 +4,22 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Live;
 
+#pragma warning disable CA1710 // mirrors the web platform's FormData (docs/api-style.md)
 public sealed class FormData : IReadOnlyDictionary<string, string>
+#pragma warning restore CA1710
 {
-    private static readonly IReadOnlyList<RaskFile> EmptyFiles = Array.Empty<RaskFile>();
+    private static readonly IReadOnlyList<IRaskFile> EmptyFiles = Array.Empty<IRaskFile>();
 
     private readonly IReadOnlyDictionary<string, string> _values;
 
     public FormData(IReadOnlyDictionary<string, string> values)
-        : this(values, new Dictionary<string, IReadOnlyList<RaskFile>>())
+        : this(values, new Dictionary<string, IReadOnlyList<IRaskFile>>(StringComparer.Ordinal))
     {
     }
 
     public FormData(
         IReadOnlyDictionary<string, string> values,
-        IReadOnlyDictionary<string, IReadOnlyList<RaskFile>> files)
+        IReadOnlyDictionary<string, IReadOnlyList<IRaskFile>> files)
     {
         _values = values;
         FilesByField = files;
@@ -25,7 +27,7 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
 
     public IEnumerable<string> FileKeys => FilesByField.Keys;
 
-    internal IReadOnlyDictionary<string, IReadOnlyList<RaskFile>> FilesByField { get; }
+    internal IReadOnlyDictionary<string, IReadOnlyList<IRaskFile>> FilesByField { get; }
 
     public string this[string key] => _values[key];
     public IEnumerable<string> Keys => _values.Keys;
@@ -38,15 +40,15 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
 
     public string Get(string key) => _values.TryGetValue(key, out var v) ? v : string.Empty;
 
-    public IReadOnlyList<RaskFile> Files(string key) =>
+    public IReadOnlyList<IRaskFile> Files(string key) =>
         FilesByField.TryGetValue(key, out var f) ? f : EmptyFiles;
 
     public bool HasFiles(string key) => FilesByField.TryGetValue(key, out var f) && f.Count > 0;
 
     internal static FormData FromJson(JsonElement payload)
     {
-        var dict = new Dictionary<string, string>();
-        var fileDict = new Dictionary<string, IReadOnlyList<RaskFile>>();
+        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
+        var fileDict = new Dictionary<string, IReadOnlyList<IRaskFile>>(StringComparer.Ordinal);
         if (payload.ValueKind == JsonValueKind.Object
             && payload.TryGetProperty("form", out var form)
             && form.ValueKind == JsonValueKind.Object)
@@ -54,7 +56,7 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
             var backend = FileListReader.ResolveBackend();
             foreach (var entry in form.EnumerateObject())
             {
-                if (entry.Name == "__files")
+                if (string.Equals(entry.Name, "__files", StringComparison.Ordinal))
                 {
                     if (backend is null || entry.Value.ValueKind != JsonValueKind.Object)
                     {
@@ -68,7 +70,7 @@ public sealed class FormData : IReadOnlyDictionary<string, string>
                             continue;
                         }
 
-                        var list = new List<RaskFile>(fileField.Value.GetArrayLength());
+                        var list = new List<IRaskFile>(fileField.Value.GetArrayLength());
                         foreach (var meta in fileField.Value.EnumerateArray())
                         {
                             if (meta.ValueKind != JsonValueKind.Object)

@@ -23,7 +23,7 @@ namespace Rask.Logging;
 /// and WAL replication cheap.
 /// </para>
 /// </summary>
-internal sealed class SqliteLogStore : ILogs
+internal sealed class SqliteLogStore : ILogs, IDisposable
 {
     private const string InsertSql = """
         INSERT INTO RaskLog (Timestamp, Level, Category, EventId, Message, Exception, Scopes)
@@ -51,6 +51,8 @@ internal sealed class SqliteLogStore : ILogs
         _options = options;
         _timeProvider = timeProvider;
     }
+
+    public void Dispose() => _schemaGate.Dispose();
 
     public async Task Append(IReadOnlyList<LogRecord> records, CancellationToken cancellationToken = default)
     {
@@ -131,9 +133,11 @@ internal sealed class SqliteLogStore : ILogs
                 // Ordered by Id, not Timestamp: the id is monotonic per insert, so it orders entries logged
                 // inside the same clock tick deterministically, and paging over a stable order is the only
                 // way a page boundary doesn't drop or repeat a row.
+#pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
                 command.CommandText =
                     $"SELECT Id, Timestamp, Level, Category, EventId, Message, Exception, Scopes FROM RaskLog{where} "
                     + "ORDER BY Id DESC LIMIT $limit OFFSET $offset;";
+#pragma warning restore S2077
                 Bind(command, filters);
                 command.Parameters.AddWithValue("$limit", pageSize);
                 command.Parameters.AddWithValue("$offset", (long)(page - 1) * pageSize);
@@ -464,7 +468,9 @@ internal sealed class SqliteLogStore : ILogs
         {
             // Interpolated rather than parameterised because an identifier cannot be a parameter. Both
             // values are compile-time constants from this file, never user input.
+#pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
             alter.CommandText = $"ALTER TABLE RaskLog ADD COLUMN {column} {type};";
+#pragma warning restore S2077
             await alter.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -487,7 +493,9 @@ internal sealed class SqliteLogStore : ILogs
                     var command = c.CreateCommand();
                     await using (command.ConfigureAwait(false))
                     {
+#pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
                         command.CommandText = $"DELETE FROM RaskLog WHERE Id IN ({selectIds});";
+#pragma warning restore S2077
                         command.Parameters.AddWithValue("$page", PurgePageSize);
                         bind(command);
                         return await command.ExecuteNonQueryAsync(token).ConfigureAwait(false);
@@ -515,7 +523,9 @@ internal sealed class SqliteLogStore : ILogs
         var command = connection.CreateCommand();
         await using (command.ConfigureAwait(false))
         {
+#pragma warning disable S2077 // the SQL is built from constant fragments; every value is a bound parameter
             command.CommandText = $"SELECT COUNT(*) FROM RaskLog{where};";
+#pragma warning restore S2077
             Bind(command, filters);
             var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
             return result is long count ? count : 0;
@@ -569,29 +579,8 @@ internal sealed class SqliteLogStore : ILogs
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            // Characters, not UTF-16 units: the trigram tokenizer counts code points, so "😀a" is two of them — too
-            // few for a trigram — although its string length is three.
-            if (query.Search.EnumerateRunes().Count() >= 3)
-            {
-                // Served by the trigram index: a quoted phrase is a case-insensitive substring match in either
-                // column. Inside the quotes every character is literal, a doubled quote included — so `%` and `_`
-                // mean themselves, as they did escaped in LIKE.
-                Add(
-                    "Id IN (SELECT rowid FROM RaskLogSearch WHERE RaskLogSearch MATCH $search)",
-                    "$search",
-                    SqliteType.Text,
-                    "\"" + query.Search.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"");
-            }
-            else
-            {
-                // A trigram index has nothing to look up for fewer than three characters, so a one- or two-character
-                // search is the scan it always was.
-                Add(
-                    @"(Message LIKE $search ESCAPE '\' OR Exception LIKE $search ESCAPE '\')",
-                    "$search",
-                    SqliteType.Text,
-                    $"%{EscapeLike(query.Search)}%");
-            }
+            var (clause, value) = SearchFilter(query.Search);
+            Add(clause, "$search", SqliteType.Text, value);
         }
 
         if (!string.IsNullOrWhiteSpace(query.ScopeKey))
@@ -620,6 +609,28 @@ internal sealed class SqliteLogStore : ILogs
         }
 
         return filters;
+    }
+
+    /// <summary>The clause and <c>$search</c> value that find <paramref name="search"/> in a message or exception.</summary>
+    private static (string Clause, string Value) SearchFilter(string search)
+    {
+        // Characters, not UTF-16 units: the trigram tokenizer counts code points, so "😀a" is two of them — too
+        // few for a trigram — although its string length is three.
+        if (search.EnumerateRunes().Count() >= 3)
+        {
+            // Served by the trigram index: a quoted phrase is a case-insensitive substring match in either
+            // column. Inside the quotes every character is literal, a doubled quote included — so `%` and `_`
+            // mean themselves, as they did escaped in LIKE.
+            return (
+                "Id IN (SELECT rowid FROM RaskLogSearch WHERE RaskLogSearch MATCH $search)",
+                "\"" + search.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"");
+        }
+
+        // A trigram index has nothing to look up for fewer than three characters, so a one- or two-character
+        // search is the scan it always was.
+        return (
+            @"(Message LIKE $search ESCAPE '\' OR Exception LIKE $search ESCAPE '\')",
+            $"%{EscapeLike(search)}%");
     }
 
     private static void Bind(SqliteCommand command, IReadOnlyList<SqliteParameter> filters)

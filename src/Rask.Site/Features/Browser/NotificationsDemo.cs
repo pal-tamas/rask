@@ -50,7 +50,7 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
         }
 
         // Showing without permission throws (matching the browser), so gate on it and prompt the user first.
-        if (await notifications.PermissionAsync() != NotificationPermission.Granted)
+        if (await notifications.PermissionAsync() != NotificationPermissionState.Granted)
         {
             _status = "Grant permission first";
             return;

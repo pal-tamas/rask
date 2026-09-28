@@ -14,7 +14,7 @@ public sealed class InProcessMessagesStayOffTheWireTests
             using Rask.Cqrs;
             namespace Demo;
 
-            public sealed record SendWelcomeEmail(string Email) : Rask.Jobs.IJob;
+            public sealed record SendWelcomeEmail(string Email) : Rask.Background.IJob;
             public sealed class SendWelcomeEmailHandler : ICommandHandler<SendWelcomeEmail>
             {
                 public Task Handle(SendWelcomeEmail c) => Task.CompletedTask;

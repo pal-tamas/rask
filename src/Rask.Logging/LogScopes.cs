@@ -91,7 +91,7 @@ internal static class LogScopes
 
                     // The original format string is the template, not data — storing it would put
                     // "{RequestId} {UserId}" in every row alongside the values it formats.
-                    if (pair.Key == "{OriginalFormat}")
+                    if (string.Equals(pair.Key, "{OriginalFormat}", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -109,7 +109,7 @@ internal static class LogScopes
                         return;
                     }
 
-                    if (pair.Key == "{OriginalFormat}")
+                    if (string.Equals(pair.Key, "{OriginalFormat}", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -129,10 +129,12 @@ internal static class LogScopes
         }
     }
 
-    private static string Truncate(string? value, int max) =>
-        value is null ? string.Empty
-        : value.Length <= max ? value
-        : value[..max];
+    private static string Truncate(string? value, int max) => value switch
+    {
+        null => string.Empty,
+        _ when value.Length <= max => value,
+        _ => value[..max],
+    };
 
     private sealed class Scope(object? state, Scope? parent) : IDisposable
     {

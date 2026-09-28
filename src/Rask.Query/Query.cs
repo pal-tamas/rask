@@ -1,5 +1,5 @@
 using Rask.Core.Live;
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     A live view of one cached query: what it holds now, whether it is fetching, and what went wrong.
@@ -21,7 +21,7 @@ namespace Rask.Query;
 public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
 {
     private readonly SessionQueryClient _client;
-    private readonly QuerySource<TResult>? _source;
+    private readonly IQuerySource<TResult>? _source;
     private readonly Action _onChanged;
     private readonly ComponentReaders _readers = new();
     private readonly CancellationTokenSource? _polling;
@@ -51,7 +51,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
     ///     Starts paused and runs the lambda at the first read rather than here: a query created in a
     ///     constructor would otherwise read route parameters and props before anything has bound them.
     /// </remarks>
-    internal Query(SessionQueryClient client, QuerySource<TResult> source, QueryOptions options)
+    internal Query(SessionQueryClient client, IQuerySource<TResult> source, QueryOptions options)
         : this(client, QueryTarget.Paused, options, source)
     {
     }
@@ -60,7 +60,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
         SessionQueryClient client,
         QueryTarget target,
         QueryOptions options,
-        QuerySource<TResult>? source)
+        IQuerySource<TResult>? source)
     {
         _client = client;
         _source = source;
@@ -353,9 +353,12 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
         _ => QueryStatus.Pending,
     };
 
-    private FetchStatus FetchStatusOf(QueryEntry entry) => entry.InFlight is not null
-        ? FetchStatus.Fetching
-        : CanFetch ? FetchStatus.Idle : FetchStatus.Paused;
+    private FetchStatus FetchStatusOf(QueryEntry entry) => (entry.InFlight, CanFetch) switch
+    {
+        (not null, _) => FetchStatus.Fetching,
+        (_, true) => FetchStatus.Idle,
+        _ => FetchStatus.Paused,
+    };
 
     /// <summary>
     ///     Registers the rendering component so a later result reaches it.

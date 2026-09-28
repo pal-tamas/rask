@@ -4,9 +4,6 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Rask.Cli.Dev;
 
-/// <summary>A minted certificate and the private key that goes with it, both as PEM text.</summary>
-internal readonly record struct DevCertificate(string CertificatePem, string PrivateKeyPem);
-
 /// <summary>
 ///     Mints the local certificate authority <c>rask dev</c> trusts once, and the short-lived server
 ///     certificates it issues from that authority for each <c>.test</c> hostname.
@@ -130,6 +127,32 @@ internal static class DevCertificates
         request.CertificateExtensions.Add(
             new X509EnhancedKeyUsageExtension([new Oid(ServerAuthenticationOid)], critical: false));
 
+        request.CertificateExtensions.Add(SubjectAlternativeNames(hostname));
+
+        request.CertificateExtensions.Add(
+            new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
+
+        request.CertificateExtensions.Add(
+            X509AuthorityKeyIdentifierExtension.CreateFromCertificate(
+                authorityCertificate, includeKeyIdentifier: true, includeIssuerAndSerial: false));
+
+        var notBefore = now.AddHours(-1);
+        var notAfter = now + ServerLifetime;
+
+        // Never outlive the authority that signed it: a chain is only as valid as its root, and a leaf
+        // that claims more would fail verification in a way that points at the wrong certificate.
+        if (notAfter > new DateTimeOffset(authorityCertificate.NotAfter))
+        {
+            notAfter = new DateTimeOffset(authorityCertificate.NotAfter);
+        }
+
+        using var issued = request.Create(authorityCertificate, notBefore, notAfter, SerialNumber());
+
+        return Export(issued, key);
+    }
+
+    private static X509Extension SubjectAlternativeNames(string hostname)
+    {
         // The subject alternative name is what browsers actually read; a CN alone has not been
         // accepted by Chrome or Safari for years. Both the bare host and a wildcard beneath it, so a
         // future `api.appname.test` needs no second certificate.
@@ -153,28 +176,7 @@ internal static class DevCertificates
             alternativeNames.AddIpAddress(address);
         }
 
-        request.CertificateExtensions.Add(alternativeNames.Build());
-
-        request.CertificateExtensions.Add(
-            new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
-
-        request.CertificateExtensions.Add(
-            X509AuthorityKeyIdentifierExtension.CreateFromCertificate(
-                authorityCertificate, includeKeyIdentifier: true, includeIssuerAndSerial: false));
-
-        var notBefore = now.AddHours(-1);
-        var notAfter = now + ServerLifetime;
-
-        // Never outlive the authority that signed it: a chain is only as valid as its root, and a leaf
-        // that claims more would fail verification in a way that points at the wrong certificate.
-        if (notAfter > authorityCertificate.NotAfter)
-        {
-            notAfter = authorityCertificate.NotAfter;
-        }
-
-        using var issued = request.Create(authorityCertificate, notBefore, notAfter, SerialNumber());
-
-        return Export(issued, key);
+        return alternativeNames.Build();
     }
 
     /// <summary>

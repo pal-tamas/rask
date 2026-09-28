@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 /// Upgrading the package without running the migration is the one failure mode of the lease change that

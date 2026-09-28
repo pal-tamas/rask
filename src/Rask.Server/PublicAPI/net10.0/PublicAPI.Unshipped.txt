@@ -1,6 +1,5 @@
 #nullable enable
 Rask.Server.Authentication.SessionUserProvider
-Rask.Server.Authentication.SessionUserProvider.Changed -> System.Action?
 Rask.Server.Authentication.SessionUserProvider.Clear() -> void
 Rask.Server.Authentication.SessionUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
 Rask.Server.Authentication.SessionUserProvider.SessionUserProvider() -> void
@@ -111,7 +110,7 @@ Rask.RaskAppOptions.Api.get -> Rask.Battery<Rask.Api.ApiOptions!>!
 Rask.RaskAppOptions.Auth.get -> Rask.Battery<Rask.Auth.AuthOptions!>!
 Rask.RaskAppOptions.BehindProxy.get -> bool
 Rask.RaskAppOptions.BehindProxy.set -> void
-Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Cache.CacheOptions!>!
+Rask.RaskAppOptions.Cache.get -> Rask.Battery<Rask.Caching.CacheOptions!>!
 Rask.RaskAppOptions.ConnectionString.get -> string?
 Rask.RaskAppOptions.ConnectionString.set -> void
 Rask.RaskAppOptions.Cqrs.get -> Rask.Battery!
@@ -121,11 +120,11 @@ Rask.RaskAppOptions.ErrorPath.get -> string!
 Rask.RaskAppOptions.ErrorPath.set -> void
 Rask.RaskAppOptions.HealthPath.get -> string!
 Rask.RaskAppOptions.HealthPath.set -> void
-Rask.RaskAppOptions.Jobs.get -> Rask.Battery<Rask.Jobs.JobsOptions!>!
+Rask.RaskAppOptions.Jobs.get -> Rask.Battery<Rask.Background.JobsOptions!>!
 Rask.RaskAppOptions.Live.get -> System.Action<Rask.Core.Live.RaskLiveOptions!>?
 Rask.RaskAppOptions.Live.set -> void
 Rask.RaskAppOptions.Logs.get -> Rask.Battery<Rask.Logging.RaskLoggingOptions!>!
-Rask.RaskAppOptions.Mail.get -> Rask.Battery<Rask.Mail.MailOptions!>!
+Rask.RaskAppOptions.Mail.get -> Rask.Battery<Rask.Mailing.MailOptions!>!
 Rask.RaskAppOptions.Ops.get -> Rask.Battery!
 Rask.RaskAppOptions.Outbox.get -> Rask.Battery<Rask.Outbox.OutboxOptions!>!
 Rask.RaskAppOptions.Push.get -> Rask.Battery<Rask.WebPush.WebPushOptions!>!
@@ -145,4 +144,5 @@ static Rask.RaskApiValidation.RequireRaskValidation<TBuilder>(this TBuilder buil
 static Rask.RaskApp.Create(string![]! args, System.Action<Microsoft.AspNetCore.Builder.WebApplicationBuilder!>? configure = null) -> Rask.RaskApp!
 static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder, System.IServiceProvider! services) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!
 static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, System.IServiceProvider! services) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!
+Rask.Server.Authentication.SessionUserProvider.Changed -> System.EventHandler?
 Rask.RaskAppOptions.Ui.get -> Rask.Battery!

@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Cqrs;
 
-namespace Rask.Query;
+namespace Rask.Querying;
 
 /// <summary>
 ///     The session's query cache, from anywhere a component runs — its constructor, a <c>field ??=</c>
@@ -313,44 +313,6 @@ public static class QueryClient
         where TNotification : INotification =>
         Current().Subscribe(subscription);
 
-    // One subscription per call site, re-pointed when what it watches changes.
-    private static Subscription<TNotification> Slotted<TNotification>(
-        object? subscription,
-        string callerFile,
-        int callerLine)
-        where TNotification : INotification
-    {
-        var client = Current();
-        if (RenderSlots.For(callerFile, callerLine, key: null) is not { } slot)
-        {
-            return New<TNotification>(client, subscription);
-        }
-
-        if (slot.Handle is Subscription<TNotification> existing)
-        {
-            if (!Equals(slot.Last, subscription))
-            {
-                existing.Repoint(client.NotificationTarget<TNotification>(subscription));
-                slot.Last = subscription;
-            }
-
-            return existing;
-        }
-
-        var created = New<TNotification>(client, subscription);
-        slot.Handle = created;
-        slot.Last = subscription;
-        return created;
-    }
-
-    private static Subscription<TNotification> New<TNotification>(
-        SessionQueryClient client,
-        object? subscription)
-        where TNotification : INotification =>
-        subscription is ISubscription<TNotification> record
-            ? client.Subscribe(record)
-            : client.Subscribe<TNotification>();
-
     /// <summary>
     ///     A live view of a stream that is a function — a price feed, a progress report — opened for
     ///     <paramref name="input" /> and reopened when a render passes a different one.
@@ -471,6 +433,44 @@ public static class QueryClient
         return created;
     }
 
+    // One subscription per call site, re-pointed when what it watches changes.
+    private static Subscription<TNotification> Slotted<TNotification>(
+        object? subscription,
+        string callerFile,
+        int callerLine)
+        where TNotification : INotification
+    {
+        var client = Current();
+        if (RenderSlots.For(callerFile, callerLine, key: null) is not { } slot)
+        {
+            return New<TNotification>(client, subscription);
+        }
+
+        if (slot.Handle is Subscription<TNotification> existing)
+        {
+            if (!Equals(slot.Last, subscription))
+            {
+                existing.Repoint(client.NotificationTarget<TNotification>(subscription));
+                slot.Last = subscription;
+            }
+
+            return existing;
+        }
+
+        var created = New<TNotification>(client, subscription);
+        slot.Handle = created;
+        slot.Last = subscription;
+        return created;
+    }
+
+    private static Subscription<TNotification> New<TNotification>(
+        SessionQueryClient client,
+        object? subscription)
+        where TNotification : INotification =>
+        subscription is ISubscription<TNotification> record
+            ? client.Subscribe(record)
+            : client.Subscribe<TNotification>();
+
     /// <summary>The session's cache, or a failure that says where to call from instead.</summary>
     private static SessionQueryClient Current()
     {
@@ -494,9 +494,9 @@ public static class QueryClient
     private sealed record Asked<TResult>(IQuery<TResult> Message, QueryKey? Key);
 
     /// <summary>A function subscription created with a null input: nothing to watch until a render passes one.</summary>
-    private sealed class PausedSource<T> : SubscriptionSource<T>
+    private sealed class PausedSource<T> : ISubscriptionSource<T>
     {
-        public override bool TryAdvance(out SubscriptionTarget<T>? target)
+        public bool TryAdvance(out SubscriptionTarget<T>? target)
         {
             target = null;
             return false;

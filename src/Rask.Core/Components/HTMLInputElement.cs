@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
-using RaskFileType = Rask.Core.Forms.RaskFile;
+using RaskFileType = Rask.Core.Forms.IRaskFile;
 
 namespace Rask.Core.Components;
 
@@ -90,57 +90,75 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
     public Callback<T> AfterBind { get; set; }
 
+
     protected override void WriteAttributes(StringBuilder sb)
     {
         base.WriteAttributes(sb);
 
-        ExpressionAccessor.Accessor? acc = null;
-        EditContext? bindCtx = null;
-        var fid = default(FieldIdentifier);
-        object? boundValue = null;
-        if (Bind is not null)
+        var acc = Bind is not null ? ExpressionAccessor.Parse(Bind) : null;
+        var bindCtx = acc is not null ? BindingHelpers.ResolveBindingContext(acc.Target) : null;
+        var resolvedType = ResolveType(acc);
+
+        // A RADIO bound over a bool is the same control as a checkbox as far as the model is concerned:
+        // it asks whether THIS option is the chosen one, and its state is `checked`. Without this it fell
+        // through to the value branch and rendered `value="True"` with no checked at all. A radio bound over
+        // anything else is carrying the group's value and still writes it.
+        var isCheckbox = string.Equals(resolvedType, "checkbox", StringComparison.Ordinal)
+                         || (string.Equals(resolvedType, "radio", StringComparison.Ordinal) && typeof(T) == typeof(bool));
+        WriteValueAttributes(sb, acc, resolvedType, isCheckbox);
+
+        if (LiveRenderContext.CurrentSync is not { } ctx)
         {
-            acc = ExpressionAccessor.Parse(Bind);
-            bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
-            fid = acc.Field;
-            boundValue = acc.Getter();
+            return;
         }
 
-        // Type: an explicit InputType wins; otherwise bound mode (and non-string T) default from T, while a
-        // plain string input keeps "no type unless set".
+        if (acc is not null)
+        {
+            WireBound(sb, ctx, acc, bindCtx, isCheckbox);
+        }
+        else
+        {
+            WirePlain(sb, ctx);
+        }
+
+        var files = OnFiles.Handler;
+        if (files is not null)
+        {
+            AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
+        }
+    }
+
+    // An explicit InputType wins; otherwise bound mode (and non-string T) default from T, while a plain
+    // string input keeps "no type unless set".
+    private string? ResolveType(ExpressionAccessor.Accessor? acc)
+    {
         var resolvedType = Type?.ToHtml();
         if (resolvedType is null && (acc is not null || typeof(T) != typeof(string)))
         {
             resolvedType = BindingHelpers.DefaultInputType(typeof(T));
         }
 
-        // A RADIO bound over a bool is the same control as a checkbox as far as the model is concerned:
-        // it asks whether THIS option is the chosen one, and its state is `checked`. Without this it fell
-        // through to the value branch and rendered `value="True"` with no checked at all. A radio bound over
-        // anything else is carrying the group's value and still writes it.
-        var isCheckbox = resolvedType == "checkbox"
-                         || (resolvedType == "radio" && typeof(T) == typeof(bool));
-        var name = Name ?? acc?.PropertyName;
+        return resolvedType;
+    }
 
-        // Value / checked state. Bound mode derives one from the model (checkbox → checked, else → value);
-        // plain/controlled mode honors the explicit Value/Checked props independently.
+    // Writes the five attributes this layer owns. Bound mode derives the value or the checked state from the
+    // model, and plain or controlled mode honors the explicit Value and Checked props independently.
+    private void WriteValueAttributes(StringBuilder sb, ExpressionAccessor.Accessor? acc, string? resolvedType, bool isCheckbox)
+    {
         string? valueString = null;
         bool? checkedState = null;
-        if (acc is not null)
-        {
-            if (isCheckbox)
-            {
-                checkedState = boundValue is bool b && b;
-            }
-            else
-            {
-                valueString = BindingHelpers.FormatValue(boundValue);
-            }
-        }
-        else
+        if (acc is null)
         {
             checkedState = Checked;
             valueString = Value is not null ? BindingHelpers.FormatValue(Value) : null;
+        }
+        else if (isCheckbox)
+        {
+            checkedState = acc.Getter() is true;
+        }
+        else
+        {
+            valueString = BindingHelpers.FormatValue(acc.Getter());
         }
 
         if (resolvedType is not null)
@@ -148,7 +166,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             AppendAttr(sb, "type", resolvedType);
         }
 
-        if (name is not null)
+        if ((Name ?? acc?.PropertyName) is { } name)
         {
             AppendAttr(sb, "name", name);
         }
@@ -171,55 +189,45 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         {
             AppendAttr(sb, "step", step);
         }
+    }
 
-        if (LiveRenderContext.CurrentSync is not { } ctx)
+    // Bound: write the model on input (immediate for string) / change, validate.
+    private void WireBound(StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx, bool isCheckbox)
+    {
+        var fid = acc.Field;
+        var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
+        ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+        if (isCheckbox)
         {
+            AppendAttr(sb, "data-rask-on-change",
+                ctx.RegisterHandler(BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)));
             return;
         }
 
-        if (acc is not null)
+        var immediate = BindingHelpers.IsImmediateUpdateType(typeof(T));
+        if (immediate)
         {
-            // Bound: write the model on input (immediate for string) / change, validate.
-            var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
-            ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
-            if (isCheckbox)
-            {
-                AppendAttr(sb, "data-rask-on-change",
-                    ctx.RegisterHandler(BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)));
-            }
-            else
-            {
-                var immediate = BindingHelpers.IsImmediateUpdateType(typeof(T));
-                if (immediate)
-                {
-                    AppendAttr(sb, "data-rask-on-input",
-                        ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
-                }
-
-                AppendAttr(sb, "data-rask-on-change",
-                    ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, !immediate, afterBind)));
-            }
-        }
-        else
-        {
-            // Plain / controlled.
-            var input = OnInput.Handler;
-            if (input is not null)
-            {
-                AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
-            }
-
-            var change = ((IFormControl<T>)this).ControlledChangeHandler();
-            if (change is not null)
-            {
-                AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
-            }
+            AppendAttr(sb, "data-rask-on-input",
+                ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, fid, false, afterBind)));
         }
 
-        var files = OnFiles.Handler;
-        if (files is not null)
+        AppendAttr(sb, "data-rask-on-change",
+            ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, !immediate, afterBind)));
+    }
+
+    // Plain / controlled.
+    private void WirePlain(StringBuilder sb, LiveRenderContext ctx)
+    {
+        var input = OnInput.Handler;
+        if (input is not null)
         {
-            AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+        }
+
+        var change = ((IFormControl<T>)this).ControlledChangeHandler();
+        if (change is not null)
+        {
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
 }

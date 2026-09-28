@@ -191,14 +191,14 @@ public sealed class BrowserAuthRecoveryTests
 
         public bool IsLoading => false;
 
-        public event Action? Changed;
+        public event EventHandler? Changed;
 
         public Task EnsureLoadedAsync() => Task.CompletedTask;
 
         public Task RefreshAsync()
         {
             Refreshes++;
-            Changed?.Invoke();
+            Changed?.Invoke(this, EventArgs.Empty);
             return Task.CompletedTask;
         }
     }

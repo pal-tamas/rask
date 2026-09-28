@@ -8,9 +8,16 @@ public sealed class AnonymousUserProvider : IUserProvider
 
     public ClaimsPrincipal Current => _anonymous;
 
-    public event Action? Changed
+    public event EventHandler? Changed
     {
-        add { }
-        remove { }
+        add
+        {
+            // The anonymous principal never changes, so there is nothing to subscribe to.
+        }
+
+        remove
+        {
+            // Nothing was subscribed.
+        }
     }
 }

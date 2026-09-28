@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Rask.Cache.Tests;
+namespace Rask.Caching.Tests;
 
 // A bad value is refused when the options are built — at host start through ValidateOnStart, or on the first resolve in
 // these bare containers — and the message names both the section and the setting.
@@ -26,8 +26,7 @@ public sealed class CacheOptionsTests
         using var provider = services.BuildServiceProvider();
 
         var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<CacheOptions>());
-        Assert.Contains("Rask:Cache", ex.Message, StringComparison.Ordinal);
-        Assert.Contains(setting, ex.Message, StringComparison.Ordinal);
+        Assert.Contains($"Rask:Cache:{setting}", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

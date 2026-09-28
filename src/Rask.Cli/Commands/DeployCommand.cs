@@ -170,22 +170,93 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         // Flags win over the persisted config; anything unset falls back to .rask/deploy.json.
         var config = DeployConfig.Load(_fileSystem, _workingDirectory, Console);
-        var host = Normalize(parsed.Option("host") ?? config.Host);
-        var domain = Normalize(parsed.Option("domain") ?? config.Domain);
-        var envFile = parsed.Option("env-file") ?? config.EnvFile;
-        var dryRun = parsed.HasFlag("dry-run");
+        var plan = new DeployPlan
+        {
+            Parsed = parsed,
+            Config = config,
+            Action = action,
+            EnvFile = parsed.Option("env-file") ?? config.EnvFile,
+            DryRun = parsed.HasFlag("dry-run"),
+        };
 
-        if (!TryResolvePort(parsed.Option("port"), config.Port, out var port, out var portError))
+        var failure = ResolvePorts(plan)
+            ?? ResolveEndpoint(plan)
+            ?? await ResolveProjectAsync(plan).ConfigureAwait(false)
+            ?? await ResolveEnvAsync(plan).ConfigureAwait(false)
+            ?? ResolveHealthAndSetup(plan);
+
+        return failure ?? await RunPlanAsync(plan, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Everything a deploy resolved from its flags and <c>.rask/deploy.json</c>, before touching the host.</summary>
+    private sealed class DeployPlan
+    {
+        public required ParsedArguments Parsed { get; init; }
+
+        public required DeployConfig Config { get; init; }
+
+        public string? Action { get; init; }
+
+        public string? EnvFile { get; init; }
+
+        public bool DryRun { get; init; }
+
+        public string Host { get; set; } = string.Empty;
+
+        public SshTarget SshTarget { get; set; }
+
+        public string? Domain { get; set; }
+
+        public int Port { get; set; }
+
+        public int ContainerPort { get; set; }
+
+        public string? ProjectSetting { get; set; }
+
+        public string Dockerfile { get; set; } = string.Empty;
+
+        public string ContextDir { get; set; } = string.Empty;
+
+        public string Slug { get; set; } = string.Empty;
+
+        public IReadOnlyList<string> Env { get; set; } = [];
+
+        public bool HealthEnabled { get; set; }
+
+        public string HealthPath { get; set; } = string.Empty;
+
+        public SetupMode SetupMode { get; set; }
+
+        public BootstrapOptions? BootstrapOptions { get; set; }
+
+        /// <summary>The port to remember: none in domain mode, where no host port is published.</summary>
+        public int? PublishedPort => Domain is null ? Port : null;
+    }
+
+    private int? ResolvePorts(DeployPlan plan)
+    {
+        if (!TryResolvePort(plan.Parsed.Option("port"), plan.Config.Port, out var port, out var portError))
         {
             Console.WriteErrorLine(portError!, ConsoleStyle.Error);
             return 1;
         }
 
-        if (!TryResolveContainerPort(parsed.Option("container-port"), config.ContainerPort, out var containerPort, out var containerPortError))
+        if (!TryResolveContainerPort(plan.Parsed.Option("container-port"), plan.Config.ContainerPort, out var containerPort, out var containerPortError))
         {
             Console.WriteErrorLine(containerPortError!, ConsoleStyle.Error);
             return 1;
         }
+
+        plan.Port = port;
+        plan.ContainerPort = containerPort;
+        return null;
+    }
+
+    private int? ResolveEndpoint(DeployPlan plan)
+    {
+        var parsed = plan.Parsed;
+        var host = Normalize(parsed.Option("host") ?? plan.Config.Host);
+        var domain = Normalize(parsed.Option("domain") ?? plan.Config.Domain);
 
         // Validated at the boundary for the same reason as the SSH host below: the domain is written
         // verbatim into the Caddyfile that fronts every app on the box, and it may come from the
@@ -225,45 +296,68 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return 1;
         }
 
-        // Resolve the project directory (the build context) and the app slug used for image/container names.
-        var projectSetting = parsed.Option("project") ?? config.Project;
-        var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
-        var projectDir = ResolveProjectDirectory(projectSetting, located);
-        var dockerfile = parsed.Option("dockerfile") ?? Path.Combine(projectDir, "Dockerfile");
-        var contextDir = Path.GetDirectoryName(Path.GetFullPath(dockerfile)) ?? projectDir;
-        var slug = ToContainerSlug(parsed.Option("name") ?? config.Name ?? located?.RootNamespace ?? new DirectoryInfo(projectDir).Name);
+        plan.Host = host;
+        plan.Domain = domain;
+        plan.SshTarget = sshTarget;
+        return null;
+    }
 
-        if (action is null && !_fileSystem.FileExists(dockerfile))
+    private async Task<int?> ResolveProjectAsync(DeployPlan plan)
+    {
+        // Resolve the project directory (the build context) and the app slug used for image/container names.
+        var parsed = plan.Parsed;
+        plan.ProjectSetting = parsed.Option("project") ?? plan.Config.Project;
+        var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
+        var projectDir = ResolveProjectDirectory(plan.ProjectSetting, located);
+        plan.Dockerfile = parsed.Option("dockerfile") ?? Path.Combine(projectDir, "Dockerfile");
+        plan.ContextDir = Path.GetDirectoryName(Path.GetFullPath(plan.Dockerfile)) ?? projectDir;
+        plan.Slug = ToContainerSlug(parsed.Option("name") ?? plan.Config.Name ?? located?.RootNamespace ?? new DirectoryInfo(projectDir).Name);
+
+        if (plan.Action is null && !_fileSystem.FileExists(plan.Dockerfile))
         {
-            Console.WriteErrorLine($"No Dockerfile found at '{dockerfile}'.", ConsoleStyle.Error);
-            Console.Error.WriteLine("Scaffold one with `rask new <name> --docker`, or point at yours with --dockerfile <path>.");
+            Console.WriteErrorLine($"No Dockerfile found at '{plan.Dockerfile}'.", ConsoleStyle.Error);
+            await Console.Error.WriteLineAsync("Scaffold one with `rask new <name> --docker`, or point at yours with --dockerfile <path>.").ConfigureAwait(false);
             return 1;
         }
 
+        return null;
+    }
+
+    private async Task<int?> ResolveEnvAsync(DeployPlan plan)
+    {
         // Gather runtime env from --env and an optional --env-file (KEY=VALUE lines; # comments allowed).
-        if (!TryResolveEnv(parsed.MultiOption("env"), envFile, out var env, out var envError))
+        if (!TryResolveEnv(plan.Parsed.MultiOption("env"), plan.EnvFile, out var env, out var envError))
         {
             Console.WriteErrorLine(envError!, ConsoleStyle.Error);
             return 1;
         }
 
+        plan.Env = env;
+
         // A variable this app was deployed with last time, and isn't being given now, is almost never
         // intentional — it's a bare `rask deploy` after one that carried --env, or the generated CI
         // workflow, which passes none at all. Starting the app without it produces the worst kind of
         // failure: it boots, answers its health check, takes traffic, and is quietly misconfigured.
-        if (action is null && MissingEnvKeys(config.EnvKeys, env) is { Count: > 0 } missing)
+        if (plan.Action is null && MissingEnvKeys(plan.Config.EnvKeys, env) is { Count: > 0 } missing)
         {
             Console.WriteErrorLine(
                 $"This app was last deployed with {string.Join(", ", missing)}, which {(missing.Count == 1 ? "isn't" : "aren't")} set now.",
                 ConsoleStyle.Error);
-            Console.Error.WriteLine();
-            Console.Error.WriteLine("Deploying without it would start the app misconfigured, so this is a refusal rather than a warning.");
-            Console.Error.WriteLine($"  • pass it again:      rask deploy {string.Join(' ', missing.Select(k => $"--env {k}=…"))}");
-            Console.Error.WriteLine("  • or from a file:     rask deploy --env-file .env.production");
-            Console.Error.WriteLine("  • deploying from CI?  add it to the deploy step in .github/workflows/deploy.yml");
-            Console.Error.WriteLine($"  • no longer needed?   remove it from \"envKeys\" in {Path.Combine(".rask", "deploy.json")}");
+            await Console.Error.WriteLineAsync().ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("Deploying without it would start the app misconfigured, so this is a refusal rather than a warning.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"  • pass it again:      rask deploy {string.Join(' ', missing.Select(k => $"--env {k}=…"))}").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("  • or from a file:     rask deploy --env-file .env.production").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("  • deploying from CI?  add it to the deploy step in .github/workflows/deploy.yml").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"  • no longer needed?   remove it from \"envKeys\" in {Path.Combine(".rask", "deploy.json")}").ConfigureAwait(false);
             return 1;
         }
+
+        return null;
+    }
+
+    private int? ResolveHealthAndSetup(DeployPlan plan)
+    {
+        var parsed = plan.Parsed;
 
         // Readiness probe: once the container reports Running, confirm the app answers HTTP 2xx at the
         // health path before switching traffic. --no-health-check gates on Running only; --health-path
@@ -273,40 +367,67 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return Fail("--health-path doesn't apply with --no-health-check (the HTTP probe is disabled).");
         }
 
-        var healthEnabled = !parsed.HasFlag("no-health-check")
-            && (parsed.Option("health-path") is not null || !(config.HealthCheckDisabled ?? false));
-        var healthPath = NormalizeHealthPath(parsed.Option("health-path") ?? config.HealthPath ?? DefaultHealthPath);
+        plan.HealthEnabled = !parsed.HasFlag("no-health-check")
+            && (parsed.Option("health-path") is not null || !(plan.Config.HealthCheckDisabled ?? false));
+        plan.HealthPath = NormalizeHealthPath(parsed.Option("health-path") ?? plan.Config.HealthPath ?? DefaultHealthPath);
 
         if (!TryResolveSetup(parsed, out var setupMode, out var bootstrapOptions, out var setupError))
         {
             return Fail(setupError!);
         }
 
+        plan.SetupMode = setupMode;
+        plan.BootstrapOptions = bootstrapOptions;
+        return null;
+    }
+
+    private void PersistPlan(DeployPlan plan) =>
+        PersistConfig(plan.Host, plan.Domain, plan.PublishedPort, plan.Slug, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, plan.ContainerPort, plan.Env);
+
+    private async Task<int> RunPlanAsync(DeployPlan plan, CancellationToken cancellationToken)
+    {
         // Pure scaffolding — never touches the host, so it works offline and before the box exists.
-        if (parsed.HasFlag("github-actions"))
+        if (plan.Parsed.HasFlag("github-actions"))
         {
             // The workflow reads host/domain/port from .rask/deploy.json, so it must exist before the
             // job ever runs. Writing it here means `rask deploy --github-actions` works as the FIRST
             // thing you do in a repo, rather than emitting a workflow that can't resolve a host.
-            if (!dryRun)
+            if (!plan.DryRun)
             {
-                PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort, env);
+                PersistPlan(plan);
             }
 
-            return WriteGitHubActionsWorkflow(sshTarget, host, dryRun);
+            return WriteGitHubActionsWorkflow(plan.SshTarget, plan.Host, plan.DryRun);
         }
 
-        if (dryRun)
+        if (plan.DryRun)
         {
-            PrintPlan(host, slug, domain, port, containerPort, dockerfile, contextDir, env, healthEnabled, healthPath);
+            PrintPlan(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Dockerfile, plan.ContextDir, plan.Env, plan.HealthEnabled, plan.HealthPath);
             return 0;
         }
 
+        if (!await PrepareHostAsync(plan, cancellationToken).ConfigureAwait(false))
+        {
+            return 1;
+        }
+
+        return plan.Action switch
+        {
+            null => await BuildAndDeployAsync(plan, cancellationToken).ConfigureAwait(false),
+            "status" => await StatusAsync(plan.Host, plan.Slug, plan.Parsed.HasFlag("json"), cancellationToken).ConfigureAwait(false),
+            "logs" => await LogsAsync(plan.Host, plan.Slug, plan.Parsed, cancellationToken).ConfigureAwait(false),
+            _ => await RollbackAsync(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Env, plan.HealthEnabled, plan.HealthPath, cancellationToken).ConfigureAwait(false),
+        };
+    }
+
+    /// <summary>Checks the local docker CLI and the box, preparing the box when it isn't ready.</summary>
+    private async Task<bool> PrepareHostAsync(DeployPlan plan, CancellationToken cancellationToken)
+    {
         // Preflight: the local docker CLI is the client for every remote docker call, so it's required
         // even though nothing builds locally.
         if (!await DockerProbe.EnsureLocalAsync(_process, Console, cancellationToken).ConfigureAwait(false))
         {
-            return 1;
+            return false;
         }
 
         // Probe the box and, if it isn't ready, offer to prepare it. This replaces the old
@@ -317,13 +438,13 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // Docker's DNAT rewrites the destination before any filter rule sees it. In domain mode nothing
         // but Caddy publishes a port, so there's none to pass.
         var ready = await setup.EnsureReadyAsync(
-            sshTarget,
-            bootstrapOptions with { PublishedPort = domain is null ? port : null, ContainerPort = domain is null ? containerPort : null },
-            setupMode,
+            plan.SshTarget,
+            plan.BootstrapOptions! with { PublishedPort = plan.PublishedPort, ContainerPort = plan.Domain is null ? plan.ContainerPort : null },
+            plan.SetupMode,
             cancellationToken).ConfigureAwait(false);
         if (ready is null)
         {
-            return 1;
+            return false;
         }
 
         // Setting up a bare box replaces the root login with a non-root one, so everything below —
@@ -335,22 +456,19 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // work again. If we waited and the build failed (a broken Dockerfile — the likeliest outcome of
         // a first deploy), the new login would be lost and the user would be locked out of their own
         // box by a tool that had forgotten what it did to it.
-        if (!string.Equals(newHost, host, StringComparison.Ordinal))
+        if (!string.Equals(newHost, plan.Host, StringComparison.Ordinal))
         {
-            host = newHost;
-            PersistConfig(host, domain, domain is null ? port : null, slug, projectSetting, envFile, healthEnabled, healthPath, containerPort, env);
-            Console.WriteLine($"  Remembered {host} in {Path.Combine(".rask", "deploy.json")} — deploy as that from now on.", ConsoleStyle.Dim);
+            plan.Host = newHost;
+            PersistPlan(plan);
+            Console.WriteLine($"  Remembered {plan.Host} in {Path.Combine(".rask", "deploy.json")} — deploy as that from now on.", ConsoleStyle.Dim);
         }
 
-        if (action is not null)
-        {
-            return action switch
-            {
-                "status" => await StatusAsync(host, slug, parsed.HasFlag("json"), cancellationToken).ConfigureAwait(false),
-                "logs" => await LogsAsync(host, slug, parsed, cancellationToken).ConfigureAwait(false),
-                _ => await RollbackAsync(host, slug, domain, port, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false),
-            };
-        }
+        return true;
+    }
+
+    private async Task<int> BuildAndDeployAsync(DeployPlan plan, CancellationToken cancellationToken)
+    {
+        var (host, slug, env) = (plan.Host, plan.Slug, plan.Env);
 
         // Move the live image aside before the build takes its tag, so the version being replaced stays
         // recoverable by `rask deploy rollback`. It fails harmlessly on a first deploy (no :current yet).
@@ -365,29 +483,29 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             Console.WriteErrorLine(
                 "  ! No Litestream replica configured — this app's database exists only on this box's disk.",
                 ConsoleStyle.Warning);
-            Console.Error.WriteLine("    Turn on continuous backup:  rask deploy --env \"Rask__Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)");
+            await Console.Error.WriteLineAsync("    Turn on continuous backup:  rask deploy --env \"Rask__Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)").ConfigureAwait(false);
         }
 
         // With --domain the deploy names the public origin itself. On a bare port it cannot know the address people
         // use (an ssh alias is not one), and the app will not guess it from a request, so emailed links stay off.
-        if (domain is null && !env.Any(e => e.StartsWith("Rask__Auth__PublicOrigin=", StringComparison.Ordinal)))
+        if (plan.Domain is null && !env.Any(e => e.StartsWith("Rask__Auth__PublicOrigin=", StringComparison.Ordinal)))
         {
             Console.WriteErrorLine(
                 "  ! No public address set — confirm and reset emails will not be sent until there is one.",
                 ConsoleStyle.Warning);
-            Console.Error.WriteLine("    Name it:  rask deploy --env \"Rask__Auth__PublicOrigin=http://your-host:" + port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)");
+            await Console.Error.WriteLineAsync("    Name it:  rask deploy --env \"Rask__Auth__PublicOrigin=http://your-host:" + plan.Port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)").ConfigureAwait(false);
         }
 
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
-        if (await Run(BuildBuildArguments(host, slug, dockerfile, contextDir), cancellationToken).ConfigureAwait(false) != 0)
+        if (await Run(BuildBuildArguments(host, slug, plan.Dockerfile, plan.ContextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Docker build failed.", ConsoleStyle.Error);
             return 1;
         }
 
-        return domain is null
-            ? await DeployPortAsync(host, slug, port, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false)
-            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, projectSetting, envFile, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false);
+        return plan.Domain is null
+            ? await DeployPortAsync(host, slug, plan.Port, plan.ContainerPort, env, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, cancellationToken).ConfigureAwait(false)
+            : await DeployWithProxyAsync(host, slug, plan.Domain, plan.ContainerPort, env, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, cancellationToken).ConfigureAwait(false);
     }
 
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
@@ -398,7 +516,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // first deploy (no container yet).
         await Run(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
         await Run(BuildRemoveArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
-        Console.Out.WriteLine($"Starting {slug} on port {port}…");
+        await Console.Out.WriteLineAsync($"Starting {slug} on port {port}…").ConfigureAwait(false);
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
         try
@@ -471,7 +589,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         bool healthEnabled, string healthPath, string tag, string reason,
         CancellationToken cancellationToken)
     {
-        if (tag != CurrentTag)
+        if (!string.Equals(tag, CurrentTag, StringComparison.Ordinal))
         {
             // Already the restore attempt. Report plainly rather than trying again.
             Console.WriteErrorLine($"{reason} The previous version did not come up either.", ConsoleStyle.Error);
@@ -481,7 +599,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         if (await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false) is null)
         {
             Console.WriteErrorLine($"{reason} There is no previous image to fall back to.", ConsoleStyle.Error);
-            Console.Error.WriteLine($"{slug}:{PreviousTag} is written by the deploy that replaces it, so the first deploy of an app has no predecessor.");
+            await Console.Error.WriteLineAsync($"{slug}:{PreviousTag} is written by the deploy that replaces it, so the first deploy of an app has no predecessor.").ConfigureAwait(false);
             return 1;
         }
 
@@ -509,17 +627,40 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // The live containers are the source of truth. Read them once: the current color of this app (to
         // pick the next), plus every other app's route (to regenerate the full Caddyfile).
         var apps = ParseDeployedApps((await Capture(BuildListArguments(host), cancellationToken).ConfigureAwait(false)).StandardOutput);
-        var current = apps.FirstOrDefault(a => a.App == slug).Color;
+        var current = apps.FirstOrDefault(a => string.Equals(a.App, slug, StringComparison.Ordinal)).Color;
         var newColor = NextColor(string.IsNullOrEmpty(current) ? null : current);
         var newContainer = $"{slug}-{newColor}";
 
+        if (!await StartColorAsync(host, slug, domain, newColor, containerPort, env, tag, cancellationToken).ConfigureAwait(false)
+            || !await GateColorAsync(host, newContainer, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false)
+            || !await RouteToColorAsync(host, slug, domain, apps, new RouteTarget(newContainer, containerPort), cancellationToken).ConfigureAwait(false))
+        {
+            return 1;
+        }
+
+        await RetireOldColorsAsync(host, slug, apps, newContainer, cancellationToken).ConfigureAwait(false);
+
+        if (persist)
+        {
+            PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath, containerPort, env);
+        }
+        Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
+        Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
+        return 0;
+    }
+
+    /// <summary>Starts the next color's container beside the live one.</summary>
+    private async Task<bool> StartColorAsync(
+        string host, string slug, string domain, string newColor, int containerPort, IReadOnlyList<string> env, string tag, CancellationToken cancellationToken)
+    {
+        var newContainer = $"{slug}-{newColor}";
         await Run(BuildNetworkCreateArguments(host, Network), cancellationToken).ConfigureAwait(false); // ignore-exists
 
         // Free the target-color name first: a prior deploy that failed after starting the new color (e.g. a
         // failed reload) can leave it behind, and `docker run --name` would otherwise collide.
         await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false); // ignore-absent
 
-        Console.Out.WriteLine($"Starting {newContainer} ({domain})…");
+        await Console.Out.WriteLineAsync($"Starting {newContainer} ({domain})…").ConfigureAwait(false);
         // In domain mode the app is reached internally on its container port; no host port is published.
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
@@ -538,9 +679,16 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         if (started != 0)
         {
             Console.WriteErrorLine("Failed to start the new container.", ConsoleStyle.Error);
-            return 1;
+            return false;
         }
 
+        return true;
+    }
+
+    /// <summary>Whether the new color came up and answers; when it didn't, it is removed and the old one keeps serving.</summary>
+    private async Task<bool> GateColorAsync(
+        string host, string newContainer, int containerPort, IReadOnlyList<string> env, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
+    {
         // Gate before switching traffic: a container that never came up must not take the domain, and the
         // old one keeps serving (safe rollback — this deploy simply didn't happen).
         if (!await WaitUntilRunningAsync(host, newContainer, cancellationToken).ConfigureAwait(false))
@@ -548,7 +696,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             await DumpLogsAsync(host, newContainer, env, cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
             Console.WriteErrorLine("The new container exited before it was ready — left the previous version serving.", ConsoleStyle.Error);
-            return 1;
+            return false;
         }
 
         // Second gate: the container is up, but is the app actually answering? Probe over HTTP before
@@ -558,22 +706,29 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         {
             await DumpLogsAsync(host, newContainer, env, cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
-            Console.Error.WriteLine(HealthFailureMessage(healthPath, rolledBack: true));
-            return 1;
+            await Console.Error.WriteLineAsync(HealthFailureMessage(healthPath, rolledBack: true)).ConfigureAwait(false);
+            return false;
         }
 
+        return true;
+    }
+
+    /// <summary>Points the shared proxy at the new color.</summary>
+    private async Task<bool> RouteToColorAsync(
+        string host, string slug, string domain, IReadOnlyList<DeployedApp> apps, RouteTarget target, CancellationToken cancellationToken)
+    {
         // Ensure the shared proxy is up (idempotent — an "already in use" name error is fine; we never
         // recreate it, so the rask-caddy-data volume keeps every app's ACME cert across deploys).
         await Run(BuildCaddyRunArguments(host, Network), cancellationToken).ConfigureAwait(false);
 
         // Regenerate the whole Caddyfile from the live routes, forcing this app to its NEW container, then
         // hot-reload — Caddy drains in-flight requests to the old color.
-        var routes = BuildRoutingMap(apps, slug, domain, new RouteTarget(newContainer, containerPort));
+        var routes = BuildRoutingMap(apps, slug, domain, target);
         // Unguessable and owner-only: on a shared machine a predictable name in the temp dir is one another user can
         // create first, and whatever it held would be copied into the proxy that fronts every app on the box.
         var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.Caddyfile");
         _fileSystem.WriteSecretText(caddyfilePath, BuildCaddyfile(routes));
-        Console.Out.WriteLine($"Routing {domain} → {newContainer} (auto-HTTPS via Caddy)…");
+        await Console.Out.WriteLineAsync($"Routing {domain} → {target.Container} (auto-HTTPS via Caddy)…").ConfigureAwait(false);
         await Run(BuildCaddyCopyArguments(host, caddyfilePath), cancellationToken).ConfigureAwait(false);
 
         // The file has been copied to the box; leaving a predictably-named copy in the shared temp dir
@@ -585,9 +740,16 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         if (await RunWithRetryAsync(BuildCaddyReloadArguments(host), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine("Caddy reload failed — the new container is running but not yet routed. Check `docker -H ssh://" + host + " logs rask-caddy`.", ConsoleStyle.Error);
-            return 1;
+            return false;
         }
 
+        return true;
+    }
+
+    /// <summary>Stops and removes this app's other colors once traffic is on the new one.</summary>
+    private async Task RetireOldColorsAsync(
+        string host, string slug, IReadOnlyList<DeployedApp> apps, string newContainer, CancellationToken cancellationToken)
+    {
         // Let the proxy finish with the old color before pulling it out from under itself. `caddy reload`
         // returns as soon as the admin API applies the config, but Caddy still holds pooled keep-alive
         // connections to the old upstream — a request it is about to write onto one of those when SIGTERM
@@ -605,19 +767,15 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // Traffic is on the new color: retire the old container(s) of this app. Graceful stop first so
         // SQLite checkpoints the WAL — and, when a replica is configured, the Litestream replicator flushes
         // — before removal. A plain rm -f (SIGKILL) would drop the last frames.
-        foreach (var stale in apps.Where(a => a.App == slug && a.Container != newContainer))
+        var staleContainers = apps
+            .Where(a => string.Equals(a.App, slug, StringComparison.Ordinal))
+            .Select(a => a.Container)
+            .Where(container => !string.Equals(container, newContainer, StringComparison.Ordinal));
+        foreach (var stale in staleContainers)
         {
-            await Run(BuildStopArguments(host, stale.Container), cancellationToken).ConfigureAwait(false);
-            await Run(BuildRemoveArguments(host, stale.Container), cancellationToken).ConfigureAwait(false);
+            await Run(BuildStopArguments(host, stale), cancellationToken).ConfigureAwait(false);
+            await Run(BuildRemoveArguments(host, stale), cancellationToken).ConfigureAwait(false);
         }
-
-        if (persist)
-        {
-            PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath, containerPort, env);
-        }
-        Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
-        Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
-        return 0;
     }
 
     /// <summary>
@@ -701,7 +859,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             Project = project,
             EnvFile = envFile,
             // Only persist non-defaults so a fresh deploy.json stays clean (default path, health on).
-            HealthPath = healthPath == DefaultHealthPath ? null : healthPath,
+            HealthPath = string.Equals(healthPath, DefaultHealthPath, StringComparison.Ordinal) ? null : healthPath,
             HealthCheckDisabled = healthEnabled ? null : true,
             ContainerPort = containerPort == DefaultContainerPort ? null : containerPort,
             // Keys only — this file is committed. See DeployConfig.EnvKeys.
@@ -788,12 +946,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         var logs = await Capture(BuildLogsArguments(host, container), cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(logs.StandardOutput))
         {
-            Console.Error.WriteLine(MaskSecrets(logs.StandardOutput.TrimEnd(), env));
+            await Console.Error.WriteLineAsync(MaskSecrets(logs.StandardOutput.TrimEnd(), env)).ConfigureAwait(false);
         }
 
         if (!string.IsNullOrWhiteSpace(logs.StandardError))
         {
-            Console.Error.WriteLine(MaskSecrets(logs.StandardError.TrimEnd(), env));
+            await Console.Error.WriteLineAsync(MaskSecrets(logs.StandardError.TrimEnd(), env)).ConfigureAwait(false);
         }
     }
 
@@ -935,6 +1093,44 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         //  • no-new-privileges stops a compromised process gaining rights via setuid binaries. It costs
         //    nothing here: nothing a Rask app does needs to escalate.
         args.AddRange(["--log-opt", "max-size=10m", "--log-opt", "max-file=3", "--security-opt", "no-new-privileges"]);
+        AddPlacementArguments(args, slug, domain, color, port, containerPort);
+
+        // Persist the SQLite database on a per-app named volume so it survives container replacement — every
+        // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
+        // destroyed on every redeploy. Point the app at it via Rask:ConnectionStrings:App, which every Rask
+        // database battery reads; the volume is shared by both blue/green colors so the swap keeps the same database. A
+        // user-supplied --env / --env-file value is appended after, so an explicit override still wins.
+        // ASPNETCORE_ENVIRONMENT is what selects appsettings.Production.json and turns off the developer
+        // exception page; relying on the base image's default left a deployed app in whatever environment
+        // the image happened to assume. Set before the user's own --env, so an explicit override still wins.
+        args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
+
+        args.AddRange(["-v", $"{slug}-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db"]);
+
+        // The log store keeps a file of its own, so it needs its own pointer onto the same volume — without
+        // this it would land in the container's writable layer and be destroyed by the very restart it
+        // exists to survive. Harmless on an app that doesn't use Rask.Logging: nothing reads the value.
+        args.AddRange(["-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db"]);
+
+        if (envFilePath is not null)
+        {
+            args.AddRange(["--env-file", envFilePath]);
+        }
+
+        // With an env file, only the entries it cannot carry are still passed inline.
+        foreach (var entry in env.Where(entry => envFilePath is null || !CanGoInEnvFile(entry)))
+        {
+            args.AddRange(["-e", entry]);
+        }
+
+        args.Add($"{slug}:{tag}");
+        return args;
+    }
+
+    // Port mode publishes the container straight to the host; domain mode puts it on the proxy's network as
+    // one color of a blue/green pair, labelled so the Caddyfile can be regenerated from the live containers.
+    private static void AddPlacementArguments(List<string> args, string slug, string? domain, string? color, int port, int containerPort)
+    {
         if (domain is null)
         {
             args.AddRange(["--name", slug, "--restart", "unless-stopped", "-p", $"{port}:{containerPort}"]);
@@ -959,40 +1155,6 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             // from the request, whose Host header anyone can set, so without this no such email goes out.
             args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{domain}"]);
         }
-
-        // Persist the SQLite database on a per-app named volume so it survives container replacement — every
-        // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
-        // destroyed on every redeploy. Point the app at it via Rask:ConnectionStrings:App, which every Rask
-        // database battery reads; the volume is shared by both blue/green colors so the swap keeps the same database. A
-        // user-supplied --env / --env-file value is appended after, so an explicit override still wins.
-        // ASPNETCORE_ENVIRONMENT is what selects appsettings.Production.json and turns off the developer
-        // exception page; relying on the base image's default left a deployed app in whatever environment
-        // the image happened to assume. Set before the user's own --env, so an explicit override still wins.
-        args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
-
-        args.AddRange(["-v", $"{slug}-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db"]);
-
-        // The log store keeps a file of its own, so it needs its own pointer onto the same volume — without
-        // this it would land in the container's writable layer and be destroyed by the very restart it
-        // exists to survive. Harmless on an app that doesn't use Rask.Logging: nothing reads the value.
-        args.AddRange(["-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db"]);
-
-        if (envFilePath is not null)
-        {
-            args.AddRange(["--env-file", envFilePath]);
-        }
-
-        foreach (var entry in env)
-        {
-            // With an env file, only the entries it cannot carry are still passed inline.
-            if (envFilePath is null || !CanGoInEnvFile(entry))
-            {
-                args.AddRange(["-e", entry]);
-            }
-        }
-
-        args.Add($"{slug}:{tag}");
-        return args;
     }
 
     /// <summary>
@@ -1081,7 +1243,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         return apps;
 
         // docker prints "<no value>" for a label a container doesn't carry.
-        static string Label(string value) => value == "<no value>" ? string.Empty : value;
+        static string Label(string value) => string.Equals(value, "<no value>", StringComparison.Ordinal) ? string.Empty : value;
     }
 
     /// <summary>
@@ -1094,7 +1256,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         var map = new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal);
         foreach (var app in apps)
         {
-            if (app.Domain.Length == 0 || app.App == deployingApp)
+            if (app.Domain.Length == 0 || string.Equals(app.App, deployingApp, StringComparison.Ordinal))
             {
                 continue; // port-mode apps aren't proxied; the deploying app is set explicitly below
             }
@@ -1128,7 +1290,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     }
 
     // Turn KEY=secret into KEY=… for display, so a dry-run preview never prints secret values.
-    private static IReadOnlyList<string> RedactEnv(IReadOnlyList<string> env)
+    private static string[] RedactEnv(IReadOnlyList<string> env)
     {
         var redacted = new string[env.Count];
         for (var i = 0; i < env.Count; i++)
@@ -1214,7 +1376,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return false;
         }
 
-        mode = forced ? SetupMode.Forced : disabled ? SetupMode.Disabled : SetupMode.Ask;
+        mode = (forced, disabled) switch
+        {
+            (true, _) => SetupMode.Forced,
+            (_, true) => SetupMode.Disabled,
+            _ => SetupMode.Ask,
+        };
         options = new BootstrapOptions(
             DeployUser: parsed.HasFlag("no-deploy-user") ? null : deployUser ?? BootstrapOptions.DefaultDeployUser,
             Firewall: !parsed.HasFlag("no-firewall"),
@@ -1332,14 +1499,3 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         return slug.Length == 0 ? "app" : slug;
     }
 }
-
-/// <summary>A rask-managed app container discovered from its <c>rask.*</c> labels via <c>docker ps</c>.</summary>
-/// <summary>
-/// A live Rask-managed container, as read back from its own labels. <see cref="Port"/> is what the app
-/// listens on inside the container — carried as a label so the proxy config can be regenerated for a
-/// host running several apps that don't all listen on the same port.
-/// </summary>
-internal readonly record struct DeployedApp(string Container, string App, string Domain, string Color, int Port);
-
-/// <summary>Where the shared proxy sends one domain: a container and the port it listens on.</summary>
-internal readonly record struct RouteTarget(string Container, int Port);

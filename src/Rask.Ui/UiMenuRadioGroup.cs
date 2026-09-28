@@ -57,12 +57,13 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     {
         var (accessor, context, current) = UiFormCommit.Resolve<T>(this);
         var level = Context.Get<UiMenuLevel>();
+        var role = level is null ? null : "presentation";
 
         return
         [
             Heading is null
                 ? null
-                : Li.Class("menu-title").Role(level is null ? null : "presentation")[Heading],
+                : Li.Class("menu-title").Role(role)[Heading],
             .. Options.Select(option => OptionRow(option, level, accessor, context, current))
         ];
     }

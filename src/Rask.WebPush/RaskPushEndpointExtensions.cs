@@ -78,12 +78,3 @@ public static class RaskPushEndpointExtensions
         return group;
     }
 }
-
-/// <summary>What <c>GET /_rask/push/key</c> answers.</summary>
-/// <param name="PublicKey">The VAPID public key, or an empty string until one is configured.</param>
-public sealed record PushKey(string PublicKey);
-
-[JsonSerializable(typeof(PushKey))]
-[JsonSerializable(typeof(PushSubscription))]
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-internal sealed partial class PushJson : JsonSerializerContext;

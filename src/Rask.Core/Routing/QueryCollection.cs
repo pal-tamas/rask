@@ -12,7 +12,9 @@ public sealed class QueryCollection : IQueryCollection
 
     public QueryCollection() : this(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)) { }
 
+#pragma warning disable MA0016 // adopts this exact dictionary, comparer and all, without a copy; the IDictionary overload copies
     public QueryCollection(Dictionary<string, StringValues> store) =>
+#pragma warning restore MA0016
         _store = store ?? throw new ArgumentNullException(nameof(store));
 
     public QueryCollection(IDictionary<string, StringValues> source) =>

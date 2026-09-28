@@ -11,7 +11,6 @@ Rask.Auth.Client.BrowserAuth.SendPasswordResetAsync(string! email) -> System.Thr
 Rask.Auth.Client.BrowserAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Auth.Client.HttpUserProvider
-Rask.Auth.Client.HttpUserProvider.Changed -> System.Action?
 Rask.Auth.Client.HttpUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
 Rask.Auth.Client.HttpUserProvider.EnsureLoadedAsync() -> System.Threading.Tasks.Task!
 Rask.Auth.Client.HttpUserProvider.HttpUserProvider(System.Net.Http.HttpClient! http, Rask.Auth.Client.AuthClientOptions! options) -> void
@@ -25,3 +24,4 @@ Rask.Auth.Client.BrowserAuth.AddPasskeyAsync(string? name = null) -> System.Thre
 Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Routing.Navigator! navigator, Rask.Core.Browser.IWebAuthn! webAuthn, Rask.Auth.Client.AuthClientOptions! options) -> void
 Rask.Auth.Client.BrowserAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.Client.HttpUserProvider.Changed -> System.EventHandler?

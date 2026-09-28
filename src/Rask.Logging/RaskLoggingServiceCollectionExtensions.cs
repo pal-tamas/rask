@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Rask.Batteries;
 using Rask.Hosting.Shared;
 
@@ -96,7 +97,9 @@ public static class RaskLoggingServiceCollectionExtensions
         Func<IServiceProvider, ILogs> store)
     {
         services.AddRaskOptions<RaskLoggingOptions>(
-            "Rask:Logging", static (section, o) => section.Bind(o), configure, static o => o.Validate());
+            "Rask:Logging", static (section, o) => section.Bind(o), configure, validate: null);
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IValidateOptions<RaskLoggingOptions>, RaskLoggingOptionsValidator>());
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<LogMetrics>();
         services.TryAddSingleton<LogChannel>();

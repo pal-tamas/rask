@@ -1,4 +1,4 @@
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// Delivers a fully-resolved <see cref="OutgoingMail"/> to its recipients. The

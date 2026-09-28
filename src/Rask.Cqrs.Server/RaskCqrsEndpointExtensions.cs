@@ -87,45 +87,8 @@ public static class RaskCqrsEndpointExtensions
         RaskCqrsServerOptions options,
         UploadSessionStore uploads)
     {
-        if (!context.Request.Headers.ContainsKey(RemoteEndpointDefaults.RequestHeader))
+        if (await ReadChunkAsync(context, options).ConfigureAwait(false) is not { } chunk)
         {
-            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Not a Rask.Cqrs request",
-                $"The {RemoteEndpointDefaults.RequestHeader} header is required.").ConfigureAwait(false);
-            return;
-        }
-
-        var owner = Owner(context, options);
-        if (owner is null)
-        {
-            await ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null).ConfigureAwait(false);
-            return;
-        }
-
-        if (owner.Length == 0)
-        {
-            await ProblemAsync(context, StatusCodes.Status400BadRequest, "No stable user identity",
-                "A chunked upload is scoped to the caller who opened it, so the signed-in principal needs a "
-                + "name or a subject claim to scope it to.").ConfigureAwait(false);
-            return;
-        }
-
-        var uploadId = context.Request.Headers[RemoteEndpointDefaults.UploadHeader].ToString();
-        if (string.IsNullOrEmpty(uploadId) || uploadId.Length > 64)
-        {
-            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed upload",
-                $"The {RemoteEndpointDefaults.UploadHeader} header is required.").ConfigureAwait(false);
-            return;
-        }
-
-        if (!int.TryParse(
-                context.Request.Headers[RemoteEndpointDefaults.UploadFileHeader].ToString(),
-                NumberStyles.None, CultureInfo.InvariantCulture, out var fileIndex)
-            || !long.TryParse(
-                context.Request.Headers[RemoteEndpointDefaults.UploadOffsetHeader].ToString(),
-                NumberStyles.None, CultureInfo.InvariantCulture, out var offset))
-        {
-            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed upload",
-                "A chunk must name its file index and its offset.").ConfigureAwait(false);
             return;
         }
 
@@ -143,7 +106,7 @@ public static class RaskCqrsEndpointExtensions
             var contentType = Decode(context.Request.Headers[RemoteEndpointDefaults.UploadTypeHeader].ToString());
 
             var held = await uploads.AppendAsync(
-                owner, uploadId, fileIndex, offset,
+                chunk.Caller, chunk.UploadId, chunk.FileIndex, chunk.Offset,
                 string.IsNullOrEmpty(name) ? "file" : name, string.IsNullOrEmpty(contentType) ? null : contentType,
                 context.Request.Body, options, context.RequestAborted)
                 .ConfigureAwait(false);
@@ -171,6 +134,56 @@ public static class RaskCqrsEndpointExtensions
         {
             // The client went away mid-chunk. The session keeps what arrived, so a retry resumes.
         }
+    }
+
+    private readonly record struct Chunk(string Caller, string UploadId, int FileIndex, long Offset);
+
+    // The headers that say which chunk this is. Null once the refusal has been written.
+    private static async Task<Chunk?> ReadChunkAsync(HttpContext context, RaskCqrsServerOptions options)
+    {
+        if (!context.Request.Headers.ContainsKey(RemoteEndpointDefaults.RequestHeader))
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Not a Rask.Cqrs request",
+                $"The {RemoteEndpointDefaults.RequestHeader} header is required.").ConfigureAwait(false);
+            return null;
+        }
+
+        var owner = Owner(context, options);
+        if (owner is null)
+        {
+            await ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null).ConfigureAwait(false);
+            return null;
+        }
+
+        if (owner.Length == 0)
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "No stable user identity",
+                "A chunked upload is scoped to the caller who opened it, so the signed-in principal needs a "
+                + "name or a subject claim to scope it to.").ConfigureAwait(false);
+            return null;
+        }
+
+        var uploadId = context.Request.Headers[RemoteEndpointDefaults.UploadHeader].ToString();
+        if (string.IsNullOrEmpty(uploadId) || uploadId.Length > 64)
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed upload",
+                $"The {RemoteEndpointDefaults.UploadHeader} header is required.").ConfigureAwait(false);
+            return null;
+        }
+
+        if (!int.TryParse(
+                context.Request.Headers[RemoteEndpointDefaults.UploadFileHeader].ToString(),
+                NumberStyles.None, CultureInfo.InvariantCulture, out var fileIndex)
+            || !long.TryParse(
+                context.Request.Headers[RemoteEndpointDefaults.UploadOffsetHeader].ToString(),
+                NumberStyles.None, CultureInfo.InvariantCulture, out var offset))
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed upload",
+                "A chunk must name its file index and its offset.").ConfigureAwait(false);
+            return null;
+        }
+
+        return new Chunk(owner, uploadId, fileIndex, offset);
     }
 
     /// <summary>
@@ -221,55 +234,7 @@ public static class RaskCqrsEndpointExtensions
 
     private static async Task HandleAsync(HttpContext context, RaskCqrsServerOptions options, bool fromQuery)
     {
-        // The header is the CSRF control: no form, <img> or <script> can set one, so neither endpoint is
-        // reachable by cross-site markup — only by a same-origin fetch. Checked first because it is the
-        // cheapest rejection available.
-        if (!context.Request.Headers.ContainsKey(RemoteEndpointDefaults.RequestHeader))
-        {
-            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Not a Rask.Cqrs request",
-                $"The {RemoteEndpointDefaults.RequestHeader} header is required.").ConfigureAwait(false);
-            return;
-        }
-
-        var name = context.Request.RouteValues["name"] as string;
-        RemoteContract? contract = null;
-        if (!string.IsNullOrEmpty(name))
-        {
-            RemoteContractRegistry.TryGet(name, out contract);
-        }
-
-        // Authentication is checked BEFORE the name is judged, and deliberately. Answering 404 for an
-        // unknown name but 401 for a known one would let an anonymous caller enumerate every message the
-        // app has, one guess at a time. So an anonymous caller gets the same 401 either way, and only a
-        // caller who has already proved who they are can tell a real name from a typo. A message whose
-        // handler is [AllowAnonymous] is public by definition and is exempt.
-        if (options.RequireAuthenticatedUser
-            && contract?.AllowAnonymous != true
-            && context.User.Identity?.IsAuthenticated != true)
-        {
-            await ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null).ConfigureAwait(false);
-            return;
-        }
-
-        // Unknown, or known but unserviceable here: from outside those are the same thing, and the
-        // difference is a map of the server's internals. Both land before anything from the body is
-        // deserialized.
-        if (contract?.LocalInvoker is null)
-        {
-            await ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown message", null).ConfigureAwait(false);
-            return;
-        }
-
-        // Verb integrity: a command is never dispatchable over GET, so a mutating message cannot be
-        // triggered by a URL, a prefetch, or a link scanner.
-        if (fromQuery && contract.Kind != RemoteMessageKind.Query)
-        {
-            await ProblemAsync(context, StatusCodes.Status405MethodNotAllowed, "Method not allowed",
-                $"'{name}' mutates state, so it must be sent as a POST.").ConfigureAwait(false);
-            return;
-        }
-
-        if (!await AuthorizedAsync(context, contract, options).ConfigureAwait(false))
+        if (await AdmitAsync(context, options, fromQuery).ConfigureAwait(false) is not { LocalInvoker: { } invoker } contract)
         {
             return;
         }
@@ -293,16 +258,84 @@ public static class RaskCqrsEndpointExtensions
             return;
         }
 
-        object? result;
+        var (completed, result) = await InvokeAsync(context, invoker, message, options).ConfigureAwait(false);
+        if (completed)
+        {
+            await WriteResultAsync(context, contract, result).ConfigureAwait(false);
+        }
+    }
+
+    // The message's contract once the request may reach it, or null once the refusal has been written.
+    private static async Task<RemoteContract?> AdmitAsync(HttpContext context, RaskCqrsServerOptions options, bool fromQuery)
+    {
+        // The header is the CSRF control: no form, <img> or <script> can set one, so neither endpoint is
+        // reachable by cross-site markup — only by a same-origin fetch. Checked first because it is the
+        // cheapest rejection available.
+        if (!context.Request.Headers.ContainsKey(RemoteEndpointDefaults.RequestHeader))
+        {
+            await ProblemAsync(context, StatusCodes.Status400BadRequest, "Not a Rask.Cqrs request",
+                $"The {RemoteEndpointDefaults.RequestHeader} header is required.").ConfigureAwait(false);
+            return null;
+        }
+
+        var name = context.Request.RouteValues["name"] as string;
+        RemoteContract? contract = null;
+        if (!string.IsNullOrEmpty(name))
+        {
+            RemoteContractRegistry.TryGet(name, out contract);
+        }
+
+        // Authentication is checked BEFORE the name is judged, and deliberately. Answering 404 for an
+        // unknown name but 401 for a known one would let an anonymous caller enumerate every message the
+        // app has, one guess at a time. So an anonymous caller gets the same 401 either way, and only a
+        // caller who has already proved who they are can tell a real name from a typo. A message whose
+        // handler is [AllowAnonymous] is public by definition and is exempt.
+        if (options.RequireAuthenticatedUser
+            && contract?.AllowAnonymous != true
+            && context.User.Identity?.IsAuthenticated != true)
+        {
+            await ProblemAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", null).ConfigureAwait(false);
+            return null;
+        }
+
+        // Unknown, or known but unserviceable here: from outside those are the same thing, and the
+        // difference is a map of the server's internals. Both land before anything from the body is
+        // deserialized.
+        if (contract?.LocalInvoker is null)
+        {
+            await ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown message", null).ConfigureAwait(false);
+            return null;
+        }
+
+        // Verb integrity: a command is never dispatchable over GET, so a mutating message cannot be
+        // triggered by a URL, a prefetch, or a link scanner.
+        if (fromQuery && contract.Kind != RemoteMessageKind.Query)
+        {
+            await ProblemAsync(context, StatusCodes.Status405MethodNotAllowed, "Method not allowed",
+                $"'{name}' mutates state, so it must be sent as a POST.").ConfigureAwait(false);
+            return null;
+        }
+
+        return await AuthorizedAsync(context, contract).ConfigureAwait(false) ? contract : null;
+    }
+
+    // Runs the handler. Not completed when a failure has already been answered.
+    private static async Task<(bool Completed, object? Result)> InvokeAsync(
+        HttpContext context,
+        RemoteLocalInvoker invoker,
+        object message,
+        RaskCqrsServerOptions options)
+    {
         try
         {
-            result = await contract.LocalInvoker(context.RequestServices, message, context.RequestAborted)
+            var result = await invoker(context.RequestServices, message, context.RequestAborted)
                 .ConfigureAwait(false);
+            return (true, result);
         }
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
             // The client went away. Nothing to write to, and nothing went wrong.
-            return;
+            return (false, null);
         }
         catch (RaskValidationException ex)
         {
@@ -315,7 +348,7 @@ public static class RaskCqrsEndpointExtensions
                 detail: null,
                 ValidationProblemType,
                 ex.Errors).ConfigureAwait(false);
-            return;
+            return (false, null);
         }
         catch (Exception ex)
         {
@@ -323,16 +356,11 @@ public static class RaskCqrsEndpointExtensions
             // routinely names tables, paths and internal identifiers.
             await ProblemAsync(context, StatusCodes.Status500InternalServerError, "Handler failed",
                 options.IncludeExceptionDetail ? ex.ToString() : null).ConfigureAwait(false);
-            return;
+            return (false, null);
         }
-
-        await WriteResultAsync(context, contract, result).ConfigureAwait(false);
     }
 
-    private static Task<bool> AuthorizedAsync(
-        HttpContext context,
-        RemoteContract contract,
-        RaskCqrsServerOptions options) =>
+    private static Task<bool> AuthorizedAsync(HttpContext context, RemoteContract contract) =>
         AuthorizedAsync(context, contract.Name, contract.AllowAnonymous, contract.Roles, contract.Policy);
 
     // The one authorization check, for a request (the handler's attributes) and a subscription (the notification's).
@@ -467,6 +495,22 @@ public static class RaskCqrsEndpointExtensions
                 $"At most {options.MaxFileCount} files may travel with one message.");
         }
 
+        var files = Files(form.Files, options);
+
+        var json = form["message"].ToString();
+        if (string.IsNullOrEmpty(json))
+        {
+            throw new BadRequestException(
+                StatusCodes.Status400BadRequest, "Missing message", "The multipart body has no 'message' part.");
+        }
+
+        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
+        reader.Read();
+        return contract.ReadMessage(ref reader, files);
+    }
+
+    private static List<RemoteFile> Files(IFormFileCollection formFiles, RaskCqrsServerOptions options)
+    {
         long total = 0;
 
         // Each part goes to the slot its own name declares, rather than to its position in a sort. The
@@ -474,9 +518,9 @@ public static class RaskCqrsEndpointExtensions
         // pairing is the only thing putting a file back on the property it came from. Sorting the names
         // as text mispairs them from ten files up — "10" sorts before "2" — which does not fail, it
         // quietly hands a handler somebody else's file.
-        var slots = new RemoteFile?[form.Files.Count];
+        var slots = new RemoteFile?[formFiles.Count];
 
-        foreach (var file in form.Files)
+        foreach (var file in formFiles)
         {
             if (!int.TryParse(file.Name, NumberStyles.None, CultureInfo.InvariantCulture, out var index)
                 || index >= slots.Length)
@@ -523,16 +567,7 @@ public static class RaskCqrsEndpointExtensions
                 "The multipart body is missing a file part its message declared."));
         }
 
-        var json = form["message"].ToString();
-        if (string.IsNullOrEmpty(json))
-        {
-            throw new BadRequestException(
-                StatusCodes.Status400BadRequest, "Missing message", "The multipart body has no 'message' part.");
-        }
-
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
-        reader.Read();
-        return contract.ReadMessage(ref reader, files);
+        return files;
     }
 
     // Reads at most `limit` bytes and rejects anything longer, so an oversized request costs a buffer of
@@ -554,7 +589,7 @@ public static class RaskCqrsEndpointExtensions
                         $"The message exceeds the {limit} byte limit.");
                 }
 
-                buffer.Write(chunk, 0, read);
+                await buffer.WriteAsync(chunk.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
             }
         }
         finally
@@ -599,8 +634,8 @@ public static class RaskCqrsEndpointExtensions
 
         context.Response.ContentType = "application/json";
 
-        // Per-user by nature, so never storable by a shared cache. A query opts into caching explicitly;
-        // it is not something an endpoint should decide on a handler's behalf.
+        // Per-user by nature, so never storable by a shared cache. A query opts into caching explicitly: that
+        // is not something an endpoint should decide on a handler's behalf.
         context.Response.Headers[HeaderNames.CacheControl] = "no-store";
 
         var buffer = new ArrayBufferWriter<byte>();
@@ -694,17 +729,4 @@ public static class RaskCqrsEndpointExtensions
     internal const string ValidationProblemType =
         "https://github.com/pal-tamas/rask/blob/main/docs/validation.md#rejected";
 
-}
-
-/// <summary>
-///     A rejection with the problem document it should become. Thrown from decode so the endpoint can
-///     answer with the status the failure actually deserves rather than a blanket 400.
-/// </summary>
-internal sealed class BadRequestException(int status, string title, string? detail) : Exception(title)
-{
-    public int Status { get; } = status;
-
-    public string Title { get; } = title;
-
-    public string? Detail { get; } = detail;
 }

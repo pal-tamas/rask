@@ -75,7 +75,7 @@ internal sealed class CliApplication
 
         if (first is "-v" or "--version" or "version")
         {
-            _console.Out.WriteLine(CliMetadata.Version);
+            await _console.Out.WriteLineAsync(CliMetadata.Version).ConfigureAwait(false);
             return 0;
         }
 
@@ -115,7 +115,7 @@ internal sealed class CliApplication
     {
         foreach (var token in args)
         {
-            if (token == "--")
+            if (string.Equals(token, "--", StringComparison.Ordinal))
             {
                 break;
             }
@@ -131,16 +131,9 @@ internal sealed class CliApplication
 
     private bool TryGetCommand(string name, out CliCommand command)
     {
-        foreach (var candidate in _commands)
-        {
-            if (candidate.Name.Equals(name, StringComparison.Ordinal) || candidate.Aliases.Contains(name))
-            {
-                command = candidate;
-                return true;
-            }
-        }
-
-        command = null!;
-        return false;
+        var match = _commands.FirstOrDefault(candidate =>
+            candidate.Name.Equals(name, StringComparison.Ordinal) || candidate.Aliases.Contains(name, StringComparer.Ordinal));
+        command = match!;
+        return match is not null;
     }
 }

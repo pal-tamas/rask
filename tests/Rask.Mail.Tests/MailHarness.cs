@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Rask.Core;
 using Rask.Core.Components;
 
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 /// <summary>A tiny email body component, to prove a Rask component renders to the HTML body.</summary>
 public sealed partial class GreetingEmail : Component

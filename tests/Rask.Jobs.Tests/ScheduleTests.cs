@@ -1,4 +1,4 @@
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 /// <summary>
 /// The calendar schedules, tested through the tick the processor claims: <c>Due</c> is the watermark a
@@ -170,8 +170,10 @@ public sealed class ScheduleTests
         options.Run(() => new TickJob());
 
         // `o.Run<Backup>();` compiles and would then never run — the quietest possible failure.
-        var error = Assert.Throws<InvalidOperationException>(options.Validate);
-        Assert.Contains(".Daily.At(3, 00)", error.Message, StringComparison.Ordinal);
+        var result = new JobsOptionsValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(".Daily.At(3, 00)", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]

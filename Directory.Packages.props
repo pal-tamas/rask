@@ -14,6 +14,7 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="MailKit" Version="4.17.0" />
     <PackageVersion Include="Markdig" Version="1.3.2" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.290" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.12" />
     <!--
@@ -25,6 +26,7 @@
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.9.6" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
@@ -57,6 +59,8 @@
       version: Spectre.Console.Testing ships the input/console doubles the CLI's prompt tests drive,
       and it is built against the exact matching Spectre.Console.
     -->
+    <PackageVersion Include="Roslynator.Analyzers" Version="5.0.0" />
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.34.0.3385" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.57.2" />
     <!--

@@ -33,7 +33,7 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
-    <Using Include="Rask.Cache"/>
+    <Using Include="Rask.Caching"/>
   </ItemGroup>
 
   <ItemGroup>

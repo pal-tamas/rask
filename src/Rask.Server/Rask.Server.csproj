@@ -109,9 +109,8 @@
     <Compile Include="..\Rask.Hosting.Shared\RaskDataProtectionSetup.cs" Link="Shared\RaskDataProtectionSetup.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskShutdownDefaults.cs" Link="Shared\RaskShutdownDefaults.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
-    <Compile Include="..\Rask.Hosting.Shared\Batteries\RaskDocument.cs" Link="Shared\Batteries\RaskDocument.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Batteries\*.cs" Link="Shared\Batteries\%(Filename)%(Extension)"/>
     <!-- The request validators the mediator runs, on both hosts: the same rules a Form applies, again at dispatch. -->
-    <Compile Include="..\Rask.Hosting.Shared\Batteries\RequestValidators.cs" Link="Shared\Batteries\RequestValidators.cs"/>
     <!-- One file, two hosts: Rask.Data's browser build registers it from AddRaskData; the server build does not
          reference Rask.Query, so the server host compiles the same file in and registers it itself (RaskBatteryWiring). -->
     <Compile Include="..\Rask.Data\Browser\QueryDataChanges.cs" Link="App\QueryDataChanges.cs"/>

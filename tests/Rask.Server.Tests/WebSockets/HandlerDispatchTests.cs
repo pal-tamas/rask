@@ -23,7 +23,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { id = handlerId });
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -43,7 +43,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { id = "h999" });
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
@@ -66,7 +66,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { id = handlerId, type = "input", value = "x" });
 
@@ -92,7 +92,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { foo = "bar" });
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
@@ -115,7 +115,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
         Assert.Equal(1, host.Store.Count);
 
         var bytes = Encoding.UTF8.GetBytes("{not-json");
@@ -141,7 +141,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { foo = "bar", x = 1 });
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
@@ -161,7 +161,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         for (var i = 0; i < 5; i++)
         {
@@ -198,7 +198,7 @@ public class HandlerDispatchTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // MapRask<TApp> wraps the App in an implicit RootErrorBoundary, so a handler throw trips the boundary
         // and its render replaces the App's tree with the built-in DefaultErrorPage. The dispatcher must remain

@@ -29,7 +29,7 @@ public static class RaskValidators
     private static readonly Lock Gate = new();
     private static readonly Dictionary<object, (Type Model, Func<IServiceProvider?, object> Factory)[]> Groups = [];
     private static readonly Dictionary<Type, Func<IServiceProvider?, object>> Manual = [];
-    private static volatile IReadOnlyDictionary<Type, Func<IServiceProvider?, object>> _table =
+    private static volatile Dictionary<Type, Func<IServiceProvider?, object>> _table =
         new Dictionary<Type, Func<IServiceProvider?, object>>();
 
     /// <summary>

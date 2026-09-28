@@ -77,6 +77,20 @@ internal sealed class DoctorCommand(
             return failed == 0 ? 0 : 1;
         }
 
+        Console.Ansi.Write(new RaggedRight(new Padder(ReportGrid(checks), new Padding(2, 0, 0, 0))));
+
+        await Console.Out.WriteLineAsync().ConfigureAwait(false);
+        Console.WriteLine(
+            failed == 0
+                ? "  Nothing here will stop a command from starting."
+                : $"  {failed} check(s) would stop a command from starting.",
+            failed == 0 ? ConsoleStyle.Success : ConsoleStyle.Error);
+
+        return failed == 0 ? 0 : 1;
+    }
+
+    private static Grid ReportGrid(IEnumerable<DoctorCheck> checks)
+    {
         // status | name | detail, with each fix on its own row under the detail it belongs to — the grid
         // keeps that hanging indent aligned without the caller counting spaces.
         var grid = new Grid();
@@ -105,16 +119,7 @@ internal sealed class DoctorCommand(
             }
         }
 
-        Console.Ansi.Write(new RaggedRight(new Padder(grid, new Padding(2, 0, 0, 0))));
-
-        Console.Out.WriteLine();
-        Console.WriteLine(
-            failed == 0
-                ? "  Nothing here will stop a command from starting."
-                : $"  {failed} check(s) would stop a command from starting.",
-            failed == 0 ? ConsoleStyle.Success : ConsoleStyle.Error);
-
-        return failed == 0 ? 0 : 1;
+        return grid;
     }
 
     private async Task<IReadOnlyList<DoctorCheck>> EnvironmentChecksAsync(CancellationToken cancellationToken)
@@ -366,7 +371,7 @@ internal sealed class DoctorCommand(
         return line.Length <= 60 ? line : line[..60];
     }
 
-    private IReadOnlyList<DoctorCheck> ProjectChecks()
+    private List<DoctorCheck> ProjectChecks()
     {
         var checks = new List<DoctorCheck>();
         var project = ProjectLocator.Locate(_fileSystem, _workingDirectory);

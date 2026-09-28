@@ -121,7 +121,7 @@ public sealed partial class UiToast : Component
                     // data-rask-dismiss: the runtime's own convention for "the control that closes this", the
                     // same one the focus trap presses on Escape — and what Duration clicks.
                     .Attributes(("data-rask-dismiss", null))
-                    .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
+                    .Aria("label", "Dismiss")
                     .OnClick(OnDismiss)["Dismiss"]
         ];
     }

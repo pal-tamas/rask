@@ -156,144 +156,162 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             .OrderBy(c => c.CultureTag, System.StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var parsed = new Dictionary<string, ParsedMessage>(System.StringComparer.Ordinal);
-        foreach (var key in neutralCatalog.Order)
+        if (ParseNeutral(spc, neutralCatalog) is not { } parsed)
         {
-            var entry = neutralCatalog.Entries[key];
-            var neutralName = System.IO.Path.GetFileName(neutralCatalog.FilePath);
-
-            if (entry.IsPlural)
-            {
-                if (!ValidatePlural(spc, neutralCatalog, entry, neutralName))
-                {
-                    return;
-                }
-
-                // Every form has to agree on placeholders too — they are the same call site.
-                ParsedMessage? first = null;
-                foreach (var form in entry.Forms.Values)
-                {
-                    var parsedForm = MessageParser.Parse(form);
-                    if (parsedForm.Error is not null)
-                    {
-                        Report(spc, TranslationDiagnostics.Malformed, neutralCatalog.FilePath,
-                            entry.Line, entry.Column, neutralName,
-                            $"the text for '{key}' has {parsedForm.Error}");
-                        return;
-                    }
-
-                    first ??= parsedForm;
-                }
-
-                parsed[key] = first ?? MessageParser.Parse(string.Empty);
-                continue;
-            }
-
-            var message = MessageParser.Parse(entry.Value);
-            if (message.Error is not null)
-            {
-                Report(spc, TranslationDiagnostics.Malformed, neutralCatalog.FilePath,
-                    entry.Line, entry.Column, neutralName,
-                    $"the text for '{key}' has {message.Error}");
-                return;
-            }
-
-            parsed[key] = message;
+            return;
         }
 
-        // Cross-check every translation against the neutral catalog before emitting anything.
-        foreach (var catalog in ordered)
+        // Cross-check every translation against the neutral catalog before emitting anything; the first
+        // one that disagrees fatally stops the family.
+        if (ordered.Any(catalog => !ReferenceEquals(catalog, neutralCatalog)
+                && !TranslationAgrees(spc, catalog, neutralCatalog, parsed, neutral)))
         {
-            if (ReferenceEquals(catalog, neutralCatalog))
-            {
-                continue;
-            }
-
-            var neutralName = System.IO.Path.GetFileName(neutralCatalog.FilePath);
-            var name = System.IO.Path.GetFileName(catalog.FilePath);
-
-            foreach (var key in neutralCatalog.Order)
-            {
-                if (!catalog.Entries.ContainsKey(key))
-                {
-                    Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath, 1, 1,
-                        name, neutralName,
-                        $"no translation for '{key}' — the '{neutral}' text is used at runtime");
-                }
-            }
-
-            foreach (var key in catalog.Order)
-            {
-                if (!neutralCatalog.Entries.ContainsKey(key))
-                {
-                    Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath,
-                        catalog.Entries[key].Line, catalog.Entries[key].Column, name, neutralName,
-                        $"'{key}' is not in the neutral catalog, so it generates nothing — add it to "
-                        + $"'{neutralName}', or delete it here");
-                    continue;
-                }
-
-                if (neutralCatalog.Entries[key].IsPlural != catalog.Entries[key].IsPlural)
-                {
-                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
-                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
-                        $"'{key}' is {(catalog.Entries[key].IsPlural ? "a plural set here but a single string" : "a single string here but a plural set")} "
-                        + "in the neutral catalog — they generate different members, so they cannot differ");
-                    return;
-                }
-
-                if (catalog.Entries[key].IsPlural)
-                {
-                    if (!ValidatePlural(spc, catalog, catalog.Entries[key], name))
-                    {
-                        return;
-                    }
-
-                    // A category this language HAS but the catalog omits is a gap the reader will see
-                    // as wrong grammar, so it is reported — but as a warning, like any missing text.
-                    foreach (var category in PluralRules.CategoriesFor(catalog.CultureTag) ?? [])
-                    {
-                        if (!catalog.Entries[key].Forms.ContainsKey(category))
-                        {
-                            Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath,
-                                catalog.Entries[key].Line, catalog.Entries[key].Column, name, neutralName,
-                                $"'{key}' has no '{category}' form, which {catalog.CultureTag} distinguishes "
-                                + "— the 'other' form is used instead");
-                        }
-                    }
-
-                    continue;
-                }
-
-                var message = MessageParser.Parse(catalog.Entries[key].Value);
-                if (message.Error is not null)
-                {
-                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
-                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
-                        $"the text for '{key}' has {message.Error}");
-                    return;
-                }
-
-                // A placeholder set that disagrees is not a style problem: string.Format throws
-                // FormatException the first time that string is rendered, in that language only.
-                var expected = parsed[key].Placeholders.Select(static p => p.Name).OrderBy(static n => n,
-                    System.StringComparer.Ordinal);
-                var actual = message.Placeholders.Select(static p => p.Name).OrderBy(static n => n,
-                    System.StringComparer.Ordinal);
-                if (!expected.SequenceEqual(actual, System.StringComparer.Ordinal))
-                {
-                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
-                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
-                        $"'{key}' uses placeholders {{{string.Join(", ", message.Placeholders.Select(static p => p.Name))}}} "
-                        + $"but the neutral catalog uses {{{string.Join(", ", parsed[key].Placeholders.Select(static p => p.Name))}}} "
-                        + "— a mismatched set throws FormatException at runtime");
-                    return;
-                }
-            }
+            return;
         }
 
         spc.AddSource($"{family}.g.cs", SourceText.From(
             Render(family, ordered, neutralCatalog, parsed, rootNamespace), Encoding.UTF8));
+    }
+
+    // Every neutral key's placeholders, or null once a malformed text has been reported.
+    private static Dictionary<string, ParsedMessage>? ParseNeutral(SourceProductionContext spc, Catalog neutralCatalog)
+    {
+        var parsed = new Dictionary<string, ParsedMessage>(System.StringComparer.Ordinal);
+        var neutralName = System.IO.Path.GetFileName(neutralCatalog.FilePath);
+        foreach (var key in neutralCatalog.Order)
+        {
+            var entry = neutralCatalog.Entries[key];
+            if (entry.IsPlural && !ValidatePlural(spc, neutralCatalog, entry, neutralName))
+            {
+                return null;
+            }
+
+            // Every form of a plural has to agree on placeholders too — they are the same call site.
+            var texts = entry.IsPlural ? entry.Forms.Values.ToList() : [entry.Value];
+            ParsedMessage? first = null;
+            foreach (var text in texts)
+            {
+                var message = MessageParser.Parse(text);
+                if (message.Error is not null)
+                {
+                    Report(spc, TranslationDiagnostics.Malformed, neutralCatalog.FilePath,
+                        entry.Line, entry.Column, neutralName,
+                        $"the text for '{key}' has {message.Error}");
+                    return null;
+                }
+
+                first ??= message;
+            }
+
+            parsed[key] = first ?? MessageParser.Parse(string.Empty);
+        }
+
+        return parsed;
+    }
+
+    // Reports every way one translation departs from the neutral catalog. False when a departure is an
+    // error that stops generation for the whole family.
+    private static bool TranslationAgrees(
+        SourceProductionContext spc,
+        Catalog catalog,
+        Catalog neutralCatalog,
+        Dictionary<string, ParsedMessage> parsed,
+        string neutral)
+    {
+        var neutralName = System.IO.Path.GetFileName(neutralCatalog.FilePath);
+        var name = System.IO.Path.GetFileName(catalog.FilePath);
+
+        foreach (var key in neutralCatalog.Order.Where(key => !catalog.Entries.ContainsKey(key)))
+        {
+            Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath, 1, 1,
+                name, neutralName,
+                $"no translation for '{key}' — the '{neutral}' text is used at runtime");
+        }
+
+        foreach (var key in catalog.Order)
+        {
+            if (!neutralCatalog.Entries.ContainsKey(key))
+            {
+                Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath,
+                    catalog.Entries[key].Line, catalog.Entries[key].Column, name, neutralName,
+                    $"'{key}' is not in the neutral catalog, so it generates nothing — add it to "
+                    + $"'{neutralName}', or delete it here");
+                continue;
+            }
+
+            if (neutralCatalog.Entries[key].IsPlural != catalog.Entries[key].IsPlural)
+            {
+                Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
+                    catalog.Entries[key].Line, catalog.Entries[key].Column, name,
+                    $"'{key}' is {(catalog.Entries[key].IsPlural ? "a plural set here but a single string" : "a single string here but a plural set")} "
+                    + "in the neutral catalog — they generate different members, so they cannot differ");
+                return false;
+            }
+
+            var agrees = catalog.Entries[key].IsPlural
+                ? PluralAgrees(spc, catalog, key, name, neutralName)
+                : TextAgrees(spc, catalog, key, name, parsed[key]);
+            if (!agrees)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool PluralAgrees(
+        SourceProductionContext spc, Catalog catalog, string key, string name, string neutralName)
+    {
+        var entry = catalog.Entries[key];
+        if (!ValidatePlural(spc, catalog, entry, name))
+        {
+            return false;
+        }
+
+        // A category this language HAS but the catalog omits is a gap the reader will see
+        // as wrong grammar, so it is reported — but as a warning, like any missing text.
+        foreach (var category in (PluralRules.CategoriesFor(catalog.CultureTag) ?? []).Where(category => !entry.Forms.ContainsKey(category)))
+        {
+            Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath,
+                entry.Line, entry.Column, name, neutralName,
+                $"'{key}' has no '{category}' form, which {catalog.CultureTag} distinguishes "
+                + "— the 'other' form is used instead");
+        }
+
+        return true;
+    }
+
+    private static bool TextAgrees(
+        SourceProductionContext spc, Catalog catalog, string key, string name, ParsedMessage neutralMessage)
+    {
+        var entry = catalog.Entries[key];
+        var message = MessageParser.Parse(entry.Value);
+        if (message.Error is not null)
+        {
+            Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
+                entry.Line, entry.Column, name,
+                $"the text for '{key}' has {message.Error}");
+            return false;
+        }
+
+        // A placeholder set that disagrees is not a style problem: string.Format throws
+        // FormatException the first time that string is rendered, in that language only.
+        var expected = neutralMessage.Placeholders.Select(static p => p.Name).OrderBy(static n => n,
+            System.StringComparer.Ordinal);
+        var actual = message.Placeholders.Select(static p => p.Name).OrderBy(static n => n,
+            System.StringComparer.Ordinal);
+        if (!expected.SequenceEqual(actual, System.StringComparer.Ordinal))
+        {
+            Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
+                entry.Line, entry.Column, name,
+                $"'{key}' uses placeholders {{{string.Join(", ", message.Placeholders.Select(static p => p.Name))}}} "
+                + $"but the neutral catalog uses {{{string.Join(", ", neutralMessage.Placeholders.Select(static p => p.Name))}}} "
+                + "— a mismatched set throws FormatException at runtime");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -311,28 +329,9 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             .OrderBy(c => c.CultureTag, System.StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        foreach (var catalog in ordered)
+        if (!FrameworkKeysValid(spc, ordered))
         {
-            var name = System.IO.Path.GetFileName(catalog.FilePath);
-            foreach (var key in catalog.Order)
-            {
-                if (catalog.Entries[key].IsPlural)
-                {
-                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
-                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
-                        $"'{key}' is a plural set, but the framework's own strings are plain text");
-                    return;
-                }
-
-                if (System.Array.IndexOf(_frameworkStringKeys, key) < 0)
-                {
-                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
-                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
-                        $"'{key}' is not one of the framework's own strings — valid names are "
-                        + string.Join(", ", _frameworkStringKeys));
-                    return;
-                }
-            }
+            return;
         }
 
         var sb = new StringBuilder();
@@ -353,21 +352,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         sb.AppendLine("            switch (tag)");
         sb.AppendLine("            {");
 
-        foreach (var catalog in ordered)
-        {
-            sb.AppendLine($"                case \"{catalog.CultureTag}\":");
-            sb.AppendLine("                    switch (key)");
-            sb.AppendLine("                    {");
-            foreach (var key in catalog.Order)
-            {
-                sb.AppendLine($"                        case global::Rask.Core.Globalization.RaskString.{key}:");
-                sb.AppendLine($"                            return {Literal(catalog.Entries[key].Value)};");
-            }
-
-            sb.AppendLine("                    }");
-            sb.AppendLine();
-            sb.AppendLine("                    break;");
-        }
+        AppendFrameworkCases(sb, ordered);
 
         sb.AppendLine("            }");
         sb.AppendLine();
@@ -387,6 +372,55 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         sb.AppendLine("}");
 
         spc.AddSource("RaskStrings.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    // Every key a framework-strings catalog names has to be one of Rask's own, and plain text.
+    private static bool FrameworkKeysValid(SourceProductionContext spc, List<Catalog> ordered)
+    {
+        foreach (var catalog in ordered)
+        {
+            var name = System.IO.Path.GetFileName(catalog.FilePath);
+            foreach (var key in catalog.Order)
+            {
+                if (catalog.Entries[key].IsPlural)
+                {
+                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
+                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
+                        $"'{key}' is a plural set, but the framework's own strings are plain text");
+                    return false;
+                }
+
+                if (System.Array.IndexOf(_frameworkStringKeys, key) < 0)
+                {
+                    Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
+                        catalog.Entries[key].Line, catalog.Entries[key].Column, name,
+                        $"'{key}' is not one of the framework's own strings — valid names are "
+                        + string.Join(", ", _frameworkStringKeys));
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static void AppendFrameworkCases(StringBuilder sb, List<Catalog> ordered)
+    {
+        foreach (var catalog in ordered)
+        {
+            sb.AppendLine($"                case \"{catalog.CultureTag}\":");
+            sb.AppendLine("                    switch (key)");
+            sb.AppendLine("                    {");
+            foreach (var key in catalog.Order)
+            {
+                sb.AppendLine($"                        case global::Rask.Core.Globalization.RaskString.{key}:");
+                sb.AppendLine($"                            return {Literal(catalog.Entries[key].Value)};");
+            }
+
+            sb.AppendLine("                    }");
+            sb.AppendLine();
+            sb.AppendLine("                    break;");
+        }
     }
 
     private static string Render(
@@ -412,7 +446,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         RenderNode(sb, tree, catalogs, neutralCatalog, parsed, indent: 1);
 
         RenderCatalogPlumbing(sb, catalogs, neutralCatalog);
-        RenderPluralFunctions(sb, catalogs, neutralCatalog);
+        RenderPluralFunctions(sb, catalogs);
 
         sb.AppendLine("}");
         return sb.ToString();
@@ -534,7 +568,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             {
                 Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
                     $"'{entry.Path}' has a form called '{form}', which is not a CLDR plural category "
-                    + $"({string.Join(", ", PluralRules.Categories)})");
+                    + $"({string.Join(", ", PluralRules.AllCategories)})");
                 return false;
             }
 
@@ -579,7 +613,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                 continue;
             }
 
-            AppendArm(i.ToString(), catalog, localised);
+            AppendArm(i.ToString(System.Globalization.CultureInfo.InvariantCulture), catalog, localised);
         }
 
         // The neutral arm goes LAST, and is the reason this loop skips it above rather than emitting it
@@ -692,7 +726,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
 
     // One category function per language that has a plural key, and nothing at all for an app with
     // none. The arithmetic is CLDR's; see PluralRules for why it is a curated table.
-    private static void RenderPluralFunctions(StringBuilder sb, List<Catalog> catalogs, Catalog neutralCatalog)
+    private static void RenderPluralFunctions(StringBuilder sb, List<Catalog> catalogs)
     {
         var needed = new SortedDictionary<string, string>(System.StringComparer.Ordinal);
         foreach (var catalog in catalogs)
@@ -804,28 +838,10 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                 return false;
             }
 
-            foreach (var c in part)
+            if (!part.All(char.IsLetterOrDigit)
+                || (subtag == 0 && (part.Length < 2 || !part.All(char.IsLetter))))
             {
-                if (!char.IsLetterOrDigit(c))
-                {
-                    return false;
-                }
-            }
-
-            if (subtag == 0)
-            {
-                if (part.Length < 2)
-                {
-                    return false;
-                }
-
-                foreach (var c in part)
-                {
-                    if (!char.IsLetter(c))
-                    {
-                        return false;
-                    }
-                }
+                return false;
             }
 
             subtag++;
@@ -841,15 +857,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             return false;
         }
 
-        foreach (var c in s)
-        {
-            if (!char.IsLetterOrDigit(c) && c != '_')
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return s.All(static c => char.IsLetterOrDigit(c) || c == '_');
     }
 
     private static string Escape(string name) => IsKeyword(name) ? "@" + name : name;

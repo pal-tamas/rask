@@ -24,7 +24,7 @@ public static class RenderHarness
     {
         var ctx = LiveRenderContext.Begin(component, services);
         var resolved = ctx.GetOrCreate(_ => component);
-        ctx.NotifyParameters(resolved, propsChanged);
+        LiveRenderContext.NotifyParameters(resolved, propsChanged);
         return new RenderScope<T>(ctx, resolved);
     }
 

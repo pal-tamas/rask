@@ -1,16 +1,13 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 using Rask.Data;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 /// A persisted, ready-to-send email awaiting (or having completed) delivery. Written by
 /// <see cref="IMail"/> and drained by the <see cref="MailProcessor{TContext}"/>. Recipient lists and
 /// attachments are stored as JSON; the body is already rendered to HTML at enqueue time. (Named
 /// <c>QueuedMail</c> rather than <c>MailMessage</c> to avoid clashing with <c>System.Net.Mail.MailMessage</c>,
-/// since this package ships a global <c>using Rask.Mail</c>.)
+/// since this package ships a global <c>using Rask.Mailing</c>.)
 /// </summary>
 /// <remarks>
 /// An <see cref="Entity{TId}"/> rather than an <see cref="Aggregate{TId}"/>: an aggregate's soft-delete query
@@ -86,45 +83,4 @@ public sealed class QueuedMail : Entity<long>
     ///     itself belongs to nobody.
     /// </remarks>
     internal void RecordQueuedTenant() => RecordTenant(Current.Tenant);
-}
-
-/// <summary>The EF Core mapping for <see cref="QueuedMail"/>.</summary>
-public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMail>
-{
-    /// <inheritdoc/>
-    public void Configure(EntityTypeBuilder<QueuedMail> entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        entity.HasKey(x => x.Id);
-        entity.Property(x => x.From).IsRequired();
-        entity.Property(x => x.To).IsRequired();
-        entity.Property(x => x.Subject).IsRequired();
-        // Drives the "due, oldest first" claim query. ClaimedUntil stays out of it: in a healthy queue
-        // almost every candidate row is unclaimed, so it costs nothing as a residual filter, and a
-        // filtered index would need provider-specific SQL.
-        entity.HasIndex(x => new { x.ProcessedAt, x.RunAt, x.Id });
-        // Fences the completion write — see Job.ClaimToken for why.
-        entity.Property(x => x.ClaimToken).IsConcurrencyToken();
-
-        // Mapped EXPLICITLY, and the table is deliberately not Tenancy.PerTenant. A partitioned table takes a
-        // query filter, and a filter here would hide other tenants' rows from the drain — the runner has to
-        // see everybody's work. So the tenant is data on the row, not a partition of the table, and
-        // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.
-        entity.Property(x => x.TenantId);
-    }
-}
-
-/// <summary>Model-building helper for the mail table.</summary>
-public static class MailModelBuilderExtensions
-{
-    /// <summary>
-    /// Maps the <see cref="QueuedMail"/> table. Call from your context's <c>OnModelCreating</c>, then create
-    /// the schema with <c>rask db add AddMail &amp;&amp; rask db update</c>.
-    /// </summary>
-    public static ModelBuilder AddRaskMail(this ModelBuilder modelBuilder)
-    {
-        ArgumentNullException.ThrowIfNull(modelBuilder);
-        modelBuilder.ApplyConfiguration(new QueuedMailConfiguration());
-        return modelBuilder;
-    }
 }

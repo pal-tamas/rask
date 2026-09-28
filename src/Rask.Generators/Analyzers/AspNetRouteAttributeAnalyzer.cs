@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -100,7 +101,7 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
     {
         for (var t = type.BaseType; t is not null; t = t.BaseType)
         {
-            if (t.ToDisplayString() == ComponentFullName)
+            if (string.Equals(t.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -119,7 +120,7 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
         var written = attribute?.ToDisplayString() ?? MvcRouteAttribute;
         var root = DerivesFrom(attribute, MvcRouteAttribute) ? MvcRouteAttribute : BlazorRouteAttribute;
 
-        return written == root ? $"'{written}'" : $"'{written}', which derives from '{root}'";
+        return string.Equals(written, root, StringComparison.Ordinal) ? $"'{written}'" : $"'{written}', which derives from '{root}'";
     }
 
     // Matched through the base chain, not just by name: MVC's attribute is unsealed, so an alias
@@ -129,7 +130,7 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
     {
         for (var t = attribute; t is not null; t = t.BaseType)
         {
-            if (t.ToDisplayString() == fullName)
+            if (string.Equals(t.ToDisplayString(), fullName, StringComparison.Ordinal))
             {
                 return true;
             }

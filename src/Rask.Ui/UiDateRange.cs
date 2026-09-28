@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Rask;
 
 /// <summary>
@@ -18,6 +20,7 @@ namespace Rask;
 /// </remarks>
 /// <param name="Start">The first day in the range.</param>
 /// <param name="End">The last day in the range. The same as <paramref name="Start" /> for a range of one day.</param>
+[StructLayout(LayoutKind.Auto)]
 public readonly record struct UiDateRange(DateOnly Start, DateOnly End)
 {
     /// <summary>Whether <paramref name="date" /> falls inside the range, its ends included.</summary>

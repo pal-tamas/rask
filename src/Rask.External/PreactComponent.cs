@@ -46,4 +46,13 @@ public abstract partial class PreactComponent : ExternalComponent
 {
     /// <inheritdoc />
     protected sealed override string Runtime => "preact";
+
+    /// <summary>Stores this island's children. Called by its generated children indexers.</summary>
+    protected void SetChildren(PreactChild[] children) => SetIslandChildren(children, static child => child.Value);
+
+    /// <summary>Stores this island's children, materialised now. Called by its generated children indexers.</summary>
+    protected void SetChildren(IEnumerable<PreactChild> children) => SetIslandChildren(children, static child => child.Value);
+
+    /// <summary>Stores a sequence of islands as this island's children. Called by its generated children indexers.</summary>
+    protected void SetChildren(IEnumerable<PreactComponent?> children) => SetIslandChildren(children, static island => island);
 }

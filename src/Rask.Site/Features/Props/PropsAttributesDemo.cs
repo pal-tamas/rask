@@ -14,6 +14,6 @@ public sealed partial class PropsAttributesDemo : Component
             "The dish arrived with an air of ",
             Span.Class("italic").Lang("fr")["déjà vu"],
             " — and for what has no typed property, a bare ",
-            Code.Attributes(new Dictionary<string, string?> { ["data-demo"] = null })["data-demo"],
+            Code.Attributes("data-demo", null)["data-demo"],
             ", written verbatim."];
 }

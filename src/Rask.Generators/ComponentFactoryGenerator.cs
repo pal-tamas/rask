@@ -25,7 +25,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private const string TagFullName = "Rask.Core.TagAttribute";
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
-    private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
 
     // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
     // factory, and (for Bind/AfterBind) emitted as params on the synthesized bound factory.
@@ -36,26 +35,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // member that quietly stops being mode-gated.
     private static readonly string[] BoundInterfaceMembers =
         { "Bind", "Validate", "AfterBind" };
-
-    // The mirror set: the members that belong to CONTROLLED mode, excluded from the synthesized bound
-    // factory. In bound mode the model owns the value and the framework owns the write-back handler, so a
-    // control reads none of these — accepting them next to Bind would take a value and silently drop it.
-    //
-    // Recognised by name, like every other form-control member (see Rask.Core.Forms.IFormControl<T>).
-    // Value/OnChange are the interface's own controlled members. OnInput and Checked are not on the
-    // interface — a control declares them itself (Input, Textarea) — but they mean the same thing wherever
-    // they appear on an IFormControl<T>: the per-keystroke DOM handler that bound mode replaces with its
-    // write-back, and the checkbox's value, which bound mode derives from the model.
-    // OnSelect joins them for the same reason: Select's values-shaped change handler and its bound
-    // write-back both claim the one data-rask-on-change attribute, so offering it beside Bind would put
-    // two answers on a control that has room for one.
-    //
-    // The `…Async` siblings are gone because the callbacks are one `Callback<T>` each now, taking either
-    // shape. Matched by NAME, so a stale entry stops gating a member without failing anything — which is
-    // also why OnSelect has to be carried across that collapse by hand: dropping it here un-gates it in
-    // bound mode and nothing at all reports the loss.
-    private static readonly string[] ControlledMembers =
-        { "Value", "Checked", "OnChange", "OnInput", "OnSelect" };
 
     private static readonly DiagnosticDescriptor Rask001 = new(
         "RASK001",
@@ -136,6 +115,81 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        var grouped = GroupedCandidates(context);
+        var extraHosts = ExtraHosts(context);
+
+        // RASK001 / RASK002 are reported here rather than beside an emission, because what they are
+        // about — which properties a chain MUST name — is a property of the component, not of anything
+        // generated from it.
+        context.RegisterSourceOutput(grouped, static (spc, c) => ReportPropertyDiagnostics(spc, c));
+
+        var builderEnabled = BuilderEnabled(context);
+        // Whether this build carries the devtools. Opt-IN, unlike the switch above: absent means off, so a Release
+        // build — and any build that never asked for the tools — emits no description of an app's own state.
+        var devToolsOn = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
+            p.GlobalOptions.TryGetValue("build_property.RaskDevTools", out var on)
+            && string.Equals(on, "true", StringComparison.OrdinalIgnoreCase));
+
+        var componentHost = context.CompilationProvider.Select(static (c, _) => GetComponentHost(c));
+
+        // The host is combined in because the override's own modifier depends on it: `protected internal` is what
+        // Core and its friends write over its own virtual, and `protected` is what everyone else must write.
+        context.RegisterSourceOutput(grouped.Combine(devToolsOn).Combine(componentHost),
+            static (spc, t) => EmitPropsDescribers(spc, t.Left.Left, t.Left.Right, t.Right.SeesComponentInternals));
+
+        context.RegisterSourceOutput(grouped.Combine(componentHost),
+            static (spc, t) => EmitBuilderEntries(spc, t.Left, t.Right));
+
+        context.RegisterSourceOutput(grouped.Combine(Dom.DomSnapshot.VoidTags(context)),
+            static (spc, t) => EmitTagTable(spc, t.Left, t.Right));
+
+        RegisterConsumerEntries(context, grouped, builderEnabled, componentHost, extraHosts);
+
+        // Which of each component's properties a builder chain MUST set. Published as assembly attributes
+        // because it is the one thing about a component that metadata destroys: a member initializer
+        // compiles into the constructor, so from a referencing compilation `string Title` and
+        // `string Title = ""` are the same symbol and RASK038 cannot tell an optional property from a
+        // required one. This compilation can — it is the same rule RASK001 applies right here — so
+        // it publishes the answer rather than leaving a consumer to re-derive one it cannot reach.
+        context.RegisterSourceOutput(grouped,
+            static (spc, c) => EmitPublishedRequiredProperties(spc, c));
+
+        // Setters. Emitted into the GLOBAL namespace: an extension method is only found when its
+        // containing namespace is in scope, and the global namespace encloses every namespace — so
+        // this is what lets `Div.Class("panel")` bind with no `using` anywhere. The class name carries
+        // the assembly name because several assemblies each contribute one.
+        var setterHost = context.CompilationProvider.Select(static (c, _) => GetSetterHost(c));
+
+        context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(setterHost),
+            static (spc, t) => EmitBuilderSetters(
+                spc, t.Left.Left, t.Left.Right.InjectEntries, t.Right));
+    }
+
+    // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
+    // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
+    // Component, and they are not in this compilation's syntax, so they are not consumer candidates.
+    // Each assembly publishes its own entries as a public `RaskEntries{Assembly}` class, which is what
+    // this finds. CompilationProvider yields a fresh Compilation per keystroke, so the result is
+    // wrapped in an EquatableArray and the emission only re-runs when the entry SET changes.
+    private static void RegisterConsumerEntries(
+        IncrementalGeneratorInitializationContext context,
+        IncrementalValueProvider<ImmutableArray<Candidate>> grouped,
+        IncrementalValueProvider<BuilderOptions> builderEnabled,
+        IncrementalValueProvider<ComponentHost> componentHost,
+        IncrementalValueProvider<ImmutableArray<EntryHostDecl>> extraHosts)
+    {
+        var externalEntries = context.CompilationProvider.Select(static (c, _) => ScanExternalEntries(c));
+
+        context.RegisterSourceOutput(
+            grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries)
+                .Combine(extraHosts),
+            static (spc, t) =>
+                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right.InjectEntries,
+                    t.Left.Left.Right, t.Left.Right, t.Right));
+    }
+
+    private static IncrementalValueProvider<ImmutableArray<Candidate>> GroupedCandidates(IncrementalGeneratorInitializationContext context)
+    {
         var candidates = context.SyntaxProvider
             .CreateSyntaxProvider(
                 static (node, _) => node is ClassDeclarationSyntax c && c.BaseList is { Types.Count: > 0 } &&
@@ -150,6 +204,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             .Select(static (t, _) => WithPackageProps(t.Left, t.Right))
             .WithComparer(CandidateListComparer.Instance);
 
+        return grouped;
+    }
+
+    private static IncrementalValueProvider<ImmutableArray<EntryHostDecl>> ExtraHosts(IncrementalGeneratorInitializationContext context)
+    {
         // The two kinds of injection host that are NOT candidates — neither has an entry of its own, and
         // both need the surface injected into their own partial:
         //
@@ -169,11 +228,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             .Select(static (h, _) => h!.Value)
             .Collect();
 
-        // RASK001 / RASK002 are reported here rather than beside an emission, because what they are
-        // about — which properties a chain MUST name — is a property of the component, not of anything
-        // generated from it.
-        context.RegisterSourceOutput(grouped, static (spc, c) => ReportPropertyDiagnostics(spc, c));
+        return extraHosts;
+    }
 
+    private static IncrementalValueProvider<BuilderOptions> BuilderEnabled(IncrementalGeneratorInitializationContext context)
+    {
         // Only the assembly that DECLARES
         // Rask.Core.Component can add entry members to its hierarchy, so this emission is scoped to that
         // compilation; a consumer's own components are handled separately (they are injected into
@@ -202,58 +261,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 !p.GlobalOptions.TryGetValue("build_property.RaskBuilderEntryInjection", out var inject)
                 || !string.Equals(inject, "false", StringComparison.OrdinalIgnoreCase)));
 
-        // Whether this build carries the devtools. Opt-IN, unlike the switch above: absent means off, so a Release
-        // build — and any build that never asked for the tools — emits no description of an app's own state.
-        var devToolsOn = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
-            p.GlobalOptions.TryGetValue("build_property.RaskDevTools", out var on)
-            && string.Equals(on, "true", StringComparison.OrdinalIgnoreCase));
-
-        var componentHost = context.CompilationProvider.Select(static (c, _) => GetComponentHost(c));
-
-        // The host is combined in because the override's own modifier depends on it: `protected internal` is what
-        // Core and its friends write over its own virtual, and `protected` is what everyone else must write.
-        context.RegisterSourceOutput(grouped.Combine(devToolsOn).Combine(componentHost),
-            static (spc, t) => EmitPropsDescribers(spc, t.Left.Left, t.Left.Right, t.Right.SeesComponentInternals));
-
-        context.RegisterSourceOutput(grouped.Combine(componentHost),
-            static (spc, t) => EmitBuilderEntries(spc, t.Left, t.Right));
-
-        context.RegisterSourceOutput(grouped.Combine(Dom.DomSnapshot.VoidTags(context)),
-            static (spc, t) => EmitTagTable(spc, t.Left, t.Right));
-
-        // Components in REFERENCED assemblies (Rask.Bootstrap's Bs*, any third-party component library)
-        // are in neither of the two paths above: they are not Rask.Core's, so they cannot ride on
-        // Component, and they are not in this compilation's syntax, so they are not consumer candidates.
-        // Each assembly publishes its own entries as a public `RaskEntries{Assembly}` class, which is what
-        // this finds. CompilationProvider yields a fresh Compilation per keystroke, so the result is
-        // wrapped in an EquatableArray and the emission only re-runs when the entry SET changes.
-        var externalEntries = context.CompilationProvider.Select(static (c, _) => ScanExternalEntries(c));
-
-        context.RegisterSourceOutput(
-            grouped.Combine(builderEnabled).Combine(componentHost).Combine(externalEntries)
-                .Combine(extraHosts),
-            static (spc, t) =>
-                EmitConsumerEntries(spc, t.Left.Left.Left.Left, t.Left.Left.Left.Right.InjectEntries,
-                    t.Left.Left.Right, t.Left.Right, t.Right));
-
-        // Which of each component's properties a builder chain MUST set. Published as assembly attributes
-        // because it is the one thing about a component that metadata destroys: a member initializer
-        // compiles into the constructor, so from a referencing compilation `string Title` and
-        // `string Title = ""` are the same symbol and RASK038 cannot tell an optional property from a
-        // required one. This compilation can — it is the same rule RASK001 applies right here — so
-        // it publishes the answer rather than leaving a consumer to re-derive one it cannot reach.
-        context.RegisterSourceOutput(grouped,
-            static (spc, c) => EmitPublishedRequiredProperties(spc, c));
-
-        // Setters. Emitted into the GLOBAL namespace: an extension method is only found when its
-        // containing namespace is in scope, and the global namespace encloses every namespace — so
-        // this is what lets `Div.Class("panel")` bind with no `using` anywhere. The class name carries
-        // the assembly name because several assemblies each contribute one.
-        var setterHost = context.CompilationProvider.Select(static (c, _) => GetSetterHost(c));
-
-        context.RegisterSourceOutput(grouped.Combine(builderEnabled).Combine(setterHost),
-            static (spc, t) => EmitBuilderSetters(
-                spc, t.Left.Left, t.Left.Right.InjectEntries, t.Right));
+        return builderEnabled;
     }
 
     // The universal surface (Component.Key plus Element's attributes and its ~88 GlobalEventHandlers)
@@ -287,7 +295,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                if (p.Name == "Children" || !seen.Add(p.Name))
+                if (string.Equals(p.Name, "Children", StringComparison.Ordinal) || !seen.Add(p.Name))
                 {
                     continue;
                 }
@@ -296,12 +304,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 // `Callback` (or `Callback?`) is a struct, so the TypeKind test alone would fold it and defeat the render
                 // cache for every element that carries a handler.
                 var isDelegate = p.Type.TypeKind == TypeKind.Delegate
-                                 || CarrierDelegates(TypeName(p.Type, FullyQualifiedNullable, compilation))
+                                 || CarrierDelegates(DisplayTypeName(p.Type, FullyQualifiedNullable, compilation))
                                      .Count > 0;
                 var (defaultLiteral, isRequired) = DefaultLiteralFor(p, compilation);
                 shared.Add(new SharedSetter(
                     p.Name,
-                    TypeName(p.Type, FullyQualifiedNullable, compilation),
+                    DisplayTypeName(p.Type, FullyQualifiedNullable, compilation),
                     owner,
                     isDelegate,
                     // Same rule as ResetLiteralFor: a required prop has no default on either surface, so
@@ -310,7 +318,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     isRequired ? defaultLiteral + "!" : defaultLiteral,
                     string.Equals(owner, elementFqn, StringComparison.Ordinal),
                     isRequired,
-                    HasDerivedSetter(p),
+                    DeclaresDerivedSetter(p),
                     SummaryOf(p)));
             }
         }
@@ -340,33 +348,54 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var sharedBits = SharedPendingBits(host);
         if (emitSharedSurface)
         {
-            ReportSharedBitOverflow(spc, host, sharedBits);
-            foreach (var s in host.Shared)
-            {
-                // No reachability skip, and none needed: every event property on the shared surface is a
-                // `Callback` carrier — a struct, not a delegate — so it cannot swallow its own setter even
-                // though the setter's receiver is the component itself.
-                //
-                // Once, over the component: there is one chain shape now (see "THE CHAIN'S RECEIVER IS THE
-                // COMPONENT" below), so `Input.Bind(…).Class("x")` and `Ui.DataGrid.Data(…).RowKey(…).Class("x")`
-                // hand back exactly the control or grid they were called on, and the next step still knows
-                // its type. A form control or a grid that could not say `.Class(…)` would be no trade at all.
-                //
-                // The GRID shape takes only the COMPONENT-owned half, and that is a measurement rather
-                // than a policy: of the 121 shared members, 120 are constrained `where T : Element` and a
-                // column host is a Component — a grid renders a table, it is not one. Emitting those over
-                // the grid shape put 120 extensions no grid can call into every compilation that
-                // references Rask.Core, and 240 unreachable entries into its recorded public API. The one
-                // that remains is Key, which every chain needs.
-                EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
-                    fold: FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false),
-                    pendingBit: Bit(sharedBits, s.Name), summary: s.Summary);
-            }
+            EmitSharedSetters(spc, sb, host, sharedBits);
         }
 
         // One Candidate per component TYPE. A partial class whose declarations each carry a base list
         // (`partial class Foo : Component` in one file, `partial class Foo : IMarker` in another) reaches
         // the syntax provider twice, and emitting its setters twice is CS0111.
+        EmitComponentSetters(sb, candidates);
+
+        EmitCandidateResets(sb, candidates);
+
+        sb.AppendLine("}");
+        spc.AddSource("RaskBuilderSetters.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+
+        if (host.Shared.Count != 0)
+        {
+            EmitSharedResets(spc, host, sharedBits);
+        }
+    }
+
+    private static void EmitSharedSetters(
+        SourceProductionContext spc, StringBuilder sb, SetterHost host, Dictionary<string, int> sharedBits)
+    {
+        ReportSharedBitOverflow(spc, host, sharedBits);
+        foreach (var s in host.Shared)
+        {
+            // No reachability skip, and none needed: every event property on the shared surface is a
+            // `Callback` carrier — a struct, not a delegate — so it cannot swallow its own setter even
+            // though the setter's receiver is the component itself.
+            //
+            // Once, over the component: there is one chain shape now (see "THE CHAIN'S RECEIVER IS THE
+            // COMPONENT" below), so `Input.Bind(…).Class("x")` and `Ui.DataGrid.Data(…).RowKey(…).Class("x")`
+            // hand back exactly the control or grid they were called on, and the next step still knows
+            // its type. A form control or a grid that could not say `.Class(…)` would be no trade at all.
+            //
+            // The GRID shape takes only the COMPONENT-owned half, and that is a measurement rather
+            // than a policy: of the 121 shared members, 120 are constrained `where T : Element` and a
+            // column host is a Component — a grid renders a table, it is not one. Emitting those over
+            // the grid shape put 120 extensions no grid can call into every compilation that
+            // references Rask.Core, and 240 unreachable entries into its recorded public API. The one
+            // that remains is Key, which every chain needs.
+            EmitSetter(sb, s.Name, s.TypeFqn, s.Owner, s.IsDelegate, wrap: false, generic: true,
+                fold: FoldsIntoPropsChanged(s.Name, s.IsDelegate, autoRerender: false),
+                pendingBit: Bit(sharedBits, s.Name), summary: s.Summary);
+        }
+    }
+
+    private static void EmitComponentSetters(StringBuilder sb, ImmutableArray<Candidate> candidates)
+    {
         foreach (var c in DistinctByType(candidates))
         {
             // FullyQualifiedName already carries the type arguments (`Input<T>`); appending
@@ -406,23 +435,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 var folded = IsFoldedCallback(c, p.Name);
                 EmitSetter(sb, p.Name, p.TypeFqn, self, p.IsDelegate,
                     p.IsAutoRerenderDelegate || folded, generic: false,
-                    !folded && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                    !folded && FoldsIntoPropsChanged(p.Name, p.IsDelegate, p.IsAutoRerenderDelegate),
                     AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility, Bit(ownBits, p.Name),
                     p.Summary);
             }
 
             EmitEnumSteps(sb, c, self, visibility, AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints);
             EmitBoundSetters(sb, c, visibility);
-        }
-
-        EmitCandidateResets(sb, candidates);
-
-        sb.AppendLine("}");
-        spc.AddSource("RaskBuilderSetters.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
-
-        if (host.Shared.Count != 0)
-        {
-            EmitSharedResets(spc, host, sharedBits);
         }
     }
 
@@ -457,13 +476,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var bits = new Dictionary<string, int>(StringComparer.Ordinal);
         var next = 0;
-        foreach (var s in host.Shared)
+        foreach (var s in host.Shared.Where(s => next < OwnPendingBit && FoldsIntoPropsChanged(s.Name, s.IsDelegate, autoRerender: false)))
         {
-            if (next < OwnPendingBit
-                && FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
-            {
-                bits[s.Name] = next++;
-            }
+            bits[s.Name] = next++;
         }
 
         return bits;
@@ -478,7 +493,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         SourceProductionContext spc, SetterHost host, Dictionary<string, int> bits)
     {
         var folding = host.Shared
-            .Where(s => FoldsIntoPropsChanged(s.Name, s.TypeFqn, s.IsDelegate, autoRerender: false))
+            .Where(s => FoldsIntoPropsChanged(s.Name, s.IsDelegate, autoRerender: false))
             .ToList();
         if (folding.Count <= OwnPendingBit)
         {
@@ -503,7 +518,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // prevent, and the reason the two questions must be asked with one predicate.
     private static IEnumerable<PropInfo> OwnSetterProps(Candidate c) =>
         c.Properties.Where(static p =>
-            !p.IsSharedSurfaceProp && !p.IsInitOnly && p.Name != "Children" && !p.IsBoundInterfaceProp
+            !p.IsSharedSurfaceProp && !p.IsInitOnly && !string.Equals(p.Name, "Children", StringComparison.Ordinal) && !p.IsBoundInterfaceProp
             && IsParamProperty(p));
 
     // What the reset may put back: every prop the factory re-applies each render. A prop with a
@@ -532,7 +547,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         foreach (var p in OwnSetterProps(c))
         {
             if (next >= 64 || !IsResettableProp(p) || IsFoldedCallback(c, p.Name)
-                           || !FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate))
+                           || !FoldsIntoPropsChanged(p.Name, p.IsDelegate, p.IsAutoRerenderDelegate))
             {
                 continue;
             }
@@ -568,47 +583,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             var props = host.Shared.Where(s => s.IsElementOwned == elementOwned).ToList();
             var pending = props.Where(s => bits.ContainsKey(s.Name)).ToList();
 
-            sb.Append("    /// <summary>Puts <c>").Append(kind)
-                .AppendLine("</c>'s non-folding props back where the factory would leave them.</summary>");
-            sb.Append("    public static void Reset").Append(kind)
-                .AppendLine("Eager(global::Rask.Core.Component __c0)");
-            sb.AppendLine("    {");
-            if (elementOwned)
-            {
-                sb.AppendLine("        ResetComponentEager(__c0);");
-            }
+            AppendSharedEagerReset(sb, kind, receiver, props, bits, elementOwned);
 
-            EmitEagerResetBody(
-                sb,
-                receiver,
-                props.Where(s => !bits.ContainsKey(s.Name))
-                    .Select(s => (s.Name, s.DefaultLiteral, s.IsDelegate)).ToList(),
-                "        ");
-
-            sb.AppendLine("    }");
-            sb.AppendLine();
-
-            sb.Append("    /// <summary>Resets whichever of <c>").Append(kind)
-                .AppendLine("</c>'s folding props the chain never named.</summary>");
-            sb.Append("    public static void Reset").Append(kind)
-                .AppendLine("Pending(global::Rask.Core.Component __c0, ulong __p)");
-            sb.AppendLine("    {");
-            if (elementOwned)
-            {
-                sb.AppendLine("        ResetComponentPending(__c0, __p);");
-            }
-
-            if (pending.Count != 0)
-            {
-                EmitReceiverCast(sb, receiver, "        ");
-                foreach (var s in pending)
-                {
-                    EmitPendingReset(sb, s.Name, s.TypeFqn, s.DefaultLiteral, bits[s.Name], "        ", s.HasDerivedSetter);
-                }
-            }
-
-            sb.AppendLine("    }");
-            sb.AppendLine();
+            AppendSharedPendingReset(sb, kind, receiver, pending, bits, elementOwned);
 
             if (!elementOwned)
             {
@@ -630,6 +607,56 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderReset.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static void AppendSharedEagerReset(
+        StringBuilder sb, string kind, string receiver, List<SharedSetter> props, Dictionary<string, int> bits, bool elementOwned)
+    {
+        sb.Append("    /// <summary>Puts <c>").Append(kind)
+            .AppendLine("</c>'s non-folding props back where the factory would leave them.</summary>");
+        sb.Append("    public static void Reset").Append(kind)
+            .AppendLine("Eager(global::Rask.Core.Component __c0)");
+        sb.AppendLine("    {");
+        if (elementOwned)
+        {
+            sb.AppendLine("        ResetComponentEager(__c0);");
+        }
+
+        EmitEagerResetBody(
+            sb,
+            receiver,
+            props.Where(s => !bits.ContainsKey(s.Name))
+                .Select(s => (s.Name, s.DefaultLiteral, s.IsDelegate)).ToList(),
+            "        ");
+
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    private static void AppendSharedPendingReset(
+        StringBuilder sb, string kind, string receiver, List<SharedSetter> pending, Dictionary<string, int> bits, bool elementOwned)
+    {
+        sb.Append("    /// <summary>Resets whichever of <c>").Append(kind)
+            .AppendLine("</c>'s folding props the chain never named.</summary>");
+        sb.Append("    public static void Reset").Append(kind)
+            .AppendLine("Pending(global::Rask.Core.Component __c0, ulong __p)");
+        sb.AppendLine("    {");
+        if (elementOwned)
+        {
+            sb.AppendLine("        ResetComponentPending(__c0, __p);");
+        }
+
+        if (pending.Count != 0)
+        {
+            EmitReceiverCast(sb, receiver, "        ");
+            foreach (var s in pending)
+            {
+                EmitPendingReset(sb, s.Name, s.TypeFqn, s.DefaultLiteral, bits[s.Name], "        ", s.HasDerivedSetter);
+            }
+        }
+
+        sb.AppendLine("    }");
+        sb.AppendLine();
     }
 
     /// <summary>
@@ -769,7 +796,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///     repo, since the bases that cross an assembly boundary (<c>BsBlock</c>,
     ///     <c>BsFormControl&lt;T&gt;</c>) are auto-properties throughout.
     /// </remarks>
-    private static bool HasDerivedSetter(IPropertySymbol p)
+    private static bool DeclaresDerivedSetter(IPropertySymbol p)
     {
         if (p.SetMethod is not { } setter)
         {
@@ -816,23 +843,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             var eager = OwnEagerResetProps(c).ToList();
             var pending = OwnSetterProps(c).Where(p => bits.ContainsKey(p.Name)).ToList();
 
-            sb.Append("    ").Append(visibility).Append(" static void ").Append(EagerResetName(c))
-                .Append(AnnotateDecl(c, c.TypeParameters)).Append("(global::Rask.Core.Component __c0)")
-                .AppendLine(c.TypeParameterConstraints);
-            sb.AppendLine("    {");
-            sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
-                .AppendLine("Eager(__c0);");
-            if (eager.Count != 0)
-            {
-                EmitReceiverCast(sb, c.FullyQualifiedName, "        ");
-                foreach (var p in eager)
-                {
-                    sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(ResetLiteralFor(p))
-                        .AppendLine(";");
-                }
-            }
-
-            sb.AppendLine("    }");
+            AppendOwnEagerReset(sb, c, visibility, eager);
 
             sb.Append("    ").Append(visibility).Append(" static void ").Append(PendingResetName(c))
                 .Append(AnnotateDecl(c, c.TypeParameters)).Append("(global::Rask.Core.Component __c0, ulong __p)")
@@ -866,6 +877,27 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
     }
 
+    private static void AppendOwnEagerReset(StringBuilder sb, Candidate c, string visibility, List<PropInfo> eager)
+    {
+        sb.Append("    ").Append(visibility).Append(" static void ").Append(EagerResetName(c))
+            .Append(AnnotateDecl(c, c.TypeParameters)).Append("(global::Rask.Core.Component __c0)")
+            .AppendLine(c.TypeParameterConstraints);
+        sb.AppendLine("    {");
+        sb.Append("        global::Rask.Core.BuilderRuntime.Reset").Append(c.IsElement ? "Element" : "Component")
+            .AppendLine("Eager(__c0);");
+        if (eager.Count != 0)
+        {
+            EmitReceiverCast(sb, c.FullyQualifiedName, "        ");
+            foreach (var p in eager)
+            {
+                sb.Append("        __c.").Append(p.Escaped).Append(" = ").Append(ResetLiteralFor(p))
+                    .AppendLine(";");
+            }
+        }
+
+        sb.AppendLine("    }");
+    }
+
     // Replays the steps a chain wrote before its Key step onto the instance that key claimed (#1118). The
     // FOLDING props copy only where their bit says the chain named them, through Track so the fold still
     // reports the change; the rest copy unconditionally, because the provisional instance holds exactly what
@@ -876,8 +908,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         string declaration,
         string receiver,
         string? baseCall,
-        IReadOnlyList<(string Name, string TypeFqn, int Bit)> folding,
-        IReadOnlyList<string> others,
+        List<(string Name, string TypeFqn, int Bit)> folding,
+        List<string> others,
         string constraints)
     {
         sb.Append(declaration).Append("global::Rask.Core.Component __f0, global::Rask.Core.Component __t0, ulong __w)")
@@ -975,20 +1007,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // One Candidate per component type, ordered for a deterministic emission. The syntax provider
     // yields one candidate per class DECLARATION, so a partial class with a base list in two files
     // appears twice.
-    private static List<Candidate> DistinctByType(ImmutableArray<Candidate> candidates)
-    {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var result = new List<Candidate>(candidates.Length);
-        foreach (var c in candidates.OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal))
-        {
-            if (seen.Add(c.FullyQualifiedName))
-            {
-                result.Add(c);
-            }
-        }
-
-        return result;
-    }
+    private static List<Candidate> DistinctByType(ImmutableArray<Candidate> candidates) =>
+        candidates
+            .GroupBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
+            .Select(static g => g.First())
+            .OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
+            .ToList();
 
     // A setter is named after the property it writes. Always — including a DELEGATE property, which used
     // to be the one exception: an extension method could not share a delegate prop's name, because C#
@@ -1061,7 +1085,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // foldProps does (only the shared display props participate there too).
             //
             // mode: these are the BOUND members. With the component as the receiver they are ordinary
-            // setters on it, so `.AfterBind(…)` after a `Value` opening compiles and is simply never read;
+            // setters on it, so an AfterBind step after a Value opening compiles and is simply never read —
             // what stays exclusive is the pair of OPENINGS, which live only on the seed.
             EmitSetter(sb, name, typeFqn, c.FullyQualifiedName, isDelegate: false, wrap: false, generic: false,
                 fold: false, AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility,
@@ -1090,15 +1114,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///     for the whole subtree. Same rule the auto-wrapped callbacks have always followed.
     /// </remarks>
     private static bool IsFoldedCallback(Candidate c, string propName) =>
-        c.GenericFactory is { } gf && gf.TypedDelegateProperties.Contains(propName);
+        c.GenericFactory is { } gf && gf.TypedDelegateProperties.Contains(propName, StringComparer.Ordinal);
 
     // Opt-in wrapping for a callback an ELEMENT-derived component invokes itself rather than handing to
     // the DOM. Matched by name so Rask.Core's own attribute needs no symbol threaded through here.
     private static bool HasAutoCallbackAttribute(ISymbol prop) =>
         prop.GetAttributes().Any(a =>
-            a.AttributeClass?.ToDisplayString() == "Rask.Core.AutoCallbackAttribute");
+            string.Equals(a.AttributeClass?.ToDisplayString(), "Rask.Core.AutoCallbackAttribute", StringComparison.Ordinal));
 
-    private static bool FoldsIntoPropsChanged(string name, string typeFqn, bool isDelegate, bool autoRerender) =>
+    private static bool FoldsIntoPropsChanged(string name, bool isDelegate, bool autoRerender) =>
         !string.Equals(name, "Key", StringComparison.Ordinal)
         && !isDelegate
         && !autoRerender
@@ -1200,7 +1224,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         // Flags are combined, not chosen: `.Bold.Italic` would read as two steps that each REPLACE the
         // other, because a step assigns rather than ors. So a flags enum keeps its plain setter.
-        var isFlags = e.GetAttributes().Any(static a => a.AttributeClass?.Name == "FlagsAttribute");
+        var isFlags = e.GetAttributes().Any(static a => string.Equals(a.AttributeClass?.Name, "FlagsAttribute", StringComparison.Ordinal));
 
         return members.Length is 0 or > MaxEnumStepMembers || isFlags
             ? ("", "")
@@ -1213,15 +1237,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///     component holds TWICE — an <c>Icon</c> and a <c>TrailingIcon</c> of one type have no answer to
     ///     which of them <c>.Search</c> would set, so neither gets steps.
     /// </summary>
-    private static List<(string Member, string EnumType, string Setter)> EnumSteps(Candidate c, IEnumerable<PropInfo> props)
+    private static List<(string Member, string EnumType, string Setter)> EnumSteps(IEnumerable<PropInfo> props)
     {
         var all = props.ToArray();
         var taken = new HashSet<string>(all.Select(static p => p.Name), StringComparer.Ordinal);
         var countByEnum = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var p in all.Where(static p => p.EnumMembers.Length > 0))
+        foreach (var enumType in all.Where(static p => p.EnumMembers.Length > 0).Select(static p => p.EnumType))
         {
-            countByEnum.TryGetValue(p.EnumType, out var n);
-            countByEnum[p.EnumType] = n + 1;
+            countByEnum.TryGetValue(enumType, out var n);
+            countByEnum[enumType] = n + 1;
         }
 
         var steps = new List<(string, string, string)>();
@@ -1232,16 +1256,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            foreach (var member in p.EnumMembers.Split(','))
-            {
-                // First claim wins, deterministically: the properties arrive in declaration order, so two
-                // enums sharing a member name give the step to whichever the component declares first
-                // rather than to whichever the compiler happened to emit first.
-                if (taken.Add(member))
-                {
-                    steps.Add((member, p.EnumType, p.Name));
-                }
-            }
+            // First claim wins, deterministically: the properties arrive in declaration order, so two
+            // enums sharing a member name give the step to whichever the component declares first
+            // rather than to whichever the compiler happened to emit first.
+            steps.AddRange(p.EnumMembers.Split(',')
+                .Where(member => taken.Add(member))
+                .Select(member => (member, p.EnumType, p.Name)));
         }
 
         return steps;
@@ -1265,7 +1285,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitEnumSteps(
         StringBuilder sb, Candidate c, string self, string visibility, string typeParameters, string constraints)
     {
-        var steps = EnumSteps(c, OwnSetterProps(c));
+        var steps = EnumSteps(OwnSetterProps(c));
         if (steps.Count == 0)
         {
             return;
@@ -1321,95 +1341,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // instance the key keeps (#1118), so Key may come anywhere in the chain.
         if (generic && string.Equals(name, "Key", StringComparison.Ordinal))
         {
-            // Emitted ONCE, over the component's own type parameter. This used to be emitted per chain
-            // SHAPE (when `Build<T>` and its siblings wrapped the component), which produced the same
-            // `Key<T>` twice — CS0111.
-            var self = "T";
-            sb.Append("    ").Append(visibility).Append(" static ")
-                .Append(self).Append(" Key").Append("<T>").Append("(this ").Append(self)
-                .Append(" __b, ")
-                .Append(typeFqn).Append(" value) where T : ").Append(receiver);
-            sb.Append(" { var __c = global::Rask.Core.BuilderRuntime.ClaimKey(__b, value); ");
-            if (pendingBit >= 0)
-            {
-                sb.Append("global::Rask.Core.BuilderRuntime.Written(__c, ")
-                    .Append(MaskLiteral(new[] { pendingBit })).Append("); ");
-            }
-
-            // Returns what ClaimKey handed back, NOT the receiver: settling identity can swap in the
-            // instance the key already owns, and returning `__b` would hand on the one it discarded —
-            // silently losing every step written after `.Key(…)`. Wrapping it in `new T(…)` is also not
-            // available any more (CS0304: T has no new() constraint), which is what makes the mistake
-            // easy to make by hand.
-            sb.AppendLine("__c.Key = value; return __c; }");
+            EmitKeySetter(sb, typeFqn, receiver, visibility, pendingBit);
             return;
         }
 
-        // `wrap` is the AutoCallback decision, and it is per property: an Element's
-        // handlers go to the DOM unwrapped (owner resolution already re-renders, and wrapping would
-        // allocate per render), a non-Element component's event callbacks are wrapped, and a form
-        // control's bound members (validators, post-bind hooks) are never wrapped at all.
-        var paramType = typeFqn;
-        // Wrap returns a nullable delegate (null in → null out); assigning it to a non-nullable prop
-        // needs the null-forgiving `!` (CS8601), the same way the factory's assignment pass does it.
-        // A CARRIER-typed setter is the pass-through — it forwards a carrier the caller already holds,
-        // and that carrier was wrapped when a delegate was put into it. Wrapping here would wrap the
-        // struct (which `Wrap` has no overload for) and, if it did compile, would double-wrap. The
-        // delegate overloads beside it do the wrapping; see EmitCarrierOverloads.
-        var value = wrap && CarrierDelegates(typeFqn).Count == 0
-            ? "global::Rask.Core.AutoCallback.Wrap(value)"
-              + (typeFqn.EndsWith("?", StringComparison.Ordinal) ? string.Empty : "!")
-            : "value";
-        var assigned = value;
-
-        // A non-nullable `Callback` still takes `null` at its pass-through — the spelling for "no handler"
-        // that every other step accepts, and which the bare-delegate overloads beside it would otherwise
-        // make ambiguous (CS0121). A null is the unset slot, which is what `default` already is.
-        if (IsNonNullableCallback(typeFqn))
-        {
-            paramType = typeFqn + "?";
-            assigned = "value.GetValueOrDefault()";
-        }
-
-        // The propsChanged fold, one prop at a time. The factory can snapshot every prop, assign them
-        // all and diff once, because it knows where the assignments end; a setter chain does not, so
-        // each folding setter accumulates its own delta and the parent fires the single notification
-        // when its Render() returns (Component.RenderForLive). Same EqualityComparer semantics, and the
-        // non-folding props (Key, delegates) emit no call at all — see FoldsIntoPropsChanged.
-        var track = fold
-            ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + EscapeIdentifier(name) + ", value); "
-            : string.Empty;
-
-        // …and the other half: the chain NAMED this prop, so the deferred reset must leave it alone.
-        // A no-op when the receiver came from a factory instead of an entry (both surfaces compile side
-        // by side during the migration) — that component is fully re-assigned by its factory already.
-        if (pendingBit >= 0)
-        {
-            track += "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); ";
-        }
-
-        // A callback prop is non-folding, so it carries no pending bit and the eager reset puts it back
-        // unconditionally at the next entry. Record that there IS one to put back: an element that
-        // names no callback — almost every element — then skips a block of ~88 delegate writes on
-        // every render. See Component.FlagCallbackAssigned.
-        if (isDelegate && !fold && pendingBit < 0)
-        {
-            track += "global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); ";
-        }
-
-        // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the
-        // setter's accessibility tracks its component's — the same rule the factory emission uses.
-        // The receiver is the component itself. That is the whole reason a callback property is a
-        // CARRIER (`Callback`/`Callback<T>`/`Fn<…>`), never an ordinary delegate: C# stops at a
-        // delegate-typed property when it resolves `x.OnClick(fn)` and reads the call as an invocation
-        // (CS1593), never reaching an extension method. A struct is not invocable, so the lookup falls
-        // through and the setter binds. See Rask.Core.Callback.
-        // A carrier-typed prop gets bare-delegate overloads beside this setter, and `null` converts to
-        // every one of them. Priority makes the carrier-typed one win that call rather than CS0121.
-        if (CarrierDelegates(typeFqn).Count > 0)
-        {
-            sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(1)]");
-        }
+        var (paramType, assigned) = SetterParameter(typeFqn, wrap);
+        var track = TrackStatements(name, fold, isDelegate, pendingBit);
+        EmitCarrierPriority(sb, typeFqn);
 
         sb.Append("    ").Append(visibility).Append(" static ");
         if (generic)
@@ -1441,11 +1379,112 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             generic: false, typeParameters, constraints);
     }
 
+    private static void EmitKeySetter(StringBuilder sb, string typeFqn, string receiver, string visibility, int pendingBit)
+    {
+        // Emitted ONCE, over the component's own type parameter. This used to be emitted per chain
+        // SHAPE (when `Build<T>` and its siblings wrapped the component), which produced the same
+        // `Key<T>` twice — CS0111.
+        var self = "T";
+        sb.Append("    ").Append(visibility).Append(" static ")
+            .Append(self).Append(" Key").Append("<T>").Append("(this ").Append(self)
+            .Append(" __b, ")
+            .Append(typeFqn).Append(" value) where T : ").Append(receiver);
+        sb.Append(" { var __c = global::Rask.Core.BuilderRuntime.ClaimKey(__b, value); ");
+        if (pendingBit >= 0)
+        {
+            sb.Append("global::Rask.Core.BuilderRuntime.Written(__c, ")
+                .Append(MaskLiteral(new[] { pendingBit })).Append("); ");
+        }
+
+        // Returns what ClaimKey handed back, NOT the receiver: settling identity can swap in the
+        // instance the key already owns, and returning `__b` would hand on the one it discarded —
+        // silently losing every step written after `.Key(…)`. Wrapping it in `new T(…)` is also not
+        // available any more (CS0304: T has no new() constraint), which is what makes the mistake
+        // easy to make by hand.
+        sb.AppendLine("__c.Key = value; return __c; }");
+    }
+
+    // `wrap` is the AutoCallback decision, and it is per property: an Element's
+    // handlers go to the DOM unwrapped (owner resolution already re-renders, and wrapping would
+    // allocate per render), a non-Element component's event callbacks are wrapped, and a form
+    // control's bound members (validators, post-bind hooks) are never wrapped at all.
+    //
+    // Wrap returns a nullable delegate (null in → null out); assigning it to a non-nullable prop
+    // needs the null-forgiving `!` (CS8601), the same way the factory's assignment pass does it.
+    // A CARRIER-typed setter is the pass-through — it forwards a carrier the caller already holds,
+    // and that carrier was wrapped when a delegate was put into it. Wrapping here would wrap the
+    // struct (which `Wrap` has no overload for) and, if it did compile, would double-wrap. The
+    // delegate overloads beside it do the wrapping; see EmitCarrierOverloads.
+    // The setter's parameter type and what it assigns. A non-nullable `Callback` still takes `null` at its
+    // pass-through — the spelling for "no handler" that every other step accepts, and which the bare-delegate
+    // overloads beside it would otherwise make ambiguous (CS0121). A null is the unset slot, which is what
+    // `default` already is.
+    private static (string ParamType, string Assigned) SetterParameter(string typeFqn, bool wrap) =>
+        IsNonNullableCallback(typeFqn)
+            ? (typeFqn + "?", "value.GetValueOrDefault()")
+            : (typeFqn, AssignedValue(typeFqn, wrap));
+
+    private static string AssignedValue(string typeFqn, bool wrap)
+    {
+        var suppression = typeFqn.EndsWith("?", StringComparison.Ordinal) ? string.Empty : "!";
+        return wrap && CarrierDelegates(typeFqn).Count == 0
+            ? "global::Rask.Core.AutoCallback.Wrap(value)" + suppression
+            : "value";
+    }
+
+    // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the
+    // setter's accessibility tracks its component's — the same rule the factory emission uses.
+    // The receiver is the component itself. That is the whole reason a callback property is a
+    // CARRIER (`Callback`/`Callback<T>`/`Fn<…>`), never an ordinary delegate: C# stops at a
+    // delegate-typed property when it resolves `x.OnClick(fn)` and reads the call as an invocation
+    // (CS1593), never reaching an extension method. A struct is not invocable, so the lookup falls
+    // through and the setter binds. See Rask.Core.Callback.
+    // A carrier-typed prop gets bare-delegate overloads beside this setter, and `null` converts to
+    // every one of them. Priority makes the carrier-typed one win that call rather than CS0121.
+    private static void EmitCarrierPriority(StringBuilder sb, string typeFqn)
+    {
+        if (CarrierDelegates(typeFqn).Count > 0)
+        {
+            sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(1)]");
+        }
+    }
+
+    private static string TrackStatements(string name, bool fold, bool isDelegate, int pendingBit)
+    {
+        // The propsChanged fold, one prop at a time. The factory can snapshot every prop, assign them
+        // all and diff once, because it knows where the assignments end; a setter chain does not, so
+        // each folding setter accumulates its own delta and the parent fires the single notification
+        // when its Render() returns (Component.RenderForLive). Same EqualityComparer semantics, and the
+        // non-folding props (Key, delegates) emit no call at all — see FoldsIntoPropsChanged.
+        var track = fold
+            ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + EscapeIdentifier(name) + ", value); "
+            : string.Empty;
+
+        // …and the other half: the chain NAMED this prop, so the deferred reset must leave it alone.
+        // A no-op when the receiver came from a factory instead of an entry (both surfaces compile side
+        // by side during the migration) — that component is fully re-assigned by its factory already.
+        if (pendingBit >= 0)
+        {
+            track += "global::Rask.Core.BuilderRuntime.Written(__c, " + MaskLiteral(new[] { pendingBit }) + "); ";
+        }
+
+        // A callback prop is non-folding, so it carries no pending bit and the eager reset puts it back
+        // unconditionally at the next entry. Record that there IS one to put back: an element that
+        // names no callback — almost every element — then skips a block of ~88 delegate writes on
+        // every render. See Component.FlagCallbackAssigned.
+        if (isDelegate && !fold && pendingBit < 0)
+        {
+            track += "global::Rask.Core.BuilderRuntime.MarkCallbacks(__c); ";
+        }
+
+        return track;
+    }
+
     private const string CallbackFqn = "global::Rask.Core.Callback";
 
     private static bool IsNonNullableCallback(string typeFqn) =>
         !typeFqn.EndsWith("?", StringComparison.Ordinal)
-        && (typeFqn == CallbackFqn || typeFqn.StartsWith(CallbackFqn + "<", StringComparison.Ordinal));
+        && (string.Equals(typeFqn, CallbackFqn, StringComparison.Ordinal) || typeFqn.StartsWith(CallbackFqn + "<", StringComparison.Ordinal));
 
     private const string FnFqn = "global::Rask.Core.Fn";
 
@@ -1484,8 +1523,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // `Callback` is the sync/async pair: one name, two overloads. `Validator` is the same shape over
         // the framework's own named delegates. `Fn` returns a value and so has no async twin — its last
         // type argument is the return type, which is why it takes one overload rather than two.
-        // A Callback<T> also takes a handler that ignores its argument — `.OnClick(() => n++)` beside
-        // `.OnClick(e => Log(e.ClientX))` — stored as it is, so the parameterless form allocates nothing.
+        // A Callback<T> also takes a handler that ignores its argument — a parameterless OnClick lambda
+        // beside one that reads the event's ClientX — stored as it is, so that form allocates nothing.
         return name switch
         {
             CallbackFqn when args.Count == 1 => [
@@ -1626,6 +1665,55 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
     }
 
+    // The three bag overloads' parameter lists, the AttrBag each builds, and its doc.
+    private static (string Parameters, string Expression, string Doc)[] BagOverloads(
+        string propertyName, string setterName)
+    {
+        // The prefix these entries render under, which is the whole point of the overload: `.Aria("label",
+        // "Close")` is aria-label, not an attribute called "label". Naming it in the doc is what tells a
+        // reader they must NOT write the prefix themselves.
+        //
+        // Listed, not derived. The prefix lives in Element.WriteAttributes as a literal, and nothing ties it
+        // to the property's name — a bag property added later could render under anything. Lowercasing the
+        // name would document that new property CONFIDENTLY and WRONGLY, which is worse than saying less, so
+        // an unknown bag falls back to wording that makes no claim about the rendered name.
+        var prefix = propertyName switch
+        {
+            "Data" => "data-",
+            "Aria" => "aria-",
+            _ => null,
+        };
+
+        var attr = prefix is null ? "attribute" : "<c>" + prefix + "</c> attribute";
+        var named = prefix is null ? "<c>{name}</c>" : "<c>" + prefix + "{name}</c>";
+        var without = prefix is null
+            ? "The attribute name."
+            : "The part after <c>" + prefix + "</c>. Do not include the prefix.";
+
+        return
+        [
+            // Name only — a BARE attribute (`data-rask-no-restore`), which is how the framework's
+            // own opt-out flags are written. A null value is what renders one, the same rule
+            // `disabled` follows; `""` would render `=""`, which is a different attribute.
+            ("string name", "new global::Rask.Core.AttrBag(name, null)",
+                "<summary>Adds one bare " + named + " " + attr + ", with no value — the way <c>disabled</c> "
+                + "is written. Pass <c>\"\"</c> as the value instead to render <c>=\"\"</c>, which is a different "
+                + "attribute.</summary>"
+                + "\n    /// <param name=\"name\">" + without + "</param>"),
+            ("string name, string? value", "new global::Rask.Core.AttrBag(name, value)",
+                "<summary>Sets one " + named + " " + attr + " to a value — the everyday shape, as in "
+                + "<c>." + setterName + "(\"…\", \"…\")</c>. The value is HTML-encoded; a <see langword=\"null\"/> value "
+                + "renders the attribute bare.</summary>"
+                + "\n    /// <param name=\"name\">" + without + "</param>"
+                + "\n    /// <param name=\"value\">The attribute value, or <see langword=\"null\"/> for a bare attribute.</param>"),
+            ("params global::System.ReadOnlySpan<(string Name, string? Value)> pairs",
+                "new global::Rask.Core.AttrBag(pairs)",
+                "<summary>Sets several " + attr + "s at once. Cheaper than passing a dictionary — the "
+                + "argument list stays on the stack and nothing is allocated per render.</summary>"
+                + "\n    /// <param name=\"pairs\">Name/value pairs. " + without + "</param>"),
+        ];
+    }
+
     /// <summary>
     ///     Two extra steps beside a bag property's dictionary setter, so the shape real markup is full of
     ///     — one attribute — reads as <c>.Data("test-id", "primary")</c> rather than
@@ -1675,49 +1763,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // is resolved against ALL of them and binds to whichever component's overload wins — it picked
         // FullscreenTrigger's for a Trigger.EyeDropper. Assigning the property directly has no name
         // to resolve.
-        // The prefix these entries render under, which is the whole point of the overload: `.Aria("label",
-        // "Close")` is aria-label, not an attribute called "label". Naming it in the doc is what tells a
-        // reader they must NOT write the prefix themselves.
-        //
-        // Listed, not derived. The prefix lives in Element.WriteAttributes as a literal, and nothing ties it
-        // to the property's name — a bag property added later could render under anything. Lowercasing the
-        // name would document that new property CONFIDENTLY and WRONGLY, which is worse than saying less, so
-        // an unknown bag falls back to wording that makes no claim about the rendered name.
-        var prefix = propertyName switch
-        {
-            "Data" => "data-",
-            "Aria" => "aria-",
-            _ => null,
-        };
-
-        var attr = prefix is null ? "attribute" : "<c>" + prefix + "</c> attribute";
-        var named = prefix is null ? "<c>{name}</c>" : "<c>" + prefix + "{name}</c>";
-        var without = prefix is null
-            ? "The attribute name."
-            : "The part after <c>" + prefix + "</c>. Do not include the prefix.";
-
-        foreach (var (parameters, expression, doc) in new[]
-                 {
-                     // Name only — a BARE attribute (`data-rask-no-restore`), which is how the framework's
-                     // own opt-out flags are written. A null value is what renders one, the same rule
-                     // `disabled` follows; `""` would render `=""`, which is a different attribute.
-                     ("string name", "new global::Rask.Core.AttrBag(name, null)",
-                         "<summary>Adds one bare " + named + " " + attr + ", with no value — the way <c>disabled</c> "
-                         + "is written. Pass <c>\"\"</c> as the value instead to render <c>=\"\"</c>, which is a different "
-                         + "attribute.</summary>"
-                         + "\n    /// <param name=\"name\">" + without + "</param>"),
-                     ("string name, string? value", "new global::Rask.Core.AttrBag(name, value)",
-                         "<summary>Sets one " + named + " " + attr + " to a value — the everyday shape, as in "
-                         + "<c>." + setterName + "(\"…\", \"…\")</c>. The value is HTML-encoded; a <see langword=\"null\"/> value "
-                         + "renders the attribute bare.</summary>"
-                         + "\n    /// <param name=\"name\">" + without + "</param>"
-                         + "\n    /// <param name=\"value\">The attribute value, or <see langword=\"null\"/> for a bare attribute.</param>"),
-                     ("params global::System.ReadOnlySpan<(string Name, string? Value)> pairs",
-                         "new global::Rask.Core.AttrBag(pairs)",
-                         "<summary>Sets several " + attr + "s at once. Cheaper than passing a dictionary — the "
-                         + "argument list stays on the stack and nothing is allocated per render.</summary>"
-                         + "\n    /// <param name=\"pairs\">Name/value pairs. " + without + "</param>"),
-                 })
+        foreach (var (parameters, expression, doc) in BagOverloads(propertyName, setterName))
         {
             sb.Append("    /// ").AppendLine(doc);
             sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
@@ -1755,17 +1801,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // called on and returns exactly that. Emitting a shared step over more than one shape is CS0111 —
     // they all collapse to the same signature — so one shape is load-bearing, not tidying.
 
-    // One more type argument on a `<…>` list — or the whole list, when there was none.
-    private static string Append(string typeArgs, string? extra) =>
-        extra is null ? typeArgs
-        : typeArgs.Length == 0 ? "<" + extra + ">"
-        : typeArgs.Substring(0, typeArgs.Length - 1) + ", " + extra + ">";
-
-    // The name the open key is DECLARED under. Kept beside GridOpenKey rather than re-derived from it,
-    // because the two are only incidentally the same word: one is a mode marker, the other a C# type
-    // parameter that has to agree with what BuildOf wrote into the receiver.
-    private const string GridKeyParameter = "TKey";
-
     // The two ways into a form control, as steps. A GENERIC control's Bind and Value already open its
     // chain because they pin the value type (see PinCandidates); a non-generic one — BsCheck, whose value
     // is a plain bool — pins nothing, so without this its seed would offer no way to choose a mode at all
@@ -1776,7 +1811,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var openings = new List<List<EntryInference>>();
         foreach (var name in new[] { "Bind", "Value" })
         {
-            if (c.Properties.FirstOrDefault(p => p.Name == name) is not { Name.Length: > 0 } p)
+            if (c.Properties.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.Ordinal)) is not { Name.Length: > 0 } p)
             {
                 continue;
             }
@@ -1798,7 +1833,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     p.Name,
                     isBind ? StripNullable(p.TypeFqn) : p.TypeFqn,
                     p.Name,
-                    !isBind && FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                    !isBind && FoldsIntoPropsChanged(p.Name, p.IsDelegate, p.IsAutoRerenderDelegate),
                     isBind ? -1 : Bit(bits, p.Name),
                     p.Summary),
             ]);
@@ -1846,16 +1881,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private static bool HasModeOpening(Candidate c) =>
         c.FormControl is not null && c.Properties.Any(static p => p.Name is "Bind" or "Value");
 
-    // A generated parameter, and a generated assignment, are the property's own type and the value
-    // itself. There used to be a layer here: a callback property was a CARRIER wrapping its delegate, so
-    // every parameter had to be typed as the carried delegate (a lambda cannot reach a carrier — that
-    // needs a delegate conversion followed by a user-defined one, which C# will not chain) and every
-    // assignment had to run back through `From`. A callback property is still a carrier (`Callback<T>`,
-    // `Fn<…>`) so it cannot swallow its own setter on a component receiver, but the setter now takes the
-    // carrier type directly and the bare-delegate overloads beside it (see CarrierDelegates) convert a
-    // lambda, so a parameter is the property's own type and there is nothing to map.
-    private static string ParamType(PropInfo p) => p.TypeFqn;
-
     private static string SanitizeIdentifier(string value)
     {
         var sb = new StringBuilder(value.Length);
@@ -1877,7 +1902,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // one it is an unresolved error type — and an error type displays as the bare name its author wrote,
     // which binds from the author's file (it has the using) and not from RaskBuilderSetters.g.cs (it does
     // not). Byte-identical for every type that involves no generated model.
-    private static string TypeName(ITypeSymbol type, SymbolDisplayFormat format, Compilation compilation) =>
+    private static string DisplayTypeName(ITypeSymbol type, SymbolDisplayFormat format, Compilation compilation) =>
         Shared.GeneratedModelShape.DisplayName(type, format, compilation);
 
     private readonly record struct SetterHost(
@@ -1924,12 +1949,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var names = new SortedSet<string>(StringComparer.Ordinal);
         for (var t = component; t is not null; t = t.BaseType)
         {
-            foreach (var m in t.GetMembers())
+            foreach (var m in t.GetMembers().Where(m => !string.IsNullOrEmpty(m.Name)))
             {
-                if (!string.IsNullOrEmpty(m.Name))
-                {
-                    names.Add(m.Name);
-                }
+                names.Add(m.Name);
             }
         }
 
@@ -2018,34 +2040,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("public abstract partial class RaskMarkup");
         sb.AppendLine("{");
 
-        // …and the same entries a second time, as the public `RaskEntriesRaskCore` class every other
-        // assembly's own components already publish. Inheritance is how a host normally reaches the
-        // framework tags, and it is the cheap way — but a `[RaskMarkup]` host whose base slot is taken
-        // (or that is `static`) cannot inherit anything, so its entries have to be injected as members,
-        // and a member has to forward to something nameable from another assembly. `protected` is not
-        // that; this is. Written from the SAME EntryCandidates list, in the same loop, so the two cannot
-        // disagree about which components have an entry or about what it resets.
-        var shared = new StringBuilder();
-        EmitGeneratedFileHeader(shared);
-        shared.AppendLine();
-        shared.AppendLine("/// <summary>");
-        shared.AppendLine("///     Rask.Core's builder entries, one per framework component, in the form a");
-        shared.AppendLine("///     REFERENCING assembly can name. Almost every host reaches these by inheriting");
-        shared.AppendLine("///     'Rask.Core.RaskMarkup' instead; this is for the hosts that cannot inherit.");
-        shared.AppendLine("/// </summary>");
-        shared.Append("public static class ").AppendLine(EntryHostName(host.AssemblyName));
-        shared.AppendLine("{");
+        var shared = OpenEntryHost(host.AssemblyName);
 
-        // …and a third time, as Rask.Markup: the same entries under a name an author writes, so
-        // `global using static Rask.Markup;` makes them bare outside a component, and `Markup.Footer` reaches
-        // the element where a member of that name hides it. The same loop again, so it cannot drift.
-        var html = new StringBuilder();
-        EmitGeneratedFileHeader(html);
-        html.AppendLine();
-        html.AppendLine("namespace Rask;");
-        html.AppendLine();
-        html.AppendLine("public static partial class Markup");
-        html.AppendLine("{");
+        var html = OpenMarkupEntries();
 
         var entries = EntryCandidates(spc, candidates, taken);
         var seeded = new HashSet<string>(StringComparer.Ordinal);
@@ -2062,49 +2059,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // argument to pin, or a required property. One property per component NAME.
             if (NeedsSeed(c))
             {
-                if (!seeded.Add(c.EntryName))
+                if (seeded.Add(c.EntryName))
                 {
-                    continue;
-                }
-
-                EmitEntryDoc(sb, c);
-                sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
-                    .AppendLine(" = default;");
-
-                foreach (var host2 in new[] { shared, html })
-                {
-                    EmitEntryDoc(host2, c);
-                    host2.Append(c.IsPublic ? "    public static " : "    internal static ")
-                        .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
-                        .AppendLine(" => default;");
+                    EmitSeedEntry(sb, shared, html, c);
                 }
 
                 continue;
             }
 
-            // An internal component cannot surface through a `protected` member of the public
-            // Component (CS0053); `private protected` keeps it to derived types in this assembly.
-            //
-            // The entry opens a chain and hands back the component itself: the steps after it are
-            // extension methods on the component, and a carrier-typed property (not a delegate) is what
-            // keeps one from swallowing its own setter (see Rask.Core.Callback).
-            foreach (var (name, tag) in EntriesOf(c))
-            {
-                var body = EntryBody(c, tag, host.AssemblyName);
-                EmitEntryDoc(sb, c);
-                sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-                    .Append(c.FullyQualifiedName).Append(' ')
-                    .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
-
-                foreach (var host2 in new[] { shared, html })
-                {
-                    EmitEntryDoc(host2, c);
-                    host2.Append(c.IsPublic ? "    public static " : "    internal static ")
-                        .Append(c.FullyQualifiedName).Append(' ')
-                        .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
-                }
-            }
+            EmitComponentEntry(sb, shared, html, c, host.AssemblyName);
         }
 
         sb.AppendLine("}");
@@ -2117,6 +2080,86 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         shared.AppendLine("}");
         EmitSeeds(shared, entries, host.AssemblyName, runtime);
         spc.AddSource("RaskBuilderEntryHost.g.cs", SourceText.From(shared.ToString(), Encoding.UTF8));
+    }
+
+    private static StringBuilder OpenEntryHost(string assemblyName)
+    {
+        // …and the same entries a second time, as the public `RaskEntriesRaskCore` class every other
+        // assembly's own components already publish. Inheritance is how a host normally reaches the
+        // framework tags, and it is the cheap way — but a `[RaskMarkup]` host whose base slot is taken
+        // (or that is `static`) cannot inherit anything, so its entries have to be injected as members,
+        // and a member has to forward to something nameable from another assembly. `protected` is not
+        // that; this is. Written from the SAME EntryCandidates list, in the same loop, so the two cannot
+        // disagree about which components have an entry or about what it resets.
+        var shared = new StringBuilder();
+        EmitGeneratedFileHeader(shared);
+        shared.AppendLine();
+        shared.AppendLine("/// <summary>");
+        shared.AppendLine("///     Rask.Core's builder entries, one per framework component, in the form a");
+        shared.AppendLine("///     REFERENCING assembly can name. Almost every host reaches these by inheriting");
+        shared.AppendLine("///     'Rask.Core.RaskMarkup' instead; this is for the hosts that cannot inherit.");
+        shared.AppendLine("/// </summary>");
+        shared.Append("public static class ").AppendLine(EntryHostName(assemblyName));
+        shared.AppendLine("{");
+        return shared;
+    }
+
+    private static StringBuilder OpenMarkupEntries()
+    {
+        // …and a third time, as Rask.Markup: the same entries under a name an author writes, so
+        // `global using static Rask.Markup;` makes them bare outside a component, and `Markup.Footer` reaches
+        // the element where a member of that name hides it. The same loop again, so it cannot drift.
+        var html = new StringBuilder();
+        EmitGeneratedFileHeader(html);
+        html.AppendLine();
+        html.AppendLine("namespace Rask;");
+        html.AppendLine();
+        html.AppendLine("public static partial class Markup");
+        html.AppendLine("{");
+        return html;
+    }
+
+    private static void EmitComponentEntry(
+        StringBuilder sb, StringBuilder shared, StringBuilder html, Candidate c, string assemblyName)
+    {
+        // An internal component cannot surface through a `protected` member of the public
+        // Component (CS0053); `private protected` keeps it to derived types in this assembly.
+        //
+        // The entry opens a chain and hands back the component itself: the steps after it are
+        // extension methods on the component, and a carrier-typed property (not a delegate) is what
+        // keeps one from swallowing its own setter (see Rask.Core.Callback).
+        foreach (var (name, tag) in EntriesOf(c))
+        {
+            var body = EntryBody(c, tag, assemblyName);
+            EmitEntryDoc(sb, c);
+            sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
+                .Append(c.FullyQualifiedName).Append(' ')
+                .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
+
+            foreach (var host2 in new[] { shared, html })
+            {
+                EmitEntryDoc(host2, c);
+                host2.Append(c.IsPublic ? "    public static " : "    internal static ")
+                    .Append(c.FullyQualifiedName).Append(' ')
+                    .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
+            }
+        }
+    }
+
+    private static void EmitSeedEntry(StringBuilder sb, StringBuilder shared, StringBuilder html, Candidate c)
+    {
+        EmitEntryDoc(sb, c);
+        sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
+            .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
+            .AppendLine(" = default;");
+
+        foreach (var host2 in new[] { shared, html })
+        {
+            EmitEntryDoc(host2, c);
+            host2.Append(c.IsPublic ? "    public static " : "    internal static ")
+                .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
+                .AppendLine(" => default;");
+        }
     }
 
     /// <summary>
@@ -2220,8 +2263,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             + "global::System.ComponentModel.EditorBrowsableState.Never)]";
         var visibility = c.IsPublic ? "public" : "internal";
         var required = RequiredSteps(c);
-        var openings = Openings(c);
-
 
         sb.Append(pad).Append("/// <summary>Where a ").Append(c.TypeName)
             .AppendLine(" chain starts. Take one of its steps to begin.</summary>");
@@ -2333,97 +2374,117 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         foreach (var opening in openings.Where(static o => o.Count == 2))
         {
-            var stageParams = TypeParametersFor(c, opening[0]);
-            sb.Append(pad).Append("/// <summary>").Append(c.TypeName).Append(" awaiting ")
-                .Append(opening[1].ParamName).AppendLine(", which fixes the rest of its type.</summary>");
-            sb.Append(pad).AppendLine(hidden);
-            sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StageName(c, opening[0]))
-                .Append(AnnotateDecl(c, stageParams))
-                .AppendLine(ConstraintsDeclaredBy(c, stageParams));
-            sb.Append(pad).AppendLine("{");
-            sb.Append(pad).Append("    internal ").Append(StageName(c, opening[0])).Append('(')
-                .Append(StepParamType(opening[0])).Append(" value, object? key)").AppendLine();
-            sb.Append(pad).AppendLine("    {");
-            sb.Append(pad).Append("        ").Append(opening[0].ParamName).AppendLine(" = value;");
-            sb.Append(pad).AppendLine("        _key = key;");
-            sb.Append(pad).AppendLine("    }");
-            sb.Append(pad).AppendLine();
-            // The key the seed was carrying when the opening step reached this stage, claimed by the step that
-            // builds the component.
-            sb.Append(pad).AppendLine("    private readonly object? _key;");
-            sb.Append(pad).AppendLine();
-            sb.Append(pad).Append("    private ").Append(StepParamType(opening[0])).Append(' ')
-                .Append(opening[0].ParamName).AppendLine(" { get; }");
-            sb.Append(pad).AppendLine();
-
-            EmitBuildingStep(
-                sb, c, pad + "    ", assemblyName, runtimePrefix, opening[1],
-                [(opening[0], "this." + EscapeIdentifier(opening[0].ParamName))],
-                SatisfiedBy(c, opening), carriesKey: true);
-
-            EmitIdentityStep(sb, c, pad + "    ", assemblyName, runtimePrefix, opening);
-
-            sb.Append(pad).AppendLine("}");
+            EmitStage(sb, c, opening, pad, assemblyName, runtimePrefix, visibility, hidden);
         }
 
         foreach (var state in ReachableStates(c))
         {
-            sb.Append(pad).Append("/// <summary>").Append(c.TypeName).Append(" still awaiting ")
-                .Append(string.Join(", ", required.Where(r => !state.Contains(r.PropertyName))
-                    .Select(r => r.ParamName)))
-                .AppendLine(".</summary>");
-            sb.Append(pad).AppendLine(hidden);
-            sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StateName(c, state))
-                .Append(AnnotateDecl(c, c.TypeParameters))
-                .AppendLine(ConstraintsDeclaredBy(c, c.TypeParameters));
-            sb.Append(pad).AppendLine("{");
-            sb.Append(pad).Append("    internal ").Append(StateName(c, state)).Append('(')
-                .Append(c.FullyQualifiedName).AppendLine(" component) => Component = component;");
-            sb.Append(pad).AppendLine();
-            sb.Append(pad).Append("    private ").Append(c.FullyQualifiedName)
-                .AppendLine(" Component { get; }");
+            EmitState(sb, c, state, required, pad, visibility, hidden);
+        }
+    }
 
-            // Key is offered here, not only on the finished chain, so it can come FIRST (#685): it decides
-            // which instance is being built, and saying which item this is before anything else reads best.
-            // Returns the same state, so it composes anywhere in the required sequence and changes nothing
-            // about what is still outstanding.
+    private static void EmitStage(
+        StringBuilder sb, Candidate c, List<EntryInference> opening, string pad, string assemblyName, string runtimePrefix,
+        string visibility, string hidden)
+    {
+        var stageParams = TypeParametersFor(c, opening[0]);
+        sb.Append(pad).Append("/// <summary>").Append(c.TypeName).Append(" awaiting ")
+            .Append(opening[1].ParamName).AppendLine(", which fixes the rest of its type.</summary>");
+        sb.Append(pad).AppendLine(hidden);
+        sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StageName(c, opening[0]))
+            .Append(AnnotateDecl(c, stageParams))
+            .AppendLine(ConstraintsDeclaredBy(c, stageParams));
+        sb.Append(pad).AppendLine("{");
+        sb.Append(pad).Append("    internal ").Append(StageName(c, opening[0])).Append('(')
+            .Append(StepParamType(opening[0])).Append(" value, object? key)").AppendLine();
+        sb.Append(pad).AppendLine("    {");
+        sb.Append(pad).Append("        ").Append(opening[0].ParamName).AppendLine(" = value;");
+        sb.Append(pad).AppendLine("        _key = key;");
+        sb.Append(pad).AppendLine("    }");
+        sb.Append(pad).AppendLine();
+        // The key the seed was carrying when the opening step reached this stage, claimed by the step that
+        // builds the component.
+        sb.Append(pad).AppendLine("    private readonly object? _key;");
+        sb.Append(pad).AppendLine();
+        sb.Append(pad).Append("    private ").Append(StepParamType(opening[0])).Append(' ')
+            .Append(opening[0].ParamName).AppendLine(" { get; }");
+        sb.Append(pad).AppendLine();
+
+        EmitBuildingStep(
+            sb, c, pad + "    ", assemblyName, runtimePrefix, opening[1],
+            [(opening[0], "this." + EscapeIdentifier(opening[0].ParamName))],
+            SatisfiedBy(c, opening), carriesKey: true);
+
+        EmitIdentityStep(sb, c, pad + "    ", assemblyName, runtimePrefix, opening);
+
+        sb.Append(pad).AppendLine("}");
+    }
+
+    private static void EmitState(
+        StringBuilder sb, Candidate c, HashSet<string> state, List<EntryInference> required, string pad,
+        string visibility, string hidden)
+    {
+        sb.Append(pad).Append("/// <summary>").Append(c.TypeName).Append(" still awaiting ")
+            .Append(string.Join(", ", required.Where(r => !state.Contains(r.PropertyName))
+                .Select(r => r.ParamName)))
+            .AppendLine(".</summary>");
+        sb.Append(pad).AppendLine(hidden);
+        sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(StateName(c, state))
+            .Append(AnnotateDecl(c, c.TypeParameters))
+            .AppendLine(ConstraintsDeclaredBy(c, c.TypeParameters));
+        sb.Append(pad).AppendLine("{");
+        sb.Append(pad).Append("    internal ").Append(StateName(c, state)).Append('(')
+            .Append(c.FullyQualifiedName).AppendLine(" component) => Component = component;");
+        sb.Append(pad).AppendLine();
+        sb.Append(pad).Append("    private ").Append(c.FullyQualifiedName)
+            .AppendLine(" Component { get; }");
+
+        // Key is offered here, not only on the finished chain, so it can come FIRST (#685): it decides
+        // which instance is being built, and saying which item this is before anything else reads best.
+        // Returns the same state, so it composes anywhere in the required sequence and changes nothing
+        // about what is still outstanding.
+        sb.Append(pad).AppendLine();
+        sb.Append(pad).AppendLine(
+            "    /// <summary>Sets the reconciliation identity — which item this is.</summary>");
+        sb.Append(pad).Append("    public ").Append(StateName(c, state))
+            .Append(c.TypeParameters)
+            .AppendLine(" Key(object? key)");
+        sb.Append(pad).AppendLine("    {");
+        sb.Append(pad).AppendLine(
+            "        var __c = global::Rask.Core.BuilderRuntime.ClaimKey(Component, key);");
+        sb.Append(pad).AppendLine("        __c.Key = key;");
+        sb.Append(pad).AppendLine("        return new(__c);");
+        sb.Append(pad).AppendLine("    }");
+
+        EmitRequiredSteps(sb, c, state, required, pad);
+
+        sb.Append(pad).AppendLine("}");
+    }
+
+    private static void EmitRequiredSteps(
+        StringBuilder sb, Candidate c, HashSet<string> state, List<EntryInference> required, string pad)
+    {
+        foreach (var step in required.Where(r => !state.Contains(r.PropertyName)))
+        {
+            var next = new HashSet<string>(state, StringComparer.Ordinal) { step.PropertyName };
+            var done = next.Count == required.Count;
             sb.Append(pad).AppendLine();
-            sb.Append(pad).AppendLine(
-                "    /// <summary>Sets the reconciliation identity — which item this is.</summary>");
-            sb.Append(pad).Append("    public ").Append(StateName(c, state))
-                .Append(c.TypeParameters)
-                .AppendLine(" Key(object? key)");
+            EmitDocComment(sb, step.Summary, pad + "    ");
+            sb.Append(pad).Append("    public ")
+                .Append(done
+                    ? c.FullyQualifiedName
+                    : StateFqn(c, next) + c.TypeParameters)
+                .Append(' ').Append(EscapeIdentifier(step.ParamName)).Append('(')
+                .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName))
+                .AppendLine(")");
             sb.Append(pad).AppendLine("    {");
-            sb.Append(pad).AppendLine(
-                "        var __c = global::Rask.Core.BuilderRuntime.ClaimKey(Component, key);");
-            sb.Append(pad).AppendLine("        __c.Key = key;");
-            sb.Append(pad).AppendLine("        return new(__c);");
+            sb.Append(pad).AppendLine("        var __c = Component;");
+            EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad + "    ");
+            // The last step hands back the COMPONENT, which is what the chain is now — so it returns
+            // the receiver rather than wrapping it. An earlier one still hands on the state struct
+            // that is waiting for the rest, and that is a target-typed `new` as it always was.
+            sb.Append(pad).AppendLine(done ? "        return __c;" : "        return new(__c);");
             sb.Append(pad).AppendLine("    }");
-
-            foreach (var step in required.Where(r => !state.Contains(r.PropertyName)))
-            {
-                var next = new HashSet<string>(state, StringComparer.Ordinal) { step.PropertyName };
-                var done = next.Count == required.Count;
-                sb.Append(pad).AppendLine();
-                EmitDocComment(sb, step.Summary, pad + "    ");
-                sb.Append(pad).Append("    public ")
-                    .Append(done
-                        ? c.FullyQualifiedName
-                        : StateFqn(c, next) + c.TypeParameters)
-                    .Append(' ').Append(EscapeIdentifier(step.ParamName)).Append('(')
-                    .Append(StepParamType(step)).Append(' ').Append(EscapeIdentifier(step.ParamName))
-                    .AppendLine(")");
-                sb.Append(pad).AppendLine("    {");
-                sb.Append(pad).AppendLine("        var __c = Component;");
-                EmitPinAssignment(sb, step, EscapeIdentifier(step.ParamName), pad + "    ");
-                // The last step hands back the COMPONENT, which is what the chain is now — so it returns
-                // the receiver rather than wrapping it. An earlier one still hands on the state struct
-                // that is waiting for the rest, and that is a target-typed `new` as it always was.
-                sb.Append(pad).AppendLine(done ? "        return __c;" : "        return new(__c);");
-                sb.Append(pad).AppendLine("    }");
-            }
-
-            sb.Append(pad).AppendLine("}");
         }
     }
 
@@ -2524,34 +2585,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
         List<EntryInference> opening)
     {
-        var names = OrderedTypeParameters(c.TypeParameters);
-        if (names.Count != 2)
-        {
-            return;
-        }
-
-        var pinnedByStage = MentionedTypeParameters(opening[0].ParamTypeFqn, ParseTypeParameters(c.TypeParameters));
-        var value = names.FirstOrDefault(pinnedByStage.Contains);
-        var item = names.FirstOrDefault(n => !pinnedByStage.Contains(n));
-        if (value is null || item is null)
-        {
-            return;
-        }
-
-        // The only thing still outstanding after this step must be the projection itself.
-        var satisfied = SatisfiedBy(c, opening);
-        satisfied.Add(opening[1].PropertyName);
-        var outstanding = RequiredSteps(c).Where(r => !satisfied.Contains(r.PropertyName)).ToList();
-        if (outstanding.Count != 1)
-        {
-            return;
-        }
-
-        var projection = outstanding[0];
-        // A step's parameter is the property's declared type, so a nullable one keeps its `?`; the shape
-        // comparison is about the delegate itself.
-        var expected = "global::System.Func<" + item + ", " + value + ">";
-        if (StepParamType(projection).TrimEnd('?') != expected)
+        if (!TryIdentityShape(c, opening, out var value, out var item, out var projection))
         {
             return;
         }
@@ -2586,6 +2620,45 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             pad);
         sb.Append(pad).AppendLine("    return __c;");
         sb.Append(pad).AppendLine("}");
+    }
+
+    // Whether a stage can take the identity overload: two type parameters, one pinned by the stage (the
+    // value) and one not (the item), with the item→value projection the only step still outstanding.
+    private static bool TryIdentityShape(
+        Candidate c, List<EntryInference> opening, out string value, out string item, out EntryInference projection)
+    {
+        value = item = string.Empty;
+        projection = default;
+        var names = OrderedTypeParameters(c.TypeParameters);
+        if (names.Count != 2)
+        {
+            return false;
+        }
+
+        var pinnedByStage = MentionedTypeParameters(opening[0].ParamTypeFqn, ParseTypeParameters(c.TypeParameters));
+        if (names.FirstOrDefault(pinnedByStage.Contains) is not { } pinned
+            || names.FirstOrDefault(n => !pinnedByStage.Contains(n)) is not { } free)
+        {
+            return false;
+        }
+
+        value = pinned;
+        item = free;
+
+        // The only thing still outstanding after this step must be the projection itself.
+        var satisfied = SatisfiedBy(c, opening);
+        satisfied.Add(opening[1].PropertyName);
+        var outstanding = RequiredSteps(c).Where(r => !satisfied.Contains(r.PropertyName)).ToList();
+        if (outstanding.Count != 1)
+        {
+            return false;
+        }
+
+        projection = outstanding[0];
+        // A step's parameter is the property's declared type, so a nullable one keeps its `?`; the shape
+        // comparison is about the delegate itself.
+        var expected = "global::System.Func<" + item + ", " + value + ">";
+        return string.Equals(StepParamType(projection).TrimEnd('?'), expected, StringComparison.Ordinal);
     }
 
     // Which required properties an opening has already supplied — `Options` opens nothing for a form
@@ -2661,7 +2734,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var steps = new List<EntryInference>();
         foreach (var p in c.Properties)
         {
-            if (!IsRequiredFactoryParam(p) || p.IsInitOnly || p.Name == "Children" || p.IsSharedSurfaceProp)
+            if (!IsRequiredFactoryParam(p) || p.IsInitOnly || string.Equals(p.Name, "Children", StringComparison.Ordinal) || p.IsSharedSurfaceProp)
             {
                 continue;
             }
@@ -2685,7 +2758,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 p.Name,
                 p.TypeFqn,
                 p.Name,
-                FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                FoldsIntoPropsChanged(p.Name, p.IsDelegate, p.IsAutoRerenderDelegate),
                 Bit(bits, p.Name),
                 p.Summary));
         }
@@ -2935,7 +3008,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     //    reports an omitted one, while a chain just doesn't call that setter. RASK038 walks the chain
     //    and reports it now, including for a REFERENCED library's component, whose requiredness the
     //    owning assembly publishes as [assembly: RaskRequiredProperties] because metadata destroys it
-    //    (CrossAssemblyRequiredPropertyTests);
+    //    (CrossAssemblyRequiredPropertyTests),
     //  * and nothing put it back — a factory re-assigns every parameter each render, an entry hands back
     //    the same instance, so `Widget.Title("x")` then a bare `Widget` still had the title. The reset
     //    covers required props now, writing `default!` (IsResettableProp / ResetLiteralFor). That is the
@@ -2958,10 +3031,16 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // …and a name Component already declares (`Head`) still blocks too, which would be CS0102.
     // The entries an unseeded component is reached by: its own name, or one per tag of a [Tag] type several
     // tags share, whose body then stamps which tag it built (a type with one tag stamps it in its constructor).
-    private static IEnumerable<(string Name, string? Tag)> EntriesOf(Candidate c) =>
-        c.Tags.Count > 1
-            ? c.Tags.Select(static t => (t.Entry, (string?)t.Name))
-            : [(c.Tags.Count == 1 ? c.EntryName : c.TypeName, null)];
+    private static IEnumerable<(string Name, string? Tag)> EntriesOf(Candidate c)
+    {
+        if (c.Tags.Count > 1)
+        {
+            return c.Tags.Select(static t => (t.Entry, (string?)t.Name));
+        }
+
+        var name = c.Tags.Count == 1 ? c.EntryName : c.TypeName;
+        return [(name, null)];
+    }
 
     private static string EntryBody(Candidate c, string? tag, string assemblyName)
     {
@@ -3058,7 +3137,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // The enum value is emitted as a cast integer rather than a flags expression: the member names are
     // an open set, and reconstructing "PublicProperties | PublicFields" correctly for every combination
     // buys nothing a cast does not already say.
-    private static ImmutableArray<string> TypeParameterAnnotations(
+    private static ImmutableArray<string> ReadTypeParameterAnnotations(
         ImmutableArray<ITypeParameterSymbol> typeParameters)
     {
         if (typeParameters.Length == 0)
@@ -3079,8 +3158,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     {
         foreach (var attr in typeParameter.GetAttributes())
         {
-            if (attr.AttributeClass?.ToDisplayString()
-                != "System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute")
+            if (!string.Equals(
+                    attr.AttributeClass?.ToDisplayString(),
+                    "System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute",
+                    StringComparison.Ordinal))
             {
                 continue;
             }
@@ -3164,79 +3245,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         return result;
-    }
-
-    /// <summary>
-    ///     Every way in to a generic component: one pin set per overload the seed publishes.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         A pin set has to pin <b>every</b> type parameter, because C# infers a method's type
-    ///         arguments all or nothing. So each property that can do that alone becomes an overload of
-    ///         its own — <c>Input.Bind(() =&gt; m.Name)</c>, <c>Input.Value(_text)</c>,
-    ///         <c>BsRadioGroup.Options(AllPlans)</c> — and a component no single property can pin falls
-    ///         back to the one combination <see cref="InferencePins" /> assembles, spelled as a staged
-    ///         chain — <c>BsSelect.Bind(() =&gt; m.PersonId).Options(people)</c>.
-    ///     </para>
-    ///     <para>
-    ///         Several ways in is the point rather than a cost: the pin is also what carries the type, so
-    ///         a component reachable only through <c>Bind</c> would have no spelling at all for a
-    ///         controlled site, and one reachable only through <c>Options</c> none for a bound one.
-    ///     </para>
-    /// </remarks>
-    /// <summary>
-    ///     Every property a chain has to name before the component exists: the ones that pin a type
-    ///     argument, and the ones that are required.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         These are steps rather than setters, and the difference is the whole of what the chain
-    ///         enforces. A step is reachable only from the state before it, so a required property cannot
-    ///         be forgotten (the component is not produced until it is set) and two mutually exclusive
-    ///         ones cannot both be used (taking either leaves the other behind).
-    ///     </para>
-    ///     <para>
-    ///         Required here means what RASK001 means — a non-nullable property with no member
-    ///         initializer — plus the language's own <c>required</c> modifier, which is the same set
-    ///         RASK038 walks a chain looking for. <c>Children</c> is never a step: it arrives through the
-    ///         indexer, which the finished component carries.
-    ///     </para>
-    /// </remarks>
-    private static List<EntryInference> ChainSteps(Candidate c)
-    {
-        var steps = new List<EntryInference>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-
-        // EVERY pin, not just the ones on one chain: a component publishes several ways in — `Bind` for a
-        // bound control, `Value` for a controlled one — and each is a step. Taking only one chain left
-        // the others as ordinary setters, which is precisely how a bound control could still be handed a
-        // `Value`. Longest chain first, so the ones that must precede others still do.
-        foreach (var pin in PinSets(c).OrderByDescending(s => s.Count).SelectMany(s => s))
-        {
-            if (seen.Add(pin.PropertyName))
-            {
-                steps.Add(pin);
-            }
-        }
-
-        var bits = OwnPendingBits(c);
-        foreach (var p in c.Properties)
-        {
-            if (!IsRequiredFactoryParam(p) || p.IsInitOnly || p.Name == "Children" || !seen.Add(p.Name))
-            {
-                continue;
-            }
-
-            steps.Add(new EntryInference(
-                p.Name,
-                p.TypeFqn,
-                p.Name,
-                FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
-                Bit(bits, p.Name),
-                p.Summary));
-        }
-
-        return steps;
     }
 
     private static List<List<EntryInference>> PinSets(Candidate c)
@@ -3342,47 +3350,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 p.Name,
                 type,
                 p.Name,
-                FoldsIntoPropsChanged(p.Name, p.TypeFqn, p.IsDelegate, p.IsAutoRerenderDelegate),
+                FoldsIntoPropsChanged(p.Name, p.IsDelegate, p.IsAutoRerenderDelegate),
                 Bit(bits, p.Name),
                 p.Summary);
         }
-    }
-
-    private static List<EntryInference>? InferencePins(Candidate c)
-    {
-        var names = ParseTypeParameters(c.TypeParameters);
-        if (names.Count == 0)
-        {
-            return null;
-        }
-
-        // Greedy over the SAME candidate list the single-property sets are drawn from, so the two cannot
-        // disagree about what may be a pin. That mattered once and silently: this loop had its own filter
-        // and never learned to skip a DELEGATE, so BsSelect's second pin came out as `OptionValue`
-        // (Func<TItem, TValue>) — which compiles here and infers nothing at any call site, because the
-        // argument is an implicitly-typed lambda.
-        var pins = new List<EntryInference>();
-        var unpinned = new HashSet<string>(names, StringComparer.Ordinal);
-
-        foreach (var pin in PinCandidates(c, names))
-        {
-            if (unpinned.Count == 0)
-            {
-                break;
-            }
-
-            var mentioned = MentionedTypeParameters(pin.ParamTypeFqn, names);
-            if (!mentioned.Overlaps(unpinned)
-                || LambdaInputTypeParameters(pin.ParamTypeFqn, names).Overlaps(unpinned))
-            {
-                continue;
-            }
-
-            pins.Add(pin);
-            unpinned.ExceptWith(mentioned);
-        }
-
-        return pins.Count != 0 && unpinned.Count == 0 ? pins : null;
     }
 
     // A REAL delegate whose last type argument is a return, so a lambda passed to it can infer that
@@ -3615,108 +3586,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
     }
 
-    private static void EmitBoundEntry(
-        StringBuilder sb, Candidate c, HashSet<string> taken, string visibility, string indent,
-        string assemblyName, string hostTypeParameters = "", string runtimePrefix = "")
-    {
-        // Nothing to infer the type arguments from, no `new T()` to build, or a name already taken: no
-        // entry — the factory stays the way in.
-        if (!CanHaveEntry(c, taken) || InferencePins(c) is not { } pins)
-        {
-            return;
-        }
-
-        // A method's type parameter may not reuse an enclosing type's name (CS0693), and the consumer
-        // entries are injected INTO components — including generic ones (`BsDataGrid<T>` hosting the
-        // entry for `Input<T>`). Rename only the colliding ones, so the common case reads unchanged.
-        var typeParameters = c.TypeParameters;
-        var constraints = c.TypeParameterConstraints;
-        var self = c.FullyQualifiedName;
-        var paramTypes = pins.Select(static p => p.ParamTypeFqn).ToList();
-        var reserved = ParseTypeParameters(hostTypeParameters);
-        if (reserved.Count != 0)
-        {
-            foreach (var name in ParseTypeParameters(c.TypeParameters))
-            {
-                if (!reserved.Contains(name))
-                {
-                    continue;
-                }
-
-                var renamed = name;
-                do
-                {
-                    renamed += "_";
-                }
-                while (reserved.Contains(renamed));
-
-                typeParameters = RenameTypeParameter(typeParameters, name, renamed);
-                constraints = RenameTypeParameter(constraints, name, renamed);
-                self = RenameTypeParameter(self, name, renamed);
-                for (var i = 0; i < paramTypes.Count; i++)
-                {
-                    paramTypes[i] = RenameTypeParameter(paramTypes[i], name, renamed);
-                }
-            }
-        }
-
-        // Inference mode: one parameter per pin, in the order that reads like the factory call it
-        // replaces. Each property is assigned AFTER the entry returns, which is after the entry's reset
-        // has run — the same ordering a setter in the chain gets, because this IS the chain's first link.
-        sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
-            .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters).Append('(');
-        for (var i = 0; i < pins.Count; i++)
-        {
-            sb.Append(i == 0 ? string.Empty : ", ").Append(paramTypes[i]).Append(' ')
-                .Append(EscapeIdentifier(pins[i].ParamName));
-        }
-
-        sb.Append(')').Append(constraints).AppendLine();
-        sb.Append(indent).AppendLine("{");
-        sb.Append(indent).Append("    var __c = ").Append(runtimePrefix).Append(EntryMethod(c)).Append(self)
-            .Append(">(");
-        EmitResetArguments(sb, c, assemblyName, typeParameters);
-        sb.AppendLine(");");
-
-        // Exactly what each property's own setter would do, so the entry and a later `.Prop(x)` cannot
-        // disagree: fold the change into propsChanged when the prop folds, and clear its pending bit so
-        // the deferred reset does not put back the value the entry just set. A bound-mode `Bind` needs
-        // neither — it never folds and is reset eagerly — so that pin degenerates to the bare assignment
-        // that path always had.
-        foreach (var pin in pins)
-        {
-            var param = EscapeIdentifier(pin.ParamName);
-            if (pin.Track)
-            {
-                sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Track(__c, __c.")
-                    .Append(EscapeIdentifier(pin.PropertyName)).Append(", ").Append(param).AppendLine(");");
-            }
-
-            if (pin.PendingBit >= 0)
-            {
-                sb.Append(indent).Append("    global::Rask.Core.BuilderRuntime.Written(__c, ")
-                    .Append(MaskLiteral(new[] { pin.PendingBit })).AppendLine(");");
-            }
-
-            sb.Append(indent).Append("    __c.").Append(EscapeIdentifier(pin.PropertyName)).Append(" = ")
-                .Append(param).AppendLine(";");
-        }
-
-        sb.Append(indent).AppendLine("    return __c;");
-        sb.Append(indent).AppendLine("}");
-
-        // Plain / controlled mode: nothing to infer from, so the caller writes the type argument
-        // (`Input<string>().Value(v).Change(h)`). This is the method form of the property entry every
-        // non-generic component gets.
-        sb.Append(indent).Append(visibility).Append(" static ").Append(self).Append(' ')
-            .Append(EscapeIdentifier(c.TypeName)).Append(typeParameters).Append("()").Append(constraints)
-            .AppendLine();
-        sb.Append(indent).Append("    => ").Append(runtimePrefix)
-            .Append(EntryMethod(c)).Append(self).Append(">(");
-        EmitResetArguments(sb, c, assemblyName, typeParameters);
-        sb.AppendLine(");");
-    }
-
     // "<TValue, TItem>" → { "TValue", "TItem" }; empty for a non-generic type.
     // The subset of a component's constraint clauses that applies to the type parameters a generated
     // struct actually DECLARES.
@@ -3861,11 +3730,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // simple name. Read off the entry set rather than off the host symbol on purpose: a Delivery.Base
         // host does not derive from RaskMarkup yet — the partial being generated is what adds it — so the
         // symbol would answer "inherits nothing" for exactly the case that needs the modifier most.
-        var frameworkNames = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var e in external.Framework)
-        {
-            frameworkNames.Add(e.Name);
-        }
+        var frameworkNames = new HashSet<string>(external.Framework.Select(static e => e.Name), StringComparer.Ordinal);
         if (refs.Count == 0 && frameworkRefs.Count == 0
                             && !hosts.Any(static h => h.Delivery == Delivery.Base))
         {
@@ -3875,111 +3740,129 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var sb = new StringBuilder();
         EmitGeneratedFileHeader(sb);
 
-        foreach (var host2 in hosts)
+        foreach (var host2 in hosts.Where(h => !ReportedUninjectable(spc, h)))
         {
-            // A nested host CAN be injected into — the generated file just has to re-open every enclosing
-            // type as a partial around it. That is only possible if the author declared them partial, and
-            // it is not optional for a REFERENCED library: the framework's own entries reach a nested
-            // component by INHERITANCE from RaskMarkup, where nesting is irrelevant, but a referenced
-            // library's can only be injected. Skipping would cost that nested component the chain with
-            // nothing said, so the skip reports instead — the same RASK036 a non-partial top-level host
-            // gets, naming the enclosing type that has to change.
-            if (host2.IsNested && !host2.EnclosingAllPartial)
-            {
-                // Names the ENCLOSING type as the thing to change, which the comment above has always
-                // claimed and the message did not do (#1019). Saying "'NestedHost' is not declared
-                // 'partial'" about a type that is plainly declared partial sends the reader to re-read
-                // the one line that is already correct; the container is what is missing the modifier.
-                // Reported here rather than fixed silently because the alternative — skipping — is how a
-                // nested component loses its chain with nothing said at all.
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask036,
-                    MakeDeclLocation(host2),
-                    $"'{host2.TypeName}' is nested in a type that is not declared 'partial'",
-                    Rask036Loses(host2.Delivery)));
-                continue;
-            }
+            EmitHostPartial(sb, host2, refs, frameworkRefs, frameworkNames);
+        }
 
-            if (!host2.IsPartial)
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask036,
-                    MakeDeclLocation(host2),
-                    $"'{host2.TypeName}' is not declared 'partial'",
-                    Rask036Loses(host2.Delivery)));
-                continue;
-            }
+        spc.AddSource("RaskBuilderConsumerEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
 
-            sb.AppendLine();
-            // Block-scoped: one file carries every host component, and a file may hold only one
-            // file-scoped namespace declaration (CS8954).
-            var hasNs = !string.IsNullOrEmpty(host2.Namespace);
-            if (hasNs)
-            {
-                sb.Append("namespace ").AppendLine(host2.Namespace);
-                sb.AppendLine("{");
-            }
+    // RASK036 for a host the injection cannot re-open; true when it was reported and must be skipped.
+    private static bool ReportedUninjectable(SourceProductionContext spc, EntryHostDecl host2)
+    {
+        // A nested host CAN be injected into — the generated file just has to re-open every enclosing
+        // type as a partial around it. That is only possible if the author declared them partial, and
+        // it is not optional for a REFERENCED library: the framework's own entries reach a nested
+        // component by INHERITANCE from RaskMarkup, where nesting is irrelevant, but a referenced
+        // library's can only be injected. Skipping would cost that nested component the chain with
+        // nothing said, so the skip reports instead — the same RASK036 a non-partial top-level host
+        // gets, naming the enclosing type that has to change.
+        if (host2.IsNested && !host2.EnclosingAllPartial)
+        {
+            // Names the ENCLOSING type as the thing to change, which the comment above has always
+            // claimed and the message did not do (#1019). Saying "'NestedHost' is not declared
+            // 'partial'" about a type that is plainly declared partial sends the reader to re-read
+            // the one line that is already correct; the container is what is missing the modifier.
+            // Reported here rather than fixed silently because the alternative — skipping — is how a
+            // nested component loses its chain with nothing said at all.
+            spc.ReportDiagnostic(Diagnostic.Create(
+                Rask036,
+                MakeDeclLocation(host2),
+                $"'{host2.TypeName}' is nested in a type that is not declared 'partial'",
+                Rask036Loses(host2.Delivery)));
+            return true;
+        }
 
-            // Re-open the enclosing types, outermost first. Each header carries the accessibility and
-            // `static` the original declared: partial declarations may omit `sealed`/`abstract`, but
-            // conflicting accessibility is CS0262 and a missing `static` is CS0261.
-            foreach (var enclosing in host2.EnclosingTypes)
-            {
-                sb.AppendLine(enclosing);
-                sb.AppendLine("{");
-            }
+        if (!host2.IsPartial)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(
+                Rask036,
+                MakeDeclLocation(host2),
+                $"'{host2.TypeName}' is not declared 'partial'",
+                Rask036Loses(host2.Delivery)));
+            return true;
+        }
 
-            // A partial declaration may name the base class as long as only one of them does — so an
-            // attributed type with a free base slot gets `: RaskMarkup` written here and inherits the
-            // framework entries, which is the cheap delivery. The author never had to choose.
-            sb.Append(host2.IsStatic ? "static partial class " : "partial class ")
-                .Append(host2.TypeName).Append(host2.TypeParameters)
-                .AppendLine(host2.Delivery == Delivery.Base ? " : global::Rask.Core.RaskMarkup" : string.Empty);
+        return false;
+    }
+
+    private static void EmitHostPartial(
+        StringBuilder sb, EntryHostDecl host2, List<EntryRef> refs, List<EntryRef> frameworkRefs, HashSet<string> frameworkNames)
+    {
+        sb.AppendLine();
+        // Block-scoped: one file carries every host component, and a file may hold only one
+        // file-scoped namespace declaration (CS8954).
+        var hasNs = !string.IsNullOrEmpty(host2.Namespace);
+        if (hasNs)
+        {
+            sb.Append("namespace ").AppendLine(host2.Namespace);
             sb.AppendLine("{");
-            var declared = new HashSet<string>(host2.MemberNames, StringComparer.Ordinal);
-            // An Injected host inherits nothing: its framework entries are emitted as SIBLINGS just above,
-            // and FrameworkEntriesFor has already dropped the ones an own entry claims.
-            var inherits = host2.Delivery != Delivery.Injected;
-            if (host2.Delivery == Delivery.Injected)
-            {
-                foreach (var e in frameworkRefs)
-                {
-                    if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal)
-                        || declared.Contains(e.Name))
-                    {
-                        continue;
-                    }
+        }
 
-                    EmitEntryForwarder(sb, e, host2.TypeParameters);
-                }
-            }
+        // Re-open the enclosing types, outermost first. Each header carries the accessibility and
+        // `static` the original declared: partial declarations may omit `sealed`/`abstract`, but
+        // conflicting accessibility is CS0262 and a missing `static` is CS0261.
+        foreach (var enclosing in host2.EnclosingTypes)
+        {
+            sb.AppendLine(enclosing);
+            sb.AppendLine("{");
+        }
 
-            foreach (var e in refs)
+        // A partial declaration may name the base class as long as only one of them does — so an
+        // attributed type with a free base slot gets `: RaskMarkup` written here and inherits the
+        // framework entries, which is the cheap delivery. The author never had to choose.
+        sb.Append(host2.IsStatic ? "static partial class " : "partial class ")
+            .Append(host2.TypeName).Append(host2.TypeParameters)
+            .AppendLine(host2.Delivery == Delivery.Base ? " : global::Rask.Core.RaskMarkup" : string.Empty);
+        sb.AppendLine("{");
+        EmitHostForwarders(sb, host2, refs, frameworkRefs, frameworkNames);
+
+        sb.AppendLine("}");
+        for (var i = 0; i < host2.EnclosingTypes.Count; i++)
+        {
+            sb.AppendLine("}");
+        }
+
+        if (hasNs)
+        {
+            sb.AppendLine("}");
+        }
+    }
+
+    private static void EmitHostForwarders(
+        StringBuilder sb, EntryHostDecl host2, List<EntryRef> refs, List<EntryRef> frameworkRefs, HashSet<string> frameworkNames)
+    {
+        var declared = new HashSet<string>(host2.MemberNames, StringComparer.Ordinal);
+        // An Injected host inherits nothing: its framework entries are emitted as SIBLINGS just above,
+        // and FrameworkEntriesFor has already dropped the ones an own entry claims.
+        var inherits = host2.Delivery != Delivery.Injected;
+        if (host2.Delivery == Delivery.Injected)
+        {
+            foreach (var e in frameworkRefs)
             {
-                // A member may not share its enclosing type's name (CS0542) — and a component never
-                // needs an entry for itself anyway.
                 if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal)
                     || declared.Contains(e.Name))
                 {
                     continue;
                 }
 
-                EmitEntryForwarder(sb, e, host2.TypeParameters, inherits && frameworkNames.Contains(e.Name));
-            }
-
-            sb.AppendLine("}");
-            for (var i = 0; i < host2.EnclosingTypes.Count; i++)
-            {
-                sb.AppendLine("}");
-            }
-
-            if (hasNs)
-            {
-                sb.AppendLine("}");
+                EmitEntryForwarder(sb, e, host2.TypeParameters);
             }
         }
 
-        spc.AddSource("RaskBuilderConsumerEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        foreach (var e in refs)
+        {
+            // A member may not share its enclosing type's name (CS0542) — and a component never
+            // needs an entry for itself anyway.
+            if (string.Equals(e.Name, host2.TypeName, StringComparison.Ordinal)
+                || declared.Contains(e.Name))
+            {
+                continue;
+            }
+
+            EmitEntryForwarder(sb, e, host2.TypeParameters, inherits && frameworkNames.Contains(e.Name));
+        }
     }
 
     // What a non-partial host loses, which is not the same for every host: an inheriting one still has
@@ -4003,12 +3886,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         var result = new List<EntryRef>();
-        foreach (var e in framework)
+        foreach (var e in framework.Where(e => !taken.Contains(e.Name)))
         {
-            if (!taken.Contains(e.Name))
-            {
-                result.Add(e);
-            }
+            result.Add(e);
         }
 
         return result;
@@ -4129,61 +4009,68 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            sb.AppendLine();
-            var hasNs = first.Namespace.Length != 0;
-            if (hasNs)
-            {
-                sb.Append("namespace ").AppendLine(first.Namespace);
-                sb.AppendLine("{");
-            }
-
-            foreach (var header in first.Headers)
-            {
-                sb.AppendLine(header);
-                sb.AppendLine("{");
-            }
-
-            foreach (var byMember in group.GroupBy(static c => c.Group!.Member, StringComparer.Ordinal))
-            {
-                // Components joined by [RaskChainEntry] share one seed on purpose; anything else on one member is
-                // two components claiming one name.
-                var members = byMember.ToList();
-                if (members.Select(static c => c.EntryName).Distinct(StringComparer.Ordinal).Count() > 1
-                    || (members.Count > 1 && members.Any(static c => !NeedsSeed(c))))
-                {
-                    ReportEntryCollision(spc, members);
-                    continue;
-                }
-
-                var c = members[0];
-                var visibility = c.IsPublic ? "public" : "internal";
-                EmitEntryDoc(sb, c);
-                if (NeedsSeed(c))
-                {
-                    sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
-                        .Append(EscapeIdentifier(byMember.Key)).AppendLine(" => default;");
-                    continue;
-                }
-
-                sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
-                    .Append(' ').Append(EscapeIdentifier(byMember.Key)).Append(" => ").Append(runtime)
-                    .Append(EntryMethod(c)).Append(c.FullyQualifiedName).Append(">(");
-                EmitResetArguments(sb, c, assemblyName);
-                sb.AppendLine(");");
-            }
-
-            for (var i = 0; i < first.Headers.Count; i++)
-            {
-                sb.AppendLine("}");
-            }
-
-            if (hasNs)
-            {
-                sb.AppendLine("}");
-            }
+            EmitGroup(spc, sb, group, first, assemblyName, runtime);
         }
 
         spc.AddSource("RaskBuilderGroupedEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static void EmitGroup(
+        SourceProductionContext spc, StringBuilder sb, IGrouping<string, Candidate> group, ChainGroup first, string assemblyName,
+        string runtime)
+    {
+        sb.AppendLine();
+        var hasNs = first.Namespace.Length != 0;
+        if (hasNs)
+        {
+            sb.Append("namespace ").AppendLine(first.Namespace);
+            sb.AppendLine("{");
+        }
+
+        foreach (var header in first.Headers)
+        {
+            sb.AppendLine(header);
+            sb.AppendLine("{");
+        }
+
+        foreach (var byMember in group.GroupBy(static c => c.Group!.Member, StringComparer.Ordinal))
+        {
+            // Components joined by [RaskChainEntry] share one seed on purpose; anything else on one member is
+            // two components claiming one name.
+            var members = byMember.ToList();
+            if (members.Select(static c => c.EntryName).Distinct(StringComparer.Ordinal).Count() > 1
+                || (members.Count > 1 && members.Any(static c => !NeedsSeed(c))))
+            {
+                ReportEntryCollision(spc, members);
+                continue;
+            }
+
+            var c = members[0];
+            var visibility = c.IsPublic ? "public" : "internal";
+            EmitEntryDoc(sb, c);
+            if (NeedsSeed(c))
+            {
+                sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
+                    .Append(EscapeIdentifier(byMember.Key)).AppendLine(" => default;");
+                continue;
+            }
+
+            sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
+                .Append(' ').Append(EscapeIdentifier(byMember.Key)).Append(" => ").Append(runtime)
+                .Append(EntryMethod(c)).Append(c.FullyQualifiedName).Append(">(");
+            EmitResetArguments(sb, c, assemblyName);
+            sb.AppendLine(");");
+        }
+
+        for (var i = 0; i < first.Headers.Count; i++)
+        {
+            sb.AppendLine("}");
+        }
+
+        if (hasNs)
+        {
+            sb.AppendLine("}");
+        }
     }
 
     // The one fact about a component that an assembly boundary destroys: which of its properties a
@@ -4230,7 +4117,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // A generator cannot add a member to a type that is not partial, and a nested one would need its enclosing
             // types re-opened — more than a description is worth. Both stay silent: the component still works, it just
             // shows no props.
-            if (!c.IsPartial || IsNested(c))
+            if (!c.IsPartial || HasEnclosingType(c))
             {
                 continue;
             }
@@ -4257,49 +4144,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             wrote = true;
-            sb.AppendLine();
-            var hasNs = !string.IsNullOrEmpty(c.Namespace);
-            if (hasNs)
-            {
-                // Block-scoped: one file carries every component, and a file may hold only one file-scoped namespace.
-                sb.Append("namespace ").AppendLine(c.Namespace);
-                sb.AppendLine("{");
-            }
-
-            // The BARE type parameters: a type parameter's [DynamicallyAccessedMembers] belongs on the declaration that
-            // introduces it, and repeating it on a second partial declaration of the same type is CS0579.
-            sb.Append("partial class ").Append(c.TypeName).Append(c.TypeParameters)
-                .AppendLine(c.TypeParameterConstraints);
-            sb.AppendLine("{");
-            sb.AppendLine("    /// <inheritdoc />");
-            sb.AppendLine(
-                "    [global::System.ComponentModel.EditorBrowsable("
-                + "global::System.ComponentModel.EditorBrowsableState.Never)]");
-            sb.Append("    ").Append(modifier).AppendLine(
-                " void DescribeProps(global::Rask.Core.Diagnostics.DevTools.PropsDescriber describer)");
-            sb.AppendLine("    {");
-            sb.AppendLine("        base.DescribeProps(describer);");
-            foreach (var p in props)
-            {
-                var type = Unqualified(p.TypeFqn);
-                if (p.IsSensitive)
-                {
-                    sb.Append("        describer.AddRedacted(\"").Append(p.Name).Append("\", \"").Append(type)
-                        .AppendLine("\");");
-                    continue;
-                }
-
-                sb.Append("        describer.Add(\"").Append(p.Name).Append("\", \"").Append(type)
-                    .Append("\", global::Rask.Core.Diagnostics.DevTools.PropsDescriber.Format(this.")
-                    .Append(p.Escaped).AppendLine("));");
-            }
-
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
-            if (hasNs)
-            {
-                sb.AppendLine("}");
-            }
+            EmitPropsDescriber(sb, c, props, modifier);
         }
 
         if (wrote)
@@ -4308,9 +4153,56 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
     }
 
+    private static void EmitPropsDescriber(StringBuilder sb, Candidate c, List<PropInfo> props, string modifier)
+    {
+        sb.AppendLine();
+        var hasNs = !string.IsNullOrEmpty(c.Namespace);
+        if (hasNs)
+        {
+            // Block-scoped: one file carries every component, and a file may hold only one file-scoped namespace.
+            sb.Append("namespace ").AppendLine(c.Namespace);
+            sb.AppendLine("{");
+        }
+
+        // The BARE type parameters: a type parameter's [DynamicallyAccessedMembers] belongs on the declaration that
+        // introduces it, and repeating it on a second partial declaration of the same type is CS0579.
+        sb.Append("partial class ").Append(c.TypeName).Append(c.TypeParameters)
+            .AppendLine(c.TypeParameterConstraints);
+        sb.AppendLine("{");
+        sb.AppendLine("    /// <inheritdoc />");
+        sb.AppendLine(
+            "    [global::System.ComponentModel.EditorBrowsable("
+            + "global::System.ComponentModel.EditorBrowsableState.Never)]");
+        sb.Append("    ").Append(modifier).AppendLine(
+            " void DescribeProps(global::Rask.Core.Diagnostics.DevTools.PropsDescriber describer)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        base.DescribeProps(describer);");
+        foreach (var p in props)
+        {
+            var type = Unqualified(p.TypeFqn);
+            if (p.IsSensitive)
+            {
+                sb.Append("        describer.AddRedacted(\"").Append(p.Name).Append("\", \"").Append(type)
+                    .AppendLine("\");");
+                continue;
+            }
+
+            sb.Append("        describer.Add(\"").Append(p.Name).Append("\", \"").Append(type)
+                .Append("\", global::Rask.Core.Diagnostics.DevTools.PropsDescriber.Format(this.")
+                .Append(p.Escaped).AppendLine("));");
+        }
+
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+        if (hasNs)
+        {
+            sb.AppendLine("}");
+        }
+    }
+
     // A component declared inside another type: its fully qualified name still carries a '.' once the namespace and
     // any type arguments are taken off.
-    private static bool IsNested(Candidate c)
+    private static bool HasEnclosingType(Candidate c)
     {
         var name = c.FullyQualifiedName;
         if (name.StartsWith("global::", StringComparison.Ordinal))
@@ -4425,9 +4317,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // Which referenced-assembly entries this compilation can actually inject.
     //
     //  * a name Component already carries (its own members, plus every tag entry Rask.Core emitted) would
-    //    HIDE that member — CS0108, an error here — and the inherited entry is the better one anyway;
+    //    HIDE that member — CS0108, an error here — and the inherited entry is the better one anyway,
     //  * a name one of this assembly's own components already claims stays with the local component: it
-    //    is the one the author wrote, and two members cannot share a name (CS0102);
+    //    is the one the author wrote, and two members cannot share a name (CS0102),
     //  * the same name from two different libraries is not resolvable here at all, so neither is used and
     //    RASK040 says which types collided — the same answer two same-named local components get.
     private static List<EntryRef> UsableExternalEntries(
@@ -4497,12 +4389,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            var renamed = name;
-            do
+            var underscores = 1;
+            while (reserved.Contains(name + new string('_', underscores)))
             {
-                renamed += "_";
+                underscores++;
             }
-            while (reserved.Contains(renamed));
+
+            var renamed = name + new string('_', underscores);
 
             typeParameters = RenameTypeParameter(typeParameters, name, renamed);
             constraints = RenameTypeParameter(constraints, name, renamed);
@@ -4518,7 +4411,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             .AppendLine("\"/>");
         // `new` when the name is already an INHERITED framework entry. Hiding is what the author asked
         // for by naming a component after a tag, and it is the precedence the chain has always had — the
-        // nearer component wins. Without the modifier this is CS0108, an error under warnings-as-errors;
+        // nearer component wins. Without the modifier this is CS0108, an error under warnings-as-errors,
         // without the forwarder at all the tag would quietly win instead and the markup would render the
         // wrong element with a green build.
         sb.Append("    private static ").Append(hidesInheritedEntry ? "new " : string.Empty)
@@ -4582,7 +4475,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 switch (member)
                 {
                     case IPropertySymbol { IsIndexer: false } p:
-                        into.Add(new EntryRef(hostFqn, p.Name, TypeName(p.Type, FullyQualifiedNullable, compilation),
+                        into.Add(new EntryRef(hostFqn, p.Name, DisplayTypeName(p.Type, FullyQualifiedNullable, compilation),
                             string.Empty, string.Empty, string.Empty, string.Empty));
                         break;
                     case IMethodSymbol { MethodKind: MethodKind.Ordinary } m:
@@ -4642,7 +4535,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             var p = m.Parameters[i];
-            parameters.Append(TypeName(p.Type, FullyQualifiedNullable, compilation)).Append(' ')
+            parameters.Append(DisplayTypeName(p.Type, FullyQualifiedNullable, compilation)).Append(' ')
                 .Append(EscapeIdentifier(p.Name));
             arguments.Append(EscapeIdentifier(p.Name));
         }
@@ -4650,7 +4543,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return new EntryRef(
             hostFqn,
             m.Name,
-            TypeName(m.ReturnType, FullyQualifiedNullable, compilation),
+            DisplayTypeName(m.ReturnType, FullyQualifiedNullable, compilation),
             typeParameters,
             BuildConstraintsClause(m.TypeParameters),
             parameters.Append(')').ToString(),
@@ -4678,7 +4571,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///     builder surface.
     /// </remarks>
     private static string EntryMethod(Candidate c) =>
-        NeedsDiEntry(c) ? "EntryDi<" : HasRequiredMember(c) ? "EntryRequired<" : "Entry<";
+        (NeedsDiEntry(c), HasRequiredMember(c)) switch
+        {
+            (true, _) => "EntryDi<",
+            (_, true) => "EntryRequired<",
+            _ => "Entry<",
+        };
 
     private static Location MakeDeclLocation(Candidate c) =>
         string.IsNullOrEmpty(c.DeclFilePath)
@@ -4723,17 +4621,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             all.AddRange(extraHosts);
         }
 
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var result = new List<EntryHostDecl>(all.Count);
-        foreach (var h in all.OrderBy(static h => h.Key, StringComparer.Ordinal))
-        {
-            if (seen.Add(h.Key))
-            {
-                result.Add(h);
-            }
-        }
-
-        return result;
+        return all
+            .GroupBy(static h => h.Key, StringComparer.Ordinal)
+            .Select(static g => g.First())
+            .OrderBy(static h => h.Key, StringComparer.Ordinal)
+            .ToList();
     }
 
     // An injection host that is not a candidate, read purely as a host. Deliberately none of Candidate's
@@ -4741,10 +4633,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     //
     // Two shapes qualify, and the difference is which of them can be CONSTRUCTED, not which can host:
     //
-    //  * an abstract component — a concrete one is already a candidate and gets its host decl from there;
+    //  * an abstract component — a concrete one is already a candidate and gets its host decl from there,
     //  * anything deriving from RaskMarkup that is not a Component, abstract or not. That is the opt-in
     //    for code outside a component: a test class writes `: RaskMarkup` and the framework entries come
-    //    by inheritance, while its own assembly's and its referenced libraries' come from here;
+    //    by inheritance, while its own assembly's and its referenced libraries' come from here,
     //  * anything carrying [RaskMarkup]. Same host, opted in by an attribute instead of a base — for the
     //    two shapes that cannot spend a base slot at all: one whose base belongs to someone else, and a
     //    `static class`. See MarkupDelivery for how the attribute picks between inheriting and injecting.
@@ -4885,7 +4777,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // separately (it hides them with `new`). Counting them HERE would instead filter out the
             // host's own component entry of the same name and hand the simple name to the TAG —
             // silently, and only at render time.
-            if (t.OriginalDefinition.ToDisplayString() == RaskMarkupFullName)
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), RaskMarkupFullName, StringComparison.Ordinal))
             {
                 continue;
             }
@@ -4993,6 +4885,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // and an override's modifier depends on this one.
         bool SeesComponentInternals = false);
 
+    /// <summary>The generator's MSBuild switches, read once per compilation.</summary>
     /// <param name="InjectEntries">
     ///     RaskBuilderEntryInjection — whether this compilation's own entries are also injected into its own
     ///     host partials, and whether it re-emits the universal setter surface. Off for a component library,
@@ -5112,45 +5005,49 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         global::Rask.Generators.External.PackageIslands.PackageIslandNaming.Escape(
             global::Rask.Generators.External.PackageIslands.PackageIslandNaming.SingleLine(text));
 
+    // [FactoryGeneric] and [RaskChainEntry], the two attributes that shape a candidate's entry.
+    private static (GenericFactoryConfig? GenericFactory, string? ChainEntry, List<TagInfo> Tags) ReadFactoryAttributes(
+        INamedTypeSymbol symbol)
+    {
+        GenericFactoryConfig? genericFactory = null;
+        string? chainEntry = null;
+        var tags = new List<TagInfo>();
+        foreach (var attr in symbol.GetAttributes())
+        {
+            if (string.Equals(attr.AttributeClass?.ToDisplayString(), FactoryGenericFullName, StringComparison.Ordinal))
+            {
+                genericFactory = ParseGenericFactoryConfig(attr);
+            }
+            else if (string.Equals(attr.AttributeClass?.ToDisplayString(), TagFullName, StringComparison.Ordinal)
+                     && attr.ConstructorArguments.Length == 1
+                     && attr.ConstructorArguments[0].Value is string { Length: > 0 } tag)
+            {
+                var entryArg = attr.NamedArguments
+                    .FirstOrDefault(static a => string.Equals(a.Key, "Entry", StringComparison.Ordinal)).Value.Value as string;
+                tags.Add(new TagInfo(tag, entryArg ?? char.ToUpperInvariant(tag[0]) + tag.Substring(1)));
+            }
+            else if (string.Equals(attr.AttributeClass?.ToDisplayString(), ChainEntryFullName, StringComparison.Ordinal)
+                     && attr.ConstructorArguments.Length == 1
+                     && attr.ConstructorArguments[0].Value is string entry
+                     && entry.Length > 0)
+            {
+                chainEntry = entry;
+            }
+        }
+
+        return (genericFactory, chainEntry, tags);
+    }
+
     private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
     {
-        if (ctx.Node is not ClassDeclarationSyntax classDecl)
-        {
-            return null;
-        }
-
-        if (ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
-        {
-            return null;
-        }
-
-        if (symbol.IsAbstract)
-        {
-            return null;
-        }
-
-        if (symbol.IsUnboundGenericType)
-        {
-            return null;
-        }
-
-        if (symbol.DeclaredAccessibility != Accessibility.Public &&
-            symbol.DeclaredAccessibility != Accessibility.Internal)
-        {
-            return null;
-        }
-
-        if (!InheritsFromComponent(symbol))
-        {
-            return null;
-        }
-
-        if (IsInRaskCoreNamespace(symbol))
-        {
-            return null;
-        }
-
-        if (HasSkipFactoryAttribute(symbol))
+        if (ctx.Node is not ClassDeclarationSyntax classDecl
+            || ctx.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol
+            || symbol.IsAbstract
+            || symbol.IsUnboundGenericType
+            || symbol.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal)
+            || !InheritsFromComponent(symbol)
+            || IsInRaskCoreNamespace(symbol)
+            || HasSkipFactoryAttribute(symbol))
         {
             return null;
         }
@@ -5159,39 +5056,16 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             ? string.Empty
             : symbol.ContainingNamespace.ToDisplayString();
         var hasParameterlessCtor = HasPublicParameterlessConstructor(symbol);
-        var hasDICtor = HasDIConstructor(symbol);
+        var hasDICtor = DeclaresDIConstructor(symbol);
         var isPublic = IsExternallyVisible(symbol);
         var formControl = GetFormControlInfo(symbol, ctx.SemanticModel.Compilation);
         var properties = GetFactoryProperties(symbol, formControl is not null, ctx.SemanticModel.Compilation);
         var typeParams = symbol.IsGenericType
             ? "<" + string.Join(", ", symbol.TypeParameters.Select(tp => tp.Name)) + ">"
             : string.Empty;
-        var typeParamAnnotations = TypeParameterAnnotations(symbol.TypeParameters);
+        var typeParamAnnotations = ReadTypeParameterAnnotations(symbol.TypeParameters);
         var constraints = BuildConstraintsClause(symbol.TypeParameters);
-        GenericFactoryConfig? genericFactory = null;
-        string? chainEntry = null;
-        var tags = new List<TagInfo>();
-        foreach (var attr in symbol.GetAttributes())
-        {
-            if (attr.AttributeClass?.ToDisplayString() == FactoryGenericFullName)
-            {
-                genericFactory = ParseGenericFactoryConfig(attr);
-            }
-            else if (attr.AttributeClass?.ToDisplayString() == TagFullName
-                     && attr.ConstructorArguments.Length == 1
-                     && attr.ConstructorArguments[0].Value is string { Length: > 0 } tag)
-            {
-                var entryArg = attr.NamedArguments.FirstOrDefault(static a => a.Key == "Entry").Value.Value as string;
-                tags.Add(new TagInfo(tag, entryArg ?? char.ToUpperInvariant(tag[0]) + tag.Substring(1)));
-            }
-            else if (attr.AttributeClass?.ToDisplayString() == ChainEntryFullName
-                     && attr.ConstructorArguments.Length == 1
-                     && attr.ConstructorArguments[0].Value is string entry
-                     && entry.Length > 0)
-            {
-                chainEntry = entry;
-            }
-        }
+        var (genericFactory, chainEntry, tags) = ReadFactoryAttributes(symbol);
 
         return new Candidate(
             ns,
@@ -5239,7 +5113,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         {
             foreach (var attr in t.GetAttributes())
             {
-                if (attr.AttributeClass?.ToDisplayString() != ChainGroupFullName
+                if (!string.Equals(attr.AttributeClass?.ToDisplayString(), ChainGroupFullName, StringComparison.Ordinal)
                     || attr.ConstructorArguments.Length == 0
                     || attr.ConstructorArguments[0].Value is not INamedTypeSymbol group)
                 {
@@ -5265,7 +5139,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // entry rather than landing on the group under its whole name.
         foreach (var attr in symbol.ContainingAssembly.GetAttributes())
         {
-            if (attr.AttributeClass?.ToDisplayString() == ChainGroupFullName
+            if (string.Equals(attr.AttributeClass?.ToDisplayString(), ChainGroupFullName, StringComparison.Ordinal)
                 && attr.ConstructorArguments.Length != 0
                 && attr.ConstructorArguments[0].Value is INamedTypeSymbol group
                 && SymbolEqualityComparer.Default.Equals(group.ContainingAssembly, symbol.ContainingAssembly)
@@ -5328,18 +5202,18 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         foreach (var i in symbol.AllInterfaces)
         {
             if (i.TypeArguments.Length == 1 &&
-                i.OriginalDefinition.ToDisplayString() == FormControlOpenFullName)
+                string.Equals(i.OriginalDefinition.ToDisplayString(), FormControlOpenFullName, StringComparison.Ordinal))
             {
                 var argument = i.TypeArguments[0];
-                var valueType = TypeName(argument, FullyQualifiedNullable, compilation);
+                var valueType = DisplayTypeName(argument, FullyQualifiedNullable, compilation);
                 var lifts = argument is { IsValueType: true, TypeKind: not TypeKind.TypeParameter }
                             && argument.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
                 var element = argument is INamedTypeSymbol
                 {
                     TypeArguments.Length: 1,
                 } collection
-                    && collection.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.ICollection<T>"
-                        ? TypeName(collection.TypeArguments[0], FullyQualifiedNullable, compilation)
+                    && string.Equals(collection.OriginalDefinition.ToDisplayString(), "System.Collections.Generic.ICollection<T>", StringComparison.Ordinal)
+                        ? DisplayTypeName(collection.TypeArguments[0], FullyQualifiedNullable, compilation)
                         : null;
                 return new FormControlInfo(valueType, lifts, element);
             }
@@ -5397,24 +5271,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             modelProperty,
             new EquatableArray<string>(typedDelegates),
             constraint);
-    }
-
-    // Finds the bound value type T from a method's `Expression<Func<T>>` parameter (the Bind expression),
-    // Merges two `<...>` type-parameter lists into one. Either may be empty; when both are present (a
-    // generic method on a generic component) they're concatenated: "<A>" + "<B>" → "<A, B>".
-    private static string MergeTypeParams(string a, string b)
-    {
-        if (a.Length == 0)
-        {
-            return b;
-        }
-
-        if (b.Length == 0)
-        {
-            return a;
-        }
-
-        return a.Substring(0, a.Length - 1) + ", " + b.Substring(1);
     }
 
     private static string BuildConstraintsClause(ImmutableArray<ITypeParameterSymbol> typeParameters)
@@ -5493,31 +5349,22 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // become an error in fourteen untouched files. Injection is the expensive, opt-in half of the
     // surface, so it follows the declaration that opted in.
     private static bool DeclaresRaskMarkup(INamedTypeSymbol symbol) =>
-        symbol.BaseType?.OriginalDefinition.ToDisplayString() == RaskMarkupFullName;
+        string.Equals(symbol.BaseType?.OriginalDefinition.ToDisplayString(), RaskMarkupFullName, StringComparison.Ordinal);
 
     // The attribute form of the same opt-in, for a type that cannot spend its base slot. Direct by
     // construction and not merely by policy: GetAttributes() returns what was written on THIS type's
     // declarations, never what a base carries — so the contagion the base-class form had to rule out by
     // hand cannot arise here at all.
-    private static bool HasRaskMarkupAttribute(INamedTypeSymbol symbol)
-    {
-        foreach (var attribute in symbol.GetAttributes())
-        {
-            if (attribute.AttributeClass?.ToDisplayString() == RaskMarkupAttributeFullName)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool HasRaskMarkupAttribute(INamedTypeSymbol symbol) =>
+        symbol.GetAttributes().Any(static attribute => string.Equals(
+            attribute.AttributeClass?.ToDisplayString(), RaskMarkupAttributeFullName, StringComparison.Ordinal));
 
     private static bool InheritsFromComponent(INamedTypeSymbol symbol)
     {
         for (var t = symbol.BaseType; t is not null; t = t.BaseType)
         {
             var name = t.OriginalDefinition.ToDisplayString();
-            if (name == ComponentFullName)
+            if (string.Equals(name, ComponentFullName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -5535,7 +5382,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private static bool IsSharedSurfaceType(ITypeSymbol type)
     {
         var name = type.OriginalDefinition.ToDisplayString();
-        return name == ElementFullName || name == ComponentFullName;
+        return string.Equals(name, ElementFullName, StringComparison.Ordinal) || string.Equals(name, ComponentFullName, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -5561,7 +5408,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         INamedTypeSymbol? componentType = null;
         for (var t = symbol; t is not null; t = t.BaseType)
         {
-            if (t.OriginalDefinition.ToDisplayString() == ComponentFullName)
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
             {
                 componentType = t;
                 break;
@@ -5584,7 +5431,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         foreach (var member in componentType.GetMembers())
         {
             if (member is IMethodSymbol { IsVirtual: true, Parameters.Length: 0 } m
-                && m.ReturnType.ToDisplayString() == "System.Threading.Tasks.Task")
+                && string.Equals(m.ReturnType.ToDisplayString(), "System.Threading.Tasks.Task", StringComparison.Ordinal))
             {
                 hooks.Add(m.Name);
             }
@@ -5608,7 +5455,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     {
         for (var t = symbol; t is not null; t = t.BaseType)
         {
-            if (t.OriginalDefinition.ToDisplayString() == ElementFullName)
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ElementFullName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -5622,7 +5469,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // return-type rule excludes template/data delegates — Func<…,Component> (ErrorBoundary.Fallback),
     // Func<…,ValueTask<…>> (VirtualizeModel.ItemsProvider), Func<…,IEnumerable<…>>
     // (validators) — so only true parent→child callbacks are wrapped.
-    private static bool IsAutoRerenderDelegate(ITypeSymbol type)
+    private static bool IsAutoRerenderDelegateType(ITypeSymbol type)
     {
         if (type is not INamedTypeSymbol named || named.TypeKind != TypeKind.Delegate)
         {
@@ -5641,8 +5488,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             return true;
         }
 
-        return ret.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-               == "global::System.Threading.Tasks.Task";
+        return string.Equals(
+            ret.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            "global::System.Threading.Tasks.Task",
+            StringComparison.Ordinal);
     }
 
     // The same question asked of a PROPERTY: lift a `Nullable<>` first, then ask the delegate — and
@@ -5667,12 +5516,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         var fqn = lifted.ToDisplayString(FullyQualifiedNullable);
         var open = fqn.IndexOf('<');
-        if ((open < 0 ? fqn : fqn.Substring(0, open)) == CallbackFqn)
+        if (string.Equals(open < 0 ? fqn : fqn.Substring(0, open), CallbackFqn, StringComparison.Ordinal))
         {
             return true;
         }
 
-        return IsAutoRerenderDelegate(lifted);
+        return IsAutoRerenderDelegateType(lifted);
     }
 
     private static bool IsInRaskCoreNamespace(INamedTypeSymbol symbol)
@@ -5683,12 +5532,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // they are not user-facing tag wrappers. Rask.Core.Components is intentionally NOT
         // excluded: that is where the HTML tag wrappers live, and the generator now emits
         // their factories the same way it does for user components.
-        if (ns == "Rask.Core")
+        if (string.Equals(ns, "Rask.Core", StringComparison.Ordinal))
         {
             return true;
         }
 
-        if (ns == "Rask.Core.Live" || ns.StartsWith("Rask.Core.Live.", StringComparison.Ordinal))
+        if (string.Equals(ns, "Rask.Core.Live", StringComparison.Ordinal) || ns.StartsWith("Rask.Core.Live.", StringComparison.Ordinal))
         {
             return true;
         }
@@ -5696,18 +5545,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static bool HasSkipFactoryAttribute(ISymbol symbol)
-    {
-        foreach (var attr in symbol.GetAttributes())
-        {
-            if (attr.AttributeClass?.ToDisplayString() == SkipFactoryFullName)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool HasSkipFactoryAttribute(ISymbol symbol) =>
+        symbol.GetAttributes().Any(static attr => string.Equals(
+            attr.AttributeClass?.ToDisplayString(), SkipFactoryFullName, StringComparison.Ordinal));
 
     private static bool HasPublicParameterlessConstructor(INamedTypeSymbol symbol)
     {
@@ -5722,7 +5562,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static bool HasDIConstructor(INamedTypeSymbol symbol)
+    private static bool DeclaresDIConstructor(INamedTypeSymbol symbol)
     {
         foreach (var ctor in symbol.InstanceConstructors)
         {
@@ -5761,231 +5601,216 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         {
             foreach (var member in current.GetMembers())
             {
-                if (member is not IPropertySymbol prop)
+                // A name already seen is shadowed by a more-derived declaration we already visited.
+                if (member is IPropertySymbol prop && seen.Add(prop.Name) && IsFactoryProperty(prop))
                 {
-                    continue;
+                    result.Add(ToPropInfo(prop, current, depth, isElement, isFormControl, compilation));
                 }
-
-                if (!seen.Add(prop.Name))
-                {
-                    // Shadowed by a more-derived declaration we already visited.
-                    continue;
-                }
-
-                if (prop.IsStatic || prop.IsIndexer || prop.IsImplicitlyDeclared)
-                {
-                    continue;
-                }
-
-                if (prop.DeclaredAccessibility != Accessibility.Public)
-                {
-                    continue;
-                }
-
-                if (prop.SetMethod is null)
-                {
-                    continue;
-                }
-
-                if (prop.SetMethod.DeclaredAccessibility != Accessibility.Public)
-                {
-                    continue;
-                }
-
-                if (HasSkipFactoryAttribute(prop))
-                {
-                    continue;
-                }
-
-                if (IsOverrideOfRaskCoreMember(prop))
-                {
-                    continue;
-                }
-
-                // Children is exposed via the `Component this[params Component[]]` indexer, not as
-                // a factory parameter. Skip any property that matches the standard Children shape
-                // so subclasses can't accidentally bring it back into the factory signature.
-                if (prop.Name == "Children" && IsChildCollectionType(
-                        prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
-                            .WithMiscellaneousOptions(
-                                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-                                | SymbolDisplayMiscellaneousOptions.UseSpecialTypes))))
-                {
-                    continue;
-                }
-
-                var filePath = string.Empty;
-                var spanStart = 0;
-                var spanLength = 0;
-                var hasInitializer = false;
-                // A constant member initializer (`= "x"`, `= BsColor.Danger`) becomes the factory
-                // param's DEFAULT value instead of excluding the property; non-constant initializers
-                // (`= new List<>()`) stay excluded. Formatted for the generated file (no usings there).
-                // Restricted to a regular `set` accessor: an `init`-only property cannot be reassigned
-                // post-construction, and the factory reassigns every param on the reused persisted-
-                // component path (`__c.Prop = prop;`), so promoting an init-only initializer to a param
-                // would emit code that fails CS8852. Init-only-with-initializer stays excluded (as before).
-                var isInitOnly = prop.SetMethod.IsInitOnly;
-                string? initializerDefault = null;
-                if (prop.DeclaringSyntaxReferences.Length > 0)
-                {
-                    var syntaxRef = prop.DeclaringSyntaxReferences[0];
-                    filePath = syntaxRef.SyntaxTree.FilePath ?? string.Empty;
-                    spanStart = syntaxRef.Span.Start;
-                    spanLength = syntaxRef.Span.Length;
-                    if (syntaxRef.GetSyntax() is PropertyDeclarationSyntax pds)
-                    {
-                        hasInitializer = pds.Initializer is not null;
-                        if (pds.Initializer is { } init && !isInitOnly)
-                        {
-                            var constant = compilation.GetSemanticModel(init.SyntaxTree)
-                                .GetConstantValue(init.Value);
-                            if (constant.HasValue)
-                                initializerDefault = FormatConstantDefault(constant.Value, prop.Type);
-                        }
-                    }
-                }
-
-                // A non-nullable `Callback` counts: its default is an unset slot, so it is optional rather
-                // than a required step (see CallbackCarrier).
-                var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
-                                 || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
-                                     SpecialType.System_Nullable_T)
-                                 || CallbackCarrier.IsNonNullable(prop.Type);
-
-                var typeFqn = TypeName(prop.Type, FullyQualifiedNullable, compilation);
-
-                // A bound-mode IFormControl<T> member (Bind/Validate/AfterBind):
-                // excluded from the controlled factory and instead emitted on the synthesized bound factory.
-                var isBoundInterfaceProp = isFormControl &&
-                                           Array.IndexOf(BoundInterfaceMembers, prop.Name) >= 0;
-
-                // AfterBind/AfterBindAsync are Action<T>/Func<T,Task>-shaped, so they would qualify for
-                // auto-wrapping on a non-Element control (BsInput, BsSelect, …) — but they are post-bind
-                // hooks, not event callbacks, and the bound factory has always assigned them raw. Excluding
-                // every bound member here keeps the builder setters on the same rule.
-                // An Element subclass forwards its delegate props straight to the DOM, where
-                // handler-owner resolution already repaints and a wrap would only add a hot-path closure
-                // — so they are assigned verbatim (DelegatePropOnElementSubclass_IsNotWrapped).
-                //
-                // [AutoCallback] is the exception, and it exists because Form needs one: its submit
-                // handlers are NOT dispatched by the DOM, they are invoked by Form's own submit bridge
-                // after validation, so nothing else would repaint the component that owns them. That is
-                // what [FactoryGeneric]'s TypedDelegateProperties used to say, on a component that is no
-                // longer generic-by-factory.
-                var isAutoRerenderDelegate =
-                    (!isElement || HasAutoCallbackAttribute(prop))
-                    && !isBoundInterfaceProp && IsAutoRerenderProp(prop.Type);
-
-                // Any delegate-typed prop (event callbacks: Callback/CallbackAsync/Action/Func) is
-                // excluded from the propsChanged fold below — two delegates/closures are practically never
-                // equal, so folding them forces propsChanged: true every render (defeating the render
-                // cache) AND emits per-prop snapshot+compare bookkeeping that scales with the count. The
-                // universal GlobalEventHandlers surface adds ~50 delegate props to every element factory,
-                // so this is load-bearing for the render-hotpath allocation pin. Distinct from
-                // isAutoRerenderDelegate, which ALSO drives the parent re-render wrapping that element
-                // props must NOT get.
-                // A CARRIER counts too, and missing that is the quietest regression in this file: a
-                // `Callback` — or `Callback?`, `Nullable<Callback>` — is a STRUCT, so the TypeKind test alone says false and
-                // every carrier-typed handler starts folding. Nothing fails — every element carrying a
-                // handler simply reports propsChanged: true on every frame, and the render cache is
-                // defeated tree-wide. Only the allocation benchmarks would notice.
-                var isDelegate = prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate }
-                                 || CarrierDelegates(TypeName(prop.Type, FullyQualifiedNullable, compilation))
-                                     .Count > 0;
-
-                // An unconstrained type-parameter prop (e.g. `TValue? Value`) can't default to `null` —
-                // there's no conversion from null to T — so its optional factory param must default to
-                // `default`. (A `class`/`notnull`-constrained T would accept null, but `default` is always
-                // valid, so key off the type-parameter kind rather than the constraint set.)
-                var isTypeParameter = prop.Type is ITypeParameterSymbol;
-
-                var (enumType, enumMembers) = EnumStepSource(prop.Type);
-
-                result.Add(new PropInfo(
-                    prop.Name,
-                    typeFqn,
-                    isNullable,
-                    hasInitializer,
-                    prop.IsRequired,
-                    depth,
-                    filePath,
-                    spanStart,
-                    spanLength,
-                    isAutoRerenderDelegate,
-                    isTypeParameter,
-                    isBoundInterfaceProp,
-                    isDelegate,
-                    initializerDefault,
-                    prop.SetMethod?.IsInitOnly == true,
-                    IsSharedSurfaceType(current),
-                    HasDerivedSetter(prop),
-                    SummaryOf(prop),
-                    IsSensitiveProp(prop),
-                    enumType,
-                    enumMembers));
             }
         }
 
-        // A Blazor island's chain steps come from the component it HOSTS rather than from anything it
-        // declares — not redeclaring the hosted component's surface is the point of the feature.
-        //
-        // Appended HERE, in the generator that emits the setters, rather than generated as properties
-        // by BlazorGenerator and picked up on some later pass: one source generator never sees
-        // another's output, so a property written there would be invisible to this and would get no
-        // chain step at all. Both read BlazorParameters.Read so the list cannot diverge — whatever
-        // emits a property must be matched by whatever emits its setter.
-        if (Blazor.BlazorParameters.HostedTypeOf(symbol) is { } hostedComponent)
+        AppendBlazorParameters(result, symbol);
+        SortByDeclaration(result);
+        return result;
+    }
+
+    private static bool IsFactoryProperty(IPropertySymbol prop) =>
+        !prop.IsStatic && !prop.IsIndexer && !prop.IsImplicitlyDeclared
+        && prop.DeclaredAccessibility == Accessibility.Public
+        && prop.SetMethod is { DeclaredAccessibility: Accessibility.Public }
+        && !HasSkipFactoryAttribute(prop)
+        && !IsOverrideOfRaskCoreMember(prop)
+        // Children is exposed via the `Component this[params Component[]]` indexer, not as
+        // a factory parameter. Skip any property that matches the standard Children shape
+        // so subclasses can't accidentally bring it back into the factory signature.
+        && !(string.Equals(prop.Name, "Children", StringComparison.Ordinal) && IsChildCollectionType(
+            prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
+                .WithMiscellaneousOptions(
+                    SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+                    | SymbolDisplayMiscellaneousOptions.UseSpecialTypes))));
+
+    private static PropInfo ToPropInfo(
+        IPropertySymbol prop, INamedTypeSymbol declaring, int depth, bool isElement, bool isFormControl,
+        Compilation compilation)
+    {
+        var (filePath, spanStart, spanLength, hasInitializer, initializerDefault) = ReadDeclaration(prop, compilation);
+
+        // A non-nullable `Callback` counts: its default is an unset slot, so it is optional rather
+        // than a required step (see CallbackCarrier).
+        var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated
+                         || (prop.Type.IsValueType && prop.Type.OriginalDefinition.SpecialType ==
+                             SpecialType.System_Nullable_T)
+                         || CallbackCarrier.IsNonNullable(prop.Type);
+
+        var typeFqn = DisplayTypeName(prop.Type, FullyQualifiedNullable, compilation);
+
+        // A bound-mode IFormControl<T> member (Bind/Validate/AfterBind):
+        // excluded from the controlled factory and instead emitted on the synthesized bound factory.
+        var isBoundInterfaceProp = isFormControl &&
+                                   Array.IndexOf(BoundInterfaceMembers, prop.Name) >= 0;
+
+        // An unconstrained type-parameter prop (e.g. `TValue? Value`) can't default to `null` —
+        // there's no conversion from null to T — so its optional factory param must default to
+        // `default`. (A `class`/`notnull`-constrained T would accept null, but `default` is always
+        // valid, so key off the type-parameter kind rather than the constraint set.)
+        var isTypeParameter = prop.Type is ITypeParameterSymbol;
+
+        var (enumType, enumMembers) = EnumStepSource(prop.Type);
+
+        return new PropInfo(
+            prop.Name,
+            typeFqn,
+            isNullable,
+            hasInitializer,
+            prop.IsRequired,
+            depth,
+            filePath,
+            spanStart,
+            spanLength,
+            IsAutoRerenderDelegateProp(prop, isElement, isBoundInterfaceProp),
+            isTypeParameter,
+            isBoundInterfaceProp,
+            IsDelegateProp(prop, compilation),
+            initializerDefault,
+            prop.SetMethod?.IsInitOnly == true,
+            IsSharedSurfaceType(declaring),
+            DeclaresDerivedSetter(prop),
+            SummaryOf(prop),
+            IsSensitiveProp(prop),
+            enumType,
+            enumMembers);
+    }
+
+    // Where the property is declared, and what its member initializer says. A constant member initializer
+    // (`= "x"`, `= BsColor.Danger`) becomes the factory param's DEFAULT value instead of excluding the
+    // property; non-constant initializers (`= new List<>()`) stay excluded. Formatted for the generated file
+    // (no usings there). Restricted to a regular `set` accessor: an `init`-only property cannot be reassigned
+    // post-construction, and the factory reassigns every param on the reused persisted-component path
+    // (`__c.Prop = prop;`), so promoting an init-only initializer to a param would emit code that fails
+    // CS8852. Init-only-with-initializer stays excluded (as before).
+    private static (string FilePath, int SpanStart, int SpanLength, bool HasInitializer, string? InitializerDefault)
+        ReadDeclaration(IPropertySymbol prop, Compilation compilation)
+    {
+        if (prop.DeclaringSyntaxReferences.Length == 0)
         {
-            var islandRef = symbol.DeclaringSyntaxReferences.FirstOrDefault();
-            var islandPath = islandRef?.SyntaxTree.FilePath ?? string.Empty;
-            var islandStart = islandRef?.Span.Start ?? 0;
-            var islandLength = islandRef?.Span.Length ?? 0;
+            return (string.Empty, 0, 0, false, null);
+        }
 
-            foreach (var hosted in Blazor.BlazorParameters.Read(symbol, hostedComponent))
+        var syntaxRef = prop.DeclaringSyntaxReferences[0];
+        var filePath = syntaxRef.SyntaxTree.FilePath ?? string.Empty;
+        if (syntaxRef.GetSyntax() is not PropertyDeclarationSyntax pds)
+        {
+            return (filePath, syntaxRef.Span.Start, syntaxRef.Span.Length, false, null);
+        }
+
+        string? initializerDefault = null;
+        if (pds.Initializer is { } init && prop.SetMethod?.IsInitOnly != true)
+        {
+            var constant = compilation.GetSemanticModel(init.SyntaxTree).GetConstantValue(init.Value);
+            if (constant.HasValue)
             {
-                // Against what was actually PRODUCED, not against `seen`. That set records every
-                // property name walked, including ones immediately skipped for being static — and the
-                // chain entries inherited from RaskMarkup are static members named after components,
-                // so consulting it would silently drop a parameter called Text, Table, Form or Label.
-                // Those are ordinary names for a UI library, and the failure would be no step, no
-                // diagnostic, and no way to pass a value the component plainly declares.
-                if (result.Any(p => string.Equals(p.Name, hosted.Name, StringComparison.Ordinal)))
-                {
-                    continue;
-                }
-
-                result.Add(new PropInfo(
-                    hosted.Name,
-                    hosted.ChainTypeFqn,
-                    // Optional unless the hosted component said otherwise. Defaulting to nullable is
-                    // what keeps every call site from having to supply every parameter the component
-                    // happens to declare; [EditorRequired] is Blazor's own way of saying a parameter
-                    // is mandatory, so it maps onto Rask's required step and nothing else does.
-                    IsNullable: !hosted.IsRequired,
-                    HasInitializer: false,
-                    UserMarkedRequired: hosted.IsRequired,
-                    InheritanceDepth: 0,
-                    islandPath,
-                    islandStart,
-                    islandLength,
-                    // An EventCallback becomes a plain delegate, and a callback prop on a non-Element
-                    // component is auto-wrapped so invoking it re-renders the owning parent.
-                    IsAutoRerenderDelegate: hosted.IsEventCallback,
-                    IsTypeParameter: false,
-                    IsBoundInterfaceProp: false,
-                    IsDelegate: hosted.IsEventCallback,
-                    InitializerDefault: null,
-                    IsInitOnly: false,
-                    IsSharedSurfaceProp: false,
-                    HasDerivedSetter: false,
-                    $"Feeds the hosted component's <c>{hosted.Parameter}</c> parameter."));
+                initializerDefault = FormatConstantDefault(constant.Value, prop.Type);
             }
         }
 
-        // Sort: (a) derived-class properties first (lowest depth), then (b) by file path
-        // and span — preserves the user's declaration order within each level of the
-        // inheritance chain.
+        return (filePath, syntaxRef.Span.Start, syntaxRef.Span.Length, pds.Initializer is not null, initializerDefault);
+    }
+
+    // AfterBind/AfterBindAsync are Action<T>/Func<T,Task>-shaped, so they would qualify for
+    // auto-wrapping on a non-Element control (BsInput, BsSelect, …) — but they are post-bind
+    // hooks, not event callbacks, and the bound factory has always assigned them raw. Excluding
+    // every bound member here keeps the builder setters on the same rule.
+    // An Element subclass forwards its delegate props straight to the DOM, where
+    // handler-owner resolution already repaints and a wrap would only add a hot-path closure
+    // — so they are assigned verbatim (DelegatePropOnElementSubclass_IsNotWrapped).
+    //
+    // [AutoCallback] is the exception, and it exists because Form needs one: its submit
+    // handlers are NOT dispatched by the DOM, they are invoked by Form's own submit bridge
+    // after validation, so nothing else would repaint the component that owns them. That is
+    // what [FactoryGeneric]'s TypedDelegateProperties used to say, on a component that is no
+    // longer generic-by-factory.
+    private static bool IsAutoRerenderDelegateProp(IPropertySymbol prop, bool isElement, bool isBoundInterfaceProp) =>
+        (!isElement || HasAutoCallbackAttribute(prop))
+        && !isBoundInterfaceProp && IsAutoRerenderProp(prop.Type);
+
+    // Any delegate-typed prop (event callbacks: Callback/CallbackAsync/Action/Func) is
+    // excluded from the propsChanged fold — two delegates/closures are practically never
+    // equal, so folding them forces propsChanged: true every render (defeating the render
+    // cache) AND emits per-prop snapshot+compare bookkeeping that scales with the count. The
+    // universal GlobalEventHandlers surface adds ~50 delegate props to every element factory,
+    // so this is load-bearing for the render-hotpath allocation pin. Distinct from
+    // isAutoRerenderDelegate, which ALSO drives the parent re-render wrapping that element
+    // props must NOT get.
+    // A CARRIER counts too, and missing that is the quietest regression in this file: a
+    // `Callback` — or `Callback?`, `Nullable<Callback>` — is a STRUCT, so the TypeKind test alone says false and
+    // every carrier-typed handler starts folding. Nothing fails — every element carrying a
+    // handler simply reports propsChanged: true on every frame, and the render cache is
+    // defeated tree-wide. Only the allocation benchmarks would notice.
+    private static bool IsDelegateProp(IPropertySymbol prop, Compilation compilation) =>
+        prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate }
+        || CarrierDelegates(DisplayTypeName(prop.Type, FullyQualifiedNullable, compilation)).Count > 0;
+
+    // A Blazor island's chain steps come from the component it HOSTS rather than from anything it
+    // declares — not redeclaring the hosted component's surface is the point of the feature.
+    //
+    // Appended HERE, in the generator that emits the setters, rather than generated as properties
+    // by BlazorGenerator and picked up on some later pass: one source generator never sees
+    // another's output, so a property written there would be invisible to this and would get no
+    // chain step at all. Both read BlazorParameters.Read so the list cannot diverge — whatever
+    // emits a property must be matched by whatever emits its setter.
+    private static void AppendBlazorParameters(List<PropInfo> result, INamedTypeSymbol symbol)
+    {
+        if (Blazor.BlazorParameters.HostedTypeOf(symbol) is not { } hostedComponent)
+        {
+            return;
+        }
+
+        var islandRef = symbol.DeclaringSyntaxReferences.FirstOrDefault();
+        var islandPath = islandRef?.SyntaxTree.FilePath ?? string.Empty;
+        var islandStart = islandRef?.Span.Start ?? 0;
+        var islandLength = islandRef?.Span.Length ?? 0;
+
+        // Against what was actually PRODUCED, not against the walk's `seen`. That set records every
+        // property name walked, including ones immediately skipped for being static — and the
+        // chain entries inherited from RaskMarkup are static members named after components,
+        // so consulting it would silently drop a parameter called Text, Table, Form or Label.
+        // Those are ordinary names for a UI library, and the failure would be no step, no
+        // diagnostic, and no way to pass a value the component plainly declares.
+        foreach (var hosted in Blazor.BlazorParameters.Read(symbol, hostedComponent)
+                     .Where(h => !result.Any(p => string.Equals(p.Name, h.Name, StringComparison.Ordinal))))
+        {
+            result.Add(new PropInfo(
+                hosted.Name,
+                hosted.ChainTypeFqn,
+                // Optional unless the hosted component said otherwise. Defaulting to nullable is
+                // what keeps every call site from having to supply every parameter the component
+                // happens to declare; [EditorRequired] is Blazor's own way of saying a parameter
+                // is mandatory, so it maps onto Rask's required step and nothing else does.
+                IsNullable: !hosted.IsRequired,
+                HasInitializer: false,
+                UserMarkedRequired: hosted.IsRequired,
+                InheritanceDepth: 0,
+                islandPath,
+                islandStart,
+                islandLength,
+                // An EventCallback becomes a plain delegate, and a callback prop on a non-Element
+                // component is auto-wrapped so invoking it re-renders the owning parent.
+                IsAutoRerenderDelegate: hosted.IsEventCallback,
+                IsTypeParameter: false,
+                IsBoundInterfaceProp: false,
+                IsDelegate: hosted.IsEventCallback,
+                InitializerDefault: null,
+                IsInitOnly: false,
+                IsSharedSurfaceProp: false,
+                HasDerivedSetter: false,
+                $"Feeds the hosted component's <c>{hosted.Parameter}</c> parameter."));
+        }
+    }
+
+    // Sort: (a) derived-class properties first (lowest depth), then (b) by file path
+    // and span — preserves the user's declaration order within each level of the
+    // inheritance chain.
+    private static void SortByDeclaration(List<PropInfo> result) =>
         result.Sort(static (a, b) =>
         {
             var d = a.InheritanceDepth.CompareTo(b.InheritanceDepth);
@@ -5997,8 +5822,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             var c = string.CompareOrdinal(a.DeclaringFilePath, b.DeclaringFilePath);
             return c != 0 ? c : a.DeclaringSpanStart.CompareTo(b.DeclaringSpanStart);
         });
-        return result;
-    }
 
     private static bool IsOverrideOfRaskCoreMember(IPropertySymbol prop)
     {
@@ -6011,7 +5834,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         while (overridden is not null)
         {
             var ns = overridden.ContainingType.ContainingNamespace?.ToDisplayString() ?? string.Empty;
-            if (ns == "Rask.Core" || ns.StartsWith("Rask.Core.", StringComparison.Ordinal))
+            if (string.Equals(ns, "Rask.Core", StringComparison.Ordinal) || ns.StartsWith("Rask.Core.", StringComparison.Ordinal))
             {
                 return true;
             }
@@ -6459,7 +6282,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
             // [DataType(DataType.Password)] — the enum member's value, not its name, survives to metadata.
             // Written without a slice pattern: this generator targets netstandard2.0, which has no System.Index.
-            if (name == "DataTypeAttribute"
+            if (string.Equals(name, "DataTypeAttribute", StringComparison.Ordinal)
                 && attribute.ConstructorArguments.Length > 0
                 && attribute.ConstructorArguments[0].Value is int dataType
                 && dataType == PasswordDataType)
@@ -6510,61 +6333,4 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);
     }
-}
-
-internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
-    where T : IEquatable<T>
-{
-    private readonly T[] _items;
-
-    public EquatableArray(IEnumerable<T> items) => _items = items?.ToArray() ?? Array.Empty<T>();
-
-    public int Count => _items?.Length ?? 0;
-
-    public T this[int index] => _items[index];
-
-    public bool Equals(EquatableArray<T> other)
-    {
-        var a = _items ?? Array.Empty<T>();
-        var b = other._items ?? Array.Empty<T>();
-        if (a.Length != b.Length)
-        {
-            return false;
-        }
-
-        for (var i = 0; i < a.Length; i++)
-        {
-            if (!a[i].Equals(b[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public override bool Equals(object? obj) => obj is EquatableArray<T> other && Equals(other);
-
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            var hash = 17;
-            var arr = _items ?? Array.Empty<T>();
-            foreach (var item in arr)
-            {
-                hash = (hash * 31) + item.GetHashCode();
-            }
-
-            return hash;
-        }
-    }
-
-    public IEnumerator<T> GetEnumerator()
-    {
-        var arr = _items ?? Array.Empty<T>();
-        return ((IEnumerable<T>)arr).GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

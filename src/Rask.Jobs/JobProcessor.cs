@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Rask.Cqrs;
 using Rask.Data;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 /// Polls the <see cref="Job"/> table on a schedule and runs each due job by dispatching it through
@@ -17,7 +17,7 @@ namespace Rask.Jobs;
 /// safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
 /// <typeparam name="TContext">The application's <see cref="DbContext"/> that owns the jobs tables.</typeparam>
-public sealed class JobProcessor<TContext>(
+public sealed partial class JobProcessor<TContext>(
     IDbContextFactory<TContext> contextFactory,
     IServiceScopeFactory scopeFactory,
     JobsOptions options,
@@ -26,7 +26,7 @@ public sealed class JobProcessor<TContext>(
     ILogger<JobProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
-    private static readonly TimeSpan PurgeInterval = TimeSpan.FromHours(1);
+    private static TimeSpan PurgeInterval => TimeSpan.FromHours(1);
     private DateTime _lastPurge;
 
     /// <summary>Identifies this instance in logs — not persisted; the per-batch token is what rows carry.</summary>
@@ -150,11 +150,7 @@ public sealed class JobProcessor<TContext>(
                 // The generic message would send someone reading a stack trace instead of running two
                 // commands. This failure is also invisible without it: the exception is swallowed here,
                 // so the app looks healthy while logging the same error every poll, forever.
-                logger.LogError(
-                    ex,
-                    "Rask.Jobs added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
-                    + "Run: rask db add AddJobLeases && rask db update. See docs/{Doc}.",
-                    "scaling.md#running-more-than-one-instance");
+                LeaseColumnsMissing(logger, ex, "scaling.md#running-more-than-one-instance");
                 return;
             }
 
@@ -162,20 +158,18 @@ public sealed class JobProcessor<TContext>(
             {
                 // The same silent failure as the lease columns above, from a later upgrade. Checked second, so
                 // a database missing both is sent to the older migration first.
-                logger.LogError(
-                    ex,
-                    "Rask.Jobs added a UserId column (the user a job runs for) that this database does not have. "
-                    + "Run: rask db add AddJobUser && rask db update.");
+                UserColumnMissing(logger, ex);
                 return;
             }
 
-            logger.LogError(ex, "Job processing cycle failed; retrying on the next poll.");
+            CycleFailed(logger, ex);
         }
     }
 
     private async Task DrainAsync(CancellationToken cancellationToken)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         var batch = await ClaimAsync(db, now, cancellationToken).ConfigureAwait(false);
@@ -206,108 +200,110 @@ public sealed class JobProcessor<TContext>(
                 break;
             }
 
-            var command = JobSerializerRegistry.Deserialize(job.Type, job.Payload);
-            if (command is null)
+            if (!await RunAsync(job, graceToken, cancellationToken).ConfigureAwait(false))
             {
-                Fail(job, $"No registered job type '{job.Type}'.");
-
-                // An unregistered type is a failure like any other, and counts toward the dead letter it
-                // will become — a renamed job that nobody re-registered is the most ordinary way a
-                // production queue starts abandoning work, so it must not be invisible to metrics.
-                metrics.Failed(job.Type);
-                if (job.Attempts >= options.MaxAttempts)
-                {
-                    metrics.DeadLettered(job.Type);
-                }
-
-                logger.LogError("Job {Id} has an unregistered type '{Type}'.", job.Id, job.Type);
+                break; // leave this and the rest for the next run
             }
-            else
-            {
-                var startedAt = timeProvider.GetTimestamp();
-                try
-                {
-                    // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
-                    await using var scope = scopeFactory.CreateAsyncScope();
-                    var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
-                    // Run AS the tenant the job was enqueued for. Without this a handler that reads a
-                    // tenant-scoped table throws, because background work carries no principal and so has no
-                    // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
-                    using var tenant = job.TenantId is { } owner ? Tenant.Use(owner) : null;
+            await SaveOutcomeAsync(db, job).ConfigureAwait(false);
+        }
+    }
 
-                    // And AS the user, unconditionally: a job enqueued by nobody runs for nobody, rather than
-                    // for whatever user happened to be ambient on the processor's own flow.
-                    using var user = Current.UseUser(job.UserId);
+    /// <summary>Runs one claimed job, recording its outcome on the row. False when shutdown cut it off.</summary>
+    private async Task<bool> RunAsync(Job job, CancellationToken graceToken, CancellationToken cancellationToken)
+    {
+        var command = JobSerializerRegistry.Deserialize(job.Type, job.Payload);
+        if (command is null)
+        {
+            // An unregistered type is a failure like any other, and counts toward the dead letter it
+            // will become — a renamed job that nobody re-registered is the most ordinary way a
+            // production queue starts abandoning work, so it must not be invisible to metrics.
+            Fail(job, $"No registered job type '{job.Type}'.");
+            UnregisteredType(logger, job.Id, job.Type);
+            return true;
+        }
 
-                    await dispatcher.Send(command, graceToken).ConfigureAwait(false);
-                    job.Completed(timeProvider.GetUtcNow().UtcDateTime);
-                    job.Release();
-                    metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    // Shutdown outlived the grace. Attempts and RunAt are deliberately untouched: a
-                    // redeploy is not a failed attempt, and counting it would march never-failing work
-                    // toward its dead letter at the cadence you deploy. The row stays immediately eligible
-                    // and re-runs whole on restart — metered and logged so a grace period that is too
-                    // short for the work is visible rather than silent.
-                    //
-                    // The filter stays on the HOST token, not the grace token: the grace deadline is only
-                    // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
-                    // while a handler's own OperationCanceledException still falls through to the generic
-                    // catch below and counts as the real failure it is.
-                    // Attempts and the lease are both given back by StopAsync, which owns every row this
-                    // instance still holds — including ones claimed in this batch but never started. It
-                    // cannot be done here: this `break` skips the per-item SaveChanges below, so an
-                    // in-memory edit would be discarded while the claim's increment is already on disk.
-                    metrics.Interrupted(job.Type);
-                    logger.LogWarning(
-                        "Job {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it will run "
-                        + "again on restart, so its handler must be idempotent.",
-                        job.Id, job.Type, options.ShutdownGracePeriod);
-                    break; // leave this and the rest for the next run
-                }
+        var startedAt = timeProvider.GetTimestamp();
+        try
+        {
+            await DispatchAsync(job, command, graceToken).ConfigureAwait(false);
+            job.Completed(timeProvider.GetUtcNow().UtcDateTime);
+            job.Release();
+            metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
+        }
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+        {
+            // Shutdown outlived the grace. Attempts and RunAt are deliberately untouched: a
+            // redeploy is not a failed attempt, and counting it would march never-failing work
+            // toward its dead letter at the cadence you deploy. The row stays immediately eligible
+            // and re-runs whole on restart — metered and logged so a grace period that is too
+            // short for the work is visible rather than silent.
+            //
+            // The filter stays on the HOST token, not the grace token: the grace deadline is only
+            // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
+            // while a handler's own OperationCanceledException still falls through to the generic
+            // catch below and counts as the real failure it is.
+            // Attempts and the lease are both given back by StopAsync, which owns every row this
+            // instance still holds — including ones claimed in this batch but never started. It
+            // cannot be done here: returning false skips the per-item SaveChanges, so an
+            // in-memory edit would be discarded while the claim's increment is already on disk.
+            metrics.Interrupted(job.Type);
+            InterruptedByShutdown(logger, ex, job.Id, job.Type, options.ShutdownGracePeriod);
+            return false;
+        }
 #pragma warning disable CA1031 // A failing job must not stop the drain or crash the app — record + retry with backoff.
-                catch (Exception ex)
+        catch (Exception ex)
 #pragma warning restore CA1031
-                {
-                    Fail(job, ex.Message);
-                    metrics.Failed(job.Type);
-                    if (job.Attempts >= options.MaxAttempts)
-                    {
-                        metrics.DeadLettered(job.Type);
-                    }
+        {
+            Fail(job, ex.Message);
+            JobFailed(logger, ex, job.Id, job.Attempts);
+        }
 
-                    logger.LogError(ex, "Job {Id} failed (attempt {Attempts}).", job.Id, job.Attempts);
-                }
-            }
+        return true;
+    }
 
-            // Persist THIS job's outcome before moving on (with None so a job that already ran is still
-            // marked during shutdown — otherwise it re-runs on restart). Saving per job bounds an
-            // at-least-once re-run to the single job whose save failed, never the whole batch: one row
-            // deleted or edited underneath the drain would otherwise abort the entire SaveChanges and
-            // strip ProcessedAt from every already-executed job in it.
-            try
-            {
-                await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                // ClaimToken is the concurrency token, so this means our lease expired mid-job and another
-                // instance has taken the row. Its outcome wins; discard ours rather than stamping over it.
-                // The job did run twice — at-least-once was always the contract, and the fix for *this*
-                // cause is a longer LeaseDuration. This warning is how you find out you need one.
-                logger.LogWarning(
-                    "Job {Id} lost its lease mid-run on instance {Instance}; another instance owns it now. "
-                    + "Increase JobsOptions.LeaseDuration past the time this job takes.",
-                    job.Id,
-                    _instanceId);
+    private async Task DispatchAsync(Job job, ICommand command, CancellationToken graceToken)
+    {
+        // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
+        var scope = scopeFactory.CreateAsyncScope();
+        await using var jobScope = scope.ConfigureAwait(false);
+        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
-                // Not optional: the context is shared across the batch, so a failed entry left attached is
-                // retried by the *next* job's SaveChanges and fails that one too.
-                db.Entry(job).State = EntityState.Detached;
-            }
+        // Run AS the tenant the job was enqueued for. Without this a handler that reads a
+        // tenant-scoped table throws, because background work carries no principal and so has no
+        // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
+        using var tenant = job.TenantId is { } owner ? Tenant.Use(owner) : null;
+
+        // And AS the user, unconditionally: a job enqueued by nobody runs for nobody, rather than
+        // for whatever user happened to be ambient on the processor's own flow.
+        using var user = Current.UseUser(job.UserId);
+
+        await dispatcher.Send(command, graceToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Persists THIS job's outcome before moving on (with None so a job that already ran is still marked during
+    /// shutdown — otherwise it re-runs on restart). Saving per job bounds an at-least-once re-run to the single
+    /// job whose save failed, never the whole batch: one row deleted or edited underneath the drain would
+    /// otherwise abort the entire SaveChanges and strip ProcessedAt from every already-executed job in it.
+    /// </summary>
+    private async Task SaveOutcomeAsync(TContext db, Job job)
+    {
+        try
+        {
+            await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // ClaimToken is the concurrency token, so this means our lease expired mid-job and another
+            // instance has taken the row. Its outcome wins; discard ours rather than stamping over it.
+            // The job did run twice — at-least-once was always the contract, and the fix for *this*
+            // cause is a longer LeaseDuration. This warning is how you find out you need one.
+            LeaseLost(logger, ex, job.Id, _instanceId);
+
+            // Not optional: the context is shared across the batch, so a failed entry left attached is
+            // retried by the *next* job's SaveChanges and fails that one too.
+            db.Entry(job).State = EntityState.Detached;
         }
     }
 
@@ -318,6 +314,11 @@ public sealed class JobProcessor<TContext>(
     {
         job.Failed(error, timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(job.Attempts));
         job.Release();
+        metrics.Failed(job.Type);
+        if (job.Attempts >= options.MaxAttempts)
+        {
+            metrics.DeadLettered(job.Type);
+        }
     }
 
     /// <inheritdoc/>
@@ -338,7 +339,9 @@ public sealed class JobProcessor<TContext>(
 
         try
         {
-            await using var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
+
             // Attempts goes back with the lease. ClaimAsync increments it up front so a job that takes the
             // process down still reaches MaxAttempts — but a shutdown is not that, and every row still
             // holding our lease unprocessed either never started or was cut off mid-run. Leaving the
@@ -359,7 +362,7 @@ public sealed class JobProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            logger.LogWarning(ex, "Could not release job leases on shutdown; they expire in {Lease}.", options.LeaseDuration);
+            LeaseReleaseFailed(logger, ex, options.LeaseDuration);
         }
     }
 
@@ -370,18 +373,25 @@ public sealed class JobProcessor<TContext>(
             return;
         }
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         // Load every recurring job's state in one query rather than one round-trip per definition.
         var names = options.Recurring.Select(r => r.Name).ToList();
         var states = await db.Set<RecurringJobState>()
             .Where(s => names.Contains(s.Name))
-            .ToDictionaryAsync(s => s.Name, cancellationToken)
+            .ToDictionaryAsync(s => s.Name, StringComparer.Ordinal, cancellationToken)
             .ConfigureAwait(false);
 
+        // The validator refuses an unscheduled job at start, so the filter only satisfies the compiler.
         foreach (var definition in options.Recurring)
         {
+            if (definition.Schedule is not { } schedule)
+            {
+                continue;
+            }
+
             states.TryGetValue(definition.Name, out var state);
 
             if (state is null && !await TryCreateStateAsync(db, definition.Name, cancellationToken).ConfigureAwait(false))
@@ -391,7 +401,7 @@ public sealed class JobProcessor<TContext>(
                 continue;
             }
 
-            var (dueBefore, next) = definition.Schedule!.Tick(state?.LastEnqueuedAt, now, options.TimeZone);
+            var (dueBefore, next) = schedule.Tick(state?.LastEnqueuedAt, now, options.TimeZone);
 
             // Claim the tick with a compare-and-swap on *due-ness*, so exactly one instance enqueues it.
             // Without this, two instances both read the same state, both see it due, and both enqueue —
@@ -479,7 +489,8 @@ public sealed class JobProcessor<TContext>(
         var cutoff = now - options.RetentionPeriod;
         const int page = 1000;
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         // Delete in pages until drained, so retention keeps up even with a high completion rate rather than
         // removing only one page per run. Deleted by id through ExecuteDelete rather than by loading and
@@ -523,8 +534,8 @@ public sealed class JobProcessor<TContext>(
             return;
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
 
         var pending = await db.Set<Job>()
             .CountAsync(j => j.ProcessedAt == null && j.Attempts < options.MaxAttempts, cancellationToken)
@@ -535,4 +546,40 @@ public sealed class JobProcessor<TContext>(
 
         metrics.ObserveQueueDepth(pending, deadLetters);
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
+            + "Run: rask db add AddJobLeases && rask db update. See docs/{Doc}.")]
+    private static partial void LeaseColumnsMissing(ILogger logger, Exception exception, string doc);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added a UserId column (the user a job runs for) that this database does not have. "
+            + "Run: rask db add AddJobUser && rask db update.")]
+    private static partial void UserColumnMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Job processing cycle failed; retrying on the next poll.")]
+    private static partial void CycleFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Job {Id} has an unregistered type '{Type}'.")]
+    private static partial void UnregisteredType(ILogger logger, long id, string type);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Job {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it will run "
+            + "again on restart, so its handler must be idempotent.")]
+    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, string type, TimeSpan grace);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Job {Id} failed (attempt {Attempts}).")]
+    private static partial void JobFailed(ILogger logger, Exception exception, long id, int attempts);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Job {Id} lost its lease mid-run on instance {Instance}; another instance owns it now. "
+            + "Increase JobsOptions.LeaseDuration past the time this job takes.")]
+    private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not release job leases on shutdown; they expire in {Lease}.")]
+    private static partial void LeaseReleaseFailed(ILogger logger, Exception exception, TimeSpan lease);
 }

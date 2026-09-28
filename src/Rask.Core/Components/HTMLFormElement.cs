@@ -131,12 +131,9 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
 
     private static void RegisterSubGraph(LiveRenderContext live, EditContext ctx, object root)
     {
-        foreach (var node in ModelGraphWalker.Walk(root))
+        foreach (var node in ModelGraphWalker.Walk(root).Where(node => !ReferenceEquals(node, root)))
         {
-            if (!ReferenceEquals(node, root))
-            {
-                live.RegisterEditContextForKey(node, ctx);
-            }
+            live.RegisterEditContextForKey(node, ctx);
         }
     }
 
@@ -287,11 +284,13 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     // Which form, when a page has several. Nothing identifies a Form intrinsically, so this leans on
     // whatever the author already wrote — an id, a name, a class — and says nothing when there is none,
     // rather than inventing a label that would not help anyone find it.
-    private string Describe() =>
-        Id is { Length: > 0 } id ? $" '#{id}'"
-        : Name is { Length: > 0 } name ? $" '{name}'"
-        : Class is { Length: > 0 } cls ? $" '.{cls}'"
-        : string.Empty;
+    private string Describe() => this switch
+    {
+        { Id: { Length: > 0 } id } => $" '#{id}'",
+        { Name: { Length: > 0 } name } => $" '{name}'",
+        { Class: { Length: > 0 } cls } => $" '.{cls}'",
+        _ => string.Empty,
+    };
 
     private Func<FormData, Task> BuildSubmitBridge(EditContext ctx) =>
         async formData =>

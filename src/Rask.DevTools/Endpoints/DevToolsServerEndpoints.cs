@@ -23,6 +23,11 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
     /// <summary>Where the host script is served, under the app's path base.</summary>
     internal const string HostScriptPath = Prefix + "/host.js";
 
+    // The panel page itself, at the prefix's own root.
+#pragma warning disable S1075 // a URL's trailing slash, not a file-system path delimiter
+    private const string PanelPath = Prefix + "/";
+#pragma warning restore S1075
+
     /// <summary>Where the panel page's own script is served, under the app's path base.</summary>
     internal const string PanelScriptPath = Prefix + "/panel.js";
 
@@ -102,8 +107,8 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
         PanelScriptUrl = pathBase + PanelScriptPath;
         _prefixUnderBase = new PathString(pathBase + Prefix);
         _hostScriptUrl = pathBase + HostScriptPath;
-        _panelUrl = pathBase + Prefix + "/";
-        _allowRemote = Environment.GetEnvironmentVariable(AllowRemoteVariable) == "1";
+        _panelUrl = pathBase + PanelPath;
+        _allowRemote = string.Equals(Environment.GetEnvironmentVariable(AllowRemoteVariable), "1", StringComparison.Ordinal);
     }
 
     public DevToolsPageTag? PageTag(HttpContext context, string sessionId)
@@ -113,7 +118,7 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
 
         // Never on the devtools' own pages. The panel is a Rask page like any other; tagged, it would load its own pill
         // inside its own frame and inspect itself.
-        if (_hostScriptUrl is null || context.Request.Path.StartsWithSegments(_prefixUnderBase))
+        if (_hostScriptUrl is null || context.Request.Path.StartsWithSegments(_prefixUnderBase, StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -180,5 +185,5 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
     private static bool IsLoopback(IPAddress? address) => address is not null && IPAddress.IsLoopback(address);
 
     private static bool Owns(string? path) =>
-        path is not null && new PathString(path).StartsWithSegments(Prefix);
+        path is not null && new PathString(path).StartsWithSegments(Prefix, StringComparison.OrdinalIgnoreCase);
 }

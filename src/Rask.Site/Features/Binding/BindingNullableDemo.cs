@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Site.Features;
 
 public sealed partial class BindingNullableDemo : Component
@@ -35,15 +37,15 @@ public sealed partial class BindingNullableDemo : Component
         ],
         Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
             Code[
-                $"OptionalAge = {_model.OptionalAge?.ToString() ?? "null"}\n" +
-                $"StartDate   = {_model.StartDate?.ToString("yyyy-MM-dd") ?? "null"}\n" +
+                $"OptionalAge = {_model.OptionalAge?.ToString(CultureInfo.InvariantCulture) ?? "null"}\n" +
+                $"StartDate   = {_model.StartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "null"}\n" +
                 $"Favorite    = {_model.Favorite?.ToString() ?? "null"}\n" +
                 $"Nickname    = {(_model.Nickname is null ? "null" : "\"" + _model.Nickname + "\"")}"
             ]
         ]
     ];
 
-    private sealed class Holder
+    public sealed class Holder
     {
         public int? OptionalAge { get; set; }
         public DateOnly? StartDate { get; set; }

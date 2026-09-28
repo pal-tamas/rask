@@ -1,6 +1,6 @@
 using Rask.Cqrs;
 
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 public class RetryAndPollingTests
 {

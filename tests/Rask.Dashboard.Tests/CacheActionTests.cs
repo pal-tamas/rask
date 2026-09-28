@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Rask.Cache;
+using Rask.Caching;
 
 namespace Rask.Dashboard.Tests;
 

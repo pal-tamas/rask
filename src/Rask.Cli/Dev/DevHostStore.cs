@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Rask.Cli.Scaffolding;
 using Rask.Hosting.Shared;
@@ -46,7 +47,7 @@ internal sealed partial class DevHostStore(string root)
     public void WriteCertificate(string hostname, DevCertificate certificate) =>
         Write(CertificatePath(hostname), KeyPath(hostname), certificate);
 
-    private DevCertificate? Read(string certificatePath, string keyPath)
+    private static DevCertificate? Read(string certificatePath, string keyPath)
     {
         try
         {
@@ -102,7 +103,7 @@ internal sealed partial class DevHostStore(string root)
             }
 
             var state = JsonSerializer.Deserialize<PfState>(File.ReadAllText(PfStatePath));
-            return state?.Rules is { } rules && state.BootId is { } bootId ? (rules, bootId) : null;
+            return state?.Rules is { } rules && state.LoadedOnBoot is { } bootId ? (rules, bootId) : null;
         }
         catch (JsonException)
         {
@@ -127,6 +128,7 @@ internal sealed partial class DevHostStore(string root)
         }
         catch (UnauthorizedAccessException)
         {
+            // Same cost as above: a note that could not be written is one redundant reload.
         }
     }
 
@@ -189,13 +191,16 @@ internal sealed partial class DevHostStore(string root)
     private static long? BootSeconds(string bootId)
     {
         var match = BootSecondsPattern.Match(bootId);
-        return match.Success && long.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
+        return match.Success && long.TryParse(match.Groups["sec"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
             ? seconds
             : null;
     }
 
-    [GeneratedRegex(@"\bsec\s*=\s*(\d+)")]
+    [GeneratedRegex(@"\bsec\s*=\s*(?<sec>\d+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex BootSecondsPattern { get; }
 
-    private sealed record PfState(string? Rules, string? BootId);
+    // Stored as "BootId", the name the file has always used, so a note written by an older CLI still reads.
+    private sealed record PfState(
+        string? Rules,
+        [property: JsonPropertyName("BootId")] string? LoadedOnBoot);
 }

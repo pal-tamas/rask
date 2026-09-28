@@ -44,7 +44,7 @@ public sealed partial class UiCrumbSwitcher : Component
 
         var select = Select
             .Value(Value)
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            .Aria("label", Label)
             // appearance-none strips the platform arrow so the crumb's own chevron can sit where the
             // reference puts it; the select underneath is otherwise completely ordinary.
             .Class(

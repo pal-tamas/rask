@@ -217,7 +217,7 @@ public sealed class RaskServerOptions
     public bool CompressPageHtml { get; set; } = true;
 
     /// <summary>
-    ///     Throws <see cref="ArgumentOutOfRangeException" /> if any value is out of range. Run by the
+    ///     Throws <see cref="InvalidOperationException" /> if any value is out of range. Run by the
     ///     options validation <c>AddRask</c> registers — after <c>Rask:Server</c> is bound and the
     ///     caller's <c>configureServer</c> runs, and validated on start — so a bad value (a negative
     ///     grace period that would crash <c>Task.Delay</c> and leak the session, a non-positive
@@ -225,92 +225,35 @@ public sealed class RaskServerOptions
     /// </summary>
     internal void Validate()
     {
-        if (MaxInboundFrameBytes <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(MaxInboundFrameBytes), MaxInboundFrameBytes,
-                "MaxInboundFrameBytes must be positive — a frame-size cap is mandatory.");
-        }
-
-        if (MaxPendingHandlers < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(MaxPendingHandlers), MaxPendingHandlers,
-                "MaxPendingHandlers must be >= 0 (0 disables the cap).");
-        }
-
-        if (MaxInboundFramesPerSecond < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(MaxInboundFramesPerSecond), MaxInboundFramesPerSecond,
-                "MaxInboundFramesPerSecond must be >= 0 (0 disables the cap).");
-        }
-
-        if (SessionGracePeriod <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(SessionGracePeriod), SessionGracePeriod,
-                "SessionGracePeriod must be positive.");
-        }
-
-        if (UnconnectedSessionGracePeriod <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(UnconnectedSessionGracePeriod), UnconnectedSessionGracePeriod,
-                "UnconnectedSessionGracePeriod must be positive.");
-        }
-
-        if (IdleSocketTimeout < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(IdleSocketTimeout), IdleSocketTimeout,
-                "IdleSocketTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
-        }
-
-        if (HandlerTimeout < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(HandlerTimeout), HandlerTimeout,
-                "HandlerTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
-        }
-
-        if (MaxPendingHandlerBytes < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(MaxPendingHandlerBytes), MaxPendingHandlerBytes,
-                "MaxPendingHandlerBytes must be >= 0 (0 disables the cap).");
-        }
-
-        if (SendTimeout < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(SendTimeout), SendTimeout,
-                "SendTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
-        }
+        Require(MaxInboundFrameBytes > 0, "MaxInboundFrameBytes must be positive — a frame-size cap is mandatory.");
+        Require(MaxPendingHandlers >= 0, "MaxPendingHandlers must be >= 0 (0 disables the cap).");
+        Require(MaxInboundFramesPerSecond >= 0, "MaxInboundFramesPerSecond must be >= 0 (0 disables the cap).");
+        Require(SessionGracePeriod > TimeSpan.Zero, "SessionGracePeriod must be positive.");
+        Require(UnconnectedSessionGracePeriod > TimeSpan.Zero, "UnconnectedSessionGracePeriod must be positive.");
+        Require(IdleSocketTimeout >= TimeSpan.Zero, "IdleSocketTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
+        Require(HandlerTimeout >= TimeSpan.Zero, "HandlerTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
+        Require(MaxPendingHandlerBytes >= 0, "MaxPendingHandlerBytes must be >= 0 (0 disables the cap).");
+        Require(SendTimeout >= TimeSpan.Zero, "SendTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
 
         // Zero is not "off" here — SessionResume is. A zero or negative lifetime would mint records that
         // are already expired, so every reconnect would pay to build one and then be refused it.
-        if (SessionResume && ResumeTokenLifetime <= TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ResumeTokenLifetime), ResumeTokenLifetime,
-                "ResumeTokenLifetime must be positive. Set SessionResume = false to disable resume.");
-        }
-
-        if (ShutdownDrainTimeout < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownDrainTimeout), ShutdownDrainTimeout,
-                "ShutdownDrainTimeout must be >= TimeSpan.Zero (Zero disables the drain).");
-        }
+        Require(
+            !SessionResume || ResumeTokenLifetime > TimeSpan.Zero,
+            "ResumeTokenLifetime must be positive. Set SessionResume = false to disable resume.");
+        Require(ShutdownDrainTimeout >= TimeSpan.Zero, "ShutdownDrainTimeout must be >= TimeSpan.Zero (Zero disables the drain).");
 
         // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds, and it would throw
         // from the shutdown path — the worst possible place to discover a bad value.
-        if (ShutdownDrainTimeout.TotalMilliseconds > int.MaxValue)
+        Require(
+            ShutdownDrainTimeout.TotalMilliseconds <= int.MaxValue,
+            $"ShutdownDrainTimeout must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
+    }
+
+    private static void Require(bool valid, string message)
+    {
+        if (!valid)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(ShutdownDrainTimeout), ShutdownDrainTimeout,
-                $"ShutdownDrainTimeout must be at most {TimeSpan.FromMilliseconds(int.MaxValue)}.");
+            throw new InvalidOperationException(message);
         }
     }
 }

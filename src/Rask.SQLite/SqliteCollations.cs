@@ -66,7 +66,7 @@ public static class SqliteCollations
     /// column or index <c>COLLATE EF_DECIMAL</c> explicitly is also supported, and picks up the same
     /// implementation.
     /// </summary>
-    public const string Decimal = "EF_DECIMAL";
+    public const string DecimalOrder = "EF_DECIMAL";
 
     /// <summary>
     /// Registers Rask's collating sequences on an open <paramref name="connection"/>, replacing any
@@ -77,7 +77,7 @@ public static class SqliteCollations
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        connection.CreateCollation(Decimal, static (x, y) => CompareDecimal(x, y));
+        connection.CreateCollation(DecimalOrder, static (x, y) => CompareDecimal(x, y));
     }
 
     /// <summary>

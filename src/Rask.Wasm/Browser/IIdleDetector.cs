@@ -5,14 +5,6 @@ using Microsoft.JSInterop;
 
 namespace Rask.Wasm.Browser;
 
-/// <summary>One idle-state change reported by the Idle Detection API.</summary>
-/// <param name="UserIdle">
-///     Whether the user is idle — no input and no screen interaction for the configured threshold
-///     (<c>userState === "idle"</c>).
-/// </param>
-/// <param name="ScreenLocked">Whether the device screen is locked (<c>screenState === "locked"</c>).</param>
-public sealed record IdleReading(bool UserIdle, bool ScreenLocked);
-
 /// <summary>
 ///     Typed access to the Idle Detection API
 ///     (<see href="https://developer.mozilla.org/en-US/docs/Web/API/IdleDetector" />) — be notified when the
@@ -49,94 +41,4 @@ public interface IIdleDetector
     ///     granted.
     /// </summary>
     ValueTask<IAsyncDisposable> WatchAsync(Func<IdleReading, Task> onChange, int thresholdSeconds = 60);
-}
-
-/// <summary>
-///     Infrastructure for <see cref="IIdleDetector" /> — routes a pushed idle-state change back to the right
-///     C# callback by watch id. <b>Not for application use;</b> invoked only by the framework's
-///     <c>__raskIdle</c> JS helper via <c>window.DotNet.invokeMethodAsync</c>.
-/// </summary>
-[EditorBrowsable(EditorBrowsableState.Never)]
-public static class IdleDetectorInterop
-{
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<IdleReading, Task>> Handlers = new();
-
-    internal static int Register(Func<IdleReading, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
-
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
-
-    /// <summary>Infrastructure. Invoked by the JS bridge when the idle state changes; do not call.</summary>
-    [JSInvokable("RaskIdleChanged")]
-    public static Task Changed(int id, IdleReading reading) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(reading) : Task.CompletedTask;
-}
-
-/// <summary>
-///     Default <see cref="IIdleDetector" />, backed by the unified <see cref="IJSRuntime" />. Each watch gets
-///     an integer id; the framework's <c>__raskIdle</c> helper holds the live <c>IdleDetector</c> and calls
-///     back into <see cref="IdleDetectorInterop.Changed" /> (a static <c>[JSInvokable]</c> in this assembly,
-///     dispatched by the WASM <c>DotNet</c> shim without a <c>DotNetObjectReference</c>).
-/// </summary>
-public sealed class IdleDetectorService : IIdleDetector
-{
-    private readonly IJSRuntime _js;
-
-    // Root IdleDetectorInterop's [JSInvokable] for the WASM trimmer — it's reached only via the JS
-    // DotNetDispatcher (reflection), so without this the Changed method could be trimmed away.
-    /// <summary>
-    ///     Creates the service. Registered for you — inject <see cref="IIdleDetector" /> rather than
-    ///     constructing this.
-    /// </summary>
-    /// <param name="js">The JS interop runtime the wrapper calls through.</param>
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, typeof(IdleDetectorInterop))]
-    public IdleDetectorService(IJSRuntime js) => _js = js;
-
-    /// <inheritdoc />
-    public ValueTask<bool> IsSupportedAsync() => _js.InvokeAsync<bool>("__raskIdle.isSupported");
-
-    /// <inheritdoc />
-    public ValueTask<string> RequestPermissionAsync() =>
-        _js.InvokeAsync<string>("__raskIdle.requestPermission");
-
-    /// <inheritdoc />
-    public async ValueTask<IAsyncDisposable> WatchAsync(Func<IdleReading, Task> onChange, int thresholdSeconds = 60)
-    {
-        ArgumentNullException.ThrowIfNull(onChange);
-
-        var id = IdleDetectorInterop.Register(onChange);
-        try
-        {
-            await _js.InvokeVoidAsync("__raskIdle.watch", id, thresholdSeconds);
-        }
-        catch
-        {
-            IdleDetectorInterop.Unregister(id);
-            throw;
-        }
-
-        return new Watch(_js, id);
-    }
-
-    private sealed class Watch(IJSRuntime js, int id) : IAsyncDisposable
-    {
-        private bool _disposed;
-
-        public async ValueTask DisposeAsync()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-            IdleDetectorInterop.Unregister(id);
-            await js.InvokeVoidAsync("__raskIdle.unwatch", id);
-        }
-    }
 }

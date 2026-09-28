@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Storage.Backends;
 
 namespace Rask.Storage;
 
@@ -99,14 +98,11 @@ public sealed class StorageOptions
             throw new InvalidOperationException("StorageOptions.SweepInterval must be positive and at most 49 days.");
         }
 
-        foreach (var type in AllowedTypes)
+        if (AllowedTypes.FirstOrDefault(type => !IsMediaTypePattern(type)) is { } notAType)
         {
-            if (!IsMediaTypePattern(type))
-            {
-                throw new InvalidOperationException(
-                    $"StorageOptions.AllowedTypes contains '{type}', which is not a media type. Name types, not extensions: "
-                    + "o.AllowedTypes.Add(\"application/pdf\"), or a family: o.AllowedTypes.Add(\"image/*\").");
-            }
+            throw new InvalidOperationException(
+                $"StorageOptions.AllowedTypes contains '{notAType}', which is not a media type. Name types, not extensions: "
+                + "o.AllowedTypes.Add(\"application/pdf\"), or a family: o.AllowedTypes.Add(\"image/*\").");
         }
 
         Prefix = NormalizePrefix(Prefix);
@@ -190,7 +186,8 @@ public sealed class StorageOptions
         }
 
         if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri)
-            || !(uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback))
+            || !(string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+                || (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) && uri.IsLoopback))
             || uri.Query.Length > 0
             || uri.Fragment.Length > 0)
         {
@@ -232,162 +229,5 @@ public sealed class StorageOptions
         }
 
         return !value.IsEmpty;
-    }
-}
-
-/// <summary>Settings for <see cref="StorageProvider.Disk"/>.</summary>
-public sealed class DiskStorageOptions
-{
-    /// <summary>
-    /// The directory files are written under. Unset, it is <c>/data/files</c> when the <c>/data</c> deploy volume
-    /// exists, and <c>storage/</c> under the content root otherwise. A relative path is resolved against the
-    /// content root. Configuration: <c>Rask__Storage__Disk__Root</c>.
-    /// </summary>
-    public string? Root { get; set; }
-}
-
-/// <summary>
-/// Settings for <see cref="StorageProvider.S3"/> — Amazon S3 and every store that speaks its API. Requests are
-/// signed in-process (Signature Version 4); no cloud SDK is involved.
-/// </summary>
-public sealed class S3StorageOptions
-{
-    /// <summary>One PUT creates at most 5 GiB.</summary>
-    internal const long MaxSinglePutBytes = 5L * 1024 * 1024 * 1024;
-
-    /// <summary>
-    /// The service endpoint: <c>https://s3.us-east-1.amazonaws.com</c>,
-    /// <c>https://&lt;account&gt;.r2.cloudflarestorage.com</c>, <c>https://s3.us-west-004.backblazeb2.com</c>,
-    /// <c>https://storage.googleapis.com</c>, or a MinIO address. Configuration: <c>Rask__Storage__S3__ServiceUrl</c>.
-    /// </summary>
-    public Uri? ServiceUrl { get; set; }
-
-    /// <summary>The bucket. Configuration: <c>Rask__Storage__S3__Bucket</c>.</summary>
-    public string Bucket { get; set; } = "";
-
-    /// <summary>The signing region. Default <c>us-east-1</c>; Cloudflare R2 wants <c>auto</c>. Configuration: <c>Rask__Storage__S3__Region</c>.</summary>
-    public string Region { get; set; } = "us-east-1";
-
-    /// <summary>The access key id. Configuration: <c>Rask__Storage__S3__AccessKeyId</c>.</summary>
-    public string? AccessKeyId { get; set; }
-
-    /// <summary>The secret access key. Configuration: <c>Rask__Storage__S3__SecretAccessKey</c> — pass it as a secret.</summary>
-    public string? SecretAccessKey { get; set; }
-
-    /// <summary>An STS session token that pairs with a temporary access key. Configuration: <c>Rask__Storage__S3__SessionToken</c>.</summary>
-    public string? SessionToken { get; set; }
-
-    /// <summary>
-    /// Whether the bucket is a path segment (<c>host/bucket/key</c>) rather than a subdomain
-    /// (<c>bucket.host/key</c>). Default <c>true</c>, which R2, MinIO and most compatible stores require.
-    /// Configuration: <c>Rask__Storage__S3__UsePathStyle</c>.
-    /// </summary>
-    public bool UsePathStyle { get; set; } = true;
-
-    internal void Validate()
-    {
-        if (ServiceUrl is null || !ServiceUrl.IsAbsoluteUri || ServiceUrl.Scheme is not ("https" or "http"))
-        {
-            throw new InvalidOperationException(
-                "Rask__Storage__S3__ServiceUrl is required when Rask__Storage__Provider is S3: an absolute URL like "
-                + "https://s3.us-east-1.amazonaws.com, https://<account>.r2.cloudflarestorage.com or http://localhost:9000.");
-        }
-
-        if (!IsBucketName(Bucket))
-        {
-            throw new InvalidOperationException(
-                $"Rask__Storage__S3__Bucket '{Bucket}' is not a bucket name: 3 to 63 lowercase letters, digits, '.' and '-', "
-                + "starting and ending with a letter or digit.");
-        }
-
-        if (string.IsNullOrWhiteSpace(Region))
-        {
-            throw new InvalidOperationException("Rask__Storage__S3__Region is required, like us-east-1 (Cloudflare R2: auto).");
-        }
-
-        if (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey))
-        {
-            throw new InvalidOperationException(
-                "Rask__Storage__S3__AccessKeyId and Rask__Storage__S3__SecretAccessKey are both required when Rask__Storage__Provider is S3. "
-                + "Pass the secret with rask deploy --env, never in appsettings.json.");
-        }
-
-        // A bucket with dots under a wildcard certificate: bucket.name.s3.example.com matches no *.s3.example.com.
-        if (!UsePathStyle && ServiceUrl.Scheme == "https" && Bucket.Contains('.', StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                $"The bucket '{Bucket}' contains dots, which breaks TLS in virtual-host addressing. Set Rask__Storage__S3__UsePathStyle to true.");
-        }
-    }
-
-    private static bool IsBucketName(string? name)
-    {
-        if (name is not { Length: >= 3 and <= 63 } || !char.IsAsciiLetterOrDigit(name[0]) || !char.IsAsciiLetterOrDigit(name[^1]))
-        {
-            return false;
-        }
-
-        foreach (var c in name)
-        {
-            if (!(char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '.' or '-'))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-}
-
-/// <summary>
-/// Settings for <see cref="StorageProvider.Azure"/>. Requests are signed in-process (Shared Key, service SAS);
-/// no cloud SDK is involved.
-/// </summary>
-public sealed class AzureStorageOptions
-{
-    /// <summary>One Put Blob creates at most 5000 MiB.</summary>
-    internal const long MaxSinglePutBytes = 5000L * 1024 * 1024;
-
-    /// <summary>
-    /// The storage account's connection string. With <c>AccountName</c> and <c>AccountKey</c>, temporary URLs are
-    /// signed by Azure itself and downloads never pass through the app; with <c>BlobEndpoint</c> and
-    /// <c>SharedAccessSignature</c> only, the app serves them. <c>UseDevelopmentStorage=true</c> targets Azurite.
-    /// Configuration: <c>Rask__Storage__Azure__ConnectionString</c> — pass it as a secret.
-    /// </summary>
-    public string? ConnectionString { get; set; }
-
-    /// <summary>The container. Configuration: <c>Rask__Storage__Azure__Container</c>.</summary>
-    public string Container { get; set; } = "";
-
-    internal void Validate()
-    {
-        // Parsing is the validation: it names the part that is wrong and never repeats the value.
-        _ = AzureAccount.Parse(ConnectionString);
-
-        if (!IsContainerName(Container))
-        {
-            throw new InvalidOperationException(
-                $"Rask__Storage__Azure__Container '{Container}' is not a container name: 3 to 63 lowercase letters, digits and "
-                + "single hyphens, starting and ending with a letter or digit.");
-        }
-    }
-
-    private static bool IsContainerName(string? name)
-    {
-        if (name is not { Length: >= 3 and <= 63 } || !char.IsAsciiLetterOrDigit(name[0]) || !char.IsAsciiLetterOrDigit(name[^1]))
-        {
-            return false;
-        }
-
-        for (var i = 0; i < name.Length; i++)
-        {
-            var c = name[i];
-            if (!(char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || (c == '-' && name[i - 1] != '-')))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

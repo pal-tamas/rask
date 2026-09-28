@@ -102,7 +102,7 @@ public static class RaskStorageServiceCollectionExtensions
     {
         public ValidateOptionsResult Validate(string? name, StorageOptions options)
         {
-            if (name is not null && name != Options.DefaultName)
+            if (name is not null && !string.Equals(name, Options.DefaultName, StringComparison.Ordinal))
             {
                 return ValidateOptionsResult.Skip;
             }

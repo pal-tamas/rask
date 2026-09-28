@@ -39,11 +39,11 @@ public sealed class NotificationsDemoTests
     {
         public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(true);
 
-        public ValueTask<NotificationPermission> PermissionAsync() =>
-            ValueTask.FromResult(NotificationPermission.Default);
+        public ValueTask<NotificationPermissionState> PermissionAsync() =>
+            ValueTask.FromResult(NotificationPermissionState.Default);
 
-        public ValueTask<NotificationPermission> RequestPermissionAsync() =>
-            ValueTask.FromResult(NotificationPermission.Granted);
+        public ValueTask<NotificationPermissionState> RequestPermissionAsync() =>
+            ValueTask.FromResult(NotificationPermissionState.Granted);
 
         public ValueTask ShowAsync(string title, NotificationOptions? options = null) => default;
     }

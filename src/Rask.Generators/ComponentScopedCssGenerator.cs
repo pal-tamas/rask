@@ -104,7 +104,7 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
     {
         for (var t = symbol.BaseType; t is not null; t = t.BaseType)
         {
-            if (t.OriginalDefinition.ToDisplayString() == ComponentFullName)
+            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
             {
                 return true;
             }
@@ -123,6 +123,71 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
             return;
         }
 
+        var byDirAndName = IndexByDirectoryAndName(components);
+
+        var pairs = new List<(ComponentInfo Component, string Css)>();
+        var emittedFqns = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var css in cssFiles)
+        {
+            if (string.IsNullOrWhiteSpace(css.Contents))
+            {
+                continue;
+            }
+
+            if (SingleMatch(spc, byDirAndName, css.Path) is not { } match)
+            {
+                continue;
+            }
+
+            if (!emittedFqns.Add(match.FullyQualifiedName))
+            {
+                // Same component matched by two .css files (shouldn't happen unless two
+                // different-cased filenames exist on a case-insensitive FS — defensive).
+                continue;
+            }
+
+            pairs.Add((match, css.Contents));
+        }
+
+        if (pairs.Count == 0)
+        {
+            return;
+        }
+
+        EmitRegistration(spc, pairs);
+    }
+
+    // The one component a .css file pairs with, by directory and file stem — or null, having
+    // reported RASK015 (no component) or RASK016 (several).
+    private static ComponentInfo? SingleMatch(
+        SourceProductionContext spc, Dictionary<string, List<ComponentInfo>> byDirAndName, string path)
+    {
+        var stem = Path.GetFileNameWithoutExtension(path);
+        if (string.IsNullOrEmpty(stem))
+        {
+            return null;
+        }
+
+        var key = MakeKey(NormalizeDirectory(path), stem);
+        if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask015, Location.None, path, stem));
+            return null;
+        }
+
+        if (matches.Count > 1)
+        {
+            var fqns = string.Join(", ", matches.Select(m => m.FullyQualifiedName));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask016, Location.None, path, stem, fqns));
+            return null;
+        }
+
+        return matches[0];
+    }
+
+    private static Dictionary<string, List<ComponentInfo>> IndexByDirectoryAndName(ImmutableArray<ComponentInfo> components)
+    {
         // Index components by (directory, simple-name). A `.css` file at /Pages/Foo.css
         // pairs with the Component subclass whose .cs lives in /Pages/ and whose simple
         // type name is "Foo". Multiple matches → RASK016 (ambiguous).
@@ -140,63 +205,11 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
             list.Add(c);
         }
 
-        var pairs = new List<(ComponentInfo Component, string Css)>();
-        var emittedFqns = new HashSet<string>(StringComparer.Ordinal);
+        return byDirAndName;
+    }
 
-        foreach (var css in cssFiles)
-        {
-            if (string.IsNullOrWhiteSpace(css.Contents))
-            {
-                continue;
-            }
-
-            var stem = Path.GetFileNameWithoutExtension(css.Path);
-            if (string.IsNullOrEmpty(stem))
-            {
-                continue;
-            }
-
-            var dir = NormalizeDirectory(css.Path);
-            var key = MakeKey(dir, stem);
-
-            if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask015,
-                    Location.None,
-                    css.Path,
-                    stem));
-                continue;
-            }
-
-            if (matches.Count > 1)
-            {
-                var fqns = string.Join(", ", matches.Select(m => m.FullyQualifiedName));
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask016,
-                    Location.None,
-                    css.Path,
-                    stem,
-                    fqns));
-                continue;
-            }
-
-            var match = matches[0];
-            if (!emittedFqns.Add(match.FullyQualifiedName))
-            {
-                // Same component matched by two .css files (shouldn't happen unless two
-                // different-cased filenames exist on a case-insensitive FS — defensive).
-                continue;
-            }
-
-            pairs.Add((match, css.Contents));
-        }
-
-        if (pairs.Count == 0)
-        {
-            return;
-        }
-
+    private static void EmitRegistration(SourceProductionContext spc, List<(ComponentInfo Component, string Css)> pairs)
+    {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
         sb.AppendLine("#nullable enable");

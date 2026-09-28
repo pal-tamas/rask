@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Text;
 using Microsoft.Build.Framework;
@@ -95,5 +96,5 @@ public sealed class WriteExternalPropsRequestTask : Task
         item.GetMetadata("PackageExport") is { Length: > 0 } export ? export : "default";
 
     private static int LineOf(ITaskItem item) =>
-        int.TryParse(item.GetMetadata("ModuleLine"), out var line) ? line : 0;
+        int.TryParse(item.GetMetadata("ModuleLine"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var line) ? line : 0;
 }

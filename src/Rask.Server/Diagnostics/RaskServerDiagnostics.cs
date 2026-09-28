@@ -20,9 +20,9 @@ namespace Rask.Server.Diagnostics;
 ///         host's teardown) escape back into the framework's own catch blocks.
 ///     </para>
 /// </summary>
-internal static class RaskServerDiagnostics
+internal static partial class RaskServerDiagnostics
 {
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
     private static ILoggerFactory? _factory;
 
     /// <summary>
@@ -71,7 +71,9 @@ internal static class RaskServerDiagnostics
         {
             // The message is already a fully-formed human string; log it as a single structured field so
             // the exception travels as a first-class argument rather than being concatenated into the text.
-            factory.CreateLogger(e.Category).Log(Map(e.Level), e.Exception, "{RaskMessage}", e.Message);
+            var logger = factory.CreateLogger(e.Category);
+            var level = Map(e.Level);
+            Write(logger, level, e.Exception, e.Message);
         }
         catch
         {
@@ -92,4 +94,7 @@ internal static class RaskServerDiagnostics
         RaskLogLevel.Warning => LogLevel.Warning,
         _ => LogLevel.Information
     };
+
+    [LoggerMessage(Message = "{RaskMessage}")]
+    private static partial void Write(ILogger logger, LogLevel level, Exception? exception, string raskMessage);
 }

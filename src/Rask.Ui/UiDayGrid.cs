@@ -41,7 +41,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
     {
         // default(DateOnly) is year 1, which is not a month anybody meant to look at, so it does not get to choose
         // the view the way a real chosen day does.
-        var shown = month ?? viewed ?? (chosen is { } c && c != default ? c : DateOnly.FromDateTime(DateTime.Today));
+        var shown = month ?? viewed ?? (chosen is { } c && c != default ? c : DateOnly.FromDateTime(TimeProvider.System.GetLocalNow().Date));
         return new DateOnly(shown.Year, shown.Month, 1);
     }
 
@@ -56,7 +56,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
 
         return Div
             .Role("group")
-            .Aria(new Dictionary<string, string?> { ["label"] = view.Label })
+            .Aria("label", view.Label)
             .Class(UiClass.Compose("calendar rounded-box border border-base-300 bg-base-100 p-3", view.Class))[
             Div.Class("mb-2 flex items-center justify-between gap-2")[
                 MonthStep(view, "prev", first.AddMonths(-1), "Previous month", Ui.IconName.ArrowLeft),
@@ -101,7 +101,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
             .Key(key)
             .Type("button")
             .Class("btn btn-ghost btn-sm btn-square")
-            .Aria(new Dictionary<string, string?> { ["label"] = label });
+            .Aria("label", label);
 
         if (view.OnMonth is { } onMonth)
         {
@@ -125,13 +125,11 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
                 // Inside a range but not one of its ends: tinted, so the stretch reads as one span.
                 state.Between && !state.Picked ? "bg-base-200" : ""))
             .Disabled(blocked)
-            .Aria(new Dictionary<string, string?>
-            {
+            .Aria(
                 // The full date, not the number: "14" is not something you can act on once the month has
                 // scrolled out of earshot.
-                ["label"] = date.ToString("D", CultureInfo.CurrentCulture),
-                ["pressed"] = state.Picked ? "true" : "false",
-            });
+                ("label", date.ToString("D", CultureInfo.CurrentCulture)),
+                ("pressed", state.Picked ? "true" : "false"));
 
         if (!blocked)
         {
@@ -156,7 +154,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
         Dictionary<string, string?> Aria,
         bool Open,
         bool Disabled,
-        string BoxClass,
+        string BoxClasses,
         string? PanelName,
         Action<bool> OnToggle);
 
@@ -189,17 +187,17 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
             .Attributes(("style", "position-anchor:--" + picker.Prefix
                                   + ";position-area:block-end span-inline-end"
                                   + ";position-try-fallbacks:flip-block,flip-inline;margin:4px 0"))
-            .OnToggle(e => picker.OnToggle(e.NewState == "open"));
+            .OnToggle(e => picker.OnToggle(string.Equals(e.NewState, "open", StringComparison.Ordinal)));
         if (picker.PanelName is { } name)
         {
-            panel = panel.Aria(new Dictionary<string, string?> { ["label"] = name });
+            panel = panel.Aria("label", name);
         }
 
         return Div.Class("relative w-full")[
             Button
                 .Id(picker.FieldId)
                 .Type("button")
-                .Class(UiClass.Compose(picker.BoxClass, "justify-between gap-2 text-left"))
+                .Class(UiClass.Compose(picker.BoxClasses, "justify-between gap-2 text-left"))
                 .Disabled(picker.Disabled)
                 .Aria(aria)
                 .Attributes(("popovertarget", panelId), ("style", "anchor-name:--" + picker.Prefix))[

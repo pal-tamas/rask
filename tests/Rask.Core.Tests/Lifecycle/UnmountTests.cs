@@ -335,7 +335,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
 
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, true);
+            LiveRenderContext.NotifyParameters(c, true);
             return c;
         }
     }
@@ -412,7 +412,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         {
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, true);
+            LiveRenderContext.NotifyParameters(c, true);
             return c;
         }
     }
@@ -432,7 +432,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
 
             var ctx = LiveRenderContext.Current!;
             var c = ctx.GetOrCreate(_ => _child);
-            ctx.NotifyParameters(c, true);
+            LiveRenderContext.NotifyParameters(c, true);
             return c;
         }
     }
@@ -458,9 +458,9 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
 
             var ctx = LiveRenderContext.Current!;
             var ca = ctx.GetOrCreate(_ => _a);
-            ctx.NotifyParameters(ca, true);
+            LiveRenderContext.NotifyParameters(ca, true);
             var cb = ctx.GetOrCreate(_ => _b);
-            ctx.NotifyParameters(cb, true);
+            LiveRenderContext.NotifyParameters(cb, true);
             return Div[ca, cb];
         }
     }

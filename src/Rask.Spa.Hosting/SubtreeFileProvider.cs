@@ -22,6 +22,8 @@ internal sealed class SubtreeFileProvider(IFileProvider inner, string subtree) :
 
     public IChangeToken Watch(string filter) => NullChangeToken.Singleton;
 
+    private static readonly char[] Separators = ['/', '\\'];
+
     private bool Contains(string subpath)
     {
         var trimmed = subpath.TrimStart('/', '\\');
@@ -33,14 +35,6 @@ internal sealed class SubtreeFileProvider(IFileProvider inner, string subtree) :
         // A prefix check alone lets "_rask/a/../index.html" climb back out of the subtree: the inner
         // provider only refuses a path that leaves ITS root, which is the whole bundle. Both separators,
         // because only '/' is normalised out of a request path before it gets here.
-        foreach (var segment in trimmed.Split(['/', '\\']))
-        {
-            if (segment == "..")
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return !trimmed.Split(Separators).Any(segment => string.Equals(segment, "..", StringComparison.Ordinal));
     }
 }

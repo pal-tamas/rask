@@ -39,7 +39,7 @@ internal static class RaskHotReload
         "__RaskRoutesRegistry",
         "__RaskCqrsRegistry",
         "__RaskValidatorRegistry",
-        "Rask.Jobs.Generated.__RaskJobsRegistry",
+        "Rask.Background.Generated.__RaskJobsRegistry",
         "Rask.Outbox.Generated.__RaskOutboxRegistry"
     ];
 
@@ -50,9 +50,9 @@ internal static class RaskHotReload
     ///     Raised once per apply, after every tracked session has finished re-rendering. The Server
     ///     host subscribes in Development to push a "hot reload applied" frame to the browser.
     /// </summary>
-    internal static event Action? Applied;
+    internal static event EventHandler? Applied;
 
-    internal static void RaiseApplied() => Applied?.Invoke();
+    internal static void RaiseApplied() => Applied?.Invoke(null, EventArgs.Empty);
 
     /// <summary>
     ///     Runs the full pipeline over <paramref name="assemblies" />. Takes the assembly list as a
@@ -157,8 +157,10 @@ internal static class RaskHotReload
             try
             {
                 var type = asm.GetType(typeName, false);
+#pragma warning disable S3011 // the generated refresh hook is internal to the app assembly that hot reload patched
                 var method = type?.GetMethod(
                     RefreshMethodName, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+#pragma warning restore S3011
                 if (method is not null)
                 {
                     found.Add(method);

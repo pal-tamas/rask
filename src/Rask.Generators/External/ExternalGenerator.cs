@@ -185,19 +185,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         string? manifestUrl,
         EquatableArray<PropsSnapshot> snapshots)
     {
-        // Resolved one at a time and kept only if present, rather than required all-or-nothing. An
-        // older Rask.External that predates a runtime would return null for it, and a combined guard
-        // would then switch the WHOLE generator off — no props, no module, no diagnostics — for a
-        // project whose components are all fine.
-        var bases = new List<(INamedTypeSymbol Base, string Runtime)>();
-        foreach (var (baseName, runtimeKey, _) in ExternalRuntimes.All)
-        {
-            if (compilation.GetTypeByMetadataName(baseName) is { } declared)
-            {
-                bases.Add((declared, runtimeKey));
-            }
-        }
-
+        var bases = DeclaredRuntimeBases(compilation);
         if (bases.Count == 0)
         {
             // The app does not reference Rask.External. Nothing to do, and not a problem.
@@ -207,7 +195,84 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         // Every package island is resolved before any is described, and all of them together: a generated type
         // lands at namespace level, so its name is allocated across the whole set — exactly as the factory
         // generator allocates it — or one island's enum could take a name another island's step refers to.
-        var paired = new List<(IslandFacts Facts, PropsSnapshot Snapshot)>();
+        var declarations = ReadDeclarations(compilation);
+        var paired = PairSnapshots(compilation, snapshots, declarations);
+
+        var resolved = PackageIslandProps.ResolveAll(paired);
+
+        var islands = new List<ComponentModel>();
+        var byName = new Dictionary<string, ComponentModel>(StringComparer.Ordinal);
+
+        foreach (var type in Types(compilation.Assembly.GlobalNamespace))
+        {
+            if (spc.CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            // The runtime IS the base class, so one lookup answers both "is this ours?" and "which
+            // adapter mounts it?". An abstract class in the middle of someone's own hierarchy is
+            // skipped: it declares no props of its own to write, and generating for it would emit
+            // implementations of members its concrete subclasses must override anyway.
+            var runtime = bases.FirstOrDefault(b => Inherits(type, b.Base)).Runtime;
+            if (runtime is null || type.IsAbstract)
+            {
+                continue;
+            }
+
+            if (Describe(spc, type, runtime, snapshots, resolved, compilation) is { } model)
+            {
+                AddUnlessClashing(spc, byName, islands, model);
+            }
+        }
+
+        foreach (var (type, read) in declarations)
+        {
+            foreach (var model in DescribeDeclaration(spc, type, read, snapshots, resolved, compilation))
+            {
+                AddUnlessClashing(spc, byName, islands, model);
+            }
+        }
+
+        EmitIslands(spc, islands, manifestUrl);
+    }
+
+    private static void AddUnlessClashing(
+        SourceProductionContext spc,
+        Dictionary<string, ComponentModel> byName,
+        List<ComponentModel> islands,
+        ComponentModel model)
+    {
+        if (byName.TryGetValue(model.Name, out var clash))
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask058, model.Location, clash.Fqn, model.Fqn, model.Name));
+            return;
+        }
+
+        byName[model.Name] = model;
+        islands.Add(model);
+    }
+
+    // Resolved one at a time and kept only if present, rather than required all-or-nothing. An
+    // older Rask.External that predates a runtime would return null for it, and a combined guard
+    // would then switch the WHOLE generator off — no props, no module, no diagnostics — for a
+    // project whose components are all fine.
+    private static List<(INamedTypeSymbol Base, string Runtime)> DeclaredRuntimeBases(Compilation compilation)
+    {
+        var bases = new List<(INamedTypeSymbol Base, string Runtime)>();
+        foreach (var (baseName, runtimeKey, _) in ExternalRuntimes.All)
+        {
+            if (compilation.GetTypeByMetadataName(baseName) is { } declared)
+            {
+                bases.Add((declared, runtimeKey));
+            }
+        }
+
+        return bases;
+    }
+
+    private static List<(INamedTypeSymbol Type, PackageDeclaration Read)> ReadDeclarations(Compilation compilation)
+    {
         var declarations = new List<(INamedTypeSymbol Type, PackageDeclaration Read)>();
         foreach (var candidate in Types(compilation.Assembly.GlobalNamespace))
         {
@@ -217,6 +282,15 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             }
         }
 
+        return declarations;
+    }
+
+    private static List<(IslandFacts Facts, PropsSnapshot Snapshot)> PairSnapshots(
+        Compilation compilation,
+        EquatableArray<PropsSnapshot> snapshots,
+        List<(INamedTypeSymbol Type, PackageDeclaration Read)> declarations)
+    {
+        var paired = new List<(IslandFacts Facts, PropsSnapshot Snapshot)>();
         if (snapshots.Count > 0)
         {
             foreach (var candidate in Types(compilation.Assembly.GlobalNamespace))
@@ -242,75 +316,11 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             }
         }
 
-        var resolved = PackageIslandProps.ResolveAll(paired);
+        return paired;
+    }
 
-        var islands = new List<ComponentModel>();
-        var byName = new Dictionary<string, ComponentModel>(StringComparer.Ordinal);
-
-        foreach (var type in Types(compilation.Assembly.GlobalNamespace))
-        {
-            if (spc.CancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
-            // The runtime IS the base class, so one lookup answers both "is this ours?" and "which
-            // adapter mounts it?". An abstract class in the middle of someone's own hierarchy is
-            // skipped: it declares no props of its own to write, and generating for it would emit
-            // implementations of members its concrete subclasses must override anyway.
-            string? runtime = null;
-            foreach (var (declared, runtimeKey) in bases)
-            {
-                if (Inherits(type, declared))
-                {
-                    runtime = runtimeKey;
-                    break;
-                }
-            }
-
-            if (runtime is null)
-            {
-                continue;
-            }
-
-            if (type.IsAbstract)
-            {
-                continue;
-            }
-
-            var model = Describe(spc, type, runtime, snapshots, resolved, compilation);
-            if (model is null)
-            {
-                continue;
-            }
-
-            if (byName.TryGetValue(model.Name, out var clash))
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask058, model.Location, clash.Fqn, model.Fqn, model.Name));
-                continue;
-            }
-
-            byName[model.Name] = model;
-            islands.Add(model);
-        }
-
-        foreach (var (type, read) in declarations)
-        {
-            foreach (var model in DescribeDeclaration(spc, type, read, snapshots, resolved, compilation))
-            {
-                if (byName.TryGetValue(model.Name, out var clash))
-                {
-                    spc.ReportDiagnostic(Diagnostic.Create(
-                        Rask058, model.Location, clash.Fqn, model.Fqn, model.Name));
-                    continue;
-                }
-
-                byName[model.Name] = model;
-                islands.Add(model);
-            }
-        }
-
+    private static void EmitIslands(SourceProductionContext spc, List<ComponentModel> islands, string? manifestUrl)
+    {
         // Only carried when it is not the app's default -- the client already assumes that one, so
         // stamping it on every island in every app would be noise on the wire and in the markup.
         var libraryManifest =
@@ -460,22 +470,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             members.Append("  ").Append(prop.WireName).Append(": ").Append(type).AppendLine(";");
         }
 
-        foreach (var handler in component.Handlers)
-        {
-            // Optional because an unwired callback omits its key entirely rather than sending null,
-            // so the front end genuinely sees `undefined` and React's optional-prop handling applies.
-            //
-            // Void even for a Func<T, Task>: the callback crosses as a handler reference and the
-            // client hands back a plain function that ships the payload, so there is nothing on the
-            // front end to await. Typing it as returning a promise would describe a value that does
-            // not exist.
-            var argument = handler.Shape.Argument is null
-                ? string.Empty
-                : "value: " + emitter.Ensure(handler.ArgumentWire!);
-
-            members.Append("  ").Append(handler.WireName).Append("?: (")
-                .Append(argument).AppendLine(") => void;");
-        }
+        AppendHandlers(members, emitter, component);
 
         // Every hand-written island accepts children, so its front-end file destructures `children` like any other
         // prop — typed as its framework types children. Inline `import()` types rather than an import statement, so the
@@ -502,6 +497,26 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         sb.Append(members);
         sb.AppendLine("}");
         return sb.ToString();
+    }
+
+    private static void AppendHandlers(StringBuilder members, TypeScriptEmitter emitter, ComponentModel component)
+    {
+        foreach (var handler in component.Handlers)
+        {
+            // Optional because an unwired callback omits its key entirely rather than sending null,
+            // so the front end genuinely sees `undefined` and React's optional-prop handling applies.
+            //
+            // Void even for a Func<T, Task>: the callback crosses as a handler reference and the
+            // client hands back a plain function that ships the payload, so there is nothing on the
+            // front end to await. Typing it as returning a promise would describe a value that does
+            // not exist.
+            var argument = handler.Shape.Argument is null
+                ? string.Empty
+                : "value: " + emitter.Ensure(handler.ArgumentWire!);
+
+            members.Append("  ").Append(handler.WireName).Append("?: (")
+                .Append(argument).AppendLine(") => void;");
+        }
     }
 
     /// <summary>The TypeScript type a runtime's components receive children as, or null where children are not a prop.</summary>
@@ -559,6 +574,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         return false;
     }
 
+    private static bool IsDeclaredPartial(INamedTypeSymbol type, System.Threading.CancellationToken cancellationToken) =>
+        type.DeclaringSyntaxReferences
+            .Select(r => r.GetSyntax(cancellationToken))
+            .OfType<ClassDeclarationSyntax>()
+            .Any(static c => c.Modifiers.Any(static m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)));
+
     private static ComponentModel? Describe(
         SourceProductionContext spc,
         INamedTypeSymbol type,
@@ -570,12 +591,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         var location = type.Locations.FirstOrDefault(l => l.IsInSource);
         var fqn = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-        var isPartial = type.DeclaringSyntaxReferences
-            .Select(r => r.GetSyntax())
-            .OfType<ClassDeclarationSyntax>()
-            .Any(c => c.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)));
-
-        if (!isPartial)
+        if (!IsDeclaredPartial(type, spc.CancellationToken))
         {
             spc.ReportDiagnostic(Diagnostic.Create(Rask056, location, type.Name));
             return null;
@@ -618,6 +634,20 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             IsPackage = PackageSpecifier.IsBare(module),
         };
 
+        DescribeProperties(spc, type, model, location, compilation);
+
+        if (model.IsPackage && PackageIslandProps.Facts(type) is { } facts)
+        {
+            DescribePackage(spc, type.Name, type.BaseType, facts, model, snapshots, resolved,
+                declaredModule.Location ?? location);
+        }
+
+        return model;
+    }
+
+    private static void DescribeProperties(
+        SourceProductionContext spc, INamedTypeSymbol type, ComponentModel model, Location? location, Compilation compilation)
+    {
         foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
         {
             if (property.IsStatic || property.IsIndexer || property.SetMethod is null
@@ -626,7 +656,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (property.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == SkipFactoryName))
+            if (property.GetAttributes().Any(a => string.Equals(a.AttributeClass?.ToDisplayString(), SkipFactoryName, StringComparison.Ordinal)))
             {
                 continue;
             }
@@ -669,14 +699,6 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                 || property.Type.TypeKind == TypeKind.Error
                 || property.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T));
         }
-
-        if (model.IsPackage && PackageIslandProps.Facts(type) is { } facts)
-        {
-            DescribePackage(spc, type.Name, type.BaseType, facts, model, snapshots, resolved,
-                declaredModule.Location ?? location);
-        }
-
-        return model;
     }
 
     /// <summary>
@@ -699,11 +721,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             yield break;
         }
 
-        var isPartial = type.DeclaringSyntaxReferences
-            .Select(static r => r.GetSyntax())
-            .OfType<ClassDeclarationSyntax>()
-            .Any(static c => c.Modifiers.Any(static m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)));
-        if (!isPartial)
+        if (!IsDeclaredPartial(type, spc.CancellationToken))
         {
             spc.ReportDiagnostic(Diagnostic.Create(Rask056, location, type.Name));
             yield break;
@@ -920,6 +938,83 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         var package = island.Package is { } resolved ? new PackageIslandEmitter(island.Facts!, resolved) : null;
         var body = new StringBuilder();
 
+        AppendPropWrites(body, island, emitter);
+
+        AppendHandlerWrites(body, island);
+
+        if (package is not null)
+        {
+            AppendPackageWrites(body, island, package);
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("// <auto-generated/>");
+        AppendSnapshotProvenance(sb, island);
+
+        sb.AppendLine("#nullable enable");
+        if (island.Namespace is not null)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"namespace {island.Namespace};");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine(island.Declaration ?? $"partial class {island.Name}");
+        sb.AppendLine("{");
+
+        AppendOverrides(sb, island, manifestUrl);
+
+        if (package is not null)
+        {
+            AppendPackageMembers(sb, island, package);
+        }
+
+        AppendArgumentBridges(sb, island);
+
+        // The children indexers, on every island whose component can render content: a hand-written island always — its
+        // front-end file decides where children go — and a package island when its snapshot says the component takes
+        // content. They return the island itself, so a nested island converts to its parent's child type. The three
+        // indexers ExternalComponent declares return NotAChildOfThisIsland instead, which RASK062 reports; a package
+        // island with no snapshot yet gets none until its first build writes one.
+        AppendChildrenIndexers(sb, island);
+
+        AppendWriterAndTypes(sb, body, emitter, package);
+
+        return sb.ToString();
+    }
+
+    private static void AppendWriterAndTypes(
+        StringBuilder sb, StringBuilder body, PropsWriterEmitter emitter, PackageIslandEmitter? package)
+    {
+        sb.AppendLine("    /// <summary>The props, as members of the JSON object the client runtime hands to the adapter.</summary>");
+        sb.AppendLine("    protected override void WriteProps(global::System.Text.Json.Utf8JsonWriter writer)");
+        sb.AppendLine("    {");
+        sb.Append(body);
+        sb.AppendLine("    }");
+
+        var methods = emitter.Methods;
+        if (methods.Length > 0)
+        {
+            sb.AppendLine();
+            sb.Append(methods);
+        }
+
+        if (package is not null && package.WriterMethods.Length > 0)
+        {
+            sb.AppendLine();
+            sb.Append(package.WriterMethods);
+        }
+
+        sb.AppendLine("}");
+
+        if (package is not null)
+        {
+            sb.Append(package.Types());
+        }
+    }
+
+    private static void AppendPropWrites(StringBuilder body, ComponentModel island, PropsWriterEmitter emitter)
+    {
         foreach (var prop in island.Props)
         {
             var id = emitter.Ensure(prop.Wire);
@@ -945,7 +1040,10 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // to say something the runtime already handles.
             body.AppendLine($"        WP{id}(writer, this.{prop.ClrName}!);");
         }
+    }
 
+    private static void AppendHandlerWrites(StringBuilder body, ComponentModel island)
+    {
         foreach (var handler in island.Handlers)
         {
             // A callback with an argument is registered as a WRAPPER, not as itself. The dispatcher
@@ -986,33 +1084,34 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             body.AppendLine("            writer.WriteEndObject();");
             body.AppendLine("        }");
         }
+    }
 
-        if (package is not null)
+    private static void AppendPackageWrites(StringBuilder body, ComponentModel island, PackageIslandEmitter package)
+    {
+        foreach (var prop in island.Package!.Props)
         {
-            foreach (var prop in island.Package!.Props)
+            if (prop.DeclaredByUser)
             {
-                if (prop.DeclaredByUser)
-                {
-                    continue;
-                }
-
-                if (prop.Callback is { } callback)
-                {
-                    // Generated non-nullable: an unset `Callback` is its default, and is omitted just as a null was.
-                    var registered = callback.ArgType is null
-                        ? $"this.{prop.ClrName}.Handler!"
-                        : $"__Arg{prop.ClrName}";
-                    body.Append(PackageIslandEmitter.WriteCallback(
-                        $"this.{prop.ClrName}.HasValue", prop.Wire, callback.ArgIndex, registered));
-                    continue;
-                }
-
-                body.Append(package.WriteValue(prop));
+                continue;
             }
-        }
 
-        var sb = new StringBuilder();
-        sb.AppendLine("// <auto-generated/>");
+            if (prop.Callback is { } callback)
+            {
+                // Generated non-nullable: an unset `Callback` is its default, and is omitted just as a null was.
+                var registered = callback.ArgType is null
+                    ? $"this.{prop.ClrName}.Handler!"
+                    : $"__Arg{prop.ClrName}";
+                body.Append(PackageIslandEmitter.WriteCallback(
+                    $"this.{prop.ClrName}.HasValue", prop.Wire, callback.ArgIndex, registered));
+                continue;
+            }
+
+            body.Append(package.WriteValue(prop));
+        }
+    }
+
+    private static void AppendSnapshotProvenance(StringBuilder sb, ComponentModel island)
+    {
         if (island.Snapshot is { } snapshot && island.Package is not null)
         {
             // Where the generated half of this class came from, so a reader of the generated file can find
@@ -1029,18 +1128,10 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                         snapshot.Skipped.Select(static s => s.Name + " (" + s.Reason + ")"))));
             }
         }
+    }
 
-        sb.AppendLine("#nullable enable");
-        if (island.Namespace is not null)
-        {
-            sb.AppendLine();
-            sb.AppendLine($"namespace {island.Namespace};");
-        }
-
-        sb.AppendLine();
-        sb.AppendLine(island.Declaration ?? $"partial class {island.Name}");
-        sb.AppendLine("{");
-
+    private static void AppendOverrides(StringBuilder sb, ComponentModel island, string? manifestUrl)
+    {
         // Only what the compiler alone knows. Everything else — the host element, the opaque boundary,
         // the slot grouping, the hydration property, the runtime script, the attribute writer — is
         // hand-written on ExternalComponent, where it can be read.
@@ -1073,29 +1164,32 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine($"    protected override string Module => {Literal(island.Module)};");
             sb.AppendLine();
         }
+    }
 
-        if (package is not null)
+    private static void AppendPackageMembers(StringBuilder sb, ComponentModel island, PackageIslandEmitter package)
+    {
+        foreach (var prop in island.Package!.Props)
         {
-            foreach (var prop in island.Package!.Props)
+            if (prop.DeclaredByUser)
             {
-                if (prop.DeclaredByUser)
-                {
-                    continue;
-                }
-
-                sb.Append(package.Declaration(prop, island.NewNames.Contains(prop.ClrName)));
-                sb.AppendLine();
+                continue;
             }
 
-            foreach (var prop in island.Package.Props)
-            {
-                if (!prop.DeclaredByUser && prop.Callback?.ArgType is not null)
-                {
-                    sb.Append(package.Bridge(prop));
-                }
-            }
+            sb.Append(PackageIslandEmitter.Declaration(prop, island.NewNames.Contains(prop.ClrName)));
+            sb.AppendLine();
         }
 
+        foreach (var prop in island.Package.Props)
+        {
+            if (!prop.DeclaredByUser && prop.Callback?.ArgType is not null)
+            {
+                sb.Append(package.Bridge(prop));
+            }
+        }
+    }
+
+    private static void AppendArgumentBridges(StringBuilder sb, ComponentModel island)
+    {
         foreach (var handler in island.Handlers)
         {
             if (handler.Shape.Argument is null)
@@ -1144,12 +1238,10 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine("    };");
             sb.AppendLine();
         }
+    }
 
-        // The children indexers, on every island whose component can render content: a hand-written island always — its
-        // front-end file decides where children go — and a package island when its snapshot says the component takes
-        // content. They return the island itself, so a nested island converts to its parent's child type. The three
-        // indexers ExternalComponent declares return NotAChildOfThisIsland instead, which RASK062 reports; a package
-        // island with no snapshot yet gets none until its first build writes one.
+    private static void AppendChildrenIndexers(StringBuilder sb, ComponentModel island)
+    {
         if (ExternalRuntimes.ChildTypeOf(island.Runtime) is { } child
             && (!island.IsPackage || string.Equals(island.Snapshot?.Content, "node", StringComparison.Ordinal)))
         {
@@ -1173,34 +1265,6 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine($"    public {island.Name} this[{enumerable}<string?> children] {{ get {{ SetTextChildren(children); return this; }} }}");
             sb.AppendLine();
         }
-
-        sb.AppendLine("    /// <summary>The props, as members of the JSON object the client runtime hands to the adapter.</summary>");
-        sb.AppendLine("    protected override void WriteProps(global::System.Text.Json.Utf8JsonWriter writer)");
-        sb.AppendLine("    {");
-        sb.Append(body);
-        sb.AppendLine("    }");
-
-        var methods = emitter.Methods;
-        if (methods.Length > 0)
-        {
-            sb.AppendLine();
-            sb.Append(methods);
-        }
-
-        if (package is not null && package.WriterMethods.Length > 0)
-        {
-            sb.AppendLine();
-            sb.Append(package.WriterMethods);
-        }
-
-        sb.AppendLine("}");
-
-        if (package is not null)
-        {
-            sb.Append(package.Types());
-        }
-
-        return sb.ToString();
     }
 
     /// <summary>
@@ -1241,18 +1305,10 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     /// </remarks>
     private static int ForwardedArgIndex(ComponentModel island, string wire)
     {
-        if (island.Snapshot is { } snapshot)
-        {
-            foreach (var prop in snapshot.Props)
-            {
-                if (string.Equals(prop.Wire, wire, StringComparison.Ordinal) && prop.Type.Kind == "callback")
-                {
-                    return PackageIslandProps.ForwardedArgIndex(prop.Type);
-                }
-            }
-        }
-
-        return 0;
+        var callback = island.Snapshot?.Props.FirstOrDefault(prop =>
+            string.Equals(prop.Wire, wire, StringComparison.Ordinal)
+            && string.Equals(prop.Type.Kind, "callback", StringComparison.Ordinal));
+        return callback is null ? 0 : PackageIslandProps.ForwardedArgIndex(callback.Type);
     }
 
     private static string CamelCase(string name) =>
@@ -1364,16 +1420,6 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
         /// <summary>Generated props that must say <c>new</c>, because they shadow an inherited chain entry.</summary>
         public HashSet<string> NewNames { get; } = new(StringComparer.Ordinal);
-
-        /// <summary>
-        ///     The manifest this island resolves through, or null for the app's own.
-        /// </summary>
-        /// <remarks>
-        ///     Set from the build rather than discovered from the symbol: whether a project is an app or
-        ///     a class library is an MSBuild fact, and a library's static web assets are served under
-        ///     <c>_content/&lt;PackageId&gt;/</c> where the client cannot guess them.
-        /// </remarks>
-        public string? ManifestUrl { get; set; }
 
         public List<IslandProp> Props { get; } = new();
         public List<IslandHandler> Handlers { get; } = new();

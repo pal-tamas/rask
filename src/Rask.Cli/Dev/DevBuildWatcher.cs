@@ -1,19 +1,7 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Rask.Cli.Dev;
-
-/// <summary>What <c>rask dev</c> currently believes about the app it is running.</summary>
-internal enum DevBuildState
-{
-    /// <summary>The app built and is running (or is expected to be).</summary>
-    Ok,
-
-    /// <summary>A rebuild is in flight. The app may be momentarily down; that is not a failure.</summary>
-    Building,
-
-    /// <summary>The build failed. The app is down and will not come back until the code compiles.</summary>
-    Failed,
-}
 
 /// <summary>
 ///     Reads <c>dotnet watch</c>'s output line by line and tracks whether the app is buildable.
@@ -33,7 +21,7 @@ internal enum DevBuildState
 ///         keeps this from breaking on the next SDK.
 ///     </para>
 /// </remarks>
-internal sealed class DevBuildWatcher
+internal sealed partial class DevBuildWatcher
 {
     // `severity CODE: text`, wherever it appears in the line. Both forms in the wild reach it:
     //
@@ -44,14 +32,17 @@ internal sealed class DevBuildWatcher
     // failed hot-reload emit is reported in, so the panel never appeared for the commonest failure there
     // is. The prefix is captured but only kept when it ends in a colon, which is exactly what separates a
     // real file location from watch's own decoration.
-    private static readonly Regex Diagnostic = new(
+    [GeneratedRegex(
         @"^(?<origin>.*?)(?<![A-Za-z0-9])(?<severity>error|warning)\s+(?<code>[A-Za-z]+[0-9]+)\s*:\s*(?<text>.*)$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        RegexOptions.IgnoreCase,
+        matchTimeoutMilliseconds: 1000)]
+    private static partial Regex Diagnostic { get; }
 
     // Colour, kept deliberately on the way to the terminal (rask dev sets
     // DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION so redirecting watch's output doesn't drain it of
     // colour) — and equally deliberately stripped here, because the panel renders text, not a terminal.
-    private static readonly Regex AnsiEscape = new(@"\x1B\[[0-9;]*[A-Za-z]", RegexOptions.Compiled);
+    [GeneratedRegex(@"\x1B\[[0-9;]*[A-Za-z]", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex AnsiEscape { get; }
 
     // Watch's own byline — `dotnet watch ❌ `, `dotnet watch ⌚ ` — which it puts in front of everything,
     // including a diagnostic that already has a file location:
@@ -62,7 +53,8 @@ internal sealed class DevBuildWatcher
     // prefix that ends in a colon. Stripped up front instead. The character class stops at the first
     // letter, digit or path character, so it eats the emoji and the spaces and nothing else — and it
     // leaves the line alone when DOTNET_WATCH_SUPPRESS_EMOJIS removed the symbol already.
-    private static readonly Regex WatchByline = new(@"^dotnet watch[^\p{L}\p{N}/\\._]*", RegexOptions.Compiled);
+    [GeneratedRegex(@"^dotnet watch[^\p{L}\p{N}/\\._]*", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex WatchByline { get; }
 
     // Watch announces a rebuild before it starts one. Matched loosely (contains, case-insensitive) because
     // the surrounding decoration varies; a miss only costs a slightly late transition to Building, which
@@ -142,59 +134,65 @@ internal sealed class DevBuildWatcher
             var match = Diagnostic.Match(clean);
             if (match.Success)
             {
-                if (!match.Groups["severity"].Value.Equals("error", StringComparison.OrdinalIgnoreCase))
-                {
-                    // A warning is not a verdict — but it must not fall through to the marker scan either.
-                    // Warnings carry a file path, and a path containing "building" or "started" would
-                    // otherwise clear a real failure the compiler had just reported.
-                    return;
-                }
-
-                // Dedup: MSBuild repeats a diagnostic once per project that references the faulting one,
-                // so a single typo in a shared library arrives three times in a wasm-hosted solution. It
-                // dedups on the *rendered* text, so the same error reported through two different
-                // decorations still counts once.
-                var text = Render(match);
-                if (!_errors.Contains(text, StringComparer.Ordinal))
-                {
-                    _errors.Add(text);
-                }
-
-                _sawErrorThisBuild = true;
-                _state = DevBuildState.Failed;
-                return;
+                RecordDiagnostic(match);
             }
-
-            if (clean.Contains(IdleMarker, StringComparison.OrdinalIgnoreCase))
+            else
             {
-                return;
+                ObserveMarkers(clean);
             }
+        }
+    }
 
-            // Success first: a line can carry both ("Build succeeded" after "Building"), and the finished
-            // verdict is the more specific one.
-            foreach (var marker in SuccessMarkers)
-            {
-                if (clean.Contains(marker, StringComparison.OrdinalIgnoreCase))
-                {
-                    _errors.Clear();
-                    _sawErrorThisBuild = false;
-                    _state = DevBuildState.Ok;
-                    return;
-                }
-            }
+    // Called under _gate.
+    private void RecordDiagnostic(Match match)
+    {
+        if (!match.Groups["severity"].Value.Equals("error", StringComparison.OrdinalIgnoreCase))
+        {
+            // A warning is not a verdict — but it must not fall through to the marker scan either.
+            // Warnings carry a file path, and a path containing "building" or "started" would
+            // otherwise clear a real failure the compiler had just reported.
+            return;
+        }
 
-            foreach (var marker in RebuildMarkers)
-            {
-                if (clean.Contains(marker, StringComparison.OrdinalIgnoreCase))
-                {
-                    // A new build supersedes the last one's verdict: the errors on screen belong to a
-                    // build that no longer describes the code on disk.
-                    _errors.Clear();
-                    _sawErrorThisBuild = false;
-                    _state = DevBuildState.Building;
-                    return;
-                }
-            }
+        // Dedup: MSBuild repeats a diagnostic once per project that references the faulting one,
+        // so a single typo in a shared library arrives three times in a wasm-hosted solution. It
+        // dedups on the *rendered* text, so the same error reported through two different
+        // decorations still counts once.
+        var text = Render(match);
+        if (!_errors.Contains(text, StringComparer.Ordinal))
+        {
+            _errors.Add(text);
+        }
+
+        _sawErrorThisBuild = true;
+        _state = DevBuildState.Failed;
+    }
+
+    // Called under _gate.
+    private void ObserveMarkers(string clean)
+    {
+        if (clean.Contains(IdleMarker, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Success first: a line can carry both ("Build succeeded" after "Building"), and the finished
+        // verdict is the more specific one.
+        if (SuccessMarkers.Any(marker => clean.Contains(marker, StringComparison.OrdinalIgnoreCase)))
+        {
+            _errors.Clear();
+            _sawErrorThisBuild = false;
+            _state = DevBuildState.Ok;
+            return;
+        }
+
+        if (RebuildMarkers.Any(marker => clean.Contains(marker, StringComparison.OrdinalIgnoreCase)))
+        {
+            // A new build supersedes the last one's verdict: the errors on screen belong to a
+            // build that no longer describes the code on disk.
+            _errors.Clear();
+            _sawErrorThisBuild = false;
+            _state = DevBuildState.Building;
         }
     }
 
@@ -257,7 +255,7 @@ internal sealed class DevBuildWatcher
                 default:
                     if (c < ' ')
                     {
-                        sb.Append("\\u").Append(((int)c).ToString("x4"));
+                        sb.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
                     }
                     else
                     {

@@ -7,58 +7,6 @@ using Rask.Wire;
 
 namespace Rask.Auth;
 
-/// <summary>What an account operation produced: the outcome, and the principal when it succeeded.</summary>
-internal sealed record AccountOutcome(AuthResult Result, ClaimsPrincipal? Principal);
-
-/// <summary>
-/// The account store, without its user type.
-/// </summary>
-/// <remarks>
-/// The endpoints are mapped by <c>MapRaskAuth()</c>, which has no way to know which account type an app declared — it is a
-/// parameterless extension method on the endpoint builder, chosen so an app writes one line. Registering this alongside
-/// the generic service gives the endpoints something to resolve that does not name the type.
-/// </remarks>
-internal interface IAccounts
-{
-    Task<AccountOutcome> RegisterAsync(
-        string email,
-        string password,
-        string? firstRunToken,
-        string? client,
-        CancellationToken cancellationToken = default);
-
-    Task<AccountOutcome> ValidateAsync(
-        string email, string password, string? client, CancellationToken cancellationToken = default);
-
-    Task<AuthResult> SendPasswordResetAsync(
-        string email, string? client, CancellationToken cancellationToken = default);
-
-    Task<AuthResult> ResetPasswordAsync(
-        string userId, string token, string password, CancellationToken cancellationToken = default);
-
-    Task<AuthResult> ConfirmEmailAsync(string userId, string token, CancellationToken cancellationToken = default);
-
-    Task<int> SignOutOtherDevicesAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
-
-    Task<int> SignOutEverywhereAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
-
-    Task<PasskeyCreationChallenge?> BeginAddPasskeyAsync(
-        Guid userId, string? origin, CancellationToken cancellationToken = default);
-
-    /// <summary>Why <see cref="BeginAddPasskeyAsync" /> gave no challenge, for the message a person sees.</summary>
-    Task<AuthError> PasskeyRefusalAsync(Guid userId, CancellationToken cancellationToken = default);
-
-    Task<AuthResult> CompleteAddPasskeyAsync(
-        Guid userId, PasskeyRegistrationRequest request, string? origin, CancellationToken cancellationToken = default);
-
-    PasskeyRequestChallenge? BeginPasskeySignIn(string? origin);
-
-    Task<AccountOutcome> CompletePasskeySignInAsync(
-        PasskeyLoginRequest request, string? origin, string? client, CancellationToken cancellationToken = default);
-
-    Task<AuthResult> RemovePasskeyAsync(Guid userId, Guid passkeyId, CancellationToken cancellationToken = default);
-}
-
 /// <summary>
 /// Register, check a password, reset and confirm — against the app's own <typeparamref name="TUser" /> aggregate.
 /// </summary>
@@ -76,7 +24,7 @@ internal interface IAccounts
 /// </para>
 /// </remarks>
 /// <typeparam name="TUser">The application's user aggregate.</typeparam>
-internal sealed class AccountService<TUser>(
+internal sealed partial class AccountService<TUser>(
     IAuthContexts contexts,
     IInstanceClaimStore claims,
     FirstRunToken firstRun,
@@ -152,7 +100,42 @@ internal sealed class AccountService<TUser>(
         user.Register(normalized, hasher.Hash(password), now);
         apply?.Invoke(user);
 
-        await using (var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false))
+        if (await InsertAsync(user, normalized, attempt, cancellationToken).ConfigureAwait(false) is { } refused)
+        {
+            return refused;
+        }
+
+        await GrantRoleAsync(user, cancellationToken).ConfigureAwait(false);
+
+        return await WelcomeAsync(user, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Mails the confirmation link, then signs the new account in — unless the gate says it has to be proved first.
+    private async Task<AccountOutcome> WelcomeAsync(TUser user, CancellationToken cancellationToken)
+    {
+        // Sent whether or not RequireConfirmedEmail is on. With the gate off it is an invitation rather than a barrier — and an
+        // app that turns the gate on later finds its existing accounts already confirmed, instead of locking all of them out.
+        await mail
+            .SendConfirmationAsync(
+                user.Email, user.Id.ToString(), tokens.ForConfirmation(user, options.TokenLifetime), cancellationToken)
+            .ConfigureAwait(false);
+
+        // The account exists, but with the gate on nobody is signed in to it until the address is proved: otherwise
+        // registering would be a way round the very check sign-in makes.
+        if (options.RequireConfirmedEmail && !user.IsEmailConfirmed)
+        {
+            return Fail(AuthError.EmailNotConfirmed);
+        }
+
+        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
+    }
+
+    // Saves the new user, or answers why not.
+    private async Task<AccountOutcome?> InsertAsync(
+        TUser user, string normalized, AuthThrottle.Attempt attempt, CancellationToken cancellationToken)
+    {
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
             // A deleted user still holds its address, so it cannot be registered again under someone else.
             if (await db.Set<TUser>()
@@ -177,12 +160,18 @@ internal sealed class AccountService<TUser>(
             }
         }
 
+        return null;
+    }
+
+    private async Task GrantRoleAsync(TUser user, CancellationToken cancellationToken)
+    {
         // Winning the claim is what makes this account the administrator, and only one caller can win it — the row's primary
         // key is a constant. A loser is not an error: it is the second person to register, and they get the ordinary role.
         var isAdmin = options.FirstUserIsAdmin
                       && await claims.TryClaimAsync(user.Id, cancellationToken).ConfigureAwait(false);
 
-        await using (var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false))
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
             db.Attach(user);
             user.GrantRole(isAdmin ? RaskRoles.Admin : RaskRoles.User);
@@ -193,22 +182,6 @@ internal sealed class AccountService<TUser>(
         {
             firstRun.Clear();
         }
-
-        // Sent whether or not RequireConfirmedEmail is on. With the gate off it is an invitation rather than a barrier — and an
-        // app that turns the gate on later finds its existing accounts already confirmed, instead of locking all of them out.
-        await mail
-            .SendConfirmationAsync(
-                user.Email, user.Id.ToString(), tokens.ForConfirmation(user, options.TokenLifetime), cancellationToken)
-            .ConfigureAwait(false);
-
-        // The account exists, but with the gate on nobody is signed in to it until the address is proved: otherwise
-        // registering would be a way round the very check sign-in makes.
-        if (options.RequireConfirmedEmail && !user.IsEmailConfirmed)
-        {
-            return Fail(AuthError.EmailNotConfirmed);
-        }
-
-        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
     }
 
     public async Task<AccountOutcome> ValidateAsync(
@@ -226,45 +199,51 @@ internal sealed class AccountService<TUser>(
 
         var normalized = Authenticatable.NormalizeEmail(email);
 
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-
-        // TWO, not one. An address is unique WITHIN a tenant, so with tenants in play the same address can
-        // belong to two accounts — and the accounts table is deliberately not filtered by tenant, because
-        // sign-in has to find a user BEFORE it can know which tenant they are in. FirstOrDefault over an
-        // unordered query would then sign somebody into whichever row the database happened to return first,
-        // which is both non-deterministic and the wrong tenant half the time.
-        var candidates = await db.Set<TUser>()
-            .Where(u => u.Email == normalized)
-            .Take(2)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        if (candidates.Count > 1)
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            // Refused rather than resolved arbitrarily. Reported at Error because it is a configuration
-            // problem the operator has to fix — an app with per-tenant addresses needs to say which tenant a
-            // sign-in is for — and answered as ordinary invalid credentials so the response says nothing
-            // about which addresses exist.
-            logger.LogError(
-                "Sign-in for an address held by more than one tenant was refused. Rask cannot tell which " +
-                "account was meant, so it signs in neither.");
+            // TWO, not one. An address is unique WITHIN a tenant, so with tenants in play the same address can
+            // belong to two accounts — and the accounts table is deliberately not filtered by tenant, because
+            // sign-in has to find a user BEFORE it can know which tenant they are in. FirstOrDefault over an
+            // unordered query would then sign somebody into whichever row the database happened to return first,
+            // which is both non-deterministic and the wrong tenant half the time.
+            var candidates = await db.Set<TUser>()
+                .Where(u => u.Email == normalized)
+                .Take(2)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
 
-            hasher.VerifyNothing(password);
-            attempt.Fail();
-            return Fail(AuthError.InvalidCredentials);
+            if (candidates.Count > 1)
+            {
+                // Refused rather than resolved arbitrarily. Reported at Error because it is a configuration
+                // problem the operator has to fix — an app with per-tenant addresses needs to say which tenant a
+                // sign-in is for — and answered as ordinary invalid credentials so the response says nothing
+                // about which addresses exist.
+                AmbiguousTenantSignIn(logger);
+
+                hasher.VerifyNothing(password);
+                attempt.Fail();
+                return Fail(AuthError.InvalidCredentials);
+            }
+
+            var user = candidates.Count == 1 ? candidates[0] : null;
+
+            if (user is null)
+            {
+                // Hash anyway. Returning early on an unknown address makes the response measurably faster than one for a known
+                // address, which turns this endpoint into an account-existence oracle.
+                hasher.VerifyNothing(password);
+                attempt.Fail();
+                return Fail(AuthError.InvalidCredentials);
+            }
+
+            return await CheckPasswordAsync(db, user, password, attempt, cancellationToken).ConfigureAwait(false);
         }
+    }
 
-        var user = candidates.Count == 1 ? candidates[0] : null;
-
-        if (user is null)
-        {
-            // Hash anyway. Returning early on an unknown address makes the response measurably faster than one for a known
-            // address, which turns this endpoint into an account-existence oracle.
-            hasher.VerifyNothing(password);
-            attempt.Fail();
-            return Fail(AuthError.InvalidCredentials);
-        }
-
+    private async Task<AccountOutcome> CheckPasswordAsync(
+        DbContext db, TUser user, string password, AuthThrottle.Attempt attempt, CancellationToken cancellationToken)
+    {
         var check = hasher.Verify(user.PasswordHash, password);
         if (check == PasswordCheck.Failed)
         {
@@ -318,27 +297,27 @@ internal sealed class AccountService<TUser>(
 
         var normalized = Authenticatable.NormalizeEmail(email);
 
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalized, cancellationToken)
-                .ConfigureAwait(false) is { } user)
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            var sent = await mail
-                .SendPasswordResetAsync(
-                    user.Email, user.Id.ToString(), tokens.ForReset(user, options.TokenLifetime), cancellationToken)
-                .ConfigureAwait(false);
-
-            // Reported to the LOG, never to the caller (#1011): this branch is only reachable for an address that exists, so
-            // answering differently here would make the page a membership oracle.
-            if (!sent)
+            if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalized, cancellationToken)
+                    .ConfigureAwait(false) is { } user)
             {
-                logger.LogError(
-                    "A password reset could not be queued for a registered address. The caller was told the same thing "
-                    + "every caller is told, so this line is the only place it appears. The usual cause is a mail battery "
-                    + "whose tables are not in the DbContext model.");
-            }
-        }
+                var sent = await mail
+                    .SendPasswordResetAsync(
+                        user.Email, user.Id.ToString(), tokens.ForReset(user, options.TokenLifetime), cancellationToken)
+                    .ConfigureAwait(false);
 
-        return AuthResult.Success;
+                // Reported to the LOG, never to the caller (#1011): this branch is only reachable for an address that exists, so
+                // answering differently here would make the page a membership oracle.
+                if (!sent)
+                {
+                    ResetNotQueued(logger);
+                }
+            }
+
+            return AuthResult.Success;
+        }
     }
 
     /// <summary>Sets a new password from a token that arrived by email, and ends every session the user had.</summary>
@@ -356,39 +335,42 @@ internal sealed class AccountService<TUser>(
             return AuthResult.Fail(AuthError.InvalidToken);
         }
 
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == id, cancellationToken).ConfigureAwait(false)
-                is not { } user
-            || !tokens.IsValidReset(user, token))
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            return AuthResult.Fail(AuthError.InvalidToken);
+            if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == id, cancellationToken).ConfigureAwait(false)
+                    is not { } user
+                || !tokens.IsValidReset(user, token))
+            {
+                return AuthResult.Fail(AuthError.InvalidToken);
+            }
+
+            if (PasswordProblem(password) is { } problem)
+            {
+                return AuthResult.Fail(AuthError.WeakPassword, problem);
+            }
+
+            var now = clock.GetUtcNow().UtcDateTime;
+            user.ResetPassword(hasher.Hash(password), now);
+
+            // A completed reset is also a confirmation: holding this token proves what the confirmation link proves, that
+            // somebody read mail sent to that address.
+            user.ConfirmEmail(now);
+
+            // A reset recovers the account, so it takes back every way in, not just the password: a passkey added by
+            // whoever registered this address first, or by whoever knew the old password, would still sign them in.
+            foreach (var passkey in await db.Set<Passkey>().Where(p => p.UserId == user.Id).ToListAsync(cancellationToken)
+                         .ConfigureAwait(false))
+            {
+                passkey.Removed();
+                db.Remove(passkey);
+            }
+
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await sessions.EndAllAsync(user.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            return AuthResult.Success;
         }
-
-        if (PasswordProblem(password) is { } problem)
-        {
-            return AuthResult.Fail(AuthError.WeakPassword, problem);
-        }
-
-        var now = clock.GetUtcNow().UtcDateTime;
-        user.ResetPassword(hasher.Hash(password), now);
-
-        // A completed reset is also a confirmation: holding this token proves what the confirmation link proves, that
-        // somebody read mail sent to that address.
-        user.ConfirmEmail(now);
-
-        // A reset recovers the account, so it takes back every way in, not just the password: a passkey added by
-        // whoever registered this address first, or by whoever knew the old password, would still sign them in.
-        foreach (var passkey in await db.Set<Passkey>().Where(p => p.UserId == user.Id).ToListAsync(cancellationToken)
-                     .ConfigureAwait(false))
-        {
-            passkey.Removed();
-            db.Remove(passkey);
-        }
-
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        await sessions.EndAllAsync(user.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-        return AuthResult.Success;
     }
 
     /// <summary>Marks an address confirmed from a token that arrived by email.</summary>
@@ -399,29 +381,32 @@ internal sealed class AccountService<TUser>(
             return AuthResult.Fail(AuthError.InvalidToken);
         }
 
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == id, cancellationToken).ConfigureAwait(false)
-            is not { } user)
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            return AuthResult.Fail(AuthError.InvalidToken);
+            if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == id, cancellationToken).ConfigureAwait(false)
+                is not { } user)
+            {
+                return AuthResult.Fail(AuthError.InvalidToken);
+            }
+
+            // Asked BEFORE checking the token (#1013): a second arrival at the page — a reload, a Back, a link opened twice —
+            // should say the address is confirmed, not that the link did not work.
+            if (user.IsEmailConfirmed)
+            {
+                return AuthResult.Fail(AuthError.EmailAlreadyConfirmed);
+            }
+
+            if (!tokens.IsValidConfirmation(user, token))
+            {
+                return AuthResult.Fail(AuthError.InvalidToken);
+            }
+
+            user.ConfirmEmail(clock.GetUtcNow().UtcDateTime);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            return AuthResult.Success;
         }
-
-        // Asked BEFORE checking the token (#1013): a second arrival at the page — a reload, a Back, a link opened twice —
-        // should say the address is confirmed, not that the link did not work.
-        if (user.IsEmailConfirmed)
-        {
-            return AuthResult.Fail(AuthError.EmailAlreadyConfirmed);
-        }
-
-        if (!tokens.IsValidConfirmation(user, token))
-        {
-            return AuthResult.Fail(AuthError.InvalidToken);
-        }
-
-        user.ConfirmEmail(clock.GetUtcNow().UtcDateTime);
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        return AuthResult.Success;
     }
 
     public Task<int> SignOutOtherDevicesAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default) =>
@@ -443,51 +428,56 @@ internal sealed class AccountService<TUser>(
             return null;
         }
 
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-
-        if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
-                .ConfigureAwait(false) is not { } user
-            || !user.IsEmailConfirmed)
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            // An unconfirmed address may not be this user's at all: a passkey added now would outlive the real owner
-            // taking the account back.
-            return null;
+            if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+                    .ConfigureAwait(false) is not { } user
+                || !user.IsEmailConfirmed)
+            {
+                // An unconfirmed address may not be this user's at all: a passkey added now would outlive the real owner
+                // taking the account back.
+                return null;
+            }
+
+            // What the account already has, so the authenticator says "you already have a passkey here" instead of quietly
+            // making a second one for the same device.
+            var existing = await db.Set<Passkey>()
+                .AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .Select(p => p.CredentialId)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var challenge = PasskeyChallenges.NewChallenge();
+
+            return new PasskeyCreationChallenge(
+                challenges.Issue(PasskeyPurpose.Create, userId, challenge),
+                WebEncoders.Base64UrlEncode(challenge),
+                site.RelyingPartyId(origin),
+                site.Name,
+
+                // The account id as the user handle, never the address: it is stored on the authenticator, where anyone
+                // holding the device may read it, and an id tells them nothing they did not already have.
+                WebEncoders.Base64UrlEncode(userId.ToByteArray()),
+                user.Email,
+                user.Email,
+                [.. existing.Select(WebEncoders.Base64UrlEncode)],
+                (int)PasskeyChallenges.Lifetime.TotalMilliseconds);
         }
-
-        // What the account already has, so the authenticator says "you already have a passkey here" instead of quietly
-        // making a second one for the same device.
-        var existing = await db.Set<Passkey>()
-            .AsNoTracking()
-            .Where(p => p.UserId == userId)
-            .Select(p => p.CredentialId)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var challenge = PasskeyChallenges.NewChallenge();
-
-        return new PasskeyCreationChallenge(
-            challenges.Issue(PasskeyPurpose.Create, userId, challenge),
-            WebEncoders.Base64UrlEncode(challenge),
-            site.RelyingPartyId(origin),
-            site.Name,
-
-            // The account id as the user handle, never the address: it is stored on the authenticator, where anyone
-            // holding the device may read it, and an id tells them nothing they did not already have.
-            WebEncoders.Base64UrlEncode(userId.ToByteArray()),
-            user.Email,
-            user.Email,
-            [.. existing.Select(WebEncoders.Base64UrlEncode)],
-            (int)PasskeyChallenges.Lifetime.TotalMilliseconds);
     }
 
     public async Task<AuthError> PasskeyRefusalAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        var confirmed = await db.Set<TUser>().AsNoTracking()
-            .AnyAsync(u => u.Id == userId && u.EmailConfirmedAt != null, cancellationToken)
-            .ConfigureAwait(false);
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            var confirmed = await db.Set<TUser>().AsNoTracking()
+                .AnyAsync(u => u.Id == userId && u.EmailConfirmedAt != null, cancellationToken)
+                .ConfigureAwait(false);
 
-        return options.Passkeys && !confirmed ? AuthError.EmailNotConfirmed : AuthError.NotAllowed;
+            return options.Passkeys && !confirmed ? AuthError.EmailNotConfirmed : AuthError.NotAllowed;
+        }
     }
 
     /// <summary>Verifies a created passkey and stores it against the account that asked for it.</summary>
@@ -511,59 +501,67 @@ internal sealed class AccountService<TUser>(
         if (PasskeyVerifier.VerifyRegistration(request, site.Ceremony(origin, challenge), out var failure)
             is not { } verified)
         {
-            logger.LogDebug("A passkey registration was refused: {Failure}.", failure);
+            PasskeyRegistrationRefused(logger, failure);
             return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey could not be verified.");
         }
 
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        return await StorePasskeyAsync(userId, request, verified, cancellationToken).ConfigureAwait(false);
+    }
 
-        var credentialId = verified.CredentialId;
-        var taken = await db.Set<Passkey>()
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.CredentialId == credentialId, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (taken is { DeletedAt: null })
+    private async Task<AuthResult> StorePasskeyAsync(
+        Guid userId, PasskeyRegistrationRequest request, PasskeyRegistration verified, CancellationToken cancellationToken)
+    {
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is already on an account.");
-        }
-
-        if (taken is not null)
-        {
-            // A removed passkey keeps its row, and a credential id is unique, so adding the same device again would
-            // collide with its own tombstone forever. Registering it is what makes that row not worth keeping.
-            await db.Set<Passkey>()
+            var credentialId = verified.CredentialId;
+            var taken = await db.Set<Passkey>()
                 .IgnoreQueryFilters()
-                .Where(p => p.Id == taken.Id)
-                .ExecuteDeleteAsync(cancellationToken)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.CredentialId == credentialId, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (taken is { DeletedAt: null })
+            {
+                return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is already on an account.");
+            }
+
+            if (taken is not null)
+            {
+                // A removed passkey keeps its row, and a credential id is unique, so adding the same device again would
+                // collide with its own tombstone forever. Registering it is what makes that row not worth keeping.
+                await db.Set<Passkey>()
+                    .IgnoreQueryFilters()
+                    .Where(p => p.Id == taken.Id)
+                    .ExecuteDeleteAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            var passkey = Passkey.Register(
+                userId,
+                request.Name,
+                credentialId,
+                verified.PublicKey,
+                verified.Algorithm,
+                verified.SignCount,
+                verified.BackedUp,
+                JoinTransports(request.Transports),
+                clock.GetUtcNow().UtcDateTime);
+
+            db.Add(passkey);
+
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (DbUpdateException)
+            {
+                // Two registrations of one credential arrived together and the unique index kept one.
+                return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is already on an account.");
+            }
+
+            return AuthResult.Success;
         }
-
-        var passkey = Passkey.Register(
-            userId,
-            request.Name,
-            credentialId,
-            verified.PublicKey,
-            verified.Algorithm,
-            verified.SignCount,
-            verified.BackedUp,
-            JoinTransports(request.Transports),
-            clock.GetUtcNow().UtcDateTime);
-
-        db.Add(passkey);
-
-        try
-        {
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (DbUpdateException)
-        {
-            // Two registrations of one credential arrived together and the unique index kept one.
-            return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is already on an account.");
-        }
-
-        return AuthResult.Success;
     }
 
     /// <summary>Starts a passkey sign-in. Discoverable: nothing about any account leaves the server.</summary>
@@ -622,66 +620,82 @@ internal sealed class AccountService<TUser>(
             return Fail(AuthError.InvalidCredentials);
         }
 
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-
-        var passkey = await db.Set<Passkey>()
-            .FirstOrDefaultAsync(p => p.CredentialId == credentialId, cancellationToken)
+        return await SignInWithPasskeyAsync(
+                request, credentialId, site.Ceremony(origin, challenge), attempt, cancellationToken)
             .ConfigureAwait(false);
+    }
 
-        if (passkey is null)
+    private async Task<AccountOutcome> SignInWithPasskeyAsync(
+        PasskeyLoginRequest request,
+        byte[] credentialId,
+        PasskeyCeremony ceremony,
+        AuthThrottle.Attempt attempt,
+        CancellationToken cancellationToken)
+    {
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            logger.LogDebug("A passkey sign-in was refused: {Failure}.", "no such credential");
-            attempt.Fail();
-            return Fail(AuthError.InvalidCredentials);
+            var passkey = await db.Set<Passkey>()
+                .FirstOrDefaultAsync(p => p.CredentialId == credentialId, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (passkey is null)
+            {
+                PasskeySignInRefused(logger, "no such credential");
+                attempt.Fail();
+                return Fail(AuthError.InvalidCredentials);
+            }
+
+            if (PasskeyVerifier.VerifyAssertion(request, ceremony, passkey, out var failure)
+                is not { } verified)
+            {
+                PasskeySignInRefused(logger, failure);
+                attempt.Fail();
+                return Fail(AuthError.InvalidCredentials);
+            }
+
+            if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == passkey.UserId, cancellationToken)
+                    .ConfigureAwait(false) is not { } user)
+            {
+                attempt.Fail();
+                return Fail(AuthError.InvalidCredentials);
+            }
+
+            attempt.Succeed();
+
+            if (options.RequireConfirmedEmail && !user.IsEmailConfirmed)
+            {
+                return Fail(AuthError.EmailNotConfirmed);
+            }
+
+            passkey.Used(verified.SignCount, clock.GetUtcNow().UtcDateTime);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
         }
-
-        if (PasskeyVerifier.VerifyAssertion(request, site.Ceremony(origin, challenge), passkey, out var failure)
-            is not { } verified)
-        {
-            logger.LogDebug("A passkey sign-in was refused: {Failure}.", failure);
-            attempt.Fail();
-            return Fail(AuthError.InvalidCredentials);
-        }
-
-        if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == passkey.UserId, cancellationToken)
-                .ConfigureAwait(false) is not { } user)
-        {
-            attempt.Fail();
-            return Fail(AuthError.InvalidCredentials);
-        }
-
-        attempt.Succeed();
-
-        if (options.RequireConfirmedEmail && !user.IsEmailConfirmed)
-        {
-            return Fail(AuthError.EmailNotConfirmed);
-        }
-
-        passkey.Used(verified.SignCount, clock.GetUtcNow().UtcDateTime);
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
     }
 
     /// <summary>Removes one of an account's passkeys. It stops signing anybody in at once.</summary>
     public async Task<AuthResult> RemovePasskeyAsync(
         Guid userId, Guid passkeyId, CancellationToken cancellationToken = default)
     {
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-
-        // Scoped to the caller's own account, so an id guessed from somewhere else removes nothing.
-        if (await db.Set<Passkey>()
-                .FirstOrDefaultAsync(p => p.Id == passkeyId && p.UserId == userId, cancellationToken)
-                .ConfigureAwait(false) is not { } passkey)
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is not on this account.");
+            // Scoped to the caller's own account, so an id guessed from somewhere else removes nothing.
+            if (await db.Set<Passkey>()
+                    .FirstOrDefaultAsync(p => p.Id == passkeyId && p.UserId == userId, cancellationToken)
+                    .ConfigureAwait(false) is not { } passkey)
+            {
+                return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is not on this account.");
+            }
+
+            passkey.Removed();
+            db.Remove(passkey);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            return AuthResult.Success;
         }
-
-        passkey.Removed();
-        db.Remove(passkey);
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        return AuthResult.Success;
     }
 
     private static string? JoinTransports(IReadOnlyList<string>? transports) =>
@@ -698,4 +712,21 @@ internal sealed class AccountService<TUser>(
         && string.Equals(address.Address, trimmed, StringComparison.OrdinalIgnoreCase);
 
     private static AccountOutcome Fail(AuthError error) => new(AuthResult.Fail(error), null);
+
+    [LoggerMessage(Level = LogLevel.Error, Message =
+        "Sign-in for an address held by more than one tenant was refused. Rask cannot tell which " +
+        "account was meant, so it signs in neither.")]
+    private static partial void AmbiguousTenantSignIn(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Error, Message =
+        "A password reset could not be queued for a registered address. The caller was told the same thing "
+        + "every caller is told, so this line is the only place it appears. The usual cause is a mail battery "
+        + "whose tables are not in the DbContext model.")]
+    private static partial void ResetNotQueued(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "A passkey registration was refused: {Failure}.")]
+    private static partial void PasskeyRegistrationRefused(ILogger logger, string? failure);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "A passkey sign-in was refused: {Failure}.")]
+    private static partial void PasskeySignInRefused(ILogger logger, string? failure);
 }

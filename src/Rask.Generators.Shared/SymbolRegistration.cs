@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 
 namespace Rask.Generators.Shared;
@@ -208,16 +210,6 @@ internal static class SymbolRegistration
         DescribeUnregisterable(symbol) is null;
 
     /// <summary>True when <paramref name="symbol"/> directly or indirectly implements <paramref name="markerInterface"/>.</summary>
-    public static bool ImplementsMarker(INamedTypeSymbol symbol, string markerInterface)
-    {
-        foreach (var iface in symbol.AllInterfaces)
-        {
-            if (iface.ToDisplayString() == markerInterface)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    public static bool ImplementsMarker(INamedTypeSymbol symbol, string markerInterface) =>
+        symbol.AllInterfaces.Any(iface => string.Equals(iface.ToDisplayString(), markerInterface, StringComparison.Ordinal));
 }

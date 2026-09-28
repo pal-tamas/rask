@@ -48,7 +48,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
             var handle = await files.OpenFileAsync(new FilePickerOptions
             {
                 Description = "Text files",
-                Accept = new Dictionary<string, string[]> { ["text/plain"] = [".txt", ".md", ".json", ".cs"] }
+                Accept = new Dictionary<string, string[]>(StringComparer.Ordinal) { ["text/plain"] = [".txt", ".md", ".json", ".cs"] }
             });
             if (handle is null)
             {

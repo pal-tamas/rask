@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Rask.Cli.Scaffolding;
@@ -53,22 +54,22 @@ internal static partial class ProjectGenerator
     private static string MetaNextSteps(string name, MetaTemplate framework, bool docker)
     {
         var steps = new StringBuilder();
-        steps.AppendLine($"Next steps for {name} ({framework.DisplayName}):");
+        steps.AppendLine(CultureInfo.InvariantCulture, $"Next steps for {name} ({framework.DisplayName}):");
         steps.AppendLine();
-        steps.AppendLine($"  cd {name}");
+        steps.AppendLine(CultureInfo.InvariantCulture, $"  cd {name}");
         steps.AppendLine("  rask dev            # the host, and the framework's own dev server, together");
         steps.AppendLine();
-        steps.AppendLine($"The browser talks to {framework.DisplayName} on {framework.DevServerUrl}, which");
+        steps.AppendLine(CultureInfo.InvariantCulture, $"The browser talks to {framework.DisplayName} on {framework.DevServerUrl}, which");
         steps.AppendLine("proxies /_rask back to the host — so hot module replacement is native.");
         steps.AppendLine();
         steps.AppendLine($"The first build installs the front end's dependencies and writes your C# contracts");
-        steps.AppendLine($"and Rask's browser layer into {name}/{framework.AppDir}/{framework.GeneratedDir}/ — gitignored,");
+        steps.AppendLine(CultureInfo.InvariantCulture, $"and Rask's browser layer into {name}/{framework.AppDir}/{framework.GeneratedDir}/ — gitignored,");
         steps.AppendLine("because it is rewritten from the message records every time they change.");
 
         if (docker)
         {
             steps.AppendLine();
-            steps.AppendLine($"  docker build -t {name.ToLowerInvariant()} .");
+            steps.AppendLine(CultureInfo.InvariantCulture, $"  docker build -t {name.ToLowerInvariant()} .");
             steps.AppendLine("The image carries a node runtime, which this lane needs and the TypeScript-SPA");
             steps.AppendLine("template does not: the front end has a server of its own, supervised on loopback.");
         }

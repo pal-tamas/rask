@@ -30,7 +30,7 @@ public sealed partial class EventsFormDemo : Component
         _submitted = string.IsNullOrWhiteSpace(name) ? "(blank)" : name;
     }
 
-    private sealed class Fields
+    public sealed class Fields
     {
         public string? Name { get; set; }
     }

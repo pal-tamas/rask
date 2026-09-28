@@ -44,7 +44,7 @@ public sealed partial class UiPagination : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class(UiClass.Compose("join", Class))
-            .Aria(new Dictionary<string, string?> { ["label"] = "Pagination" })[
+            .Aria("label", "Pagination")[
             Window(Math.Max(Pages, 0), Current).Select(item => item switch
             {
                 Item.Gap gap => Gap(gap.Side),

@@ -61,9 +61,9 @@ internal static partial class AuthEmails
     /// <summary>"2 hours", "30 minutes" — a duration a person reads rather than a TimeSpan.</summary>
     private static string Describe(TimeSpan lifetime) =>
         lifetime.TotalHours >= 1
-            ? Plural(Math.Round(lifetime.TotalHours), "hour")
-            : Plural(Math.Round(lifetime.TotalMinutes), "minute");
+            ? Plural((int)Math.Round(lifetime.TotalHours), "hour")
+            : Plural((int)Math.Round(lifetime.TotalMinutes), "minute");
 
-    private static string Plural(double count, string unit) =>
-        count == 1 ? $"1 {unit}" : $"{count:0} {unit}s";
+    private static string Plural(int count, string unit) =>
+        count == 1 ? $"1 {unit}" : $"{count} {unit}s";
 }

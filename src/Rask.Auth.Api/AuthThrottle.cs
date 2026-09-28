@@ -77,6 +77,7 @@ internal sealed class AuthThrottle(TimeProvider clock)
     {
         while (!_attempts.GetOrAdd(key, static _ => new Attempts()).TryAdd(new Stamp(at, failed: true)))
         {
+            // Retired by a sweep between the lookup and the add: go round and count it on the entry that replaces it.
         }
     }
 
@@ -90,12 +91,9 @@ internal sealed class AuthThrottle(TimeProvider clock)
             return;
         }
 
-        foreach (var entry in _attempts)
+        foreach (var retired in _attempts.Where(entry => entry.Value.TryRetire(now, Window)))
         {
-            if (entry.Value.TryRetire(now, Window))
-            {
-                _attempts.TryRemove(entry);
-            }
+            _attempts.TryRemove(retired);
         }
     }
 

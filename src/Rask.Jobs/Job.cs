@@ -1,8 +1,6 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rask.Data;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 /// A persisted background job awaiting (or having completed) execution. Written by <see cref="IJobs"/>
@@ -37,7 +35,9 @@ public sealed class Job : Entity<long>
     public DateTime? ProcessedAt { get; private set; }
 
     /// <summary>How many times the job has been attempted.</summary>
+#pragma warning disable S1144 // EF materializes the column through the setter; code only moves it with ExecuteUpdate
     public int Attempts { get; private set; }
+#pragma warning restore S1144
 
     /// <summary>The last failure message, if any.</summary>
     public string? Error { get; private set; }
@@ -109,49 +109,5 @@ public sealed class Job : Entity<long>
     {
         ClaimToken = null;
         ClaimedUntil = null;
-    }
-}
-
-/// <summary>The EF Core mapping for <see cref="Job"/>.</summary>
-public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
-{
-    /// <inheritdoc/>
-    public void Configure(EntityTypeBuilder<Job> entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        entity.HasKey(x => x.Id);
-        entity.Property(x => x.Type).IsRequired().HasMaxLength(512);
-        entity.Property(x => x.Payload).IsRequired();
-        // Drives the "due, oldest first" claim query. ClaimedUntil is deliberately NOT in the index: in a
-        // healthy queue almost every candidate row is unclaimed, so it costs nothing as a residual filter,
-        // and a filtered index would need provider-specific SQL. The claim's read-back rides the primary
-        // key (it filters on the same id list), so ClaimToken needs no index either.
-        entity.HasIndex(x => new { x.ProcessedAt, x.RunAt, x.Id });
-        // Fences the completion write: EF appends `AND ClaimToken = @original` to every tracked update, so
-        // an instance whose lease expired mid-job gets a concurrency exception instead of overwriting the
-        // outcome of whichever instance now owns the row.
-        entity.Property(x => x.ClaimToken).IsConcurrencyToken();
-
-        // Mapped EXPLICITLY, and the table is deliberately not Tenancy.PerTenant. A partitioned table takes a
-        // query filter, and a filter here would hide other tenants' rows from the drain — the runner has to
-        // see everybody's work. So the tenant is data on the row, not a partition of the table, and
-        // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.
-        entity.Property(x => x.TenantId);
-    }
-}
-
-/// <summary>Model-building helper for the jobs tables.</summary>
-public static class JobsModelBuilderExtensions
-{
-    /// <summary>
-    /// Maps the <see cref="Job"/> and <see cref="RecurringJobState"/> tables. Call from your context's
-    /// <c>OnModelCreating</c>, then create the schema with <c>rask db add AddJobs &amp;&amp; rask db update</c>.
-    /// </summary>
-    public static ModelBuilder AddRaskJobs(this ModelBuilder modelBuilder)
-    {
-        ArgumentNullException.ThrowIfNull(modelBuilder);
-        modelBuilder.ApplyConfiguration(new JobConfiguration());
-        modelBuilder.ApplyConfiguration(new RecurringJobStateConfiguration());
-        return modelBuilder;
     }
 }

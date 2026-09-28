@@ -12,8 +12,10 @@ internal static class RouteValueParser
     // path — the reflection-free TypedParserRegistry handles every pre-registered type first.
     private static readonly ConcurrentDictionary<Type, Func<string, (bool ok, object? value)>?> _cache = new();
 
+#pragma warning disable S3011 // this class's own private generic parser, closed per type at run time
     private static readonly MethodInfo _genericParse = typeof(RouteValueParser)
         .GetMethod(nameof(ParseTyped), BindingFlags.Static | BindingFlags.NonPublic)!;
+#pragma warning restore S3011
 
     [UnconditionalSuppressMessage("Trimming", "IL2067",
         Justification = "targetType is passed to BuildParser via a Func<Type, ...> method-group, which erases " +

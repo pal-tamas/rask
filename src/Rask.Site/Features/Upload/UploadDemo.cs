@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Site.Features;
 
-// A self-contained file-picker demo. Ui.FileInput's OnFiles wires the picker to a typed handler; RaskFile carries the metadata while the handler is on the stack. The mutating
+// A self-contained file-picker demo. Ui.FileInput's OnFiles wires the picker to a typed handler; IRaskFile carries the metadata while the handler is on the stack. The mutating
 // handler lives in this component so its field updates re-render the right tree.
 public sealed partial class UploadDemo : Component
 {
@@ -12,7 +12,7 @@ public sealed partial class UploadDemo : Component
     private string? _name;
     private long _size;
 
-    private void OnFiles(IReadOnlyList<RaskFile> files)
+    private void OnFiles(IReadOnlyList<IRaskFile> files)
     {
         if (files.Count == 0)
         {
@@ -35,7 +35,7 @@ public sealed partial class UploadDemo : Component
                 .Class("mb-3")
                 .OnFiles(OnFiles),
             _name is null
-                ? (Component)Div.Class("text-ui-muted text-sm")["No file selected yet."]
+                ? Div.Class("text-ui-muted text-sm")["No file selected yet."]
                 : Dl.Class("grid grid-cols-12 gap-4 text-sm mb-0")[
                     Dt.Class("col-span-4 text-ui-muted")["Name"],
                     Dd.Class("col-span-8 text-break").Data(Meta("name"))[_name],
@@ -50,6 +50,5 @@ public sealed partial class UploadDemo : Component
                 ]
         ];
 
-    private static new IReadOnlyDictionary<string, string?> Meta(string field) =>
-        new Dictionary<string, string?> { ["rask-meta"] = field };
+    private static new AttrBag Meta(string field) => new("rask-meta", field);
 }

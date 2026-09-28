@@ -58,12 +58,16 @@ public sealed partial class UiAvatar : Component
 
         // daisyUI's documented placeholder shape: a <div> where the <img> would be, so the size and the
         // rounding are the same rules either way.
-        return Div
-            .Class(UiClass.Compose("avatar avatar-placeholder", Class))
-            // The monogram is decoration — the NAME is what a reader needs, and "TP" read letter by letter is
-            // not it. Said on the frame, with the initials themselves hidden.
-            .Role(Name is null ? null : "img")
-            .Aria(Name is null ? [] : new Dictionary<string, string?> { ["label"] = Name })[
+        var avatar = Div.Class(UiClass.Compose("avatar avatar-placeholder", Class));
+
+        // The monogram is decoration — the NAME is what a reader needs, and "TP" read letter by letter is
+        // not it. Said on the frame, with the initials themselves hidden.
+        if (Name is { } name)
+        {
+            avatar = avatar.Role("img").Aria("label", name);
+        }
+
+        return avatar[
             Div.Class(UiClass.Compose(frame, "bg-neutral text-neutral-content"))[
                 Span.Class("text-xs font-medium").Aria("hidden", "true")[Initials(Name ?? "")]
             ]

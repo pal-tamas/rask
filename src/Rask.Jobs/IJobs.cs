@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 /// The app's job queue. Reach it without injecting anything — <c>await Jobs.Enqueue(job)</c> — or inject

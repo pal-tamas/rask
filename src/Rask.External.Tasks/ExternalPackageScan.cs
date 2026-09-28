@@ -7,61 +7,6 @@ using System.Text.RegularExpressions;
 
 namespace Rask.External.Tasks;
 
-/// <summary>One package island found in the source, before the compile.</summary>
-/// <remarks>A class rather than a record: this assembly targets netstandard2.0, which has no init accessors.</remarks>
-internal sealed class ScannedPackageIsland
-{
-    /// <param name="name">The class's simple name.</param>
-    /// <param name="runtime">The runtime its base chain reaches.</param>
-    /// <param name="module">The constant its <c>Module</c> override returns, or empty when it declares none.</param>
-    /// <param name="export">The constant its <c>Export</c> override returns, or null when it declares none.</param>
-    /// <param name="declaringFile">The file holding the override — the snapshot is written beside it.</param>
-    /// <param name="line">The 1-based line of the override, for diagnostics.</param>
-    /// <param name="fromDeclaration">Whether a package declaration (<c>Mui : ReactPackage</c>) exported it.</param>
-    public ScannedPackageIsland(string name, string runtime, string module, string? export, string declaringFile,
-        int line, bool fromDeclaration = false)
-    {
-        FromDeclaration = fromDeclaration;
-        Name = name;
-        Runtime = runtime;
-        Module = module;
-        Export = export;
-        DeclaringFile = declaringFile;
-        Line = line;
-    }
-
-    /// <summary>The class's simple name.</summary>
-    public string Name { get; }
-
-    /// <summary>Whether a package declaration exported it, rather than a class of its own naming a Module.</summary>
-    public bool FromDeclaration { get; }
-
-    /// <summary>The runtime its base chain reaches.</summary>
-    public string Runtime { get; }
-
-    /// <summary>The constant its <c>Module</c> override returns.</summary>
-    public string Module { get; }
-
-    /// <summary>The constant its <c>Export</c> override returns, or null for the package's default export.</summary>
-    public string? Export { get; }
-
-    /// <summary>Whether <see cref="Module" /> names a package; when it does not, the class only declared an Export.</summary>
-    public bool IsPackage => ExternalPackageSpecifier.IsBare(Module);
-
-    /// <summary>The export the island mounts: its <see cref="Export" />, or <c>default</c>.</summary>
-    public string ExportOrDefault => Export ?? "default";
-
-    /// <summary>The file holding the override.</summary>
-    public string DeclaringFile { get; }
-
-    /// <summary>The 1-based line of the override.</summary>
-    public int Line { get; }
-
-    /// <summary>Where this island's props snapshot lives.</summary>
-    public string SnapshotPath =>
-        Path.Combine(Path.GetDirectoryName(DeclaringFile) ?? string.Empty, Name + ".props.json");
-}
-
 /// <summary>
 ///     Finds the islands whose constant <c>Module</c> names a package, reading the C# source before it is
 ///     compiled.
@@ -92,7 +37,8 @@ internal static class ExternalPackageScan
     // the part the snapshot has to be written beside. Which classes are islands at all comes from the runtime map.
     private static readonly Regex Declaration = new(
         @"\bclass\s+(?<name>[A-Za-z_]\w*)",
-        RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
 
     private static readonly Regex ModuleOverride = Override("Module");
 
@@ -104,15 +50,18 @@ internal static class ExternalPackageScan
     private static readonly Regex PackageDeclaration = new(
         @"\bclass\s+(?<name>[A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*:\s*(?:global::)?(?:[\w.]+\.)?"
         + @"(?<runtime>React|Preact|Solid|Vue|Svelte|Angular|Lit)Package\b",
-        RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
 
     private static readonly Regex ExportsOverride = new(
         @"\boverride\s+string\s*\[\s*\]\s+Exports\b",
-        RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
 
     private static Regex Override(string property) => new(
         @"\boverride\s+string\??\s+" + property + @"\b",
-        RegexOptions.CultureInvariant);
+        RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
 
     /// <summary>
     ///     Every package island in <paramref name="sources" />, using <paramref name="runtimes" /> — the islands
@@ -155,20 +104,18 @@ internal static class ExternalPackageScan
         var scanned = files.SelectMany(f => Scan(f.Text, f.Path, runtimes)).Concat(ScanDeclarations(files));
         foreach (var island in scanned)
         {
+            // A partial class spelled across files: the part that overrides Module is the one that counts — it is
+            // where the snapshot goes — and an Export written in another part joins it.
+            if (!found.TryGetValue(island.Name, out var seen))
             {
-                // A partial class spelled across files: the part that overrides Module is the one that counts — it is
-                // where the snapshot goes — and an Export written in another part joins it.
-                if (!found.TryGetValue(island.Name, out var seen))
-                {
-                    found[island.Name] = island;
-                }
-                else if (seen.Module.Length == 0 || seen.Export is null)
-                {
-                    var owner = seen.Module.Length != 0 ? seen : island;
-                    found[island.Name] = new ScannedPackageIsland(
-                        island.Name, island.Runtime, owner.Module, seen.Export ?? island.Export, owner.DeclaringFile,
-                        owner.Line, owner.FromDeclaration);
-                }
+                found[island.Name] = island;
+            }
+            else if (seen.Module.Length == 0 || seen.Export is null)
+            {
+                var owner = seen.Module.Length != 0 ? seen : island;
+                found[island.Name] = new ScannedPackageIsland(
+                    island.Name, island.Runtime, owner.Module, seen.Export ?? island.Export, owner.DeclaringFile,
+                    owner.Line, owner.FromDeclaration);
             }
         }
 
@@ -194,14 +141,46 @@ internal static class ExternalPackageScan
     ///     A declaration whose <c>Module</c> is not a package still yields its islands, flagged, so the task can say
     ///     so — skipping it would leave <c>Mui.Button</c> failing to compile with nothing naming why.
     /// </remarks>
-    private static IEnumerable<ScannedPackageIsland> ScanDeclarations(IReadOnlyList<(string Path, string Text)> files)
+    private static IEnumerable<ScannedPackageIsland> ScanDeclarations(List<(string Path, string Text)> files)
+    {
+        var structures = files.Select(f => (f.Path, f.Text, Structure: Blank(f.Text))).ToList();
+        var declarations = FindPackageDeclarations(structures);
+        if (declarations.Count == 0)
+        {
+            yield break;
+        }
+
+        var (modules, exports) = FindDeclarationMembers(structures, declarations);
+        foreach (var pair in declarations)
+        {
+            if (!modules.TryGetValue(pair.Key, out var module) || !exports.TryGetValue(pair.Key, out var list))
+            {
+                continue;
+            }
+
+            // Diagnostics point at the Exports line when it sits beside the declaration, else at the declaration.
+            var line = string.Equals(list.Path, pair.Value.Path, StringComparison.Ordinal) ? list.Line : pair.Value.Line;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var export in list.Values)
+            {
+                var member = ExternalPackageSpecifier.MemberName(export);
+                if (member.Length != 0 && seen.Add(member))
+                {
+                    yield return new ScannedPackageIsland(
+                        pair.Key + member, pair.Value.Runtime, module, export, pair.Value.Path, line,
+                        fromDeclaration: true);
+                }
+            }
+        }
+    }
+
+    /// <summary>Every <c>class X : ReactPackage</c>, the first part to name it winning.</summary>
+    private static Dictionary<string, (string Runtime, string Path, int Line)> FindPackageDeclarations(
+        List<(string Path, string Text, string Structure)> structures)
     {
         var declarations = new Dictionary<string, (string Runtime, string Path, int Line)>(StringComparer.Ordinal);
-        var structures = new List<(string Path, string Text, string Structure)>(files.Count);
-        foreach (var (path, text) in files)
+        foreach (var (path, text, structure) in structures)
         {
-            var structure = Blank(text);
-            structures.Add((path, text, structure));
             foreach (Match declaration in PackageDeclaration.Matches(structure))
             {
                 var name = declaration.Groups["name"].Value;
@@ -213,11 +192,15 @@ internal static class ExternalPackageScan
             }
         }
 
-        if (declarations.Count == 0)
-        {
-            yield break;
-        }
+        return declarations;
+    }
 
+    /// <summary>The <c>Module</c> and <c>Exports</c> of each declaration, read from whichever part carries them.</summary>
+    private static (Dictionary<string, string> Modules, Dictionary<string, (List<string> Values, string Path, int Line)> Exports)
+        FindDeclarationMembers(
+            List<(string Path, string Text, string Structure)> structures,
+            Dictionary<string, (string Runtime, string Path, int Line)> declarations)
+    {
         var modules = new Dictionary<string, string>(StringComparer.Ordinal);
         var exports = new Dictionary<string, (List<string> Values, string Path, int Line)>(StringComparer.Ordinal);
         foreach (var (path, text, structure) in structures)
@@ -249,27 +232,7 @@ internal static class ExternalPackageScan
             }
         }
 
-        foreach (var pair in declarations)
-        {
-            if (!modules.TryGetValue(pair.Key, out var module) || !exports.TryGetValue(pair.Key, out var list))
-            {
-                continue;
-            }
-
-            // Diagnostics point at the Exports line when it sits beside the declaration, else at the declaration.
-            var line = string.Equals(list.Path, pair.Value.Path, StringComparison.Ordinal) ? list.Line : pair.Value.Line;
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var export in list.Values)
-            {
-                var member = ExternalPackageSpecifier.MemberName(export);
-                if (member.Length != 0 && seen.Add(member))
-                {
-                    yield return new ScannedPackageIsland(
-                        pair.Key + member, pair.Value.Runtime, module, export, pair.Value.Path, line,
-                        fromDeclaration: true);
-                }
-            }
-        }
+        return (modules, exports);
     }
 
     /// <summary>
@@ -320,50 +283,51 @@ internal static class ExternalPackageScan
                 continue;
             }
 
-            var values = new List<string>();
-            var i = cursor + 1;
-            var valid = true;
-            while (valid)
-            {
-                i = SkipSpace(structure, i);
-                if (i >= stop)
-                {
-                    break;
-                }
-
-                if (structure[i] != '"')
-                {
-                    valid = false;
-                    break;
-                }
-
-                var closing = structure.IndexOf('"', i + 1);
-                var value = closing < 0 || closing > stop ? null : text.Substring(i + 1, closing - i - 1);
-                if (value is null || value.IndexOf('\\') >= 0)
-                {
-                    valid = false;
-                    break;
-                }
-
-                values.Add(value);
-                i = SkipSpace(structure, closing + 1);
-                if (i < stop && structure[i] == ',')
-                {
-                    i++;
-                }
-                else if (i < stop)
-                {
-                    valid = false;
-                }
-            }
-
-            if (valid)
+            if (ReadLiteralList(text, structure, cursor + 1, stop) is { } values)
             {
                 return (values, at);
             }
         }
 
         return null;
+    }
+
+    /// <summary>The plain string literals, comma-separated, between <paramref name="start" /> and <paramref name="stop" />; null when anything else is there.</summary>
+    private static List<string>? ReadLiteralList(string text, string structure, int start, int stop)
+    {
+        var values = new List<string>();
+        var i = start;
+        while (true)
+        {
+            i = SkipSpace(structure, i);
+            if (i >= stop)
+            {
+                return values;
+            }
+
+            if (structure[i] != '"')
+            {
+                return null;
+            }
+
+            var closing = structure.IndexOf('"', i + 1);
+            var value = closing < 0 || closing > stop ? null : text.Substring(i + 1, closing - i - 1);
+            if (value is null || value.IndexOf('\\') >= 0)
+            {
+                return null;
+            }
+
+            values.Add(value);
+            i = SkipSpace(structure, closing + 1);
+            if (i < stop && structure[i] == ',')
+            {
+                i++;
+            }
+            else if (i < stop)
+            {
+                return null;
+            }
+        }
     }
 
     /// <summary>
@@ -529,72 +493,90 @@ internal static class ExternalPackageScan
         while (i < text.Length)
         {
             var c = text[i];
-
             if (c == '/' && Next(text, i) == '/')
             {
-                while (i < text.Length && text[i] != '\n')
-                {
-                    sb[i++] = ' ';
-                }
-
-                continue;
+                i = BlankLineComment(text, sb, i);
             }
-
-            if (c == '/' && Next(text, i) == '*')
+            else if (c == '/' && Next(text, i) == '*')
             {
-                var endComment = text.IndexOf("*/", i + 2, StringComparison.Ordinal);
-                var stop = endComment < 0 ? text.Length : endComment + 2;
-                for (; i < stop; i++)
-                {
-                    sb[i] = text[i] == '\n' ? '\n' : ' ';
-                }
-
-                continue;
+                i = BlankBlockComment(text, sb, i);
             }
-
-            if (c == '"' || ((c == '@' || c == '$') && StringStart(text, i) >= 0))
+            else if (c == '"' || ((c == '@' || c == '$') && StringStart(text, i) >= 0))
             {
-                var open = c == '"' ? i : StringStart(text, i);
-                var closeAt = StringEnd(text, open, IsVerbatim(text, i, open));
-                for (var j = open + 1; j < closeAt && j < text.Length; j++)
-                {
-                    if (text[j] != '"' && text[j] != '\n')
-                    {
-                        sb[j] = ' ';
-                    }
-                }
-
-                i = closeAt + 1;
-                continue;
+                i = BlankString(text, sb, i);
             }
-
-            if (c == '\'')
+            else if (c == '\'')
             {
-                var j = i + 1;
-                while (j < text.Length && text[j] != '\'' && text[j] != '\n')
-                {
-                    if (text[j] == '\\')
-                    {
-                        sb[j] = ' ';
-                        j++;
-                    }
-
-                    if (j < text.Length)
-                    {
-                        sb[j] = ' ';
-                    }
-
-                    j++;
-                }
-
-                i = j + 1;
-                continue;
+                i = BlankCharLiteral(text, sb, i);
             }
-
-            i++;
+            else
+            {
+                i++;
+            }
         }
 
         return sb.ToString();
+    }
+
+    // Each Blank step blanks one construct starting at `i` and returns the index just past it.
+    private static int BlankLineComment(string text, StringBuilder sb, int i)
+    {
+        while (i < text.Length && text[i] != '\n')
+        {
+            sb[i++] = ' ';
+        }
+
+        return i;
+    }
+
+    private static int BlankBlockComment(string text, StringBuilder sb, int i)
+    {
+        var endComment = text.IndexOf("*/", i + 2, StringComparison.Ordinal);
+        var stop = endComment < 0 ? text.Length : endComment + 2;
+        while (i < stop)
+        {
+            sb[i] = text[i] == '\n' ? '\n' : ' ';
+            i++;
+        }
+
+        return i;
+    }
+
+    private static int BlankString(string text, StringBuilder sb, int i)
+    {
+        var open = text[i] == '"' ? i : StringStart(text, i);
+        var closeAt = StringEnd(text, open, IsVerbatim(text, i, open));
+        for (var j = open + 1; j < closeAt && j < text.Length; j++)
+        {
+            if (text[j] != '"' && text[j] != '\n')
+            {
+                sb[j] = ' ';
+            }
+        }
+
+        return closeAt + 1;
+    }
+
+    private static int BlankCharLiteral(string text, StringBuilder sb, int i)
+    {
+        var j = i + 1;
+        while (j < text.Length && text[j] != '\'' && text[j] != '\n')
+        {
+            if (text[j] == '\\')
+            {
+                sb[j] = ' ';
+                j++;
+            }
+
+            if (j < text.Length)
+            {
+                sb[j] = ' ';
+            }
+
+            j++;
+        }
+
+        return j + 1;
     }
 
     /// <summary>The value of the string literal whose opening quote (or <c>@</c> / raw run) is at <paramref name="at" />.</summary>
@@ -612,20 +594,28 @@ internal static class ExternalPackageScan
             return null;
         }
 
-        // Raw string literal: three or more quotes, contents taken verbatim up to the same run.
         var run = verbatim ? 1 : QuoteRun(text, open);
-        if (run >= 3)
-        {
-            var closing = text.IndexOf(new string('"', run), open + run, StringComparison.Ordinal);
-            if (closing < 0)
-            {
-                return null;
-            }
+        return run >= 3
+            ? ReadRawLiteral(text, structure, open, run)
+            : ReadQuotedLiteral(text, structure, open, verbatim);
+    }
 
-            var raw = text.Substring(open + run, closing - open - run);
-            return FollowedBySemicolon(structure, closing + run) ? raw.Trim('\r', '\n') : null;
+    /// <summary>A raw string literal: three or more quotes, contents taken verbatim up to the same run.</summary>
+    private static string? ReadRawLiteral(string text, string structure, int open, int run)
+    {
+        var closing = text.IndexOf(new string('"', run), open + run, StringComparison.Ordinal);
+        if (closing < 0)
+        {
+            return null;
         }
 
+        var raw = text.Substring(open + run, closing - open - run);
+        return FollowedBySemicolon(structure, closing + run) ? raw.Trim('\r', '\n') : null;
+    }
+
+    /// <summary>A regular or verbatim string literal whose opening quote is at <paramref name="open" />, unescaped.</summary>
+    private static string? ReadQuotedLiteral(string text, string structure, int open, bool verbatim)
+    {
         var sb = new StringBuilder();
         var i = open + 1;
         while (i < text.Length)
@@ -726,7 +716,7 @@ internal static class ExternalPackageScan
     }
 
     private static bool IsVerbatim(string text, int prefixStart, int quote) =>
-        text.Substring(prefixStart, quote - prefixStart).IndexOf('@') >= 0;
+        text.IndexOf('@', prefixStart, quote - prefixStart) >= 0;
 
     // The index of the closing quote of the string whose first quote is at `open`.
     private static int StringEnd(string text, int open, bool verbatim)

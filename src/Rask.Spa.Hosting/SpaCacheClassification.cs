@@ -19,7 +19,7 @@ namespace Rask.Spa.Hosting;
 ///         hand, so neither the bundler's <c>/assets/</c> guarantee nor the filename guess applies.
 ///     </para>
 /// </remarks>
-internal static class SpaCacheClassification
+internal static partial class SpaCacheClassification
 {
     /// <summary>The .NET runtime's files in a WebAssembly bundle.</summary>
     internal const string FrameworkPrefix = "/_framework/";
@@ -36,17 +36,16 @@ internal static class SpaCacheClassification
     ///     enough: <c>some-longcomponent.js</c> clears it on length and would be frozen for a year,
     ///     while every real content hash any of these bundlers emits contains digits.
     /// </remarks>
-    private static readonly Regex _fingerprint = new(
-        @"[-.]([A-Za-z0-9_-]{8,})\.[^.]+$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"[-.](?<hash>[A-Za-z0-9_-]{8,})\.[^.]+$",
+        RegexOptions.ExplicitCapture | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex Fingerprint();
 
     /// <summary>
     ///     The .NET SDK's fingerprint: <c>&lt;stem&gt;.&lt;10+ lowercase alphanumerics&gt;.&lt;ext&gt;</c>.
     ///     Ten characters and lowercase, so <c>System.IO.Pipelines.wasm</c> is not mistaken for one.
     /// </summary>
-    private static readonly Regex _sdkFingerprint = new(
-        @"\.[0-9a-z]{10,}\.[^.]+$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"\.[0-9a-z]{10,}\.[^.]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex SdkFingerprint();
 
     /// <summary>
     ///     Whether the asset at <paramref name="requestPath" /> may be marked immutable.
@@ -74,18 +73,15 @@ internal static class SpaCacheClassification
 
             if (HasPrefix(requestPath, FrameworkPrefix))
             {
-                return _sdkFingerprint.IsMatch(fileName);
+                return SdkFingerprint().IsMatch(fileName);
             }
         }
 
         // The bundler's own guarantee: everything it writes under this prefix is content-hashed.
         // A guarantee beats a filename heuristic, so it is consulted before one.
-        foreach (var prefix in ConfiguredPrefixes(options, wasm))
+        if (ConfiguredPrefixes(options, wasm).Any(prefix => HasPrefix(requestPath, prefix)))
         {
-            if (HasPrefix(requestPath, prefix))
-            {
-                return true;
-            }
+            return true;
         }
 
         if (wasm)
@@ -94,8 +90,8 @@ internal static class SpaCacheClassification
         }
 
         // Last, and only for bundlers that hash at the dist root (Angular's main-ABCD1234.js).
-        var match = _fingerprint.Match(fileName);
-        return match.Success && match.Groups[1].Value.Any(char.IsDigit);
+        var match = Fingerprint().Match(fileName);
+        return match.Success && match.Groups["hash"].Value.Any(char.IsDigit);
     }
 
     /// <summary>
@@ -109,15 +105,7 @@ internal static class SpaCacheClassification
             return true;
         }
 
-        foreach (var prefix in ConfiguredPrefixes(options, wasm))
-        {
-            if (HasPrefix(requestPath, prefix))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return ConfiguredPrefixes(options, wasm).Any(prefix => HasPrefix(requestPath, prefix));
     }
 
     /// <summary>

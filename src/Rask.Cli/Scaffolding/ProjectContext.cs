@@ -12,6 +12,8 @@ internal sealed partial class ProjectContext(
     string rootNamespace,
     bool isBrowser = false)
 {
+    private static readonly char[] PathSeparators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
+
     public string ProjectDirectory { get; } = projectDirectory;
 
     public string RootNamespace { get; } = rootNamespace;
@@ -38,7 +40,7 @@ internal sealed partial class ProjectContext(
         }
 
         var parts = new List<string> { RootNamespace };
-        foreach (var segment in relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+        foreach (var segment in relative.Split(PathSeparators))
         {
             // A target outside the project (a leading "..") can't map to a child namespace — fall back
             // to the root namespace rather than emitting something invalid.
@@ -47,7 +49,7 @@ internal sealed partial class ProjectContext(
                 continue;
             }
 
-            if (segment == "..")
+            if (string.Equals(segment, "..", StringComparison.Ordinal))
             {
                 return RootNamespace;
             }
@@ -61,19 +63,19 @@ internal sealed partial class ProjectContext(
         return string.Join('.', parts);
     }
 
-    [GeneratedRegex(@"<RootNamespace>\s*(.+?)\s*</RootNamespace>", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"<RootNamespace>\s*(?<value>.+?)\s*</RootNamespace>", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
     private static partial Regex RootNamespaceRegex();
 
     // A browser TFM on either the singular or plural element. Matched by the "-browser" suffix rather
     // than the framework version, so a bump doesn't silently stop detecting it — but scoped to the
     // element, because the bare string also occurs in comments, constants and package ids.
-    [GeneratedRegex(@"<TargetFrameworks?>[^<]*-browser", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"<TargetFrameworks?>[^<]*-browser", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
     private static partial Regex BrowserTargetFrameworkRegex();
 
     // A reference to the WASM host itself, as a package (Include="Rask.Wasm") or as a project
     // (Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj") — the repo's own samples use the latter.
     // Anchored on the closing quote so it does NOT match a longer package id such as Rask.Wasm.Tasks.
-    [GeneratedRegex(@"Include=""(?:[^""]*[\\/])?Rask\.Wasm(?:\.csproj)?""", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"Include=""(?:[^""]*[\\/])?Rask\.Wasm(?:\.csproj)?""", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
     private static partial Regex WasmHostReferenceRegex();
 
     /// <summary>
@@ -108,7 +110,7 @@ internal sealed partial class ProjectContext(
         // way the value is sanitized into a valid namespace — an explicit "1Store" or "My-App" must not
         // reach a generated file verbatim (it wouldn't compile).
         var match = RootNamespaceRegex().Match(fileSystem.ReadAllText(csprojPath));
-        var raw = match.Success ? match.Groups[1].Value : Path.GetFileNameWithoutExtension(csprojPath);
+        var raw = match.Success ? match.Groups["value"].Value : Path.GetFileNameWithoutExtension(csprojPath);
         return SanitizeNamespace(raw);
     }
 
@@ -121,73 +123,5 @@ internal sealed partial class ProjectContext(
 
         var joined = string.Join('.', parts);
         return joined.Length == 0 ? "App" : joined;
-    }
-}
-
-/// <summary>Locates the .NET project that owns a directory by walking up to the nearest single <c>*.csproj</c>.</summary>
-internal static class ProjectLocator
-{
-    /// <summary>
-    /// Why <see cref="Locate"/> came back empty, as a sentence to print. Worth distinguishing: the walk
-    /// stops on a directory holding <em>several</em> projects just as it does on finding none, and telling
-    /// someone standing in a two-project folder that nothing was found sends them looking for the wrong
-    /// problem. Callers append their own way out, which differs by command.
-    /// </summary>
-    public static string DescribeMissing(IFileSystem fileSystem, string startDirectory)
-    {
-        var directory = Path.GetFullPath(startDirectory);
-
-        while (!string.IsNullOrEmpty(directory))
-        {
-            if (fileSystem.ListFiles(directory, "*.csproj").Count > 1)
-            {
-                return $"Found more than one .csproj in '{directory}', so it's ambiguous which project to use.";
-            }
-
-            var parent = Path.GetDirectoryName(directory);
-            if (parent == directory)
-            {
-                break;
-            }
-
-            directory = parent!;
-        }
-
-        return $"Couldn't find a .csproj at or above '{startDirectory}'.";
-    }
-
-    public static ProjectContext? Locate(IFileSystem fileSystem, string startDirectory)
-    {
-        var directory = Path.GetFullPath(startDirectory);
-
-        while (!string.IsNullOrEmpty(directory))
-        {
-            var projects = fileSystem.ListFiles(directory, "*.csproj");
-            if (projects.Count == 1)
-            {
-                // The project file is the source of truth for whether this is a browser app.
-                var csproj = fileSystem.ReadAllText(projects[0]);
-                return new ProjectContext(
-                    directory,
-                    ProjectContext.ReadRootNamespace(fileSystem, projects[0]),
-                    ProjectContext.DetectBrowser(csproj));
-            }
-
-            if (projects.Count > 1)
-            {
-                // Ambiguous — an explicit project directory is needed; the caller reports this.
-                return null;
-            }
-
-            var parent = Path.GetDirectoryName(directory);
-            if (parent == directory)
-            {
-                break;
-            }
-
-            directory = parent!;
-        }
-
-        return null;
     }
 }

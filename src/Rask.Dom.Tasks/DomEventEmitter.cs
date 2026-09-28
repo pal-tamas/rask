@@ -44,8 +44,6 @@ namespace Rask.Core.Dom.Build
             "cue", "cut", "dbl", "key", "out", "got", "up", "progress",
         };
 
-        private static bool IsPlain(string type) => CSharp(type) is not null;
-
         private static string? CSharp(string idl) => idl.TrimEnd('?') switch
         {
             "DOMString" or "USVString" or "ByteString" or "CSSOMString" => idl.EndsWith("?", StringComparison.Ordinal) ? "string?" : "string",
@@ -101,7 +99,28 @@ namespace Rask.Core.Dom.Build
                 return;
             }
 
-            // The argument interfaces and their ancestors, base first.
+            var argTypes = ArgumentTypes(events, interfaces);
+            var snapshots = new List<string>();
+            var members = new Dictionary<string, List<Member>>(StringComparer.Ordinal);
+            foreach (var name in argTypes)
+            {
+                members[name] = MembersOf(interfaces, name, snapshots);
+            }
+
+            foreach (var s in snapshots.ToList())
+            {
+                members[s] = MembersOf(interfaces, s, null);
+            }
+
+            files.Add(new KeyValuePair<string, string>("Events.g.cs", EventTypes(argTypes, snapshots, members, interfaces)));
+            files.Add(new KeyValuePair<string, string>("ElementEvents.g.cs", ElementEvents(events)));
+            files.Add(new KeyValuePair<string, string>("DomEventDispatch.g.cs", Dispatch(events, argTypes, interfaces)));
+            files.Add(new KeyValuePair<string, string>("rask-dom-events.ts", Script(events, argTypes, snapshots, members, interfaces)));
+        }
+
+        // The argument interfaces and their ancestors, base first.
+        private static List<string> ArgumentTypes(List<JsonNode> events, JsonNode interfaces)
+        {
             var argTypes = new List<string>();
             void Add(string? name)
             {
@@ -119,18 +138,12 @@ namespace Rask.Core.Dom.Build
                 Add(e["interface"]?.AsString());
             }
 
-            var snapshots = new List<string>();
-            var members = new Dictionary<string, List<Member>>(StringComparer.Ordinal);
-            foreach (var name in argTypes)
-            {
-                members[name] = MembersOf(interfaces, name, snapshots);
-            }
+            return argTypes;
+        }
 
-            foreach (var s in snapshots.ToList())
-            {
-                members[s] = MembersOf(interfaces, s, null);
-            }
-
+        // Events.g.cs: the argument types (MouseEvent : UIEvent : Event), the snapshots they hold, and e.Target.
+        private static string EventTypes(List<string> argTypes, List<string> snapshots, Dictionary<string, List<Member>> members, JsonNode interfaces)
+        {
             var cs = new StringBuilder();
             Header(cs);
             cs.AppendLine("using System.Text.Json;");
@@ -151,11 +164,7 @@ namespace Rask.Core.Dom.Build
             }
 
             EmitTarget(cs, interfaces);
-            files.Add(new KeyValuePair<string, string>("Events.g.cs", cs.ToString()));
-
-            files.Add(new KeyValuePair<string, string>("ElementEvents.g.cs", ElementEvents(events)));
-            files.Add(new KeyValuePair<string, string>("DomEventDispatch.g.cs", Dispatch(events, argTypes, interfaces)));
-            files.Add(new KeyValuePair<string, string>("rask-dom-events.ts", Script(events, argTypes, snapshots, members, interfaces)));
+            return cs.ToString();
         }
 
         // A member of an event interface that crosses the wire: plain values, a list of a plain-valued interface
@@ -165,7 +174,7 @@ namespace Rask.Core.Dom.Build
             var result = new List<Member>();
             foreach (var m in interfaces[name]!["members"]?.Items ?? new List<JsonNode>())
             {
-                if (m["kind"]?.AsString() != "attribute" || m["name"]?.AsString() is not { } idl)
+                if (!string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal) || m["name"]?.AsString() is not { } idl)
                 {
                     continue;
                 }
@@ -189,7 +198,7 @@ namespace Rask.Core.Dom.Build
                     continue;
                 }
 
-                if (held == "DataTransfer" && snapshots is not null)
+                if (string.Equals(held, "DataTransfer", StringComparison.Ordinal) && snapshots is not null)
                 {
                     if (!snapshots.Contains(held))
                     {
@@ -206,7 +215,7 @@ namespace Rask.Core.Dom.Build
                 }
 
                 var list = interfaces[held];
-                var item = list?["members"]?.Items.FirstOrDefault(x => x["kind"]?.AsString() == "operation" && x["name"]?.AsString() == "item");
+                var item = list?["members"]?.Items.FirstOrDefault(x => string.Equals(x["kind"]?.AsString(), "operation", StringComparison.Ordinal) && string.Equals(x["name"]?.AsString(), "item", StringComparison.Ordinal));
                 var itemType = item?["returns"]?.AsString()?.TrimEnd('?');
                 if (itemType is not null && interfaces[itemType] is not null)
                 {
@@ -235,6 +244,30 @@ namespace Rask.Core.Dom.Build
 
             cs.AppendLine();
             cs.AppendLine("{");
+            EmitConstructors(cs, name, parent, members, isEvent);
+            EmitProperties(cs, iface, members);
+            if (isEvent && parent is null)
+            {
+                cs.AppendLine();
+                cs.AppendLine("    /// <summary>");
+                cs.AppendLine("    ///     What of the element the event was dispatched to travels with it: the scroll box for a scroll, the");
+                cs.AppendLine("    ///     playback state for a media event — <c>e.Target.ScrollTop</c>, as MDN's <c>e.target.scrollTop</c>.");
+                cs.AppendLine("    ///     Null for an event that carries none.");
+                cs.AppendLine("    /// </summary>");
+                cs.AppendLine("    public EventTarget? Target { get; init; }");
+            }
+
+            if (string.Equals(name, "DataTransfer", StringComparison.Ordinal))
+            {
+                EmitGetData(cs);
+            }
+
+            cs.AppendLine("}");
+        }
+
+        // The public empty constructor a test fills, and the internal one that reads the event's JSON payload.
+        private static void EmitConstructors(StringBuilder cs, string name, string? parent, List<Member> members, bool isEvent)
+        {
             cs.Append("    /// <summary>An empty ").Append(name).AppendLine(", for a test to fill.</summary>");
             cs.Append("    public ").Append(name).AppendLine("()");
             cs.AppendLine("    {");
@@ -250,25 +283,7 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine("    {");
             foreach (var m in members)
             {
-                cs.Append("        ").Append(m.Prop).Append(" = ");
-                switch (m.Kind)
-                {
-                    case 0:
-                        cs.Append("EventPayload.").Append(Reader(m.Cs)).Append("(p, \"").Append(m.Idl).Append("\")");
-                        break;
-                    case 1:
-                        cs.Append("EventPayload.ReadList(p, \"").Append(m.Idl).Append("\", static x => new ").Append(m.Of).Append("(x))");
-                        break;
-                    case 3:
-                        cs.Append("EventPayload.ReadStrings(p, \"").Append(m.Idl).Append("\")");
-                        break;
-                    default:
-                        cs.Append("p.TryGetProperty(\"").Append(m.Idl).Append("\", out var ").Append(m.Idl).Append(") && ").Append(m.Idl)
-                            .Append(".ValueKind == JsonValueKind.Object ? new DataTransfer(").Append(m.Idl).Append(") : null");
-                        break;
-                }
-
-                cs.AppendLine(";");
+                cs.Append("        ").Append(m.Prop).Append(" = ").Append(ReadExpression(m)).AppendLine(";");
             }
 
             if (isEvent && parent is null)
@@ -276,12 +291,26 @@ namespace Rask.Core.Dom.Build
                 cs.AppendLine("        Target = p.TryGetProperty(\"target\", out var target) && target.ValueKind == JsonValueKind.Object ? new EventTarget(target) : null;");
             }
 
-            if (name == "DataTransfer")
+            if (string.Equals(name, "DataTransfer", StringComparison.Ordinal))
             {
                 cs.AppendLine("        _data = EventPayload.ReadMap(p, \"data\");");
             }
 
             cs.AppendLine("    }");
+        }
+
+        // How the payload constructor reads a member off the JSON.
+        private static string ReadExpression(Member m) => m.Kind switch
+        {
+            0 => "EventPayload." + Reader(m.Cs) + "(p, \"" + m.Idl + "\")",
+            1 => "EventPayload.ReadList(p, \"" + m.Idl + "\", static x => new " + m.Of + "(x))",
+            3 => "EventPayload.ReadStrings(p, \"" + m.Idl + "\")",
+            _ => "p.TryGetProperty(\"" + m.Idl + "\", out var " + m.Idl + ") && " + m.Idl
+                 + ".ValueKind == JsonValueKind.Object ? new DataTransfer(" + m.Idl + ") : null",
+        };
+
+        private static void EmitProperties(StringBuilder cs, JsonNode iface, List<Member> members)
+        {
             foreach (var m in members)
             {
                 var data = FindMember(iface, m.Idl);
@@ -293,35 +322,34 @@ namespace Rask.Core.Dom.Build
                 }
 
                 cs.Append("    public ").Append(m.Cs).Append(' ').Append(m.Prop).Append(" { get; init; }");
-                cs.AppendLine(m.Cs == "string" ? " = \"\";" : m.Kind is 1 or 3 ? " = [];" : "");
+                cs.AppendLine(Initializer(m));
             }
+        }
 
-            if (isEvent && parent is null)
+        // A string starts empty and a list starts empty, so neither reads as null.
+        private static string Initializer(Member m)
+        {
+            if (string.Equals(m.Cs, "string", StringComparison.Ordinal))
             {
-                cs.AppendLine();
-                cs.AppendLine("    /// <summary>");
-                cs.AppendLine("    ///     What of the element the event was dispatched to travels with it: the scroll box for a scroll, the");
-                cs.AppendLine("    ///     playback state for a media event — <c>e.Target.ScrollTop</c>, as MDN's <c>e.target.scrollTop</c>.");
-                cs.AppendLine("    ///     Null for an event that carries none.");
-                cs.AppendLine("    /// </summary>");
-                cs.AppendLine("    public EventTarget? Target { get; init; }");
+                return " = \"\";";
             }
 
-            if (name == "DataTransfer")
-            {
-                cs.AppendLine();
-                cs.AppendLine("    private readonly global::System.Collections.Generic.IReadOnlyDictionary<string, string>? _data;");
-                cs.AppendLine();
-                cs.AppendLine("    /// <summary>The data in <paramref name=\"format\" />, as the browser read it when the event fired; empty when it held none.</summary>");
-                cs.Append("    /// <remarks>Sent for ").Append(string.Join(", ", DataFormats.Select(f => $"<c>{f}</c>"))).AppendLine(".</remarks>");
-                cs.AppendLine("    public string GetData(string format) => _data is not null && _data.TryGetValue(format, out var value) ? value : \"\";");
-            }
+            return m.Kind is 1 or 3 ? " = [];" : "";
+        }
 
-            cs.AppendLine("}");
+        // DataTransfer.GetData, answered from the formats the browser read when the event fired.
+        private static void EmitGetData(StringBuilder cs)
+        {
+            cs.AppendLine();
+            cs.AppendLine("    private readonly global::System.Collections.Generic.IReadOnlyDictionary<string, string>? _data;");
+            cs.AppendLine();
+            cs.AppendLine("    /// <summary>The data in <paramref name=\"format\" />, as the browser read it when the event fired; empty when it held none.</summary>");
+            cs.Append("    /// <remarks>Sent for ").Append(string.Join(", ", DataFormats.Select(f => $"<c>{f}</c>"))).AppendLine(".</remarks>");
+            cs.AppendLine("    public string GetData(string format) => _data is not null && _data.TryGetValue(format, out var value) ? value : \"\";");
         }
 
         private static JsonNode? FindMember(JsonNode iface, string name) =>
-            iface["members"]?.Items.FirstOrDefault(m => m["name"]?.AsString() == name);
+            iface["members"]?.Items.FirstOrDefault(m => string.Equals(m["name"]?.AsString(), name, StringComparison.Ordinal));
 
         // e.Target: the target element's state the policy sends, typed from Element and HTMLMediaElement's IDL.
         private static void EmitTarget(StringBuilder cs, JsonNode interfaces)
@@ -407,19 +435,6 @@ namespace Rask.Core.Dom.Build
         // handler that takes nothing is fed any of them.
         private static string Dispatch(List<JsonNode> events, List<string> argTypes, JsonNode interfaces)
         {
-            bool Derives(string type, string ancestor)
-            {
-                for (var t = type; t is not null; t = interfaces[t]?["parent"]?.AsString())
-                {
-                    if (t == ancestor)
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
             var cs = new StringBuilder();
             Header(cs);
             cs.AppendLine("using System.Text.Json;");
@@ -428,6 +443,31 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine();
             cs.AppendLine("internal static class DomEventDispatch");
             cs.AppendLine("{");
+            DispatchTables(cs, events, argTypes, interfaces);
+            DispatchIndexOf(cs, events);
+            DispatchArgumentOf(cs, events, argTypes, interfaces);
+            DispatchTryInvoke(cs, argTypes, interfaces);
+            DispatchCreate(cs, argTypes);
+            cs.AppendLine("}");
+            return cs.ToString();
+        }
+
+        private static bool Derives(string type, string ancestor, JsonNode interfaces)
+        {
+            for (var t = type; t is not null; t = interfaces[t]?["parent"]?.AsString())
+            {
+                if (string.Equals(t, ancestor, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // The frame types, the interface each is dispatched with, and which interface derives from which.
+        private static void DispatchTables(StringBuilder cs, List<JsonNode> events, List<string> argTypes, JsonNode interfaces)
+        {
             cs.AppendLine("    // Every event frame type, as UTF-8 so a frame's type is matched without allocating.");
             cs.Append("    private static readonly byte[][] Types = [");
             cs.Append(string.Join(", ", events.Select(e => "\"" + e["type"]!.AsString() + "\"u8.ToArray()")));
@@ -443,10 +483,15 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine("    [");
             foreach (var a in argTypes)
             {
-                cs.Append("        [").Append(string.Join(", ", argTypes.Select(b => Derives(a, b) ? "true" : "false"))).AppendLine("],");
+                cs.Append("        [").Append(string.Join(", ", argTypes.Select(b => Derives(a, b, interfaces) ? "true" : "false"))).AppendLine("],");
             }
 
             cs.AppendLine("    ];");
+        }
+
+        // Matching a frame's type to its index: bucketed by length, with a scan for an escaped name.
+        private static void DispatchIndexOf(StringBuilder cs, List<JsonNode> events)
+        {
             cs.AppendLine();
             cs.AppendLine("    /// <summary>The index of the event frame <paramref name=\"type\" /> names, or -1 when it names none.</summary>");
             cs.AppendLine("    internal static int IndexOf(JsonElement type)");
@@ -477,6 +522,12 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine("                return -1;");
             cs.AppendLine("        }");
             cs.AppendLine("    }");
+            DispatchScan(cs);
+        }
+
+        // The slow path of IndexOf: a ValueEquals scan, which unescapes the name.
+        private static void DispatchScan(StringBuilder cs)
+        {
             cs.AppendLine();
             cs.AppendLine("    private static int Scan(JsonElement type)");
             cs.AppendLine("    {");
@@ -495,6 +546,11 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine();
             cs.AppendLine("        return -1;");
             cs.AppendLine("    }");
+        }
+
+        // Which handlers are DOM handlers, and the argument type each one takes.
+        private static void DispatchArgumentOf(StringBuilder cs, List<JsonNode> events, List<string> argTypes, JsonNode interfaces)
+        {
             cs.AppendLine();
             cs.AppendLine("    /// <summary>Every event name, for a caller that holds one as a string.</summary>");
             cs.Append("    internal static readonly global::System.Collections.Frozen.FrozenSet<string> Names = global::System.Collections.Frozen.FrozenSet.ToFrozenSet([");
@@ -529,6 +585,11 @@ namespace Rask.Core.Dom.Build
 
             cs.AppendLine("        _ => -1,");
             cs.AppendLine("    };");
+        }
+
+        // Running a handler with its typed argument.
+        private static void DispatchTryInvoke(StringBuilder cs, List<string> argTypes, JsonNode interfaces)
+        {
             cs.AppendLine();
             cs.AppendLine("    /// <summary>");
             cs.AppendLine("    ///     Runs a DOM event handler with its argument read from <paramref name=\"payload\" />: a synchronous one now,");
@@ -563,6 +624,11 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine("                return false;");
             cs.AppendLine("        }");
             cs.AppendLine("    }");
+        }
+
+        // Building the argument a frame is dispatched with.
+        private static void DispatchCreate(StringBuilder cs, List<string> argTypes)
+        {
             cs.AppendLine();
             cs.AppendLine("    // The closure lives here, not in TryInvoke: a lambda there would hoist every case's captures into one");
             cs.AppendLine("    // object allocated on entry, which every handler — parameterless ones included — would pay for.");
@@ -572,7 +638,7 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine("    {");
             for (var i = 0; i < argTypes.Count; i++)
             {
-                if (argTypes[i] != "Event")
+                if (!string.Equals(argTypes[i], "Event", StringComparison.Ordinal))
                 {
                     cs.Append("        ").Append(i).Append(" => new global::Rask.Core.").Append(argTypes[i]).AppendLine("(payload),");
                 }
@@ -580,8 +646,6 @@ namespace Rask.Core.Dom.Build
 
             cs.AppendLine("        _ => new global::Rask.Core.Event(payload),");
             cs.AppendLine("    };");
-            cs.AppendLine("}");
-            return cs.ToString();
         }
 
         private static int Depth(string type, JsonNode interfaces)
@@ -637,7 +701,7 @@ namespace Rask.Core.Dom.Build
             foreach (var e in events)
             {
                 var type = e["type"]!.AsString()!;
-                var target = type is "scroll" or "scrollend" ? 1 : e["on"]?.AsString() == "HTMLMediaElement" ? 2 : 0;
+                var target = TargetState(type, e);
                 ts.Append("  [\"").Append(type).Append("\", \"").Append(e["interface"]?.AsString() ?? "Event").Append("\", ")
                     .Append(e["bubbles"]?.AsBoolean() == true ? "true" : "false").Append(", ")
                     .Append(PreventedEvents.Contains(type) ? "true" : "false").Append(", ").Append(target).AppendLine("],");
@@ -645,6 +709,17 @@ namespace Rask.Core.Dom.Build
 
             ts.AppendLine("];");
             return ts.ToString();
+        }
+
+        // Which target state travels with an event: 0 none, 1 the scroll box, 2 the media element's playback.
+        private static int TargetState(string type, JsonNode e)
+        {
+            if (type is "scroll" or "scrollend")
+            {
+                return 1;
+            }
+
+            return string.Equals(e["on"]?.AsString(), "HTMLMediaElement", StringComparison.Ordinal) ? 2 : 0;
         }
 
         private static void Header(StringBuilder cs)

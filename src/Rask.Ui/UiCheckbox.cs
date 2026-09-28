@@ -75,7 +75,7 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
     protected override Component? Render() =>
         Label.Class(UiClass.Compose("label cursor-pointer gap-2", Class))[Box(), Span[Text]];
 
-    private Component Box()
+    private HTMLInputElement<bool> Box()
     {
         if (Bind is { } bind)
         {

@@ -58,25 +58,25 @@ public sealed class TestDownloadSink : IDownloadSink
     }
 
     /// <inheritdoc />
-    public void Stage(string fileName, byte[] bytes, string? contentType)
+    public void Stage(string filename, byte[] bytes, string? contentType)
     {
-        ArgumentNullException.ThrowIfNull(fileName);
+        ArgumentNullException.ThrowIfNull(filename);
         ArgumentNullException.ThrowIfNull(bytes);
-        Record(fileName, bytes, contentType);
+        Record(filename, bytes, contentType);
     }
 
     /// <inheritdoc />
-    public void Stage(string fileName, Stream content, string? contentType)
+    public void Stage(string filename, Stream stream, string? contentType)
     {
-        ArgumentNullException.ThrowIfNull(fileName);
-        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(filename);
+        ArgumentNullException.ThrowIfNull(stream);
 
         // Read it here rather than storing the stream: the component may dispose it as soon as Stage
         // returns, and a test that asserted on it later would then read from a disposed stream — a
         // failure about the harness rather than about the code under test.
         using var buffer = new MemoryStream();
-        content.CopyTo(buffer);
-        Record(fileName, buffer.ToArray(), contentType);
+        stream.CopyTo(buffer);
+        Record(filename, buffer.ToArray(), contentType);
     }
 
     /// <inheritdoc />
@@ -103,14 +103,4 @@ public sealed class TestDownloadSink : IDownloadSink
             _pending.Enqueue(new PendingDownload(fileName, contentType, Url: null, bytes));
         }
     }
-}
-
-/// <summary>One download a component handed to <see cref="TestDownloadSink" />.</summary>
-/// <param name="FileName">The name the component asked the browser to save it as.</param>
-/// <param name="Bytes">The content, materialized — safe to assert on after the component disposed its source.</param>
-/// <param name="ContentType">The MIME type, or <c>null</c> when the component left it to the host.</param>
-public sealed record StagedDownload(string FileName, byte[] Bytes, string? ContentType)
-{
-    /// <summary>The content decoded as UTF-8 — the common case for a CSV, JSON or text export.</summary>
-    public string Text => System.Text.Encoding.UTF8.GetString(Bytes);
 }

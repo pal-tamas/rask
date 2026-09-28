@@ -11,7 +11,7 @@ public sealed class DemoUserProvider : IUserProvider
 {
     public ClaimsPrincipal Current { get; private set; } = new(new ClaimsIdentity());
 
-    public event Action? Changed;
+    public event EventHandler? Changed;
 
     public void SignIn(string name, params string[] roles)
     {
@@ -23,12 +23,12 @@ public sealed class DemoUserProvider : IUserProvider
 
         // A ClaimsIdentity with a non-null authenticationType is treated as authenticated.
         Current = new ClaimsPrincipal(new ClaimsIdentity(claims, "demo"));
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public void SignOut()
     {
         Current = new ClaimsPrincipal(new ClaimsIdentity());
-        Changed?.Invoke();
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 }

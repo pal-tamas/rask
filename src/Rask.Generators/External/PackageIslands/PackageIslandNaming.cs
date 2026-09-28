@@ -112,14 +112,15 @@ internal static class PackageIslandNaming
             return candidate;
         }
 
-        for (var i = 2; ; i++)
+        var suffix = 2;
+        var next = candidate + "2";
+        while (!taken.Add(next))
         {
-            var next = candidate + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            if (taken.Add(next))
-            {
-                return next;
-            }
+            suffix++;
+            next = candidate + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
+
+        return next;
     }
 
     /// <summary>

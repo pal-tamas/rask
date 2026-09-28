@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace Rask.Mail.Tests;
+namespace Rask.Mailing.Tests;
 
 /// <summary>
 /// The mail pillar's metrics. The shape assertion that matters here is the <b>absence</b> of a per-message

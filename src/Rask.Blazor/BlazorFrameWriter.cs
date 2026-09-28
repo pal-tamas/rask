@@ -102,34 +102,8 @@ internal static class BlazorFrameWriter
             switch (frame.FrameType)
             {
                 case RenderTreeFrameType.Element:
-                {
-                    var name = frame.ElementName;
-                    var subtreeEnd = i + frame.ElementSubtreeLength;
-
-                    sb.Append('<').Append(name);
-
-                    // Attributes are the frames immediately after the element, before its children.
-                    var child = i + 1;
-                    while (child < subtreeEnd && frames.Array[child].FrameType == RenderTreeFrameType.Attribute)
-                    {
-                        WriteAttribute(ref frames.Array[child], sb, registerEvent);
-                        child++;
-                    }
-
-                    if (VoidElements.Contains(name))
-                    {
-                        sb.Append('>');
-                    }
-                    else
-                    {
-                        sb.Append('>');
-                        WriteRange(renderer, frames, child, subtreeEnd, sb, registerEvent);
-                        sb.Append("</").Append(name).Append('>');
-                    }
-
-                    i = subtreeEnd;
+                    i = WriteElement(renderer, frames, i, sb, registerEvent);
                     break;
-                }
 
                 case RenderTreeFrameType.Text:
                     HtmlEncode(frame.TextContent, sb);
@@ -163,6 +137,42 @@ internal static class BlazorFrameWriter
                     break;
             }
         }
+    }
+
+    // Writes the element at frames[i] with its attributes and children; returns the index past its subtree.
+    private static int WriteElement(
+        BlazorIslandRenderer renderer,
+        ArrayRange<RenderTreeFrame> frames,
+        int i,
+        StringBuilder sb,
+        Func<ulong, string, string?> registerEvent)
+    {
+        ref var frame = ref frames.Array[i];
+        var name = frame.ElementName;
+        var subtreeEnd = i + frame.ElementSubtreeLength;
+
+        sb.Append('<').Append(name);
+
+        // Attributes are the frames immediately after the element, before its children.
+        var child = i + 1;
+        while (child < subtreeEnd && frames.Array[child].FrameType == RenderTreeFrameType.Attribute)
+        {
+            WriteAttribute(ref frames.Array[child], sb, registerEvent);
+            child++;
+        }
+
+        if (VoidElements.Contains(name))
+        {
+            sb.Append('>');
+        }
+        else
+        {
+            sb.Append('>');
+            WriteRange(renderer, frames, child, subtreeEnd, sb, registerEvent);
+            sb.Append("</").Append(name).Append('>');
+        }
+
+        return subtreeEnd;
     }
 
     private static void WriteAttribute(
@@ -200,37 +210,51 @@ internal static class BlazorFrameWriter
 
         if (frame.AttributeEventHandlerId != 0)
         {
-            // "onclick" -> "click", so it lands on Rask's own data-rask-on-{event} convention and the
-            // delegated listener already in the page picks it up with no new client code.
-            var eventName = name.StartsWith("on", StringComparison.OrdinalIgnoreCase) ? name[2..] : name;
-
-            // An event Rask cannot route to a handler of the shape we register gets NO attribute.
-            // Rask matches an inbound frame to a handler by the delegate's shape, and refuses a
-            // mismatch — so emitting the attribute anyway would render a component that looks wired
-            // and does nothing on the first click, which is the failure this package exists to avoid.
-            if (!ValueEvents.Contains(eventName) && !HandlerFrameShape.FeedsParameterless(eventName))
-            {
-                return;
-            }
-
-            if (registerEvent(frame.AttributeEventHandlerId, eventName) is not { } raskId)
-            {
-                return;
-            }
-
-            // A value-carrying event goes through Rask's INPUT channel rather than its DOM-event one,
-            // and that distinction is what makes @bind work: `change` and `input` are deliberately
-            // absent from the DOM-event table because the client reads the element's value and ships
-            // it alongside the id.
-            //
-            // ONE attribute, never both. They carry separate ids and each dispatches its own frame,
-            // so writing the same id to both fires the handler twice per edit — harmless for @bind,
-            // wrong for a hosted @onchange that appends to a list or increments a counter.
-            sb.Append(" data-rask-on-").Append(eventName).Append("=\"").Append(raskId).Append('"');
+            WriteEventHandler(ref frame, name, sb, registerEvent);
             return;
         }
 
-        switch (frame.AttributeValue)
+        WriteAttributeValue(name, frame.AttributeValue, sb);
+    }
+
+    private static void WriteEventHandler(
+        ref RenderTreeFrame frame,
+        string name,
+        StringBuilder sb,
+        Func<ulong, string, string?> registerEvent)
+    {
+        // "onclick" -> "click", so it lands on Rask's own data-rask-on-{event} convention and the
+        // delegated listener already in the page picks it up with no new client code.
+        var eventName = name.StartsWith("on", StringComparison.OrdinalIgnoreCase) ? name[2..] : name;
+
+        // An event Rask cannot route to a handler of the shape we register gets NO attribute.
+        // Rask matches an inbound frame to a handler by the delegate's shape, and refuses a
+        // mismatch — so emitting the attribute anyway would render a component that looks wired
+        // and does nothing on the first click, which is the failure this package exists to avoid.
+        if (!ValueEvents.Contains(eventName) && !HandlerFrameShape.FeedsParameterless(eventName))
+        {
+            return;
+        }
+
+        if (registerEvent(frame.AttributeEventHandlerId, eventName) is not { } raskId)
+        {
+            return;
+        }
+
+        // A value-carrying event goes through Rask's INPUT channel rather than its DOM-event one,
+        // and that distinction is what makes @bind work: `change` and `input` are deliberately
+        // absent from the DOM-event table because the client reads the element's value and ships
+        // it alongside the id.
+        //
+        // ONE attribute, never both. They carry separate ids and each dispatches its own frame,
+        // so writing the same id to both fires the handler twice per edit — harmless for @bind,
+        // wrong for a hosted @onchange that appends to a list or increments a counter.
+        sb.Append(" data-rask-on-").Append(eventName).Append("=\"").Append(raskId).Append('"');
+    }
+
+    private static void WriteAttributeValue(string name, object? value, StringBuilder sb)
+    {
+        switch (value)
         {
             case null:
                 break;
@@ -244,7 +268,7 @@ internal static class BlazorFrameWriter
                 break;
             default:
             {
-                var text = frame.AttributeValue.ToString();
+                var text = value.ToString();
 
                 // A URL-valued attribute goes through the same sanitizer every Rask element uses, so
                 // a hosted <a href="@Url"> fed from a parameter cannot emit javascript: verbatim.
@@ -283,6 +307,7 @@ internal static class BlazorFrameWriter
     ///         rule to keep in step with the first.
     ///     </para>
     /// </remarks>
+
     private static void HtmlEncode(string? value, StringBuilder sb)
     {
         if (!string.IsNullOrEmpty(value))

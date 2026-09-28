@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace Rask.Jobs;
+namespace Rask.Background;
 
 /// <summary>
 ///     An <c>Enqueue</c> still being worded: <c>await Jobs.Enqueue(job).In(24.Hours)</c>. Nothing is

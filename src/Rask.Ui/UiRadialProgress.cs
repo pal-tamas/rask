@@ -28,12 +28,10 @@ public sealed partial class UiRadialProgress : Component
             .Role("progressbar")
             .Class(UiClass.Compose("radial-progress", Class))
             .Style($"--value:{text}")
-            .Aria(new Dictionary<string, string?>
-            {
-                ["label"] = Label,
-                ["valuenow"] = text,
-                ["valuemin"] = "0",
-                ["valuemax"] = "100",
-            })[$"{text}%"];
+            .Aria(
+                ("label", Label),
+                ("valuenow", text),
+                ("valuemin", "0"),
+                ("valuemax", "100"))[$"{text}%"];
     }
 }

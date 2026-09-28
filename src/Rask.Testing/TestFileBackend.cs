@@ -54,7 +54,7 @@ public sealed class TestFileBackend : IBrowserFileBackend
     /// <summary>
     ///     The names of the files the framework released after a handler returned, oldest first. The browser
     ///     hosts drop their references at this point and the server host frees its upload slot, so a
-    ///     component that holds a <see cref="RaskFile" /> past the handler is holding something already gone.
+    ///     component that holds a <see cref="IRaskFile" /> past the handler is holding something already gone.
     /// </summary>
     public IReadOnlyList<string> Released
     {
@@ -68,7 +68,7 @@ public sealed class TestFileBackend : IBrowserFileBackend
     }
 
     /// <inheritdoc />
-    public RaskFile Create(JsonElement metadata)
+    public IRaskFile Create(JsonElement metadata)
     {
         var reference = metadata.TryGetProperty("ref", out var r) && r.ValueKind == JsonValueKind.String
             ? r.GetString()
@@ -76,12 +76,9 @@ public sealed class TestFileBackend : IBrowserFileBackend
 
         lock (_gate)
         {
-            foreach (var file in _staged)
+            if (_staged.Find(file => string.Equals(file.Ref, reference, StringComparison.Ordinal)) is { } staged)
             {
-                if (file.Ref == reference)
-                {
-                    return file;
-                }
+                return staged;
             }
         }
 
@@ -95,7 +92,7 @@ public sealed class TestFileBackend : IBrowserFileBackend
     }
 
     /// <inheritdoc />
-    public void Release(IEnumerable<RaskFile> files)
+    public void Release(IEnumerable<IRaskFile> files)
     {
         ArgumentNullException.ThrowIfNull(files);
         lock (_gate)
@@ -189,64 +186,5 @@ public sealed class TestFileBackend : IBrowserFileBackend
         }
 
         return sb.Append(']').ToString();
-    }
-}
-
-/// <summary>
-///     One file staged in a <see cref="TestFileBackend" />. It <em>is</em> the <see cref="RaskFile" /> the
-///     handler receives, so a test can compare identity as well as content.
-/// </summary>
-public sealed class TestFile : RaskFile
-{
-    internal TestFile(string reference, string name, byte[] bytes, string contentType,
-        DateTimeOffset lastModified)
-    {
-        Ref = reference;
-        Name = name;
-        Bytes = bytes;
-        ContentType = contentType;
-        LastModified = lastModified;
-    }
-
-    /// <summary>The handle the event payload refers to this file by.</summary>
-    public string Ref { get; }
-
-    /// <summary>The staged content.</summary>
-    public byte[] Bytes { get; }
-
-    /// <inheritdoc />
-    public override string Name { get; }
-
-    /// <inheritdoc />
-    public override long Size => Bytes.Length;
-
-    /// <inheritdoc />
-    public override string ContentType { get; }
-
-    /// <inheritdoc />
-    public override DateTimeOffset LastModified { get; }
-
-    /// <summary>This file's entry in an event payload — the same metadata a real client would send.</summary>
-    public string Metadata =>
-        "{\"ref\":" + JsonSerializer.Serialize(Ref)
-                    + ",\"name\":" + JsonSerializer.Serialize(Name)
-                    + ",\"size\":" + Size.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    + ",\"type\":" + JsonSerializer.Serialize(ContentType)
-                    + ",\"lastModified\":"
-                    + LastModified.ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    + "}";
-
-    /// <inheritdoc />
-    public override Stream OpenReadStream(long maxAllowedSize = 512 * 1024,
-        CancellationToken cancellationToken = default)
-    {
-        // Enforced here as the real backends do, so a test catches a component that forgot to raise the
-        // limit for a large upload instead of only finding out on a real file.
-        if (Size > maxAllowedSize)
-        {
-            throw new IOException($"File '{Name}' is {Size} bytes, exceeds maxAllowedSize of {maxAllowedSize}.");
-        }
-
-        return new MemoryStream(Bytes, writable: false);
     }
 }

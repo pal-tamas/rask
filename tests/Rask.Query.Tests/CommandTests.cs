@@ -1,6 +1,6 @@
 using Rask.Cqrs;
 
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>A command that returns a value, for the two-parameter command shape.</summary>
 [Invalidates(typeof(GetOrders))]

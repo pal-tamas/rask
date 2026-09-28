@@ -12,6 +12,29 @@ namespace Rask.Api.Client;
 /// </remarks>
 public sealed class ApiException : Exception
 {
+    /// <summary>Creates the exception with a default message.</summary>
+    public ApiException()
+        : this("The API call failed.")
+    {
+    }
+
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">The message.</param>
+    public ApiException(string message)
+        : this(message, innerException: null)
+    {
+    }
+
+    /// <summary>Creates the exception around the failure that caused it.</summary>
+    /// <param name="message">The message.</param>
+    /// <param name="innerException">The failure that caused it.</param>
+    public ApiException(string message, Exception? innerException)
+        : base(message, innerException)
+    {
+        Method = string.Empty;
+        Path = string.Empty;
+    }
+
     /// <summary>Creates the exception.</summary>
     /// <param name="message">The message.</param>
     /// <param name="method">The HTTP method that was attempted.</param>

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Rask.Jobs.Tests;
+namespace Rask.Background.Tests;
 
 [Collection(JobsDbCollection.Name)]
 public sealed class JobProcessorTests

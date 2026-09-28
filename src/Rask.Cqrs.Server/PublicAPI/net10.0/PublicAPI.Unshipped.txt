@@ -23,3 +23,17 @@ static Rask.Cqrs.Server.RaskCqrsEndpointExtensions.MapRaskCqrs(this Microsoft.As
 static Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions.AddRaskCqrsServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.Server.RaskCqrsServerOptions!>? configure = null, System.Action<Rask.Cqrs.CqrsOptions!>? configureCqrs = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Cqrs.Server.RaskCqrsServerOptions.EventKeepAlive.get -> System.TimeSpan
 Rask.Cqrs.Server.RaskCqrsServerOptions.EventKeepAlive.set -> void
+Rask.Cqrs.Server.BadRequestException
+Rask.Cqrs.Server.BadRequestException.BadRequestException() -> void
+Rask.Cqrs.Server.BadRequestException.BadRequestException(int status, string! title, string? detail) -> void
+Rask.Cqrs.Server.BadRequestException.BadRequestException(string! message) -> void
+Rask.Cqrs.Server.BadRequestException.BadRequestException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.Server.BadRequestException.Detail.get -> string?
+Rask.Cqrs.Server.BadRequestException.Status.get -> int
+Rask.Cqrs.Server.BadRequestException.Title.get -> string!
+Rask.Cqrs.Server.UploadOffsetException
+Rask.Cqrs.Server.UploadOffsetException.Expected.get -> long
+Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException() -> void
+Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException(long expected) -> void
+Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException(string! message) -> void
+Rask.Cqrs.Server.UploadOffsetException.UploadOffsetException(string! message, System.Exception! innerException) -> void

@@ -30,15 +30,15 @@ public sealed partial class InlineValidateDemo : Component
             .OnSubmit(m => _submission = $"Welcome, {m.Email}")
             .Class("flex flex-col gap-3")
             .Validate(m =>
-                m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
+                string.Equals(m.Password, m.Confirm, StringComparison.Ordinal) ? [] : ["Passwords do not match."])[
             Div[
                 Ui.Input.Bind(() => _model.Email).Label("Email")
                     .Id("v4-email")
                     .Type(InputType.Email)
                     .Validate(v =>
                         v.Contains('@')
-                            ? Array.Empty<string>()
-                            : new[] { "Email looks wrong." }).ShowValidation(false),
+                            ? []
+                            : ["Email looks wrong."]).ShowValidation(false),
                 Validation.Message.Template(FieldError).For(() => _model.Email)
             ],
             Div[
@@ -56,11 +56,4 @@ public sealed partial class InlineValidateDemo : Component
             ? null
             : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
-}
-
-public sealed class LoginModel
-{
-    public string Email { get; set; } = "";
-    public string Password { get; set; } = "";
-    public string Confirm { get; set; } = "";
 }

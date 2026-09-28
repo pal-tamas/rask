@@ -214,7 +214,12 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     ///     aloud, telling a reader about a mistake they have not made.
     ///     </para>
     /// </remarks>
-    protected Dictionary<string, string?> ControlAria()
+    protected IReadOnlyDictionary<string, string?> ControlAria() => BuildControlAria();
+
+    /// <summary>
+    ///     <see cref="ControlAria" /> as a fresh bag the kit's own controls add their own <c>aria-*</c> to.
+    /// </summary>
+    private protected Dictionary<string, string?> BuildControlAria()
     {
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
 

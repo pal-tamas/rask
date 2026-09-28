@@ -4,6 +4,8 @@
 
 namespace System.Runtime.CompilerServices;
 
+#pragma warning disable S2094 // the compiler looks this polyfill up by name; it has no members by design
 internal static class IsExternalInit
 {
 }
+#pragma warning restore S2094

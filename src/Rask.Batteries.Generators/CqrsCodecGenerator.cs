@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -89,27 +90,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             var model = Describe(message.Type, message.Kind, message.ResultType, compilation);
             if (model.Problem is null)
             {
-                handlers.TryGetValue(message.Type.ToDisplayString(), out var handler);
-                model.HasLocalHandler = handler is not null;
-                var authorization = Authorization(handler);
-                model.Policy = authorization.Policy;
-                model.Roles = authorization.Roles;
-                model.AllowAnonymous = authorization.AllowAnonymous;
-
-                // Who may SUBSCRIBE is the record's own business, so it is read off the record rather than a
-                // handler — neither a notification nor a subscription has one. A notification that declares nothing
-                // stays closed to bare subscribers: every auth event would otherwise be one browser request away. A
-                // subscription record needs no declaration, since its IWatchPolicy already fails closed, but honours
-                // one when it carries it.
-                if (message.Kind is RemoteKind.Notification or RemoteKind.Subscription
-                    && HasAuthorization(message.Type))
-                {
-                    var subscribe = Authorization(message.Type);
-                    model.SubscribeDeclared = true;
-                    model.SubscribePolicy = subscribe.Policy;
-                    model.SubscribeRoles = subscribe.Roles;
-                    model.SubscribeAnonymously = subscribe.AllowAnonymous;
-                }
+                ApplyAuthorization(model, message.Type, message.Kind, handlers);
             }
 
             if (model.Problem is { } problem)
@@ -135,6 +116,31 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         if (emitTypeScript)
         {
             spc.AddSource("__RaskExternal.g.cs", SourceText.From(TypeScript(contracts), Encoding.UTF8));
+        }
+    }
+
+    private static void ApplyAuthorization(
+        ContractModel model, INamedTypeSymbol type, RemoteKind kind, Dictionary<string, INamedTypeSymbol> handlers)
+    {
+        handlers.TryGetValue(type.ToDisplayString(), out var handler);
+        model.HasLocalHandler = handler is not null;
+        var authorization = Authorization(handler);
+        model.Policy = authorization.Policy;
+        model.Roles = authorization.Roles;
+        model.AllowAnonymous = authorization.AllowAnonymous;
+
+        // Who may SUBSCRIBE is the record's own business, so it is read off the record rather than a
+        // handler — neither a notification nor a subscription has one. A notification that declares nothing
+        // stays closed to bare subscribers: every auth event would otherwise be one browser request away. A
+        // subscription record needs no declaration, since its IWatchPolicy already fails closed, but honours
+        // one when it carries it.
+        if (kind is RemoteKind.Notification or RemoteKind.Subscription && HasAuthorization(type))
+        {
+            var subscribe = Authorization(type);
+            model.SubscribeDeclared = true;
+            model.SubscribePolicy = subscribe.Policy;
+            model.SubscribeRoles = subscribe.Roles;
+            model.SubscribeAnonymously = subscribe.AllowAnonymous;
         }
     }
 
@@ -203,28 +209,17 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
     // A transport is what makes wire encoding meaningful. Without one, generating codecs would impose
     // the contract shape rules on an app that never sends anything anywhere.
-    private static bool ReferencesTransport(Compilation compilation)
-    {
-        foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            foreach (var attribute in reference.GetAttributes())
-            {
-                var attributeClass = attribute.AttributeClass;
-                if (attributeClass?.Name == "RaskCqrsTransportAttribute" &&
-                    attributeClass.ContainingNamespace?.ToDisplayString() == CqrsNamespace)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
+    private static bool ReferencesTransport(Compilation compilation) =>
+        compilation.SourceModule.ReferencedAssemblySymbols
+            .SelectMany(static reference => reference.GetAttributes())
+            .Any(static attribute =>
+                attribute.AttributeClass?.Name is "RaskCqrsTransportAttribute" &&
+                attribute.AttributeClass.ContainingNamespace?.ToDisplayString() is CqrsNamespace);
 
     private static IEnumerable<(INamedTypeSymbol Type, RemoteKind Kind, ITypeSymbol? ResultType)> DiscoverMessages(
         Compilation compilation)
     {
-        var seen = new HashSet<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var assembly in MessageAssemblies(compilation))
         {
             foreach (var type in Types(assembly.GlobalNamespace))
@@ -244,7 +239,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                var kind = Kind(type, out var resultType);
+                var kind = RemoteKindOf(type, out var resultType);
                 if (kind is null)
                 {
                     continue;
@@ -267,7 +262,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // scanned plus the assemblies it shares a message vocabulary with — which is where handlers live.
     private static Dictionary<string, INamedTypeSymbol> DiscoverHandlers(Compilation compilation)
     {
-        var map = new Dictionary<string, INamedTypeSymbol>();
+        var map = new Dictionary<string, INamedTypeSymbol>(StringComparer.Ordinal);
 
         foreach (var assembly in MessageAssemblies(compilation))
         {
@@ -280,7 +275,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
                 foreach (var iface in type.AllInterfaces)
                 {
-                    if (iface.ContainingNamespace?.ToDisplayString() != CqrsNamespace || !iface.IsGenericType)
+                    if (iface.ContainingNamespace?.ToDisplayString() is not CqrsNamespace || !iface.IsGenericType)
                     {
                         continue;
                     }
@@ -330,11 +325,11 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
                     foreach (var named in attribute.NamedArguments)
                     {
-                        if (named.Key == "Policy" && named.Value.Value is string p)
+                        if (named.Key is "Policy" && named.Value.Value is string p)
                         {
                             policy = p;
                         }
-                        else if (named.Key == "Roles" && named.Value.Value is string r)
+                        else if (named.Key is "Roles" && named.Value.Value is string r)
                         {
                             roles = r;
                         }
@@ -356,14 +351,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     private static List<IAssemblySymbol> MessageAssemblies(Compilation compilation)
     {
         var assemblies = new List<IAssemblySymbol> { compilation.Assembly };
-        foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
-        {
-            if (reference.Modules.Any(m => m.ReferencedAssemblies.Any(a => a.Name == CqrsAssembly)))
-            {
-                assemblies.Add(reference);
-            }
-        }
-
+        assemblies.AddRange(compilation.SourceModule.ReferencedAssemblySymbols
+            .Where(reference => reference.Modules.Any(m => m.ReferencedAssemblies.Any(a => a.Name is CqrsAssembly))));
         return assemblies;
     }
 
@@ -397,17 +386,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // line in Rask.Jobs keep every job payload in-process.
     private static bool IsLocalOnly(INamedTypeSymbol type)
     {
-        if (HasLocalOnly(type))
+        if (HasLocalOnly(type) || type.AllInterfaces.Any(HasLocalOnly))
         {
             return true;
-        }
-
-        foreach (var @interface in type.AllInterfaces)
-        {
-            if (HasLocalOnly(@interface))
-            {
-                return true;
-            }
         }
 
         return false;
@@ -415,17 +396,17 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
     private static bool HasLocalOnly(ISymbol symbol) =>
         symbol.GetAttributes().Any(a =>
-            a.AttributeClass?.Name == "LocalOnlyAttribute" &&
-            a.AttributeClass.ContainingNamespace?.ToDisplayString() == CqrsNamespace);
+            a.AttributeClass?.Name is "LocalOnlyAttribute" &&
+            a.AttributeClass.ContainingNamespace?.ToDisplayString() is CqrsNamespace);
 
-    private static RemoteKind? Kind(INamedTypeSymbol type, out ITypeSymbol? resultType)
+    private static RemoteKind? RemoteKindOf(INamedTypeSymbol type, out ITypeSymbol? resultType)
     {
         resultType = null;
         RemoteKind? kind = null;
 
         foreach (var @interface in type.AllInterfaces)
         {
-            if (@interface.ContainingNamespace?.ToDisplayString() != CqrsNamespace)
+            if (@interface.ContainingNamespace?.ToDisplayString() is not CqrsNamespace)
             {
                 continue;
             }
@@ -492,11 +473,12 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             Kind = kind,
             Message = message,
             Result = result,
-            ResultFqn = returnsFile
-                ? "global::Rask.Wire.FileDownload"
-                : resultType is null
-                    ? "global::Rask.Cqrs.Unit"
-                    : GeneratedModelShape.DisplayName(resultType, SymbolDisplayFormat.FullyQualifiedFormat, compilation),
+            ResultFqn = (returnsFile, resultType) switch
+            {
+                (true, _) => "global::Rask.Wire.FileDownload",
+                (_, null) => "global::Rask.Cqrs.Unit",
+                (_, { } answer) => GeneratedModelShape.DisplayName(answer, SymbolDisplayFormat.FullyQualifiedFormat, compilation),
+            },
             ReturnsFile = returnsFile,
             CarriesFiles = message.ContainsFile,
             WireName = type.ToDisplayString(),
@@ -507,7 +489,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // the same one. Matched by name and namespace rather than by symbol identity so this generator keeps
     // no reference to either package.
     private static bool IsFileDownload(ITypeSymbol type) =>
-        type.Name == "FileDownload" && type.ContainingNamespace?.ToDisplayString() == WireNamespace;
+        type.Name is "FileDownload" && type.ContainingNamespace?.ToDisplayString() is WireNamespace;
 
     private static string Build(List<ContractModel> contracts)
     {
@@ -520,108 +502,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             var resultId = contract.Result is null ? null : emitter.Ensure(contract.Result);
 
             var field = "C" + registrations.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var entry = new StringBuilder();
-            entry.AppendLine($"    private static readonly global::Rask.Cqrs.RemoteContract {field} =");
-            entry.AppendLine("        new global::Rask.Cqrs.RemoteContract");
-            entry.AppendLine("        {");
-            entry.AppendLine($"            MessageType = typeof({contract.Message.Fqn}),");
-            entry.AppendLine($"            Name = \"{contract.WireName}\",");
-            entry.AppendLine($"            Kind = global::Rask.Cqrs.RemoteMessageKind.{contract.Kind},");
-            entry.AppendLine($"            ResultType = typeof({contract.ResultFqn}),");
-            entry.AppendLine(
-                $"            WriteMessage = static (writer, message, files) => W{messageId}(writer, "
-                + $"({contract.Message.Fqn})message, files),");
-            entry.AppendLine(
-                $"            ReadMessage = static (ref {Reader} reader, {FileListRead} files) => "
-                + $"R{messageId}(ref reader, files, \"{contract.WireName}\"),");
-
-            if (resultId is not null)
-            {
-                entry.AppendLine(
-                    $"            WriteResult = static (writer, result) => W{resultId}(writer, "
-                    + $"({contract.Result!.Fqn})result, NoFiles),");
-                entry.AppendLine(
-                    $"            ReadResult = static (ref {Reader} reader) => "
-                    + $"R{resultId}(ref reader, NoFiles, \"result\"),");
-            }
-
-            if (contract.Policy is { } policy)
-            {
-                entry.AppendLine($"            Policy = \"{policy}\",");
-            }
-
-            if (contract.Roles is { } roles)
-            {
-                entry.AppendLine($"            Roles = \"{roles}\",");
-            }
-
-            if (contract.AllowAnonymous)
-            {
-                entry.AppendLine("            AllowAnonymous = true,");
-            }
-
-            if (contract.SubscribeDeclared)
-            {
-                entry.AppendLine("            SubscribeDeclared = true,");
-                if (contract.SubscribePolicy is { } subscribePolicy)
-                {
-                    entry.AppendLine($"            SubscribePolicy = \"{subscribePolicy}\",");
-                }
-
-                if (contract.SubscribeRoles is { } subscribeRoles)
-                {
-                    entry.AppendLine($"            SubscribeRoles = \"{subscribeRoles}\",");
-                }
-
-                if (contract.SubscribeAnonymously)
-                {
-                    entry.AppendLine("            SubscribeAnonymously = true,");
-                }
-            }
-
-            entry.AppendLine($"            CarriesFiles = {(contract.CarriesFiles ? "true" : "false")},");
-            entry.AppendLine($"            ReturnsFile = {(contract.ReturnsFile ? "true" : "false")},");
-            // The server's mirror of the invoker below: it runs the message against its local handler and
-            // boxes the result, so an endpoint holding the message only as `object` can serialize what
-            // comes back. Cast to the message interface rather than the concrete type — a type that
-            // implements both ICommand and ICommand<T> would otherwise make the call ambiguous.
-            var local = contract.Kind switch
-            {
-                RemoteKind.Query =>
-                    $"(object)await Dispatcher(provider).Query((global::Rask.Cqrs.IQuery<{contract.ResultFqn}>)message, cancellationToken)",
-                RemoteKind.ResultCommand =>
-                    $"(object)await Dispatcher(provider).Send((global::Rask.Cqrs.ICommand<{contract.ResultFqn}>)message, cancellationToken)",
-                RemoteKind.VoidCommand =>
-                    "await Dispatcher(provider).Send((global::Rask.Cqrs.ICommand)message, cancellationToken); return null",
-                _ =>
-                    $"await Dispatcher(provider).Publish(({contract.Message.Fqn})message, cancellationToken); return null",
-            };
-
-            // Emitted only where a handler actually exists, so the endpoint can tell "I cannot serve this"
-            // from "I can" without asking the registry - and answer 404 rather than letting the dispatcher
-            // throw its no-handler exception into a 500.
-            if (contract.HasLocalHandler && contract.Kind != RemoteKind.Subscription)
-            {
-                entry.AppendLine(
-                    "            LocalInvoker = static async (provider, message, cancellationToken) => "
-                    + $"{{ {(contract.Kind is RemoteKind.VoidCommand or RemoteKind.Notification ? local : "return " + local)}; }},");
-            }
-
-            // A request's invoker is emitted closed over the concrete result type, which is what lets a
-            // client hand back a real Task<TResult> without MakeGenericType. Notifications need none:
-            // IRemoteDispatch.PublishAsync is not generic, so a transport calls it directly.
-            if (contract.Kind is not (RemoteKind.Notification or RemoteKind.Subscription))
-            {
-                var send = contract.Kind == RemoteKind.VoidCommand
-                    ? $"Remote(provider).SendAsync({field}, message, cancellationToken)"
-                    : $"Remote(provider).SendAsync<{contract.ResultFqn}>({field}, message, cancellationToken)";
-                entry.AppendLine(
-                    $"            Invoker = static (provider, message, cancellationToken) => {send},");
-            }
-
-            entry.AppendLine("        };");
-            entry.AppendLine();
-            registrations.Add((field, entry.ToString()));
+            registrations.Add((field, Registration(contract, field, messageId, resultId)));
         }
 
         var sb = new StringBuilder();
@@ -633,48 +514,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         // Rask.Core a hard requirement of remote CQRS for apps that have no use for it.
         if (contracts.Any(c => c.CarriesFiles))
         {
-            // The adapter that lets a MESSAGE speak in RaskFile while the wire speaks in RemoteFile. It is
-            // emitted into the consumer's compilation deliberately: that is the only assembly that sees both
-            // Rask.Core and Rask.Cqrs, so putting it here keeps the mediator standalone and keeps the server
-            // transport free of a Rask.Core reference. A handler therefore receives exactly what a component
-            // would hand it in-process - the same type, on every host.
-            sb.AppendLine(
-                "internal sealed class __RaskCqrsUploadedFile : global::Rask.Core.Forms.RaskFile");
-            sb.AppendLine("{");
-            sb.AppendLine("    private readonly global::Rask.Wire.RemoteFile _wire;");
-            sb.AppendLine();
-            sb.AppendLine("    public __RaskCqrsUploadedFile(global::Rask.Wire.RemoteFile wire) { _wire = wire; }");
-            sb.AppendLine();
-            sb.AppendLine("    public override string Name => _wire.Name;");
-            sb.AppendLine();
-            sb.AppendLine("    public override long Size => _wire.Size;");
-            sb.AppendLine();
-            sb.AppendLine("    public override string ContentType => _wire.ContentType;");
-            sb.AppendLine();
-            sb.AppendLine(
-                "    public override global::System.DateTimeOffset LastModified => "
-                + "_wire.LastModified ?? global::System.DateTimeOffset.UnixEpoch;");
-            sb.AppendLine();
-            sb.AppendLine("    // The ceiling is honoured exactly as a browser-backed RaskFile honours it, so a");
-            sb.AppendLine("    // handler written against one behaves the same against the other. Size is unknown");
-            sb.AppendLine("    // (-1) for a stream whose length the sender never declared, and an unknown size");
-            sb.AppendLine("    // cannot be checked against a ceiling - the transport's own cap bounds it instead.");
-            sb.AppendLine(
-                "    public override global::System.IO.Stream OpenReadStream("
-                + "long maxAllowedSize = 512 * 1024, "
-                + "global::System.Threading.CancellationToken cancellationToken = default)");
-            sb.AppendLine("    {");
-            sb.AppendLine("        if (_wire.Size >= 0 && _wire.Size > maxAllowedSize)");
-            sb.AppendLine("        {");
-            sb.AppendLine(
-                "            throw new global::System.IO.IOException($\"File '{_wire.Name}' is {_wire.Size} bytes, "
-                + "exceeds maxAllowedSize of {maxAllowedSize}.\");");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        return _wire.OpenReadStream(cancellationToken);");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
-            sb.AppendLine();
+            AppendUploadedFileAdapter(sb);
         }
 
         sb.AppendLine("internal static class __RaskCqrsCodecs");
@@ -685,19 +525,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.Append(emitter.Methods);
 
-        sb.AppendLine("    private static global::Rask.Cqrs.IDispatcher Dispatcher(global::System.IServiceProvider provider) =>");
-        sb.AppendLine("        provider.GetService(typeof(global::Rask.Cqrs.IDispatcher)) as global::Rask.Cqrs.IDispatcher");
-        sb.AppendLine("        ?? throw new global::System.InvalidOperationException(");
-        sb.AppendLine("            \"Rask.Cqrs is not registered in this scope. Call AddRaskCqrsServer() during startup.\");");
-        sb.AppendLine();
-        sb.AppendLine("    // Resolved per dispatch rather than captured: a transport can be a scoped service,");
-        sb.AppendLine("    // and a contract is a static that outlives every scope.");
-        sb.AppendLine("    private static global::Rask.Cqrs.IRemoteDispatch Remote(global::System.IServiceProvider provider) =>");
-        sb.AppendLine("        provider.GetService(typeof(global::Rask.Cqrs.IRemoteDispatch)) as global::Rask.Cqrs.IRemoteDispatch");
-        sb.AppendLine("        ?? throw new global::System.InvalidOperationException(");
-        sb.AppendLine("            \"This message has no handler in this process and no transport to send it through. \"");
-        sb.AppendLine("            + \"Call AddRaskCqrsClient() during startup, or give the message a handler here.\");");
-        sb.AppendLine();
+        AppendServiceLookups(sb);
 
         foreach (var (_, declaration) in registrations)
         {
@@ -720,6 +548,185 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
         sb.AppendLine("}");
         return sb.ToString();
+    }
+
+    private static string Registration(ContractModel contract, string field, string messageId, string? resultId)
+    {
+        var entry = new StringBuilder();
+        entry.AppendLine($"    private static readonly global::Rask.Cqrs.RemoteContract {field} =");
+        entry.AppendLine("        new global::Rask.Cqrs.RemoteContract");
+        entry.AppendLine("        {");
+        entry.AppendLine($"            MessageType = typeof({contract.Message.Fqn}),");
+        entry.AppendLine($"            Name = \"{contract.WireName}\",");
+        entry.AppendLine($"            Kind = global::Rask.Cqrs.RemoteMessageKind.{contract.Kind},");
+        entry.AppendLine($"            ResultType = typeof({contract.ResultFqn}),");
+        entry.AppendLine(
+            $"            WriteMessage = static (writer, message, files) => W{messageId}(writer, "
+            + $"({contract.Message.Fqn})message, files),");
+        entry.AppendLine(
+            $"            ReadMessage = static (ref {Reader} reader, {FileListRead} files) => "
+            + $"R{messageId}(ref reader, files, \"{contract.WireName}\"),");
+
+        if (resultId is not null)
+        {
+            entry.AppendLine(
+                $"            WriteResult = static (writer, result) => W{resultId}(writer, "
+                + $"({contract.Result!.Fqn})result, NoFiles),");
+            entry.AppendLine(
+                $"            ReadResult = static (ref {Reader} reader) => "
+                + $"R{resultId}(ref reader, NoFiles, \"result\"),");
+        }
+
+        AppendAuthorization(entry, contract);
+
+        entry.AppendLine($"            CarriesFiles = {(contract.CarriesFiles ? "true" : "false")},");
+        entry.AppendLine($"            ReturnsFile = {(contract.ReturnsFile ? "true" : "false")},");
+        AppendInvokers(entry, contract, field);
+
+        entry.AppendLine("        };");
+        entry.AppendLine();
+        return entry.ToString();
+    }
+
+    private static void AppendAuthorization(StringBuilder entry, ContractModel contract)
+    {
+        if (contract.Policy is { } policy)
+        {
+            entry.AppendLine($"            Policy = \"{policy}\",");
+        }
+
+        if (contract.Roles is { } roles)
+        {
+            entry.AppendLine($"            Roles = \"{roles}\",");
+        }
+
+        if (contract.AllowAnonymous)
+        {
+            entry.AppendLine("            AllowAnonymous = true,");
+        }
+
+        if (contract.SubscribeDeclared)
+        {
+            entry.AppendLine("            SubscribeDeclared = true,");
+            if (contract.SubscribePolicy is { } subscribePolicy)
+            {
+                entry.AppendLine($"            SubscribePolicy = \"{subscribePolicy}\",");
+            }
+
+            if (contract.SubscribeRoles is { } subscribeRoles)
+            {
+                entry.AppendLine($"            SubscribeRoles = \"{subscribeRoles}\",");
+            }
+
+            if (contract.SubscribeAnonymously)
+            {
+                entry.AppendLine("            SubscribeAnonymously = true,");
+            }
+        }
+    }
+
+    private static void AppendInvokers(StringBuilder entry, ContractModel contract, string field)
+    {
+        // The server's mirror of the invoker below: it runs the message against its local handler and
+        // boxes the result, so an endpoint holding the message only as `object` can serialize what
+        // comes back. Cast to the message interface rather than the concrete type — a type that
+        // implements both ICommand and ICommand<T> would otherwise make the call ambiguous.
+        var local = contract.Kind switch
+        {
+            RemoteKind.Query =>
+                $"(object)await Dispatcher(provider).Query((global::Rask.Cqrs.IQuery<{contract.ResultFqn}>)message, cancellationToken)",
+            RemoteKind.ResultCommand =>
+                $"(object)await Dispatcher(provider).Send((global::Rask.Cqrs.ICommand<{contract.ResultFqn}>)message, cancellationToken)",
+            RemoteKind.VoidCommand =>
+                "await Dispatcher(provider).Send((global::Rask.Cqrs.ICommand)message, cancellationToken); return null",
+            _ =>
+                $"await Dispatcher(provider).Publish(({contract.Message.Fqn})message, cancellationToken); return null",
+        };
+
+        // Emitted only where a handler actually exists, so the endpoint can tell "I cannot serve this"
+        // from "I can" without asking the registry - and answer 404 rather than letting the dispatcher
+        // throw its no-handler exception into a 500.
+        if (contract.HasLocalHandler && contract.Kind != RemoteKind.Subscription)
+        {
+            entry.AppendLine(
+                "            LocalInvoker = static async (provider, message, cancellationToken) => "
+                + $"{{ {(contract.Kind is RemoteKind.VoidCommand or RemoteKind.Notification ? local : "return " + local)}; }},");
+        }
+
+        // A request's invoker is emitted closed over the concrete result type, which is what lets a
+        // client hand back a real Task<TResult> without MakeGenericType. Notifications need none:
+        // IRemoteDispatch.PublishAsync is not generic, so a transport calls it directly.
+        if (contract.Kind is not (RemoteKind.Notification or RemoteKind.Subscription))
+        {
+            var send = contract.Kind == RemoteKind.VoidCommand
+                ? $"Remote(provider).SendAsync({field}, message, cancellationToken)"
+                : $"Remote(provider).SendAsync<{contract.ResultFqn}>({field}, message, cancellationToken)";
+            entry.AppendLine(
+                $"            Invoker = static (provider, message, cancellationToken) => {send},");
+        }
+    }
+
+    // The adapter that lets a MESSAGE speak in IRaskFile while the wire speaks in RemoteFile. It is
+    // emitted into the consumer's compilation deliberately: that is the only assembly that sees both
+    // Rask.Core and Rask.Cqrs, so putting it here keeps the mediator standalone and keeps the server
+    // transport free of a Rask.Core reference. A handler therefore receives exactly what a component
+    // would hand it in-process - the same type, on every host.
+    private static void AppendUploadedFileAdapter(StringBuilder sb)
+    {
+        sb.AppendLine(
+            "internal sealed class __RaskCqrsUploadedFile : global::Rask.Core.Forms.IRaskFile");
+        sb.AppendLine("{");
+        sb.AppendLine("    private readonly global::Rask.Wire.RemoteFile _wire;");
+        sb.AppendLine();
+        sb.AppendLine("    public __RaskCqrsUploadedFile(global::Rask.Wire.RemoteFile wire) { _wire = wire; }");
+        sb.AppendLine();
+        sb.AppendLine("    public string Name => _wire.Name;");
+        sb.AppendLine();
+        sb.AppendLine("    public long Size => _wire.Size;");
+        sb.AppendLine();
+        sb.AppendLine("    public string ContentType => _wire.ContentType;");
+        sb.AppendLine();
+        sb.AppendLine(
+            "    public global::System.DateTimeOffset LastModified => "
+            + "_wire.LastModified ?? global::System.DateTimeOffset.UnixEpoch;");
+        sb.AppendLine();
+        sb.AppendLine("    // The ceiling is honoured exactly as a browser-backed IRaskFile honours it, so a");
+        sb.AppendLine("    // handler written against one behaves the same against the other. Size is unknown");
+        sb.AppendLine("    // (-1) for a stream whose length the sender never declared, and an unknown size");
+        sb.AppendLine("    // cannot be checked against a ceiling - the transport's own cap bounds it instead.");
+        sb.AppendLine(
+            "    public global::System.IO.Stream OpenReadStream("
+            + "long maxAllowedSize = 512 * 1024, "
+            + "global::System.Threading.CancellationToken cancellationToken = default)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (_wire.Size >= 0 && _wire.Size > maxAllowedSize)");
+        sb.AppendLine("        {");
+        sb.AppendLine(
+            "            throw new global::System.IO.IOException($\"File '{_wire.Name}' is {_wire.Size} bytes, "
+            + "exceeds maxAllowedSize of {maxAllowedSize}.\");");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        return _wire.OpenReadStream(cancellationToken);");
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+        sb.AppendLine();
+    }
+
+    private static void AppendServiceLookups(StringBuilder sb)
+    {
+        sb.AppendLine("    private static global::Rask.Cqrs.IDispatcher Dispatcher(global::System.IServiceProvider provider) =>");
+        sb.AppendLine("        provider.GetService(typeof(global::Rask.Cqrs.IDispatcher)) as global::Rask.Cqrs.IDispatcher");
+        sb.AppendLine("        ?? throw new global::System.InvalidOperationException(");
+        sb.AppendLine("            \"Rask.Cqrs is not registered in this scope. Call AddRaskCqrsServer() during startup.\");");
+        sb.AppendLine();
+        sb.AppendLine("    // Resolved per dispatch rather than captured: a transport can be a scoped service,");
+        sb.AppendLine("    // and a contract is a static that outlives every scope.");
+        sb.AppendLine("    private static global::Rask.Cqrs.IRemoteDispatch Remote(global::System.IServiceProvider provider) =>");
+        sb.AppendLine("        provider.GetService(typeof(global::Rask.Cqrs.IRemoteDispatch)) as global::Rask.Cqrs.IRemoteDispatch");
+        sb.AppendLine("        ?? throw new global::System.InvalidOperationException(");
+        sb.AppendLine("            \"This message has no handler in this process and no transport to send it through. \"");
+        sb.AppendLine("            + \"Call AddRaskCqrsClient() during startup, or give the message a handler here.\");");
+        sb.AppendLine();
     }
 
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";

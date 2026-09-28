@@ -85,7 +85,9 @@ public static class RaskValidation
     {
         ArgumentNullException.ThrowIfNull(modelType);
 
+#pragma warning disable S3267 // hot path: no enumerator/closure allocation
         foreach (var source in _sources)
+#pragma warning restore S3267
         {
             if (source.Has(modelType))
             {
@@ -109,7 +111,7 @@ public static class RaskValidation
 
         foreach (var source in _sources)
         {
-            if (source.Resolve(modelType, services) is { } validator)
+            if (source.Create(modelType, services) is { } validator)
             {
                 return validator;
             }
@@ -120,31 +122,5 @@ public static class RaskValidation
 
     private readonly record struct ValidatorSource(
         Func<Type, bool> Has,
-        Func<Type, IServiceProvider?, IAsyncFieldValidator?> Resolve);
-}
-
-// What a Form actually registers. Holding the model type rather than a built validator is what makes
-// editing a RuleFor and hot-reloading take effect: the rules are re-read on each validation run, not
-// frozen at the render that first mounted the form.
-internal sealed class DiscoveredFieldValidator : IAsyncFieldValidator
-{
-    private readonly Type _modelType;
-    private readonly IServiceProvider? _services;
-
-    internal DiscoveredFieldValidator(Type modelType, IServiceProvider? services)
-    {
-        _modelType = modelType;
-        _services = services;
-    }
-
-    public ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken) =>
-        RaskValidation.Resolve(_modelType, _services) is { } validator
-            ? validator.ValidateAsync(context, cancellationToken)
-            : default;
-
-    public ValueTask ValidateFieldAsync(
-        EditContext context, FieldIdentifier field, CancellationToken cancellationToken) =>
-        RaskValidation.Resolve(_modelType, _services) is { } validator
-            ? validator.ValidateFieldAsync(context, field, cancellationToken)
-            : default;
+        Func<Type, IServiceProvider?, IAsyncFieldValidator?> Create);
 }

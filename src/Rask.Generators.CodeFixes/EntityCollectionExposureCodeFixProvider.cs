@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
@@ -13,27 +14,21 @@ using Microsoft.CodeAnalysis.Simplification;
 
 namespace Rask.Generators.CodeFixes;
 
-// Quick-fix for RASK085 (an entity exposes a mutable collection of entities). Rewrites
-//
-//     public List<OrderLine> Lines { get; private set; } = new();
-//
-// into the shape EF Core maps through the backing field by convention:
-//
-//     private readonly List<OrderLine> _lines = [];
-//     public IReadOnlyCollection<OrderLine> Lines => _lines;
-//
-// and points the references to THIS instance's property inside the declaring type at the field, so
-// `Lines.Add(line)` in the entity's own method keeps compiling. Every other reference keeps the property (see
+// Quick-fix for RASK085 (an entity exposes a mutable collection of entities). Rewrites an auto-property
+// such as a public List of OrderLine named Lines into the shape EF Core maps through the backing field by
+// convention: a private readonly List field named _lines, initialized empty, exposed by an
+// IReadOnlyCollection property that returns it. It also points the references to THIS instance's property
+// inside the declaring type at the field, so `Lines.Add(line)` in the entity's own method keeps compiling. Every other reference keeps the property (see
 // IsThisInstance), and references outside the type are deliberately left alone: they are the callers the
 // diagnostic exists to find.
 //
 // Withheld when the edit could not keep the meaning mechanically:
-// - not an auto-property (the author already wrote a body, and the collection lives somewhere this cannot see);
-// - an initializer other than none, `[]`, `new()` or an argument-free `new X<T>()` — elements or a capacity
-//   would be silently dropped;
-// - required / abstract / static / override / an explicit interface implementation;
-// - the property is ASSIGNED inside the type — the field is readonly, so the assignment would stop compiling;
-// - a member named like the field already exists;
+// - not an auto-property (the author already wrote a body, and the collection lives somewhere this cannot see),
+// - an initializer other than none, an empty collection expression, or an argument-free constructor call —
+//   elements or a capacity would be silently dropped,
+// - required / abstract / static / override / an explicit interface implementation,
+// - the property is ASSIGNED inside the type — the field is readonly, so the assignment would stop compiling,
+// - a member named like the field already exists,
 // - the type is partial across several files — references in the other files would be missed.
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(EntityCollectionExposureCodeFixProvider))]
 [Shared]
@@ -86,53 +81,14 @@ public sealed class EntityCollectionExposureCodeFixProvider : RaskCodeFixProvide
         var elementSyntax = ElementSyntax(node.Type, property.Type, element)
                             ?? SyntaxFactory.ParseTypeName(element.ToMinimalDisplayString(model, node.SpanStart));
 
-        var concrete = property.Type.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.HashSet<T>"
+        var concrete = string.Equals(
+            property.Type.OriginalDefinition.ToDisplayString(), "System.Collections.Generic.HashSet<T>", StringComparison.Ordinal)
             ? "HashSet"
             : "List";
 
-        // Split the property's leading trivia at its first comment: the blank line and indentation in front go
-        // to the new field, the doc comment stays with the property it documents.
-        var leading = node.GetLeadingTrivia();
-        var split = 0;
-        while (split < leading.Count && !IsComment(leading[split]))
-        {
-            split++;
-        }
-
-        var indentation = split > 0 && leading[split - 1].IsKind(SyntaxKind.WhitespaceTrivia)
-            ? SyntaxFactory.TriviaList(leading[split - 1])
-            : SyntaxFactory.TriviaList();
-        var fieldLeading = split == leading.Count ? leading : SyntaxFactory.TriviaList(leading.Take(split));
-        var propertyLeading = split == leading.Count
-            ? indentation
-            : indentation.AddRange(leading.Skip(split));
-
-        var field = SyntaxFactory.FieldDeclaration(
-                SyntaxFactory.VariableDeclaration(Qualified(concrete, elementSyntax))
-                    .AddVariables(SyntaxFactory.VariableDeclarator(fieldName)
-                        .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory.CollectionExpression()))))
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)))
-            .NormalizeWhitespace()
-            .WithLeadingTrivia(fieldLeading)
-            .WithTrailingTrivia(EndOfLine(node));
-
-        var exposed = node
-            .WithType(Qualified("IReadOnlyCollection", elementSyntax).WithTriviaFrom(node.Type))
-            .WithAccessorList(null)
-            .WithInitializer(null)
-            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
-                SyntaxFactory.Token(SyntaxKind.EqualsGreaterThanToken).WithTrailingTrivia(SyntaxFactory.Space),
-                SyntaxFactory.IdentifierName(fieldName)))
-            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken).WithTrailingTrivia(node.GetTrailingTrivia()))
-            .WithLeadingTrivia(propertyLeading)
-            .WithAdditionalAnnotations(Marker);
-
-        // Identifier keeps a trailing space before `=>`; an auto-property's identifier already has one before `{`.
-        if (!exposed.Identifier.TrailingTrivia.Any(SyntaxKind.WhitespaceTrivia))
-        {
-            exposed = exposed.WithIdentifier(exposed.Identifier.WithTrailingTrivia(SyntaxFactory.Space));
-        }
+        var (fieldLeading, propertyLeading) = SplitLeadingTrivia(node.GetLeadingTrivia());
+        var field = BackingField(node, concrete, elementSyntax, fieldName, fieldLeading);
+        var exposed = ExposedProperty(node, elementSyntax, fieldName, propertyLeading);
 
         var references = References(node, model, property, cancellationToken)
             .Where(name => IsThisInstance(name, model, property.ContainingType, cancellationToken))
@@ -154,23 +110,68 @@ public sealed class EntityCollectionExposureCodeFixProvider : RaskCodeFixProvide
         return document.WithSyntaxRoot(updated.InsertNodesBefore(inserted, [field]));
     }
 
+    // Split the property's leading trivia at its first comment: the blank line and indentation in front go
+    // to the new field, the doc comment stays with the property it documents.
+    private static (SyntaxTriviaList Field, SyntaxTriviaList Property) SplitLeadingTrivia(SyntaxTriviaList leading)
+    {
+        var split = 0;
+        while (split < leading.Count && !IsComment(leading[split]))
+        {
+            split++;
+        }
+
+        var indentation = split > 0 && leading[split - 1].IsKind(SyntaxKind.WhitespaceTrivia)
+            ? SyntaxFactory.TriviaList(leading[split - 1])
+            : SyntaxFactory.TriviaList();
+        var fieldLeading = split == leading.Count ? leading : SyntaxFactory.TriviaList(leading.Take(split));
+        var propertyLeading = split == leading.Count
+            ? indentation
+            : indentation.AddRange(leading.Skip(split));
+        return (fieldLeading, propertyLeading);
+    }
+
+    private static FieldDeclarationSyntax BackingField(
+        PropertyDeclarationSyntax node, string concrete, TypeSyntax elementSyntax, string fieldName, SyntaxTriviaList leading) =>
+        SyntaxFactory.FieldDeclaration(
+                SyntaxFactory.VariableDeclaration(Qualified(concrete, elementSyntax))
+                    .AddVariables(SyntaxFactory.VariableDeclarator(fieldName)
+                        .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory.CollectionExpression()))))
+            .WithModifiers(SyntaxFactory.TokenList(
+                SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)))
+            .NormalizeWhitespace()
+            .WithLeadingTrivia(leading)
+            .WithTrailingTrivia(EndOfLine(node));
+
+    private static PropertyDeclarationSyntax ExposedProperty(
+        PropertyDeclarationSyntax node, TypeSyntax elementSyntax, string fieldName, SyntaxTriviaList leading)
+    {
+        var exposed = node
+            .WithType(Qualified("IReadOnlyCollection", elementSyntax).WithTriviaFrom(node.Type))
+            .WithAccessorList(null)
+            .WithInitializer(null)
+            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
+                SyntaxFactory.Token(SyntaxKind.EqualsGreaterThanToken).WithTrailingTrivia(SyntaxFactory.Space),
+                SyntaxFactory.IdentifierName(fieldName)))
+            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken).WithTrailingTrivia(node.GetTrailingTrivia()))
+            .WithLeadingTrivia(leading)
+            .WithAdditionalAnnotations(Marker);
+
+        // Identifier keeps a trailing space before `=>`; an auto-property's identifier already has one before `{`.
+        return exposed.Identifier.TrailingTrivia.Any(SyntaxKind.WhitespaceTrivia)
+            ? exposed
+            : exposed.WithIdentifier(exposed.Identifier.WithTrailingTrivia(SyntaxFactory.Space));
+    }
+
     // The document's own line ending, read off the property being replaced.
     private static SyntaxTrivia EndOfLine(PropertyDeclarationSyntax node)
     {
-        foreach (var trivia in node.GetTrailingTrivia())
-        {
-            if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
-            {
-                return trivia;
-            }
-        }
-
-        return SyntaxFactory.LineFeed;
+        var endOfLine = node.GetTrailingTrivia().FirstOrDefault(static t => t.IsKind(SyntaxKind.EndOfLineTrivia));
+        return endOfLine.IsKind(SyntaxKind.EndOfLineTrivia) ? endOfLine : SyntaxFactory.LineFeed;
     }
 
     // `global::System.Collections.Generic.List<T>`, reduced by the simplifier to `List<T>` wherever the
     // namespace is already in scope — so the fix compiles in a file with no `using System.Collections.Generic`.
-    private static TypeSyntax Qualified(string name, TypeSyntax element) =>
+    private static QualifiedNameSyntax Qualified(string name, TypeSyntax element) =>
         SyntaxFactory.QualifiedName(
                 SyntaxFactory.QualifiedName(
                     SyntaxFactory.QualifiedName(
@@ -211,7 +212,8 @@ public sealed class EntityCollectionExposureCodeFixProvider : RaskCodeFixProvide
         }
 
         return new[] { named }.Concat(named.AllInterfaces)
-            .FirstOrDefault(static t => t.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.ICollection<T>")
+            .FirstOrDefault(static t => string.Equals(
+                t.OriginalDefinition.ToDisplayString(), "System.Collections.Generic.ICollection<T>", StringComparison.Ordinal))
             ?.TypeArguments[0];
     }
 
@@ -243,14 +245,13 @@ public sealed class EntityCollectionExposureCodeFixProvider : RaskCodeFixProvide
             yield break;
         }
 
-        foreach (var name in declaringType.DescendantNodes().OfType<IdentifierNameSyntax>())
+        foreach (var name in declaringType.DescendantNodes().OfType<IdentifierNameSyntax>()
+                     .Where(name => string.Equals(name.Identifier.ValueText, property.Name, StringComparison.Ordinal)
+                                    && SymbolEqualityComparer.Default.Equals(
+                                        model.GetSymbolInfo(name, cancellationToken).Symbol?.OriginalDefinition,
+                                        property.OriginalDefinition)))
         {
-            if (name.Identifier.ValueText == property.Name
-                && SymbolEqualityComparer.Default.Equals(
-                    model.GetSymbolInfo(name, cancellationToken).Symbol?.OriginalDefinition, property.OriginalDefinition))
-            {
-                yield return name;
-            }
+            yield return name;
         }
     }
 

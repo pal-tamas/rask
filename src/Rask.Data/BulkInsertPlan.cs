@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Rask.Data;
 
@@ -92,6 +91,67 @@ internal sealed class BulkInsertPlan
         return perModel.GetOrAdd(typeof(TEntity), _ => Build<TEntity>(context));
     }
 
+    // An inheritance hierarchy or a navigation would need a graph walk and a discriminator this writer does not do.
+    private static void EnsureFlat(IEntityType entityType)
+    {
+        var name = entityType.ClrType.Name;
+        if (entityType.BaseType is not null || entityType.GetDirectlyDerivedTypes().Any())
+        {
+            throw Unsupported(
+                $"{name} takes part in an inheritance hierarchy, whose discriminator and " +
+                "shared table this writer does not build.");
+        }
+
+        if (entityType.GetNavigations().Any() || entityType.GetSkipNavigations().Any())
+        {
+            throw Unsupported(
+                $"{name} has navigations, and nothing walks the graph on this path — related " +
+                "rows would be silently dropped.");
+        }
+    }
+
+    // Only values the STORE supplies are fatal — reading them back is exactly what the change tracker
+    // is for. EF marks a Guid key ValueGenerated.OnAdd by convention even though the value is produced
+    // on the client, and Rask entities set their own Id in a factory, so OnAdd alone must not
+    // disqualify the most ordinary entity there is.
+    private static void EnsureClientSupplied(IEntityType entityType, IProperty property)
+    {
+        var name = entityType.ClrType.Name;
+        if (property.GetComputedColumnSql() is not null || property.GetDefaultValueSql() is not null)
+        {
+            throw Unsupported(
+                $"{name}.{property.Name} is computed by the store, and reading generated " +
+                "values back is exactly what the change tracker is for.");
+        }
+
+        if (property.ValueGenerated == ValueGenerated.OnAdd
+            && property.IsPrimaryKey()
+            && IsIntegral(property.ClrType))
+        {
+            throw Unsupported(
+                $"{name}.{property.Name} is a store-assigned integer key, whose value only " +
+                "exists after the insert the change tracker reads it back from.");
+        }
+
+        if (property.IsShadowProperty())
+        {
+            throw Unsupported(
+                $"{name} has the shadow property '{property.Name}', which only the change " +
+                "tracker can supply a value for.");
+        }
+    }
+
+    // Nothing generates or assigns values on this path, so a key left at its default would be written
+    // as-is - and the second such row would collide on the primary key. That covers a value-generated
+    // property, and a Guid key the entity assigns itself: Rask.Data's key convention marks an Entity<TId>
+    // key never generated, so a factory that forgot its Id would otherwise insert Guid.Empty here. Only a
+    // Guid (or a strongly-typed id stored as one) is guarded that way - an enum or integer key whose
+    // default is a real value must still insert.
+    private static bool IsGuidKey(IProperty property, CoreTypeMapping mapping) =>
+        property.IsPrimaryKey()
+        && ((Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType) == typeof(Guid)
+            || mapping.Converter?.ProviderClrType == typeof(Guid));
+
     private static BulkInsertPlan Build<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(DbContext context)
         where TEntity : class
     {
@@ -103,22 +163,10 @@ internal sealed class BulkInsertPlan
             throw Unsupported($"{typeof(TEntity).Name} does not map to a plain table.");
         }
 
-        if (entityType.BaseType is not null || entityType.GetDirectlyDerivedTypes().Any())
-        {
-            throw Unsupported(
-                $"{typeof(TEntity).Name} takes part in an inheritance hierarchy, whose discriminator and " +
-                "shared table this writer does not build.");
-        }
-
-        if (entityType.GetNavigations().Any() || entityType.GetSkipNavigations().Any())
-        {
-            throw Unsupported(
-                $"{typeof(TEntity).Name} has navigations, and nothing walks the graph on this path — related " +
-                "rows would be silently dropped.");
-        }
+        EnsureFlat(entityType);
 
         // The provider's own spelling of identifiers and parameters. A hand-written "…" works on SQLite,
-        // PostgreSQL and SQL Server but is a string literal to MySQL, whose identifiers are backtick-quoted;
+        // PostgreSQL and SQL Server but is a string literal to MySQL, whose identifiers are backtick-quoted —
         // asking the provider is the only spelling right on all of them.
         var sql = context.GetService<ISqlGenerationHelper>();
 
@@ -130,44 +178,9 @@ internal sealed class BulkInsertPlan
                 continue;
             }
 
-            // Only values the STORE supplies are fatal — reading them back is exactly what the change tracker
-            // is for. EF marks a Guid key ValueGenerated.OnAdd by convention even though the value is produced
-            // on the client, and Rask entities set their own Id in a factory, so OnAdd alone must not
-            // disqualify the most ordinary entity there is.
-            if (property.GetComputedColumnSql() is not null || property.GetDefaultValueSql() is not null)
-            {
-                throw Unsupported(
-                    $"{typeof(TEntity).Name}.{property.Name} is computed by the store, and reading generated " +
-                    "values back is exactly what the change tracker is for.");
-            }
-
-            if (property.ValueGenerated == ValueGenerated.OnAdd
-                && property.IsPrimaryKey()
-                && IsIntegral(property.ClrType))
-            {
-                throw Unsupported(
-                    $"{typeof(TEntity).Name}.{property.Name} is a store-assigned integer key, whose value only " +
-                    "exists after the insert the change tracker reads it back from.");
-            }
-
-            if (property.IsShadowProperty())
-            {
-                throw Unsupported(
-                    $"{typeof(TEntity).Name} has the shadow property '{property.Name}', which only the change " +
-                    "tracker can supply a value for.");
-            }
+            EnsureClientSupplied(entityType, property);
 
             var mapping = property.GetTypeMapping();
-
-            // Nothing generates or assigns values on this path, so a key left at its default would be written
-            // as-is - and the second such row would collide on the primary key. That covers a value-generated
-            // property, and a Guid key the entity assigns itself: Rask.Data's key convention marks an Entity<TId>
-            // key never generated, so a factory that forgot its Id would otherwise insert Guid.Empty here. Only a
-            // Guid (or a strongly-typed id stored as one) is guarded that way - an enum or integer key whose
-            // default is a real value must still insert.
-            var entityAssignedGuidKey = property.IsPrimaryKey()
-                && ((Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType) == typeof(Guid)
-                    || mapping.Converter?.ProviderClrType == typeof(Guid));
 
             var parameter = $"p{columns.Count}";
             columns.Add(new BulkInsertColumn(
@@ -177,7 +190,7 @@ internal sealed class BulkInsertPlan
                 BuildGetter<TEntity>(property),
                 mapping.Converter,
                 (mapping as RelationalTypeMapping)?.DbType,
-                property.ValueGenerated != ValueGenerated.Never || entityAssignedGuidKey
+                property.ValueGenerated != ValueGenerated.Never || IsGuidKey(property, mapping)
                     ? $"{typeof(TEntity).Name}.{property.Name}"
                     : null,
                 GetDefault(property.ClrType)));
@@ -258,44 +271,3 @@ internal sealed class BulkInsertPlan
         new($"BulkInsertAsync cannot skip change tracking here: {reason} Drop SkipChangeTracking to insert " +
             "through the change tracker instead.");
 }
-
-/// <summary>One mapped column of a <see cref="BulkInsertPlan"/>.</summary>
-/// <param name="ColumnName">The mapped column, undelimited.</param>
-/// <param name="ParameterName">The name the <c>DbParameter</c> is bound under.</param>
-/// <param name="ParameterPlaceholder">How the statement text refers to that parameter.</param>
-/// <param name="Read">Reads the property off an entity.</param>
-/// <param name="Converter">The value converter the provider stores through, when there is one.</param>
-/// <param name="DbType">The parameter's <see cref="System.Data.DbType"/>, when the mapping names one.</param>
-/// <param name="GeneratedName">The <c>Entity.Property</c> name of a value-generated column, for the error.</param>
-/// <param name="ClrDefault">The CLR default a value-generated column must not still hold.</param>
-internal sealed record BulkInsertColumn(
-    string ColumnName,
-    string ParameterName,
-    string ParameterPlaceholder,
-    Func<object, object?> Read,
-    ValueConverter? Converter,
-    DbType? DbType,
-    string? GeneratedName,
-    object? ClrDefault)
-{
-    /// <summary>Reads the column off <paramref name="entity"/> in the form the provider stores.</summary>
-    internal object? ValueFor(object entity)
-    {
-        var value = Read(entity);
-
-        // EF would have filled a value-generated property before the insert, and an entity assigns its own Guid
-        // key; this path does neither, so an unset one must be reported rather than written as a default that
-        // collides on the next row.
-        if (GeneratedName is not null && Equals(value, ClrDefault))
-        {
-            throw BulkInsertPlan.Unsupported(
-                $"{GeneratedName} is still unset, and nothing generates or assigns values on this path. " +
-                "Assign it before inserting.");
-        }
-
-        return value is null ? null : Converter is null ? value : Converter.ConvertToProvider(value);
-    }
-}
-
-/// <summary>Setters for the audit stamps the writer applies in the interceptor's place.</summary>
-internal sealed record BulkTimestamps(Action<object, DateTime> SetCreatedAt, Action<object, DateTime> SetUpdatedAt);

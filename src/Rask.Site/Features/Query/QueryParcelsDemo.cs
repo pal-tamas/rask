@@ -1,12 +1,13 @@
+using System.Globalization;
 using Rask.Core.Routing;
-using Rask.Query;
+using Rask.Querying;
 
 namespace Rask.Site.Features;
 
 // Rask.Query's four shapes on one small page, none of which loads anything by hand:
-//   1. a query declared in Render that follows the URL's ?page=, keeping the old page on screen while the next loads;
-//   2. a dependent query, paused until a parcel is picked;
-//   3. a function query over a local source, keyed QueryKey.For<Parcel>(input);
+//   1. a query declared in Render that follows the URL's ?page=, keeping the old page on screen while the next loads,
+//   2. a dependent query, paused until a parcel is picked,
+//   3. a function query over a local source, keyed QueryKey.For<Parcel>(input),
 //   4. a command per row whose IsPending disables its own button, and whose success refetches the queries it names.
 public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, ParcelStore store) : Component
 {
@@ -24,7 +25,7 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
 
     // A demo is not a routed page, so it reads ?page= from the route rather than through [QueryParam].
     private int PageNumber =>
-        route.Query.TryGetValue("page", out var values) && int.TryParse(values.FirstOrDefault(), out var page) && page > 0
+        route.Query.TryGetValue("page", out var values) && int.TryParse(values.FirstOrDefault(), CultureInfo.InvariantCulture, out var page) && page > 0
             ? page
             : 1;
 
@@ -40,7 +41,12 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
                 Span.Id("query-page")[$"Page {PageNumber} of {pages}"],
                 Ui.Button.Id("query-next").Disabled(PageNumber >= pages).OnClick(() => GoTo(PageNumber + 1))["Next"],
                 Span.Id("query-status").Class("text-ui-muted text-sm")[
-                    parcels.IsLoading ? "loading…" : parcels.IsPlaceholderData ? "showing the previous page" : "fresh"]
+                    parcels switch
+                    {
+                        { IsLoading: true } => "loading…",
+                        { IsPlaceholderData: true } => "showing the previous page",
+                        _ => "fresh",
+                    }]
             ],
             Ui.List.Id("query-rows").Aria("busy", parcels.Data is null ? "true" : "false")[
                 parcels.Data is { } page ? page.Rows.Select(Row) : Enumerable.Range(0, ParcelStore.PageSize).Select(Placeholder)],
@@ -71,12 +77,13 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
         // 4. Keyed by the row, so each row's button has its own pending state.
         var ship = QueryClient.Command<ShipParcel>(key: parcel.Id);
 
+        var shipLabel = ship.IsPending ? "shipping…" : "Ship";
         return Li.Key(parcel.Id).Class("query-row flex gap-2 items-center")[
             Span[$"#{parcel.Id} {parcel.Recipient} — {parcel.Contents}"],
             parcel.Shipped
                 ? Span.Class("query-shipped text-ui-ok-ink")["shipped"]
                 : Ui.Button.Class("query-ship").Disabled(ship.IsPending)
-                    .OnClick(async () => await ship.Send(new ShipParcel(parcel.Id)))[ship.IsPending ? "shipping…" : "Ship"],
+                    .OnClick(async () => await ship.Send(new ShipParcel(parcel.Id)))[shipLabel],
             Ui.Button.Class("query-pick").OnClick(() => _picked = parcel.Id)["Details"]
         ];
     }

@@ -36,7 +36,7 @@ Ui.Tree.Roots(_nodes)
     .Label("Report")
     .Expanded(_open)                       // the page holds expansion
     .OnExpandedChange(keys => _open = keys)
-    .Selection(Ui.TreeSelection.Multiple)   // and the tree holds the selection
+    .Selection(Ui.TreeSelection.Many)   // and the tree holds the selection
     [n => n.Children]
 ```
 

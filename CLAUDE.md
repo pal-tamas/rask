@@ -32,7 +32,8 @@ the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by 
 **user-facing change → update `src/Rask.Site` + docs/README/NUGET.md/llms.txt/docs/ai-agents.md**; keep
 everything up to date; CHANGELOG `[Unreleased]` per notable change; Conventional Commits
 (commitlint); no `Co-Authored-By`/`Generated-with`. Build is warnings-as-errors + analyzers
-(`Directory.Build.props`; see `docs/code-analysis.md`). **Every public name obeys
+(`src/`: CA latest-recommended, Meziantou, Roslynator, Sonar, `BannedSymbols.txt`; see `docs/code-analysis.md`) —
+**FIX a finding; silence one only if unfixable, at that site, with a `#pragma` reason**. **Every public name obeys
 `docs/api-style.md`**; the build records the surface in `src/*/PublicAPI/<tfm>/`, so an unrecorded
 public member is a build error (RS0016/RS0017). Releases: tag→`release.yml`; nightly
 prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, `docs/ai-agents.md` (a scaffold has

@@ -195,7 +195,7 @@ await Cache.Forget("products");                                      // when the
 
 ## Keep an uploaded file
 
-Save the `RaskFile` from the picker's handler with `Files.Save`, keep the returned id on your entity, and link
+Save the `IRaskFile` from the picker's handler with `Files.Save`, keep the returned id on your entity, and link
 to it. A `RaskApp` already has storage on; a hand-wired host adds the registration, the table and the routes.
 
 ```csharp

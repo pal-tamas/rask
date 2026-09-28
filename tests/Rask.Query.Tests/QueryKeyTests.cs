@@ -1,4 +1,4 @@
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>
 ///     What a query key is, and what matches it.

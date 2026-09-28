@@ -9,249 +9,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Rask.Generators.Shared;
 
-/// <summary>The part a property of an entity plays in its generated model.</summary>
-/// <remarks>
-/// There is no key role: the model never carries <c>Entity&lt;TId&gt;.Id</c> (see <see cref="ModelShape.Key" />).
-/// </remarks>
-internal enum ModelMemberRole
-{
-    /// <summary>An ordinary value, copied both ways.</summary>
-    Value,
-
-    /// <summary>An aggregate's <c>int Version</c>: read into the model, never written back.</summary>
-    Version,
-}
-
-/// <summary>How generated code rebuilds a value object from its nested model, best first.</summary>
-internal enum ModelValueObjectBuild
-{
-    /// <summary>A PUBLIC constructor naming every property — a positional record: <c>new Money(amount, currency)</c>.</summary>
-    Constructor,
-
-    /// <summary>A PUBLIC parameterless constructor and a public setter on every property: <c>new Money { Amount = … }</c>.</summary>
-    Initializer,
-
-    /// <summary>A non-public constructor naming every property, called through <c>[UnsafeAccessor]</c>.</summary>
-    AccessorConstructor,
-
-    /// <summary>
-    ///     A parameterless constructor of any accessibility, then every property written: a public setter
-    ///     directly, a non-public setter or a backing field through <c>[UnsafeAccessor]</c>.
-    /// </summary>
-    AccessorMembers,
-}
-
-/// <summary>How generated code gets a value back into an entity property.</summary>
-internal enum ModelWriteKind
-{
-    /// <summary>A public setter, assigned directly.</summary>
-    Public,
-
-    /// <summary>A non-public setter, reached through an <c>[UnsafeAccessor]</c> method.</summary>
-    Setter,
-
-    /// <summary>No usable setter but a compiler backing field, reached through an <c>[UnsafeAccessor]</c> field.</summary>
-    Field,
-}
-
-/// <summary>One property of an entity that its generated model carries.</summary>
-internal sealed class ModelMember(IPropertySymbol property, ModelMemberRole role, ModelWriteKind? write, ModelValueObject? valueObject)
-{
-    /// <summary>The entity's property; the model's property has the same name.</summary>
-    public IPropertySymbol Property { get; } = property;
-
-    /// <summary>The part it plays.</summary>
-    public ModelMemberRole Role { get; } = role;
-
-    /// <summary>How it is written back. Null only for <see cref="ModelMemberRole.Version" />, which never is.</summary>
-    public ModelWriteKind? Write { get; } = write;
-
-    /// <summary>The nested model standing in for a value object, or null for a plain value.</summary>
-    public ModelValueObject? ValueObject { get; } = valueObject;
-
-    /// <summary>Whether the property is declared nullable (<c>?</c>).</summary>
-    public bool Nullable => Property.Type.NullableAnnotation == NullableAnnotation.Annotated;
-}
-
-/// <summary>The nested model a value object becomes: <c>ProductModel.MoneyModel</c> for <c>Money</c>.</summary>
-/// <remarks>
-/// However the value object itself is built, its nested model is always a generated mutable class — so the wire
-/// shape and the TypeScript read only <see cref="ModelName" /> and <see cref="Members" />, never the build.
-/// </remarks>
-internal sealed class ModelValueObject(
-    INamedTypeSymbol type,
-    string modelName,
-    ModelValueObjectBuild build,
-    IMethodSymbol constructor,
-    IReadOnlyList<IPropertySymbol>? constructorOrder,
-    IReadOnlyList<ModelValueObjectMember> members)
-{
-    /// <summary>The value object's own type.</summary>
-    public INamedTypeSymbol Type { get; } = type;
-
-    /// <summary>The nested class's simple name, unique within its model.</summary>
-    public string ModelName { get; } = modelName;
-
-    /// <summary>How the value object is rebuilt from the model.</summary>
-    public ModelValueObjectBuild Build { get; } = build;
-
-    /// <summary>The constructor it is built through: the one naming every property, or the parameterless one.</summary>
-    public IMethodSymbol Constructor { get; } = constructor;
-
-    /// <summary>The properties in constructor-parameter order, or null when it is rebuilt by object initializer.</summary>
-    public IReadOnlyList<IPropertySymbol>? ConstructorOrder { get; } = constructorOrder;
-
-    /// <summary>Whether the value object is rebuilt through a constructor naming every property.</summary>
-    public bool ByConstructor => ConstructorOrder is not null;
-
-    /// <summary>Its properties, in declaration order.</summary>
-    public IReadOnlyList<ModelValueObjectMember> Members { get; } = members;
-
-    /// <summary>
-    ///     Whether it holds exactly one plain value (<c>record Email(string Value)</c>). Such a value object is one column
-    ///     and is carried on the model as that value itself — <c>string? Email</c> — with no nested model.
-    /// </summary>
-    public bool SingleValue => Members.Count == 1 && Members[0].ValueObject is null;
-}
-
-/// <summary>One property of a value object's nested model.</summary>
-internal sealed class ModelValueObjectMember(IPropertySymbol property, ModelValueObject? valueObject, ModelWriteKind? write)
-{
-    /// <summary>The value object's property.</summary>
-    public IPropertySymbol Property { get; } = property;
-
-    /// <summary>
-    ///     For <see cref="ModelValueObjectBuild.AccessorMembers" />: how the property is written after construction.
-    ///     Null for every other build.
-    /// </summary>
-    public ModelWriteKind? Write { get; } = write;
-
-    /// <summary>The nested model for a value object inside a value object, or null for a plain value.</summary>
-    public ModelValueObject? ValueObject { get; } = valueObject;
-
-    /// <summary>Whether the property is declared nullable (<c>?</c>).</summary>
-    public bool Nullable => Property.Type.NullableAnnotation == NullableAnnotation.Annotated;
-}
-
-/// <summary>How generated code reaches the collection it has to add to and remove from.</summary>
-internal enum ModelChildAccess
-{
-    /// <summary>The property's own type is a writable collection, so the property is used directly.</summary>
-    Property,
-
-    /// <summary>The property hands out a read-only view, so its backing field is written instead.</summary>
-    Field,
-
-    /// <summary>Neither — Rask cannot sync this collection, and says so with RASK088.</summary>
-    None,
-}
-
-/// <summary>A collection of children an aggregate holds: the lines of an order, the items of a basket.</summary>
-/// <remarks>
-/// Only <c>Entity&lt;TId&gt;</c> children are here. A collection of <c>Aggregate&lt;TId&gt;</c> is somebody else's
-/// data — RASK087 says so — and is never carried on the model, never synced, and never deleted on the parent's
-/// behalf.
-/// </remarks>
-internal sealed class ModelChild(
-    IPropertySymbol property,
-    INamedTypeSymbol childType,
-    ModelChildAccess access,
-    IFieldSymbol? field)
-{
-    /// <summary>The aggregate's property: <c>Lines</c>.</summary>
-    public IPropertySymbol Property { get; } = property;
-
-    /// <summary>The child entity type: <c>OrderLine</c>.</summary>
-    public INamedTypeSymbol ChildType { get; } = childType;
-
-    /// <summary>How generated code writes the collection.</summary>
-    public ModelChildAccess Access { get; } = access;
-
-    /// <summary>The backing field, for <see cref="ModelChildAccess.Field" />.</summary>
-    public IFieldSymbol? Field { get; } = field;
-
-    /// <summary>The property's name, which is also the model's.</summary>
-    public string Name => Property.Name;
-}
-
-/// <summary>A collection of values an entity holds: the tags of a note, the stops of a trip.</summary>
-/// <remarks>
-/// One column either way — a primitive collection for plain values, a JSON column for value objects — and
-/// replaced wholesale on save, because a value has no identity to reconcile against.
-/// </remarks>
-internal sealed class ModelValueCollection(
-    IPropertySymbol property,
-    ITypeSymbol element,
-    INamedTypeSymbol? valueObject,
-    IFieldSymbol? field,
-    ModelValueObject? elementModel = null)
-{
-    /// <summary>The entity's property: <c>Tags</c>.</summary>
-    public IPropertySymbol Property { get; } = property;
-
-    /// <summary>What the collection holds: <c>string</c>, <c>Stop</c>.</summary>
-    public ITypeSymbol Element { get; } = element;
-
-    /// <summary>The element as a value object, or null when it is a plain value.</summary>
-    public INamedTypeSymbol? ValueObject { get; } = valueObject;
-
-    /// <summary>The backing field to write through, or null when the property itself is writable.</summary>
-    public IFieldSymbol? Field { get; } = field;
-
-    /// <summary>
-    ///     The nested model each element is carried as on the form — <c>StopModel</c> — or null for a plain
-    ///     value, which is carried as itself.
-    /// </summary>
-    public ModelValueObject? ElementModel { get; } = elementModel;
-
-    /// <summary>The property's name, which is also the model's and the read face's.</summary>
-    public string Name => Property.Name;
-}
-
-/// <summary>Everything the generated model of one entity is made of.</summary>
-internal sealed class ModelShape(
-    INamedTypeSymbol entity,
-    ITypeSymbol? idType,
-    IPropertySymbol? key,
-    IReadOnlyList<ModelMember> members,
-    IReadOnlyList<ModelValueObject> valueObjects,
-    IReadOnlyList<ModelChild> children,
-    IReadOnlyList<ModelValueCollection> valueCollections)
-{
-    /// <summary>The entity.</summary>
-    public INamedTypeSymbol Entity { get; } = entity;
-
-    /// <summary>The <c>TId</c> of <c>Entity&lt;TId&gt;</c>.</summary>
-    public ITypeSymbol? IdType { get; } = idType;
-
-    /// <summary>
-    ///     <c>Entity&lt;TId&gt;.Id</c>, which the model deliberately does NOT carry.
-    ///     non-generic base.
-    /// </summary>
-    /// <remarks>
-    ///     A model is what a form posts back, so a key on it is a key the client chooses: an edit could be
-    ///     re-pointed at any row by changing one field (overposting). The id travels beside the model instead —
-    ///     <c>Update(id, model)</c> — and a create never takes one. It is exposed here only for the generated
-    ///     create to assign a key EF Core would not generate.
-    /// </remarks>
-    public IPropertySymbol? Key { get; } = key;
-
-    /// <summary>The model's properties, in the order they are emitted.</summary>
-    public IReadOnlyList<ModelMember> Members { get; } = members;
-
-    /// <summary>Every nested value-object model, each once, in the order they are emitted.</summary>
-    public IReadOnlyList<ModelValueObject> ValueObjects { get; } = valueObjects;
-
-    /// <summary>The child collections this aggregate holds, in the order they are emitted.</summary>
-    public IReadOnlyList<ModelChild> Children { get; } = children;
-
-    /// <summary>The collections of values it holds, in the order they are emitted.</summary>
-    public IReadOnlyList<ModelValueCollection> ValueCollections { get; } = valueCollections;
-
-    /// <summary>Whether the model carries a <see cref="ModelMemberRole.Version" />.</summary>
-    public bool Versioned => Members.Any(static m => m.Role == ModelMemberRole.Version);
-}
-
 /// <summary>
 ///     The one definition of what <c>ModelInputGenerator</c> generates for a <c>Rask.Data.Aggregate&lt;TId&gt;</c>:
 ///     which classes get a model, what the model is called, and which properties — and value-object
@@ -447,7 +204,7 @@ internal static class GeneratedModelShape
 
     private static string Rebuild(ITypeSymbol type, SymbolDisplayFormat format, Compilation compilation)
     {
-        var annotated = (format.MiscellaneousOptions & SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier) != 0
+        var annotated = (format.MiscellaneousOptions & SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier) != SymbolDisplayMiscellaneousOptions.None
                         && type.NullableAnnotation == NullableAnnotation.Annotated
                         && !type.IsValueType
                 ? "?"
@@ -464,7 +221,7 @@ internal static class GeneratedModelShape
             // Displayed as the nullable reference it is, not as Nullable<T> around a class.
             case INamedTypeSymbol nullable when NullableUnresolvedModel(nullable, compilation) is { } inner:
                 return Rebuild(inner, format, compilation) +
-                       ((format.MiscellaneousOptions & SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier) != 0 ? "?" : "");
+                       ((format.MiscellaneousOptions & SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier) != SymbolDisplayMiscellaneousOptions.None ? "?" : "");
 
             case INamedTypeSymbol { TypeArguments.Length: > 0 } generic when MentionsUnresolvedModel(generic, compilation):
                 var definition = generic.ToDisplayString(format
@@ -707,12 +464,9 @@ internal static class GeneratedModelShape
         // credentials a form must never write.
         for (var type = entity; type is not null && !IsRaskDataType(type) && !IsRaskAuthBase(type); type = type.BaseType)
         {
-            foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
+            foreach (var property in type.GetMembers().OfType<IPropertySymbol>().Where(p => seen.Add(p.Name)))
             {
-                if (seen.Add(property.Name))
-                {
-                    yield return property;
-                }
+                yield return property;
             }
         }
     }
@@ -814,66 +568,13 @@ internal static class GeneratedModelShape
                 return known;
             }
 
-            // Stored state only. A computed property (`Display => $"{Amount} {Currency}"`) has neither a setter nor a
-            // backing field, so no form can write it and no build strategy below can rebuild it — counting it would
-            // make a record's primary constructor one parameter short and drop the whole nested model.
-            var properties = named.GetMembers().OfType<IPropertySymbol>()
-                .Where(static p => !p.IsStatic && !p.IsIndexer &&
-                                   p.DeclaredAccessibility == Accessibility.Public &&
-                                   p.GetMethod is { DeclaredAccessibility: Accessibility.Public } &&
-                                   (p.SetMethod is not null || HasBackingField(p)))
-                .ToList();
-
-            if (properties.Count == 0)
+            var properties = StoredProperties(named);
+            if (properties.Count == 0 || ChooseBuild(named, properties) is not { } choice)
             {
                 return null;
             }
 
-            // How it is rebuilt from the model, best first. The public shapes are plain C#. The non-public ones — a
-            // private constructor, or `{ get; private set; }`, which is what RASK084 steers a value object
-            // towards — go through [UnsafeAccessor], so they need a type generated code can name, and a
-            // non-generic one: an accessor into a generic type has to be declared generic itself. Anything else
-            // is copied across as the value itself, and a form cannot bind into it.
-            // Matched by name AND type: the generated call passes each property's value straight in, so a constructor
-            // that parses `string currency` into a `CurrencyCode Currency` would be a CS1503 inside generated code.
-            var fullConstructors = named.InstanceConstructors
-                .Where(c => c.Parameters.Length == properties.Count &&
-                            c.Parameters.All(parameter =>
-                                properties.Any(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase) &&
-                                                    SameTypeIgnoringNullability(p.Type, parameter.Type))))
-                .ToList();
-            var parameterless = named.InstanceConstructors.FirstOrDefault(static c => c.Parameters.Length == 0);
-            var reachable = !named.IsGenericType && IsNameableFromGeneratedCode(named);
-            var writes = properties.Select(WriteKindOf).ToList();
-
-            ModelValueObjectBuild build;
-            IMethodSymbol constructor;
-            if (fullConstructors.FirstOrDefault(static c => c.DeclaredAccessibility == Accessibility.Public) is { } open)
-            {
-                build = ModelValueObjectBuild.Constructor;
-                constructor = open;
-            }
-            else if (parameterless is { DeclaredAccessibility: Accessibility.Public } &&
-                     properties.All(static p => p.SetMethod is { DeclaredAccessibility: Accessibility.Public }))
-            {
-                build = ModelValueObjectBuild.Initializer;
-                constructor = parameterless;
-            }
-            else if (reachable && fullConstructors.Count > 0)
-            {
-                build = ModelValueObjectBuild.AccessorConstructor;
-                constructor = fullConstructors[0];
-            }
-            else if (reachable && parameterless is not null && writes.All(static w => w is not null))
-            {
-                build = ModelValueObjectBuild.AccessorMembers;
-                constructor = parameterless;
-            }
-            else
-            {
-                return null;
-            }
-
+            var (build, constructor, writes) = choice;
             var inner = seen.Add(typeName);
             var members = properties
                 .Select((p, i) => new ModelValueObjectMember(
@@ -895,12 +596,74 @@ internal static class GeneratedModelShape
             return shape;
         }
 
+        // Stored state only. A computed property (`Display => $"{Amount} {Currency}"`) has neither a setter nor a
+        // backing field, so no form can write it and no build strategy below can rebuild it — counting it would
+        // make a record's primary constructor one parameter short and drop the whole nested model.
+        private static List<IPropertySymbol> StoredProperties(INamedTypeSymbol named) =>
+            named.GetMembers().OfType<IPropertySymbol>()
+                .Where(static p => !p.IsStatic && !p.IsIndexer &&
+                                   p.DeclaredAccessibility == Accessibility.Public &&
+                                   p.GetMethod is { DeclaredAccessibility: Accessibility.Public } &&
+                                   (p.SetMethod is not null || HasBackingField(p)))
+                .ToList();
+
+        // How it is rebuilt from the model, best first. The public shapes are plain C#. The non-public ones — a
+        // private constructor, or `{ get; private set; }`, which is what RASK084 steers a value object
+        // towards — go through [UnsafeAccessor], so they need a type generated code can name, and a
+        // non-generic one: an accessor into a generic type has to be declared generic itself. Anything else
+        // is copied across as the value itself, and a form cannot bind into it.
+        private static (ModelValueObjectBuild Build, IMethodSymbol Constructor, List<ModelWriteKind?> Writes)? ChooseBuild(
+            INamedTypeSymbol named, List<IPropertySymbol> properties)
+        {
+            // Matched by name AND type: the generated call passes each property's value straight in, so a constructor
+            // that parses `string currency` into a `CurrencyCode Currency` would be a CS1503 inside generated code.
+            var fullConstructors = named.InstanceConstructors
+                .Where(c => c.Parameters.Length == properties.Count &&
+                            c.Parameters.All(parameter =>
+                                properties.Any(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase) &&
+                                                    SameTypeIgnoringNullability(p.Type, parameter.Type))))
+                .ToList();
+            var parameterless = named.InstanceConstructors.FirstOrDefault(static c => c.Parameters.Length == 0);
+            var reachable = !named.IsGenericType && IsNameableFromGeneratedCode(named);
+            var writes = properties.Select(WriteKindOf).ToList();
+
+            if (fullConstructors.FirstOrDefault(static c => c.DeclaredAccessibility == Accessibility.Public) is { } open)
+            {
+                return (ModelValueObjectBuild.Constructor, open, writes);
+            }
+
+            if (parameterless is { DeclaredAccessibility: Accessibility.Public } &&
+                properties.All(static p => p.SetMethod is { DeclaredAccessibility: Accessibility.Public }))
+            {
+                return (ModelValueObjectBuild.Initializer, parameterless, writes);
+            }
+
+            if (reachable && fullConstructors.Count > 0)
+            {
+                return (ModelValueObjectBuild.AccessorConstructor, fullConstructors[0], writes);
+            }
+
+            if (reachable && parameterless is not null && writes.All(static w => w is not null))
+            {
+                return (ModelValueObjectBuild.AccessorMembers, parameterless, writes);
+            }
+
+            return null;
+        }
+
+        private static bool SameTypeIgnoringNullability(ITypeSymbol left, ITypeSymbol right) =>
+            SymbolEqualityComparer.Default.Equals(
+                left.WithNullableAnnotation(NullableAnnotation.None),
+                right.WithNullableAnnotation(NullableAnnotation.None));
+
         private string UniqueName(string preferred)
         {
             var name = preferred;
-            for (var suffix = 2; !_names.Add(name); suffix++)
+            var suffix = 2;
+            while (!_names.Add(name))
             {
                 name = preferred + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                suffix++;
             }
 
             return name;
@@ -917,18 +680,13 @@ internal static class GeneratedModelShape
 
     /// <summary>Whether <paramref name="symbol" /> carries the attribute with that full name.</summary>
     public static bool HasAttribute(ISymbol symbol, string fullyQualifiedAttribute) =>
-        symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == fullyQualifiedAttribute);
+        symbol.GetAttributes().Any(a => string.Equals(a.AttributeClass?.ToDisplayString(), fullyQualifiedAttribute, StringComparison.Ordinal));
 
     private static bool IsRaskDataType(INamedTypeSymbol? type) =>
-        type?.ContainingNamespace?.ToDisplayString() == RaskDataNamespace;
+        string.Equals(type?.ContainingNamespace?.ToDisplayString(), RaskDataNamespace, StringComparison.Ordinal);
 
     private static bool IsRaskAuthBase(INamedTypeSymbol type) =>
-        type is { Name: "Authenticatable" } && type.ContainingNamespace?.ToDisplayString() == "Rask.Auth";
-
-    private static bool SameTypeIgnoringNullability(ITypeSymbol left, ITypeSymbol right) =>
-        SymbolEqualityComparer.Default.Equals(
-            left.WithNullableAnnotation(NullableAnnotation.None),
-            right.WithNullableAnnotation(NullableAnnotation.None));
+        type is { Name: "Authenticatable" } && string.Equals(type.ContainingNamespace?.ToDisplayString(), "Rask.Auth", StringComparison.Ordinal);
 
     private static bool HasBackingField(IPropertySymbol property)
     {

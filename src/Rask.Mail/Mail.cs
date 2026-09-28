@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Rask.Mail;
+namespace Rask.Mailing;
 
 /// <summary>
 ///     The app's outgoing mail, with nothing injected — from a handler, a render, a request, a job:
@@ -51,16 +51,5 @@ public static class Mail
         return services.GetService<IMail>()
             ?? throw new InvalidOperationException(
                 "Mail needs Rask.Mail registered: call builder.Services.AddRaskMail<AppDbContext>().");
-    }
-}
-
-/// <summary>The timing steps on an injected <see cref="IMail" />, worded as on <see cref="Mail" />.</summary>
-public static class MailExtensions
-{
-    extension(IMail mail)
-    {
-        /// <summary>Queues <paramref name="email" /> to go out as soon as the processor next polls.</summary>
-        public Sending Send(Email email, CancellationToken cancellationToken = default) =>
-            new(mail ?? throw new ArgumentNullException(nameof(mail)), email, null, null, cancellationToken);
     }
 }

@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.Reflection;
 using Rask.Core.Forms;
 using Rask.Site.Features;
@@ -497,13 +496,12 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         var v = new UniqueUsernameValidator();
         var model = new SignupModel { Username = "" };
         var ctx = new EditContext(model);
-        var sw = Stopwatch.StartNew();
 
-        await v.ValidateAsync(ctx, CancellationToken.None);
+        var validation = v.ValidateAsync(ctx, CancellationToken.None);
 
-        sw.Stop();
-        Assert.True(sw.ElapsedMilliseconds < 200,
-            "empty input should short-circuit before the 400ms delay");
+        // Completed on return means the 400 ms delay was never awaited — see the SlowTitleValidator twin below.
+        Assert.True(validation.IsCompletedSuccessfully, "empty input should short-circuit before the 400ms delay");
+        await validation;
     }
 
     [Fact]
@@ -534,12 +532,13 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new SlowTitleValidator();
         var ctx = new EditContext(new TaskModel { Title = "" });
-        var sw = Stopwatch.StartNew();
 
-        await v.ValidateAsync(ctx, CancellationToken.None);
+        var validation = v.ValidateAsync(ctx, CancellationToken.None);
 
-        sw.Stop();
-        Assert.True(sw.ElapsedMilliseconds < 200);
+        // Completed on return means the 600 ms delay was never awaited — the short circuit itself, with no
+        // wall-clock bound to miss on a loaded machine (the < 200 ms this used to assert did).
+        Assert.True(validation.IsCompletedSuccessfully);
+        await validation;
     }
 
     // --- Helpers ---

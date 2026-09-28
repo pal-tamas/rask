@@ -1,6 +1,6 @@
 using Rask.Cqrs;
 
-namespace Rask.Query.Tests;
+namespace Rask.Querying.Tests;
 
 /// <summary>A record query, so the cache key is the message itself by structural equality.</summary>
 public sealed record GetOrders(int Page) : IQuery<string>;

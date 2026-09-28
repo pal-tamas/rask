@@ -162,7 +162,7 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
-Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
@@ -189,3 +189,5 @@ static Rask.Logging.LogsFakes.extension(Rask.Logging.Logs!).Fake() -> Rask.Loggi
 static Rask.Logging.StoredLogCounting.AtLeast(this Rask.Batteries.Counting<Rask.Logging.LogRecord!> stored, Microsoft.Extensions.Logging.LogLevel level) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
 static Rask.Logging.StoredLogCounting.From(this Rask.Batteries.Counting<Rask.Logging.LogRecord!> stored, string! category) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
 static Rask.Logging.StoredLogCounting.Saying(this Rask.Batteries.Counting<Rask.Logging.LogRecord!> stored, string! text) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
+Rask.Batteries.CountingException.CountingException() -> void
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void

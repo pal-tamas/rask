@@ -99,8 +99,11 @@ public static class Notify
         CancellationToken cancellationToken)
         where TNotification : INotification
     {
-        await using var scope = root.CreateAsyncScope();
-        await Publish(scope.ServiceProvider, notification, cancellationToken).ConfigureAwait(false);
+        var scope = root.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            await Publish(scope.ServiceProvider, notification, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private static Task Publish<TNotification>(

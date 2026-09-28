@@ -128,12 +128,9 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         // Report in canonical document order rather than discovery order, so the message reads the way
         // the shell is written and is stable across edits that only move things around.
         List<string>? found = null;
-        foreach (var factory in _shellFactories)
+        foreach (var factory in _shellFactories.Where(factory => produced.Contains(factory)))
         {
-            if (produced.Contains(factory))
-            {
-                (found ??= new List<string>()).Add(factory + "()");
-            }
+            (found ??= new List<string>()).Add(factory + "()");
         }
 
         context.ReportDiagnostic(Diagnostic.Create(
@@ -145,8 +142,8 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         var containing = method.ContainingType?.ToDisplayString();
         return method.Name switch
         {
-            "MapRask" => containing == ServerExtensions,
-            "RunAsync" => containing == WasmHostBuilder,
+            "MapRask" => string.Equals(containing, ServerExtensions, StringComparison.Ordinal),
+            "RunAsync" => string.Equals(containing, WasmHostBuilder, StringComparison.Ordinal),
             _ => false
         };
     }

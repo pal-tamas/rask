@@ -12,6 +12,26 @@ internal static class WebSocketHelper
         await ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
     }
 
+    /// <summary>
+    ///     Returns once the server has attached the socket that just sent a hello for <paramref name="sessionId" />.
+    /// </summary>
+    /// <remarks>
+    ///     A hello is answered with nothing unless a render is owed, so draining a frame after it waited out its
+    ///     whole timeout — 2 s a test, about half this suite's time — and only incidentally left the attach done.
+    ///     This waits for the attach itself. A session the store does not know keeps the old drain.
+    /// </remarks>
+    public static async Task AttachedAsync(this WebSocket ws, RaskTestHost host, string sessionId, TimeSpan timeout)
+    {
+        if (host.Store.Peek(sessionId) is not { } session)
+        {
+            _ = await ws.TryReceiveTextAsync(timeout);
+            return;
+        }
+
+        // Qualified: this file is linked into test projects that do not import Rask.TestSupport globally.
+        await Rask.TestSupport.WaitFor.True(() => session.HasOpenTransport, timeout, "the server attaches the socket");
+    }
+
     public static async Task<string?> TryReceiveTextAsync(this WebSocket ws, TimeSpan timeout)
     {
         using var cts = new CancellationTokenSource(timeout);

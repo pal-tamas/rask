@@ -239,10 +239,8 @@ dotnet_naming_style.begins_with_i.required_suffix =
 dotnet_naming_style.begins_with_i.word_separator =
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
-# CA1305 (IFormatProvider) is promoted to an error for Rask.Core only, and deliberately NOT via
-# AnalysisLevel: raising that surfaces ~33 further CA findings at once (see Directory.Build.props).
-# EnableNETAnalyzers and TreatWarningsAsErrors are already on, so this one severity line activates
-# the rule on its own.
+# CA1305 (IFormatProvider) is an error for Rask.Core — it was promoted here on its own before the rest of src/
+# moved to AnalysisLevel latest-recommended (Directory.Build.props), and stays pinned so it cannot regress.
 #
 # It matters here because Rask.Core stringifies and parses values that cross the wire — reconciliation
 # keys, DOM event payloads, field-path indices. Those are wire formats and must stay invariant even
@@ -314,3 +312,21 @@ dotnet_diagnostic.BL0016.severity = none
 # exactly the failure it is written to observe.
 [tests/**.cs]
 dotnet_diagnostic.BL0016.severity = none
+
+# ---- Third-party analyzers (docs/code-analysis.md) ------------------------------------------------------------------
+#
+# src/ runs BannedApiAnalyzers (BannedSymbols.txt), Meziantou (MA), Roslynator (RCS), SonarAnalyzer (S) and the .NET
+# analyzers at latest-recommended, every finding an error. A finding is FIXED. A rule is silenced only where the code
+# genuinely cannot satisfy it, and then at that one site with a `#pragma` that says why — never for a whole path — so
+# the rule keeps guarding every new line.
+#
+# The one path-scoped exception: MA0004 (ConfigureAwait). Component, runtime and UI code runs on Rask's
+# LifecycleSyncContext or Blazor's renderer context, and an await there MUST resume on it; the batteries and hosts
+# below it have no context to keep and do call ConfigureAwait(false).
+[{src/Rask.Core/**.cs,src/Rask.Ui/**.cs,src/Rask.Blazor/**.cs,src/Rask.Site/**.cs}]
+dotnet_diagnostic.MA0004.severity = none
+
+# CA1716 is about Visual Basic's keywords (Get, Set, Select, Option, Stop, Error, Module, Shared, …). Rask is a C#
+# framework — nothing consumes it from VB — so a name that is the HTML tag or the repo's verb stays that name.
+[src/**.cs]
+dotnet_diagnostic.CA1716.severity = none

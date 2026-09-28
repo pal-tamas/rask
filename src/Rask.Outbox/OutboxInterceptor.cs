@@ -44,9 +44,9 @@ public sealed class OutboxInterceptor(TimeProvider timeProvider) : SaveChangesIn
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
         // Materialize first — adding OutboxMessage rows below mutates the ChangeTracker.
-        foreach (var entry in context.ChangeTracker.Entries<IHasDomainEvents>().ToList())
+        foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(entry => entry.Entity).ToList())
         {
-            var events = entry.Entity.DomainEvents.OfType<IOutboxEvent>().ToList();
+            var events = entity.DomainEvents.OfType<IOutboxEvent>().ToList();
             if (events.Count == 0)
             {
                 continue;
@@ -59,7 +59,7 @@ public sealed class OutboxInterceptor(TimeProvider timeProvider) : SaveChangesIn
             }
 
             // The outbox owns these events now; clear them so the in-process publisher (if any) skips them.
-            entry.Entity.ClearDomainEvents();
+            entity.ClearDomainEvents();
         }
     }
 }

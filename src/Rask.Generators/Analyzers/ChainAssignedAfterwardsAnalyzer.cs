@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -143,7 +144,7 @@ public sealed class ChainAssignedAfterwardsAnalyzer : DiagnosticAnalyzer
     // actually about, because that is where the two answers disagree.
     private static bool IsEntry(ISymbol property) =>
         property.ContainingType?.Name.StartsWith("RaskEntries", System.StringComparison.Ordinal) == true
-        || property.ContainingType?.ToDisplayString() == "Rask.Markup"
+        || string.Equals(property.ContainingType?.ToDisplayString(), "Rask.Markup", StringComparison.Ordinal)
         || (property is IPropertySymbol { Type: INamedTypeSymbol component }
             && BuilderEntry.IsGroupedEntry(property, component));
 

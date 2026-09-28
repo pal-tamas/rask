@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A scoped gate in a fresh worktree no longer aborts with "Could not find testhost".** Its build ran Restore
+  and Build in one MSBuild call, so Build reused the pre-restore evaluation and a never-restored test project
+  came out without `Microsoft.NET.Test.Sdk`'s targets (22 files instead of 81). Restore now gets its own
+  session id — what `dotnet build -restore` does.
+- **Two validator tests no longer race the clock.** The async-validator demos' "empty input short-circuits"
+  tests asserted the call took under 200 ms, which a loaded machine misses. They now assert the returned
+  `ValueTask` is already complete — i.e. the delay was never awaited — which is the short circuit itself.
+- **A scaffold's `.vscode/extensions.json` recommends what the project actually uses.** Every template adds
+  EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
+  `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
+  on a server app included. The file is generated from the scaffold's own files, no longer a committed fragment.
+- **`Rask.Server.Tests` spends ~40% less time waiting.** After a `hello`, 26 tests drained a frame with a 2 s
+  timeout — but a hello is answered with nothing unless a render is owed, so each waited out the whole 2 s,
+  about half the suite's test time. They now wait for the server to attach the socket (`AttachedAsync`), which
+  takes milliseconds. Summed test time 240 s → ~148 s; the two sites that do receive a catch-up frame and the
+  multi-socket reconnect tests keep their receive.
 - **One `Routes` class per project.** The route generator used to emit a `Routes` class per namespace, so a page in
   `Features.Shared` reaching the home page needed `using HomeRoutes = MyApp.Features.Home.Routes;`. There is now ONE
   `Routes`, in the project's root namespace (`RootNamespace`, else the assembly name), and `Routes.HomePage()` works
@@ -173,6 +189,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` scaffolds a test project with one passing test.** `rask new Shop` writes `Shop.Tests/` beside the
+  app — referencing it, `Rask.Testing` and xUnit, listed in `Shop.slnx` — with `Home_page_greets_the_visitor`,
+  which renders `HomePage` in-process and checks its greeting, so `dotnet test` is green from the first commit.
+  On the `server` and `wasm` templates; the app's csproj keeps the folder out of its own globs. `--no-tests`
+  leaves it out. See [the CLI](docs/cli.md#rask-new--scaffold-a-project) and [Testing](docs/testing.md).
 - **[RASK095](docs/diagnostics.md#rask095): a chain that skips a required step says which one, in the chain's
   words.** `Card.Note("x")` used to read `'RaskSeed_Card' does not contain a definition for 'Note'`, and
   `Div[Card]` compiled and threw while rendering; both now read `'Card' needs 'Title' before anything else —
@@ -213,6 +234,52 @@ them until tagged releases begin.
   By hand: `AddRaskWebPush<AppDbContext>()`, `modelBuilder.AddRaskWebPush()`, `app.MapRaskPush()`.
 
 ### Changed
+
+- **BREAKING — framework events are standard `EventHandler`s.** `IUserProvider.Changed`, `IToaster.Changed`,
+  `IRaskCulture.Changed`, `RouteState.Changed` and `EditContext.ValidationStateChanged` are `EventHandler`,
+  `EditContext.FieldChanged` is `EventHandler<FieldChangedEventArgs>` and `ScopedAssetRegistry.AssetChanged` is
+  `EventHandler<ScopedAssetChangedEventArgs>`. `route.Changed += StateHasChanged;` is unchanged — `Component` has
+  the matching overload; a lambda subscriber takes `(_, e) => Validate(e.Field)`, and an `IUserProvider` of your own
+  declares `event EventHandler? Changed` and raises it with `Changed?.Invoke(this, EventArgs.Empty)`.
+- **BREAKING — the batteries' namespaces are nouns of their own.** `Rask.Mail` → `Rask.Mailing`, `Rask.Jobs` →
+  `Rask.Background`, `Rask.Cache` → `Rask.Caching`, `Rask.Query` → `Rask.Querying`; the packages keep their names
+  and still import their namespace globally, so `Mail.Send(…)`/`Jobs.Enqueue(…)` read the same. A file that wrote
+  `using Rask.Mail;` writes `using Rask.Mailing;`.
+- **BREAKING — renames the analyzers asked for.**
+  `SensorPermission`/`NotificationPermission` → `SensorPermissionState`/`NotificationPermissionState`,
+  `RequestHandlerDelegate` → `RequestHandler`, `JobQueue` → `JobBacklog`, `MailQueue` → `MailOutbox`,
+  `UiStack` → `UiStackLayout` (still `Ui.Stack` in markup), `Ui.TreeSelection.Single`/`Multiple` → `One`/`Many`,
+  `SqliteCollations.Decimal` → `DecimalOrder`, a fake's `.Single()` → `.Only()`
+  (`mail.Sent().To("ann@x.io").Only()`), and the generated-markup hook `__Fragment` → `RaskFragment`.
+- **Exceptions you can catch by type.** `SqliteTransactionRolledBackException` (Rask.SQLite) and the CQRS server's
+  `BadRequestException` and `UploadOffsetException` are public, and they and `RaskValidationException` carry the
+  standard `()`, `(message)` and `(message, inner)` constructors.
+- **Fixes the analyzers found.** `IDispatcher.Subscribe(null!)` throws when called rather than on the first
+  enumeration; a scoped `IQueryClient` stops its live-refresh listener when its scope ends (it listened forever);
+  Litestream's `Validate()` throws `InvalidOperationException` for a null `Verification` or `BusyRetry`, as it
+  documents, instead of `ArgumentNullException`.
+- **A bad setting names its key, and every bad setting is reported at once.** The Jobs, Mail, Outbox, Cache,
+  Logging and Dashboard options are validated at startup by an `IValidateOptions<T>` that says
+  `Rask:Jobs:PollInterval must be positive.` — before, a setter threw an `ArgumentOutOfRangeException` for the first
+  bad value only, naming a parameter that did not exist. The batteries' shutdown and lease warnings now log the caught
+  exception with its stack. `FileRejectedException` carries the standard constructors.
+- **`UiFormField<T>.ControlAria()` returns `IReadOnlyDictionary<string, string?>`.** A form control of your own that
+  added to it builds its own dictionary from it.
+- **Smaller shape changes.** `FieldIdentifier` has `==`/`!=`; `FilePickerOptions.Accept` and
+  `SaveFilePickerOptions.Accept` are `IReadOnlyDictionary<string, string[]>?` (an initializer still compiles; mutating
+  `Accept` afterwards does not).
+- **BREAKING — a picked file is an `IRaskFile`.** The file an input hands a handler, and the file a CQRS message
+  carries, is the interface `IRaskFile` (it was the abstract class `RaskFile`, with no state of its own):
+  `OnFiles(IReadOnlyList<IRaskFile> files)`, `public IRaskFile? Photo { get; init; }`. A test double implements it
+  rather than deriving from it.
+- **BREAKING — `WasmHostBuilder.UseManifest(manifest)` is gone**; it was the `[Obsolete]` alias of
+  `UsePwa(manifest)`.
+- **`ApiException` carries the standard constructors**, and the server host passes the request's cancellation token
+  to the page, file and redirect writes it makes, so a dropped client stops them; a WASM file stream honours its token.
+- **Rask's own code is analyzer-clean.** `src/` now builds with Meziantou, Roslynator, SonarAnalyzer and
+  BannedApiAnalyzers beside the .NET analyzers at `latest-recommended`, every finding an error. Findings are fixed;
+  the few the code cannot satisfy are silenced at their one site with the reason on the line. None of these analyzers
+  reaches an app's dependency graph. See [Code analysis](docs/code-analysis.md).
 
 - **Rask.Data's verbs drop `Async`: `Product.Create(model)`, `Update`, `Delete`, `Model`.** An aggregate is
   written with `await Product.Create(model)`, `await Product.Update(id, model)`, `await Product.Delete(id, version)`
@@ -274,6 +341,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
+  render asked for with the awaitable form never appeared as a state render in the Renders tab.
+- **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
+  its ids per item type, so two trees of different row types both rendered `uitree-1`; the counter is shared now.
 - **An `export class` in a scoped `.ts` no longer breaks the component's whole script.** The wrapper stripped
   `export` from functions and variables but not classes, so the keyword was left inside a non-module wrapper and
   the script threw a SyntaxError. Classes are now exposed too.

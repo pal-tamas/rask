@@ -27,16 +27,10 @@ internal static class MetaMetadata
             return null;
         }
 
-        foreach (var attribute in assembly.GetCustomAttributes<AssemblyMetadataAttribute>())
-        {
-            if (string.Equals(attribute.Key, key, StringComparison.Ordinal)
-                && !string.IsNullOrEmpty(attribute.Value))
-            {
-                return attribute.Value;
-            }
-        }
-
-        return null;
+        return assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => string.Equals(attribute.Key, key, StringComparison.Ordinal)
+                                         && !string.IsNullOrEmpty(attribute.Value))
+            ?.Value;
     }
 
     /// <summary>Applies whatever the build baked, leaving anything it did not bake alone.</summary>

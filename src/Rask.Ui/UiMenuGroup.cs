@@ -19,12 +19,13 @@ public sealed partial class UiMenuGroup : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var inMenu = Context.Get<UiMenuLevel>() is not null;
+        // Inside a dropdown the heading is presentation; the items carry the menu roles.
+        var role = Context.Get<UiMenuLevel>() is null ? null : "presentation";
         return
         [
             Heading is null
                 ? null
-                : Li.Class(UiClass.Compose("menu-title", Class)).Role(inMenu ? "presentation" : null)[Heading],
+                : Li.Class(UiClass.Compose("menu-title", Class)).Role(role)[Heading],
             .. Children ?? []
         ];
     }

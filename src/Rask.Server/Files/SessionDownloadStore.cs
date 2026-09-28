@@ -4,7 +4,7 @@ namespace Rask.Server.Files;
 
 internal sealed class SessionDownloadStore : IDisposable
 {
-    private readonly ConcurrentDictionary<string, Entry> _entries = new();
+    private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.Ordinal);
 
     public void Dispose()
     {
@@ -57,7 +57,7 @@ internal sealed class SessionDownloadStore : IDisposable
         return false;
     }
 
-    public void Release(Entry entry)
+    public static void Release(Entry entry)
     {
         if (entry.TempPath is { } path)
         {

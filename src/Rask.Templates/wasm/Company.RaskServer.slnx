@@ -3,4 +3,7 @@
   <!-- rask:if islands-blazor -->
   <Project Path="Company.RaskServer.Components/Company.RaskServer.Components.csproj" />
   <!-- rask:end -->
+  <!-- rask:if tests -->
+  <Project Path="Company.RaskServer.Tests/Company.RaskServer.Tests.csproj" />
+  <!-- rask:end -->
 </Solution>

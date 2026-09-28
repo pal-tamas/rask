@@ -71,7 +71,7 @@ internal static class FullTextSearchDdl
     {
         if (entityType.FindAnnotation(LayoutAnnotation)?.Value is string recorded)
         {
-            return recorded == RowidLayout;
+            return string.Equals(recorded, RowidLayout, StringComparison.Ordinal);
         }
 
         if (entityType.FindPrimaryKey() is not { Properties: [var key] })
@@ -117,8 +117,8 @@ internal static class FullTextSearchDdl
     {
         foreach (var entityType in model.GetEntityTypes())
         {
-            if (entityType.GetTableName() == table
-                && entityType.GetSchema() == schema
+            if (string.Equals(entityType.GetTableName(), table, StringComparison.Ordinal)
+                && string.Equals(entityType.GetSchema(), schema, StringComparison.Ordinal)
                 && FullTextSearchSpec.TryParse(entityType.FindAnnotation(FullTextSearchSpec.AnnotationName)?.Value, out var spec))
             {
                 return (entityType, spec);
@@ -151,44 +151,7 @@ internal static class FullTextSearchDdl
 
         foreach (var operation in operations)
         {
-            switch (operation)
-            {
-                case DropTableOperation drop:
-                    // The virtual table outlives the table it indexes (the triggers go with the table), and the
-                    // target model no longer says whether there was one — so any dropped table clears its own.
-                    dropped.Add(drop.Name);
-                    Drop(builder, drop.Name);
-                    emitted = true;
-                    break;
-
-                case RenameTableOperation rename:
-                    // Triggers travel with ALTER TABLE ... RENAME under their old names, and the index keeps the old
-                    // table's name, so the old set is cleared before the new one is built.
-                    Drop(builder, rename.Name);
-                    emitted = true;
-                    Touch(rebuild, rename.NewName ?? rename.Name, rename.NewSchema ?? rename.Schema);
-                    break;
-
-                case AlterTableOperation alter
-                    when alter.OldTable[FullTextSearchSpec.AnnotationName] is not null
-                         && alter[FullTextSearchSpec.AnnotationName] is null:
-                    // The declaration was removed.
-                    Drop(builder, alter.Name);
-                    emitted = true;
-                    break;
-
-                // Adding or dropping a plain index never rebuilds the table, so its triggers and index survive.
-                case CreateIndexOperation or DropIndexOperation:
-                    break;
-
-                default:
-                    if (TableOf(operation) is { } touched)
-                    {
-                        Touch(rebuild, touched.Table, touched.Schema);
-                    }
-
-                    break;
-            }
+            emitted |= Clear(builder, operation, dropped, rebuild);
         }
 
         if (model is not null)
@@ -206,6 +169,51 @@ internal static class FullTextSearchDdl
         }
 
         return emitted ? builder.GetCommandList() : [];
+    }
+
+    // Drops the index an operation invalidates, and notes the tables whose index must be rebuilt after it.
+    // Returns whether it emitted anything.
+    private static bool Clear(
+        MigrationCommandListBuilder builder,
+        MigrationOperation operation,
+        HashSet<string> dropped,
+        List<(string Table, string? Schema)> rebuild)
+    {
+        switch (operation)
+        {
+            case DropTableOperation drop:
+                // The virtual table outlives the table it indexes (the triggers go with the table), and the
+                // target model no longer says whether there was one — so any dropped table clears its own.
+                dropped.Add(drop.Name);
+                Drop(builder, drop.Name);
+                return true;
+
+            case RenameTableOperation rename:
+                // Triggers travel with ALTER TABLE ... RENAME under their old names, and the index keeps the old
+                // table's name, so the old set is cleared before the new one is built.
+                Drop(builder, rename.Name);
+                Touch(rebuild, rename.NewName ?? rename.Name, rename.NewSchema ?? rename.Schema);
+                return true;
+
+            case AlterTableOperation alter
+                when alter.OldTable[FullTextSearchSpec.AnnotationName] is not null
+                     && alter[FullTextSearchSpec.AnnotationName] is null:
+                // The declaration was removed.
+                Drop(builder, alter.Name);
+                return true;
+
+            // Adding or dropping a plain index never rebuilds the table, so its triggers and index survive.
+            case CreateIndexOperation or DropIndexOperation:
+                return false;
+
+            default:
+                if (TableOf(operation) is { } touched)
+                {
+                    Touch(rebuild, touched.Table, touched.Schema);
+                }
+
+                return false;
+        }
     }
 
     private static void Touch(List<(string Table, string? Schema)> tables, string table, string? schema)
@@ -243,39 +251,59 @@ internal static class FullTextSearchDdl
                 "cannot be joined back to its row.");
         var keyColumns = key.Properties.Select(property => Column(entityType, property.Name, store)).ToArray();
 
-        var index = Quote(IndexTable(table));
-        var source = Quote(table);
-        var tokenize = Literal(Tokenizer(spec.Tokenizer));
-        var columnList = string.Join(", ", columns.Select(Quote));
-        var watched = string.Join(", ", columns.Concat(keyColumns).Distinct(StringComparer.Ordinal).Select(Quote));
-        var (insert, delete, update) = (Triggers(table)[0], Triggers(table)[1], Triggers(table)[2]);
+        var target = new IndexedTable(
+            table,
+            Quote(IndexTable(table)),
+            Quote(table),
+            columns,
+            string.Join(", ", columns.Select(Quote)),
+            string.Join(", ", columns.Concat(keyColumns).Distinct(StringComparer.Ordinal).Select(Quote)));
 
         Drop(builder, table);
 
         // Every write first clears whatever the index holds for the row, by rowid. That is what keeps a REPLACE (whose
         // replaced row fires no AFTER DELETE), an upsert and a key change from leaving a stale or duplicate entry.
-        Append(builder, $"CREATE VIRTUAL TABLE {index} USING fts5({columnList}, tokenize={tokenize});");
+        Append(builder, $"CREATE VIRTUAL TABLE {target.Index} USING fts5({target.ColumnList}, tokenize={Literal(Tokenizer(spec.Tokenizer))});");
 
         if (UsesRowid(entityType))
         {
-            var rowid = Quote(keyColumns[0]);
-            string Write(string row) =>
-                $"  DELETE FROM {index} WHERE rowid = {row}.{rowid};\n" +
-                $"  INSERT INTO {index}(rowid, {columnList}) VALUES ({row}.{rowid}, {Values(row, columns)});\n";
-
-            Append(builder, $"CREATE TRIGGER {Quote(insert)} AFTER INSERT ON {source}\nBEGIN\n{Write("NEW")}END;");
-            Append(builder, $"CREATE TRIGGER {Quote(delete)} AFTER DELETE ON {source}\nBEGIN\n  DELETE FROM {index} WHERE rowid = OLD.{rowid};\nEND;");
-            Append(
-                builder,
-                $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {watched} ON {source}\nBEGIN\n" +
-                $"  DELETE FROM {index} WHERE rowid = OLD.{rowid};\n{Write("NEW")}END;");
-            Append(builder, $"INSERT INTO {index}(rowid, {columnList}) SELECT {rowid}, {columnList} FROM {source};");
-            return;
+            CreateRowidTriggers(builder, target, Quote(keyColumns[0]));
         }
+        else
+        {
+            CreateKeyedTriggers(builder, target, keyColumns, key.Properties.Select(property => property.GetColumnType(store)));
+        }
+    }
 
-        var keys = Quote(KeyTable(table));
-        var keyDefinitions = string.Join(", ", key.Properties.Select((property, i) =>
-            $"{Quote(keyColumns[i])} {property.GetColumnType(store)} NOT NULL"));
+    // A single integer key IS the index's rowid.
+    private static void CreateRowidTriggers(MigrationCommandListBuilder builder, IndexedTable target, string rowid)
+    {
+        var (index, source, columnList) = (target.Index, target.Source, target.ColumnList);
+        var (insert, delete, update) = (Triggers(target.Table)[0], Triggers(target.Table)[1], Triggers(target.Table)[2]);
+        string Write(string row) =>
+            $"  DELETE FROM {index} WHERE rowid = {row}.{rowid};\n" +
+            $"  INSERT INTO {index}(rowid, {columnList}) VALUES ({row}.{rowid}, {Values(row, target.Columns)});\n";
+
+        Append(builder, $"CREATE TRIGGER {Quote(insert)} AFTER INSERT ON {source}\nBEGIN\n{Write("NEW")}END;");
+        Append(builder, $"CREATE TRIGGER {Quote(delete)} AFTER DELETE ON {source}\nBEGIN\n  DELETE FROM {index} WHERE rowid = OLD.{rowid};\nEND;");
+        Append(
+            builder,
+            $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {target.Watched} ON {source}\nBEGIN\n" +
+            $"  DELETE FROM {index} WHERE rowid = OLD.{rowid};\n{Write("NEW")}END;");
+        Append(builder, $"INSERT INTO {index}(rowid, {columnList}) SELECT {rowid}, {columnList} FROM {source};");
+    }
+
+    // Any other key goes through a key map: a table giving each key a rowid the index can file it under.
+    private static void CreateKeyedTriggers(
+        MigrationCommandListBuilder builder,
+        IndexedTable target,
+        string[] keyColumns,
+        IEnumerable<string?> keyTypes)
+    {
+        var (index, source, columnList) = (target.Index, target.Source, target.ColumnList);
+        var (insert, delete, update) = (Triggers(target.Table)[0], Triggers(target.Table)[1], Triggers(target.Table)[2]);
+        var keys = Quote(KeyTable(target.Table));
+        var keyDefinitions = string.Join(", ", keyTypes.Select((type, i) => $"{Quote(keyColumns[i])} {type} NOT NULL"));
         var keyList = string.Join(", ", keyColumns.Select(Quote));
         string Match(string row) => string.Join(" AND ", keyColumns.Select(c => $"{Quote(c)} = {row}.{Quote(c)}"));
         string Lookup(string row) => $"(SELECT rowid FROM {keys} WHERE {Match(row)})";
@@ -285,7 +313,7 @@ internal static class FullTextSearchDdl
         string WriteKeyed(string row) =>
             $"  DELETE FROM {index} WHERE rowid = {Lookup(row)};\n" +
             $"  INSERT OR IGNORE INTO {keys}({keyList}) VALUES ({Values(row, keyColumns)});\n" +
-            $"  INSERT INTO {index}(rowid, {columnList}) VALUES ({Lookup(row)}, {Values(row, columns)});\n";
+            $"  INSERT INTO {index}(rowid, {columnList}) VALUES ({Lookup(row)}, {Values(row, target.Columns)});\n";
         string Forget(string row) =>
             $"  DELETE FROM {index} WHERE rowid = {Lookup(row)};\n" +
             $"  DELETE FROM {keys} WHERE {Match(row)};\n";
@@ -293,13 +321,22 @@ internal static class FullTextSearchDdl
         Append(builder, $"CREATE TABLE {keys} (rowid INTEGER PRIMARY KEY, {keyDefinitions}, UNIQUE ({keyList}));");
         Append(builder, $"CREATE TRIGGER {Quote(insert)} AFTER INSERT ON {source}\nBEGIN\n{WriteKeyed("NEW")}END;");
         Append(builder, $"CREATE TRIGGER {Quote(delete)} AFTER DELETE ON {source}\nBEGIN\n{Forget("OLD")}END;");
-        Append(builder, $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {watched} ON {source}\nBEGIN\n{Forget("OLD")}{WriteKeyed("NEW")}END;");
+        Append(builder, $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {target.Watched} ON {source}\nBEGIN\n{Forget("OLD")}{WriteKeyed("NEW")}END;");
         Append(builder, $"INSERT INTO {keys}({keyList}) SELECT {keyList} FROM {source};");
         Append(
             builder,
-            $"INSERT INTO {index}(rowid, {columnList}) SELECT k.rowid, {string.Join(", ", columns.Select(c => $"t.{Quote(c)}"))} " +
+            $"INSERT INTO {index}(rowid, {columnList}) SELECT k.rowid, {string.Join(", ", target.Columns.Select(c => $"t.{Quote(c)}"))} " +
             $"FROM {source} t JOIN {keys} k ON {string.Join(" AND ", keyColumns.Select(c => $"k.{Quote(c)} = t.{Quote(c)}"))};");
     }
+
+    /// <summary>A searchable table's quoted names, as its index DDL spells them.</summary>
+    private sealed record IndexedTable(
+        string Table,
+        string Index,
+        string Source,
+        string[] Columns,
+        string ColumnList,
+        string Watched);
 
     private static string[] Triggers(string table) =>
         [$"TR_{table}_fts_Insert", $"TR_{table}_fts_Delete", $"TR_{table}_fts_Update"];

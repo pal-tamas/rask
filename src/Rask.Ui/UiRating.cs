@@ -66,7 +66,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
 
         return Div
             .Role("radiogroup")
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
+            .Aria("label", Label)
             .Class(UiClass.Compose(
                 "rating",
                 Size is { } size ? UiClassNames.RatingSize(size) : "",
@@ -78,7 +78,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
                 .Type(InputType.Radio)
                 .Name(Group)
                 .Class("rating-hidden")
-                .Aria(new Dictionary<string, string?> { ["label"] = "No rating" }),
+                .Aria("label", "No rating"),
             Enumerable.Range(1, max).Select(star =>
                 Input
                     .Value(star.ToString(CultureInfo.InvariantCulture))
@@ -88,11 +88,9 @@ public sealed partial class UiRating : Component, IFormControl<int>
                     .Type(InputType.Radio)
                     .Name(Group)
                     .Class("mask mask-star-2")
-                    .Aria(new Dictionary<string, string?>
-                    {
-                        ["label"] = $"{star.ToString(CultureInfo.InvariantCulture)} of "
-                                    + max.ToString(CultureInfo.InvariantCulture),
-                    }))
+                    .Aria(
+                        "label",
+                        $"{star.ToString(CultureInfo.InvariantCulture)} of " + max.ToString(CultureInfo.InvariantCulture)))
         ];
     }
 }

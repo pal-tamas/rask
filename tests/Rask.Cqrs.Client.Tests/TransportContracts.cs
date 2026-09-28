@@ -8,7 +8,7 @@ public sealed record RenameThing(int Id, string Name) : ICommand;
 
 public sealed record CountThings(string Filter) : IQuery<int>;
 
-public sealed record AttachToThing(int Id, RaskFile File) : ICommand<string>;
+public sealed record AttachToThing(int Id, IRaskFile File) : ICommand<string>;
 
 public sealed record ExportThings(int Year) : IQuery<FileDownload>;
 

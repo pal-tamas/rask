@@ -29,9 +29,24 @@
     <Compile Include="..\Rask.Generators.Shared\DiagnosticHelp.cs" Link="Shared\DiagnosticHelp.cs"/>
     <Compile Include="..\Rask.Generators.Shared\IsExternalInit.cs" Link="Shared\IsExternalInit.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireShape.cs" Link="Shared\WireShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireKind.cs" Link="Shared\WireKind.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\SequenceShape.cs" Link="Shared\SequenceShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireMember.cs" Link="Shared\WireMember.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WireType.cs" Link="Shared\WireType.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireCodecEmitter.cs" Link="Shared\WireCodecEmitter.cs"/>
     <Compile Include="..\Rask.Generators.Shared\GeneratedModelShape.cs" Link="Shared\GeneratedModelShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelMemberRole.cs" Link="Shared\ModelMemberRole.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueObjectBuild.cs" Link="Shared\ModelValueObjectBuild.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelWriteKind.cs" Link="Shared\ModelWriteKind.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelMember.cs" Link="Shared\ModelMember.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueObject.cs" Link="Shared\ModelValueObject.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueObjectMember.cs" Link="Shared\ModelValueObjectMember.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelChildAccess.cs" Link="Shared\ModelChildAccess.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelChild.cs" Link="Shared\ModelChild.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelValueCollection.cs" Link="Shared\ModelValueCollection.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelShape.cs" Link="Shared\ModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\AggregateShape.cs" Link="Shared\AggregateShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\WriteKind.cs" Link="Shared\WriteKind.cs"/>
   </ItemGroup>
 
 </Project>

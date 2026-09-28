@@ -55,83 +55,76 @@ internal static class TarGz
         var full = Path.GetFullPath(destinationDirectory);
         Directory.CreateDirectory(full);
 
-        using var raw = new MemoryStream(archive, writable: false);
-        using var gzip = new GZipStream(raw, CompressionMode.Decompress);
-
-        // Decompressed up front rather than streamed: GZipStream cannot seek, tar needs to skip over
-        // entry payloads, and these archives are tens of megabytes — small enough that buffering is
-        // simpler than a read-and-discard loop, and the alternative is a partial-read bug waiting to
-        // happen at a block boundary.
-        var tar = ReadAll(gzip);
-
+        var tar = Decompress(archive);
         var offset = 0;
         string? pendingLongName = null;
 
         while (offset + BlockSize <= tar.Length)
         {
-            var header = new ArraySegment<byte>(tar, offset, BlockSize);
-            offset += BlockSize;
+            var headerStart = offset;
 
             // Two consecutive zero blocks end the archive; one is enough to stop on, because nothing
             // legitimate follows and trailing garbage is not ours to interpret.
-            if (IsAllZero(header))
+            if (IsAllZero(new ArraySegment<byte>(tar, headerStart, BlockSize)))
             {
                 break;
             }
 
-            var size = ParseOctal(tar, offset - BlockSize + 124, 12);
-            var typeFlag = (char)tar[offset - BlockSize + 156];
-            var name = pendingLongName ?? ReadName(tar, offset - BlockSize);
+            var size = ParseOctal(tar, headerStart + 124, 12);
+            var typeFlag = (char)tar[headerStart + 156];
+            var name = pendingLongName ?? ReadName(tar, headerStart);
             pendingLongName = null;
 
-            var payload = offset;
-            offset += Padded(size);
+            var payload = headerStart + BlockSize;
+            offset = payload + Padded(size);
 
-            switch (typeFlag)
+            if (typeFlag == 'L')
             {
-                case 'L':
-                    // GNU long name: the NEXT entry's path is this entry's payload.
-                    pendingLongName = Encoding.UTF8
-                        .GetString(tar, payload, (int)size)
-                        .TrimEnd('\0');
-                    continue;
-
-                case 'x':
-                case 'g':
-                    // pax extended header. Its payload restates metadata the ustar header already
-                    // carries for these packages, so skipping it is correct rather than lossy.
-                    continue;
-
-                case '5':
-                    continue;
-
-                case '0':
-                case '\0':
-                    break;
-
-                default:
-                    // Links, devices, and anything else an npm package has no business containing.
-                    continue;
+                // GNU long name: the NEXT entry's path is this entry's payload.
+                pendingLongName = Encoding.UTF8.GetString(tar, payload, (int)size).TrimEnd('\0');
+                continue;
             }
 
             var relative = stripRoot ? StripRoot(name) : name;
-            if (relative.Length == 0)
+            if (!IsRegularFile(typeFlag) || relative.Length == 0)
             {
                 continue;
             }
 
-            var target = SafeCombine(full, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-
-            using (var file = File.Create(target))
-            {
-                file.Write(tar, payload, (int)size);
-            }
-
+            WriteFile(SafeCombine(full, relative), tar, payload, (int)size);
             written.Add(relative);
         }
 
         return written;
+    }
+
+    /// <summary>
+    ///     Decompressed up front rather than streamed: GZipStream cannot seek, tar needs to skip over
+    ///     entry payloads, and these archives are tens of megabytes — small enough that buffering is
+    ///     simpler than a read-and-discard loop, and the alternative is a partial-read bug waiting to
+    ///     happen at a block boundary.
+    /// </summary>
+    private static byte[] Decompress(byte[] archive)
+    {
+        using var raw = new MemoryStream(archive, writable: false);
+        using var gzip = new GZipStream(raw, CompressionMode.Decompress);
+        return ReadAll(gzip);
+    }
+
+    /// <summary>Whether an entry of this type is a file to write.</summary>
+    /// <remarks>
+    ///     pax extended headers (<c>x</c>, <c>g</c>) restate metadata the ustar header already carries for
+    ///     these packages, so skipping them is correct rather than lossy. Directories (<c>5</c>) are made
+    ///     on demand, and links, devices and anything else an npm package has no business containing are
+    ///     skipped.
+    /// </remarks>
+    private static bool IsRegularFile(char typeFlag) => typeFlag is '0' or '\0';
+
+    private static void WriteFile(string target, byte[] tar, int payload, int size)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        using var file = File.Create(target);
+        file.Write(tar, payload, size);
     }
 
     /// <summary>

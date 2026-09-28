@@ -167,23 +167,14 @@ internal sealed partial class NodeSupervisor : BackgroundService
         var attempt = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (attempt > 0)
+            if (attempt > 0 && attempt > _options.MaxRestartAttempts)
             {
-                if (attempt > _options.MaxRestartAttempts)
-                {
-                    break;
-                }
+                break;
+            }
 
-                var backoff = BackoffFor(attempt);
-                LogRestarting(_options.Framework.Name, attempt, _options.MaxRestartAttempts, backoff.TotalSeconds);
-                try
-                {
-                    await Task.Delay(backoff, stoppingToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
+            if (attempt > 0 && !await BackOffAsync(attempt, stoppingToken).ConfigureAwait(false))
+            {
+                return;
             }
 
             var startedAt = TimeProvider.System.GetTimestamp();
@@ -203,6 +194,22 @@ internal sealed partial class NodeSupervisor : BackgroundService
         // degraded process that still answers health checks is not.
         LogGivingUp(_options.Framework.Name, _options.MaxRestartAttempts);
         _lifetime.StopApplication();
+    }
+
+    // Waits out the backoff before restart number `attempt`; false when the host stopped meanwhile.
+    private async Task<bool> BackOffAsync(int attempt, CancellationToken stoppingToken)
+    {
+        var backoff = BackoffFor(attempt);
+        LogRestarting(_options.Framework.Name, attempt, _options.MaxRestartAttempts, backoff.TotalSeconds);
+        try
+        {
+            await Task.Delay(backoff, stoppingToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -253,9 +260,10 @@ internal sealed partial class NodeSupervisor : BackgroundService
                 LogReady(_options.Framework.Name, _options.Port);
 
                 // Standard output, not the log: the editor watches the debug console for this exact line.
-                Console.Out.WriteLine(
-                    EditorDevSession.OpenLinePrefix
-                    + string.Create(CultureInfo.InvariantCulture, $"http://localhost:{_options.Port}"));
+                await Console.Out.WriteLineAsync(
+                    (EditorDevSession.OpenLinePrefix
+                     + string.Create(CultureInfo.InvariantCulture, $"http://localhost:{_options.Port}")).AsMemory(),
+                    stoppingToken).ConfigureAwait(false);
             }
 
             await process.WaitForExitAsync(stoppingToken).ConfigureAwait(false);
@@ -513,6 +521,7 @@ internal sealed partial class NodeSupervisor : BackgroundService
 
     private const int SIGTERM = 15;
 
+    /// <summary>Sends <paramref name="signal" /> to process <paramref name="pid" /> through libc's <c>kill</c>.</summary>
     /// <remarks>
     ///     <c>DllImport</c> rather than the newer <c>LibraryImport</c>: the source generator behind
     ///     that attribute emits unsafe code, so it would mean turning on

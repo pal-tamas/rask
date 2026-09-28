@@ -1,3 +1,4 @@
+using System.Globalization;
 using Rask.Core.Browser;
 
 namespace Rask.Site.Features;
@@ -26,7 +27,7 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
         if (!await gamepad.IsSupportedAsync())
         {
             _status = "Gamepad API not supported";
-            StateHasChanged();
+            await StateHasChangedAsync();
             return;
         }
 
@@ -45,21 +46,21 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
             StateHasChanged();
             return Task.CompletedTask;
         });
-        StateHasChanged();
+        await StateHasChangedAsync();
     }
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
                 Div.Class("text-sm text-ui-muted mb-2")[
-                    "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString()]],
+                    "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString(CultureInfo.InvariantCulture)]],
                 _pads.Count == 0
                     ? Div.Class("text-ui-muted text-sm")["No controllers connected."]
                     : Ui.List[
                         _pads.Values.Select(p => Li.Key(p.Index)[
                             Div.Class("text-sm font-semibold")[$"#{p.Index} — {p.Id}"],
                             Div.Class("text-sm text-ui-muted")[
-                                $"axes [{string.Join(", ", p.Axes.Select(a => a.ToString("0.00")))}] · "
+                                $"axes [{string.Join(", ", p.Axes.Select(a => a.ToString("0.00", CultureInfo.InvariantCulture)))}] · "
                                 + $"buttons pressed {p.Buttons.Count(b => b > 0.5)}/{p.Buttons.Count}"]
                         ])
                     ]

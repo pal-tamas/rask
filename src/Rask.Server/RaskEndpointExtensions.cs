@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Reflection.Metadata;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -70,7 +71,7 @@ public static partial class RaskEndpointExtensions
     private const string SendPath = "/_rask/send/{sessionId}";
     private const string LeavePath = "/_rask/leave/{sessionId}";
 
-    // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/;
+    // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/, and
     // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
     // the whole app — a SW under /rask/ could only intercept /rask/* requests.
     internal const string ManifestPath = "/rask/manifest.webmanifest";
@@ -94,7 +95,7 @@ public static partial class RaskEndpointExtensions
     // arrived during the quiet window — the trailing change wins and we re-render once.
     private static long _assetChangeGen;
 
-    // HTTP methods accepted by the per-component asset endpoint. GET serves the body;
+    // HTTP methods accepted by the per-component asset endpoint. GET serves the body, and
     // HEAD returns the same headers with no body (handled by Results.Bytes internally).
     // POST/PUT/DELETE/PATCH not listed → ASP.NET returns 405 Method Not Allowed.
     private static readonly string[] _assetMethods = ["GET", "HEAD"];
@@ -137,6 +138,18 @@ public static partial class RaskEndpointExtensions
         Action<RaskLiveOptions>? configure = null,
         Action<RaskServerOptions>? configureServer = null,
         Action<RaskCultureOptions>? configureCulture = null)
+    {
+        AddOptionsAndKeyRing(services, configure, configureServer);
+        AddSessionHosting(services);
+        AddSessionServices(services, configureCulture);
+
+        return services;
+    }
+
+    private static void AddOptionsAndKeyRing(
+        IServiceCollection services,
+        Action<RaskLiveOptions>? configure,
+        Action<RaskServerOptions>? configureServer)
     {
         // Per-app live runtime options, bound from Rask:Live and then the callback — code wins over
         // appsettings, appsettings over the defaults (see RaskOptionsRegistration). The framework default for
@@ -196,7 +209,10 @@ public static partial class RaskEndpointExtensions
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IConfigureOptions<DataProtectionOptions>, RaskDataProtectionSetup>(
                 RaskDataProtectionSetup.Create));
+    }
 
+    private static void AddSessionHosting(IServiceCollection services)
+    {
         // Stop the hosted services CONCURRENTLY, inside a budget that fits under the deploy's SIGKILL.
         // Sequentially — .NET's default — each pillar's shutdown grace sums to 30s against a window that
         // closes at 20s, so whichever one stops last is killed mid-write, decided by the order of the
@@ -255,7 +271,10 @@ public static partial class RaskEndpointExtensions
         // under a debugger there is no `rask dev`. Registered only for a dev-session build; whether it acts is
         // decided at startup (Development, and not under dotnet watch).
         Dev.IslandDevServer.Register(services, System.Reflection.Assembly.GetEntryAssembly());
+    }
 
+    private static void AddSessionServices(IServiceCollection services, Action<RaskCultureOptions>? configureCulture)
+    {
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
@@ -270,6 +289,11 @@ public static partial class RaskEndpointExtensions
         // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
         services.AddScoped<IToaster, Toaster>();
 
+        AddVisitorServices(services, configureCulture);
+    }
+
+    private static void AddVisitorServices(IServiceCollection services, Action<RaskCultureOptions>? configureCulture)
+    {
         // Scoped: a DI scope on the server IS a live session, and so a visitor. Registered even when
         // the app configured nothing, because IRaskCulture is a host contract; without a configured
         // culture this is inert. Negotiating one from the request arrives in a later change.
@@ -319,7 +343,6 @@ public static partial class RaskEndpointExtensions
         services.AddScoped<LiveSessionAccessor>();
         services.AddScoped<RaskJSRuntime>();
         services.AddScoped<IJSRuntime>(sp => sp.GetRequiredService<RaskJSRuntime>());
-        return services;
     }
 
     /// <summary>
@@ -350,7 +373,7 @@ public static partial class RaskEndpointExtensions
 
         var logger = loggerFactory?.CreateLogger("Rask");
         if (logger is not null)
-            logger.LogInformation("Rask {Version} (Server) starting", RaskVersion.Current);
+            Starting(logger, RaskVersion.Current);
         else
             Console.WriteLine($"Rask {RaskVersion.Current} (Server) starting");
 
@@ -369,6 +392,317 @@ public static partial class RaskEndpointExtensions
         app.UseWebSockets();
         ((IEndpointRouteBuilder)app).MapRask<TApp>(pattern, pathBase);
         return app;
+    }
+
+    /// <summary>
+    ///     Endpoint-routing overload of <see cref="MapRask{TApp}(WebApplication, string, string)" />: maps the
+    ///     Rask live endpoints onto an existing <see cref="IEndpointRouteBuilder" /> without touching the
+    ///     middleware pipeline (the caller is responsible for <c>UseWebSockets()</c>).
+    /// </summary>
+    /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
+    /// <param name="endpoints">The endpoint route builder to map Rask routes on.</param>
+    /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
+    /// <param name="pathBase">Optional URL prefix; see the <see cref="WebApplication" /> overload.</param>
+    /// <returns>The same <paramref name="endpoints" /> instance, for chaining.</returns>
+    public static IEndpointRouteBuilder MapRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+        this IEndpointRouteBuilder endpoints,
+        string pattern = "/{**path}",
+        string pathBase = "")
+        where TApp : Component
+    {
+        var pathBaseNormalized = ApplyLiveOptions(endpoints, pathBase);
+
+        // How a session's tree is built, captured once here because two call sites need it: the GET that
+        // mints a session, and the WebSocket that rebuilds one from a resume record. Wrapping the App in an
+        // implicit RootErrorBoundary means an uncaught render / lifecycle / event-handler exception
+        // anywhere in the user's tree renders a styled fallback page instead of an HTTP 500. Declared in
+        // this generic method so TApp's DynamicallyAccessedMembers annotation flows into the closure —
+        // EnsureRuntimeMapped is deliberately non-generic (its double-map guard is per host, not per TApp).
+        // A chain carries properties and DI services; the app instance is a runtime constructor argument,
+        // and this is the root, so there is no parent render context whose GetOrCreate a chain would route
+        // through. RASK014's reason to exist is absent here.
+#pragma warning disable RASK014
+        Func<IServiceProvider, Component> appFactory =
+            sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp))
+            {
+                // RaskApp's document defaults, on the App's own root only — a mounted app below keeps its own.
+                Defaults = sp.GetService<RaskDocumentDefaults>(),
+            };
+#pragma warning restore RASK014
+
+        // Applications mounted under their own prefix — the operator console at /_rask is the one that
+        // exists. Read from the container rather than named here, because Rask.Server cannot see the
+        // packages that declare them and must not: it would drag EF and the batteries into a host that
+        // wanted neither.
+        var selector = new RaskRootSelector(
+            appFactory,
+            endpoints.ServiceProvider.GetServices<RaskMountedApp>().ToArray(),
+            endpoints.ServiceProvider.GetService<IRaskServerDevTools>());
+
+        EnsureRuntimeMapped(endpoints, pathBaseNormalized, selector);
+
+        // Scope the catch-all SPA route under the prefix when set. The pattern
+        // default ("/{**path}") is interpreted relative to the prefix root, so
+        // a request to /sub/users/42 matches with that whole path, and
+        // the handler strips the prefix before resolving against user routes
+        // (which are registered as "/users/{id}").
+        var scopedPattern = UnderPathBase(pathBaseNormalized, pattern);
+
+        // Hoisted so the same handler can serve the host's catch-all AND each mounted application's
+        // pattern. It already decides which application owns a request from the path, so mapping it more
+        // than once adds a way in rather than a second behaviour.
+        var pageHandler = (RequestDelegate)(httpContext => ServePageAsync(httpContext, selector, pathBaseNormalized));
+
+        endpoints.MapGet(scopedPattern, pageHandler);
+
+        // A mounted application needs its own endpoint when the host's pattern does not reach it. The
+        // default catch-all does, and ASP.NET prefers the more specific route either way, so this is
+        // what makes the console work on a host whose own pattern is narrow — a wasm-hosted app, where
+        // the SPA fallback would otherwise swallow /_rask.
+        foreach (var mountPattern in selector.Mounts.Select(mount => UnderPathBase(pathBaseNormalized, mount.Pattern)))
+        {
+            endpoints.MapGet(mountPattern, pageHandler);
+        }
+
+        return endpoints;
+    }
+
+    private static string ApplyLiveOptions(IEndpointRouteBuilder endpoints, string pathBase)
+    {
+        // Normalize once and stash on the static accessor so all downstream URL
+        // emission (head asset links, runtime <script> src, download URLs) reads
+        // the same prefix. A non-empty value also scopes every Map call below
+        // under the prefix so two Rask servers can live side-by-side on one
+        // origin behind a reverse proxy.
+        //
+        // The built options carry the process-wide statics, applied here because this is the first point the
+        // options exist — AddRask only registered them. An explicit pathBase argument wins; without one, the
+        // configured Rask:Live:PathBase does (an omitted argument used to reset a configured prefix to the root).
+        var liveOptions = endpoints.ServiceProvider.GetService<RaskLiveOptions>();
+        if (liveOptions?.MinifyScopedAssets is { } minify)
+        {
+            LiveOptions.MinifyScopedAssets = minify;
+        }
+
+        if (endpoints.ServiceProvider.GetService<RaskCultureOptions>() is { SupportedCultures.Count: > 0 })
+        {
+            RaskCulture.IsEnabled = true;
+        }
+
+        var pathBaseNormalized = RaskPath.Normalize(pathBase.Length > 0 ? pathBase : liveOptions?.PathBase ?? "");
+        LiveOptions.PathBase = pathBaseNormalized;
+        return pathBaseNormalized;
+    }
+
+    // The route table says whether this path fell through to the not-found page; it does
+    // NOT say whether the user will see it. An app whose root renders directly still
+    // resolves — the fallback is always registered — but mounts no Router, so the chain is
+    // never rendered and the URL is incidental. Confirmed against the render below.
+    // Which application owns this path decides BOTH the table it resolves against and the root
+    // built for it. Answered together, because a root rendered against another application's
+    // routes resolves perfectly and shows the wrong thing.
+    private static async Task ServePageAsync(HttpContext httpContext, RaskRootSelector selector, string pathBaseNormalized)
+    {
+        var store = httpContext.RequestServices.GetRequiredService<LiveSessionStore>();
+        var limits = httpContext.RequestServices.GetRequiredService<RaskServerLimits>();
+        var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
+        var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+
+        var appFactoryForPath = selector.FactoryFor(path);
+        var matched = RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound);
+        var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
+
+        if (matched && !await AuthorizeRouteAsync(httpContext, chain, user).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        if (RefusedPanel(httpContext, path))
+        {
+            return;
+        }
+
+        // Session-cap backstop (RaskLiveOptions.MaxSessions). TryCreate reserves a slot
+        // atomically and returns null when over cap, rejecting BEFORE the component tree is
+        // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
+        // race past the cap). Checked after the auth guard above so challenge/forbid
+        // redirects (which create no session) still work.
+        var session = store.TryCreate(appFactoryForPath);
+        if (session is null)
+        {
+            await RefuseAtCapacityAsync(httpContext, store).ConfigureAwait(false);
+            return;
+        }
+
+        BindToApplication(session, selector, path);
+        var culture = NegotiateCulture(httpContext);
+
+        // Render the GET shell and seed both baselines: the dedup baseline so a no-op click after
+        // hello dedups against the HTML the browser already has (mirroring WASM's InitialRenderAsync /
+        // `_lastAppliedHtml`), AND the diff-codec frame baseline so the FIRST interactive WS render
+        // ships a diff instead of the whole document. See LiveSession.RenderInitialRoot. The render —
+        // and every decision it ends in — is PageRender's, so anything else that renders a page
+        // reaches the answer this request does.
+        var render = await Prerender.PageRender
+            .RenderAsync(
+                session,
+                new Prerender.PageRenderInput(
+                    path, AdaptQuery(httpContext.Request.Query), user, culture, chain, notFoundPage),
+                limits,
+                CancellationToken.None)
+            .ConfigureAwait(false);
+
+        await AnswerAsync(httpContext, store, session, render, limits).ConfigureAwait(false);
+    }
+
+    // The redirect the page asked for, or the page itself.
+    private static async Task AnswerAsync(
+        HttpContext httpContext,
+        LiveSessionStore store,
+        LiveSession session,
+        Prerender.PageRenderResult render,
+        RaskServerLimits limits)
+    {
+        if (render.Kind == Prerender.PageRenderKind.Redirect)
+        {
+            Redirect(httpContext, store, session, render);
+            return;
+        }
+
+        await WritePageAsync(httpContext, session, render, limits).ConfigureAwait(false);
+
+        // Schedule cleanup in case no WS ever connects for this session.
+        // Browsers / probes can hit the catch-all for resources that don't
+        // need a live session (favicon.ico, robots.txt, scanner traffic) —
+        // without this guard those sessions stay in the store forever.
+        // Uses the SHORT unconnected grace: the runtime connects within ~1s, so a session
+        // that never sends `hello` is almost certainly a probe / abandoned load and should
+        // not pin a DI scope + tree for the full 30s reconnect window. A real hello cancels
+        // this removal (LiveSessionStore.Get) and DetachSocket later re-arms the full grace.
+        store.ScheduleRemoval(session.Id, limits.UnconnectedSessionGracePeriod);
+    }
+
+    // The devtools' own pages decide per request who may open them: Development, this machine, the token the
+    // inspected page was rendered with, and that session's owner. Asked after the app's authorization and before
+    // a session is reserved, so a refused request costs nothing.
+    private static bool RefusedPanel(HttpContext httpContext, string path)
+    {
+        if (httpContext.RequestServices.GetService<IRaskServerDevTools>()?.RefusePanel(httpContext, path) is not { } refusal)
+        {
+            return false;
+        }
+
+        httpContext.Response.StatusCode = refusal;
+        return true;
+    }
+
+    // Asks the route's authorization; false when the request was answered with a challenge or a forbid.
+    private static async Task<bool> AuthorizeRouteAsync(HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user)
+    {
+        var authResult = await RouteAuthorizationGuard
+            .EvaluateAsync(httpContext.RequestServices, chain, user)
+            .ConfigureAwait(false);
+
+        switch (authResult.Outcome)
+        {
+            case RouteAuthorizationOutcome.Challenge:
+                await ChallengeAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
+                return false;
+            case RouteAuthorizationOutcome.Forbid:
+                await ForbidAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    private static async Task RefuseAtCapacityAsync(HttpContext httpContext, LiveSessionStore store)
+    {
+        httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        // Both refusals are 503, but they mean different things to whatever is retrying. A
+        // draining host is being replaced right now and its stand-in is already up, so a second
+        // is the honest hint; a host at capacity needs longer than that to free a slot. No-store
+        // on the drain path so a shared cache can never pin this page after the swap.
+        if (store.IsDraining)
+        {
+            httpContext.Response.Headers.RetryAfter = "1";
+            httpContext.Response.Headers.CacheControl = "no-store";
+            await httpContext.Response.WriteAsync("Server is shutting down; please retry shortly.", httpContext.RequestAborted)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        httpContext.Response.Headers.RetryAfter = "5";
+        await httpContext.Response.WriteAsync("Server is at session capacity; please retry shortly.", httpContext.RequestAborted)
+            .ConfigureAwait(false);
+    }
+
+    // The visitor's language, negotiated from the request and remembered on the response here,
+    // because this handler is what holds a response. It reaches the session inside the render
+    // below, alongside the identity and the route and BEFORE the first wave — so the page is built
+    // in their language rather than rendered in the default and corrected in a frame they would see.
+    private static CultureNegotiation? NegotiateCulture(HttpContext httpContext)
+    {
+        if (!ServerCultureNegotiation.TryNegotiate(httpContext.Request, httpContext.RequestServices, out var negotiated))
+        {
+            return null;
+        }
+
+        ServerCultureNegotiation.Persist(
+            httpContext.Response,
+            negotiated,
+            httpContext.RequestServices.GetRequiredService<RaskCultureOptions>());
+        return negotiated;
+    }
+
+    // A page that navigated during its own render is telling us the user belongs somewhere
+    // else. Answering 302 costs one response instead of a whole page the client immediately
+    // navigates away from — and unlike a client-side hop, a crawler and a cache both
+    // understand it. The session goes too: nothing will ever connect to this page.
+    private static void Redirect(
+        HttpContext httpContext, LiveSessionStore store, LiveSession session, Prerender.PageRenderResult render)
+    {
+        store.Remove(session.Id);
+        httpContext.Response.StatusCode = StatusCodes.Status302Found;
+        httpContext.Response.Headers.Location = render.RedirectLocation;
+        // Never cacheable. A redirect computed from runtime state — a flag, a tenant, an
+        // experiment — that a browser pinned would be unrecoverable without changing the URL.
+        httpContext.Response.Headers.CacheControl = "no-store";
+    }
+
+    private static async Task WritePageAsync(
+        HttpContext httpContext, LiveSession session, Prerender.PageRenderResult render, RaskServerLimits limits)
+    {
+        // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
+        // from the same predicate that decides whether to subscribe at all, so the two can't
+        // disagree; in production it is never emitted and those branches stay unreachable.
+        var dev = IsDevHotReloadEnabled(httpContext.RequestServices);
+        // The devtools host script and the panel it frames, when AddRask attached the devtools and they switched on
+        // (Development).
+        var devTools = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.PageTag(httpContext, session.Id);
+        var content = Prerender.PageDocument.Live(
+            render.Html, session.Id, dev,
+            dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
+
+        httpContext.Response.ContentType = "text/html; charset=utf-8";
+        ApplyPageSecurityHeaders(httpContext.Response.Headers);
+        // A page that crashed is not a 200, a page may set its own status, and the not-found page
+        // answers 404 once it was actually mounted — PageStatus.Of says why each wins where it
+        // does (#607). The body is unchanged whatever the status, and a live session still attaches,
+        // so "Try again", the reload button and navigation off a missing page all keep working.
+        if (render.StatusCode != StatusCodes.Status200OK)
+        {
+            httpContext.Response.StatusCode = render.StatusCode;
+        }
+
+        // The shell embeds the session id (data-rask-root), which is the de-facto bearer
+        // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
+        // history caching so an authenticated user's session id can't be persisted and
+        // replayed by another principal.
+        httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
+        httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
+
+        await PageCompression.WriteAsync(httpContext, content, limits.CompressPageHtml).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -429,271 +763,17 @@ public static partial class RaskEndpointExtensions
             return;
         }
 
-        logger.LogWarning(
-            "Rask: ShutdownDrainTimeout ({Drain}) is not below HostOptions.ShutdownTimeout ({Shutdown}), so live "
-            + "sessions will be aborted at shutdown (the browser sees an abnormal 1006 close and reports a timed-out "
-            + "session) instead of closed cleanly. Raise ShutdownTimeout or lower ShutdownDrainTimeout. Note that "
-            + "HostOptions.ServicesStopConcurrently is false by default, so other hosted services spend from the same "
-            + "budget before Rask's drain is even entered.",
-            drain, host.ShutdownTimeout);
+        TightShutdownLadder(logger, drain, host.ShutdownTimeout);
     }
 
-    /// <summary>
-    ///     Endpoint-routing overload of <see cref="MapRask{TApp}(WebApplication, string, string)" />: maps the
-    ///     Rask live endpoints onto an existing <see cref="IEndpointRouteBuilder" /> without touching the
-    ///     middleware pipeline (the caller is responsible for <c>UseWebSockets()</c>).
-    /// </summary>
-    /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
-    /// <param name="endpoints">The endpoint route builder to map Rask routes on.</param>
-    /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
-    /// <param name="pathBase">Optional URL prefix; see the <see cref="WebApplication" /> overload.</param>
-    /// <returns>The same <paramref name="endpoints" /> instance, for chaining.</returns>
-    public static IEndpointRouteBuilder MapRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
-        this IEndpointRouteBuilder endpoints,
-        string pattern = "/{**path}",
-        string pathBase = "")
-        where TApp : Component
+    private static string UnderPathBase(string pathBase, string pattern)
     {
-        // Normalize once and stash on the static accessor so all downstream URL
-        // emission (head asset links, runtime <script> src, download URLs) reads
-        // the same prefix. A non-empty value also scopes every Map call below
-        // under the prefix so two Rask servers can live side-by-side on one
-        // origin behind a reverse proxy.
-        //
-        // The built options carry the process-wide statics, applied here because this is the first point the
-        // options exist — AddRask only registered them. An explicit pathBase argument wins; without one, the
-        // configured Rask:Live:PathBase does (an omitted argument used to reset a configured prefix to the root).
-        var liveOptions = endpoints.ServiceProvider.GetService<RaskLiveOptions>();
-        if (liveOptions?.MinifyScopedAssets is { } minify)
+        if (pathBase.Length == 0)
         {
-            LiveOptions.MinifyScopedAssets = minify;
+            return pattern;
         }
 
-        if (endpoints.ServiceProvider.GetService<RaskCultureOptions>() is { SupportedCultures.Count: > 0 })
-        {
-            RaskCulture.IsEnabled = true;
-        }
-
-        var pathBaseNormalized = RaskPath.Normalize(pathBase.Length > 0 ? pathBase : liveOptions?.PathBase ?? "");
-        LiveOptions.PathBase = pathBaseNormalized;
-
-        // How a session's tree is built, captured once here because two call sites need it: the GET that
-        // mints a session, and the WebSocket that rebuilds one from a resume record. Wrapping the App in an
-        // implicit RootErrorBoundary means an uncaught render / lifecycle / event-handler exception
-        // anywhere in the user's tree renders a styled fallback page instead of an HTTP 500. Declared in
-        // this generic method so TApp's DynamicallyAccessedMembers annotation flows into the closure —
-        // EnsureRuntimeMapped is deliberately non-generic (its double-map guard is per host, not per TApp).
-        // A chain carries properties and DI services; the app instance is a runtime constructor argument,
-        // and this is the root, so there is no parent render context whose GetOrCreate a chain would route
-        // through. RASK014's reason to exist is absent here.
-#pragma warning disable RASK014
-        Func<IServiceProvider, Component> appFactory =
-            sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp))
-            {
-                // RaskApp's document defaults, on the App's own root only — a mounted app below keeps its own.
-                Defaults = sp.GetService<RaskDocumentDefaults>(),
-            };
-#pragma warning restore RASK014
-
-        // Applications mounted under their own prefix — the operator console at /_rask is the one that
-        // exists. Read from the container rather than named here, because Rask.Server cannot see the
-        // packages that declare them and must not: it would drag EF and the batteries into a host that
-        // wanted neither.
-        var selector = new RaskRootSelector(
-            appFactory,
-            endpoints.ServiceProvider.GetServices<RaskMountedApp>().ToArray(),
-            endpoints.ServiceProvider.GetService<IRaskServerDevTools>());
-
-        EnsureRuntimeMapped(endpoints, pathBaseNormalized, selector);
-
-        // Scope the catch-all SPA route under the prefix when set. The pattern
-        // default ("/{**path}") is interpreted relative to the prefix root, so
-        // a request to /sub/users/42 matches as Path.Value="/sub/users/42";
-        // the handler strips the prefix before resolving against user routes
-        // (which are registered as "/users/{id}").
-        var scopedPattern = pathBaseNormalized.Length == 0
-            ? pattern
-            : pathBaseNormalized + (pattern.StartsWith('/') ? pattern : "/" + pattern);
-
-        // Hoisted so the same handler can serve the host's catch-all AND each mounted application's
-        // pattern. It already decides which application owns a request from the path, so mapping it more
-        // than once adds a way in rather than a second behaviour.
-        var pageHandler = (RequestDelegate)(async httpContext =>
-        {
-            var store = httpContext.RequestServices.GetRequiredService<LiveSessionStore>();
-            var limits = httpContext.RequestServices.GetRequiredService<RaskServerLimits>();
-            var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
-            var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
-
-            // The route table says whether this path fell through to the not-found page; it does
-            // NOT say whether the user will see it. An app whose root renders directly still
-            // resolves — the fallback is always registered — but mounts no Router, so the chain is
-            // never rendered and the URL is incidental. Confirmed against the render below.
-            // Which application owns this path decides BOTH the table it resolves against and the root
-            // built for it. Answered together, because a root rendered against another application's
-            // routes resolves perfectly and shows the wrong thing.
-            var appFactoryForPath = selector.FactoryFor(path);
-            var matched = RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound);
-            var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
-
-            if (matched)
-            {
-                var authResult = await RouteAuthorizationGuard
-                    .EvaluateAsync(httpContext.RequestServices, chain, user)
-                    .ConfigureAwait(false);
-
-                switch (authResult.Outcome)
-                {
-                    case RouteAuthorizationOutcome.Challenge:
-                        await ChallengeAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
-                        return;
-                    case RouteAuthorizationOutcome.Forbid:
-                        await ForbidAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
-                        return;
-                }
-            }
-
-            // The devtools' own pages decide per request who may open them: Development, this machine, the token the
-            // inspected page was rendered with, and that session's owner. Asked after the app's authorization and before
-            // a session is reserved, so a refused request costs nothing.
-            if (httpContext.RequestServices.GetService<IRaskServerDevTools>()?.RefusePanel(httpContext, path) is { } refusal)
-            {
-                httpContext.Response.StatusCode = refusal;
-                return;
-            }
-
-            // Session-cap backstop (RaskLiveOptions.MaxSessions). TryCreate reserves a slot
-            // atomically and returns null when over cap, rejecting BEFORE the component tree is
-            // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
-            // race past the cap). Checked after the auth guard above so challenge/forbid
-            // redirects (which create no session) still work.
-            var session = store.TryCreate(appFactoryForPath);
-            if (session is null)
-            {
-                httpContext.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                // Both refusals are 503, but they mean different things to whatever is retrying. A
-                // draining host is being replaced right now and its stand-in is already up, so a second
-                // is the honest hint; a host at capacity needs longer than that to free a slot. No-store
-                // on the drain path so a shared cache can never pin this page after the swap.
-                if (store.IsDraining)
-                {
-                    httpContext.Response.Headers.RetryAfter = "1";
-                    httpContext.Response.Headers.CacheControl = "no-store";
-                    await httpContext.Response.WriteAsync("Server is shutting down; please retry shortly.")
-                        .ConfigureAwait(false);
-                    return;
-                }
-
-                httpContext.Response.Headers.RetryAfter = "5";
-                await httpContext.Response.WriteAsync("Server is at session capacity; please retry shortly.")
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            BindToApplication(session, selector, path);
-
-            // The visitor's language, negotiated from the request and remembered on the response here,
-            // because this handler is what holds a response. It reaches the session inside the render
-            // below, alongside the identity and the route and BEFORE the first wave — so the page is built
-            // in their language rather than rendered in the default and corrected in a frame they would see.
-            CultureNegotiation? culture = null;
-            if (ServerCultureNegotiation.TryNegotiate(
-                    httpContext.Request, httpContext.RequestServices, out var negotiated))
-            {
-                culture = negotiated;
-                ServerCultureNegotiation.Persist(
-                    httpContext.Response,
-                    negotiated,
-                    httpContext.RequestServices.GetRequiredService<RaskCultureOptions>());
-            }
-
-            // Render the GET shell and seed both baselines: the dedup baseline so a no-op click after
-            // hello dedups against the HTML the browser already has (mirroring WASM's InitialRenderAsync /
-            // `_lastAppliedHtml`), AND the diff-codec frame baseline so the FIRST interactive WS render
-            // ships a diff instead of the whole document. See LiveSession.RenderInitialRoot. The render —
-            // and every decision it ends in — is PageRender's, so anything else that renders a page
-            // reaches the answer this request does.
-            var render = await Prerender.PageRender
-                .RenderAsync(
-                    session,
-                    new Prerender.PageRenderInput(
-                        path, AdaptQuery(httpContext.Request.Query), user, culture, chain, notFoundPage),
-                    limits)
-                .ConfigureAwait(false);
-
-            // A page that navigated during its own render is telling us the user belongs somewhere
-            // else. Answering 302 costs one response instead of a whole page the client immediately
-            // navigates away from — and unlike a client-side hop, a crawler and a cache both
-            // understand it. The session goes too: nothing will ever connect to this page.
-            if (render.Kind == Prerender.PageRenderKind.Redirect)
-            {
-                store.Remove(session.Id);
-                httpContext.Response.StatusCode = StatusCodes.Status302Found;
-                httpContext.Response.Headers.Location = render.RedirectLocation;
-                // Never cacheable. A redirect computed from runtime state — a flag, a tenant, an
-                // experiment — that a browser pinned would be unrecoverable without changing the URL.
-                httpContext.Response.Headers.CacheControl = "no-store";
-                return;
-            }
-
-            // data-rask-dev is the client-side gate for every dev-only frame. Resolved per request
-            // from the same predicate that decides whether to subscribe at all, so the two can't
-            // disagree; in production it is never emitted and those branches stay unreachable.
-            var dev = IsDevHotReloadEnabled(httpContext.RequestServices);
-            // The devtools host script and the panel it frames, when AddRask attached the devtools and they switched on
-            // (Development).
-            var devTools = httpContext.RequestServices.GetService<IRaskServerDevTools>()?.PageTag(httpContext, session.Id);
-            var content = Prerender.PageDocument.Live(
-                render.Html, session.Id, dev,
-                dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
-
-            httpContext.Response.ContentType = "text/html; charset=utf-8";
-            ApplyPageSecurityHeaders(httpContext.Response.Headers);
-            // A page that crashed is not a 200, a page may set its own status, and the not-found page
-            // answers 404 once it was actually mounted — PageStatus.Of says why each wins where it
-            // does (#607). The body is unchanged whatever the status, and a live session still attaches,
-            // so "Try again", the reload button and navigation off a missing page all keep working.
-            if (render.StatusCode != StatusCodes.Status200OK)
-            {
-                httpContext.Response.StatusCode = render.StatusCode;
-            }
-
-            // The shell embeds the session id (data-rask-root), which is the de-facto bearer
-            // for the WS / upload / download endpoints. Forbid any shared-proxy / bfcache /
-            // history caching so an authenticated user's session id can't be persisted and
-            // replayed by another principal.
-            httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
-            httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
-
-            await PageCompression.WriteAsync(httpContext, content, limits.CompressPageHtml).ConfigureAwait(false);
-
-            // Schedule cleanup in case no WS ever connects for this session.
-            // Browsers / probes can hit the catch-all for resources that don't
-            // need a live session (favicon.ico, robots.txt, scanner traffic) —
-            // without this guard those sessions stay in the store forever.
-            // Uses the SHORT unconnected grace: the runtime connects within ~1s, so a session
-            // that never sends `hello` is almost certainly a probe / abandoned load and should
-            // not pin a DI scope + tree for the full 30s reconnect window. A real hello cancels
-            // this removal (LiveSessionStore.Get) and DetachSocket later re-arms the full grace.
-            store.ScheduleRemoval(session.Id, limits.UnconnectedSessionGracePeriod);
-        });
-
-        endpoints.MapGet(scopedPattern, pageHandler);
-
-        // A mounted application needs its own endpoint when the host's pattern does not reach it. The
-        // default catch-all does, and ASP.NET prefers the more specific route either way, so this is
-        // what makes the console work on a host whose own pattern is narrow — a wasm-hosted app, where
-        // the SPA fallback would otherwise swallow /_rask.
-        foreach (var mount in selector.Mounts)
-        {
-            var mountPattern = pathBaseNormalized.Length == 0
-                ? mount.Pattern
-                : pathBaseNormalized + (mount.Pattern.StartsWith('/') ? mount.Pattern : "/" + mount.Pattern);
-
-            endpoints.MapGet(mountPattern, pageHandler);
-        }
-
-        return endpoints;
+        return pattern.StartsWith('/') ? pathBase + pattern : pathBase + "/" + pattern;
     }
 
     // Strip the configured PathBase from a request path so RouteResolver and
@@ -759,61 +839,7 @@ public static partial class RaskEndpointExtensions
         // minimal-API Delegate, so it does NOT go through RequestDelegateFactory — which is
         // RequiresDynamicCode and, for a library-registered endpoint (not covered by the app's Request
         // Delegate Generator), crashes at startup under NativeAOT. See the other framework endpoints below.
-        endpoints.Map(pathBase + WebSocketPath, (RequestDelegate)(async ctx =>
-            {
-                var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
-                // Resolve the per-host safety limits once per connection (not per frame) — the receive
-                // loop reads them via instance fields on the hot path.
-                var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
-
-                if (!ctx.WebSockets.IsWebSocketRequest)
-                {
-                    ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
-                    return;
-                }
-
-                // Cross-Site WebSocket Hijacking guard. The upgrade carries the user's auth
-                // cookie, and CORS does not apply to WebSocket handshakes, so a page on another
-                // origin could otherwise open an authenticated socket. Driving a session also
-                // needs the unguessable sessionId (delivered in the page HTML, unreadable
-                // cross-origin), but rejecting a mismatched Origin is the standard belt-and-
-                // suspenders. Reuses the same host-only same-origin check as the redeem endpoint
-                // (see IsSameOrigin) — non-browser clients omit Origin and are allowed.
-                if (!IsSameOrigin(ctx.Request))
-                {
-                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    return;
-                }
-
-                var wsUser = ctx.User ?? new ClaimsPrincipal(new ClaimsIdentity());
-                // permessage-deflate negotiation: the browser advertises the extension in the
-                // upgrade request and we accept it. Render payloads are HTML-heavy and
-                // compress ~10x. The "Dangerous" prefix in the property name warns about
-                // CRIME/BREACH-style scenarios with attacker-controlled plaintext interleaved
-                // with secrets on the same channel — not the situation here (per-session WS
-                // frames carry the user's own rendered view, no cross-origin mixing).
-                using var ws = await ctx.WebSockets.AcceptWebSocketAsync(
-                    new WebSocketAcceptContext { DangerousEnableCompression = true });
-                // The socket's lifetime hangs off the drain's HARD deadline, not off ApplicationStopping.
-                // This one substitution is what makes a graceful shutdown possible at all: this token
-                // becomes LiveSession._socketCt, so while it was ApplicationStopping every send — the
-                // shutdown announcement included — threw the instant SIGTERM landed, and every in-flight
-                // handler was cancelled before it could finish. Now it trips only when the drain budget
-                // is spent, which is also when the ws.Abort() registered below becomes the right answer.
-                var drain = ctx.RequestServices.GetRequiredService<RaskDrainCoordinator>();
-                using var socketScope = drain.TrackSocket();
-                using var linked = CancellationTokenSource.CreateLinkedTokenSource(
-                    ctx.RequestAborted, drain.HardStopping);
-                var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
-
-                // Negotiated here, from the upgrade request, because that is the last point at which its
-                // headers and cookies exist. It is only USED if this socket ends up rebuilding a session
-                // (the resume path), which happens in a fresh DI scope much later.
-                ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var wsCulture);
-
-                await RunSocketLoop(ws, store, limits, wsUser, resume, selector, linked.Token,
-                    drain.HardStopping, wsCulture);
-            }));
+        endpoints.Map(pathBase + WebSocketPath, (RequestDelegate)(ctx => AcceptSocketAsync(ctx, selector)));
 
         MapHttpTransport(endpoints, pathBase, selector);
 
@@ -825,6 +851,73 @@ public static partial class RaskEndpointExtensions
         // Rask.DevTools). Here, beside the runtime they extend, so they are mapped once per app too.
         endpoints.ServiceProvider.GetService<IRaskServerDevTools>()?.MapEndpoints(endpoints, pathBase);
 
+        MapPwa(endpoints, pathBase);
+        MapScopedAssets(endpoints, pathBase);
+        MapSessionEndpoints(endpoints, pathBase);
+
+        var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
+        SubscribeAssetChangedDebounced(sessionStore);
+        SubscribeHotReloadApplied(sessionStore, endpoints.ServiceProvider);
+    }
+
+    private static async Task AcceptSocketAsync(HttpContext ctx, RaskRootSelector selector)
+    {
+        var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+        // Resolve the per-host safety limits once per connection (not per frame) — the receive
+        // loop reads them via instance fields on the hot path.
+        var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
+
+        if (!ctx.WebSockets.IsWebSocketRequest)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        // Cross-Site WebSocket Hijacking guard. The upgrade carries the user's auth
+        // cookie, and CORS does not apply to WebSocket handshakes, so a page on another
+        // origin could otherwise open an authenticated socket. Driving a session also
+        // needs the unguessable sessionId (delivered in the page HTML, unreadable
+        // cross-origin), but rejecting a mismatched Origin is the standard belt-and-
+        // suspenders. Reuses the same host-only same-origin check as the redeem endpoint
+        // (see IsSameOrigin) — non-browser clients omit Origin and are allowed.
+        if (!IsSameOrigin(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        var wsUser = ctx.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+        // permessage-deflate negotiation: the browser advertises the extension in the
+        // upgrade request and we accept it. Render payloads are HTML-heavy and
+        // compress ~10x. The "Dangerous" prefix in the property name warns about
+        // CRIME/BREACH-style scenarios with attacker-controlled plaintext interleaved
+        // with secrets on the same channel — not the situation here (per-session WS
+        // frames carry the user's own rendered view, no cross-origin mixing).
+        using var ws = await ctx.WebSockets.AcceptWebSocketAsync(
+            new WebSocketAcceptContext { DangerousEnableCompression = true }).ConfigureAwait(false);
+        // The socket's lifetime hangs off the drain's HARD deadline, not off ApplicationStopping.
+        // This one substitution is what makes a graceful shutdown possible at all: this token
+        // becomes LiveSession._socketCt, so while it was ApplicationStopping every send — the
+        // shutdown announcement included — threw the instant SIGTERM landed, and every in-flight
+        // handler was cancelled before it could finish. Now it trips only when the drain budget
+        // is spent, which is also when the ws.Abort() registered below becomes the right answer.
+        var drain = ctx.RequestServices.GetRequiredService<RaskDrainCoordinator>();
+        using var socketScope = drain.TrackSocket();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            ctx.RequestAborted, drain.HardStopping);
+        var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
+
+        // Negotiated here, from the upgrade request, because that is the last point at which its
+        // headers and cookies exist. It is only USED if this socket ends up rebuilding a session
+        // (the resume path), which happens in a fresh DI scope much later.
+        ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var wsCulture);
+
+        await RunSocketLoop(ws, store, limits, wsUser, resume, selector, linked.Token,
+            drain.HardStopping, wsCulture).ConfigureAwait(false);
+    }
+
+    private static void MapPwa(IEndpointRouteBuilder endpoints, string pathBase)
+    {
         // PWA endpoints — wired only when AddRaskPwa registered a manifest (off by default). The manifest
         // JSON is rooted at pathBase here (a manifest's members resolve relative to the manifest's own URL,
         // so relative start_url/scope/icons must be made absolute or they'd resolve under /rask/). The SW
@@ -839,7 +932,10 @@ public static partial class RaskEndpointExtensions
             endpoints.MapGet(pathBase + ServiceWorkerPath, (RequestDelegate)(ctx =>
                 Results.Text(serviceWorker, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
         }
+    }
 
+    private static void MapScopedAssets(IEndpointRouteBuilder endpoints, string pathBase)
+    {
         // Per-component content-addressed asset endpoint. URL is immutable (hash is a
         // SHA-256 prefix of the bytes), so `Cache-Control: immutable` is safe and the
         // browser may reuse the cached entry for the configured `max-age` without
@@ -863,7 +959,10 @@ public static partial class RaskEndpointExtensions
             endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js.map", _assetMethods, ServeSourceMapAsync)
                 .AllowAnonymous();
         }
+    }
 
+    private static void MapSessionEndpoints(IEndpointRouteBuilder endpoints, string pathBase)
+    {
         endpoints.MapPost(pathBase + "/_rask/auth/redeem", (RequestDelegate)(ctx =>
                 RedeemAuthTicketAsync(ctx, ctx.RequestServices.GetRequiredService<IAuthTicketStore>())))
             .DisableAntiforgery();
@@ -882,10 +981,6 @@ public static partial class RaskEndpointExtensions
                 (string)ctx.Request.RouteValues["token"]!,
                 ctx.RequestServices.GetRequiredService<LiveSessionStore>(),
                 ctx.RequestServices.GetRequiredService<SessionDownloadStore>())));
-
-        var sessionStore = endpoints.ServiceProvider.GetRequiredService<LiveSessionStore>();
-        SubscribeAssetChangedDebounced(sessionStore);
-        SubscribeHotReloadApplied(sessionStore, endpoints.ServiceProvider);
     }
 
     /// <summary>
@@ -905,7 +1000,7 @@ public static partial class RaskEndpointExtensions
             return;
         }
 
-        RaskHotReload.Applied += () =>
+        RaskHotReload.Applied += (_, _) =>
         {
             _ = Task.Run(async () =>
             {
@@ -1010,16 +1105,8 @@ public static partial class RaskEndpointExtensions
     /// <summary>Holds the response open and writes the session's frames to it as events.</summary>
     private static async Task StreamAsync(HttpContext ctx, RaskRootSelector selector)
     {
-        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        if (StreamSessionId(ctx) is not { } sessionId)
         {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return;
-        }
-
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
-        if (string.IsNullOrEmpty(sessionId))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
 
@@ -1028,7 +1115,6 @@ public static partial class RaskEndpointExtensions
         var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
         var drain = ctx.RequestServices.GetRequiredService<RaskDrainCoordinator>();
         var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
-        var metrics = store.Metrics;
 
         // Counted in the drain exactly like a socket: a shutdown waits for these to finish too.
         using var scope = drain.TrackSocket();
@@ -1037,13 +1123,7 @@ public static partial class RaskEndpointExtensions
 
         ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var culture);
 
-        ctx.Response.StatusCode = StatusCodes.Status200OK;
-        ctx.Response.ContentType = "text/event-stream";
-        // no-transform is the load-bearing one: a proxy that compresses or buffers this response would hold frames
-        // until it had "enough" of them, which for a live page is for ever.
-        ctx.Response.Headers.CacheControl = "no-cache, no-transform";
-        ctx.Response.Headers["X-Accel-Buffering"] = "no";
-        await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+        await OpenEventStreamAsync(ctx.Response, ct).ConfigureAwait(false);
 
         var generation = registry.NextGeneration();
         var transport = new SseTransport(ctx.Response.BodyWriter, generation, ct);
@@ -1055,16 +1135,11 @@ public static partial class RaskEndpointExtensions
         var resumeToken = ctx.Request.Headers["Rask-Resume"].ToString();
         var attach = await AttachAsync(
             sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, transport, store, limits, UserOf(ctx),
-            resume, selector, metrics, culture, ct).ConfigureAwait(false);
+            resume, selector, store.Metrics, culture, ct).ConfigureAwait(false);
 
         if (attach.Status != AttachStatus.Attached || attach.Session is null)
         {
-            // Nothing to attach to, and the same answer whether the id never existed or belongs to someone else
-            // (#1075). The client reloads, exactly as it does on the socket — which it can only do from an open
-            // connection, so the stream still opens first, naming no session.
-            await transport.SendAsync(StreamOpenedFrame(generation, sessionId: null, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
-            await transport.SendAsync(SessionUnknownPayload, ct).ConfigureAwait(false);
-            await transport.CloseAsync(LiveTransportClose.Normal, "session-unknown", ct).ConfigureAwait(false);
+            await RefuseUnknownSessionAsync(transport, generation, limits, ct).ConfigureAwait(false);
             return;
         }
 
@@ -1078,20 +1153,7 @@ public static partial class RaskEndpointExtensions
             // and flush its queue to the id no server knows any more. Any frame the attach itself sent — a
             // rebuild's render — is already on the wire, and the client holds those until this one arrives.
             await transport.SendAsync(StreamOpenedFrame(generation, session.Id, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
-
-            // Alive between renders: a quiet page still has to look connected to every proxy in the path.
-            while (!ct.IsCancellationRequested && transport.IsOpen)
-            {
-                var finished = await Task.WhenAny(
-                    transport.Completed, Task.Delay(TimeSpan.FromSeconds(15), ct)).ConfigureAwait(false);
-
-                if (finished == transport.Completed)
-                {
-                    break;
-                }
-
-                await transport.HeartbeatAsync(ct).ConfigureAwait(false);
-            }
+            await KeepAliveAsync(transport, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -1099,19 +1161,83 @@ public static partial class RaskEndpointExtensions
         }
         finally
         {
-            registry.Remove(session.Id, transport);
-            transport.Abort();
-            await transport.WaitForWritesAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            await EndStreamAsync(registry, store, session, transport, limits.SessionGracePeriod).ConfigureAwait(false);
+        }
+    }
 
-            // Only the connection that still owns the session may arm its grace period: a tab that reconnected has
-            // already attached a newer one (#1076). A tab that said it was leaving is not coming back, so its
-            // session goes now.
-            if (session.DetachTransport(transport))
+    // The session id the stream names, or null — having answered the request — when it may not open one.
+    private static string? StreamSessionId(HttpContext ctx)
+    {
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return null;
+        }
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return null;
+        }
+
+        return sessionId;
+    }
+
+    private static async Task EndStreamAsync(
+        StreamRegistry registry, LiveSessionStore store, LiveSession session, SseTransport transport, TimeSpan grace)
+    {
+        registry.Remove(session.Id, transport);
+        transport.Abort();
+        await transport.WaitForWritesAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
+        // Only the connection that still owns the session may arm its grace period: a tab that reconnected has
+        // already attached a newer one (#1076). A tab that said it was leaving is not coming back, so its
+        // session goes now.
+        if (session.DetachTransport(transport))
+        {
+            session.LastStreamGeneration = transport.Generation;
+            store.SocketDetached();
+            store.ScheduleRemoval(session.Id, session.Leaving ? TimeSpan.Zero : grace);
+        }
+    }
+
+    private static async Task OpenEventStreamAsync(HttpResponse response, CancellationToken ct)
+    {
+        response.StatusCode = StatusCodes.Status200OK;
+        response.ContentType = "text/event-stream";
+        // no-transform is the load-bearing one: a proxy that compresses or buffers this response would hold frames
+        // until it had "enough" of them, which for a live page is for ever.
+        response.Headers.CacheControl = "no-cache, no-transform";
+        response.Headers["X-Accel-Buffering"] = "no";
+        await response.Body.FlushAsync(ct).ConfigureAwait(false);
+    }
+
+    // Nothing to attach to, and the same answer whether the id never existed or belongs to someone else
+    // (#1075). The client reloads, exactly as it does on the socket — which it can only do from an open
+    // connection, so the stream still opens first, naming no session.
+    private static async Task RefuseUnknownSessionAsync(
+        SseTransport transport, int generation, RaskServerLimits limits, CancellationToken ct)
+    {
+        await transport.SendAsync(StreamOpenedFrame(generation, sessionId: null, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
+        await transport.SendAsync(SessionUnknownPayload, ct).ConfigureAwait(false);
+        await transport.CloseAsync(LiveTransportClose.Normal, "session-unknown", ct).ConfigureAwait(false);
+    }
+
+    // Alive between renders: a quiet page still has to look connected to every proxy in the path.
+    private static async Task KeepAliveAsync(SseTransport transport, CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested && transport.IsOpen)
+        {
+            var finished = await Task.WhenAny(
+                transport.Completed, Task.Delay(TimeSpan.FromSeconds(15), ct)).ConfigureAwait(false);
+
+            if (finished == transport.Completed)
             {
-                session.LastStreamGeneration = generation;
-                store.SocketDetached();
-                store.ScheduleRemoval(session.Id, session.Leaving ? TimeSpan.Zero : limits.SessionGracePeriod);
+                break;
             }
+
+            await transport.HeartbeatAsync(ct).ConfigureAwait(false);
         }
     }
 
@@ -1205,16 +1331,8 @@ public static partial class RaskEndpointExtensions
         StreamRegistry registry,
         RaskMetrics? metrics)
     {
-        if (!ctx.Request.HasJsonContentType())
+        if (RefusesBody(ctx, limits, metrics))
         {
-            ctx.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
-            return;
-        }
-
-        if (ctx.Request.ContentLength > limits.MaxInboundFrameBytes)
-        {
-            metrics?.FrameRejected("size");
-            ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
             return;
         }
 
@@ -1229,12 +1347,11 @@ public static partial class RaskEndpointExtensions
             {
                 if (body.Length + read > limits.MaxInboundFrameBytes)
                 {
-                    metrics?.FrameRejected("size");
-                    ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                    RejectTooLarge(ctx, metrics);
                     return;
                 }
 
-                body.Write(chunk, 0, read);
+                await body.WriteAsync(chunk.AsMemory(0, read), ctx.RequestAborted).ConfigureAwait(false);
             }
         }
         finally
@@ -1242,73 +1359,127 @@ public static partial class RaskEndpointExtensions
             ArrayPool<byte>.Shared.Return(chunk);
         }
 
-        JsonDocument doc;
-        try
+        using var doc = ParseBatch(ctx, body);
+        if (doc is null || !AdmitBatch(ctx, doc.RootElement, body.Length, session, limits, registry, metrics, out var perFrame))
         {
-            doc = JsonDocument.Parse(body.GetBuffer().AsMemory(0, (int)body.Length));
-        }
-        catch (JsonException)
-        {
-            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
 
-        using (doc)
+        foreach (var frame in doc.RootElement.EnumerateArray())
         {
-            // An array, because a client batches whatever piled up while a POST was in flight — which is how
-            // arrival order survives a transport that has no ordering of its own.
-            if (doc.RootElement.ValueKind != JsonValueKind.Array)
+            if (!IsFrame(frame, out var hasType, out var type))
             {
-                ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
-                return;
+                continue;
             }
 
-            var count = doc.RootElement.GetArrayLength();
-            if (count == 0)
+            // The stream's lifetime, not this request's: a handler queued here runs after the 204 has gone.
+            var outcome = await ProcessFrameAsync(
+                session, frame, hasType, type, perFrame, store, limits, metrics, stream.Lifetime)
+                .ConfigureAwait(false);
+
+            if (outcome.Status == FrameStatus.Refused)
             {
-                ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+                // A breaker tripped. The stream is what ends; this request says so.
+                EndForPolicy(ctx, registry, session, outcome.Reason!);
                 return;
-            }
-
-            // The socket's frame-rate cap, counted per batch. A flood ends the stream the way it ends a socket, so
-            // the client reconnects against the intact session and resumes from current state.
-            if (limits.MaxInboundFramesPerSecond > 0
-                && !registry.TryAdmit(session.Id, count, limits.MaxInboundFramesPerSecond))
-            {
-                metrics?.FrameRejected("rate");
-                registry.Close(session.Id, LiveTransportClose.PolicyViolation, "frame rate");
-                ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                return;
-            }
-
-            // The backlog cap needs a byte count per frame, not an exact one, and dividing the body keeps this
-            // allocation-free — measuring each frame would re-serialise it.
-            var perFrame = (int)Math.Max(1, body.Length / count);
-
-            foreach (var frame in doc.RootElement.EnumerateArray())
-            {
-                if (frame.ValueKind != JsonValueKind.Object)
-                {
-                    continue;
-                }
-
-                var hasType = frame.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String;
-                // The stream's lifetime, not this request's: a handler queued here runs after the 204 has gone.
-                var outcome = await ProcessFrameAsync(
-                    session, frame, hasType, type, perFrame, store, limits, metrics, stream.Lifetime)
-                    .ConfigureAwait(false);
-
-                if (outcome.Status == FrameStatus.Refused)
-                {
-                    // A breaker tripped. The stream is what ends; this request says so.
-                    registry.Close(session.Id, LiveTransportClose.PolicyViolation, outcome.Reason!);
-                    ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                    return;
-                }
             }
         }
 
         ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+    }
+
+    private static bool IsFrame(JsonElement frame, out bool hasType, out JsonElement type)
+    {
+        type = default;
+        hasType = frame.ValueKind == JsonValueKind.Object
+                  && frame.TryGetProperty("type", out type) && type.ValueKind == JsonValueKind.String;
+        return frame.ValueKind == JsonValueKind.Object;
+    }
+
+    private static bool RefusesBody(HttpContext ctx, RaskServerLimits limits, RaskMetrics? metrics)
+    {
+        if (!ctx.Request.HasJsonContentType())
+        {
+            ctx.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+            return true;
+        }
+
+        if (ctx.Request.ContentLength > limits.MaxInboundFrameBytes)
+        {
+            RejectTooLarge(ctx, metrics);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void RejectTooLarge(HttpContext ctx, RaskMetrics? metrics)
+    {
+        metrics?.FrameRejected("size");
+        ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+    }
+
+    private static JsonDocument? ParseBatch(HttpContext ctx, MemoryStream body)
+    {
+        try
+        {
+            return JsonDocument.Parse(body.GetBuffer().AsMemory(0, (int)body.Length));
+        }
+        catch (JsonException)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return null;
+        }
+    }
+
+    // Whether the batch may be dispatched; when not, the request has been answered.
+    private static bool AdmitBatch(
+        HttpContext ctx,
+        JsonElement batch,
+        long bodyLength,
+        LiveSession session,
+        RaskServerLimits limits,
+        StreamRegistry registry,
+        RaskMetrics? metrics,
+        out int perFrame)
+    {
+        perFrame = 0;
+
+        // An array, because a client batches whatever piled up while a POST was in flight — which is how
+        // arrival order survives a transport that has no ordering of its own.
+        if (batch.ValueKind != JsonValueKind.Array)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return false;
+        }
+
+        var count = batch.GetArrayLength();
+        if (count == 0)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+            return false;
+        }
+
+        // The socket's frame-rate cap, counted per batch. A flood ends the stream the way it ends a socket, so
+        // the client reconnects against the intact session and resumes from current state.
+        if (limits.MaxInboundFramesPerSecond > 0
+            && !registry.TryAdmit(session.Id, count, limits.MaxInboundFramesPerSecond))
+        {
+            metrics?.FrameRejected("rate");
+            EndForPolicy(ctx, registry, session, "frame rate");
+            return false;
+        }
+
+        // The backlog cap needs a byte count per frame, not an exact one, and dividing the body keeps this
+        // allocation-free — measuring each frame would re-serialise it.
+        perFrame = (int)Math.Max(1, bodyLength / count);
+        return true;
+    }
+
+    private static void EndForPolicy(HttpContext ctx, StreamRegistry registry, LiveSession session, string reason)
+    {
+        registry.Close(session.Id, LiveTransportClose.PolicyViolation, reason);
+        ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
     }
 
     /// <summary>Frees a session whose tab has gone, without waiting out its grace period.</summary>
@@ -1359,247 +1530,328 @@ public static partial class RaskEndpointExtensions
         ClaimsPrincipal wsUser, SessionResumeSupport resume, RaskRootSelector selector,
         CancellationToken ct, CancellationToken stopping, CultureNegotiation resumeCulture = default)
     {
-        using var abortReg = stopping.Register(() =>
-        {
-            try { ws.Abort(); }
-            catch { }
-        });
+        using var abortReg = AbortWhen(ws, stopping);
         var metrics = store.Metrics;
 
         // One transport for this connection: what the session sends through, and the identity the detach
         // below compares against.
         var transport = new WebSocketTransport(ws);
         LiveSession? session = null;
-        var buffer = new byte[16 * 1024];
-        var message = new ArrayBufferWriter<byte>(16 * 1024);
-
-        // Sliding one-second window for the inbound frame-rate cap (limits.MaxInboundFramesPerSecond).
-        var rateWindowStartTick = Environment.TickCount64;
-        var framesInWindow = 0;
-
-        // One connection-scoped CTS for the idle-socket timeout (null when disabled). Armed across the
-        // whole inbound message — first frame and every continuation fragment — and disarmed while the
-        // message is dispatched, so a mid-fragment stall is reclaimed too and we don't allocate a CTS
-        // per message. CancelAfter just reschedules the one internal timer.
-        using var idleCts = limits.IdleSocketTimeout > TimeSpan.Zero
-            ? CancellationTokenSource.CreateLinkedTokenSource(ct)
-            : null;
+        using var reader = new SocketReader(ws, limits, metrics, ct);
 
         try
         {
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
             {
-                WebSocketReceiveResult result;
-                ReadOnlyMemory<byte> payload;
-
-                // Arm the idle timer for this whole message-receive cycle; the finally disarms it
-                // before dispatch so a slow handler doesn't trip it. A fired timer (not a shutdown)
-                // means the client went silent mid-stream — close the socket (the session survives for
-                // reconnect under the grace period).
-                idleCts?.CancelAfter(limits.IdleSocketTimeout);
-                var receiveToken = idleCts?.Token ?? ct;
-                try
+                if (await reader.ReceiveAsync().ConfigureAwait(false) is not { } payload)
                 {
-                    result = await ws.ReceiveAsync(buffer, receiveToken);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        return;
-                    }
-
-                    if (result.EndOfMessage)
-                    {
-                        // Hot path: single-fragment message. Parse JSON directly from the
-                        // receive buffer slice — no UTF-8 string decode, no accumulator copy.
-                        payload = buffer.AsMemory(0, result.Count);
-                    }
-                    else
-                    {
-                        message.ResetWrittenCount();
-                        if (result.Count > 0)
-                        {
-                            message.Write(buffer.AsSpan(0, result.Count));
-                        }
-
-                        do
-                        {
-                            // Same idle token covers continuation fragments, so a client that stalls
-                            // mid-message is reclaimed too.
-                            result = await ws.ReceiveAsync(buffer, receiveToken);
-                            if (result.MessageType == WebSocketMessageType.Close)
-                            {
-                                return;
-                            }
-
-                            if (result.Count > 0)
-                            {
-                                message.Write(buffer.AsSpan(0, result.Count));
-                            }
-
-                            // Abort a socket that streams a frame past the cap rather than buffering it
-                            // whole — bounds per-socket memory against a fragmented-frame DoS.
-                            if (message.WrittenCount > limits.MaxInboundFrameBytes)
-                            {
-                                metrics?.FrameRejected("size");
-                                try { ws.Abort(); }
-                                catch { }
-
-                                return;
-                            }
-                        } while (!result.EndOfMessage);
-
-                        payload = message.WrittenMemory;
-                    }
-                }
-                catch (OperationCanceledException)
-                    when (idleCts is not null && idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
-                {
-                    metrics?.FrameRejected("idle");
-                    await ClosePolicyViolationAsync(ws, "idle timeout").ConfigureAwait(false);
                     break;
                 }
-                finally
-                {
-                    idleCts?.CancelAfter(Timeout.InfiniteTimeSpan);
-                }
 
-                // Inbound frame-rate cap: count every completed receive over a sliding one-second
-                // window and close the socket on a flood, before the per-frame parse below. Bounds
-                // a small-frame CPU DoS that the size cap and handler backpressure don't cover. The
-                // client reconnects (hello) against the intact session and resumes from current
-                // state, same as the handler-backlog breaker.
-                if (limits.MaxInboundFramesPerSecond > 0)
-                {
-                    var nowTick = Environment.TickCount64;
-                    if (nowTick - rateWindowStartTick >= 1000)
-                    {
-                        rateWindowStartTick = nowTick;
-                        framesInWindow = 0;
-                    }
-
-                    if (++framesInWindow > limits.MaxInboundFramesPerSecond)
-                    {
-                        metrics?.FrameRejected("rate");
-                        await ClosePolicyViolationAsync(ws, "frame rate").ConfigureAwait(false);
-                        break;
-                    }
-                }
-
-                if (payload.Length == 0)
-                {
-                    continue;
-                }
-
-                // A malformed frame must not tear down the session. The receive loop's only
-                // catches are OperationCanceledException / WebSocketException, so an unguarded
-                // JsonException here would propagate to the finally and detach the socket —
-                // letting one bad (buggy or adversarial) frame drop the whole live session.
-                // Skip it and keep serving; the size cap above still bounds memory.
-                using var doc = SafeParse(payload);
+                using var doc = OpenFrame(payload, session, out var hasType, out var t);
                 if (doc is null)
                 {
                     continue;
                 }
 
                 var root = doc.RootElement;
-
-                // A valid-JSON but non-object root (a bare array / number / string) would make the
-                // TryGetProperty calls below throw InvalidOperationException — another way one bad
-                // frame could tear the session down. Skip it like a malformed frame.
-                if (root.ValueKind != JsonValueKind.Object)
-                {
-                    continue;
-                }
-
-                // Only once there is a session to attribute it to: the hello that creates one arrives first.
-                if (session is not null && RaskDevToolsHook.Active is { } devTools)
-                {
-                    devTools.FrameReceived(session, payload.Length, root);
-                }
-
-                // Match the frame "type" against the UTF-8 literals directly (ValueEquals) instead of
-                // materializing a string per frame — this runs on every inbound frame (keystroke,
-                // 60 Hz scroll, click), and the string was allocated only to == four constants.
-                var hasType = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String;
-
                 if (hasType && t.ValueEquals("hello"u8))
                 {
-                    // One session per socket. The client sends exactly one hello per connection, so a
-                    // second is a protocol violation — and honouring it leaked: it re-pointed this loop
-                    // at another session without detaching the first, and with a resume token it built
-                    // one more session per frame (#1059).
-                    if (session is not null)
+                    (var stop, session) = await HelloAsync(
+                        ws, root, session, transport, store, limits, wsUser, resume, selector, resumeCulture, ct)
+                        .ConfigureAwait(false);
+                    if (stop)
                     {
-                        metrics?.FrameRejected("hello");
-                        await ClosePolicyViolationAsync(ws, "hello").ConfigureAwait(false);
                         break;
                     }
 
-                    var attach = await AttachAsync(
-                        StringProperty(root, "session"), StringProperty(root, "resume"), transport, store, limits,
-                        wsUser, resume, selector, metrics, resumeCulture, ct).ConfigureAwait(false);
-
-                    if (attach.Status == AttachStatus.Ignored)
-                    {
-                        continue;
-                    }
-
-                    if (attach.Status == AttachStatus.Unknown)
-                    {
-                        // Nothing to attach to, and nothing that says whether the id ever existed.
-                        await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
-                        return;
-                    }
-
-                    session = attach.Session;
                     continue;
                 }
 
-                if (session is null)
+                // A breaker tripped. Close politely: the client reconnects (hello) against the intact
+                // session and resumes from current state.
+                if (Speaks(session, transport)
+                    && await ProcessFrameAsync(session, root, hasType, t, payload.Length, store, limits, metrics, ct)
+                        .ConfigureAwait(false) is { Status: FrameStatus.Refused } refused)
                 {
-                    continue;
-                }
-
-                // A socket another hello has replaced speaks for the session no longer. Its loop runs on
-                // until the socket itself dies, and a frame from it must not dispatch: that socket was
-                // admitted for the principal the session had THEN, which a sign-in on the new socket may
-                // have changed since. Dropped rather than closed, so a duplicated tab holding the same id
-                // does not fall into a reconnect tug-of-war with the original.
-                if (!session.IsAttached(transport))
-                {
-                    continue;
-                }
-
-                var frame = await ProcessFrameAsync(
-                    session, root, hasType, t, payload.Length, store, limits, metrics, ct).ConfigureAwait(false);
-
-                if (frame.Status == FrameStatus.Refused)
-                {
-                    // A breaker tripped. Close politely: the client reconnects (hello) against the intact
-                    // session and resumes from current state.
-                    await ClosePolicyViolationAsync(ws, frame.Reason!).ConfigureAwait(false);
+                    await ClosePolicyViolationAsync(ws, refused.Reason!).ConfigureAwait(false);
                     break;
                 }
             }
         }
-        catch (OperationCanceledException) { }
-        catch (WebSocketException) { }
+        catch (Exception ex) when (ex is OperationCanceledException or WebSocketException)
+        {
+            // The host is stopping or the idle timeout fired, or the client dropped the connection mid-frame: the
+            // loop ends, finally detaches, and the session waits out its grace period.
+        }
         finally
         {
-            // Only when this loop's socket is still the attached one. A tab that reconnected before the
-            // server noticed this socket die has attached a new one already: detaching, counting the
-            // disconnect or arming removal here would do all three to the live connection (#1076).
-            if (session is not null && session.DetachTransport(transport))
+            await EndSocketAsync(ws, session, transport, store, limits).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    ///     One socket's inbound side: its receive buffers, its idle timer and its frame-rate window, allocated
+    ///     once per connection so that reading a message allocates nothing.
+    /// </summary>
+    private sealed class SocketReader(
+        WebSocket ws, RaskServerLimits limits, RaskMetrics? metrics, CancellationToken ct) : IDisposable
+    {
+        private readonly byte[] _buffer = new byte[16 * 1024];
+        private readonly ArrayBufferWriter<byte> _message = new(16 * 1024);
+
+        // One connection-scoped CTS for the idle-socket timeout (null when disabled). Armed across the
+        // whole inbound message — first frame and every continuation fragment — and disarmed while the
+        // message is dispatched, so a mid-fragment stall is reclaimed too and we don't allocate a CTS
+        // per message. CancelAfter just reschedules the one internal timer.
+        private readonly CancellationTokenSource? _idleCts = limits.IdleSocketTimeout > TimeSpan.Zero
+            ? CancellationTokenSource.CreateLinkedTokenSource(ct)
+            : null;
+
+        // Sliding one-second window for the inbound frame-rate cap (limits.MaxInboundFramesPerSecond).
+        private long _rateWindowStartTick = Environment.TickCount64;
+        private int _framesInWindow;
+
+        public void Dispose() => _idleCts?.Dispose();
+
+        /// <summary>
+        ///     Receives one whole message: the payload, or <c>null</c> when the loop should stop — the peer
+        ///     closed, went idle, streamed a message past the size cap, or sent too many.
+        /// </summary>
+        /// <remarks>
+        ///     Called once per inbound message, so its state machine comes from a pool rather than the heap:
+        ///     the loop stays allocation-free per frame, as it was when this body lived inside it.
+        /// </remarks>
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+        public async ValueTask<ReadOnlyMemory<byte>?> ReceiveAsync()
+        {
+            if (await ReceiveMessageAsync().ConfigureAwait(false) is not { } payload)
             {
-                store.SocketDetached();
-                store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+                return null;
             }
 
-            if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
+            if (OverFrameRate())
             {
-                using var closeCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", closeCts.Token); }
-                catch { }
+                metrics?.FrameRejected("rate");
+                await ClosePolicyViolationAsync(ws, "frame rate").ConfigureAwait(false);
+                return null;
             }
+
+            return payload;
+        }
+
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+        private async ValueTask<ReadOnlyMemory<byte>?> ReceiveMessageAsync()
+        {
+            // Arm the idle timer for this whole message-receive cycle; the finally disarms it
+            // before dispatch so a slow handler doesn't trip it. A fired timer (not a shutdown)
+            // means the client went silent mid-stream — close the socket (the session survives for
+            // reconnect under the grace period).
+            _idleCts?.CancelAfter(limits.IdleSocketTimeout);
+            var receiveToken = _idleCts?.Token ?? ct;
+            try
+            {
+                var result = await ws.ReceiveAsync(_buffer, receiveToken).ConfigureAwait(false);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    return null;
+                }
+
+                // Hot path: single-fragment message. Parse JSON directly from the
+                // receive buffer slice — no UTF-8 string decode, no accumulator copy.
+                return result.EndOfMessage
+                    ? _buffer.AsMemory(0, result.Count)
+                    : await ReceiveFragmentsAsync(result.Count, receiveToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+                when (_idleCts is not null && _idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                metrics?.FrameRejected("idle");
+                await ClosePolicyViolationAsync(ws, "idle timeout").ConfigureAwait(false);
+                return null;
+            }
+            finally
+            {
+                _idleCts?.CancelAfter(Timeout.InfiniteTimeSpan);
+            }
+        }
+
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+        private async ValueTask<ReadOnlyMemory<byte>?> ReceiveFragmentsAsync(int firstCount, CancellationToken receiveToken)
+        {
+            _message.ResetWrittenCount();
+            if (firstCount > 0)
+            {
+                _message.Write(_buffer.AsSpan(0, firstCount));
+            }
+
+            WebSocketReceiveResult result;
+            do
+            {
+                // Same idle token covers continuation fragments, so a client that stalls
+                // mid-message is reclaimed too.
+                result = await ws.ReceiveAsync(_buffer, receiveToken).ConfigureAwait(false);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    return null;
+                }
+
+                if (result.Count > 0)
+                {
+                    _message.Write(_buffer.AsSpan(0, result.Count));
+                }
+
+                // Abort a socket that streams a frame past the cap rather than buffering it
+                // whole — bounds per-socket memory against a fragmented-frame DoS.
+                if (_message.WrittenCount > limits.MaxInboundFrameBytes)
+                {
+                    metrics?.FrameRejected("size");
+                    try { ws.Abort(); }
+                    catch { /* already gone: the frame is refused either way */ }
+
+                    return null;
+                }
+            } while (!result.EndOfMessage);
+
+            return _message.WrittenMemory;
+        }
+
+        // Inbound frame-rate cap: count every completed receive over a sliding one-second
+        // window and close the socket on a flood, before the per-frame parse. Bounds
+        // a small-frame CPU DoS that the size cap and handler backpressure don't cover. The
+        // client reconnects (hello) against the intact session and resumes from current
+        // state, same as the handler-backlog breaker.
+        private bool OverFrameRate()
+        {
+            if (limits.MaxInboundFramesPerSecond <= 0)
+            {
+                return false;
+            }
+
+            var nowTick = Environment.TickCount64;
+            if (nowTick - _rateWindowStartTick >= 1000)
+            {
+                _rateWindowStartTick = nowTick;
+                _framesInWindow = 0;
+            }
+
+            return ++_framesInWindow > limits.MaxInboundFramesPerSecond;
+        }
+    }
+
+    // A malformed frame must not tear down the session. The receive loop's only
+    // catches are OperationCanceledException / WebSocketException, so an unguarded
+    // JsonException here would propagate to the finally and detach the socket —
+    // letting one bad (buggy or adversarial) frame drop the whole live session.
+    // Skip it and keep serving; the size cap above still bounds memory.
+    //
+    // A valid-JSON but non-object root (a bare array / number / string) would make the
+    // TryGetProperty calls below throw InvalidOperationException — another way one bad
+    // frame could tear the session down. Skip it like a malformed frame.
+    private static JsonDocument? OpenFrame(
+        ReadOnlyMemory<byte> payload, LiveSession? session, out bool hasType, out JsonElement type)
+    {
+        hasType = false;
+        type = default;
+        if (payload.Length == 0 || SafeParse(payload) is not { } doc)
+        {
+            return null;
+        }
+
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            doc.Dispose();
+            return null;
+        }
+
+        // Only once there is a session to attribute it to: the hello that creates one arrives first.
+        if (session is not null && RaskDevToolsHook.Active is { } devTools)
+        {
+            devTools.FrameReceived(session, payload.Length, root);
+        }
+
+        // Match the frame "type" against the UTF-8 literals directly (ValueEquals) instead of
+        // materializing a string per frame — this runs on every inbound frame (keystroke,
+        // 60 Hz scroll, click), and the string was allocated only to == four constants.
+        hasType = root.TryGetProperty("type", out type) && type.ValueKind == JsonValueKind.String;
+        return doc;
+    }
+
+    private static CancellationTokenRegistration AbortWhen(WebSocket ws, CancellationToken stopping) =>
+        stopping.Register(() =>
+        {
+            try { ws.Abort(); }
+            catch { /* the socket is already gone, which is what aborting it was for */ }
+        });
+
+    // A socket another hello has replaced speaks for the session no longer. Its loop runs on
+    // until the socket itself dies, and a frame from it must not dispatch: that socket was
+    // admitted for the principal the session had THEN, which a sign-in on the new socket may
+    // have changed since. Dropped rather than closed, so a duplicated tab holding the same id
+    // does not fall into a reconnect tug-of-war with the original.
+    private static bool Speaks([NotNullWhen(true)] LiveSession? session, WebSocketTransport transport) =>
+        session is not null && session.IsAttached(transport);
+
+    /// <summary>
+    ///     The session a <c>hello</c> attaches the socket to, or <c>Stop</c> when the socket must end.
+    /// </summary>
+    private static async Task<(bool Stop, LiveSession? Session)> HelloAsync(
+        WebSocket ws,
+        JsonElement root,
+        LiveSession? session,
+        WebSocketTransport transport,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        ClaimsPrincipal wsUser,
+        SessionResumeSupport resume,
+        RaskRootSelector selector,
+        CultureNegotiation resumeCulture,
+        CancellationToken ct)
+    {
+        // One session per socket. The client sends exactly one hello per connection, so a
+        // second is a protocol violation — and honouring it leaked: it re-pointed this loop
+        // at another session without detaching the first, and with a resume token it built
+        // one more session per frame (#1059).
+        if (session is not null)
+        {
+            store.Metrics?.FrameRejected("hello");
+            await ClosePolicyViolationAsync(ws, "hello").ConfigureAwait(false);
+            return (true, session);
+        }
+
+        var attach = await AttachAsync(
+            StringProperty(root, "session"), StringProperty(root, "resume"), transport, store, limits,
+            wsUser, resume, selector, store.Metrics, resumeCulture, ct).ConfigureAwait(false);
+
+        if (attach.Status == AttachStatus.Unknown)
+        {
+            // Nothing to attach to, and nothing that says whether the id ever existed.
+            await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
+            return (true, null);
+        }
+
+        // Ignored leaves the socket waiting for a hello it can attach.
+        return (false, attach.Status == AttachStatus.Ignored ? null : attach.Session);
+    }
+
+    private static async Task EndSocketAsync(
+        WebSocket ws, LiveSession? session, WebSocketTransport transport, LiveSessionStore store, RaskServerLimits limits)
+    {
+        // Only when this loop's socket is still the attached one. A tab that reconnected before the
+        // server noticed this socket die has attached a new one already: detaching, counting the
+        // disconnect or arming removal here would do all three to the live connection (#1076).
+        if (session is not null && session.DetachTransport(transport))
+        {
+            store.SocketDetached();
+            store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+        }
+
+        if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
+        {
+            using var closeCts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", closeCts.Token).ConfigureAwait(false); }
+            catch { /* a courtesy close: a peer that cannot take it is closed regardless */ }
         }
     }
 
@@ -1646,26 +1898,12 @@ public static partial class RaskEndpointExtensions
 
         if (hasType && type.ValueEquals("navigate"u8))
         {
-            await HandleNavigateAsync(session, root, ct);
+            await HandleNavigateAsync(session, root, ct).ConfigureAwait(false);
             return new FrameOutcome(FrameStatus.Handled, null);
         }
 
-        if (hasType && type.ValueEquals("jsResult"u8))
+        if (hasType && HandledInline(session, root, type))
         {
-            // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base JSRuntime class manages its
-            // own pending-task dictionary keyed by the taskId we passed out in jsInvokes; calling EndInvokeJS
-            // with the serialised [taskId, success, result|error] triple completes the awaiting ValueTask. No
-            // render needed.
-            HandleJsResult(session, root);
-            return new FrameOutcome(FrameStatus.Handled, null);
-        }
-
-        if (hasType && type.ValueEquals("dotNetInvoke"u8))
-        {
-            // JS-side DotNet.invokeMethodAsync calling into a [JSInvokable] method. Hand off to the public
-            // DotNetDispatcher; the runtime completes the call asynchronously and EndInvokeDotNet fires our
-            // SendOutOfBandAsync to deliver the result back to the client. No render needed.
-            HandleDotNetInvoke(session, root);
             return new FrameOutcome(FrameStatus.Handled, null);
         }
 
@@ -1687,22 +1925,9 @@ public static partial class RaskEndpointExtensions
         // messages spawned input→submit can race and acquire the lock submit→input — letting submit handlers
         // read a stale EditContext that the preceding input handler had not applied yet. The async chaining
         // below pins start-of-dispatch order to arrival order without blocking the reader.
-        // Backpressure circuit-breaker: bound both the number of dispatches queued on the chain
-        // (MaxPendingHandlers) and their aggregate cloned-payload bytes (MaxPendingHandlerBytes). When handlers
-        // drain slower than the client sends (a flood) or the chain head is stuck (a hung handler), the queue —
-        // each entry holding a cloned JsonElement — would grow without limit. Trip BEFORE cloning, so the
-        // payload that would be dropped is never allocated.
         var payloadBytes = (long)payloadLength;
-        var pending = session.IncrementPendingHandlers();
-        store.HandlerQueued();
-        var pendingBytes = session.AddPendingHandlerBytes(payloadBytes);
-        if ((limits.MaxPendingHandlers > 0 && pending > limits.MaxPendingHandlers)
-            || (limits.MaxPendingHandlerBytes > 0 && pendingBytes > limits.MaxPendingHandlerBytes))
+        if (!AdmitHandler(session, store, limits, metrics, payloadBytes))
         {
-            session.DecrementPendingHandlers();
-            store.HandlerDequeued();
-            session.SubtractPendingHandlerBytes(payloadBytes);
-            metrics?.FrameRejected("backlog");
             return new FrameOutcome(FrameStatus.Refused, "handler backlog");
         }
 
@@ -1721,6 +1946,55 @@ public static partial class RaskEndpointExtensions
             ct));
 
         return new FrameOutcome(FrameStatus.Handled, null);
+    }
+
+    // The frames answered on the reader itself, without a render.
+    private static bool HandledInline(LiveSession session, JsonElement root, JsonElement type)
+    {
+        if (type.ValueEquals("jsResult"u8))
+        {
+            // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base JSRuntime class manages its
+            // own pending-task dictionary keyed by the taskId we passed out in jsInvokes; calling EndInvokeJS
+            // with the serialised [taskId, success, result|error] triple completes the awaiting ValueTask. No
+            // render needed.
+            HandleJsResult(session, root);
+            return true;
+        }
+
+        if (type.ValueEquals("dotNetInvoke"u8))
+        {
+            // JS-side DotNet.invokeMethodAsync calling into a [JSInvokable] method. Hand off to the public
+            // DotNetDispatcher; the runtime completes the call asynchronously and EndInvokeDotNet fires our
+            // SendOutOfBandAsync to deliver the result back to the client. No render needed.
+            HandleDotNetInvoke(session, root);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Backpressure circuit-breaker: bound both the number of dispatches queued on the chain
+    // (MaxPendingHandlers) and their aggregate cloned-payload bytes (MaxPendingHandlerBytes). When handlers
+    // drain slower than the client sends (a flood) or the chain head is stuck (a hung handler), the queue —
+    // each entry holding a cloned JsonElement — would grow without limit. Trip BEFORE cloning, so the
+    // payload that would be dropped is never allocated.
+    private static bool AdmitHandler(
+        LiveSession session, LiveSessionStore store, RaskServerLimits limits, RaskMetrics? metrics, long payloadBytes)
+    {
+        var pending = session.IncrementPendingHandlers();
+        store.HandlerQueued();
+        var pendingBytes = session.AddPendingHandlerBytes(payloadBytes);
+        if ((limits.MaxPendingHandlers > 0 && pending > limits.MaxPendingHandlers)
+            || (limits.MaxPendingHandlerBytes > 0 && pendingBytes > limits.MaxPendingHandlerBytes))
+        {
+            session.DecrementPendingHandlers();
+            store.HandlerDequeued();
+            session.SubtractPendingHandlerBytes(payloadBytes);
+            metrics?.FrameRejected("backlog");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>What a <c>hello</c> did.</summary>
@@ -1778,48 +2052,9 @@ public static partial class RaskEndpointExtensions
         var session = store.Peek(sessionId) is { } existing && MayAttach(user, existing) ? existing : null;
         if (session is null)
         {
-            // This host has never heard of the session. Before the resume protocol that was the end of it —
-            // the client reloaded and the user lost their page. If the client carries a record we can open,
-            // rebuild the page around it instead.
-            session = string.IsNullOrEmpty(resumeToken)
-                ? null
-                : TryResumeSession(resumeToken, user, resume, store, metrics, selector);
-
-            if (session is null)
-            {
-                return new AttachOutcome(AttachStatus.Unknown, null);
-            }
-
-            // The rebuilt session has a NEW id. The client learns it from the full frame below, which re-stamps
-            // data-rask-root — see LiveSessionBase's full-payload path. Counted like any other attach: the
-            // cleanup counts the detach, so an uncounted attach here drove ConnectedCount negative after every
-            // deploy (#1059).
-            if (session.AttachTransport(transport, ct))
-            {
-                store.SocketAttached();
-            }
-
-            session.Services.GetRequiredService<SessionUserProvider>().Set(user);
-
-            // A resumed session is a NEW DI scope, so its culture starts at the app default. Without this the
-            // visitor's language would silently reset the first time the host restarted under them — the one
-            // moment resume exists to hide.
-            if (resumeCulture.Culture is not null)
-            {
-                ServerCultureNegotiation.Apply(session.Services, resumeCulture);
-            }
-
-            try
-            {
-                await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
-            }
-            catch
-            {
-                AbandonAttach(session, transport, store, limits);
-                throw;
-            }
-
-            return new AttachOutcome(AttachStatus.Attached, session);
+            return await ResumeAttachAsync(
+                resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
+                .ConfigureAwait(false);
         }
 
         // Counted here rather than inside AttachTransport: the store owns the number, and the session has no
@@ -1842,19 +2077,9 @@ public static partial class RaskEndpointExtensions
             // page mounts fresh under the new identity (its Mount runs against the redeemed principal).
             // The attach flagged a pending render for this reconnect, so the flush below performs a real render
             // against the updated route. See LiveSession.PendingAuthNavigation.
-            if (session.PendingAuthNavigation is { } authDest)
+            if (await ApplyAuthNavigationAsync(session).ConfigureAwait(false))
             {
-                session.PendingAuthNavigation = null;
-                var routeState = session.Services.GetRequiredService<RouteState>();
-                var (path, query) = SplitUrl(authDest);
-                routeState.Path = path;
-                routeState.Query = query;
-
-                // A return URL into another application on this host: load it as a page (#1094).
-                if (await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false))
-                {
-                    return new AttachOutcome(AttachStatus.Attached, session);
-                }
+                return new AttachOutcome(AttachStatus.Attached, session);
             }
 
             // Only emit a catch-up render when something asked to render during the GET-to-hello handoff window
@@ -1871,6 +2096,79 @@ public static partial class RaskEndpointExtensions
         }
 
         return new AttachOutcome(AttachStatus.Attached, session);
+    }
+
+    private static async Task<AttachOutcome> ResumeAttachAsync(
+        string? resumeToken,
+        ILiveTransport transport,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        ClaimsPrincipal user,
+        SessionResumeSupport resume,
+        RaskRootSelector selector,
+        RaskMetrics? metrics,
+        CultureNegotiation resumeCulture,
+        CancellationToken ct)
+    {
+        // This host has never heard of the session. Before the resume protocol that was the end of it —
+        // the client reloaded and the user lost their page. If the client carries a record we can open,
+        // rebuild the page around it instead.
+        var session = string.IsNullOrEmpty(resumeToken)
+            ? null
+            : TryResumeSession(resumeToken, user, resume, store, metrics, selector);
+
+        if (session is null)
+        {
+            return new AttachOutcome(AttachStatus.Unknown, null);
+        }
+
+        // The rebuilt session has a NEW id. The client learns it from the full frame below, which re-stamps
+        // data-rask-root — see LiveSessionBase's full-payload path. Counted like any other attach: the
+        // cleanup counts the detach, so an uncounted attach here drove ConnectedCount negative after every
+        // deploy (#1059).
+        if (session.AttachTransport(transport, ct))
+        {
+            store.SocketAttached();
+        }
+
+        session.Services.GetRequiredService<SessionUserProvider>().Set(user);
+
+        // A resumed session is a NEW DI scope, so its culture starts at the app default. Without this the
+        // visitor's language would silently reset the first time the host restarted under them — the one
+        // moment resume exists to hide.
+        if (resumeCulture.Culture is not null)
+        {
+            ServerCultureNegotiation.Apply(session.Services, resumeCulture);
+        }
+
+        try
+        {
+            await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
+        }
+        catch
+        {
+            AbandonAttach(session, transport, store, limits);
+            throw;
+        }
+
+        return new AttachOutcome(AttachStatus.Attached, session);
+    }
+
+    // True when the deferred navigation left for another application, which then loads as a page (#1094).
+    private static async Task<bool> ApplyAuthNavigationAsync(LiveSession session)
+    {
+        if (session.PendingAuthNavigation is not { } authDest)
+        {
+            return false;
+        }
+
+        session.PendingAuthNavigation = null;
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        var (path, query) = SplitUrl(authDest);
+        routeState.Path = path;
+        routeState.Query = query;
+
+        return await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false);
     }
 
     // The attach's render threw — most often the client dropping mid-attach. The caller never learns this
@@ -2027,16 +2325,7 @@ public static partial class RaskEndpointExtensions
 
         metrics?.HandlerDispatched();
         var dispatchStart = Stopwatch.GetTimestamp();
-
-        // Action timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
-        // the socket so a close cancels it too). A handler that threads CancellationToken into its
-        // async work unwinds cooperatively; one that ignores it can't be force-aborted (the timeout is
-        // still logged + metered). Null when the timeout is disabled, so the default path allocates nothing.
-        using var handlerCts = handlerTimeout > TimeSpan.Zero
-            ? CancellationTokenSource.CreateLinkedTokenSource(ct)
-            : null;
-        handlerCts?.CancelAfter(handlerTimeout);
-        var dispatchToken = handlerCts?.Token ?? default;
+        using var handlerCts = HandlerTimeoutSource(handlerTimeout, ct);
         try
         {
             var navigator = session.Services.GetRequiredService<Navigator>();
@@ -2044,89 +2333,20 @@ public static partial class RaskEndpointExtensions
             var ticketStore = session.Services.GetRequiredService<IAuthTicketStore>();
             try
             {
-                using (navigator.EnterHandler())
-                using (authSignIn.EnterHandler())
-                {
-                    // Re-check route authorization for the *current* principal before running the
-                    // handler. A user whose access was revoked mid-session (signed out elsewhere,
-                    // role removed, cookie expired and re-resolved on a reconnect) must not get to
-                    // fire a server-side handler on a page they can no longer view. When the guard
-                    // no longer passes, skip the handler entirely and let EnforceAuthAndRenderAsync
-                    // re-evaluate and ship the challenge/forbid redirect.
-                    await RevalidateUserAsync(session, ct).ConfigureAwait(false);
-
-                    if (!await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
-                    {
-                        await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
-                    }
-                    else if (await invoke(dispatchToken).ConfigureAwait(false))
-                    {
-                        string? historyUrl = null;
-                        var historyReplace = false;
-                        AuthInstruction? authInstruction = null;
-
-                        if (authSignIn.TryConsume(out var pending))
-                        {
-                            var safeReturn = SanitizeReturnUrl(pending.ReturnUrl);
-                            var ticketId = ticketStore.Issue(
-                                pending.Action,
-                                pending.Principal,
-                                pending.Scheme,
-                                session.Id,
-                                pending.Persistent);
-                            authInstruction = new AuthInstruction(ticketId, safeReturn);
-
-                            // Do NOT navigate routeState here. Setting it to the destination now would
-                            // mount the destination page under the PRE-SignIn principal — SessionUserProvider
-                            // is only re-seeded on the reconnect handshake — so its Mount would load
-                            // data for the old identity/tenant, and the reconnect re-renders without
-                            // remounting (children reconcile by (Type, position), not Key), leaving that
-                            // data stale. Park the returnUrl; the hello handler applies it once the reconnect
-                            // carries the new cookie, so the page mounts fresh under the new identity. The
-                            // client's URL bar still updates immediately via historyUrl below (the separate
-                            // history.replace field), behind the "Authenticating…" overlay.
-                            session.PendingAuthNavigation = safeReturn;
-                            historyUrl = safeReturn;
-                            historyReplace = true;
-                        }
-
-                        if (navigator.TryConsumeHistory(out var url, out var replace))
-                        {
-                            if (authInstruction is null)
-                            {
-                                historyUrl = url;
-                                historyReplace = replace;
-                            }
-                        }
-
-                        await EnforceAuthAndRenderAsync(
-                                session, historyUrl, historyReplace, authInstruction)
-                            .ConfigureAwait(false);
-
-                        if (authInstruction is not null)
-                        {
-                            session.SuppressEventsUntilReconnect = true;
-                        }
-                    }
-                }
+                await InvokeHandlerAsync(
+                    session, navigator, authSignIn, ticketStore, invoke, handlerCts?.Token ?? default, ct)
+                    .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
                 when (handlerCts is not null && handlerCts.IsCancellationRequested && !ct.IsCancellationRequested)
             {
                 // The handler timed out and observed CancellationToken, unwinding cleanly. The
                 // session survives; record it rather than letting it look like a normal cancellation.
-                metrics?.HandlerTimedOut();
-                activity?.SetStatus(ActivityStatusCode.Error, "handler timed out");
-                RaskDiagnostics.Report(
-                    RaskLogLevel.Warning, "Rask.Live",
-                    $"Rask Live handler '{handlerId ?? activityName}' cancelled after HandlerTimeout ({handlerTimeout})");
+                ReportHandlerTimedOut(metrics, activity, handlerId ?? activityName, handlerTimeout);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                metrics?.HandlerFaulted();
-                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                RaskDiagnostics.Report(
-                    RaskLogLevel.Error, "Rask.Live", $"Rask Live handler '{handlerId ?? activityName}' threw", ex);
+                ReportHandlerFaulted(metrics, activity, handlerId ?? activityName, ex);
             }
         }
         finally
@@ -2138,13 +2358,145 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    // Action timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
+    // the socket so a close cancels it too). A handler that threads CancellationToken into its
+    // async work unwinds cooperatively; one that ignores it can't be force-aborted (the timeout is
+    // still logged + metered). Null when the timeout is disabled, so the default path allocates nothing.
+    private static CancellationTokenSource? HandlerTimeoutSource(TimeSpan handlerTimeout, CancellationToken ct)
+    {
+        if (handlerTimeout <= TimeSpan.Zero)
+        {
+            return null;
+        }
+
+        var handlerCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        handlerCts.CancelAfter(handlerTimeout);
+        return handlerCts;
+    }
+
+    /// <summary>Runs one handler inside the navigator's and the sign-in's handler scopes, then renders.</summary>
+    /// <remarks>
+    ///     Called once per dispatched event, so its state machine comes from a pool rather than the heap.
+    /// </remarks>
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
+    private static async ValueTask InvokeHandlerAsync(
+        LiveSession session,
+        Navigator navigator,
+        AuthSignIn authSignIn,
+        IAuthTicketStore ticketStore,
+        Func<CancellationToken, ValueTask<bool>> invoke,
+        CancellationToken dispatchToken,
+        CancellationToken ct)
+    {
+        using (navigator.EnterHandler())
+        using (authSignIn.EnterHandler())
+        {
+            // Re-check route authorization for the *current* principal before running the
+            // handler. A user whose access was revoked mid-session (signed out elsewhere,
+            // role removed, cookie expired and re-resolved on a reconnect) must not get to
+            // fire a server-side handler on a page they can no longer view. When the guard
+            // no longer passes, skip the handler entirely and let EnforceAuthAndRenderAsync
+            // re-evaluate and ship the challenge/forbid redirect.
+            await RevalidateUserAsync(session, ct).ConfigureAwait(false);
+
+            if (!await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
+            {
+                await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
+                return;
+            }
+
+            if (!await invoke(dispatchToken).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            var authInstruction = TakeNavigation(
+                session, navigator, authSignIn, ticketStore, out var historyUrl, out var historyReplace);
+
+            await EnforceAuthAndRenderAsync(
+                    session, historyUrl, historyReplace, authInstruction)
+                .ConfigureAwait(false);
+
+            if (authInstruction is not null)
+            {
+                session.SuppressEventsUntilReconnect = true;
+            }
+        }
+    }
+
+    // Where the handler asked to go: a sign-in/out it started, or else a NavigateTo.
+    private static AuthInstruction? TakeNavigation(
+        LiveSession session,
+        Navigator navigator,
+        AuthSignIn authSignIn,
+        IAuthTicketStore ticketStore,
+        out string? historyUrl,
+        out bool historyReplace)
+    {
+        historyUrl = null;
+        historyReplace = false;
+        AuthInstruction? authInstruction = null;
+
+        if (authSignIn.TryConsume(out var pending))
+        {
+            var safeReturn = SanitizeReturnUrl(pending.ReturnUrl);
+            var ticketId = ticketStore.Issue(
+                pending.Action,
+                pending.Principal,
+                pending.Scheme,
+                session.Id,
+                pending.Persistent);
+            authInstruction = new AuthInstruction(ticketId, safeReturn);
+
+            // Do NOT navigate routeState here. Setting it to the destination now would
+            // mount the destination page under the PRE-SignIn principal — SessionUserProvider
+            // is only re-seeded on the reconnect handshake — so its Mount would load
+            // data for the old identity/tenant, and the reconnect re-renders without
+            // remounting (children reconcile by (Type, position), not Key), leaving that
+            // data stale. Park the returnUrl; the hello handler applies it once the reconnect
+            // carries the new cookie, so the page mounts fresh under the new identity. The
+            // client's URL bar still updates immediately via historyUrl below (the separate
+            // history.replace field), behind the "Authenticating…" overlay.
+            session.PendingAuthNavigation = safeReturn;
+            historyUrl = safeReturn;
+            historyReplace = true;
+        }
+
+        if (navigator.TryConsumeHistory(out var url, out var replace) && authInstruction is null)
+        {
+            historyUrl = url;
+            historyReplace = replace;
+        }
+
+        return authInstruction;
+    }
+
+    private static void ReportHandlerTimedOut(RaskMetrics? metrics, Activity? activity, string handler, TimeSpan handlerTimeout)
+    {
+        metrics?.HandlerTimedOut();
+        activity?.SetStatus(ActivityStatusCode.Error, "handler timed out");
+        RaskDiagnostics.Report(
+            RaskLogLevel.Warning, "Rask.Live",
+            $"Rask Live handler '{handler}' cancelled after HandlerTimeout ({handlerTimeout})");
+    }
+
+    private static void ReportHandlerFaulted(RaskMetrics? metrics, Activity? activity, string handler, Exception ex)
+    {
+        metrics?.HandlerFaulted();
+        activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+        RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Live", $"Rask Live handler '{handler}' threw", ex);
+    }
+
     private static async Task SendSessionUnknownAsync(WebSocket ws, CancellationToken ct)
     {
         try
         {
             await ws.SendAsync(SessionUnknownPayload, WebSocketMessageType.Text, true, ct).ConfigureAwait(false);
         }
-        catch { }
+        catch
+        {
+            // Best effort: a client that cannot hear "session unknown" reconnects from scratch anyway.
+        }
     }
 
     /// <summary>
@@ -2179,7 +2531,7 @@ public static partial class RaskEndpointExtensions
 
         // Split BEFORE the session is created: the path is what says which application this record
         // belongs to, and building the wrong root here is the failure this selector exists to stop.
-        var (path, query) = SplitUrl(record!.Url);
+        var (path, query) = SplitUrl(record.Url);
 
         // A devtools panel is opened per request, never rebuilt from a record: the reload this forces is a GET, and the
         // GET asks who may open it.
@@ -2395,13 +2747,13 @@ public static partial class RaskEndpointExtensions
             : string.Empty;
         var replace = root.TryGetProperty("replace", out var rEl) && rEl.ValueKind == JsonValueKind.True;
 
-        var fullUrl = string.IsNullOrEmpty(navQueryString)
-            ? navPath
-            : navQueryString.StartsWith("?", StringComparison.Ordinal)
-                ? navPath + navQueryString
-                : navPath + "?" + navQueryString;
+        var fullUrl = navPath;
+        if (!string.IsNullOrEmpty(navQueryString))
+        {
+            fullUrl += navQueryString.StartsWith('?') ? navQueryString : "?" + navQueryString;
+        }
 
-        await session.Lock.WaitAsync(ct);
+        await session.Lock.WaitAsync(ct).ConfigureAwait(false);
         session.InHandlerScope = true;
         try
         {
@@ -2477,7 +2829,7 @@ public static partial class RaskEndpointExtensions
 
     private static bool SameClaims(ClaimsPrincipal left, ClaimsPrincipal right) =>
         left.Claims.Select(static c => c.Type + "\u0000" + c.Value).Order(StringComparer.Ordinal)
-            .SequenceEqual(right.Claims.Select(static c => c.Type + "\u0000" + c.Value).Order(StringComparer.Ordinal));
+            .SequenceEqual(right.Claims.Select(static c => c.Type + "\u0000" + c.Value).Order(StringComparer.Ordinal), StringComparer.Ordinal);
 
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
@@ -2571,27 +2923,7 @@ public static partial class RaskEndpointExtensions
             return;
         }
 
-        string? ticketId = null;
-        string? sessionId = null;
-        try
-        {
-            using var doc = await JsonDocument.ParseAsync(ctx.Request.Body).ConfigureAwait(false);
-            if (doc.RootElement.TryGetProperty("ticket", out var t) && t.ValueKind == JsonValueKind.String)
-            {
-                ticketId = t.GetString();
-            }
-
-            if (doc.RootElement.TryGetProperty("session", out var s) && s.ValueKind == JsonValueKind.String)
-            {
-                sessionId = s.GetString();
-            }
-        }
-        catch (JsonException)
-        {
-            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
-        }
-
+        var (ticketId, sessionId) = await ReadRedeemRequestAsync(ctx).ConfigureAwait(false);
         if (string.IsNullOrEmpty(ticketId) || string.IsNullOrEmpty(sessionId))
         {
             ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -2631,6 +2963,20 @@ public static partial class RaskEndpointExtensions
         }
 
         ctx.Response.StatusCode = StatusCodes.Status200OK;
+    }
+
+    // The ticket and the session it was issued for; both null when the body is not JSON.
+    private static async Task<(string? TicketId, string? SessionId)> ReadRedeemRequestAsync(HttpContext ctx)
+    {
+        try
+        {
+            using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted).ConfigureAwait(false);
+            return (StringProperty(doc.RootElement, "ticket"), StringProperty(doc.RootElement, "session"));
+        }
+        catch (JsonException)
+        {
+            return (null, null);
+        }
     }
 
     // True when the request carries no Origin/Referer (same-origin fetches may omit Origin — the
@@ -2793,7 +3139,7 @@ public static partial class RaskEndpointExtensions
         }
 
         var cleaned = sb.ToString().Trim();
-        return cleaned.Length == 0 || cleaned == "." || cleaned == ".." ? "file" : cleaned;
+        return cleaned.Length == 0 || cleaned is "." or ".." ? "file" : cleaned;
     }
 
     /// <summary>
@@ -2913,11 +3259,11 @@ public static partial class RaskEndpointExtensions
         if (suffix is not null && files.GetFileInfo(relative + suffix) is { Exists: true } sibling)
         {
             ctx.Response.Headers.ContentEncoding = encoding;
-            await ctx.Response.SendFileAsync(sibling).ConfigureAwait(false);
+            await ctx.Response.SendFileAsync(sibling, ctx.RequestAborted).ConfigureAwait(false);
             return;
         }
 
-        await ctx.Response.SendFileAsync(file).ConfigureAwait(false);
+        await ctx.Response.SendFileAsync(file, ctx.RequestAborted).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -3028,28 +3374,7 @@ public static partial class RaskEndpointExtensions
                 return;
             }
 
-            long lastModified = 0;
-            if (long.TryParse(form[$"{file.Name}__lastModified"].ToString(), out var lm))
-            {
-                lastModified = lm;
-            }
-
-            // StageAsync atomically enforces the cumulative per-session quota: a null return means this
-            // file would push the session over MaxBytesPerSession (the temp file is already cleaned up).
-            var entry = await uploads.StageAsync(
-                sessionId,
-                SanitizeUploadFileName(file.FileName),
-                string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
-                file.Length,
-                DateTimeOffset.FromUnixTimeMilliseconds(lastModified),
-                async path =>
-                {
-                    await using var output = File.Create(path);
-                    await using var input = file.OpenReadStream();
-                    await input.CopyToAsync(output, ctx.RequestAborted).ConfigureAwait(false);
-                },
-                options.MaxBytesPerSession);
-
+            var entry = await StageFileAsync(ctx, uploads, sessionId, file, form, options).ConfigureAwait(false);
             if (entry is null)
             {
                 RollbackStaged(uploads, staged);
@@ -3060,6 +3385,43 @@ public static partial class RaskEndpointExtensions
             staged.Add(entry);
         }
 
+        await WriteStagedAsync(ctx, staged).ConfigureAwait(false);
+    }
+
+    private static async Task<SessionUploadStore.Entry?> StageFileAsync(
+        HttpContext ctx, SessionUploadStore uploads, string sessionId, IFormFile file, IFormCollection form, RaskUploadOptions options)
+    {
+        long lastModified = 0;
+        if (long.TryParse(form[$"{file.Name}__lastModified"].ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var lm))
+        {
+            lastModified = lm;
+        }
+
+        // StageAsync atomically enforces the cumulative per-session quota: a null return means this
+        // file would push the session over MaxBytesPerSession (the temp file is already cleaned up).
+        return await uploads.StageAsync(
+            sessionId,
+            SanitizeUploadFileName(file.FileName),
+            string.IsNullOrEmpty(file.ContentType) ? "application/octet-stream" : file.ContentType,
+            file.Length,
+            DateTimeOffset.FromUnixTimeMilliseconds(lastModified),
+            async path =>
+            {
+                var output = File.Create(path);
+                await using (output.ConfigureAwait(false))
+                {
+                    var input = file.OpenReadStream();
+                    await using (input.ConfigureAwait(false))
+                    {
+                        await input.CopyToAsync(output, ctx.RequestAborted).ConfigureAwait(false);
+                    }
+                }
+            },
+            options.MaxBytesPerSession).ConfigureAwait(false);
+    }
+
+    private static async Task WriteStagedAsync(HttpContext ctx, List<SessionUploadStore.Entry> staged)
+    {
         ctx.Response.ContentType = "application/json; charset=utf-8";
         using var ms = new MemoryStream();
         using (var writer = new Utf8JsonWriter(ms))
@@ -3136,26 +3498,21 @@ public static partial class RaskEndpointExtensions
             {
                 var info = new FileInfo(tempPath);
                 ctx.Response.ContentLength = info.Length;
-                await using var fs = File.OpenRead(tempPath);
-                await fs.CopyToAsync(ctx.Response.Body, ctx.RequestAborted).ConfigureAwait(false);
+                var fs = File.OpenRead(tempPath);
+                await using (fs.ConfigureAwait(false))
+                {
+                    await fs.CopyToAsync(ctx.Response.Body, ctx.RequestAborted).ConfigureAwait(false);
+                }
             }
         }
         finally
         {
-            downloads.Release(entry);
+            SessionDownloadStore.Release(entry);
         }
     }
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        /// <summary>
-        ///     The exact bytes <see cref="Render" /> serializes to, so a static response can remove
-        ///     the tag it never needed. The two must agree; a test pins the serializer's output
-        ///     against this so they cannot drift.
-        /// </summary>
-        internal static string Tag(string pathBase) =>
-            "<script src=\"" + pathBase + RuntimePath + "\"></script>";
-
         public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath);
     }
 
@@ -3163,4 +3520,15 @@ public static partial class RaskEndpointExtensions
     {
         public bool RuntimeMapped;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Rask {Version} (Server) starting")]
+    private static partial void Starting(ILogger logger, string version);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message =
+        "Rask: ShutdownDrainTimeout ({Drain}) is not below HostOptions.ShutdownTimeout ({Shutdown}), so live "
+        + "sessions will be aborted at shutdown (the browser sees an abnormal 1006 close and reports a timed-out "
+        + "session) instead of closed cleanly. Raise ShutdownTimeout or lower ShutdownDrainTimeout. Note that "
+        + "HostOptions.ServicesStopConcurrently is false by default, so other hosted services spend from the same "
+        + "budget before Rask's drain is even entered.")]
+    private static partial void TightShutdownLadder(ILogger logger, TimeSpan drain, TimeSpan shutdown);
 }

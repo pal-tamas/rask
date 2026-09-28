@@ -82,8 +82,8 @@ public static class RaskSignalingExtensions
         return endpoints;
     }
 
-    // The parameter name is left to the caller-expression default, so a failure names the setting
-    // ("o.MaxPeersPerRoom ('1') must be greater than or equal to '2'") — the key someone has to go and fix.
+    // Every failure names the setting ("MaxPeersPerRoom (1) must be at least 2.") — the key someone has to go
+    // and fix; the options registration prefixes the section.
     private static void Validate(RaskSignalingOptions o)
     {
         if (!o.Path.StartsWith('/'))
@@ -91,13 +91,26 @@ public static class RaskSignalingExtensions
             throw new InvalidOperationException($"Path must start with '/', not '{o.Path}'.");
         }
 
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxMessageBytes, 1024);
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxPayloadBytes, 256);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(o.MaxPayloadBytes, o.MaxMessageBytes);
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxPeersPerRoom, 2);
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxRooms, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(o.MaxRoomIdLength, 1);
-        ArgumentOutOfRangeException.ThrowIfNegative(o.MaxMessagesPerSecond);
+        AtLeast(nameof(o.MaxMessageBytes), o.MaxMessageBytes, 1024);
+        AtLeast(nameof(o.MaxPayloadBytes), o.MaxPayloadBytes, 256);
+        if (o.MaxPayloadBytes > o.MaxMessageBytes)
+        {
+            throw new InvalidOperationException(
+                $"MaxPayloadBytes ({o.MaxPayloadBytes}) must be at most MaxMessageBytes ({o.MaxMessageBytes}).");
+        }
+
+        AtLeast(nameof(o.MaxPeersPerRoom), o.MaxPeersPerRoom, 2);
+        AtLeast(nameof(o.MaxRooms), o.MaxRooms, 1);
+        AtLeast(nameof(o.MaxRoomIdLength), o.MaxRoomIdLength, 1);
+        AtLeast(nameof(o.MaxMessagesPerSecond), o.MaxMessagesPerSecond, 0);
+    }
+
+    private static void AtLeast(string setting, int value, int minimum)
+    {
+        if (value < minimum)
+        {
+            throw new InvalidOperationException($"{setting} ({value}) must be at least {minimum}.");
+        }
     }
 
     private static async Task RunAsync(HttpContext ctx)
@@ -111,7 +124,7 @@ public static class RaskSignalingExtensions
             await ctx.Response.WriteAsync(
                 "The Rask signaling relay needs WebSocket support in the pipeline. Call app.UseWebSockets() "
                 + "before app.MapRaskSignaling(). (Rask.Server's MapRask() does this for you; a static-file "
-                + "host serving a published WASM bundle does not.)");
+                + "host serving a published WASM bundle does not.)", ctx.RequestAborted).ConfigureAwait(false);
             return;
         }
 
@@ -124,11 +137,11 @@ public static class RaskSignalingExtensions
         var options = ctx.RequestServices.GetRequiredService<RaskSignalingOptions>();
         var hub = ctx.RequestServices.GetRequiredService<SignalingHub>();
 
-        using var socket = await ctx.WebSockets.AcceptWebSocketAsync();
+        using var socket = await ctx.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
         Peer? peer = null;
         try
         {
-            peer = await PumpAsync(ctx, socket, hub, options);
+            peer = await PumpAsync(ctx, socket, hub, options).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -143,7 +156,7 @@ public static class RaskSignalingExtensions
             if (peer is not null)
             {
                 hub.Leave(peer);
-                await AnnounceAsync(hub, peer, "peer-left", ctx.RequestAborted);
+                await AnnounceAsync(hub, peer, "peer-left", ctx.RequestAborted).ConfigureAwait(false);
             }
         }
     }
@@ -162,7 +175,7 @@ public static class RaskSignalingExtensions
         {
             while (socket.State == WebSocketState.Open && !ctx.RequestAborted.IsCancellationRequested)
             {
-                var (bytes, closed) = await ReceiveAsync(socket, buffer, ctx.RequestAborted);
+                var (bytes, closed) = await ReceiveAsync(socket, buffer, ctx.RequestAborted).ConfigureAwait(false);
                 if (closed)
                 {
                     return peer;
@@ -171,7 +184,7 @@ public static class RaskSignalingExtensions
                 if (bytes < 0)
                 {
                     // Oversized: the message never fits, so there is nothing to resynchronise to.
-                    await CloseAsync(socket, "message too large", ctx.RequestAborted);
+                    await CloseAsync(socket, "message too large", ctx.RequestAborted).ConfigureAwait(false);
                     return peer;
                 }
 
@@ -186,12 +199,12 @@ public static class RaskSignalingExtensions
 
                     if (++inWindow > options.MaxMessagesPerSecond)
                     {
-                        await CloseAsync(socket, "rate limit", ctx.RequestAborted);
+                        await CloseAsync(socket, "rate limit", ctx.RequestAborted).ConfigureAwait(false);
                         return peer;
                     }
                 }
 
-                peer = await HandleAsync(ctx, socket, hub, options, buffer.AsMemory(0, bytes), peer);
+                peer = await HandleAsync(ctx, socket, hub, options, buffer.AsMemory(0, bytes), peer).ConfigureAwait(false);
             }
 
             return peer;
@@ -209,7 +222,7 @@ public static class RaskSignalingExtensions
         var offset = 0;
         while (true)
         {
-            var result = await socket.ReceiveAsync(buffer.AsMemory(offset), ct);
+            var result = await socket.ReceiveAsync(buffer.AsMemory(offset), ct).ConfigureAwait(false);
             if (result.MessageType == WebSocketMessageType.Close)
             {
                 // Complete the handshake, so a client that called CloseAsync (and is waiting for our close
@@ -217,7 +230,7 @@ public static class RaskSignalingExtensions
                 // we are already the side that received the close, so there is nothing left to wait for.
                 try
                 {
-                    await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, ct);
+                    await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (ex is WebSocketException or OperationCanceledException
                                                or ObjectDisposedException)
@@ -252,7 +265,7 @@ public static class RaskSignalingExtensions
         }
         catch (JsonException)
         {
-            await SendErrorAsync(socket, "malformed message", ctx.RequestAborted);
+            await SendErrorAsync(socket, "malformed message", ctx.RequestAborted).ConfigureAwait(false);
             return peer;
         }
 
@@ -263,21 +276,21 @@ public static class RaskSignalingExtensions
                 || !root.TryGetProperty("type", out var typeEl)
                 || typeEl.ValueKind != JsonValueKind.String)
             {
-                await SendErrorAsync(socket, "malformed message", ctx.RequestAborted);
+                await SendErrorAsync(socket, "malformed message", ctx.RequestAborted).ConfigureAwait(false);
                 return peer;
             }
 
             return typeEl.GetString() switch
             {
-                "join" => await JoinAsync(ctx, socket, hub, options, root, peer),
-                "signal" => await SignalAsync(ctx, socket, hub, options, root, peer),
-                _ => await Unknown(socket, ctx.RequestAborted, peer)
+                "join" => await JoinAsync(ctx, socket, hub, options, root, peer).ConfigureAwait(false),
+                "signal" => await SignalAsync(ctx, socket, hub, options, root, peer).ConfigureAwait(false),
+                _ => await Unknown(socket, ctx.RequestAborted, peer).ConfigureAwait(false)
             };
         }
 
         static async Task<Peer?> Unknown(WebSocket socket, CancellationToken ct, Peer? peer)
         {
-            await SendErrorAsync(socket, "unknown message type", ct);
+            await SendErrorAsync(socket, "unknown message type", ct).ConfigureAwait(false);
             return peer;
         }
     }
@@ -288,36 +301,36 @@ public static class RaskSignalingExtensions
     {
         if (peer is not null)
         {
-            await SendErrorAsync(socket, "already joined", ctx.RequestAborted);
+            await SendErrorAsync(socket, "already joined", ctx.RequestAborted).ConfigureAwait(false);
             return peer;
         }
 
         if (!root.TryGetProperty("room", out var roomEl) || roomEl.ValueKind != JsonValueKind.String)
         {
-            await SendErrorAsync(socket, "join needs a room", ctx.RequestAborted);
+            await SendErrorAsync(socket, "join needs a room", ctx.RequestAborted).ConfigureAwait(false);
             return null;
         }
 
         var room = roomEl.GetString()!;
         if (room.Length == 0 || room.Length > options.MaxRoomIdLength)
         {
-            await SendErrorAsync(socket, "invalid room", ctx.RequestAborted);
+            await SendErrorAsync(socket, "invalid room", ctx.RequestAborted).ConfigureAwait(false);
             return null;
         }
 
         var user = ctx.User ?? new System.Security.Claims.ClaimsPrincipal();
-        if (!await options.AuthorizeRoom(new SignalingJoinContext(room, user, ctx.RequestServices)))
+        if (!await options.AuthorizeRoom(new SignalingJoinContext(room, user, ctx.RequestServices)).ConfigureAwait(false))
         {
             // Same wording as a full room on purpose: whether a room exists, and who is in it, is not
             // something an unauthorized caller should be able to probe.
-            await SendErrorAsync(socket, "cannot join", ctx.RequestAborted);
+            await SendErrorAsync(socket, "cannot join", ctx.RequestAborted).ConfigureAwait(false);
             return null;
         }
 
         var joined = hub.Join(room, socket, out var existing);
         if (joined is null)
         {
-            await SendErrorAsync(socket, "cannot join", ctx.RequestAborted);
+            await SendErrorAsync(socket, "cannot join", ctx.RequestAborted).ConfigureAwait(false);
             return null;
         }
 
@@ -332,9 +345,9 @@ public static class RaskSignalingExtensions
             }
 
             w.WriteEndArray();
-        }), ctx.RequestAborted);
+        }), ctx.RequestAborted).ConfigureAwait(false);
 
-        await AnnounceAsync(hub, joined, "peer-joined", ctx.RequestAborted);
+        await AnnounceAsync(hub, joined, "peer-joined", ctx.RequestAborted).ConfigureAwait(false);
         return joined;
     }
 
@@ -344,21 +357,21 @@ public static class RaskSignalingExtensions
     {
         if (peer is null)
         {
-            await SendErrorAsync(socket, "join first", ctx.RequestAborted);
+            await SendErrorAsync(socket, "join first", ctx.RequestAborted).ConfigureAwait(false);
             return null;
         }
 
         if (!root.TryGetProperty("to", out var toEl) || toEl.ValueKind != JsonValueKind.String
             || !root.TryGetProperty("payload", out var payloadEl) || payloadEl.ValueKind != JsonValueKind.String)
         {
-            await SendErrorAsync(socket, "signal needs `to` and `payload`", ctx.RequestAborted);
+            await SendErrorAsync(socket, "signal needs `to` and `payload`", ctx.RequestAborted).ConfigureAwait(false);
             return peer;
         }
 
         var payload = payloadEl.GetString()!;
         if (Encoding.UTF8.GetByteCount(payload) > options.MaxPayloadBytes)
         {
-            await SendErrorAsync(socket, "payload too large", ctx.RequestAborted);
+            await SendErrorAsync(socket, "payload too large", ctx.RequestAborted).ConfigureAwait(false);
             return peer;
         }
 
@@ -367,7 +380,7 @@ public static class RaskSignalingExtensions
         var target = hub.Target(peer, toEl.GetString()!);
         if (target is null)
         {
-            await SendErrorAsync(socket, "no such peer", ctx.RequestAborted);
+            await SendErrorAsync(socket, "no such peer", ctx.RequestAborted).ConfigureAwait(false);
             return peer;
         }
 
@@ -376,7 +389,7 @@ public static class RaskSignalingExtensions
             w.WriteString("type", "signal");
             w.WriteString("from", peer.Id);
             w.WriteString("payload", payload);
-        }), ctx.RequestAborted);
+        }), ctx.RequestAborted).ConfigureAwait(false);
 
         return peer;
     }
@@ -394,7 +407,7 @@ public static class RaskSignalingExtensions
             // One unreachable peer must not stop the others being told.
             try
             {
-                await SendAsync(other.Socket, other.SendGate, frame, ct);
+                await SendAsync(other.Socket, other.SendGate, frame, ct).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is WebSocketException or OperationCanceledException
                                            or ObjectDisposedException)
@@ -430,14 +443,14 @@ public static class RaskSignalingExtensions
     {
         if (gate is not null)
         {
-            await gate.WaitAsync(ct);
+            await gate.WaitAsync(ct).ConfigureAwait(false);
         }
 
         try
         {
             if (socket.State == WebSocketState.Open)
             {
-                await socket.SendAsync(frame, WebSocketMessageType.Text, true, ct);
+                await socket.SendAsync(frame, WebSocketMessageType.Text, true, ct).ConfigureAwait(false);
             }
         }
         finally
@@ -450,7 +463,7 @@ public static class RaskSignalingExtensions
     {
         try
         {
-            await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, reason, ct);
+            await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, reason, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is WebSocketException or OperationCanceledException
                                        or ObjectDisposedException)
