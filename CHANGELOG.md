@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A scoped gate in a fresh worktree no longer aborts with "Could not find testhost".** Its build ran Restore
+  and Build in one MSBuild call, so Build reused the pre-restore evaluation and a never-restored test project
+  came out without `Microsoft.NET.Test.Sdk`'s targets (22 files instead of 81). Restore now gets its own
+  session id — what `dotnet build -restore` does.
+- **Two validator tests no longer race the clock.** The async-validator demos' "empty input short-circuits"
+  tests asserted the call took under 200 ms, which a loaded machine misses. They now assert the returned
+  `ValueTask` is already complete — i.e. the delay was never awaited — which is the short circuit itself.
 - **A scaffold's `.vscode/extensions.json` recommends what the project actually uses.** Every template adds
   EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
   `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
