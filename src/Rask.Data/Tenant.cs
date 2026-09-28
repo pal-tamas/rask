@@ -7,7 +7,7 @@ namespace Rask.Data;
 ///     <para>
 ///         Every read and write on a <see cref="Tenancy.PerTenant" /> table is filtered by this. It is
 ///         ambient rather than a parameter because a Rask read is a static call that opens its own context —
-///         <c>Invoice.Read.Where(…)</c> — so there is nowhere to pass it; and it flows on
+///         <c>Invoice.Where(…)</c> — so there is nowhere to pass it; and it flows on
 ///         <see cref="AsyncLocal{T}" />, so it follows an await without being handed on.
 ///     </para>
 ///     <para>

@@ -27,7 +27,7 @@ public sealed class ModelQueryableTests : IDisposable
         Expression<Func<WidgetRead, object?>> byName = w => w.Name;
         Expression<Func<WidgetRead, object?>> byId = w => w.Id;
 
-        var query = Widget.Read.AsQueryable();
+        var query = Widget.AsQueryable();
         var total = query.Count();
         var rows = query.OrderBy(byName).ThenBy(byId).Skip(2).Take(2).ToList();
         var descending = query.OrderByDescending(byName).Skip(0).Take(2).ToList();
@@ -47,7 +47,7 @@ public sealed class ModelQueryableTests : IDisposable
         // context would answer the second run from that context's identity map — the renamed row would
         // come back under its old name.
         await using var database = await StartDatabaseAsync();
-        var query = Widget.Read.AsQueryable().Where(w => w.Name != "hidden");
+        var query = Widget.AsQueryable().Where(w => w.Name != "hidden");
 
         Assert.Equal(0, query.Count());
 
@@ -70,7 +70,7 @@ public sealed class ModelQueryableTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SeedAsync(database, "alpha", "bravo", "charlie");
 
-        var query = Widget.Read.AsQueryable();
+        var query = Widget.AsQueryable();
 
         Assert.Equal(3, (await query.ToListAsync()).Count);
         Assert.Equal(3, await query.CountAsync());
@@ -96,10 +96,10 @@ public sealed class ModelQueryableTests : IDisposable
         database.Context.Remove(gone);
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal(1, Widget.Read.AsQueryable().Count());
-        Assert.Equal(2, Widget.Read.IgnoreQueryFilters().AsQueryable().Count());
-        Assert.Equal(2, await Widget.Read.IgnoreQueryFilters().AsQueryable().CountAsync());
-        Assert.Equal(1, Widget.Read.Where(w => w.Name == "gone").IgnoreQueryFilters().AsQueryable().Count());
+        Assert.Equal(1, Widget.AsQueryable().Count());
+        Assert.Equal(2, Widget.IgnoreQueryFilters().AsQueryable().Count());
+        Assert.Equal(2, await Widget.IgnoreQueryFilters().AsQueryable().CountAsync());
+        Assert.Equal(1, Widget.Where(w => w.Name == "gone").IgnoreQueryFilters().AsQueryable().Count());
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed class ModelQueryableTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SeedAsync(database, "bravo", "alpha");
 
-        var query = Widget.Read.AsQueryable();
+        var query = Widget.AsQueryable();
 
         Assert.Equal(["alpha", "bravo"], query.OrderBy(w => w.Name).Select(w => w.Name).ToList());
         Assert.Equal(["alpha", "bravo"], await query.OrderBy(w => w.Name).Select(w => w.Name).ToListAsync());
@@ -117,7 +117,7 @@ public sealed class ModelQueryableTests : IDisposable
     [Fact]
     public void The_non_generic_CreateQuery_is_refused_rather_than_guessed_at()
     {
-        var query = Widget.Read.AsQueryable();
+        var query = Widget.AsQueryable();
 
         Assert.Throws<NotSupportedException>(() => query.Provider.CreateQuery(query.Expression));
     }
@@ -131,7 +131,7 @@ public sealed class ModelQueryableTests : IDisposable
         await SeedAsync(database, "alpha", "bravo", "charlie");
         var tally = ConfigureCountingContexts();
 
-        var query = Widget.Read.AsQueryable();
+        var query = Widget.AsQueryable();
 
         _ = query.Count();
         _ = query.OrderBy(w => w.Name).Skip(1).Take(1).ToList();
@@ -152,7 +152,7 @@ public sealed class ModelQueryableTests : IDisposable
         await SeedAsync(database, "alpha", "bravo", "charlie");
         var tally = ConfigureCountingContexts();
 
-        var query = Widget.Read.AsQueryable();
+        var query = Widget.AsQueryable();
 
         _ = await query.ToListAsync();
         _ = await query.CountAsync();
@@ -174,7 +174,7 @@ public sealed class ModelQueryableTests : IDisposable
         await SeedAsync(database, "alpha");
         var tally = ConfigureCountingContexts();
 
-        var untranslatable = Widget.Read.AsQueryable().Where(w => IsInteresting(w.Name));
+        var untranslatable = Widget.AsQueryable().Where(w => IsInteresting(w.Name));
 
         Assert.Throws<InvalidOperationException>(() => untranslatable.Count());
         await Assert.ThrowsAsync<InvalidOperationException>(() => untranslatable.CountAsync());

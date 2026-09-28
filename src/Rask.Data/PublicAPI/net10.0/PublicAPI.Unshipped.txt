@@ -288,3 +288,5 @@ static Rask.Data.CurrentUser.get_RequiredTenant() -> System.Guid
 static Rask.Data.CurrentUser.get_RequiredUserId() -> System.Guid
 static Rask.Data.CurrentUser.get_Tenant() -> System.Guid?
 static Rask.Data.CurrentUser.get_UserId() -> System.Guid?
+static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+static Rask.Data.GeneratedModelWrites.Save<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!

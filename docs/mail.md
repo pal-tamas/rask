@@ -110,7 +110,7 @@ so `Rask__Mail__Smtp__Host` in the environment is enough to start. Nothing else 
 - **The tenant travels with the message.** In an app with [multi-tenancy](multi-tenancy.md), each row records
   the tenant in flight when it was queued, and the processor re-enters it before sending — so anything the
   send reads is scoped as the page that queued it was. A message queued by the host itself records none.
-- **`QueuedMail` has a read face**, like every Rask.Data entity: `QueuedMail.Read.Where(m => m.ProcessedAt ==
+- **`QueuedMail` has a read face**, like every Rask.Data entity: `QueuedMail.Where(m => m.ProcessedAt ==
   null).CountAsync()` is the queue's depth, with no context of your own.
 - **`IMailSender`** — the delivery seam. `AddRaskMail` picks `MailKitSender` (SMTP) when `Smtp` is set,
   else `PickupDirectoryMailSender`, else `LogMailSender`. Register your own `IMailSender` **before**

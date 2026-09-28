@@ -82,7 +82,7 @@ builder.Services.AddRaskMeta();
 // DbSet property, no configuration class, no registration — then `rask db add <Name>` /
 // `rask db update` to create and apply the migration.
 //
-// The generic overload is what names the context to the model surface, so `Product.Read.Where(…)`
+// The generic overload is what names the context to the model surface, so `Product.Where(…)`
 // knows which one to open. The non-generic
 // AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
 builder.Services.AddRaskData<AppDbContext>();

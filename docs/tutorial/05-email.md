@@ -79,7 +79,7 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
-        var order = await Order.Read.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(Current.Cancellation);
+        var order = await Order.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(Current.Cancellation);
         if (order is null) return;
 
         // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.

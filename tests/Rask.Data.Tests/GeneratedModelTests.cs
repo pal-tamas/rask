@@ -134,8 +134,8 @@ public sealed class GeneratedModelTests : IDisposable
     {
         await SeedAsync(Doodad.Create("plain"));
 
-        Assert.Equal(1, await Doodad.Read.CountAsync());
-        Assert.Equal("plain", (await Doodad.Read.FirstOrDefaultAsync(d => d.Label == "plain"))!.Label);
+        Assert.Equal(1, await Doodad.CountAsync());
+        Assert.Equal("plain", (await Doodad.FirstOrDefaultAsync(d => d.Label == "plain"))!.Label);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public sealed class GeneratedModelTests : IDisposable
     {
         await SeedAsync(Gadget.Create("priced", "P1", 19.99m));
 
-        var row = await Gadget.Read.FirstOrDefaultAsync(g => g.Code == "P1");
+        var row = await Gadget.FirstOrDefaultAsync(g => g.Code == "P1");
 
         Assert.NotNull(row);
         Assert.Equal(19.99m, row.PriceAmount);
@@ -239,7 +239,7 @@ public sealed class GeneratedModelTests : IDisposable
         // Both routes: through the key, and through a predicate comparing the id type itself.
         await using var db = NewContext();
         Assert.NotNull(await db.Set<Gadget>().FindAsync([id]));
-        Assert.Equal("typed", (await Gadget.Read.FirstOrDefaultAsync(g => g.Id == id))!.Name);
+        Assert.Equal("typed", (await Gadget.FirstOrDefaultAsync(g => g.Id == id))!.Name);
     }
 
     [Fact]

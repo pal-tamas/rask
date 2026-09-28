@@ -92,7 +92,7 @@ Add a migration for the new table before running — `rask db add AddOutbox && r
   signed in on the processor's thread. An event raised by the host itself, or inside `Tenant.Across()`,
   records none. The table is not partitioned by a filter, because one processor drains every tenant's events.
 - **`OutboxMessage` has a read face**, like every Rask.Data entity, so the queue can be queried with no
-  context of your own: `OutboxMessage.Read.Where(m => m.ProcessedAt == null).CountAsync()`.
+  context of your own: `OutboxMessage.Where(m => m.ProcessedAt == null).CountAsync()`.
 
 ## Shutdown
 
