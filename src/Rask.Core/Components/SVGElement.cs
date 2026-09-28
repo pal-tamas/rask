@@ -2,28 +2,13 @@ using System.Text;
 
 namespace Rask.Core.Components;
 
-// Base for SVG element tags (svg, g, path, circle, …). Mirrors Element: it is abstract so the
-// factory generator emits no factory for it, but its public properties are inherited by every
-// concrete SVG tag and therefore surface as optional factory parameters (same mechanism that
-// flows Id/Class/Style/Data down from Element).
+// What MDN's SVGElement (generated) keeps inline: the presentation attributes nearly every icon and chart sets.
+// The generated rest of SVG's globals live on a side object an element allocates only when it names one; these
+// are common enough that allocating for them would be the regression, so each is a field. `fill` is here too,
+// although BCD files it per shape rather than as a global: it paints every one of them.
 //
-// It carries the common SVG *presentation* attributes — the ones that apply across virtually all
-// SVG elements — plus a universal click handler so any shape is interactive through the normal
-// data-rask-on-click event-delegation path. Tag-specific geometry attributes (cx, d, points, …)
-// live on the concrete subclasses.
-//
-// Values are string? throughout: SVG attributes routinely carry units or keywords ("50%", "1em",
-// "currentColor") that a numeric type couldn't express. PascalCase property names map to the real
-// hyphenated/camelCase SVG attribute names explicitly in WriteAttributes.
-
-/// <summary>
-///     The presentation attributes every SVG shape shares — fill, stroke, opacity and transform. Not a tag
-///     of its own: it exists so each shape exposes the same painting surface as optional factory
-///     parameters. Every one of these is also a CSS property, so a stylesheet can set them instead. <see
-///     href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute#presentation_attributes">MDN:
-///     presentation attributes</see>
-/// </summary>
-public abstract partial class SvgElement : Element
+// Values are strings: SVG attributes carry units and keywords ("50%", "1em", "currentColor").
+public abstract partial class SVGElement
 {
     /// <summary>
     ///     The colour painting the shape's interior. <c>none</c> leaves it unpainted — which is not the
@@ -55,14 +40,10 @@ public abstract partial class SvgElement : Element
     /// <summary>How two line segments meet: <c>miter</c>, <c>round</c>, or <c>bevel</c>.</summary>
     public string? StrokeLinejoin { get; set; }
 
-    /// <summary>
-    ///     The dash-and-gap pattern for the outline, as a comma- or space-separated list of lengths.
-    /// </summary>
+    /// <summary>The dash-and-gap pattern for the outline, as a comma- or space-separated list of lengths.</summary>
     public string? StrokeDasharray { get; set; }
 
-    /// <summary>
-    ///     How far into the dash pattern to start. Animating it is the usual way to draw a line on.
-    /// </summary>
+    /// <summary>How far into the dash pattern to start. Animating it is the usual way to draw a line on.</summary>
     public string? StrokeDashoffset { get; set; }
 
     /// <summary>
@@ -92,10 +73,7 @@ public abstract partial class SvgElement : Element
     /// </summary>
     public string? Display { get; set; }
 
-    /// <summary>
-    ///     Whether the element is visible. <c>hidden</c> still takes up its place in layout and bounding
-    ///     boxes.
-    /// </summary>
+    /// <summary>Whether the element is visible. <c>hidden</c> still takes up its place in layout and bounding boxes.</summary>
     public string? Visibility { get; set; }
 
     /// <summary>
@@ -104,13 +82,9 @@ public abstract partial class SvgElement : Element
     /// </summary>
     public string? PointerEvents { get; set; }
 
-    // OnClick (and the rest of the GlobalEventHandlers surface) is inherited from Element — any SVG
-    // shape is interactive through the universal data-rask-on-* path without redeclaring it here.
-
-    protected override void WriteAttributes(StringBuilder sb)
+    // First, where they have always rendered: before the rarer globals and the tag's own attributes.
+    partial void WriteOwnedAttributesFirst(StringBuilder sb)
     {
-        base.WriteAttributes(sb);
-
         if (Fill is not null)
         {
             AppendAttr(sb, "fill", Fill);

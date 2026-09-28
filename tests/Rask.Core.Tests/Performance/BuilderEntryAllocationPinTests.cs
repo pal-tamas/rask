@@ -370,8 +370,9 @@ public class BuilderEntryAllocationPinTests
     {
         var cost = Measure(static () => new AllocBoundToMarkupHostProbe());
 
-        // 5011 B/render measured 2026-08-24; pinned at 5300 B.
-        AssertCosts(cost, 5300);
+        // 5011 B/render measured 2026-08-24; 5315 B on 2026-09-28, once the 23 SVG elements MDN ships and Rask
+        // lacked joined RaskMarkup's surface (animate, feTurbulence, …); pinned at 5600 B.
+        AssertCosts(cost, 5600);
     }
 
     /// <summary>

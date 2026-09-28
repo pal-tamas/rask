@@ -225,11 +225,15 @@ namespace Rask.Core.Dom.Build
             ["object"] = "HtmlObject", // System.Object
         };
 
+        // SVG tags whose PascalCase entry would shadow System.IO.Path or Rask's Text node take the Svg prefix, as
+        // does every SVG tag HTML also has (a, script, style, title).
+        private static readonly HashSet<string> SvgPrefixed = new(StringComparer.Ordinal) { "path", "text" };
+
         // Rask's own security policy, not MDN's: media sources may be inline data:image/video/audio.
         private static readonly HashSet<string> MediaUrlInterfaces = new(StringComparer.Ordinal)
         {
             "HTMLImageElement", "HTMLSourceElement", "HTMLTrackElement", "HTMLMediaElement", "HTMLAudioElement",
-            "HTMLVideoElement", "HTMLInputElement",
+            "HTMLVideoElement", "HTMLInputElement", "SVGImageElement", "SVGFEImageElement",
         };
 
         // URL-typed attributes that hold a LIST of URLs, which a scheme check cannot parse: written as-is.
@@ -252,7 +256,7 @@ namespace Rask.Core.Dom.Build
 
         // `class HTMLFormElement<[DynamicallyAccessedMembers(...)] TModel> : HTMLFormElement` included.
         private static readonly Regex TypedControl = new(@"class\s+(HTML\w*Element)\s*<(?:\s*\[[^\]]*\])?\s*(\w+)\s*>\s*:\s*\1\b", RegexOptions.Compiled);
-        private static readonly Regex PartialClass = new(@"partial\s+class\s+(HTML\w*Element)\b(?!\s*<)", RegexOptions.Compiled);
+        private static readonly Regex PartialClass = new(@"partial\s+class\s+((?:HTML|SVG)\w*Element)\b(?!\s*<)", RegexOptions.Compiled);
         private static readonly Regex PublicProperty = new(@"^\s*public\s+(?:new\s+|override\s+|virtual\s+|required\s+)*[\w<>\[\]?.,: ]+?\s+(\w+)\s*(?:\{|=>)", RegexOptions.Compiled | RegexOptions.Multiline);
 
         public static Partials ReadPartials(IEnumerable<string> sources)
@@ -298,7 +302,7 @@ namespace Rask.Core.Dom.Build
             var root = Parse(snapshotJson);
             var interfaces = Get(root, "interfaces");
             var tagsByInterface = new Dictionary<string, List<JsonNode>>(StringComparer.Ordinal);
-            foreach (var e in Get(root, "elements").Items.Where(e => Str(e, "namespace") == "html"))
+            foreach (var e in Get(root, "elements").Items)
             {
                 var i = Str(e, "interface")!;
                 if (!tagsByInterface.TryGetValue(i, out var list))
@@ -309,20 +313,35 @@ namespace Rask.Core.Dom.Build
                 list.Add(e);
             }
 
-            // Every HTML interface a tag uses, and the chain up to HTMLElement.
-            var html = new SortedSet<string>(StringComparer.Ordinal);
-            foreach (var name in tagsByInterface.Keys)
+            var htmlTags = new HashSet<string>(Get(root, "elements").Items.Where(e => Str(e, "namespace") == "html").Select(e => Str(e, "tag")!), StringComparer.Ordinal);
+
+            // Every interface a tag uses, and the chain up to HTMLElement or SVGElement (the roots), each after its
+            // parent so a derived type knows what its bases already declare.
+            var dom = new List<string>();
+            var rootOf = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var name in tagsByInterface.Keys.OrderBy(n => n, StringComparer.Ordinal))
             {
+                var chain = new List<string>();
                 for (var n = name; n is not null && n != "Element"; n = interfaces[n] is { } d ? Str(d, "parent") : null)
                 {
-                    html.Add(n);
+                    chain.Add(n);
                 }
+
+                foreach (var n in chain)
+                {
+                    rootOf[n] = chain[chain.Count - 1];
+                }
+
+                dom.AddRange(chain);
             }
 
+            dom = dom.Distinct(StringComparer.Ordinal).OrderBy(n => Depth(interfaces, n)).ThenBy(n => n, StringComparer.Ordinal).ToList();
+            var inDom = new HashSet<string>(dom, StringComparer.Ordinal);
+
             // Each attribute is declared on the interface whose IDL declares it (`on`), once.
-            var declared = html.ToDictionary(n => n, _ => new List<JsonNode>(), StringComparer.Ordinal);
+            var declared = dom.ToDictionary(n => n, _ => new List<JsonNode>(), StringComparer.Ordinal);
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var name in html)
+            foreach (var name in dom)
             {
                 if (Get(interfaces, name)["attributes"] is not { } attrs)
                 {
@@ -332,7 +351,7 @@ namespace Rask.Core.Dom.Build
                 foreach (var a in attrs.Items)
                 {
                     var on = Str(a, "on") ?? name;
-                    if (on is "HTMLElement" or "Element" or "Node" || !html.Contains(on))
+                    if (on is "HTMLElement" or "SVGElement" or "Element" or "Node" || !inDom.Contains(on))
                     {
                         on = name;
                     }
@@ -345,24 +364,33 @@ namespace Rask.Core.Dom.Build
             }
 
             var files = new List<KeyValuePair<string, string>>();
-            foreach (var name in html)
+            // Every property a type has, its bases' included: an attribute a base already writes (SVG's `fill`,
+            // which BCD files per shape) is not declared again.
+            var props = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            var rootGlobals = new Dictionary<string, List<(string Attr, string Prop, string Type, string Write)>>(StringComparer.Ordinal);
+            foreach (var name in dom)
             {
                 var iface = Get(interfaces, name);
                 var parent = Str(iface, "parent");
                 var tags = tagsByInterface.TryGetValue(name, out var t) ? t : new List<JsonNode>();
-                var hasChildren = html.Any(n => Str(Get(interfaces, n), "parent") == name);
-                var isRoot = name == "HTMLElement";
+                var hasChildren = dom.Any(n => Str(Get(interfaces, n), "parent") == name);
+                var isRoot = rootOf[name] == name;
+                var svg = rootOf[name] == "SVGElement";
                 var typed = partials.Typed.TryGetValue(name, out var typeParameter);
-                var modifier = isRoot ? "" : tags.Count == 0 || typed ? "abstract " : hasChildren ? "" : "sealed ";
+                // HTMLElement is also the type of the plain tags (em, section), so it alone is concrete with children.
+                var modifier = name == "HTMLElement" ? "" : tags.Count == 0 || typed ? "abstract " : hasChildren ? "" : "sealed ";
                 var ownedHere = partials.Owned.TryGetValue(name, out var o) ? new HashSet<string>(o, StringComparer.Ordinal) : new HashSet<string>(StringComparer.Ordinal);
+                var inherited = !isRoot && parent is not null && props.TryGetValue(parent, out var p) ? p : new HashSet<string>(StringComparer.Ordinal);
 
                 var attributes = new List<(string Attr, string Prop, string Type, string Write)>();
-                IEnumerable<JsonNode> source = isRoot ? Globals(root) : declared[name];
+                IEnumerable<JsonNode> source = isRoot ? Globals(root, svg) : declared[name];
                 foreach (var a in source)
                 {
                     var attr = Str(a, "attr")!;
                     var prop = PropertyName(name, a);
-                    if (ownedHere.Contains(prop) || Omitted.Contains(name + "." + attr))
+                    // Element already writes it: SVG's <style> has a `title` of its own in the IDL, and it is the global one.
+                    var elementWrites = ReservedMembers.Contains(prop) && string.Equals(prop, attr, StringComparison.OrdinalIgnoreCase);
+                    if (ownedHere.Contains(prop) || inherited.Contains(prop) || elementWrites || Omitted.Contains(name + "." + attr))
                     {
                         continue;
                     }
@@ -373,9 +401,11 @@ namespace Rask.Core.Dom.Build
                     }
 
                     var type = CSharpType(Str(a, "type"));
-                    attributes.Add((attr, prop, type, WriteCall(name, attr, prop, type, a)));
+                    attributes.Add((attr, prop, type, WriteCall(name, attr, prop, type, a, svg)));
                     ownedHere.Add(prop);
                 }
+
+                props[name] = new HashSet<string>(inherited.Concat(ownedHere), StringComparer.Ordinal);
 
                 var sb = new StringBuilder();
                 sb.AppendLine("// <auto-generated/> from src/Rask.Core/Dom/mdn.snapshot.json by Rask.Dom.targets — do not edit.");
@@ -387,7 +417,7 @@ namespace Rask.Core.Dom.Build
                 Doc(sb, "", TypeSummary(name, tags), iface);
                 if (!typed)
                 {
-                    Tags(sb, tags);
+                    Tags(sb, tags, htmlTags);
                 }
 
                 sb.Append("public ").Append(modifier).Append("partial class ").Append(name).Append(" : ")
@@ -397,7 +427,17 @@ namespace Rask.Core.Dom.Build
                 {
                     var a = source.First(x => Str(x, "attr") == attr);
                     Doc(sb, "    ", AttributeSummary(attr, a), a);
-                    if (isRoot)
+                    if (isRoot && svg)
+                    {
+                        // SVG's globals are nearly all presentation attributes: they live on the side object's SVG
+                        // subclass, which only an SVG element allocates (NewGlobalAttrs below).
+                        sb.Append("    public ").Append(type).Append(' ').Append(prop).AppendLine();
+                        sb.AppendLine("    {");
+                        sb.Append("        get => (GlobalAttrsInternal as SvgGlobalAttrs)?.").Append(prop).AppendLine(";");
+                        sb.Append("        set { if (value is not null || GlobalAttrsInternal is not null) ((SvgGlobalAttrs)GlobalAttrsForWrite).").Append(prop).AppendLine(" = value; }");
+                        sb.AppendLine("    }");
+                    }
+                    else if (isRoot)
                     {
                         // A global lives on the lazily allocated side object: HTMLElement is the base of every
                         // element, and a field each would cost every node of every live page. Assigning null
@@ -425,7 +465,7 @@ namespace Rask.Core.Dom.Build
                     if (isRoot)
                     {
                         // One null check for the common element, which names no global at all.
-                        sb.AppendLine("        if (GlobalAttrsInternal is not null)");
+                        sb.AppendLine(svg ? "        if (GlobalAttrsInternal is SvgGlobalAttrs)" : "        if (GlobalAttrsInternal is not null)");
                         sb.AppendLine("        {");
                     }
 
@@ -449,28 +489,48 @@ namespace Rask.Core.Dom.Build
                     sb.AppendLine("    partial void WriteOwnedAttributes(StringBuilder sb);");
                 }
 
+                if (isRoot && svg)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("    private protected override GlobalAttrs NewGlobalAttrs() => new SvgGlobalAttrs();");
+                }
+
                 sb.AppendLine("}");
                 if (typed)
                 {
                     // The tags go on the typed control, which is what an entry builds.
                     sb.AppendLine();
-                    Tags(sb, tags);
+                    Tags(sb, tags, htmlTags);
                     sb.Append("public sealed partial class ").Append(name).Append('<').Append(typeParameter).AppendLine(">;");
                 }
 
                 files.Add(new KeyValuePair<string, string>(name + ".g.cs", sb.ToString()));
                 if (isRoot)
                 {
-                    files.Add(new KeyValuePair<string, string>("GlobalAttrs.g.cs", GlobalFields(attributes)));
+                    rootGlobals[name] = attributes;
                 }
             }
 
+            files.Add(new KeyValuePair<string, string>("GlobalAttrs.g.cs", GlobalFields(
+                rootGlobals.TryGetValue("HTMLElement", out var html) ? html : new(),
+                rootGlobals.TryGetValue("SVGElement", out var svgGlobals) ? svgGlobals : new())));
             DomEventEmitter.Emit(root, files);
             return files;
         }
 
-        // The side object's fields for the generated globals (see Component.GlobalAttrs).
-        private static string GlobalFields(List<(string Attr, string Prop, string Type, string Write)> globals)
+        private static int Depth(JsonNode interfaces, string name)
+        {
+            var depth = 0;
+            for (var n = Str(Get(interfaces, name), "parent"); n is not null && n != "Element"; n = interfaces[n] is { } d ? Str(d, "parent") : null)
+            {
+                depth++;
+            }
+
+            return depth;
+        }
+
+        // The side objects' fields for the generated globals (see Component.GlobalAttrs).
+        private static string GlobalFields(List<(string Attr, string Prop, string Type, string Write)> globals, List<(string Attr, string Prop, string Type, string Write)> svg)
         {
             var sb = new StringBuilder();
             sb.AppendLine("// <auto-generated/> from src/Rask.Core/Dom/mdn.snapshot.json by Rask.Dom.targets — do not edit.");
@@ -480,9 +540,19 @@ namespace Rask.Core.Dom.Build
             sb.AppendLine();
             sb.AppendLine("public abstract partial class Component");
             sb.AppendLine("{");
-            sb.AppendLine("    internal sealed partial class GlobalAttrs");
+            sb.AppendLine("    internal partial class GlobalAttrs");
             sb.AppendLine("    {");
             foreach (var (_, prop, type, _) in globals)
+            {
+                sb.Append("        public ").Append(type).Append(' ').Append(prop).AppendLine(";");
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    // An SVG element's side object: HTML's globals, and SVG's rarer presentation attributes.");
+            sb.AppendLine("    internal sealed class SvgGlobalAttrs : GlobalAttrs");
+            sb.AppendLine("    {");
+            foreach (var (_, prop, type, _) in svg)
             {
                 sb.Append("        public ").Append(type).Append(' ').Append(prop).AppendLine(";");
             }
@@ -492,13 +562,18 @@ namespace Rask.Core.Dom.Build
             return sb.ToString();
         }
 
-        private static void Tags(StringBuilder sb, List<JsonNode> tags)
+        private static void Tags(StringBuilder sb, List<JsonNode> tags, HashSet<string> htmlTags)
         {
             foreach (var tag in tags)
             {
                 var tagName = Str(tag, "tag")!;
                 sb.Append("[global::Rask.Core.Tag(\"").Append(tagName).Append('"');
-                if (EntryAliases.TryGetValue(tagName, out var entry))
+                var svg = Str(tag, "namespace") == "svg";
+                if (svg && (htmlTags.Contains(tagName) || SvgPrefixed.Contains(tagName)))
+                {
+                    sb.Append(", Entry = \"Svg").Append(Pascal(tagName)).Append('"');
+                }
+                else if (!svg && EntryAliases.TryGetValue(tagName, out var entry))
                 {
                     sb.Append(", Entry = \"").Append(entry).Append('"');
                 }
@@ -507,9 +582,11 @@ namespace Rask.Core.Dom.Build
             }
         }
 
-        private static IEnumerable<JsonNode> Globals(JsonNode root) =>
-            Get(Get(root, "globalAttributes"), "html").Items
-                .Where(a => !ElementOwnedGlobals.Contains(Str(a, "attr")!) && Str(a, "property") is not null);
+        // HTML's globals that an IDL attribute reflects; every SVG global, since SVG's are presentation attributes:
+        // CSS properties, not IDL ones.
+        private static IEnumerable<JsonNode> Globals(JsonNode root, bool svg) =>
+            Get(Get(root, "globalAttributes"), svg ? "svg" : "html").Items
+                .Where(a => !ElementOwnedGlobals.Contains(Str(a, "attr")!) && (svg || Str(a, "property") is not null));
 
         private static string PropertyName(string iface, JsonNode a)
         {
@@ -552,7 +629,7 @@ namespace Rask.Core.Dom.Build
             _ => "string?",
         };
 
-        private static string WriteCall(string iface, string attr, string prop, string type, JsonNode a)
+        private static string WriteCall(string iface, string attr, string prop, string type, JsonNode a, bool svg)
         {
             var name = Literal(attr);
             if (type == "bool?")
@@ -572,9 +649,10 @@ namespace Rask.Core.Dom.Build
                 return $"if ({prop} is {{ }} {Local(prop)}) AppendAttr(sb, {name}, {Local(prop)}.ToString(global::System.Globalization.CultureInfo.InvariantCulture));";
             }
 
-            if (a["url"]?.AsBoolean() == true && !UrlLists.Contains(attr))
+            // SVG's href is an SVGAnimatedString in the IDL, and a URL all the same.
+            if ((a["url"]?.AsBoolean() == true || (svg && attr == "href")) && !UrlLists.Contains(attr))
             {
-                var helper = MediaUrlInterfaces.Contains(iface) && attr is "src" or "poster" ? "AppendMediaUrlAttr" : "AppendUrlAttr";
+                var helper = MediaUrlInterfaces.Contains(iface) && attr is "src" or "poster" or "href" ? "AppendMediaUrlAttr" : "AppendUrlAttr";
                 return $"if ({prop} is not null) {helper}(sb, {name}, {prop});";
             }
 

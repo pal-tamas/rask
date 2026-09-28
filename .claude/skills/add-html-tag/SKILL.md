@@ -1,15 +1,18 @@
 ---
 name: add-html-tag
-description: Add or change an HTML element in Rask.Core. Use whenever an HTML element, attribute or tag is missing or wrong (e.g. a new <selectedcontent>, a renamed attribute). Elements are generated from MDN data, so this means refreshing the snapshot, and writing a hand partial only for behaviour MDN cannot know (typed binding, events, an RDFa attribute).
+description: Add or change an HTML or SVG element in Rask.Core. Use whenever an HTML/SVG element, attribute or tag is missing or wrong (e.g. a new <selectedcontent>, a renamed attribute). Elements are generated from MDN data, so this means refreshing the snapshot, and writing a hand partial only for behaviour MDN cannot know (typed binding, events, an RDFa attribute).
 ---
 
 # add-html-tag
 
-**Elements are not written by hand any more.** Every HTML element type, its base, its `[Tag]`s (the chain
+**Elements are not written by hand any more.** Every HTML and SVG element type, its base, its `[Tag]`s (the chain
 entries) and its attribute properties are generated at build time from `src/Rask.Core/Dom/mdn.snapshot.json`
 by `src/Rask.Core/Dom/Rask.Dom.targets` (the emitter is `src/Rask.Dom.Tasks/RaskDomTasks.cs`). Types take
 MDN's names (`HTMLAnchorElement`), tags share types the way the DOM shares interfaces (`h1`–`h6` are one
 `HTMLHeadingElement`), entries keep tag names (`A`, `H1`), and attributes are PascalCase IDL names (`ColSpan`).
+SVG is the same (`Circle` builds `SVGCircleElement : SVGGeometryElement`); an SVG tag HTML also has, or one whose
+entry would shadow `System.IO.Path`/`Text`, gets an `Svg` prefix (`SvgA`, `SvgPath`). `SVGElement.cs` is the hand
+partial holding the presentation attributes common enough to be fields; the rarer ones are generated onto a side object.
 
 ## 1. A tag or attribute is missing → refresh MDN
 ```bash
@@ -20,7 +23,7 @@ A local build does this by itself at most once a day. If MDN still lacks it, it 
 Chrome/Firefox/Safari (desktop or mobile), or MDN marks it deprecated — then Rask does not offer it either.
 
 ## 2. Behaviour MDN cannot know → a hand partial
-Add `src/Rask.Core/Components/HTML{Name}Element.cs` as a `partial` of the generated type:
+Add `src/Rask.Core/Components/HTML{Name}Element.cs` (or `SVG{Name}Element.cs`) as a `partial` of the generated type:
 - A member it declares is **not generated** (the emitter reads the partials). Write the attributes it owns in
   `partial void WriteOwnedAttributes(StringBuilder sb)` (after the generated ones) or
   `WriteOwnedAttributesFirst` (before them). Examples: `HTMLMetaElement.cs` (Open Graph's `property`),

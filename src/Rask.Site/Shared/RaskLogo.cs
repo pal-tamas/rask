@@ -21,7 +21,7 @@ internal sealed partial class RaskLogo : Component
     protected override Component? Render()
     {
         var s = Size.ToString(CultureInfo.InvariantCulture);
-        return Svg.Width(s).Height(s).ViewBox("22 6 80 108").Xmlns("http://www.w3.org/2000/svg")[
+        return Svg.Width(s).Height(s).ViewBox("22 6 80 108")[
             // A <title> child gives the mark its accessible name (the SVG-native equivalent of
             // aria-label) and demonstrates nesting under a shape/container element.
             SvgTitle["Rask"],

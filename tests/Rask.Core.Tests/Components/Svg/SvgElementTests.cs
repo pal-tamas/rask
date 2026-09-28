@@ -5,7 +5,7 @@ using Rask.Core.ScopedCss;
 
 namespace Rask.Core.Tests.Components;
 
-// Exercises the shared SvgElement base: presentation attributes, their rendered order, click
+// Exercises the shared SVGElement base: presentation attributes, their rendered order, click
 // handlers, child nesting, and scoped-CSS stamping. Circle stands in as a representative tag.
 public partial class SvgElementTests : global::Rask.Core.RaskMarkup
 {
@@ -87,6 +87,51 @@ public partial class SvgElementTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_text_child_is_html_encoded() =>
         Assert.Equal("<text>&lt;x&gt;</text>", SvgText["<x>"].ToHtml());
+
+    [Fact]
+    public void The_rarer_presentation_attributes_render_after_the_inline_ones_and_before_the_geometry()
+    {
+        var circle = Circle.R("3").MarkerEnd("url(#m)").Fill("red").Cursor("pointer");
+
+        var html = circle.ToHtml();
+
+        Assert.Equal("<circle fill=\"red\" cursor=\"pointer\" marker-end=\"url(#m)\" r=\"3\"></circle>", html);
+    }
+
+    [Fact]
+    public void Clearing_a_rarer_presentation_attribute_on_an_element_that_never_set_one_allocates_nothing()
+    {
+        var circle = Circle.R("3").Cursor(null);
+
+        var globals = circle.GlobalAttrsInternal;
+
+        Assert.Null(globals);
+    }
+
+    [Fact]
+    public void Only_an_SVG_element_carries_the_side_object_with_SVGs_attributes()
+    {
+        var html = Div.Lang("en");
+        var svg = Circle.Lang("en");
+
+        var types = (html.GlobalAttrsInternal!.GetType().Name, svg.GlobalAttrsInternal!.GetType().Name);
+
+        Assert.Equal(("GlobalAttrs", "SvgGlobalAttrs"), types);
+    }
+
+    [Fact]
+    public void An_SVG_element_is_the_DOM_interface_MDN_names_with_its_bases()
+    {
+        Component shape = SvgPath.D("M0 0");
+
+        var chain = new List<Type>();
+        for (var t = shape.GetType(); t != typeof(Element); t = t.BaseType!)
+        {
+            chain.Add(t);
+        }
+
+        Assert.Equal([typeof(SVGPathElement), typeof(SVGGeometryElement), typeof(SVGGraphicsElement), typeof(SVGElement)], chain);
+    }
 }
 
 // Scoped-CSS stamping must flow onto SVG descendants the same way it does for HTML elements.

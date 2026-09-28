@@ -88,6 +88,26 @@ them until tagged releases begin.
     render in MDN's IDL order.
   - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
     stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
+- **BREAKING: the SVG elements are generated from MDN as well.** The 40 hand-written SVG types are gone; every
+  SVG element MDN lists as shipping in two engines is generated from the same snapshot. The chain is unchanged
+  (`Svg`, `Circle`, `SvgPath`, `SvgText`, `SvgA`, `SvgTitle`…). What changes:
+  - **Types take MDN's names and inheritance.** `Circle` is `SVGCircleElement : SVGGeometryElement :
+    SVGGraphicsElement : SVGElement`, `Svg` is `SVGSVGElement`, `SvgPath` is `SVGPathElement`, and the shared
+    base `SvgElement` is `SVGElement`.
+  - **23 new entries, with no code written:** `Animate`, `AnimateMotion`, `AnimateTransform`, `Set`, `Mpath`,
+    `View`, `Metadata`, and the rest of the filter primitives (`FeTurbulence`, `FeMorphology`, `FeImage`,
+    `FeTile`, `FeComponentTransfer` with `FeFuncR`/`G`/`B`/`A`, the lighting ones…).
+  - **Every attribute MDN gives each element:** `PathLength` on every shape, `X`/`Y`/`Width`/`Height`/`Result`
+    on every filter primitive, `ViewBox`/`PreserveAspectRatio` on `Pattern`, `SystemLanguage`, and all of SVG's
+    presentation attributes on every element (`MarkerEnd`, `Cursor`, `Mask`, `Filter`, `FontStyle`,
+    `PaintOrder`, `VectorEffect`…). `FloodColor`, `StopColor`, `TextAnchor` and the `Font*` steps now work on
+    any SVG element, where they used to be on one tag each. The rarer presentation attributes live on a side
+    object, so an element that sets none of them costs nothing more.
+  - **Attributes render in IDL order**, the base interface's first: a circle's `pathLength` (declared on
+    `SVGGeometryElement`) comes before its `cx`/`cy`/`r`, and an `<a>`'s `target` before its `href`.
+  - **Gone, because MDN records no browser shipping them:** `Svg.Xmlns` (ignored in HTML, like `<html xmlns>`),
+    `Symbol`'s `X`/`Y`/`Width`/`Height`/`RefX`/`RefY`, and `FeGaussianBlur.EdgeMode` (Safari only). The
+    verbatim `Attributes` step still writes any of them.
 
 ### Security
 

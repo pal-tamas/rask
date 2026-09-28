@@ -283,6 +283,7 @@ public static partial class DemoRegistry
             ["svg-gradient"] = () => CodeSample.Files(["SvgGradientDemo.cs"]).Result(SvgGradientDemo),
             ["svg-clickable"] = () => CodeSample.Files(["SvgClickableDemo.cs"]).Result(SvgClickableDemo),
             ["svg-text"] = () => CodeSample.Files(["SvgTextDemo.cs"]).Result(SvgTextDemo),
+            ["svg-animate"] = () => CodeSample.Files(["SvgAnimateDemo.cs"]).Result(SvgAnimateDemo),
             ["elements-text"] = () => CodeSample.Files(["ElementsTextDemo.cs"]).Result(ElementsTextDemo),
             ["elements-grouping"] = () => CodeSample.Files(["ElementsGroupingDemo.cs"]).Result(ElementsGroupingDemo),
             ["elements-sections"] = () => CodeSample.Files(["ElementsSectionsDemo.cs"]).Result(ElementsSectionsDemo),

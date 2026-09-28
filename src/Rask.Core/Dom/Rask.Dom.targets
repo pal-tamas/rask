@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <!-- The hand-written partials beside the generated types: a member one declares is not generated. -->
-    <RaskDomPartial Include="Components\HTML*.cs"/>
+    <RaskDomPartial Include="Components\HTML*.cs;Components\SVG*.cs"/>
   </ItemGroup>
 
   <!--

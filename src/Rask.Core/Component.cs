@@ -507,7 +507,10 @@ public abstract partial class Component : RaskMarkup
     // The build adds the rest of MDN's global attributes (accesskey, nonce, slot, …) to this same object, in
     // a generated partial (Rask.Dom.targets), for the same reason: they are rare, and HTMLElement is the base
     // of every HTML element.
-    internal sealed partial class GlobalAttrs
+    //
+    // SVG's rarer presentation attributes (cursor, marker-end, …) are generated onto a subclass, which an SVG element
+    // allocates in its place (NewGlobalAttrs): an HTML element's side object carries no field for them.
+    internal partial class GlobalAttrs
     {
         public string? Lang;
         public string? Dir;
@@ -520,7 +523,10 @@ public abstract partial class Component : RaskMarkup
     // The whole side object in one read, for the writer's single null check.
     internal GlobalAttrs? GlobalAttrsInternal => _live?.Globals;
 
-    private GlobalAttrs Globals => Live.Globals ??= new GlobalAttrs();
+    private GlobalAttrs Globals => Live.Globals ??= NewGlobalAttrs();
+
+    // The side object this element's attributes need: SVGElement's carries SVG's as well.
+    private protected virtual GlobalAttrs NewGlobalAttrs() => new();
 
     // For the generated globals' setters: the side object, allocated on first write.
     internal GlobalAttrs GlobalAttrsForWrite => Globals;
