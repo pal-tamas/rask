@@ -6,13 +6,9 @@
 // a convention and a contract.
 //
 // Model: one capture-phase document listener per event routes to the nearest ancestor carrying
-// `data-rask-on-<event>`, then ships a per-category JSON payload tagged with that element's handler id.
-// Capture phase is used so non-bubbling events (focus/blur) still reach the delegated listener. Click,
-// scroll and input/change/submit keep their own dedicated listeners in each host (their coalescing /
-// form / file behaviour is host-specific) — this file covers everything else: mouse, pointer, touch,
-// wheel, focus, clipboard, the HTMLMediaElement events, AND (see the tail of this file) keyboard
-// (keydown/keyup) + the four core drag events (dragstart/dragover/drop/dragend), which used to be
-// hand-copied into each host. Written defensively: every builder tolerates a partial event object.
+// `data-rask-on-<event>`, then ships the event's MDN fields — read by the table generated from MDN's data —
+// tagged with that element's handler id. What is Rask's own is the handful of listeners below that do more
+// than read an event: enter/leave simulation, drag seeding and dedupe, the keyboard's input flush.
 
 // --- Per-category payload builders. Each maps a DOM event to the flat object its C# *EventArgs.FromJson
 //     reads. Keys mirror the DOM property names so the readers stay one-liners. ---
@@ -20,145 +16,28 @@
 import { inRoot, send } from "./rask-host.js";
 import { closestFrom } from "./rask-morph.js";
 import { flushInputsNow } from "./rask-input.js";
+import { domEvents } from "./generated/rask-dom-events.js";
+import { raskDomPayload } from "./rask-dom-payload.js";
 
-/**
- * The flat object a C# `*EventArgs.FromJson` reads.
- *
- * A loose record on purpose: the key set differs per event category, several builders start from
- * `raskMouse` and add their own fields, and the contract that matters is held on the C# side by the
- * reader for each category. Typing it as a union of eight exact shapes would describe this file's
- * internals rather than the agreement it is party to.
- */
-type EventPayload = Record<string, unknown>;
+// Events with a listener of their own below or in a host: click (the hosts' submit/popover/loading guards),
+// keydown/keyup (the input flush), the drag four (seeding, drop-target marking, dedupe), scroll (coalesced in
+// rask-input), and enter/leave (simulated, below).
+var raskOwnListener = new Set(["click", "keydown", "keyup", "dragstart", "dragover", "drop", "dragend", "scroll",
+    "mouseenter", "mouseleave", "pointerenter", "pointerleave"]);
 
-/** Geometry + button + modifier state shared by every mouse/pointer event. */
-function raskMouse(ev: Event): EventPayload {
-    const e = ev as MouseEvent;
-    return {
-        button: e.button, buttons: e.buttons,
-        clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY,
-        pageX: e.pageX, pageY: e.pageY, offsetX: e.offsetX, offsetY: e.offsetY,
-        movementX: e.movementX, movementY: e.movementY,
-        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-    };
-}
-
-/** Mouse geometry + scroll deltas for the wheel event. */
-function raskWheel(ev: Event): EventPayload {
-    const e = ev as WheelEvent;
-    var m = raskMouse(ev);
-    m.deltaX = e.deltaX; m.deltaY = e.deltaY; m.deltaZ = e.deltaZ; m.deltaMode = e.deltaMode;
-    return m;
-}
-
-/** Mouse geometry + pointer-device fields. */
-function raskPointer(ev: Event): EventPayload {
-    const e = ev as PointerEvent;
-    var m = raskMouse(ev);
-    m.pointerId = e.pointerId; m.width = e.width; m.height = e.height;
-    m.pressure = e.pressure; m.tangentialPressure = e.tangentialPressure;
-    m.tiltX = e.tiltX; m.tiltY = e.tiltY; m.twist = e.twist;
-    m.pointerType = e.pointerType; m.isPrimary = e.isPrimary;
-    return m;
-}
-
-/** Active-touch count + first-touch coordinates + modifiers. */
-function raskTouch(ev: Event): EventPayload {
-    const e = ev as TouchEvent;
-    var list = (e.touches && e.touches.length) ? e.touches : e.changedTouches;
-    var first = (list && list.length) ? list[0] : null;
-    return {
-        touchCount: e.touches ? e.touches.length : 0,
-        clientX: first ? first.clientX : 0, clientY: first ? first.clientY : 0,
-        pageX: first ? first.pageX : 0, pageY: first ? first.pageY : 0,
-        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-    };
-}
-
-/** The plain-text clipboard payload, read while it's accessible during the event. */
-function raskClipboard(ev: Event): EventPayload {
-    const e = ev as ClipboardEvent;
-    var text = "";
-    try {
-        var data = e.clipboardData || window.clipboardData;
-        // window.clipboardData is the legacy IE path, declared in rask-window.d.ts because lib.dom
-        // dropped it — kept because it costs one line and this runs inside a try anyway.
-        if (data) { text = data.getData("text") || ""; }
-    } catch { /* access blocked — leave text empty */ }
-    return { text: text };
-}
-
-/** A snapshot of the media element's playback state (NaN/Infinity duration normalised to 0). */
-function raskMedia(e: Event): EventPayload {
-    // A media event's target is the media element; the fallback keeps every read below defined for a
-    // synthetic event that carries none.
-    var el = (e.target as HTMLMediaElement | null) ?? ({} as HTMLMediaElement);
-    return {
-        currentTime: el.currentTime || 0,
-        duration: (el.duration && isFinite(el.duration)) ? el.duration : 0,
-        paused: !!el.paused, ended: !!el.ended,
-        volume: el.volume == null ? 1 : el.volume, muted: !!el.muted,
-        playbackRate: el.playbackRate == null ? 1 : el.playbackRate
-    };
-}
-
-/** The inserted text for beforeinput (surfaced to a Callback<string>). */
-function raskBeforeInput(ev: Event): EventPayload { const e = ev as InputEvent; return { value: e.data == null ? "" : e.data }; }
-
-/** Parameterless events (focus/blur, drag/dragenter/dragleave, select/invalid/reset, a dialog's cancel/close). */
-function raskNone(): EventPayload { return {}; }
-
-/**
- * The open-state transition of a popover or <details>, passed through in the platform's own words
- * ("closed" -> "open"). This is how C# learns that the BROWSER closed a popover — on Escape, or on a
- * click outside — which nothing else reports.
- */
-function raskToggle(ev: Event): EventPayload {
-    var e = ev as Event & { oldState?: string, newState?: string };
-    return { oldState: e.oldState == null ? "" : e.oldState, newState: e.newState == null ? "" : e.newState };
-}
-
-// --- The registration table. Each row is [eventName, payloadBuilder, preventDefault, selfOnly?]. ---
-//
-// selfOnly: the event describes the element it fired ON, so it is delivered only to that element's own
-// handler and never to an ancestor's. Capture-phase delegation otherwise hands an ancestor every descendant's
-// event: a <details> toggling inside a popover dialog reached the dialog's OnToggle (which Ui.Modal reads as
-// "closed"), and a file input's picker `cancel` — which bubbles — reached an enclosing dialog's OnCancel.
-var raskDomEvents: [string, (e: Event) => EventPayload, boolean, boolean?][] = [
-    ["dblclick", raskMouse, false], ["mousedown", raskMouse, false], ["mouseup", raskMouse, false],
-    ["mousemove", raskMouse, false], ["mouseover", raskMouse, false], ["mouseout", raskMouse, false],
-    ["contextmenu", raskMouse, true],
-    ["wheel", raskWheel, false],
-    ["pointerdown", raskPointer, false], ["pointerup", raskPointer, false], ["pointermove", raskPointer, false],
-    ["pointerover", raskPointer, false], ["pointerout", raskPointer, false], ["pointercancel", raskPointer, false],
-    ["touchstart", raskTouch, false], ["touchend", raskTouch, false], ["touchmove", raskTouch, false], ["touchcancel", raskTouch, false],
-    ["focus", raskNone, false], ["blur", raskNone, false], ["focusin", raskNone, false], ["focusout", raskNone, false],
-    ["drag", raskNone, false], ["dragenter", raskNone, false], ["dragleave", raskNone, false],
-    ["copy", raskClipboard, false], ["cut", raskClipboard, false], ["paste", raskClipboard, false],
-    ["beforeinput", raskBeforeInput, false], ["select", raskNone, false], ["invalid", raskNone, false], ["reset", raskNone, false],
-    ["play", raskMedia, false], ["pause", raskMedia, false], ["playing", raskMedia, false], ["ended", raskMedia, false],
-    ["timeupdate", raskMedia, false], ["volumechange", raskMedia, false], ["ratechange", raskMedia, false],
-    ["durationchange", raskMedia, false], ["loadedmetadata", raskMedia, false],
-    ["seeked", raskMedia, false], ["seeking", raskMedia, false], ["waiting", raskMedia, false],
-    // toggle/beforetoggle do NOT bubble. They are caught anyway because this table registers with
-    // { capture: true }, and the capture phase reaches every ancestor on the way DOWN to the target
-    // whether or not the event bubbles back up.
-    ["toggle", raskToggle, false, true], ["beforetoggle", raskToggle, false, true],
-    // A <dialog>'s cancel and close do not bubble either; the capture phase catches them the same way.
-    // cancel is never prevented: C# hears a dismissal, it does not veto one.
-    ["cancel", raskNone, false, true], ["close", raskNone, false, true]
-];
-
-raskDomEvents.forEach(function (spec) {
-    var name = spec[0], build = spec[1], prevent = spec[2], selfOnly = spec[3] === true, attr = "data-rask-on-" + name;
-    // passive when we never preventDefault — lets the browser keep scrolling/painting smoothly even
-    // while a high-frequency handler (mousemove/touchmove/wheel) is attached.
+// Every other event, straight from the table. One capture-phase listener each, routing to the nearest element
+// carrying `data-rask-on-<event>`. An event that does not bubble (focus, toggle, a dialog's close, every media
+// event) is delivered only to the element it fired ON, as the DOM itself delivers it: capture-phase delegation
+// would otherwise hand an ancestor every descendant's event. Passive whenever Rask does not prevent the default.
+domEvents.forEach(function (row) {
+    var name = row[0], bubbles = row[2], prevent = row[3], attr = "data-rask-on-" + name;
+    if (raskOwnListener.has(name)) { return; }
     document.addEventListener(name, function (e) {
         var target = closestFrom(e.target, "[" + attr + "]");
         if (!target || !inRoot(target)) { return; }
-        if (selfOnly && target !== e.target) { return; }
+        if (!bubbles && target !== e.target) { return; }
         if (prevent) { e.preventDefault(); }
-        var msg = build(e);
+        var msg = raskDomPayload(e, name);
         msg.id = target.getAttribute(attr);
         msg.type = name;
         send(msg);
@@ -169,32 +48,32 @@ raskDomEvents.forEach(function (spec) {
 // so a delegated listener can't observe them. Simulate via the bubbling over/out events plus a
 // relatedTarget boundary check: fire only when the pointer truly crossed the element's outer edge
 // (relatedTarget outside the element), not when moving between its own descendants.
-function raskEnterLeave(sourceEvent: string, name: string, build: (e: Event) => EventPayload): void {
+function raskEnterLeave(sourceEvent: string, name: string): void {
     var attr = "data-rask-on-" + name;
     document.addEventListener(sourceEvent, function (e) {
         var target = closestFrom(e.target, "[" + attr + "]");
         if (!target || !inRoot(target)) { return; }
         var related = (e as MouseEvent).relatedTarget;
         if (related instanceof Node && target.contains(related)) { return; }
-        var msg = build(e);
+        var msg = raskDomPayload(e, name);
         msg.id = target.getAttribute(attr);
         msg.type = name;
         send(msg);
     }, { capture: true, passive: true });
 }
 
-raskEnterLeave("mouseover", "mouseenter", raskMouse);
-raskEnterLeave("mouseout", "mouseleave", raskMouse);
-raskEnterLeave("pointerover", "pointerenter", raskPointer);
-raskEnterLeave("pointerout", "pointerleave", raskPointer);
+raskEnterLeave("mouseover", "mouseenter");
+raskEnterLeave("mouseout", "mouseleave");
+raskEnterLeave("pointerover", "pointerenter");
+raskEnterLeave("pointerout", "pointerleave");
 
 // ----- Drag & drop -----------------------------------------------------------
-// HTML5 native DnD bound to parameterless C# handlers (same dispatch path as click). The dragged
-// item's identity rides the handler's closure, not the payload, so messages carry only {id,type}.
+// HTML5 native DnD. Each message carries the DragEvent's MDN fields (a handler may ignore them — the
+// dragged item's identity usually rides the handler's closure).
 // dragstart seeds dataTransfer so the drag is valid in Firefox; dragover must preventDefault on a
 // drop target or the browser rejects the drop. The optional data-rask-on-dragover round-trip
 // drives a server-rendered drop-target highlight — deduped to one message per hovered element.
-// (drag/dragenter/dragleave are covered by the parameterless table above.)
+// (drag/dragenter/dragleave come from the generated table above.)
 var lastDragOverEl: Element | null = null;
 
 document.addEventListener("dragstart", function (e) {
@@ -207,7 +86,7 @@ document.addEventListener("dragstart", function (e) {
         e.dataTransfer.effectAllowed = "move";
     }
     lastDragOverEl = null;
-    send({id: t.getAttribute("data-rask-on-dragstart"), type: "dragstart"});
+    send(Object.assign(raskDomPayload(e, "dragstart"), {id: t.getAttribute("data-rask-on-dragstart"), type: "dragstart"}));
 });
 
 document.addEventListener("dragover", function (e) {
@@ -219,7 +98,7 @@ document.addEventListener("dragover", function (e) {
     if (!t.hasAttribute("data-rask-on-dragover")) { return; }
     if (t === lastDragOverEl) { return; } // dedupe: only notify when the hovered target changes
     lastDragOverEl = t;
-    send({id: t.getAttribute("data-rask-on-dragover"), type: "dragover"});
+    send(Object.assign(raskDomPayload(e, "dragover"), {id: t.getAttribute("data-rask-on-dragover"), type: "dragover"}));
 });
 
 document.addEventListener("drop", function (e) {
@@ -227,31 +106,26 @@ document.addEventListener("drop", function (e) {
     if (!t || !inRoot(t)) { return; }
     e.preventDefault();
     lastDragOverEl = null;
-    send({id: t.getAttribute("data-rask-on-drop"), type: "drop"});
+    send(Object.assign(raskDomPayload(e, "drop"), {id: t.getAttribute("data-rask-on-drop"), type: "drop"}));
 });
 
 document.addEventListener("dragend", function (e) {
     lastDragOverEl = null;
     var t = closestFrom(e.target, "[data-rask-on-dragend]");
     if (!t || !inRoot(t)) { return; }
-    send({id: t.getAttribute("data-rask-on-dragend"), type: "dragend"});
+    send(Object.assign(raskDomPayload(e, "dragend"), {id: t.getAttribute("data-rask-on-dragend"), type: "dragend"}));
 });
 
 // ----- Keyboard --------------------------------------------------------------
 // keydown/keyup dispatch to the nearest ancestor carrying a handler (focus-scoped, like click).
 // Never preventDefault — a key handler composes with normal typing; the C# side decides what a key
-// means. flushInputsNow() first (when present — rask-input.js is spliced ahead of this file) so an
-// Enter-to-submit handler reads the value the user just typed, not the pre-flush one. Modifier flags
-// + repeat ride along for shortcuts.
+// means. flushInputsNow() first so an Enter-to-submit handler reads the value the user just typed, not the
+// pre-flush one. The KeyboardEvent's MDN fields ride along (key, code, repeat, the modifier keys, …).
 function raskSendKey(e: KeyboardEvent, attr: string, type: string): void {
     var t = closestFrom(e.target, "[" + attr + "]");
     if (!t || !inRoot(t)) { return; }
     flushInputsNow();
-    send({
-        id: t.getAttribute(attr), type: type,
-        key: e.key, code: e.code, repeat: e.repeat,
-        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-    });
+    send(Object.assign(raskDomPayload(e, type), {id: t.getAttribute(attr), type: type}));
 }
 
 document.addEventListener("keydown", function (e) { raskSendKey(e, "data-rask-on-keydown", "keydown"); });

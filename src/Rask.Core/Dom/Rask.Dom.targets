@@ -48,7 +48,8 @@
   <Target Name="_RaskDomEmitCore"
           Inputs="$(RaskMdnSnapshot);$(RaskDomTasksAssembly);@(RaskDomPartial)"
           Outputs="$(RaskDomOutput).stamp">
-    <RaskDomEmit Snapshot="$(RaskMdnSnapshot)" Partials="@(RaskDomPartial)" OutputDirectory="$(RaskDomOutput)"/>
+    <RaskDomEmit Snapshot="$(RaskMdnSnapshot)" Partials="@(RaskDomPartial)" OutputDirectory="$(RaskDomOutput)"
+                 ScriptDirectory="$(MSBuildThisFileDirectory)..\Resources\generated\"/>
     <Touch Files="$(RaskDomOutput).stamp" AlwaysCreate="true"/>
   </Target>
 </Project>

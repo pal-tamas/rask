@@ -48,7 +48,7 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
             Div.Draggable(true).OnDragStart(() => { }).OnDrop(() => { }).ToHtml());
 
     [Fact]
-    public void Drag_handlers_inside_live_context_emit_data_attributes_in_registration_order()
+    public void Drag_handlers_inside_live_context_emit_data_attributes_in_mdns_order()
     {
         var view = new StubComponent(() => Div
             .Id("d")
@@ -63,8 +63,8 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
         // dragstart → dragover → drop → dragend order (matching RegisterHandler id assignment).
         Assert.Equal(
             "<div id=\"d\" class=\"x\" draggable=\"true\" " +
-            "data-rask-on-dragstart=\"h0\" data-rask-on-dragover=\"h1\" " +
-            "data-rask-on-drop=\"h2\" data-rask-on-dragend=\"h3\"></div>",
+            "data-rask-on-dragend=\"h0\" data-rask-on-dragover=\"h1\" " +
+            "data-rask-on-dragstart=\"h2\" data-rask-on-drop=\"h3\"></div>",
             view.RenderAsLiveRoot());
     }
 
@@ -87,8 +87,8 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
             .OnDrop(() => Task.CompletedTask)
             .OnDragEnd(() => Task.CompletedTask));
         Assert.Equal(
-            "<div data-rask-on-dragstart=\"h0\" data-rask-on-dragover=\"h1\" " +
-            "data-rask-on-drop=\"h2\" data-rask-on-dragend=\"h3\"></div>",
+            "<div data-rask-on-dragend=\"h0\" data-rask-on-dragover=\"h1\" " +
+            "data-rask-on-dragstart=\"h2\" data-rask-on-drop=\"h3\"></div>",
             view.RenderAsLiveRoot());
     }
 

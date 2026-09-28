@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A scaffold's `.vscode/extensions.json` recommends what the project actually uses.** Every template adds
+  EditorConfig and Error Lens beside C# Dev Kit; a front-end template adds ESLint and Prettier for the configs its
+  `client/` ships, and Vue (Official), Svelte or the Angular Language Service by what it holds — `--islands vue`
+  on a server app included. The file is generated from the scaffold's own files, no longer a committed fragment.
+- **`Rask.Server.Tests` spends ~40% less time waiting.** After a `hello`, 26 tests drained a frame with a 2 s
+  timeout — but a hello is answered with nothing unless a render is owed, so each waited out the whole 2 s,
+  about half the suite's test time. They now wait for the server to attach the socket (`AttachedAsync`), which
+  takes milliseconds. Summed test time 240 s → ~148 s; the two sites that do receive a catch-up frame and the
+  multi-socket reconnect tests keep their receive.
 - **One `Routes` class per project.** The route generator used to emit a `Routes` class per namespace, so a page in
   `Features.Shared` reaching the home page needed `using HomeRoutes = MyApp.Features.Home.Routes;`. There is now ONE
   `Routes`, in the project's root namespace (`RootNamespace`, else the assembly name), and `Routes.HomePage()` works
@@ -66,6 +75,28 @@ them until tagged releases begin.
   - **Tag-specific attributes render in IDL order** after the globals, and a typed control's derived `type`,
     `name`, `value`, `checked` and `step` render after those. Each generated member's doc comment gives its
     browser support and links to MDN and the spec.
+- **BREAKING: element events are generated from MDN too** (`@webref/events` joins the snapshot). Every event
+  MDN's `GlobalEventHandlers` lists that ships in two engines is on every element — 103 of them —
+  named and typed the way MDN names them:
+  - **Arguments are MDN's event types, inheritance included:** `PointerEvent : MouseEvent : UIEvent : Event`,
+    with MDN's member names. `MouseEventArgs`/`PointerEventArgs`/`KeyboardEventArgs`/`WheelEventArgs`/
+    `TouchEventArgs`/`ClipboardEventArgs`/`ToggleEventArgs`/`MediaEventArgs`/`ScrollEvent` are gone:
+    `e.Mouse.ClientX` → `e.ClientX`, `e.Shift` → `e.ShiftKey` (`CtrlKey`/`AltKey`/`MetaKey`),
+    `e.IsOpen` → `e.NewState == "open"`, `e.Text` on paste → `e.ClipboardData?.GetData("text/plain")`,
+    `e.TouchCount` → `e.Touches.Count`, `OnBeforeInput(s => …)` → `OnBeforeInput(e => … e.Data …)`.
+  - **Handler names are MDN's event names:** `OnDoubleClick` → `OnDblClick`.
+  - **`OnClick` carries its `PointerEvent`,** and every event takes a parameterless handler as well —
+    `Button.OnClick(() => n++)` and `Button.OnClick(e => _shift = e.ShiftKey)` both work. A component's own
+    `Callback` forwards straight in (`Button.OnClick(OnClick)`), and a handler typed to a base event receives
+    the whole derived one.
+  - **Scroll and media state travel as the target's**, the way JavaScript reads `e.target`:
+    `e.ScrollTop` → `e.Target!.ScrollTop`, `e.CurrentTime` → `e.Target!.CurrentTime`. Media events are
+    universal now, so they render with the other events, before the element's own attributes.
+  - **The quirks come from the data:** an event MDN marks non-bubbling reaches only its own element, and
+    only `contextmenu`/`dragover`/`drop` are `preventDefault`-ed; every other listener is passive. Events
+    render in MDN's IDL order.
+  - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
+    stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
 
 ### Security
 

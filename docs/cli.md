@@ -792,6 +792,18 @@ names a file on your machine is a `vscode://` link to that line.
 
 Your own preferences belong in your VS Code *User* settings, which a workspace `settings.json` does not replace.
 
+**Recommended extensions.** `extensions.json` is written from what the scaffold holds, and VS Code offers to
+install the list when the folder opens:
+
+| Extension | Recommended to |
+| --- | --- |
+| [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit), [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig), [Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens) | Every template. |
+| [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) | `server`, `wasm`, `wasm-hosted` — the templates that compile Tailwind. |
+| [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint), [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) | Every front-end template, which ships `eslint.config.mjs` and `.prettierrc` in `client/`. |
+| [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) | `vue`, `nuxt`, and `--islands vue`. |
+| [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) | `svelte`, `sveltekit`, and `--islands svelte`. |
+| [Angular Language Service](https://marketplace.visualstudio.com/items?itemName=Angular.ng-template) | `angular`, `analog`. |
+
 **An existing project** gets the same setup by copying `.vscode/` from a fresh `rask new` app of the same
 template and replacing the project name in `launch.json` and `tasks.json`. Add these lines to `.gitignore`, so
 the four files are committed and the rest of `.vscode/` stays yours:

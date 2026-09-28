@@ -339,7 +339,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
             // its own copy is a second answer to a question with one, and the two race over the socket.
             .OnToggle(e =>
             {
-                _open = e.IsOpen;
+                _open = e.NewState == "open";
                 _cursor = _open ? UiSelectNav.Seed(FirstChosen(flat, chosen), flat.Count, off) : -1;
                 if (!_open)
                 {
@@ -506,7 +506,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     // means business opens the list instead. Escape is left alone — the browser's own dismissal closes
     // the popover, and the toggle handler hears it.
     private async Task OnKeyAsync(
-        KeyboardEventArgs e,
+        KeyboardEvent e,
         ExpressionAccessor.Accessor? acc,
         EditContext? ctx,
         IReadOnlyList<(T Value, string Text)> flat,

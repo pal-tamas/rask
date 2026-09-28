@@ -323,8 +323,8 @@ public static partial class DemoRegistry
             ["events"] = () => CodeSample
                 .Files(["EventsDemo.cs"])
                 .Notes("Every handler just mutates a field; the framework re-renders the component that owns the "
-                + "callback, so the readouts update on their own. MouseEventArgs carries button/coords/modifiers, "
-                + "WheelEventArgs adds deltas, ClipboardEventArgs the pasted text. Wiring both OnX and OnXAsync "
+                + "callback, so the readouts update on their own. MouseEvent carries button/coords/modifiers, "
+                + "WheelEvent adds deltas, ClipboardEvent the pasted text. Wiring both OnX and OnXAsync "
                 + "for one event is not expressible: one name, one slot.")
                 .Result(EventsDemo),
             ["events-click"] = () => CodeSample.Files(["EventsClickDemo.cs"]).Result(EventsClickDemo),

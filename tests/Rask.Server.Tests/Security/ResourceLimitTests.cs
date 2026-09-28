@@ -16,7 +16,7 @@ public class ResourceLimitTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // Send nothing further — the server must close the idle socket within the timeout window.
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
@@ -44,7 +44,7 @@ public class ResourceLimitTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromMilliseconds(500));
 
         // Keep sending well within the 5 s window — the socket must stay open across a span
         // (~3 s) that would have tripped a naive total-lifetime timeout.
@@ -71,7 +71,7 @@ public class ResourceLimitTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         for (var i = 0; i < 20; i++)
         {

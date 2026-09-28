@@ -60,8 +60,9 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_keyboard_frame_does_not_fire_a_parameterless_handler()
+    public async Task A_keyboard_frame_fires_a_parameterless_handler_as_every_dom_event_does()
     {
+        // A handler that takes nothing can be fed any DOM event — the one a click frame already reaches.
         var fired = 0;
         var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();
@@ -69,8 +70,8 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
         var ok = await view.TryInvokeHandlerAsync(
             "h0", Frame("""{"id":"h0","type":"keydown","key":"Enter","code":"Enter"}"""));
 
-        Assert.False(ok);
-        Assert.Equal(0, fired);
+        Assert.True(ok);
+        Assert.Equal(1, fired);
     }
 
     [Fact]
@@ -206,15 +207,15 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_scroll_frame_fires_a_scroll_handler()
     {
-        ScrollEvent? captured = null;
+        Event? captured = null;
         var view = new StubComponent(() => Div.OnScroll(e => captured = e));
         view.RenderAsLiveRoot();
 
         var ok = await view.TryInvokeHandlerAsync(
             "h0",
-            Frame("""{"id":"h0","type":"scroll","scrollTop":40,"clientHeight":10,"scrollHeight":100}"""));
+            Frame("""{"id":"h0","type":"scroll","target":{"scrollTop":40,"clientHeight":10,"scrollHeight":100}}"""));
 
         Assert.True(ok);
-        Assert.Equal(40, captured?.ScrollTop);
+        Assert.Equal(40, captured?.Target?.ScrollTop);
     }
 }

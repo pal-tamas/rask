@@ -74,7 +74,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         // Expected window: startIndex = 200/20 - 2 = 8, endIndex = (200+100)/20 + 2 = 17.
         // So visible = [8, 17) inclusive of overscan above + the partial row at top.
         using var doc = JsonDocument.Parse(
-            "{\"scrollTop\":200,\"clientHeight\":100,\"scrollHeight\":2000}");
+            "{\"target\":{\"scrollTop\":200,\"clientHeight\":100,\"scrollHeight\":2000}}");
         await view.TryInvokeHandlerAsync(scrollHandlerId!, doc.RootElement);
 
         view.RenderAsLiveRoot();

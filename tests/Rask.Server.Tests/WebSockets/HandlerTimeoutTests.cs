@@ -24,7 +24,7 @@ public class HandlerTimeoutTests
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
             // Fire the slow handler. It awaits a 30 s delay observing CancellationToken, so without
             // the timeout this would hang for 30 s; with it, the handler is cancelled within ~300 ms.

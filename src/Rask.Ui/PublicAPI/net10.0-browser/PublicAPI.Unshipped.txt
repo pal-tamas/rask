@@ -5992,3 +5992,159 @@ static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiMultiSelect<T>! __b) -> Rask.U
 static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, System.Action? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendarMultiple! __b, System.Action? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendarMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendarRange! __b, System.Action? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendarRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCheckbox! __b, System.Action? value) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCheckbox! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Action? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePicker! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Action? value) -> Rask.UiDatePickerMultiple!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerMultiple!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Action? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiDatePickerRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFileInput! __b, System.Action? value) -> Rask.UiFileInput!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiFileInput! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFileInput!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiMenuCheckbox! __b, System.Action? value) -> Rask.UiMenuCheckbox!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiMenuCheckbox! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMenuCheckbox!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiOtp! __b, System.Action? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiOtp! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiRadio! __b, System.Action? value) -> Rask.UiRadio!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiRadio! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRadio!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiRange! __b, System.Action? value) -> Rask.UiRange!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRange!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiRating! __b, System.Action? value) -> Rask.UiRating!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiRating! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRating!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiToggle! __b, System.Action? value) -> Rask.UiToggle!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiToggle! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiToggle!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiCheckboxGroup<T>! __b, System.Action? value) -> Rask.UiCheckboxGroup<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiCheckboxGroup<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCheckboxGroup<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiFilter<T>! __b, System.Action? value) -> Rask.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiFilter<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiInput<T>! __b, System.Action? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiInput<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiMenuRadioGroup<T>! __b, System.Action? value) -> Rask.UiMenuRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiMenuRadioGroup<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMenuRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiMultiSelect<T>! __b, System.Action? value) -> Rask.UiMultiSelect<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiMultiSelect<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMultiSelect<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiRadioGroup<T>! __b, System.Action? value) -> Rask.UiRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiRadioGroup<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelect<T>! __b, System.Action? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelect<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTextarea<T>! __b, System.Action? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, System.Action? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendarMultiple! __b, System.Action? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendarMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendarRange! __b, System.Action? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendarRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCheckbox! __b, System.Action? value) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCheckbox! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Action? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePicker! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Action? value) -> Rask.UiDatePickerMultiple!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerMultiple!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Action? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatePickerRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFileInput! __b, System.Action? value) -> Rask.UiFileInput!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiFileInput! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFileInput!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiMenuCheckbox! __b, System.Action? value) -> Rask.UiMenuCheckbox!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiMenuCheckbox! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMenuCheckbox!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiOtp! __b, System.Action? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiOtp! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiRadio! __b, System.Action? value) -> Rask.UiRadio!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiRadio! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRadio!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiRange! __b, System.Action? value) -> Rask.UiRange!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRange!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiRating! __b, System.Action? value) -> Rask.UiRating!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiRating! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRating!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiSwap! __b, System.Action? value) -> Rask.UiSwap!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiSwap! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSwap!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiThemeController! __b, System.Action? value) -> Rask.UiThemeController!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiThemeController! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiThemeController!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiToggle! __b, System.Action? value) -> Rask.UiToggle!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiToggle! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiToggle!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiCheckboxGroup<T>! __b, System.Action? value) -> Rask.UiCheckboxGroup<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiCheckboxGroup<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCheckboxGroup<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiFilter<T>! __b, System.Action? value) -> Rask.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiFilter<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiInput<T>! __b, System.Action? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiInput<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiMenuRadioGroup<T>! __b, System.Action? value) -> Rask.UiMenuRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiMenuRadioGroup<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMenuRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiMultiSelect<T>! __b, System.Action? value) -> Rask.UiMultiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiMultiSelect<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiMultiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiRadioGroup<T>! __b, System.Action? value) -> Rask.UiRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiRadioGroup<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiSelect<T>! __b, System.Action? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiSelect<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTextarea<T>! __b, System.Action? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Action? value) -> Rask.UiSidebar!
+static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSidebar!
+static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Action? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Action? value) -> Rask.UiFileInput!
+static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFileInput!
+static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Action? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Action? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Action? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Action? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarMultiple! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Action? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Action? value) -> Rask.UiAccordion!
+static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiAccordion!
+static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSearch(this Rask.UiSearch! __b, System.Action? value) -> Rask.UiSearch!
+static RaskBuilderSettersRask_Ui.OnSearch(this Rask.UiSearch! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSearch!
+static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.UiSelect<T>! __b, System.Action? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.UiSelect<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Action? value) -> Rask.UiCrumbSwitcher!
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCrumbSwitcher!
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Action? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Action? value) -> Rask.UiTabGroup!
+static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTabGroup!
+static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Action? value) -> Rask.UiCollapse!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCollapse!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiContextMenu! __b, System.Action? value) -> Rask.UiContextMenu!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiContextMenu! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiContextMenu!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDrawer! __b, System.Action? value) -> Rask.UiDrawer!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDrawer! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDrawer!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Action? value) -> Rask.UiDropdown!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDropdown!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiNavGroup! __b, System.Action? value) -> Rask.UiNavGroup!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiNavGroup! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiNavGroup!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiPopover! __b, System.Action? value) -> Rask.UiPopover!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiPopover! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPopover!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiProfile! __b, System.Action? value) -> Rask.UiProfile!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiProfile! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiProfile!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiSidebar! __b, System.Action? value) -> Rask.UiSidebar!
+static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiSidebar! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSidebar!

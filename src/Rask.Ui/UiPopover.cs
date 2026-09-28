@@ -166,15 +166,15 @@ public sealed partial class UiPopover : Component
                + ";margin:" + (Gap ?? 4).ToString(CultureInfo.InvariantCulture) + "px";
     }
 
-    private async Task OnPanelToggleAsync(ToggleEventArgs e)
+    private async Task OnPanelToggleAsync(ToggleEvent e)
     {
-        _open = e.IsOpen;
+        _open = e.NewState == "open";
 
         // Controlled: tell the page only about a change it did not make itself — the runtime showing the
         // popover because Open became true fires this same event.
-        if (e.IsOpen != Open)
+        if (e.NewState == "open" != Open)
         {
-            await OnToggle.Invoke(e.IsOpen).ConfigureAwait(false);
+            await OnToggle.Invoke(e.NewState == "open").ConfigureAwait(false);
         }
     }
 }
