@@ -67,6 +67,49 @@ public sealed class ProjectGeneratorBuildE2ETests
     }
 
     /// <summary>
+    /// A bare <c>rask new</c> promises a green <c>dotnet test</c>: the scaffolded <c>&lt;name&gt;.Tests</c>
+    /// project restores, builds against the app, and its one test passes. Only a real run proves the
+    /// chain entry for the app's <c>HomePage</c> reaches the test project and that the app's own build
+    /// keeps the test folder out of its globs.
+    /// </summary>
+    [SkippableFact]
+    public async Task Generated_server_project_passes_its_own_test()
+    {
+        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+
+        const string name = "E2ETests";
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+
+        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
+        var projectDir = Path.Combine(temp, name);
+        try
+        {
+            var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+            Assert.True(batteries.Tests, "a bare rask new no longer scaffolds a test project");
+
+            var result = ProjectGenerator.GenerateServer(projectDir, name, batteries, version);
+
+            var fs = new SystemFileSystem();
+            foreach (var file in result.Files)
+            {
+                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                fs.WriteAllText(file.Path, file.Content);
+            }
+
+            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
+
+            var (exit, output) = await CliBuildE2E.RunDotnet($"test \"{Path.Combine(projectDir, name + ".slnx")}\" -m:1");
+            Assert.True(exit == 0, $"the scaffolded tests did not pass.{CliBuildE2E.Diagnostics(output)}\n{output}");
+            Assert.Matches(@"Passed:\s+1\b", output);
+            Assert.Matches(@"Total:\s+1\b", output);
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(temp);
+        }
+    }
+
+    /// <summary>
     /// Plain styling — what you get without <c>--bootstrap</c> — swaps every generated page body for plain
     /// elements and drops the Rask.Bootstrap reference. That is the one flag where the *code* differs rather than the wiring, so
     /// it is the one a string assertion proves least about: the Bs-free bodies have to compile without the

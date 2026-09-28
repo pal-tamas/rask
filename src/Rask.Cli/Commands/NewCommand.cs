@@ -18,7 +18,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
 
-    /// <summary>Every template-scoped flag <c>rask new</c> understands, all of them batteries.</summary>
+    /// <summary>Every template-scoped flag <c>rask new</c> understands: the batteries, and the test project.</summary>
     /// <remarks>
     /// <c>wasm</c> used to be here and is not a flag any more (#1103). Shipping a browser bundle changes
     /// what the app <em>is</em> rather than what it can do, so it is a TEMPLATE — <c>wasm-hosted</c>,
@@ -28,7 +28,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     internal static readonly string[] FeatureFlags =
     [
         "pwa", "cqrs", "data", "docker",
-        "jobs", "mail", "cache", "storage", "outbox", "push", "snapshots", "logs", "ops",
+        "jobs", "mail", "cache", "storage", "outbox", "push", "snapshots", "logs", "ops", "tests",
     ];
 
     /// <summary>
@@ -136,6 +136,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             .Flag("no-logs", description: "Leave out the durable log store (it keeps a database of its own).")
             .Flag("no-ops", description: "Leave out the operator dashboard at /_rask.")
             .Flag("no-docker", description: "Leave out the Dockerfile and .dockerignore.")
+            .Flag("no-tests", description: "Leave out the <name>.Tests project and its first passing test.")
             .Flag("no-restore", description: "Don't run dotnet restore after scaffolding (for offline use). Also skips the first migration.")
             .Flag("no-git", description: "Don't initialize a git repository (one is created with an initial commit by default).")
             .Flag("force", description: "Scaffold into a directory that already has files in it, overwriting on collision.")
@@ -491,6 +492,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Snapshots = on.Contains("snapshots"),
             Logs = on.Contains("logs"),
             Ops = on.Contains("ops"),
+            Tests = on.Contains("tests"),
         };
 
     internal static ServerBatteries ToBatteries(
@@ -521,6 +523,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Snapshots = On("snapshots"),
             Logs = On("logs"),
             Ops = On("ops"),
+            Tests = On("tests"),
         }.Reduced().Normalized();
     }
 
@@ -609,7 +612,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var off = BatteryFlags.Where(f => args.Contains("--" + OffFlag(f), StringComparer.Ordinal)).ToArray();
         var batteries = ToBatteries(template, off);
 
-        var on = BatteryFlags.Where(f => f != "docker" && Includes(batteries, f)).ToArray();
+        var on = BatteryFlags.Where(f => f is not ("docker" or "tests") && Includes(batteries, f)).ToArray();
 
         var grid = new Grid();
         grid.AddColumn(new GridColumn().NoWrap().PadRight(2));
@@ -629,6 +632,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         grid.AddRow(Label("🐳", "Docker"), new Text(batteries.Docker ? "yes" : "no"));
+
+        if (template.SupportedFlags.Contains("tests"))
+        {
+            grid.AddRow(Label("🧪", "Tests"), new Text(batteries.Tests ? "yes — one passing, run with dotnet test" : "no"));
+        }
 
         // Only when it is not the default. The summary's job is to restate the DECISIONS, and .NET 10 is the
         // one nobody made — a row saying so on every scaffold would be one more line to read past, and the
@@ -675,6 +683,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "snapshots" => batteries.Snapshots,
         "logs" => batteries.Logs,
         "ops" => batteries.Ops,
+        "tests" => batteries.Tests,
         _ => false,
     };
 

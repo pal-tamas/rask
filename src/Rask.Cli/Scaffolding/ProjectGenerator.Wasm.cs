@@ -23,22 +23,25 @@ internal static partial class ProjectGenerator
             TemplateMaterializer.Files(
                 targetDirectory, "wasm", name, resolved, version, dotnet ?? DotnetTarget.Default, islands,
                 vsCode: VsCodeSetup.WasmBrowser),
-            WasmNextSteps(name, docker, cultures.Length > 0))
+            WasmNextSteps(name, docker, cultures.Length > 0, resolved.Tests))
         {
             // Rask.DevTools is named directly, like Rask.Ui: its build/ hooks are what keep the
             // in-page devtools out of a Release publish, and a package's hooks are imported for a
             // DIRECT reference only.
-            Packages = ["Rask.Wasm", "Rask.Ui", "Rask.DevTools"],
+            Packages = resolved.Tests
+                ? ["Rask.Wasm", "Rask.Ui", "Rask.DevTools", "Rask.Testing"]
+                : ["Rask.Wasm", "Rask.Ui", "Rask.DevTools"],
         };
     }
 
     /// <summary>The next-steps text printed after a standalone browser-WASM scaffold.</summary>
-    private static string WasmNextSteps(string name, bool docker, bool localization)
+    private static string WasmNextSteps(string name, bool docker, bool localization, bool tests)
     {
         var steps = new StringBuilder();
         steps.Append("Created ").Append(name).Append(" (Rask browser-WASM SPA).\n\nNext steps:\n");
         steps.Append("  cd ").Append(name).Append('\n');
         steps.Append("  rask dev            # run with hot reload (or: dotnet run)\n");
+        AppendTestStep(steps, tests);
         if (docker)
         {
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:80 …\n");

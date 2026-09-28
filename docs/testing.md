@@ -12,6 +12,26 @@ and when to reach for end-to-end (E2E) tests instead.
 
 ## 0. The `Rask.Testing` package (start here)
 
+**A new app already has a test.** `rask new Shop` (the `server` and `wasm` templates) writes `Shop.Tests/`
+beside the app, listed in `Shop.slnx`, so `dotnet test` is green before you have written anything:
+
+```csharp
+public sealed partial class HomePageTests : RaskMarkup
+{
+    [Fact]
+    public void Home_page_greets_the_visitor()
+    {
+        var page = Page.Render(() => HomePage);
+
+        Assert.Contains("Hello, Rask!", page.Html);
+    }
+}
+```
+
+The class derives from `RaskMarkup`, which is what makes the app's pages reachable by name — `HomePage` —
+the same way they are in markup. Add a file beside it per feature. `rask new --no-tests` leaves the project
+out.
+
 Reference **`Rask.Testing`** from your test project and you can render a component, invoke its handlers,
 and assert on the re-rendered HTML through a small public API — no browser, server, or WebSocket:
 
