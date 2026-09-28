@@ -331,7 +331,7 @@ internal sealed class PostgresFullTextSearchQueryInterceptor : IQueryExpressionI
             {
                 throw new InvalidOperationException(
                     $"FullText.{name} takes an indexed property of the searched entity directly, as in " +
-                    $"Post.Read.Search(text).Select(p => FullText.{name}(p.Title)), but was given '{node.Arguments[0]}'.");
+                    $"Post.Search(text).Select(p => FullText.{name}(p.Title)), but was given '{node.Arguments[0]}'.");
             }
 
             var spec = SpecFor(model, owner.Type);

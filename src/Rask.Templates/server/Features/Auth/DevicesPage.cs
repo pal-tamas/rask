@@ -132,13 +132,13 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
         }
 
         // Read faces, like any other aggregate's: no context to inject, nothing tracked, and each read
-        // opens and disposes its own. Your own aggregates work the same way — Product.Read.Where(…).
-        _sessions = await Session.Read
+        // opens and disposes its own. Your own aggregates work the same way — Product.Where(…).
+        _sessions = await Session
             .Where(s => s.UserId == me)
             .OrderByDescending(s => s.LastSeenAt)
             .ToListAsync(CancellationToken);
 
-        _passkeys = await Passkey.Read
+        _passkeys = await Passkey
             .Where(p => p.UserId == me)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync(CancellationToken);

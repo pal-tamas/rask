@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Product.Read` is gone — query off the type (`Product.Where(…)`); `Product.Find(id)` loads the
+  aggregate and `product.Save()` writes it back.** `Product.Read.Where(p => p.Id == id)` is now
+  `Product.Where(p => p.Id == id)`, and every other opening operator and terminal moved the same way; the rows
+  are still `ProductRead`. `Find` returns the aggregate whole and untracked through a filtered query by key, so a
+  soft-deleted or another tenant's row is `null`. `Save()` inserts an aggregate with no row yet, otherwise writes
+  only the columns changed since `Find` read it, syncs children by id, raises its domain events and refuses a stale `Version`;
+  with `db:` it only stages. `Create`/`Update`/`Delete`/`Model` are unchanged.
 - **BREAKING: MDN is the source of truth for the HTML elements.** Every element type, its base, its tags and its
   attribute properties are now generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`,
   `@mdn/browser-compat-data`), kept in `src/Rask.Core/Dom/mdn.snapshot.json`. Nothing generated is committed,

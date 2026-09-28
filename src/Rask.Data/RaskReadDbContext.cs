@@ -56,7 +56,7 @@ public class RaskReadDbContext : DbContext, ITenantScoped
 
         base.ConfigureConventions(configurationBuilder);
 
-        // The read faces keep an entity's strongly-typed ids as they are — Order.Read.Where(o => o.CustomerId
+        // The read faces keep an entity's strongly-typed ids as they are — Order.Where(o => o.CustomerId
         // == customer.Id) reads the same on both sides — so they need the same converters registered.
         ModelRegistry.ApplyConventions(configurationBuilder);
     }

@@ -19,7 +19,7 @@ You already have this. `RaskApp` opens the database with `UseRaskSqlite` rather 
 `appsettings.json` — `Data Source=app.db` while you develop — and there is nothing about it in `Program.cs`.
 
 `UseRaskSqlite` is a drop-in for `UseSqlite` that also installs the pragma interceptor, so every background
-processor (jobs, mail, outbox), every page, and every `Product.Read.Where(…)` and every command handler shares a
+processor (jobs, mail, outbox), every page, and every `Product.Where(…)` and every command handler shares a
 connection that won't spuriously fail under load. `StrictTables` makes SQLite enforce each column's declared
 type rather than quietly storing the text `"lots"` in an `INTEGER` column — see
 [STRICT tables](../sqlite.md#strict-tables--making-the-store-enforce-your-types). An app that writes its own

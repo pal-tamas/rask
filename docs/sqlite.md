@@ -199,7 +199,7 @@ declare the index on the model, and search it from LINQ, ranked, word-aware and 
 ```csharp
 builder.HasFullTextSearch(p => new { p.Title, p.Body });   // in the entity's configuration
 
-var page = await Post.Read.Search(query).Take(20).ToListAsync();   // best match first
+var page = await Post.Search(query).Take(20).ToListAsync();   // best match first
 ```
 
 `UseRaskSqlite(...)` registers the migration SQL that builds the FTS5 index and the triggers keeping it

@@ -176,7 +176,7 @@ and a deleted account has to free its address for the person to sign up again, s
 
 ```csharp
 var me = users.Current.UserId() is { } id
-    ? await User.Read.Where(u => u.Id == id).FirstOrDefaultAsync(CancellationToken)
+    ? await User.Where(u => u.Id == id).FirstOrDefaultAsync(CancellationToken)
     : null;
 await User.Update(id, u => u.Rename(name));
 await User.Update(id, u => u.GrantRole("editor"));
@@ -206,7 +206,7 @@ session is stamped rather than removed, and the device list can still say "signe
 the rows of sessions that ended or expired more than a day ago, once an hour and when the host starts.
 
 ```csharp
-var devices = await Session.Read.Where(s => s.UserId == me)
+var devices = await Session.Where(s => s.UserId == me)
                                 .OrderByDescending(s => s.LastSeenAt).ToListAsync();
 
 await auth.SignOutOtherDevicesAsync();   // every session but this one
@@ -260,7 +260,7 @@ await auth.AddPasskeyAsync("MacBook");                          // signed in; ru
 await auth.SignInWithPasskeyAsync(remember: true, returnUrl);   // discoverable — nothing is typed
 await auth.RemovePasskeyAsync(passkeyId);
 
-var keys = await Passkey.Read.Where(p => p.UserId == me).ToListAsync();   // list them like sessions
+var keys = await Passkey.Where(p => p.UserId == me).ToListAsync();   // list them like sessions
 ```
 
 **Call these from a click handler.** Browsers only show the passkey dialog for a real gesture. A dismissed dialog
@@ -316,7 +316,7 @@ A TypeScript front end has the same three calls — `addPasskey`, `signInWithPas
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Current` (Rask.Data) | The signed-in user with nothing injected — `Current.UserId` / `RequiredUserId` / `Principal` — for code with no constructor to inject into, like a `Product.Create(…)` factory. Set for a live session, every HTTP request and a background job (which runs for the user who enqueued it). See [data.md](data.md#the-current-user--current). |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
-| `ClaimsPrincipal.UserId()` / `SessionId()` | The signed-in user's id (to load the row: `User.Read.Where(u => u.Id == id)`) and the session's id (to mark "this device"). |
+| `ClaimsPrincipal.UserId()` / `SessionId()` | The signed-in user's id (to load the row: `User.Where(u => u.Id == id)`) and the session's id (to mark "this device"). |
 | `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl, persistent)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
 | `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
 

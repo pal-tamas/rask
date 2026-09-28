@@ -80,6 +80,13 @@ public class ModelInputGeneratorTests
         Assert.Contains("Update(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         Assert.Contains("Delete(global::System.Guid id, int? version = null, ", source, StringComparison.Ordinal);
         Assert.Contains("public global::Shop.ProductModel ToModel()", source, StringComparison.Ordinal);
+        // Load the aggregate itself, change it through its methods, write it back.
+        Assert.Contains(
+            "public static global::System.Threading.Tasks.Task<global::Shop.Product?> Find(global::System.Guid id, ",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains("extension(global::Shop.Product entity)", source, StringComparison.Ordinal);
+        Assert.Contains("public global::System.Threading.Tasks.Task Save(", source, StringComparison.Ordinal);
         Assert.Contains(
             "Update(global::System.Guid id, global::System.Action<global::Shop.Product> apply, int? version = null, ",
             source,
@@ -1224,7 +1231,7 @@ public class ModelInputGeneratorTests
         // A collection is fixed on the OTHER side — the shipment holds the order's id, not the reverse.
         var message = diagnostic.GetMessage(CultureInfo.InvariantCulture);
         Assert.Contains("let each 'Shipment' hold Order's id", message, StringComparison.Ordinal);
-        Assert.Contains("Shipment.Read", message, StringComparison.Ordinal);
+        Assert.Contains("Shipment.Where(…)", message, StringComparison.Ordinal);
 
         // Another aggregate is somebody else's data: nothing about it reaches this model, so a form post on the
         // order can neither add a shipment nor delete one.
@@ -1262,7 +1269,7 @@ public class ModelInputGeneratorTests
         // where the join went rather than being left to wonder.
         var message = diagnostic.GetMessage(CultureInfo.InvariantCulture);
         Assert.Contains("'Guid CustomerId'", message, StringComparison.Ordinal);
-        Assert.Contains("Order.Read", message, StringComparison.Ordinal);
+        Assert.Contains("Order.Where(…)", message, StringComparison.Ordinal);
         Assert.Contains("inferred back as 'Customer'", message, StringComparison.Ordinal);
 
         // Nothing about the customer reaches the order's form model.

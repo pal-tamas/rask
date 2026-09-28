@@ -65,6 +65,6 @@ single-writer, so the processor claims work by polling and writing. Use
 waits for the write lock instead of failing.
 
 In a multi-tenant app each message records the tenant it was queued in, and the processor re-enters it
-before sending. `QueuedMail.Read` queries the queue with no context of your own.
+before sending. `QueuedMail.Where(…)` queries the queue with no context of your own.
 
 Part of [Rask](https://www.nuget.org/packages/Rask.Server) — the .NET One Person Framework.

@@ -682,10 +682,10 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                     many ? $"a collection of '{target}'" : $"a reference to '{target}'",
                     many
                         ? $"let each '{target}' hold {entity.Name}'s id and read them back through "
-                          + $"{target}.Read, whose navigation those ids infer, or derive '{target}' from "
+                          + $"{target}.Where(…), whose navigation those ids infer, or derive '{target}' from "
                           + $"Entity<TId> if they are genuinely part of {entity.Name}"
                         : $"hold its id instead — '{idType} {property}Id' — and read the join through "
-                          + $"{entity.Name}.Read, where it is inferred back as '{property}', or derive "
+                          + $"{entity.Name}.Where(…), where it is inferred back as '{property}', or derive "
                           + $"'{target}' from Entity<TId> if it is genuinely part of {entity.Name}"));
             }
 
@@ -1081,6 +1081,20 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine();
             Keep(entity.Deletable, deleteMark);
 
+            // The aggregate itself, to call its methods and `Save()`. A query by key, not EF's Find, so a
+            // soft-deleted or another tenant's row is not found here either.
+            s.Append("        /// <summary>Loads the <see cref=\"").Append(entityType)
+                .AppendLine("\" /> with <paramref name=\"id\" />, whole, to change through its methods and <c>Save()</c>.</summary>");
+            s.AppendLine("        /// <param name=\"id\">The id of the aggregate.</param>");
+            s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>");
+            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
+            s.AppendLine("        /// <returns>The aggregate and its children, or <c>null</c> when none has that id or it is soft-deleted.</returns>");
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("?> Find(")
+                .Append(idType).Append(" id, ").Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default) =>");
+            s.Append("            ").Append(Writes).Append(".Find<").Append(entityType)
+                .AppendLine(">(id!, db, cancellationToken);");
+            s.AppendLine();
+
             var modelFillMark = s.Length;
 
             // The form loop's fill. Deliberately not a read-face query: the read face is flat primitives and
@@ -1112,6 +1126,26 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
         s.AppendLine("    }");
         s.AppendLine();
+
+        if (!entity.IsChild && entity.IdTypeName is not null)
+        {
+            s.Append("    extension(").Append(entityType).AppendLine(" entity)");
+            s.AppendLine("    {");
+            s.AppendLine("        /// <summary>Saves this aggregate as it now stands: inserted when it has no row yet, otherwise written over it — only what changed, children synced by id.</summary>");
+            s.AppendLine(DbDoc);
+            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load and the save.</param>");
+            s.AppendLine("        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">Its row has been soft-deleted since it was read.</exception>");
+            if (entity.Versioned)
+            {
+                s.AppendLine("        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">Its row was saved by someone else since it was read.</exception>");
+            }
+
+            s.Append("        public ").Append(Task).Append(" Save(").Append(DbParameter).Append(Token)
+                .AppendLine(" cancellationToken = default) =>");
+            s.Append("            ").Append(Writes).AppendLine(".Save(entity, db, cancellationToken);");
+            s.AppendLine("    }");
+            s.AppendLine();
+        }
 
         var toModelMark = s.Length;
         s.Append("    extension(").Append(entityType).AppendLine(" entity)");

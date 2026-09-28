@@ -15,7 +15,7 @@ namespace Rask.Data;
 ///         <c>DbSet</c> property, and no <see cref="IEntityTypeConfiguration{TEntity}" /> to write.
 ///     </para>
 ///     <para>
-///         The model surface (<c>Product.Read.Where(…)</c>, <c>Product.Create(model)</c>) reaches it with
+///         The model surface (<c>Product.Where(…)</c>, <c>Product.Create(model)</c>) reaches it with
 ///         nothing injected — a Rask session outlives any context, so what is registered is an
 ///         <see cref="IDbContextFactory{TContext}" /> and each call opens its own. The writes on the type
 ///         (<c>Product.Create</c>, <c>Update</c>, <c>Delete</c>) do the same, or join a context

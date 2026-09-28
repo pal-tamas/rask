@@ -21,7 +21,7 @@ query**. Queue depth is `SELECT count(*)`.
 | `Rask.Cache` | `CacheEntry` | How much is cached right now? |
 
 They're ordinary EF entities, mapped into the same `RaskAppDbContext` as your products. They aren't
-aggregates, so there's no `OutboxMessage.Read` — you reach them through the context itself. Inject
+aggregates, so there's no `OutboxMessage.Where(…)` — you reach them through the context itself. Inject
 `IDbContextFactory<RaskAppDbContext>` into the page as `dbFactory` and open one per refresh:
 
 ```csharp

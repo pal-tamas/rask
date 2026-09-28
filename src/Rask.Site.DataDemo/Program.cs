@@ -31,7 +31,7 @@ host.Services.AddDbContextFactory<NotesDb>((sp, o) => o
     .UseRaskFullTextSearch()
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
-// The read faces (Note.Read) query through a context of their own, on the same database.
+// The read faces (Note.Where(…)) query through a context of their own, on the same database.
 host.Services.AddDbContextFactory<RaskReadDbContext>(o => o
     .UseSqlite(BrowserSqlite.ConnectionString("notes"))
     .UseRaskFullTextSearch());

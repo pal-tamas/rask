@@ -2132,8 +2132,8 @@ public sealed class Shipment : Aggregate<Guid>
 from exactly that id — so it is still one expression:
 
 ```csharp
-await Order.Read.Where(o => o.Customer.Country == "HU").ToListAsync();
-await Shipment.Read.Where(s => s.Order.Status == OrderStatus.Open).ToListAsync();
+await Order.Where(o => o.Customer.Country == "HU").ToListAsync();
+await Shipment.Where(s => s.Order.Status == OrderStatus.Open).ToListAsync();
 ```
 
 It is an error rather than a warning because the alternative is worse than either fix: a navigation that
