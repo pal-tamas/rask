@@ -66,7 +66,7 @@ public sealed class ErrorPageResponseTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.SendJsonAsync(new { id = throwingId });
         var faulted = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));

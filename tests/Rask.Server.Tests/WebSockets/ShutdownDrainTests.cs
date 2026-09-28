@@ -98,7 +98,7 @@ public class ShutdownDrainTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         var session = host.Store.Get(sessionId)!;
         await ws.SendJsonAsync(new { id = handlerId });
@@ -148,7 +148,7 @@ public class ShutdownDrainTests
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-            _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
             await ws.SendJsonAsync(new { id = handlerId });
 
             var session = host.Store.Get(sessionId)!;

@@ -182,6 +182,41 @@ public sealed class VsCodeScaffoldTests
         Assert.DoesNotContain(SpaFramework.All[0].Key, tailwind);
     }
 
+    [Fact]
+    public void Each_scaffold_recommends_the_extensions_for_what_it_holds()
+    {
+        var scaffolds = AllScaffolds()
+            .Append((Label: "server --islands vue", Result: ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version, ["vue"])));
+
+        var recommended = scaffolds.ToDictionary(s => s.Label, s => Recommended(Index(s.Result)), StringComparer.Ordinal);
+
+        string[] everywhere = ["ms-dotnettools.csdevkit", "editorconfig.editorconfig", "usernamehw.errorlens"];
+        string[] frameworks = ["vue.volar", "svelte.svelte-vscode", "angular.ng-template"];
+        foreach (var (label, ids) in recommended)
+        {
+            Assert.True(ids.Take(everywhere.Length).SequenceEqual(everywhere), $"{label}: {string.Join(", ", ids)}");
+        }
+
+        Assert.DoesNotContain("dbaeumer.vscode-eslint", recommended["server"]);
+        Assert.DoesNotContain("esbenp.prettier-vscode", recommended["wasm"]);
+        Assert.Contains("dbaeumer.vscode-eslint", recommended["react"]);
+        Assert.Contains("esbenp.prettier-vscode", recommended["react"]);
+        Assert.DoesNotContain(recommended["react"], frameworks.Contains);
+        Assert.Contains("vue.volar", recommended["vue"]);
+        Assert.Contains("vue.volar", recommended["nuxt"]);
+        Assert.Contains("vue.volar", recommended["server --islands vue"]);
+        Assert.Contains("svelte.svelte-vscode", recommended["svelte"]);
+        Assert.Contains("svelte.svelte-vscode", recommended["sveltekit"]);
+        Assert.Contains("angular.ng-template", recommended["angular"]);
+        Assert.Contains("angular.ng-template", recommended["analog"]);
+    }
+
+    private static List<string?> Recommended(Dictionary<string, string> files)
+    {
+        using var extensions = JsonDocument.Parse(files[".vscode/extensions.json"], Jsonc);
+        return [.. extensions.RootElement.GetProperty("recommendations").EnumerateArray().Select(r => r.GetString())];
+    }
+
     private static void AssertInspectsThroughTheProxy(JsonElement config)
     {
         Assert.Equal("launch", config.GetProperty("request").GetString());

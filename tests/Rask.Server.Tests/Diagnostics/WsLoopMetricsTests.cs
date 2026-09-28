@@ -17,7 +17,7 @@ public class WsLoopMetricsTests
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(5));
 
         // Awaiting the render reply guarantees the server-side dispatch (and its instrumentation)
         // has completed before we assert.
