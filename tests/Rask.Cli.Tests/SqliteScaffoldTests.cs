@@ -50,8 +50,10 @@ public sealed class SqliteScaffoldTests
         var next = ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(["data"]), Version).Notes;
 
         Assert.NotNull(next);
-        Assert.Contains("rask db update", next, StringComparison.Ordinal);
+        Assert.Contains("rask db add <Name>", next, StringComparison.Ordinal);
         Assert.Contains("app.db", next, StringComparison.Ordinal);
+        // The app applies its migrations when it starts, so there is no second command to run.
+        Assert.DoesNotContain("rask db update", next, StringComparison.Ordinal);
         // Not the FIRST migration any more — `rask new` creates and applies that itself.
         Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
     }

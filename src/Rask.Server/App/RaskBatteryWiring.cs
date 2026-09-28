@@ -275,9 +275,14 @@ internal static class RaskBatteryWiring
         // exactly one context, Rask's or the app's, and needs no --context.
         services.TryAddSingleton<IDbContextFactory<RaskReadDbContext>>(static sp => new ReadContextFactory(sp));
 
+        // Code wins over configuration, as everywhere: a MigrateOnStart assignment beats Rask:Database:MigrateOnStart.
+        var migrate = options.MigrateOnStartSet
+                      ?? builder.Configuration.GetValue<bool?>(RaskDatabase.MigrateOnStartKey)
+                      ?? true;
+
         if (appContext is not null)
         {
-            WireContextBatteries(services, options, appContext, provider);
+            WireContextBatteries(services, options, appContext, provider, migrate);
         }
         else
         {
@@ -296,7 +301,7 @@ internal static class RaskBatteryWiring
                 .MigrationsIn(app)
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
-            WireContextBatteries(services, options, typeof(RaskAppDbContext), provider);
+            WireContextBatteries(services, options, typeof(RaskAppDbContext), provider, migrate);
         }
     }
 
@@ -421,11 +426,12 @@ internal static class RaskBatteryWiring
         IServiceCollection services,
         RaskAppOptions options,
         Type context,
-        RaskDatabaseProvider provider) =>
+        RaskDatabaseProvider provider,
+        bool migrate) =>
         typeof(RaskBatteryWiring)
             .GetMethod(nameof(WireFor), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(context)
-            .Invoke(null, [services, options, provider]);
+            .Invoke(null, [services, options, provider, migrate]);
 
     // The same reflection point as WireContextBatteries, over the same app-rooted context type.
     [UnconditionalSuppressMessage("Trimming", "IL2060",
@@ -449,13 +455,20 @@ internal static class RaskBatteryWiring
     private static void WireFor<TContext>(
         IServiceCollection services,
         RaskAppOptions options,
-        RaskDatabaseProvider provider)
+        RaskDatabaseProvider provider,
+        bool migrate)
         where TContext : DbContext
     {
         // Bind the model surface to this context, so `Product.Where(…)` reaches it without anything being
         // injected. AddRaskData is idempotent,
         // so this only adds the binding.
         services.AddRaskData<TContext>();
+
+        // The app's pending migrations, applied before any worker below starts — see MigrateOnStart.
+        if (migrate)
+        {
+            services.AddHostedService<MigrateOnStart<TContext>>();
+        }
 
         // Unless the app wired a log store itself, which wins here as it does for every battery. Calling
         // AddRaskLogging<TContext> anyway would register its model check for a table nothing writes, and fail the boot.

@@ -428,8 +428,8 @@ step by step (database, auth, jobs, email, cache, events, and deployment). In sh
 
 1. **Build a feature** → [tutorial chapter 2](tutorial/02-first-feature.md) builds a database-backed
    Products catalog by hand: declare the entity, read it off its face (`Product.Where(…)`), write through
-   commands whose handlers save with EF Core, build list, create, edit and delete pages, then `rask db add` /
-   `rask db update`. The database is a
+   commands whose handlers save with EF Core, build list, create, edit and delete pages, then `rask db add` —
+   the app applies the migration itself when it starts. The database is a
    battery like the rest, so there is nothing to register.
 2. **Make SQLite production-ready** → [Why one server, no PaaS](sqlite.md) — WAL, busy-timeout, and
    continuous backup so one SQLite file is your production database.

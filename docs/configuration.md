@@ -109,7 +109,8 @@ A few things to know:
   a bare container reads none.
 - **`Rask:Database:Provider` is read while services are registered too**, by `RaskApp`, because the database decides
   which batteries exist — where the log is kept, whether snapshots run. Like `Rask:Cqrs`, it is read from the host
-  builder's configuration as it stands.
+  builder's configuration as it stands. So is `Rask:Database:MigrateOnStart`, which decides whether the migrating
+  step is registered at all.
 - **A database connection string is required, not guessed.** `UseRaskDatabase(sp)`, `UseRaskSqlite(sp)`, `UseRaskPostgres(sp)`,
   `UseRaskSqlServer(sp)`, `AddRaskSqlite()` and `AddRaskLogging()` throw when their
   connection string is missing, naming the key
@@ -134,6 +135,7 @@ A few things to know:
 | `Rask:Meta` | `MetaHostingOptions` | `Rask.Meta.Hosting` | `Framework` by the build's names (`nuxt`, `nextjs`, `tanstack-start`, `solidstart`, `sveltekit`, `analog`). Precedence: build metadata, then this section, then the callback, then a `rask dev` session's dev server. See [meta frameworks](meta.md). |
 | `Rask:Data` | `RaskDataOptions` | `Rask.Data` | See [Rask.Data](data.md). |
 | `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
+| `Rask:Database:MigrateOnStart` | `true` | `Rask.Server` | Whether a `RaskApp` applies its pending migrations when it starts, before any battery's worker runs and before `/health` answers. `false` when something else applies them — a release pipeline running `rask db update`. Read by `RaskApp` while services are registered. In code: `app.Configure(c => c.MigrateOnStart = false)`, which wins over the setting. See [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start). |
 | `Rask:ConnectionStrings:App` | — | `Rask.SQLite`, `Rask.SQLite.EntityFrameworkCore`, `Rask.Postgres`, `Rask.SqlServer` | The application database. Also the default `DatabasePath` for Litestream and snapshots. |
 | `Rask:Sqlite` | `SqliteOptions` | `Rask.SQLite` | The pragmas, `StrictTables`, and `Retry`. Read by `AddRaskSqlite()` and by `UseRaskSqlite(sp)`. See [SQLite](sqlite.md). |
 | `Rask:Postgres` | `PostgresOptions` | `Rask.Postgres` | The session timeouts and `Retry`. Read by `UseRaskPostgres(sp)`. See [PostgreSQL](data.md#postgresql). |

@@ -258,7 +258,7 @@ MyApp/
     Shared/ErrorPage.cs           what a visitor sees when something outside a component throws
     Home/HomePage.cs              a [Route("/")] welcome page that teaches the CLI
     Auth/                         sign-in, registration, sign-out, password reset — your pages to restyle
-  Migrations/                     the first migration, already created and applied
+  Migrations/                     the first migration, which the app applies when it starts
   Resources/Strings.en.json       the text of the UI, compiled into typed members
   wwwroot/                        manifest.webmanifest, icon.svg, offline.html
   Properties/launchSettings.json
@@ -276,22 +276,22 @@ pages and components to taste — the [tutorial](tutorial/00-overview.md) shows 
 
 ### It runs before you touch it
 
-`rask new` doesn't stop at writing files. After the restore it **creates and applies the first
-migration** for you, so:
+`rask new` doesn't stop at writing files. After the restore it **creates the first migration** for
+you, and a `RaskApp` [applies its pending migrations when it starts](data.md#migrations-apply-themselves-on-start),
+so:
 
 ```bash
 rask new Shop && cd Shop && dotnet run
 ```
 
-serves the app. That step is not a convenience — the database-backed batteries keep their state in
-tables that only exist once a migration has been applied, their processors are hosted services, and a
-hosted service that can't find its table stops the host. Without it, the very first `dotnet run` of
-every new project would exit rather than warn.
+serves the app — there is no `rask db update` step. The migration is not a convenience: the
+database-backed batteries keep their state in tables that only a migration creates, and the app can only
+apply one that exists.
 
-It reuses `rask db` to do it, so your project ends up in exactly the state `rask db add Init && rask db
-update` leaves it in — including installing the EF Core tools on first use. `--no-restore` skips the
-migration along with the restore, and if it can't complete, `rask new` says so and prints the two
-commands to run rather than failing: the files on disk are correct either way.
+It reuses `rask db` to do it, so your project ends up in exactly the state `rask db add Init` leaves it
+in — including installing the EF Core tools on first use. `--no-restore` skips the migration along with
+the restore, and if it can't complete, `rask new` says so and prints the command to run rather than
+failing: the files on disk are correct either way.
 
 | Option | Meaning |
 |--------|---------|
@@ -843,7 +843,7 @@ Breakpoints then hit in `.cs` and `.ts` files alike.
 ```bash
 rask db add InitialCreate            # create a migration for the current model
 rask db list                         # list migrations and which are applied
-rask db update                       # apply pending migrations to the database
+rask db update                       # apply pending migrations now (the app also does it when it starts)
 rask db update 20240101_Init         # migrate up/down to a specific migration
 rask db remove                       # undo the last (unapplied) migration
 rask db drop --yes                 # drop the database (a dev reset)
@@ -862,7 +862,7 @@ current directory — override with `--project`), and if the EF Core tools aren'
 | `add <Name>` | `dotnet ef migrations add` | `--output <dir>` sets the migrations folder |
 | `remove` | `dotnet ef migrations remove` | undo the last migration |
 | `list` | `dotnet ef migrations list` | show migrations and applied state |
-| `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point |
+| `update [<target>]` | `dotnet ef database update` | apply pending, or migrate to a named point. A `RaskApp` applies pending migrations itself on start, so this is for rolling back, for a hand-wired host, and for an app that [turned that off](data.md#migrations-apply-themselves-on-start) |
 | `drop` | `dotnet ef database drop` | drops the database; prompts unless `--yes` |
 | `backup` | — | a consistent copy; `--output/-o` a file or directory, `--remote` for the deployed one |
 | `restore <file>` | — | replaces the database with a copy; prompts unless `--yes` |

@@ -841,10 +841,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
 
         // The database-backed batteries keep their state in tables that only exist once a migration has been
-        // applied, and their processors are hosted services — a faulted BackgroundService stops the host, so
-        // an unmigrated app doesn't warn, it exits. That was an opt-in edge case while --data was opt-in;
-        // now that the batteries are on by default it would be the first `dotnet run` of every new project.
-        // So the first migration is part of scaffolding rather than a step in the next-steps text.
+        // applied. The app applies its pending migrations itself when it starts, but it can only apply one that
+        // exists — so the first migration is part of scaffolding rather than a step in the next-steps text.
         var migrated = !batteries.Data || noRestore || restoreFailed || buildFailed
             ? (bool?)null
             : await CreateFirstMigrationAsync(targetDirectory, PickEfProject(result, name), cancellationToken)
@@ -865,7 +863,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         if (migrated == true)
         {
             Console.Out.WriteLine();
-            Console.Out.WriteLine("The first migration is already applied to app.db.");
+            Console.Out.WriteLine("The first migration is in Migrations/; the app applies it to app.db when it starts.");
         }
 
         if (restoreFailed)
@@ -914,19 +912,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     }
 
     /// <summary>
-    /// Create and apply the project's first migration, so its first run has the tables the batteries need.
-    /// </summary>
-    /// <remarks>
-    /// Delegated to <see cref="DbCommand"/> rather than reimplemented against <c>dotnet ef</c>: it already
-    /// installs the EF tools on first use, adds the design package the tools require, and builds the
-    /// argument list. Running the same code the user would run next means the project ends up in exactly
-    /// the state <c>rask db add Init &amp;&amp; rask db update</c> leaves it in.
-    ///
-    /// <para>
-    /// <c>--project</c> is passed explicitly for the reason given on <see cref="PickEfProject"/>.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     ///     MSBuild reads properties from the environment, which is how these reach a build whose command
     ///     line belongs to <c>dotnet-ef</c>. Same channel <c>rask dev</c> uses for
     ///     <c>HotReloadAutoRestart</c>, and it leaves <c>rask db</c>'s argument surface alone.
@@ -937,6 +922,19 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         ["RaskMetaBuild"] = "false",
     };
 
+    /// <summary>
+    /// Create the project's first migration, which the app applies itself on its first start.
+    /// </summary>
+    /// <remarks>
+    /// Delegated to <see cref="DbCommand"/> rather than reimplemented against <c>dotnet ef</c>: it already
+    /// installs the EF tools on first use, adds the design package the tools require, and builds the
+    /// argument list. Running the same code the user would run next means the project ends up in exactly
+    /// the state <c>rask db add Init</c> leaves it in. Not applied here: <c>RaskApp</c> migrates on start.
+    ///
+    /// <para>
+    /// <c>--project</c> is passed explicitly for the reason given on <see cref="PickEfProject"/>.
+    /// </para>
+    /// </remarks>
     private async Task<bool> CreateFirstMigrationAsync(
         string targetDirectory, string? efProject, CancellationToken cancellationToken)
     {
@@ -955,13 +953,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         var db = new DbCommand(Console, _fileSystem, _process, targetDirectory, SkipFrontEndBuild);
 
         Console.WriteLine("Creating the first migration…", ConsoleStyle.Dim);
-        if (await db.ExecuteAsync(["add", "Init", "--project", efProject], cancellationToken).ConfigureAwait(false) != 0)
-        {
-            return false;
-        }
-
-        Console.WriteLine("Applying it to the database…", ConsoleStyle.Dim);
-        return await db.ExecuteAsync(["update", "--project", efProject], cancellationToken).ConfigureAwait(false) == 0;
+        return await db.ExecuteAsync(["add", "Init", "--project", efProject], cancellationToken).ConfigureAwait(false) == 0;
     }
 
     /// <summary>What to run when the first migration was skipped or didn't succeed.</summary>
@@ -973,10 +965,9 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 : "The first migration didn't complete. Before the first run:",
             ConsoleStyle.Dim);
         Console.Out.WriteLine("  rask db add Init");
-        Console.Out.WriteLine("  rask db update");
         Console.WriteLine(
-            "The background pillars store their state in your database, and a hosted service that can't "
-            + "find its table stops the app — so this has to happen before `dotnet run`.",
+            "The app applies its migrations when it starts, but it needs one to apply: the batteries keep "
+            + "their state in tables only a migration creates.",
             ConsoleStyle.Dim);
     }
 

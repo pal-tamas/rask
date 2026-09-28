@@ -166,7 +166,7 @@ internal static partial class ProjectGenerator
         // Nothing about whether migrations ran: this text is written before `rask new` restores, builds and
         // migrates, so it cannot know. It used to say "The first migration is already applied to app.db" here,
         // which a failed restore then contradicted two lines later (#1083). NewCommand says it only once the
-        // migration has actually succeeded, and prints the manual pair when it was skipped or failed.
+        // migration has actually been created, and prints the manual step when it was skipped or failed.
         if (batteries.Data)
         {
             steps.Append("\nFor your first entity, declare a class deriving from Aggregate<TId> — no DbSet, no\n");
@@ -175,7 +175,7 @@ internal static partial class ProjectGenerator
             steps.Append("  {\n");
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");
-            steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it into app.db. Read it off\n");
+            steps.Append("\nThen `rask db add <Name>`; the app applies the migration to app.db when it starts. Read it off\n");
             steps.Append("its generated read face — Product.Where(...) — fill a form with Product.Model(id),\n");
             steps.Append("and write it off the type — Product.Create(model),\n");
             steps.Append("Product.Update(id, model), Product.Delete(id).\n");
