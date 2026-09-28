@@ -78,7 +78,7 @@ internal sealed partial class SiteHeader : Component
                     // The mark is a link to the front door on both pages — the one convention every
                     // visitor already knows, and the way back to `/` that the docs never had.
                     NavLink
-                        .Href(PageMeta.LinkTo(Pages.Routes.HomePage()))
+                        .Href(PageMeta.LinkTo(Routes.HomePage()))
                         .ActiveClass("")
                         .Class("app-brand inline-flex min-w-0 items-center gap-2 text-lg font-semibold "
                                + "tracking-tight text-ui-ink no-underline")[
@@ -90,7 +90,7 @@ internal sealed partial class SiteHeader : Component
                     Span.Class(VersionBadge)[$"v{SiteIdentity.Version}"]
                 ],
                 Nav.Class("flex shrink-0 items-center gap-1 text-sm sm:gap-2")[
-                    NavItem("Docs", Features.Routes.GuidesIndexPage(), hideOnPhone: true),
+                    NavItem("Docs", Routes.GuidesIndexPage(), hideOnPhone: true),
                     ExternalNavItem("GitHub", SiteIdentity.Repository),
                     Ui.ThemeDropdown.Align(Ui.Align.End)
                 ]

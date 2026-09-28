@@ -97,7 +97,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
         // rendered HTML); there is no longer any highlight.js <link>/<script> in <head>.
         // TodosPage's CodeSample self-embeds its own source, which contains C# string
         // literals, so its tokenized output carries a <span class="string">.
-        var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+        var routeState = new RouteState { Path = global::Rask.Site.Routes.TodosPage() };
 
         var html = new global::Rask.Site.App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
 

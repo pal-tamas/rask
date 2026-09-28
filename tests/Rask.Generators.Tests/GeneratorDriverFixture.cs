@@ -14,6 +14,10 @@ internal static class GeneratorDriverFixture
 
     public static GeneratorRun RunRoutes(string source) => Run(source, new RoutesGenerator());
 
+    /// <summary>Runs the routes generator with MSBuild's <c>RootNamespace</c> set, as a real project build does.</summary>
+    public static GeneratorRun RunRoutes(string rootNamespace, params (string Path, string Source)[] sources) =>
+        Run(sources, [new RoutesGenerator()], null, new RootNamespaceOptions(rootNamespace));
+
     /// <summary>
     ///     Runs <paramref name="generator" /> over multiple named sources plus optional in-memory
     ///     <c>AdditionalText</c> files (scoped <c>.css</c>/<c>.js</c> siblings). Consolidates the
@@ -237,6 +241,30 @@ internal static class GeneratorDriverFixture
                     && string.Equals(key, "build_property.RaskStrayScopedJs", StringComparison.Ordinal))
                 {
                     value = strayJs;
+                    return true;
+                }
+
+                value = null!;
+                return false;
+            }
+        }
+    }
+
+    private sealed class RootNamespaceOptions(string rootNamespace) : AnalyzerConfigOptionsProvider
+    {
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(rootNamespace);
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
+
+        private sealed class Options(string rootNamespace) : AnalyzerConfigOptions
+        {
+            public override bool TryGetValue(string key, out string value)
+            {
+                if (string.Equals(key, "build_property.RootNamespace", StringComparison.Ordinal))
+                {
+                    value = rootNamespace;
                     return true;
                 }
 

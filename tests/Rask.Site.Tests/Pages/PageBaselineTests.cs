@@ -16,8 +16,8 @@ public sealed class PageBaselineTests
     // cannot sit in [InlineData].
     public static TheoryData<Type, string, string> RegisteredPages() => new()
     {
-        { typeof(GuidesIndexPage), global::Rask.Site.Features.Routes.GuidesIndexPage(), "Guides" },
-        { typeof(TodosPage), global::Rask.Site.Features.Routes.TodosPage(), "Todos" },
+        { typeof(GuidesIndexPage), global::Rask.Site.Routes.GuidesIndexPage(), "Guides" },
+        { typeof(TodosPage), global::Rask.Site.Routes.TodosPage(), "Todos" },
     };
 
     [Theory]

@@ -26,17 +26,17 @@ public class RouteNavigationHelperTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         // Url mirrors the legacy factory's signature exactly and forwards to it, so the URL-building
         // logic keeps a single implementation.
         Assert.Contains("extension(global::Demo.ProductPage)", output);
         Assert.Contains("public static global::Rask.Core.Routing.RouteUrl Url(int Id, string? Sort = null)", output);
-        Assert.Contains("=> Routes.ProductPage(Id, Sort);", output);
+        Assert.Contains("=> global::TestAssembly.Routes.ProductPage(Id, Sort);", output);
 
         // Go adds the history flag and routes through the ambient navigator.
         Assert.Contains("public static void Go(int Id, string? Sort = null, bool replace = false)", output);
-        Assert.Contains("global::Rask.Core.Routing.Navigator.RequireCurrent().NavigateTo(Routes.ProductPage(Id, Sort), replace);",
+        Assert.Contains("global::Rask.Core.Routing.Navigator.RequireCurrent().NavigateTo(global::TestAssembly.Routes.ProductPage(Id, Sort), replace);",
             output);
     }
 
@@ -63,7 +63,7 @@ public class RouteNavigationHelperTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("public static class __RaskNav_HomePage", output);
         Assert.Contains("public static class __RaskNav_AboutPage", output);
@@ -90,7 +90,7 @@ public class RouteNavigationHelperTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("\"/app/settings\"", output);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
@@ -114,7 +114,7 @@ public class RouteNavigationHelperTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("\"/docs/index\"", output);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
@@ -138,7 +138,7 @@ public class RouteNavigationHelperTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
-        var output = run.GeneratedSource("Demo.Routes.g.cs");
+        var output = run.GeneratedSource("Routes.g.cs");
 
         Assert.Contains("public static void Go(string Replace)", output);
         Assert.DoesNotContain("bool replace = false", output);
