@@ -12,11 +12,11 @@ namespace Rask.Data;
 ///     <para>
 ///         This is what <c>Product.Where(…)</c>, <c>Product.All</c> and friends return. It composes LINQ
 ///         operators the way <see cref="IQueryable{T}" /> does, but records them instead of binding to a
-///         context — the context is opened by the terminal call (<c>ToListAsync</c>,
-///         <c>FirstOrDefaultAsync</c>, <c>CountAsync</c>, …) and disposed before it returns.
+///         context — the context is opened when the query is awaited (or by <c>First</c>, <c>Count</c>, …)
+///         and disposed before it returns.
 ///     </para>
 ///     <para>
-///         That is what makes a read need no ceremony: <c>await Product.Where(p =&gt; p.Active).ToListAsync()</c>
+///         That is what makes a read need no ceremony: <c>await Product.Where(p =&gt; p.Active)</c>
 ///         is complete and leaks nothing.
 ///     </para>
 ///     <para>
@@ -159,7 +159,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
 
     /// <summary>Projects each row, giving a query that returns <typeparamref name="TResult" />.</summary>
     /// <remarks>
-    ///     The point of projecting in the database rather than after <see cref="ToListAsync" /> is that the
+    ///     The point of projecting in the database rather than after awaiting the query is that the
     ///     unread columns are never fetched. The result is no longer an entity, so it has the read operators
     ///     and nothing else.
     /// </remarks>
@@ -176,7 +176,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     /// <remarks>
     ///     <para>
     ///         Every execution — a synchronous <c>Count()</c> or <c>ToList()</c>, an awaited
-    ///         <c>ToListAsync()</c> or <c>CountAsync()</c> — opens a context for itself and disposes it
+    ///         EF Core <c>ToListAsync()</c> or <c>CountAsync()</c> — opens a context for itself and disposes it
     ///         afterwards, so the queryable is safe to hold in a field for as long as a page lives.
     ///         Rows are untracked, as they are everywhere else.
     ///     </para>
@@ -188,74 +188,74 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     /// </remarks>
     public IQueryable<TEntity> AsQueryable() => new ModelQueryProvider<TEntity>(this).Root;
 
-    /// <summary>Runs the query and returns every row.</summary>
-#pragma warning disable MA0016 // a fresh list the caller owns, as EF Core's ToListAsync returns
-    public Task<List<TEntity>> ToListAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.ToListAsync(ct), cancellationToken);
-#pragma warning restore MA0016
+    /// <summary>Runs the query and hands back every row: <c>await Product.Where(p =&gt; p.InStock)</c>.</summary>
+    /// <remarks>Cancelled by <see cref="Current.Cancellation" />, the work this read belongs to.</remarks>
+    public System.Runtime.CompilerServices.TaskAwaiter<List<TEntity>> GetAwaiter() =>
+        RunAsync(static (q, ct) => q.ToListAsync(ct), default).GetAwaiter();
 
-    /// <summary>Runs the query and returns every row as an array.</summary>
-    public Task<TEntity[]> ToArrayAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.ToArrayAsync(ct), cancellationToken);
+    /// <summary>Runs the query as <see cref="GetAwaiter" /> does, resuming on the captured context or not.</summary>
+    /// <param name="continueOnCapturedContext">Whether to resume on the context the await started on.</param>
+    public System.Runtime.CompilerServices.ConfiguredTaskAwaitable<List<TEntity>> ConfigureAwait(bool continueOnCapturedContext) =>
+        RunAsync(static (q, ct) => q.ToListAsync(ct), default).ConfigureAwait(continueOnCapturedContext);
 
-    /// <summary>Runs the query and returns its first row, or <c>null</c> when it matched nothing.</summary>
-    public Task<TEntity?> FirstOrDefaultAsync(CancellationToken cancellationToken = default) =>
+    /// <summary>The first row, or <c>null</c> when the query matched nothing.</summary>
+    public Task<TEntity?> First(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
 
-    /// <summary>Filters, then returns the first match or <c>null</c>.</summary>
-    public Task<TEntity?> FirstOrDefaultAsync(
+    /// <summary>The first row matching <paramref name="predicate" />, or <c>null</c>.</summary>
+    public Task<TEntity?> First(
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        return Where(predicate).FirstOrDefaultAsync(cancellationToken);
+        return Where(predicate).First(cancellationToken);
     }
 
-    /// <summary>
-    ///     Runs the query and returns its only row, or <c>null</c> when it matched nothing.
-    /// </summary>
+#pragma warning disable CA1720 // Single is LINQ's word for "the only row", which a .NET reader already knows
+    /// <summary>The only row, or <c>null</c> when the query matched nothing.</summary>
     /// <exception cref="InvalidOperationException">The query matched more than one row.</exception>
-    public Task<TEntity?> SingleOrDefaultAsync(CancellationToken cancellationToken = default) =>
+    public Task<TEntity?> Single(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.SingleOrDefaultAsync(ct), cancellationToken);
 
-    /// <summary>Filters, then returns the only match or <c>null</c>.</summary>
+    /// <summary>The only row matching <paramref name="predicate" />, or <c>null</c>.</summary>
     /// <exception cref="InvalidOperationException">More than one row matched.</exception>
-    public Task<TEntity?> SingleOrDefaultAsync(
+    public Task<TEntity?> Single(
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        return Where(predicate).SingleOrDefaultAsync(cancellationToken);
+        return Where(predicate).Single(cancellationToken);
     }
+#pragma warning restore CA1720
 
-    /// <summary>Counts the matching rows.</summary>
-    public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
+    /// <summary>How many rows match.</summary>
+    public Task<int> Count(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
 
-    /// <summary>Filters, then counts.</summary>
-    public Task<int> CountAsync(
+    /// <summary>How many rows match <paramref name="predicate" />.</summary>
+    public Task<int> Count(
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        return Where(predicate).CountAsync(cancellationToken);
+        return Where(predicate).Count(cancellationToken);
     }
 
-    /// <summary>Counts the matching rows as a <see cref="long" />.</summary>
-    public Task<long> LongCountAsync(CancellationToken cancellationToken = default) =>
+    /// <summary>How many rows match, as a <see cref="long" />.</summary>
+    public Task<long> LongCount(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.LongCountAsync(ct), cancellationToken);
 
     /// <summary>Whether the query matches any row.</summary>
-    public Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
+    public Task<bool> Any(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
 
     /// <summary>Whether any row matches <paramref name="predicate" />.</summary>
-    public Task<bool> AnyAsync(
+    public Task<bool> Any(
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        return Where(predicate).AnyAsync(cancellationToken);
+        return Where(predicate).Any(cancellationToken);
     }
 
     /// <summary>Enumerates the query, streaming rows as the database produces them.</summary>
@@ -271,7 +271,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
 
         await foreach (var entity in Apply(context.Set<TEntity>())
                            .AsAsyncEnumerable()
-                           .WithCancellation(cancellationToken)
+                           .WithCancellation(Ambient.Or(cancellationToken))
                            .ConfigureAwait(false))
         {
             yield return entity;
@@ -288,7 +288,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     ///     escape the callback — it dies with the context; <see cref="AsQueryable" /> is the one that
     ///     outlives a call.
     /// </remarks>
-    public async Task<TResult> QueryAsync<TResult>(
+    public async Task<TResult> Query<TResult>(
         Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> query,
         CancellationToken cancellationToken = default)
     {
@@ -296,7 +296,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
 
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
-        return await query(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
+        return await query(Apply(context.Set<TEntity>()), Ambient.Or(cancellationToken)).ConfigureAwait(false);
     }
 
     // Untracked is decided at the head of the query rather than composed, so every read — through this
@@ -331,6 +331,6 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     {
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
-        return await run(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
+        return await run(Apply(context.Set<TEntity>()), Ambient.Or(cancellationToken)).ConfigureAwait(false);
     }
 }

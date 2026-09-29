@@ -51,8 +51,7 @@ public static Task<IReadOnlyList<ProductListItem>> Get() =>
 private static async Task<IReadOnlyList<ProductListItem>> Load() =>
     await Product
         .OrderBy(p => p.Name)
-        .Select(p => new ProductListItem(p.Id, p.Name, p.Price, p.InStock, p.Version))
-        .ToListAsync(Current.Cancellation);
+        .Select(p => new ProductListItem(p.Id, p.Name, p.Price, p.InStock, p.Version));
 ```
 
 `Version` rides along because the list's delete button sends it back (Chapter 2). `Current.Cancellation` is

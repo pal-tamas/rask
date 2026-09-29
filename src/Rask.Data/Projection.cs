@@ -28,26 +28,25 @@ public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         _selector = selector;
     }
 
-    /// <summary>Runs the query and returns every projected row.</summary>
-#pragma warning disable MA0016 // a fresh list the caller owns, as EF Core's ToListAsync returns
-    public Task<List<TResult>> ToListAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.ToListAsync(ct), cancellationToken);
-#pragma warning restore MA0016
+    /// <summary>Runs the query and hands back every projected row: <c>await Product.All.Select(p =&gt; p.Name)</c>.</summary>
+    public System.Runtime.CompilerServices.TaskAwaiter<List<TResult>> GetAwaiter() =>
+        RunAsync(static (q, ct) => q.ToListAsync(ct), default).GetAwaiter();
 
-    /// <summary>Runs the query and returns every projected row as an array.</summary>
-    public Task<TResult[]> ToArrayAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.ToArrayAsync(ct), cancellationToken);
+    /// <summary>Runs the query as <see cref="GetAwaiter" /> does, resuming on the captured context or not.</summary>
+    /// <param name="continueOnCapturedContext">Whether to resume on the context the await started on.</param>
+    public System.Runtime.CompilerServices.ConfiguredTaskAwaitable<List<TResult>> ConfigureAwait(bool continueOnCapturedContext) =>
+        RunAsync(static (q, ct) => q.ToListAsync(ct), default).ConfigureAwait(continueOnCapturedContext);
 
-    /// <summary>Runs the query and returns the first projected row, or the default when empty.</summary>
-    public Task<TResult?> FirstOrDefaultAsync(CancellationToken cancellationToken = default) =>
+    /// <summary>The first projected row, or the default when the query matched nothing.</summary>
+    public Task<TResult?> First(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken)!;
 
-    /// <summary>Counts the matching rows.</summary>
-    public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
+    /// <summary>How many rows match.</summary>
+    public Task<int> Count(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
 
     /// <summary>Whether the query matches any row.</summary>
-    public Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
+    public Task<bool> Any(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
 
     private async Task<TValue> RunAsync<TValue>(
@@ -57,6 +56,6 @@ public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
         var projected = _source(context.Set<TEntity>()).Select(_selector);
-        return await run(projected, cancellationToken).ConfigureAwait(false);
+        return await run(projected, Ambient.Or(cancellationToken)).ConfigureAwait(false);
     }
 }

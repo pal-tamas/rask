@@ -118,6 +118,7 @@
     <!-- One file, two hosts: Rask.Data's browser build registers it from AddRaskData; the server build does not
          reference Rask.Query, so the server host compiles the same file in and registers it itself (RaskBatteryWiring). -->
     <Compile Include="..\Rask.Data\Browser\QueryDataChanges.cs" Link="App\QueryDataChanges.cs"/>
+    <Compile Include="..\Rask.Data\Browser\QueryClientReads.cs" Link="App\QueryClientReads.cs"/>
     <!-- An app VS Code's F5 launched starts its islands' Vite dev server itself (Dev/IslandDevServer). -->
     <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\Dev\IslandDevPointer.cs" Link="Shared\Dev\IslandDevPointer.cs"/>

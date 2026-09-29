@@ -15,7 +15,7 @@ public sealed class Note : Aggregate<Guid>
 
     /// <summary>The text a search snippet is cut from.</summary>
     [MaxLength(2000)]
-    public string Body { get; private set; } = "";
+    public string? Body { get; private set; }
 
     /// <summary>A note written by code rather than by the form — the seed rows.</summary>
     public static Note Write(string title, string body) =>

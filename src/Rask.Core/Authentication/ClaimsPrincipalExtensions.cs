@@ -10,7 +10,7 @@ public static class ClaimsPrincipalExtensions
     /// <returns>The id of the app's <c>User</c>, ready for <c>User.Where(u =&gt; u.Id == id)</c>.</returns>
     /// <example>
     /// <code>
-    /// var me = users.Current.UserId() is { } id ? await User.Where(u =&gt; u.Id == id).FirstOrDefaultAsync(CancellationToken) : null;
+    /// var me = users.Current.UserId() is { } id ? await User.Where(u =&gt; u.Id == id).First() : null;
     /// </code>
     /// </example>
     public static Guid? UserId(this ClaimsPrincipal principal)

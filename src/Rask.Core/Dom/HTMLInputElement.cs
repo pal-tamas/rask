@@ -4,7 +4,7 @@ using Rask.Core.Forms;
 using Rask.Core.Live;
 using RaskFileType = Rask.Core.Forms.IRaskFile;
 
-namespace Rask.Core.Components;
+namespace Rask.Core;
 
 // The typed layer over MDN's HTMLInputElement (generated from mdn.snapshot.json, abstract, every plain
 // attribute). What MDN cannot know lives here: the bound value's type T, and what follows from it. The input

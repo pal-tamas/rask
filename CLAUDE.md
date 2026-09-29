@@ -41,7 +41,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 
 ## Projects
 - `src/Rask.Core` — **the `Rask` package** (assembly stays `Rask.Core`): rendering, live context, routing, scoped
-  CSS/TypeScript, lifecycle, AND the whole HTML/SVG element family (HTML generated from MDN by `src/Rask.Dom.Tasks`) in `Rask.Core.Components`;
+  CSS/TypeScript, lifecycle, AND the whole HTML/SVG element family (generated from MDN by `src/Rask.Dom.Tasks`, MDN-named types in `Rask.Core`);
   ships the analyzers and the build hooks (`build/Rask.props|targets`, twinned into `buildTransitive/`). Both hosts
   depend on it `PrivateAssets="none"`; a component library references it alone. The tags live HERE so their entries
   land on `RaskMarkup` and reach every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).

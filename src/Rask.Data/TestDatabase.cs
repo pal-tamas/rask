@@ -21,7 +21,7 @@ namespace Rask.Data;
 /// database.Context.Add(Order.Place("A-1"));
 /// await database.Context.SaveChangesAsync();
 ///
-/// Assert.Equal(1, await Order.CountAsync());
+/// Assert.Equal(1, await Order.Count());
 ///         </code>
 ///     </example>
 ///     <para>

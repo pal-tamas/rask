@@ -623,7 +623,13 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
     {
         try
         {
-            var data = await fetch(cancellationToken).ConfigureAwait(false);
+            object? data;
+            // The fetch's own reads — `await Product.Where(…)` — are cancelled with the fetch, with no token passed.
+            using (Ambient.Enter(cancellationToken))
+            {
+                data = await fetch(cancellationToken).ConfigureAwait(false);
+            }
+
             entry.Succeeded(data, _time.GetUtcNow());
             return true;
         }

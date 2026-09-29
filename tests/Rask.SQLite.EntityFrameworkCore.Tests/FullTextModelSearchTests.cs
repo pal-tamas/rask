@@ -39,7 +39,7 @@ public sealed class FullTextModelSearchTests : IDisposable
     [Fact]
     public async Task Post_Search_reads_matches_best_first()
     {
-        var titles = (await Post.Search("search").ToListAsync()).Select(p => p.Title);
+        var titles = (await Post.Search("search")).Select(p => p.Title);
 
         Assert.Equal(["Charlie", "Alpha"], titles);
     }
@@ -47,17 +47,17 @@ public sealed class FullTextModelSearchTests : IDisposable
     [Fact]
     public async Task Post_Search_composes_with_the_model_query_operators()
     {
-        Assert.Equal(["Alpha"], (await Post.Search("search").Where(p => p.Title != "Charlie").ToListAsync()).Select(p => p.Title));
-        Assert.Equal(["Alpha", "Charlie"], (await Post.Search("search").OrderBy(p => p.Title).ToListAsync()).Select(p => p.Title));
-        Assert.Equal(2, await Post.Search("search").CountAsync());
-        Assert.Equal(3, await Post.Search("  ").CountAsync());
+        Assert.Equal(["Alpha"], (await Post.Search("search").Where(p => p.Title != "Charlie")).Select(p => p.Title));
+        Assert.Equal(["Alpha", "Charlie"], (await Post.Search("search").OrderBy(p => p.Title)).Select(p => p.Title));
+        Assert.Equal(2, await Post.Search("search").Count());
+        Assert.Equal(3, await Post.Search("  ").Count());
     }
 
     [Fact]
     public async Task ThenBy_composes_onto_best_match_order()
     {
         // Search counts as an ordering, so a tie-breaker is allowed after it and has to translate after the rewrite.
-        var titles = (await Post.Search("search").ThenByDescending(p => p.Title).ToListAsync()).Select(p => p.Title);
+        var titles = (await Post.Search("search").ThenByDescending(p => p.Title)).Select(p => p.Title);
 
         Assert.Equal(["Charlie", "Alpha"], titles);
     }
@@ -66,7 +66,7 @@ public sealed class FullTextModelSearchTests : IDisposable
     public async Task ThenBy_after_an_empty_search_orders_instead_of_failing()
     {
         // The box is empty on first render: the page must not crash exactly when nothing has been typed yet.
-        var titles = (await Post.Search("").ThenBy(p => p.Title).ToListAsync()).Select(p => p.Title);
+        var titles = (await Post.Search("").ThenBy(p => p.Title)).Select(p => p.Title);
 
         Assert.Equal(["Alpha", "Bravo", "Charlie"], titles);
     }
@@ -74,7 +74,7 @@ public sealed class FullTextModelSearchTests : IDisposable
     [Fact]
     public async Task Post_Search_projects_highlights_into_a_snippet()
     {
-        var excerpts = await Post.Search("mentions").Select(p => FullText.Snippet(p.Body, 3)).ToListAsync();
+        var excerpts = await Post.Search("mentions").Select(p => FullText.Snippet(p.Body, 3));
 
         // Which window FTS5 picks is its own scoring; what Rask owns is the marking, the cut and the length.
         var excerpt = Assert.Single(excerpts)!;

@@ -95,7 +95,7 @@ public sealed class ReadModelTests
         database.Context.Add(Consignment.For(supplier.Id, "C-1", 120m).With("anvil", 3));
         await database.Context.SaveChangesAsync();
 
-        var rows = await Consignment.ToListAsync();
+        var rows = await Consignment.All;
 
         var row = Assert.Single(rows);
         Assert.Equal("C-1", row.Reference);
@@ -115,8 +115,7 @@ public sealed class ReadModelTests
         // TotalAmount and TotalCurrency, not a Money — the read face is primitives, and the filter runs in
         // the database rather than over materialised rows.
         var matched = await Consignment
-            .Where(c => c.TotalAmount > 100m && c.TotalCurrency == "EUR")
-            .CountAsync();
+            .Where(c => c.TotalAmount > 100m && c.TotalCurrency == "EUR").Count();
 
         Assert.Equal(1, matched);
     }
@@ -136,8 +135,7 @@ public sealed class ReadModelTests
         // The write model holds a Guid and nothing else; the join exists only on the read side.
         var references = await Consignment
             .Where(c => c.Supplier.Country == "HU")
-            .Select(c => c.Reference)
-            .ToListAsync();
+            .Select(c => c.Reference);
 
         Assert.Equal(["C-1"], references);
     }
@@ -158,8 +156,7 @@ public sealed class ReadModelTests
 
         var references = await Consignment
             .Where(c => c.PickedUpByCourier!.Name == "ada")
-            .Select(c => c.Reference)
-            .ToListAsync();
+            .Select(c => c.Reference);
 
         Assert.Equal(["C-1"], references);
     }
@@ -177,15 +174,13 @@ public sealed class ReadModelTests
 
         var fromRoot = await Consignment
             .Where(c => c.Lines.Any(l => l.Product == "anvil"))
-            .Select(c => c.Reference)
-            .ToListAsync();
+            .Select(c => c.Reference);
 
         // A part is queryable on its own, and carries the navigation back to its root: reads have no
         // borders, even though the child is only WRITABLE through the aggregate.
         var fromChild = await ConsignmentLine
             .Where(l => l.Quantity > 10 && l.Consignment.Reference == "C-1")
-            .Select(l => l.Product)
-            .ToListAsync();
+            .Select(l => l.Product);
 
         Assert.Equal(["C-1"], fromRoot);
         Assert.Equal(["anvil"], fromChild);
@@ -203,8 +198,7 @@ public sealed class ReadModelTests
         await database.Context.SaveChangesAsync();
 
         var found = await Consignment
-            .Where(c => c.ExternalRef == consignment.ExternalRef)
-            .CountAsync();
+            .Where(c => c.ExternalRef == consignment.ExternalRef).Count();
 
         // No aggregate is named "External", so there is a Guid and no navigation. That the member exists
         // at all is the assertion; a navigation would have made this a join to nowhere.
@@ -225,10 +219,10 @@ public sealed class ReadModelTests
         database.Context.Remove(consignment);
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal(0, await Consignment.CountAsync());
+        Assert.Equal(0, await Consignment.Count());
         Assert.Equal(
             1,
-            await Consignment.IgnoreQueryFilters().CountAsync());
+            await Consignment.IgnoreQueryFilters().Count());
     }
 
     [Fact]
@@ -242,7 +236,7 @@ public sealed class ReadModelTests
         await database.Context.SaveChangesAsync();
 
         await using var read = database.OpenRead();
-        var row = Assert.Single(await Consignment.ToListAsync());
+        var row = Assert.Single(await Consignment.All);
 
         Assert.Empty(read.ChangeTracker.Entries());
         Assert.NotEqual(Guid.Empty, row.Id);

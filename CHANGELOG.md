@@ -20,6 +20,27 @@ them until tagged releases begin.
   The hand-wired `MapRaskSpa()` host stays documented in `docs/spa.md`. The CQRS wire codec (and RASK053)
   runs only in a project that builds a browser client from `Client/` — `RaskCqrsCodec` follows `RaskClient` — so a
   server-rendered app's messages, which never leave the process, can take any shape.
+- **BREAKING: a Data read is awaited, and its terminals drop `Async`.** A query runs when you await it; the rest
+  read as words. A read handed no token is cancelled with the work it belongs to (the request, the job, the
+  component, the query-cache fetch).
+
+  | Before | After |
+  | --- | --- |
+  | `await Product.ToListAsync()` | `await Product.All` |
+  | `await Product.Where(p => p.InStock).ToListAsync(ct)` | `await Product.Where(p => p.InStock)` |
+  | `.FirstOrDefaultAsync(…)` / `.SingleOrDefaultAsync(…)` | `.First(…)` / `.Single(…)` — still `null` when nothing matches |
+  | `.CountAsync()` / `.LongCountAsync()` / `.AnyAsync()` | `.Count()` / `.LongCount()` / `.Any()` |
+  | `.ToArrayAsync()` | `(await query).ToArray()` |
+  | `Product.QueryAsync((q, ct) => …)` | `Product.Query((q, ct) => …)` |
+  | `QueryClient.Query(key, ct => Person.Where(…).ToListAsync(ct))` | `QueryClient.Query(key, Person.Where(…))` |
+  | `QueryClient.Query(key, ct => Product.CountAsync(ct))` | `QueryClient.Query(key, () => Product.Count())` |
+
+  The same names apply to the battery tables' read faces (`Job`, `QueuedMail`, `StoredFile`, `Session`, …).
+- **A form can no longer empty a field its row cannot hold empty.** A cleared `Price` on a non-nullable column
+  used to save 0 on create and silently keep the old value on update. The form model now marks every such
+  column `[Required]` ("The Price field is required."), and `Create(model)` / `Update(id, model)` check the
+  model's attributes on the server before writing, throwing `ValidationException` with nothing written.
+
 - **The kit says `Title`, and a control's own text goes in its indexer.** `Heading` is `Title` on every kit
   component that had it — `Ui.Card`, `Ui.Header`, `Ui.Empty`, `Ui.Toast`, `Ui.MenuGroup`, `Ui.MenuRadioGroup`,
   `Ui.MenuSub`, `Ui.NavGroup`, `Ui.FileInput` (and `HeadingLevel` is `TitleLevel`); inside such a component the
@@ -127,6 +148,10 @@ them until tagged releases begin.
     render in MDN's IDL order.
   - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
     stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
+- **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
+  names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
+  `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,
+  `NavLink`, `ErrorBoundary`…) stay in `Rask.Core.Components`.
 - **BREAKING: element refs carry the element's MDN members, generated from MDN.** Type a ref to the element's
   MDN interface and call its DOM members from C#, with no `IJSRuntime` and no `Async` suffix:
   ```csharp

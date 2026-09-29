@@ -146,9 +146,10 @@ Div.Class("panel")[                          // an element: bare
   form's feedback), and the class of an [npm package you declared](islands.md#several-components-from-one-package).
 - **When a member of your own takes an element's name** — a `Footer` property, a `Label` — the member wins
   inside that component, and `Markup.Footer` still reaches the element.
-- **Outside a component, don't also import `Rask.Core.Components`.** That namespace holds the element TYPES, so
-  beside `using static Rask.Markup` a bare `P[…]` names both the type and the member (CS0229). Name a type in a
-  signature with `Rask.Core.Components.HTMLParagraphElement`, or write `Markup.P` in that file. The templates never import it.
+- **Element types are MDN's, in `Rask.Core`** — `HTMLParagraphElement`, `SVGCircleElement` — so a signature names
+  one with no import, and no type is named like an entry. Don't import `Rask.Core.Components` beside
+  `using static Rask.Markup`, though: it holds the primitives' types (`Text`, `Raw`, `NavLink`), and a bare `Text(…)`
+  would name both the type and the member (CS0229). The templates never import it.
 
 ## Your own components
 

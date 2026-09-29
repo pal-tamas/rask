@@ -74,7 +74,7 @@ public readonly struct QueryKey : IEquatable<QueryKey>
     ///     <c>[Invalidates(typeof(Person))]</c> and <c>Command(invalidates: typeof(Person))</c> all reach every
     ///     <c>For&lt;Person&gt;(…)</c> key by prefix, and a renamed type cannot leave a stale string behind.
     ///     <code>
-    ///     q.Query(QueryKey.For&lt;Person&gt;("active"), ct =&gt; Person.Where(p =&gt; p.Active).ToListAsync(ct));
+    ///     QueryClient.Query(QueryKey.For&lt;Person&gt;("active"), Person.Where(p =&gt; p.Active));
     ///     </code>
     /// </remarks>
     /// <typeparam name="T">The type the data is about.</typeparam>

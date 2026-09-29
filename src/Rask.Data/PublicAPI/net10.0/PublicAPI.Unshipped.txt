@@ -69,32 +69,20 @@ Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
 Rask.Data.JsonIndexBuilderExtensions
 Rask.Data.ModelBuilderExtensions
 Rask.Data.ModelQuery<TEntity>
-Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
-Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.Data.ModelQuery<TEntity>.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.AsQueryable() -> System.Linq.IQueryable<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.AsSplitQuery() -> Rask.Data.ModelQuery<TEntity!>!
-Rask.Data.ModelQuery<TEntity>.CountAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
-Rask.Data.ModelQuery<TEntity>.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
-Rask.Data.ModelQuery<TEntity>.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
-Rask.Data.ModelQuery<TEntity>.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.ModelQuery<TEntity>.IgnoreQueryFilters() -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<TEntity!>!
-Rask.Data.ModelQuery<TEntity>.LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
 Rask.Data.ModelQuery<TEntity>.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
-Rask.Data.ModelQuery<TEntity>.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<TEntity!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Data.ModelQuery<TEntity>.Search(string? text) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Select<TResult>(System.Linq.Expressions.Expression<System.Func<TEntity!, TResult>!>! selector) -> Rask.Data.Projection<TEntity!, TResult>!
-Rask.Data.ModelQuery<TEntity>.SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
-Rask.Data.ModelQuery<TEntity>.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.ModelQuery<TEntity>.Skip(int count) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Take(int count) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.ThenBy<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.ThenByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
-Rask.Data.ModelQuery<TEntity>.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity![]!>!
-Rask.Data.ModelQuery<TEntity>.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<TEntity!>!>!
 Rask.Data.ModelQuery<TEntity>.Where(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelRegistry
 Rask.Data.ModelSet
@@ -105,11 +93,6 @@ Rask.Data.ModelWrites.Create = 1 -> Rask.Data.ModelWrites
 Rask.Data.ModelWrites.None = 0 -> Rask.Data.ModelWrites
 Rask.Data.ModelWrites.Update = 2 -> Rask.Data.ModelWrites
 Rask.Data.Projection<TEntity, TResult>
-Rask.Data.Projection<TEntity, TResult>.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
-Rask.Data.Projection<TEntity, TResult>.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
-Rask.Data.Projection<TEntity, TResult>.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
-Rask.Data.Projection<TEntity, TResult>.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult[]!>!
-Rask.Data.Projection<TEntity, TResult>.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<TResult>!>!
 Rask.Data.RangeExclusionBuilderExtensions
 Rask.Data.RangeExclusionSpec
 Rask.Data.RangeExclusionSpec.<Clone>$() -> Rask.Data.RangeExclusionSpec!
@@ -290,3 +273,20 @@ static Rask.Data.CurrentUser.get_Tenant() -> System.Guid?
 static Rask.Data.CurrentUser.get_UserId() -> System.Guid?
 static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.Save<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.Any(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Data.ModelQuery<TEntity>.Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Data.ModelQuery<TEntity>.Count(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Data.ModelQuery<TEntity>.Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Data.ModelQuery<TEntity>.First(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.ModelQuery<TEntity>.First(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.ModelQuery<TEntity>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<System.Collections.Generic.List<TEntity!>!>
+Rask.Data.ModelQuery<TEntity>.LongCount(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Rask.Data.ModelQuery<TEntity>.Query<TResult>(System.Func<System.Linq.IQueryable<TEntity!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Data.ModelQuery<TEntity>.Single(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.ModelQuery<TEntity>.Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.Projection<TEntity, TResult>.Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Data.Projection<TEntity, TResult>.Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Data.Projection<TEntity, TResult>.First(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
+Rask.Data.Projection<TEntity, TResult>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<System.Collections.Generic.List<TResult>!>
+Rask.Data.ModelQuery<TEntity>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.Collections.Generic.List<TEntity!>!>
+Rask.Data.Projection<TEntity, TResult>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.Collections.Generic.List<TResult>!>
