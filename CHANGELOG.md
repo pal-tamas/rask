@@ -467,6 +467,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A design-time build compiles scoped TypeScript too, so `dotnet format` and an IDE reload see its generated calls.**
+  They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
+  with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time
+  build now compiles with a cached tsgo and still never downloads one (#1139).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted

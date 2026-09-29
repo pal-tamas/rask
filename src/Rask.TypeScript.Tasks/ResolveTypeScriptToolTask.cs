@@ -62,6 +62,14 @@ public sealed class ResolveTypeScriptToolTask : Task
     /// <summary>Refuse to fetch, and fail if nothing is cached.</summary>
     public bool Offline { get; set; }
 
+    /// <summary>Use the tool only if it is already cached: never fetch, and leave <see cref="ToolPath"/> empty rather than fail.</summary>
+    /// <remarks>
+    ///     For a design-time build. An IDE reload, or <c>dotnet format</c>, must never download a binary,
+    ///     but once the tool is cached it may compile — and it has to, since user code calls members the
+    ///     generator makes from tsgo's declarations.
+    /// </remarks>
+    public bool CachedOnly { get; set; }
+
     /// <summary>The executable to run — or, for the compiler library, the <c>typescript.js</c> to load.</summary>
     [Output]
     public string ToolPath { get; set; } = string.Empty;
@@ -117,6 +125,11 @@ public sealed class ResolveTypeScriptToolTask : Task
         if (File.Exists(executable))
         {
             ToolPath = executable;
+            return true;
+        }
+
+        if (CachedOnly)
+        {
             return true;
         }
 
