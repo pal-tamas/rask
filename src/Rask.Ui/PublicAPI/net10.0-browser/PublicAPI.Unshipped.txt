@@ -6113,3 +6113,14 @@ Rask.RaskSeed_UiCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<boo
 Rask.RaskSeed_UiCheckbox.Value(bool Value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Title<T>(this Rask.UiMenuRadioGroup<T>! __b, string? value) -> Rask.UiMenuRadioGroup<T>!
 static Rask.Ui.Step.get -> Rask.UiStep!
+Rask.ToastOptions
+Rask.ToastOptions.Align.get -> Rask.Ui.Align
+Rask.ToastOptions.Align.set -> void
+Rask.ToastOptions.At(Rask.Ui.Position position, Rask.Ui.Align align) -> Rask.ToastOptions!
+Rask.ToastOptions.Duration.get -> System.TimeSpan
+Rask.ToastOptions.Duration.set -> void
+Rask.ToastOptions.For(System.TimeSpan duration) -> Rask.ToastOptions!
+Rask.ToastOptions.Position.get -> Rask.Ui.Position
+Rask.ToastOptions.Position.set -> void
+Rask.ToastOptions.ToastOptions() -> void
+static Rask.UiToaster.Messages(System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>! messages, System.Action<int>! dismiss, Rask.ToastOptions! options) -> Rask.Core.Component!

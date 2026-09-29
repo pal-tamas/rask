@@ -32,7 +32,7 @@ public sealed class PasskeyFlowTests
 
         await using (var db = harness.NewContext())
         {
-            var stored = await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id);
+            var stored = await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal("MacBook", stored.Name);
             Assert.Equal(authenticator.CredentialId, stored.CredentialId);
             Assert.Equal("internal", stored.Transports);
@@ -60,7 +60,7 @@ public sealed class PasskeyFlowTests
         Assert.True((await SignInAsync(harness, authenticator, owner.Id)).Result.Succeeded);
 
         await using var db = harness.NewContext();
-        var stored = await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id);
+        var stored = await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(42u, stored.SignCount);
         Assert.NotNull(stored.LastUsedAt);
     }
@@ -92,14 +92,14 @@ public sealed class PasskeyFlowTests
         Guid passkeyId;
         await using (var db = harness.NewContext())
         {
-            passkeyId = (await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id)).Id;
+            passkeyId = (await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id, cancellationToken: TestContext.Current.CancellationToken)).Id;
         }
 
         using (var scope = harness.NewScope())
         {
             var removed = await scope.ServiceProvider
                 .GetRequiredService<AccountService<TestUser>>()
-                .RemovePasskeyAsync(owner.Id, passkeyId);
+                .RemovePasskeyAsync(owner.Id, passkeyId, TestContext.Current.CancellationToken);
             Assert.True(removed.Succeeded);
         }
 
@@ -123,14 +123,14 @@ public sealed class PasskeyFlowTests
         Guid passkeyId;
         await using (var db = harness.NewContext())
         {
-            passkeyId = (await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id)).Id;
+            passkeyId = (await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id, cancellationToken: TestContext.Current.CancellationToken)).Id;
         }
 
         using (var scope = harness.NewScope())
         {
             await scope.ServiceProvider
                 .GetRequiredService<AccountService<TestUser>>()
-                .RemovePasskeyAsync(owner.Id, passkeyId);
+                .RemovePasskeyAsync(owner.Id, passkeyId, TestContext.Current.CancellationToken);
         }
 
         var again = await AddAsync(harness, owner.Id, authenticator, "MacBook again");
@@ -155,18 +155,18 @@ public sealed class PasskeyFlowTests
         Guid passkeyId;
         await using (var db = harness.NewContext())
         {
-            passkeyId = (await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id)).Id;
+            passkeyId = (await db.Set<Passkey>().SingleAsync(p => p.UserId == owner.Id, cancellationToken: TestContext.Current.CancellationToken)).Id;
         }
 
         using var scope = harness.NewScope();
         var result = await scope.ServiceProvider
             .GetRequiredService<AccountService<TestUser>>()
-            .RemovePasskeyAsync(other.Id, passkeyId);
+            .RemovePasskeyAsync(other.Id, passkeyId, TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
 
         await using var check = harness.NewContext();
-        Assert.True(await check.Set<Passkey>().AnyAsync(p => p.UserId == owner.Id));
+        Assert.True(await check.Set<Passkey>().AnyAsync(p => p.UserId == owner.Id, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     /// <summary>The state says whose ceremony it is, so it cannot be carried to another account.</summary>
@@ -182,7 +182,7 @@ public sealed class PasskeyFlowTests
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
 
-        var challenge = await accounts.BeginAddPasskeyAsync(owner.Id, AuthHarness.Origin);
+        var challenge = await accounts.BeginAddPasskeyAsync(owner.Id, AuthHarness.Origin, TestContext.Current.CancellationToken);
         Assert.NotNull(challenge);
 
         var result = await accounts.CompleteAddPasskeyAsync(
@@ -192,7 +192,7 @@ public sealed class PasskeyFlowTests
                 AuthHarness.Origin,
                 Base64Url.DecodeFromChars(challenge.Challenge),
                 challenge.State),
-            AuthHarness.Origin);
+            AuthHarness.Origin, TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
         Assert.Equal(AuthError.InvalidToken, result.Error);
@@ -212,7 +212,7 @@ public sealed class PasskeyFlowTests
         var result = await accounts.CompleteAddPasskeyAsync(
             owner.Id,
             authenticator.Register(RelyingPartyId, AuthHarness.Origin, new byte[32], "not-a-real-state"),
-            AuthHarness.Origin);
+            AuthHarness.Origin, TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
         Assert.Equal(AuthError.InvalidToken, result.Error);
@@ -242,9 +242,9 @@ public sealed class PasskeyFlowTests
             owner.Id,
             challenge.State);
 
-        Assert.True((await accounts.CompletePasskeySignInAsync(assertion, AuthHarness.Origin, null)).Result.Succeeded);
+        Assert.True((await accounts.CompletePasskeySignInAsync(assertion, AuthHarness.Origin, null, TestContext.Current.CancellationToken)).Result.Succeeded);
 
-        var replayed = await accounts.CompletePasskeySignInAsync(assertion, AuthHarness.Origin, null);
+        var replayed = await accounts.CompletePasskeySignInAsync(assertion, AuthHarness.Origin, null, TestContext.Current.CancellationToken);
 
         Assert.False(replayed.Result.Succeeded);
         Assert.Equal(AuthError.InvalidCredentials, replayed.Result.Error);
@@ -293,7 +293,7 @@ public sealed class PasskeyFlowTests
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
 
-        Assert.Null(await accounts.BeginAddPasskeyAsync(owner.Id, AuthHarness.Origin));
+        Assert.Null(await accounts.BeginAddPasskeyAsync(owner.Id, AuthHarness.Origin, TestContext.Current.CancellationToken));
         Assert.Null(accounts.BeginPasskeySignIn(AuthHarness.Origin));
     }
 
@@ -311,7 +311,7 @@ public sealed class PasskeyFlowTests
         {
             var token = scope.ServiceProvider.GetRequiredService<AuthTokens>().ForReset(owner, TimeSpan.FromHours(1));
             var reset = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>()
-                .ResetPasswordAsync(owner.Id.ToString(), token, "NewPassword1");
+                .ResetPasswordAsync(owner.Id.ToString(), token, "NewPassword1", TestContext.Current.CancellationToken);
             Assert.True(reset.Succeeded, $"reset failed: {reset.Error}");
         }
 
@@ -320,7 +320,7 @@ public sealed class PasskeyFlowTests
 
         Assert.False(outcome.Result.Succeeded);
         await using var db = harness.NewContext();
-        Assert.False(await db.Set<Passkey>().AnyAsync(p => p.UserId == owner.Id));
+        Assert.False(await db.Set<Passkey>().AnyAsync(p => p.UserId == owner.Id, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -333,10 +333,10 @@ public sealed class PasskeyFlowTests
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
 
-        var challenge = await accounts.BeginAddPasskeyAsync(squatter.Id, AuthHarness.Origin);
+        var challenge = await accounts.BeginAddPasskeyAsync(squatter.Id, AuthHarness.Origin, TestContext.Current.CancellationToken);
 
         Assert.Null(challenge);
-        Assert.Equal(AuthError.EmailNotConfirmed, await accounts.PasskeyRefusalAsync(squatter.Id));
+        Assert.Equal(AuthError.EmailNotConfirmed, await accounts.PasskeyRefusalAsync(squatter.Id, TestContext.Current.CancellationToken));
     }
 
     private static async Task<AuthResult> AddAsync(

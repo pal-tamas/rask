@@ -54,7 +54,7 @@ public class BuilderEntryAliasAnalyzerTests
     public async Task The_diagnostic_points_at_the_alias_name_not_the_whole_directive()
     {
         var d = Assert.Single(await Diagnostics(Source("using Card = Demo.Tools;")));
-        var text = d.Location.SourceTree!.GetText().ToString(d.Location.SourceSpan);
+        var text = d.Location.SourceTree!.GetText(TestContext.Current.CancellationToken).ToString(d.Location.SourceSpan);
 
         Assert.Equal("Card", text);
     }

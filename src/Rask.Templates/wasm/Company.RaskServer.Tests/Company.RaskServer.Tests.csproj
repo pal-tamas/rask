@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- xUnit v3 runs the tests as their own program; `dotnet test` drives it through VSTest. -->
+    <OutputType>Exe</OutputType>
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
     <!-- The app's own sources compile here too, and they expect its Routes class in its namespace. -->
     <RootNamespace>Company.RaskServer</RootNamespace>
   </PropertyGroup>
@@ -16,7 +19,7 @@
     <PackageReference Include="Rask.Wasm" Version="{{RaskVersion}}"/>
     <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0"/>
-    <PackageReference Include="xunit" Version="2.9.3"/>
+    <PackageReference Include="xunit.v3" Version="4.0.1"/>
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" PrivateAssets="all"/>
   </ItemGroup>
 

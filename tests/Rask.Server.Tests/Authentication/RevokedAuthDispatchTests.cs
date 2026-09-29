@@ -31,22 +31,22 @@ public class RevokedAuthDispatchTests
         // Authenticated GET → an authorized session for the protected page.
         var getReq = new HttpRequestMessage(HttpMethod.Get, "/m2/protected");
         getReq.Headers.Add("Cookie", cookie);
-        var getResp = await host.Http.SendAsync(getReq);
+        var getResp = await host.Http.SendAsync(getReq, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
 
-        var html = await getResp.Content.ReadAsStringAsync();
+        var html = await getResp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(html);
         var handlerId = ExtractHandlerId(html, "bump");
 
         // Carry the auth cookie onto the WS upgrade so the socket attaches as alice.
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = cookie;
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // Sanity: while authorized, the handler runs.
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(1, counter.Count);
@@ -56,7 +56,7 @@ public class RevokedAuthDispatchTests
         host.Store.Get(sessionId)!.Services.GetRequiredService<SessionUserProvider>().Clear();
 
         // Fire the same handler again: it must be skipped and a challenge redirect emitted.
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var afterRevoke = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(1, counter.Count); // handler did NOT run a second time

@@ -42,7 +42,7 @@ public class HotReloadMessageTests
         // hotReload frame even if one reached it.
         using var host = RaskTestHost.Create<TestApp>(environment: Environments.Production);
 
-        var html = await host.Http.GetStringAsync("/start");
+        var html = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("data-rask-dev", html, StringComparison.Ordinal);
         Assert.Contains("data-rask-root", html, StringComparison.Ordinal);
@@ -61,7 +61,7 @@ public class HotReloadMessageTests
         using var host = RaskTestHost.Create<TestApp>(environment: Environments.Development);
 
         var enabled = RaskEndpointExtensions.IsDevHotReloadEnabled(host.Services);
-        var html = await host.Http.GetStringAsync("/start");
+        var html = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
 
         Assert.Equal(System.Reflection.Metadata.MetadataUpdater.IsSupported, enabled);
         Assert.Equal(enabled, html.Contains("data-rask-dev", StringComparison.Ordinal));

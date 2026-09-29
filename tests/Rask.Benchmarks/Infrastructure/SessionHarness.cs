@@ -37,7 +37,7 @@ internal static partial class SessionHarness
     ///     <paramref name="connected" /> — attaches a stub socket and drives it to steady state.
     ///     The store retains the session; the returned handle is for measurement and teardown.
     /// </summary>
-    public static SessionHandle Create(LiveSessionStore store, int rows, bool connected)
+    public static SessionHandle Create(LiveSessionStore store, int rows, bool connected, RaskDocumentDefaults? defaults = null)
     {
         FootprintApp? app = null;
         var session = store.Create(_ =>
@@ -48,7 +48,7 @@ internal static partial class SessionHarness
             // factory, so this is the only way to reproduce production's real tree shape — and the
             // wrapper is part of what every session retains.
 #pragma warning disable RASK014
-            return new RootErrorBoundary(app);
+            return new RootErrorBoundary(app) { Defaults = defaults };
 #pragma warning restore RASK014
         });
 

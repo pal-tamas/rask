@@ -49,25 +49,25 @@ public sealed class SoftDeleteUpdateShapeTests : IDisposable
     {
         await using (var setup = Context<ShapeCard>())
         {
-            await setup.Database.EnsureCreatedAsync();
+            await setup.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
             setup.Add(ShapeCard.Draw("c1", "original"));
-            await setup.SaveChangesAsync();
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var deleting = Context<ShapeCard>();
-        var stale = await deleting.Set<ShapeCard>().SingleAsync(c => c.Id == "c1");
+        var stale = await deleting.Set<ShapeCard>().SingleAsync(c => c.Id == "c1", cancellationToken: TestContext.Current.CancellationToken);
 
         await using (var renaming = Context<ShapeCard>())
         {
-            (await renaming.Set<ShapeCard>().SingleAsync(c => c.Id == "c1")).Retitle("renamed");
-            await renaming.SaveChangesAsync();
+            (await renaming.Set<ShapeCard>().SingleAsync(c => c.Id == "c1", cancellationToken: TestContext.Current.CancellationToken)).Retitle("renamed");
+            await renaming.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         deleting.Remove(stale);
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => deleting.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => deleting.SaveChangesAsync(TestContext.Current.CancellationToken));
 
         await using var reading = Context<ShapeCard>();
-        var row = await reading.Set<ShapeCard>().IgnoreQueryFilters().SingleAsync(c => c.Id == "c1");
+        var row = await reading.Set<ShapeCard>().IgnoreQueryFilters().SingleAsync(c => c.Id == "c1", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("renamed", row.Title);
         Assert.Null(row.DeletedAt);
     }
@@ -77,15 +77,15 @@ public sealed class SoftDeleteUpdateShapeTests : IDisposable
     {
         await using (var setup = Context<ShapeTicket>())
         {
-            await setup.Database.EnsureCreatedAsync();
+            await setup.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
             setup.Add(ShapeTicket.Open("t1", "subject", "body"));
-            await setup.SaveChangesAsync();
+            await setup.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var commands = new CommandCapture();
         await using var deleting = Context<ShapeTicket>(commands);
-        deleting.Remove(await deleting.Set<ShapeTicket>().SingleAsync(t => t.Id == "t1"));
-        await deleting.SaveChangesAsync();
+        deleting.Remove(await deleting.Set<ShapeTicket>().SingleAsync(t => t.Id == "t1", cancellationToken: TestContext.Current.CancellationToken));
+        await deleting.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var update = Assert.Single(commands.Texts, t => t.TrimStart().StartsWith("UPDATE ", StringComparison.Ordinal));
         var set = System.Text.RegularExpressions.Regex.Match(

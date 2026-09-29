@@ -16,7 +16,7 @@ public sealed class RemoteFileTests
 
         Assert.Equal(0, opened);
 
-        using var stream = file.OpenReadStream();
+        using var stream = file.OpenReadStream(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, opened);
         Assert.Equal("abc", new StreamReader(stream).ReadToEnd());
@@ -47,7 +47,7 @@ public sealed class RemoteFileTests
         Assert.Equal(5, file.Size);
         Assert.Equal("greeting.txt", file.Name);
 
-        using var stream = file.OpenReadStream();
+        using var stream = file.OpenReadStream(TestContext.Current.CancellationToken);
 
         Assert.Equal("hello", new StreamReader(stream).ReadToEnd());
     }

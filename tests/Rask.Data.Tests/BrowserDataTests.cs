@@ -53,7 +53,7 @@ public sealed class BrowserDataTests : IDisposable
         {
             await using var db = Db.CreateContext();
             db.Add(RateCard.For("HU"));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await Settled(rateCards);

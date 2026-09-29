@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    A small Rask app on RaskApp, the way `rask new` writes one, for Rask.Testing.Host.Tests to visit: Page.Visit runs
+    THIS Program.cs, so its own registrations, pages and route guards are what the tests see. The database batteries
+    are off — a real app gets its tables from its migrations, which this fixture has none of.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- PrivateAssets="all" from the host, so an in-repo app names it itself. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

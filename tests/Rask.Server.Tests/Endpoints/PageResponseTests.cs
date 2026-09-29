@@ -18,11 +18,11 @@ public class PageResponseTests
     {
         using var host = RaskTestHost.Create<StatusApp>();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         // The page still renders — a soft 404 is still a page, not an empty body.
-        Assert.Contains("no-such-product", await response.Content.ReadAsStringAsync());
+        Assert.Contains("no-such-product", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class PageResponseTests
         // actually being served.
         using var host = RaskTestHost.Create<StatusThenThrowApp>();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
@@ -45,11 +45,11 @@ public class PageResponseTests
         // and one a crawler and a cache both understand.
         using var host = RaskTestHost.Create<RedirectApp>();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.Equal("/somewhere-else", response.Headers.Location?.ToString());
-        Assert.Empty(await response.Content.ReadAsStringAsync());
+        Assert.Empty(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class PageResponseTests
         // component tree for it is pure waste.
         using var host = RaskTestHost.Create<RedirectApp>();
 
-        await host.Http.GetAsync("/");
+        await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(0, host.Store.Count);
     }
@@ -71,7 +71,7 @@ public class PageResponseTests
         // pinned would be unrecoverable without changing the URL.
         using var host = RaskTestHost.Create<RedirectApp>();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
     }

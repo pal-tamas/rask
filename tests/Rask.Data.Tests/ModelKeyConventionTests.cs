@@ -33,7 +33,7 @@ public sealed class ModelKeyConventionTests : IDisposable
 
         database.Context.Add(Voucher.WithoutId("EMPTY"));
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => database.Context.SaveChangesAsync());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
         Assert.Contains("'Voucher'", error.Message, StringComparison.Ordinal);
         Assert.Contains("Guid.CreateVersion7()", error.Message, StringComparison.Ordinal);
     }
@@ -45,9 +45,9 @@ public sealed class ModelKeyConventionTests : IDisposable
         var voucher = Voucher.Issue("OK");
 
         database.Context.Add(voucher);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.NotNull(await database.LoadAsync<Voucher>(voucher.Id));
+        Assert.NotNull(await database.LoadAsync<Voucher>(voucher.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]

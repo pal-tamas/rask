@@ -18,21 +18,21 @@ public class HandlerTimeoutTests
                 configureServer: o => o.HandlerTimeout = TimeSpan.FromMilliseconds(300));
             using var capture = MeterCapture.For(host.Store.Metrics!.Meter);
 
-            var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+            var html = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             var sessionId = MarkupAssert.SessionId(html);
             var handlerId = MarkupAssert.FirstHandlerId(html);
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+            await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
             // Fire the slow handler. It awaits a 30 s delay observing CancellationToken, so without
             // the timeout this would hang for 30 s; with it, the handler is cancelled within ~300 ms.
-            await ws.SendJsonAsync(new { id = handlerId });
+            await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
 
             // The handler observed cancellation well before its 30 s delay would elapse.
             var observed = await Task.WhenAny(
-                CooperativeTimeoutApp.Cancelled.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+                CooperativeTimeoutApp.Cancelled.Task, Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
 
             Assert.Same(CooperativeTimeoutApp.Cancelled.Task, observed);
             Assert.True(await CooperativeTimeoutApp.Cancelled.Task);

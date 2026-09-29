@@ -9,11 +9,11 @@ public sealed class OrphanSweeperTests
     public async Task Bytes_with_no_row_are_removed_once_past_the_grace_period()
     {
         await using var harness = new StorageHarness();
-        var kept = await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
+        var kept = await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png", TestContext.Current.CancellationToken);
         var orphan = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        var result = await harness.Sweeper.SweepAsync(default);
+        var result = await harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.Deleted);
         Assert.False(File.Exists(orphan));
@@ -24,11 +24,11 @@ public sealed class OrphanSweeperTests
     public async Task A_young_orphan_is_kept()
     {
         await using var harness = new StorageHarness();
-        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
+        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png", TestContext.Current.CancellationToken);
         var orphan = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(1));
 
-        var result = await harness.Sweeper.SweepAsync(default);
+        var result = await harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.Deleted);
         Assert.True(File.Exists(orphan));
@@ -40,10 +40,10 @@ public sealed class OrphanSweeperTests
         await using var harness = new StorageHarness();
         var foreign = Path.Combine(harness.Root, "backups", "app.db");
         Directory.CreateDirectory(Path.GetDirectoryName(foreign)!);
-        await File.WriteAllBytesAsync(foreign, [1]);
+        await File.WriteAllBytesAsync(foreign, [1], TestContext.Current.CancellationToken);
         harness.Clock.Advance(TimeSpan.FromDays(30));
 
-        await harness.Sweeper.SweepAsync(default);
+        await harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken);
 
         Assert.True(File.Exists(foreign));
     }
@@ -55,7 +55,7 @@ public sealed class OrphanSweeperTests
         var orphan = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        await Assert.ThrowsAnyAsync<Exception>(() => harness.Sweeper.SweepAsync(default));
+        await Assert.ThrowsAnyAsync<Exception>(() => harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken));
 
         Assert.True(File.Exists(orphan));
     }
@@ -69,7 +69,7 @@ public sealed class OrphanSweeperTests
         var orphan = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        var result = await harness.Sweeper.SweepAsync(default);
+        var result = await harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Tripped);
         Assert.Equal(0, result.Deleted);
@@ -80,13 +80,13 @@ public sealed class OrphanSweeperTests
     public async Task A_mass_deletion_trips_the_breaker_and_deletes_nothing()
     {
         await using var harness = new StorageHarness();
-        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
+        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png", TestContext.Current.CancellationToken);
         var orphans = Enumerable.Range(0, OrphanSweeper<StorageDbContext>.BreakerFloor + 1)
             .Select(_ => WriteOrphan(harness, Guid.NewGuid()))
             .ToList();
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        var result = await harness.Sweeper.SweepAsync(default);
+        var result = await harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Tripped);
         Assert.Equal(0, result.Deleted);
@@ -98,12 +98,12 @@ public sealed class OrphanSweeperTests
     {
         await using var harness = new StorageHarness();
         var spool = harness.Runtime.Backend.CreateSpoolPath();
-        await File.WriteAllBytesAsync(spool, [1, 2, 3]);
+        await File.WriteAllBytesAsync(spool, [1, 2, 3], TestContext.Current.CancellationToken);
         File.SetLastWriteTimeUtc(spool, DateTime.UtcNow.AddHours(-2));
         WriteOrphan(harness, Guid.NewGuid()); // with an empty table, the sweep itself refuses
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        var result = await harness.Sweeper.SweepAsync(default);
+        var result = await harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Tripped);
         Assert.False(File.Exists(spool));
@@ -113,14 +113,14 @@ public sealed class OrphanSweeperTests
     public async Task The_sweep_stays_under_its_prefix()
     {
         await using var harness = new StorageHarness(o => o.Prefix = "app");
-        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
+        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png", TestContext.Current.CancellationToken);
         var outside = Path.Combine(harness.Root, KeyLayout.KeyOf("", Guid.NewGuid(), isPublic: false));
         Directory.CreateDirectory(Path.GetDirectoryName(outside)!);
-        await File.WriteAllBytesAsync(outside, [1]);
+        await File.WriteAllBytesAsync(outside, [1], TestContext.Current.CancellationToken);
         var inside = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        var result = await harness.Sweeper.SweepAsync(default);
+        var result = await harness.Sweeper.SweepAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.Deleted);
         Assert.False(File.Exists(inside));
@@ -132,18 +132,18 @@ public sealed class OrphanSweeperTests
     {
         // #1077: a database restored without its files. The row is the app's; the sweep only says so.
         await using var harness = new StorageHarness();
-        var kept = await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
-        var lost = await harness.Files.Save(new MemoryStream(Samples.Png()), "lost.png");
+        var kept = await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png", TestContext.Current.CancellationToken);
+        var lost = await harness.Files.Save(new MemoryStream(Samples.Png()), "lost.png", TestContext.Current.CancellationToken);
         File.Delete(Path.Combine(harness.Root, lost.Key));
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
-        var found = await harness.Sweeper.FindMissingAsync(default);
+        var found = await harness.Sweeper.FindMissingAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(found);
         Assert.Equal(1, found.Count);
         Assert.Equal([lost.Id], found.Examples);
         await using var db = harness.NewContext();
-        Assert.Equal(2, await db.Set<StoredFile>().CountAsync());
+        Assert.Equal(2, await db.Set<StoredFile>().CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         Assert.True(File.Exists(Path.Combine(harness.Root, kept.Key)));
     }
 
@@ -152,10 +152,10 @@ public sealed class OrphanSweeperTests
     {
         // A delete removes the bytes and then the row; the check must not catch it in between.
         await using var harness = new StorageHarness();
-        var lost = await harness.Files.Save(new MemoryStream(Samples.Png()), "lost.png");
+        var lost = await harness.Files.Save(new MemoryStream(Samples.Png()), "lost.png", TestContext.Current.CancellationToken);
         File.Delete(Path.Combine(harness.Root, lost.Key));
 
-        var found = await harness.Sweeper.FindMissingAsync(default);
+        var found = await harness.Sweeper.FindMissingAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(0, found!.Count);
     }

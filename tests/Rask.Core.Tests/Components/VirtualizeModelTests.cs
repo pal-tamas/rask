@@ -347,7 +347,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
         while (!fetchObservedCt.IsCancellationRequested && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.True(fetchObservedCt.IsCancellationRequested);
@@ -394,7 +394,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
         while (!completedAfterRelease && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.True(completedAfterRelease, "provider should run to completion even after unmount");

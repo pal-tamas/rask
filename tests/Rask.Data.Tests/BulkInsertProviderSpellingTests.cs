@@ -70,11 +70,11 @@ public sealed class BulkInsertProviderSpellingTests : IDisposable
 
         await using (var db = NewContext())
         {
-            Assert.Equal(5, await db.BulkInsertAsync(widgets, o => o.SkipChangeTracking = true));
+            Assert.Equal(5, await db.BulkInsertAsync(widgets, o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using var verify = NewContext();
-        Assert.Equal(5, await verify.Widgets.CountAsync());
+        Assert.Equal(5, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -110,12 +110,12 @@ public sealed class BulkInsertProviderSpellingTests : IDisposable
         await using (var db = NewContext())
         {
             var written = await BulkInsertWriter.WriteAsync(
-                db, widgets, new BulkInsertOptions { SkipChangeTracking = true }, rowsPerStatement: 3, default);
+                db, widgets, new BulkInsertOptions { SkipChangeTracking = true }, rowsPerStatement: 3, TestContext.Current.CancellationToken);
             Assert.Equal(7, written);
         }
 
         await using var verify = NewContext();
-        var stored = await verify.Widgets.OrderBy(w => w.Name).ToListAsync();
+        var stored = await verify.Widgets.OrderBy(w => w.Name).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(widgets.Select(w => w.Name).Order(), stored.Select(w => w.Name));
         Assert.All(stored, w => Assert.NotEqual(default, w.CreatedAt));
     }

@@ -13,7 +13,7 @@ public sealed class JobsFakeTests
     {
         using var jobs = Jobs.Fake();
 
-        await Jobs.Enqueue(new SendWelcome(Guid.Empty));
+        await Jobs.Enqueue(new SendWelcome(Guid.Empty), TestContext.Current.CancellationToken);
 
         jobs.Enqueued<SendWelcome>().Once();
     }
@@ -23,7 +23,7 @@ public sealed class JobsFakeTests
     {
         using var jobs = Jobs.Fake();
 
-        await Jobs.Enqueue(new ChaseInvoice(7)).In(24.Hours);
+        await Jobs.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken).In(24.Hours);
 
         jobs.Enqueued<ChaseInvoice>().In(24.Hours).Once();
         jobs.Enqueued<ChaseInvoice>().In(1.Hour).None();
@@ -34,7 +34,7 @@ public sealed class JobsFakeTests
     {
         using var jobs = Jobs.Fake();
 
-        await Jobs.Enqueue(new ChaseInvoice(7));
+        await Jobs.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken);
 
         var enqueued = jobs.Enqueued<ChaseInvoice>().Only();
         Assert.Equal(7, enqueued.Job.Number);
@@ -45,8 +45,8 @@ public sealed class JobsFakeTests
     {
         using var jobs = Jobs.Fake();
 
-        await Jobs.Enqueue(new ChaseInvoice(7));
-        await Jobs.Enqueue(new ChaseInvoice(9));
+        await Jobs.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken);
+        await Jobs.Enqueue(new ChaseInvoice(9), TestContext.Current.CancellationToken);
 
         jobs.Enqueued<ChaseInvoice>().Twice();
         jobs.Enqueued<ChaseInvoice>().Matching(j => j.Number == 7, "for invoice 7").Once();
@@ -57,7 +57,7 @@ public sealed class JobsFakeTests
     {
         using var jobs = Jobs.Fake();
 
-        await Jobs.Enqueue(new ChaseInvoice(7));
+        await Jobs.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken);
 
         var error = Assert.Throws<CountingException>(() => jobs.Enqueued<SendWelcome>().Once());
         Assert.Contains("Expected one SendWelcome", error.Message, StringComparison.Ordinal);
@@ -79,7 +79,7 @@ public sealed class JobsFakeTests
     {
         using var jobs = Jobs.Fake();
 
-        await Jobs.Enqueue(new SendWelcome(Guid.Empty));
+        await Jobs.Enqueue(new SendWelcome(Guid.Empty), TestContext.Current.CancellationToken);
 
         // The fake asserts the work was ASKED FOR; the handler has its own test. Nothing dispatches here,
         // so a test cannot accidentally depend on a handler's side effect it never registered.
@@ -91,12 +91,12 @@ public sealed class JobsFakeTests
     {
         using (var jobs = Jobs.Fake())
         {
-            await Jobs.Enqueue(new SendWelcome(Guid.Empty));
+            await Jobs.Enqueue(new SendWelcome(Guid.Empty), TestContext.Current.CancellationToken);
             jobs.Enqueued<SendWelcome>().Once();
         }
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await Jobs.Enqueue(new SendWelcome(Guid.Empty)));
+            async () => await Jobs.Enqueue(new SendWelcome(Guid.Empty), TestContext.Current.CancellationToken));
         Assert.Contains("Inject IJobs", error.Message, StringComparison.Ordinal);
     }
 
@@ -106,7 +106,7 @@ public sealed class JobsFakeTests
         using var jobs = Jobs.Fake();
         IJobs injected = jobs;
 
-        await injected.Enqueue(new ChaseInvoice(7)).In(2.Hours);
+        await injected.Enqueue(new ChaseInvoice(7), TestContext.Current.CancellationToken).In(2.Hours);
 
         jobs.Enqueued<ChaseInvoice>().In(2.Hours).Once();
     }

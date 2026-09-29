@@ -47,12 +47,12 @@ public sealed class MetaContainerBootE2ETests
             ? [.. MetaTemplate.All.Select(f => f.Key)]
             : ["nuxt"];
 
-    [SkippableTheory]
+    [Theory]
     [MemberData(nameof(Frameworks))]
     public async Task The_container_boots_and_Kestrel_forwards_to_node(string key)
     {
-        Skip.IfNot(Enabled, SkipReason);
-        Skip.IfNot(await DockerIsUsableAsync(), "Docker is not running.");
+        Assert.SkipUnless(Enabled, SkipReason);
+        Assert.SkipUnless(await DockerIsUsableAsync(), "Docker is not running.");
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
         var name = "Ctr" + key.Replace("-", "", StringComparison.Ordinal);
@@ -96,8 +96,8 @@ public sealed class MetaContainerBootE2ETests
             // reads as a front-end bug because an API call comes back as a page. The probe is /healthz,
             // which the template maps on the host; an unmapped path is supposed to reach the front end,
             // because the lane ends its pipeline with a catch-all fallback by design.
-            var api = await http.GetAsync($"{baseUrl}/healthz");
-            var body = await api.Content.ReadAsStringAsync();
+            var api = await http.GetAsync($"{baseUrl}/healthz", TestContext.Current.CancellationToken);
+            var body = await api.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
             Assert.False(
                 body.Contains("<!DOCTYPE html", StringComparison.OrdinalIgnoreCase)

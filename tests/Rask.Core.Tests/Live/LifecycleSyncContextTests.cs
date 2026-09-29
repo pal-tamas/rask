@@ -32,7 +32,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
         var deadline = DateTime.UtcNow.AddSeconds(2);
         while (component.RenderRequests == 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(1, component.RenderRequests);

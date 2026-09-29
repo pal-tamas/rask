@@ -127,7 +127,9 @@ internal sealed class RootErrorBoundary : Component
 
         RenderedFallback = false;
         FallbackError = null;
-        boundary.SetProps([inner], (ex, recover) => Fallback(ctx, boundary, inner, ex, recover));
+        boundary.SetProps(
+            Defaults is { Toasts: not null } defaults ? [inner, BuiltInToasts(ctx, defaults)] : [inner],
+            (ex, recover) => Fallback(ctx, boundary, inner, ex, recover));
 
         var document = ComposeDocument(ctx, inner, boundary);
 
@@ -138,6 +140,22 @@ internal sealed class RootErrorBoundary : Component
         // App's own [Doctype(), Html(...)]).
         return [CoreDoctype, document];
     }
+
+    // `Toast.Success("Saved")` shows with nothing mounted: the host gave a look, and this outlet — after the app, so it
+    // stacks above it — draws with it unless the app mounted its own.
+    // A static factory and the template set afterwards: the root renders every frame, and a factory closing over the
+    // template would be a delegate allocated per frame for an outlet created once per session.
+    private static ToastOutlet BuiltInToasts(LiveRenderContext ctx, RaskDocumentDefaults defaults)
+    {
+        var outlet = (ToastOutlet)ctx.GetOrCreate(
+            typeof(ToastOutlet), static _ => new ToastOutlet { Template = NoToasts, BuiltIn = true });
+        outlet.Template = defaults.Toasts!;
+        outlet.AutoDismissAfter = defaults.ToastDuration;
+        return outlet;
+    }
+
+    private static readonly Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component> NoToasts =
+        static (_, _) => throw new InvalidOperationException("The built-in toast outlet renders with the host's template, set before its first render.");
 
     private Component Fallback(
         LiveRenderContext ctx, ErrorBoundary boundary, Component inner, Exception ex, Action recover)

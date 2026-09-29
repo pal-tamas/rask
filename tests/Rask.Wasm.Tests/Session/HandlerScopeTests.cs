@@ -10,7 +10,7 @@ public class HandlerScopeTests
         session.InHandlerScope = true;
 
         var task = session.RequestRenderAsync();
-        var completed = await Task.WhenAny(task, Task.Delay(500));
+        var completed = await Task.WhenAny(task, Task.Delay(500, TestContext.Current.CancellationToken));
 
         Assert.Same(task, completed);
         Assert.True(task.IsCompletedSuccessfully);

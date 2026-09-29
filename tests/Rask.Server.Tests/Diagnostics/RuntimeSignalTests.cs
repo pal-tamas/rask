@@ -32,19 +32,19 @@ public sealed class RuntimeSignalTests
     public async Task Connected_counts_sockets_while_active_counts_slots()
     {
         using var host = RaskTestHost.Create<Shell>();
-        var html = await host.Http.GetStringAsync("/start");
+        var html = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(html);
 
         Assert.Equal(1, host.Store.LiveCount);
         Assert.Equal(0, host.Store.ConnectedCount);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
         while (host.Store.ConnectedCount == 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(1, host.Store.ConnectedCount);
@@ -58,15 +58,15 @@ public sealed class RuntimeSignalTests
         await using var fixture = await ConnectedSession.Connect<CounterApp>();
 
         var handlerId = MarkupAssert.FirstHandlerId(
-            await fixture.Host.Http.GetStringAsync("/start"));
+            await fixture.Host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
 
-        await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 });
+        await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 }, ct: TestContext.Current.CancellationToken);
         _ = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
         while (fixture.Host.Store.PendingHandlerCount != 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(0, fixture.Host.Store.PendingHandlerCount);
@@ -93,15 +93,15 @@ public sealed class RuntimeSignalTests
         using var capture = MeterCapture.For(fixture.Host.Services.GetRequiredService<RaskMetrics>().Meter);
 
         var handlerId = MarkupAssert.FirstHandlerId(
-            await fixture.Host.Http.GetStringAsync("/start"));
+            await fixture.Host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
 
-        await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 });
+        await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 }, ct: TestContext.Current.CancellationToken);
         _ = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
         while (capture.HistogramSampleCount("rask.render.duration") == 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.True(capture.HistogramSampleCount("rask.render.duration") >= 1,
@@ -124,7 +124,7 @@ public sealed class RuntimeSignalTests
         using var host = RaskTestHost.Create<Shell>();
         var check = new RaskLiveHealthCheck(host.Store);
 
-        var result = await check.CheckHealthAsync(new HealthCheckContext());
+        var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.True(result.Data.ContainsKey("memoryLoad"));
         Assert.True(result.Data.ContainsKey("connectedSessions"));
@@ -139,7 +139,7 @@ public sealed class RuntimeSignalTests
         using var host = RaskTestHost.Create<Shell>();
         var check = new RaskLiveHealthCheck(host.Store);
 
-        var result = await check.CheckHealthAsync(new HealthCheckContext());
+        var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         // On any normal test machine the process is nowhere near its ceiling, so the only way this is not
         // Healthy is the memory branch misfiring on an unusable reading.

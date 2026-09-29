@@ -114,7 +114,7 @@ public sealed class GroupedEntryTests
         var library = BuilderGeneratorHarness.Compile(Library, "KitLibrary");
         Assert.Empty(Errors(library));
         using var image = new MemoryStream();
-        Assert.True(library.Emit(image).Success);
+        Assert.True(library.Emit(image, cancellationToken: TestContext.Current.CancellationToken).Success);
 
         const string app =
             """
@@ -195,7 +195,7 @@ public sealed class GroupedEntryTests
 
         var diagnostics = await compilation
             .WithAnalyzers([new Rask.Generators.Analyzers.ChainAssignedAfterwardsAnalyzer()], (AnalyzerOptions?)null)
-            .GetAnalyzerDiagnosticsAsync();
+            .GetAnalyzerDiagnosticsAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("RASK045", Assert.Single(diagnostics).Id);
     }

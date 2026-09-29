@@ -178,6 +178,7 @@ public static partial class DemoRegistry
             ["virtualize-provider"] = () => CodeSample.Files(["VirtualizeProviderDemo.cs"]).Result(VirtualizeProviderDemo),
             ["keyed-lists-reorder"] = () => CodeSample.Files(["KeyedListsReorderDemo.cs"]).Result(KeyedListsReorderDemo),
             ["master-detail"] = () => CodeSample.Files(["MasterDetailDemo.cs"]).Result(MasterDetailDemo),
+            ["toast-built-in"] = () => CodeSample.Files(["BuiltInToastDemo.cs"]).Result(BuiltInToastDemo),
             ["drag-drop-sortable"] = () => CodeSample.Files(["DragDropSortableDemo.cs"]).Result(DragDropSortableDemo),
             ["drag-drop-kanban"] = () => CodeSample.Files(["DragDropKanbanDemo.cs"]).Result(DragDropKanbanDemo),
             ["boom-handler"] = () => CodeSample.Files(["BoomHandlerDemo.cs"]).Result(BoomHandlerDemo),

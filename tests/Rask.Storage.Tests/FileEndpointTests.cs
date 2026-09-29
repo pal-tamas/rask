@@ -18,12 +18,12 @@ public sealed class FileEndpointTests
     {
         await using var host = await FileHost.StartAsync();
         var bytes = Samples.Png(2048);
-        var file = await host.Files.Save(new MemoryStream(bytes), "photo.png").Public();
+        var file = await host.Files.Save(new MemoryStream(bytes), "photo.png", TestContext.Current.CancellationToken).Public();
 
-        using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
+        using var response = await host.Client.GetAsync(host.Files.Url(file.Id), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(bytes, await response.Content.ReadAsByteArrayAsync());
+        Assert.Equal(bytes, await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
         Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("inline", response.Content.Headers.ContentDisposition?.DispositionType);
         Assert.Equal("photo.png", response.Content.Headers.ContentDisposition?.FileNameStar);
@@ -38,9 +38,9 @@ public sealed class FileEndpointTests
     public async Task A_private_file_is_not_on_the_public_route()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "private.png");
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "private.png", TestContext.Current.CancellationToken);
 
-        using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
+        using var response = await host.Client.GetAsync(host.Files.Url(file.Id), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("no-store", Header(response, "Cache-Control"));
@@ -50,9 +50,9 @@ public sealed class FileEndpointTests
     public async Task A_temporary_url_serves_a_private_file_privately()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "private.png");
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "private.png", TestContext.Current.CancellationToken);
 
-        using var response = await host.Client.GetAsync(await host.Files.Share(file.Id).For(TimeSpan.FromMinutes(5)));
+        using var response = await host.Client.GetAsync(await host.Files.Share(file.Id, TestContext.Current.CancellationToken).For(TimeSpan.FromMinutes(5)), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl is { Private: true, NoStore: true });
@@ -62,23 +62,23 @@ public sealed class FileEndpointTests
     public async Task Tampered_unknown_and_deleted_all_answer_the_same_404()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "a.png");
-        var url = (await host.Files.Share(file.Id).For(TimeSpan.FromMinutes(5)))!;
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "a.png", TestContext.Current.CancellationToken);
+        var url = (await host.Files.Share(file.Id, TestContext.Current.CancellationToken).For(TimeSpan.FromMinutes(5)))!;
         var tampered = url[..^3] + (url[^3] == 'A' ? "B" : "A") + url[^2..];
         var unknown = await host.Files
-            .Share((await host.Files.Save(new MemoryStream(Samples.Png()), "b.png")).Id)
+            .Share((await host.Files.Save(new MemoryStream(Samples.Png()), "b.png", TestContext.Current.CancellationToken)).Id, TestContext.Current.CancellationToken)
             .For(TimeSpan.FromMinutes(5));
 
-        using var bad = await host.Client.GetAsync(tampered);
-        using var garbage = await host.Client.GetAsync("/_rask/files/not-a-token");
-        using var tooLong = await host.Client.GetAsync("/_rask/files/" + new string('A', 300));
-        await host.Files.Delete(file.Id);
-        using var deleted = await host.Client.GetAsync(url);
+        using var bad = await host.Client.GetAsync(tampered, TestContext.Current.CancellationToken);
+        using var garbage = await host.Client.GetAsync("/_rask/files/not-a-token", TestContext.Current.CancellationToken);
+        using var tooLong = await host.Client.GetAsync("/_rask/files/" + new string('A', 300), TestContext.Current.CancellationToken);
+        await host.Files.Delete(file.Id, TestContext.Current.CancellationToken);
+        using var deleted = await host.Client.GetAsync(url, TestContext.Current.CancellationToken);
 
         foreach (var response in new[] { bad, garbage, tooLong, deleted })
         {
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.Empty(await response.Content.ReadAsByteArrayAsync());
+            Assert.Empty(await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
         }
 
         Assert.NotNull(unknown);
@@ -88,9 +88,9 @@ public sealed class FileEndpointTests
     public async Task Html_downloads_as_an_opaque_attachment()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.Save(new MemoryStream(Samples.Html), "page.png").Public();
+        var file = await host.Files.Save(new MemoryStream(Samples.Html), "page.png", TestContext.Current.CancellationToken).Public();
 
-        using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
+        using var response = await host.Client.GetAsync(host.Files.Url(file.Id), TestContext.Current.CancellationToken);
 
         Assert.Equal("text/html", file.ContentType);
         Assert.Equal("application/octet-stream", response.Content.Headers.ContentType?.MediaType);
@@ -102,34 +102,34 @@ public sealed class FileEndpointTests
     {
         await using var host = await FileHost.StartAsync();
         var bytes = Samples.Png(1000);
-        var file = await host.Files.Save(new MemoryStream(bytes), "a.png").Public();
+        var file = await host.Files.Save(new MemoryStream(bytes), "a.png", TestContext.Current.CancellationToken).Public();
         var url = host.Files.Url(file.Id);
 
         using var range = new HttpRequestMessage(HttpMethod.Get, url);
         range.Headers.Range = new RangeHeaderValue(10, 19);
-        using var partial = await host.Client.SendAsync(range);
+        using var partial = await host.Client.SendAsync(range, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.PartialContent, partial.StatusCode);
-        Assert.Equal(bytes[10..20], await partial.Content.ReadAsByteArrayAsync());
+        Assert.Equal(bytes[10..20], await partial.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
 
         using var conditional = new HttpRequestMessage(HttpMethod.Get, url);
         conditional.Headers.IfNoneMatch.Add(new EntityTagHeaderValue("\"" + file.Sha256 + "\""));
-        using var notModified = await host.Client.SendAsync(conditional);
+        using var notModified = await host.Client.SendAsync(conditional, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotModified, notModified.StatusCode);
 
-        using var head = await host.Client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+        using var head = await host.Client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, head.StatusCode);
         Assert.Equal(bytes.Length, head.Content.Headers.ContentLength);
-        Assert.Empty(await head.Content.ReadAsByteArrayAsync());
+        Assert.Empty(await head.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Download_serves_any_file_from_the_apps_own_endpoint()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.Save(new MemoryStream("%PDF-1.7\n"u8.ToArray()), "invoice.pdf");
+        var file = await host.Files.Save(new MemoryStream("%PDF-1.7\n"u8.ToArray()), "invoice.pdf", TestContext.Current.CancellationToken);
 
-        using var response = await host.Client.GetAsync($"/download/{file.Id}");
-        using var missing = await host.Client.GetAsync($"/download/{Guid.NewGuid()}");
+        using var response = await host.Client.GetAsync($"/download/{file.Id}", TestContext.Current.CancellationToken);
+        using var missing = await host.Client.GetAsync($"/download/{Guid.NewGuid()}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("attachment", response.Content.Headers.ContentDisposition?.DispositionType);
@@ -141,9 +141,9 @@ public sealed class FileEndpointTests
     public async Task A_file_route_wins_over_a_catch_all_under_the_same_prefix()
     {
         await using var host = await FileHost.StartAsync(app => app.MapGet("/_rask/{**path}", () => "dashboard"));
-        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "a.png").Public();
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "a.png", TestContext.Current.CancellationToken).Public();
 
-        using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
+        using var response = await host.Client.GetAsync(host.Files.Url(file.Id), TestContext.Current.CancellationToken);
 
         Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
     }

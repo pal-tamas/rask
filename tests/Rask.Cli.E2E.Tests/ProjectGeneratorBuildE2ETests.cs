@@ -27,11 +27,11 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    [SkippableTheory]
+    [Theory]
     [MemberData(nameof(BuildAffectingCombinations))]
     public async Task Generated_server_project_builds(bool pwa, bool cqrs)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = $"E2E{(pwa ? "P" : "")}{(cqrs ? "Q" : "")}";
         if (name == "E2E")
@@ -72,10 +72,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// chain entry for the app's <c>HomePage</c> reaches the test project and that the app's own build
     /// keeps the test folder out of its globs.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Generated_server_project_passes_its_own_test()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "E2ETests";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -116,10 +116,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// package that supplies <c>BsCard</c> and <c>BootstrapStyles</c>, on both the welcome page and the
     /// error page, and the reference has to actually be gone rather than merely unused.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Generated_project_without_bootstrap_builds()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "E2ENoBs";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -158,10 +158,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// real compile proves the scaffold's pages, its <c>User</c> and the Program.cs off-switches resolve
     /// against the package as shipped.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Generated_data_server_project_builds()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "DE2ESQ";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -202,10 +202,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// rather than the web one. A compile is the only thing that proves the catalog reached the generator
     /// and that <c>&lt;RaskGlobalization&gt;</c> did not upset the rest of the build (#846).
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public async Task Generated_localized_wasm_project_builds()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "WLocE2E";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -258,12 +258,12 @@ public sealed class ProjectGeneratorBuildE2ETests
     // pwa is the only build-affecting flag left for wasm (docker only adds files). Auth used to be the
     // other one; a standalone browser app has no endpoints of its own to authenticate against, so it
     // pairs with a Rask server and calls AddRaskAuthClient() rather than scaffolding a token store.
-    [SkippableTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Generated_wasm_project_builds(bool pwa)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = pwa ? "WE2EP" : "WE2ENone";
 
@@ -313,7 +313,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     ///         and still needs contracts that match the server it is talking to.
     ///     </para>
     /// </remarks>
-    [SkippableTheory]
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     // --push reaches the host half: the VAPID block and the Push battery Serve() maps at /_rask/push, with the
@@ -321,7 +321,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     [InlineData(false, true)]
     public async Task Generated_react_solution_builds(bool data, bool push)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -370,7 +370,7 @@ public sealed class ProjectGeneratorBuildE2ETests
                 File.Exists(Path.Combine(generated, "client.ts")),
                 "the dispatcher was not refreshed from the package, so messages.ts imports nothing.");
 
-            var contracts = await File.ReadAllTextAsync(Path.Combine(generated, "contracts.ts"));
+            var contracts = await File.ReadAllTextAsync(Path.Combine(generated, "contracts.ts"), TestContext.Current.CancellationToken);
             Assert.Contains("export interface Greeting", contracts, StringComparison.Ordinal);
             Assert.Contains("seenAt: Date;", contracts, StringComparison.Ordinal);
         }
@@ -395,10 +395,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     ///         test over the generator's output cannot see a target that never ran.
     ///     </para>
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public async Task A_client_that_is_not_typescript_is_refused()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -464,10 +464,10 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// A default project: every battery on, and a one-line <c>Program.cs</c>. Only a real compile proves the
     /// scaffold's pages, accounts and <c>RaskApp.Create(args).Run&lt;App&gt;()</c> resolve together.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Generated_default_server_project_builds()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "AllBatteriesE2E";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -539,12 +539,12 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// that only fires in-repo would be the decision in name only.
     /// </para>
     /// </remarks>
-    [SkippableTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Scoped_typescript_sibling_compiles_and_registers_from_the_package(bool wasm)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = wasm ? "WTsE2E" : "TsE2E";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -596,7 +596,7 @@ public sealed class ProjectGeneratorBuildE2ETests
                 $"[wasm={wasm}] no __RaskScopedJsRegistration.g.cs was emitted — the **\\*.ts glob never "
                 + "reached the consumer, so scoped TypeScript is dead in scaffolded apps.");
 
-            var emitted = await File.ReadAllTextAsync(registration!);
+            var emitted = await File.ReadAllTextAsync(registration!, TestContext.Current.CancellationToken);
             Assert.Contains("RegisterJs(typeof(", emitted, StringComparison.Ordinal);
             Assert.Contains("rask-scoped-probe", emitted, StringComparison.Ordinal);
 
@@ -632,12 +632,12 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-    [SkippableTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Scoped_css_sibling_is_picked_up_from_the_package(bool wasm)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = wasm ? "WCssE2E" : "CssE2E";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -678,7 +678,7 @@ public sealed class ProjectGeneratorBuildE2ETests
                 registration is not null,
                 $"[wasm={wasm}] no __RaskScopedCssRegistration.g.cs was emitted — the **\\*.css glob never reached the consumer, so scoped CSS is dead in scaffolded apps.");
 
-            var emitted = await File.ReadAllTextAsync(registration!);
+            var emitted = await File.ReadAllTextAsync(registration!, TestContext.Current.CancellationToken);
             Assert.Contains("RegisterCss(typeof(", emitted, StringComparison.Ordinal);
             Assert.Contains("rask-scoped-probe", emitted, StringComparison.Ordinal);
 
@@ -720,12 +720,12 @@ public sealed class ProjectGeneratorBuildE2ETests
     ///         cached per user. Gated with the other build E2Es, so a plain `dotnet test` never reaches it.
     ///     </para>
     /// </remarks>
-    [SkippableTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Tailwind_compiles_the_scaffolded_pages_utilities(bool wasm)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var name = wasm ? "WTwE2E" : "TwE2E";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -758,7 +758,7 @@ public sealed class ProjectGeneratorBuildE2ETests
                 File.Exists(stylesheet),
                 $"[wasm={wasm}] the build reported success but wrote no {stylesheet} — the Tailwind target never ran.{CliBuildE2E.Diagnostics(output)}");
 
-            var css = await File.ReadAllTextAsync(stylesheet);
+            var css = await File.ReadAllTextAsync(stylesheet, TestContext.Current.CancellationToken);
 
             // From HomePage.cs's own markup. If v4 scanned the wrong tree this file is still written, still
             // valid CSS, and carries none of the classes the page actually uses.

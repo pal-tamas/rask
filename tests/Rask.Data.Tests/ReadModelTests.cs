@@ -93,7 +93,7 @@ public sealed class ReadModelTests
 
         database.Context.Add(supplier);
         database.Context.Add(Consignment.For(supplier.Id, "C-1", 120m).With("anvil", 3));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var rows = await Consignment.All;
 
@@ -110,12 +110,12 @@ public sealed class ReadModelTests
 
         database.Context.Add(supplier);
         database.Context.Add(Consignment.For(supplier.Id, "C-1", 120m));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // TotalAmount and TotalCurrency, not a Money — the read face is primitives, and the filter runs in
         // the database rather than over materialised rows.
         var matched = await Consignment
-            .Where(c => c.TotalAmount > 100m && c.TotalCurrency == "EUR").Count();
+            .Where(c => c.TotalAmount > 100m && c.TotalCurrency == "EUR").Count(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, matched);
     }
@@ -130,7 +130,7 @@ public sealed class ReadModelTests
         database.Context.AddRange(hungarian, austrian);
         database.Context.Add(Consignment.For(hungarian.Id, "C-1", 10m));
         database.Context.Add(Consignment.For(austrian.Id, "C-2", 20m));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // The write model holds a Guid and nothing else; the join exists only on the read side.
         var references = await Consignment
@@ -152,7 +152,7 @@ public sealed class ReadModelTests
         database.Context.AddRange(supplier, courier);
         database.Context.Add(consignment);
         database.Context.Add(Consignment.For(supplier.Id, "C-2", 20m));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var references = await Consignment
             .Where(c => c.PickedUpByCourier!.Name == "ada")
@@ -170,7 +170,7 @@ public sealed class ReadModelTests
         database.Context.Add(supplier);
         database.Context.Add(Consignment.For(supplier.Id, "C-1", 10m).With("anvil", 12));
         database.Context.Add(Consignment.For(supplier.Id, "C-2", 20m).With("rope", 2));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var fromRoot = await Consignment
             .Where(c => c.Lines.Any(l => l.Product == "anvil"))
@@ -195,10 +195,10 @@ public sealed class ReadModelTests
 
         database.Context.Add(supplier);
         database.Context.Add(consignment);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var found = await Consignment
-            .Where(c => c.ExternalRef == consignment.ExternalRef).Count();
+            .Where(c => c.ExternalRef == consignment.ExternalRef).Count(TestContext.Current.CancellationToken);
 
         // No aggregate is named "External", so there is a Guid and no navigation. That the member exists
         // at all is the assertion; a navigation would have made this a join to nowhere.
@@ -214,15 +214,15 @@ public sealed class ReadModelTests
 
         database.Context.Add(supplier);
         database.Context.Add(consignment);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         database.Context.Remove(consignment);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(0, await Consignment.Count());
+        Assert.Equal(0, await Consignment.Count(TestContext.Current.CancellationToken));
         Assert.Equal(
             1,
-            await Consignment.IgnoreQueryFilters().Count());
+            await Consignment.IgnoreQueryFilters().Count(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public sealed class ReadModelTests
 
         database.Context.Add(supplier);
         database.Context.Add(Consignment.For(supplier.Id, "C-1", 10m));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await using var read = database.OpenRead();
         var row = Assert.Single(await Consignment.All);

@@ -138,7 +138,7 @@ public class QueryClientTests
         // Blanking a working page because the network blinked is worse than showing data that is a
         // few seconds old with an error beside it.
         dispatcher.Throw = new InvalidOperationException("boom");
-        await query.Reload();
+        await query.Reload(TestContext.Current.CancellationToken);
 
         Assert.Equal("first", query.Data);
         Assert.IsType<InvalidOperationException>(query.Error);
@@ -160,7 +160,7 @@ public class QueryClientTests
 
         // Still well inside the stale window, so only the declared invalidation can cause a refetch.
         time.Advance(TimeSpan.FromSeconds(1));
-        await client.Send(new ShipOrder(7));
+        await client.Send(new ShipOrder(7), TestContext.Current.CancellationToken);
         await SettleAsync(orders);
 
         Assert.Equal(2, dispatcher.QueryCount);
@@ -176,7 +176,7 @@ public class QueryClientTests
         using var orders = client.Query(new GetOrders(1), options);
         await SettleAsync(orders);
 
-        await client.Send(new UnrelatedCommand(7));
+        await client.Send(new UnrelatedCommand(7), TestContext.Current.CancellationToken);
         await SettleAsync(orders);
 
         Assert.Equal(1, dispatcher.QueryCount);
@@ -332,7 +332,7 @@ public class QueryClientTests
         dispatcher.Throw = new InvalidOperationException("handler said no");
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => client.Load(new GetOrders(1), new QueryOptions { Retry = 0 }));
+            () => client.Load(new GetOrders(1), new QueryOptions { Retry = 0 }, TestContext.Current.CancellationToken));
 
         Assert.Equal("handler said no", error.Message);
     }

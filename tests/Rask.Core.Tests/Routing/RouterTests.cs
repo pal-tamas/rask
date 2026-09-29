@@ -239,7 +239,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         gate.Complete.SetResult();
         for (var i = 0; i < 50 && handle.RequestRenderCount == 0; i++)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.True(handle.RequestRenderCount >= 1, "expected post-await re-render on routed page");

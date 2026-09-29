@@ -27,7 +27,7 @@ public partial class QuiescentRenderMidRenderPaintTests : global::Rask.Core.Rask
             publishOnly => host.RenderAsLiveRoot(sp, publishOnly), TimeSpan.FromSeconds(10)));
 
         // The first wave is inside the child's Render(), having read the placeholder state.
-        Assert.True(reading.Wait(TimeSpan.FromSeconds(10)), "the mount wave never rendered the child");
+        Assert.True(reading.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken), "the mount wave never rendered the child");
 
         // The hook resumes on the pool, sets the loaded value and asks for a repaint — all while that render is paused.
         child.Gate.SetResult();
@@ -36,7 +36,7 @@ public partial class QuiescentRenderMidRenderPaintTests : global::Rask.Core.Rask
             "the resumed hook never asked for a repaint");
         resume.Set();
 
-        var result = await run.WaitAsync(TimeSpan.FromSeconds(10));
+        var result = await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.Contains("child-loaded", result.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("child-loading", result.Html, StringComparison.Ordinal);

@@ -35,7 +35,7 @@ public class WasmBundleTests
         using var bundle = new FakeWasmBundleDirectory();
         await using var host = await SpaTestServer.CreateAsync(bundle.Path);
 
-        var response = await host.Http.GetAsync(path);
+        var response = await host.Http.GetAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(mediaType, response.Content.Headers.ContentType?.MediaType);
@@ -58,7 +58,7 @@ public class WasmBundleTests
         using var bundle = new FakeWasmBundleDirectory();
         await using var host = await SpaTestServer.CreateAsync(bundle.Path);
 
-        var response = await host.Http.GetAsync(path);
+        var response = await host.Http.GetAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var cacheControl = response.Headers.CacheControl?.ToString() ?? string.Empty;
@@ -77,7 +77,7 @@ public class WasmBundleTests
         // WebAssembly module — nowhere near the file that is actually missing.
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -88,11 +88,11 @@ public class WasmBundleTests
         using var bundle = new FakeWasmBundleDirectory();
         await using var host = await SpaTestServer.CreateAsync(bundle.Path);
 
-        var response = await host.Http.GetAsync("/orders/42");
+        var response = await host.Http.GetAsync("/orders/42", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
-        Assert.Contains("data-rask-root", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("data-rask-root", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,13 +103,13 @@ public class WasmBundleTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/_framework/compressed.wasm");
         request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("br", response.Content.Headers.ContentEncoding);
         // WebAssembly.instantiateStreaming refuses anything not served as application/wasm.
         Assert.Equal("application/wasm", response.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(FakeWasmBundleDirectory.BrotliSibling, await response.Content.ReadAsByteArrayAsync());
+        Assert.Equal(FakeWasmBundleDirectory.BrotliSibling, await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -121,11 +121,11 @@ public class WasmBundleTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/_framework/foo.wasm");
         request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("br", response.Content.Headers.ContentEncoding);
-        Assert.True((await response.Content.ReadAsByteArrayAsync()).Length < 1024);
+        Assert.True((await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).Length < 1024);
     }
 
     [Fact]
@@ -134,11 +134,11 @@ public class WasmBundleTests
         using var bundle = new FakeWasmBundleDirectory();
         await using var host = await SpaTestServer.CreateAsync(bundle.Path, pathBase: "/sub");
 
-        Assert.Equal(HttpStatusCode.OK, (await host.Http.GetAsync("/sub/_framework/foo.wasm")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_framework/foo.wasm")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await host.Http.GetAsync("/sub/_framework/foo.wasm", TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_framework/foo.wasm", TestContext.Current.CancellationToken)).StatusCode);
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await host.Http.GetAsync("/sub/_framework/missing.wasm")).StatusCode);
+            (await host.Http.GetAsync("/sub/_framework/missing.wasm", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]

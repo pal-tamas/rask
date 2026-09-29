@@ -19,7 +19,7 @@ public class QueryQuiescenceTests
     {
         using var host = Host<QueryPageApp>();
 
-        var body = await host.Http.GetStringAsync("/");
+        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("orders-loaded", body);
         Assert.DoesNotContain("orders-loading", body);
@@ -39,7 +39,7 @@ public class QueryQuiescenceTests
         using var host = Host<DisabledQueryApp>();
 
         var started = DateTime.UtcNow;
-        var body = await host.Http.GetStringAsync("/");
+        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
         var elapsed = DateTime.UtcNow - started;
 
         Assert.Contains("not-enabled", body);

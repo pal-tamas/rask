@@ -84,7 +84,7 @@ public class QueryStatusTests
         await Settle(query);
 
         dispatcher.Throw = new InvalidOperationException("boom");
-        await query.Reload();
+        await query.Reload(TestContext.Current.CancellationToken);
 
         // Error and data together: the component renders the rows it has with a message beside
         // them, rather than a blank page because the network blinked.

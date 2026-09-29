@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Page.Visit against a real app: this project references Rask.Testing.Fixture.App the way a scaffolded
+    <Name>.Tests references its app, and Page.Visit boots that app's own Program.cs. Kept apart from
+    Rask.Testing.Tests, whose visits run with no app at all.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit.v3"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Testing"/>
+  </ItemGroup>
+
+  <!-- A package reference imports this itself; a project reference does not. -->
+  <Import Project="..\..\src\Rask.Testing\build\Rask.Testing.targets"/>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <ProjectReference Include="..\Rask.Testing.Fixture.App\Rask.Testing.Fixture.App.csproj"/>
+  </ItemGroup>
+
+</Project>

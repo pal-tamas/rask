@@ -197,3 +197,7 @@ Rask.Testing.TestFile.LastModified.get -> System.DateTimeOffset
 Rask.Testing.TestFile.Name.get -> string!
 Rask.Testing.TestFile.OpenReadStream(long maxAllowedSize = 524288, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.IO.Stream!
 Rask.Testing.TestFile.Size.get -> long
+Rask.Testing.Page.As<TUser>(TUser! user) -> Rask.Testing.Page!
+Rask.Testing.TestRun
+static Rask.Testing.TestRun.Begin() -> void
+static Rask.Testing.TestRun.End() -> void

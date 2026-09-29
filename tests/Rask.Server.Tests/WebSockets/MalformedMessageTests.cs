@@ -48,8 +48,8 @@ public class MalformedMessageTests
         string badFrame, LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
@@ -77,7 +77,7 @@ public class MalformedMessageTests
     public async Task A_field_of_the_wrong_type_is_ignored_without_a_teardown(string field, LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
@@ -96,8 +96,8 @@ public class MalformedMessageTests
     public async Task Many_bad_frames_in_a_row_do_not_drop_the_session(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 

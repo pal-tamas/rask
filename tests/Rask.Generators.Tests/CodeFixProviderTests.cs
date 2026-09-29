@@ -421,11 +421,11 @@ public class CodeFixProviderTests
 
         var errors = CSharpCompilation.Create(
                 "Fixed",
-                [CSharpSyntaxTree.ParseText(fixhed, new CSharpParseOptions(LanguageVersion.Latest))],
+                [CSharpSyntaxTree.ParseText(fixhed, new CSharpParseOptions(LanguageVersion.Latest), cancellationToken: TestContext.Current.CancellationToken)],
                 GeneratorDriverFixture.BuildReferences(),
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                     nullableContextOptions: NullableContextOptions.Enable))
-            .GetDiagnostics()
+            .GetDiagnostics(TestContext.Current.CancellationToken)
             .Where(d => d.Severity == DiagnosticSeverity.Error)
             .ToList();
 

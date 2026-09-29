@@ -24,7 +24,7 @@ public class WebSocketFrameRateTests
             // counted before any handler routing, so they trip the rate breaker.
             for (var i = 0; i < 50; i++)
             {
-                await ws.SendJsonAsync(new { type = "noop" });
+                await ws.SendJsonAsync(new { type = "noop" }, ct: TestContext.Current.CancellationToken);
             }
 
             var buf = new byte[1024];
@@ -57,14 +57,14 @@ public class WebSocketFrameRateTests
         // Guard against the cap regressing legitimate traffic: a hello plus a few frames under the
         // default cap round-trip fine and leave the socket open.
         using var host = RaskTestHost.Create<TestApp>();
-        var get = await host.Http.GetAsync("/");
-        var sessionId = MarkupAssert.SessionId(await get.Content.ReadAsStringAsync());
+        var get = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(await get.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         for (var i = 0; i < 10; i++)
         {
-            await ws.SendJsonAsync(new { type = "noop" });
+            await ws.SendJsonAsync(new { type = "noop" }, ct: TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(WebSocketState.Open, ws.State);

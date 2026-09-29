@@ -124,7 +124,7 @@ public sealed class GeneratedCodecTests
         // A handler receives an IRaskFile it can read exactly as it would in-process.
         Assert.Equal("a.png", round.File.Name);
         Assert.Equal(2, round.File.Size);
-        using var stream = round.File.OpenReadStream();
+        using var stream = round.File.OpenReadStream(cancellationToken: TestContext.Current.CancellationToken);
         using var copy = new MemoryStream();
         stream.CopyTo(copy);
         Assert.Equal(new byte[] { 1, 2 }, copy.ToArray());

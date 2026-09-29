@@ -272,14 +272,14 @@ public sealed class SpaTemplateTests
         Assert.Contains("rask.dispatch(", client, StringComparison.Ordinal);
     }
 
-    [SkippableTheory]
+    [Theory]
     [MemberData(nameof(Frameworks))]
     public void Every_framework_asks_its_scaffolder_for_a_TypeScript_template(string key)
     {
         // Rask supports TypeScript clients only. create-vite ships each framework as a pair, and asking
         // for the JavaScript half would scaffold a client the host then refuses to build (RASKSPA004).
         var framework = Framework(key);
-        Skip.IfNot(framework.WritesViteConfig, "Angular is scaffolded by its own CLI, which is TypeScript-only.");
+        Assert.SkipUnless(framework.WritesViteConfig, "Angular is scaffolded by its own CLI, which is TypeScript-only.");
 
         Assert.EndsWith("-ts", framework.ViteTemplate, StringComparison.Ordinal);
     }

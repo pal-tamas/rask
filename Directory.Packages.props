@@ -87,7 +87,6 @@
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageVersion Include="SQLitePCLRaw.core" Version="3.0.5" />
     <PackageVersion Include="System.Reflection.Metadata" Version="10.0.12" />
-    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.85" />
     <!--
       Rask.Meta.Hosting's only external dependency, and only for IHttpForwarder — YARP's direct
       forwarding API, with no route table or config model attached. It is what puts WebSocket upgrade,
@@ -95,7 +94,8 @@
       rather than a hand-rolled one; Microsoft-published, same family as the ASP.NET packages above.
     -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.1" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>
 

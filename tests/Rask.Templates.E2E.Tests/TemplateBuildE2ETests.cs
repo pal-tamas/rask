@@ -31,11 +31,11 @@ public sealed class TemplateBuildE2ETests
     public static TheoryData<string> Templates() =>
         [.. TemplateSelection.Apply(TemplateCatalog.Keys)];
 
-    [SkippableTheory]
+    [Theory]
     [MemberData(nameof(Templates))]
     public async Task Every_template_compiles(string key)
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
         var name = "Tmpl" + key.Replace("-", "", StringComparison.Ordinal);
@@ -62,13 +62,13 @@ public sealed class TemplateBuildE2ETests
         }
     }
 
-    [SkippableTheory]
+    [Theory]
     [InlineData("server", "react")]
     [InlineData("server", "blazor")]
     [InlineData("wasm", "lit")]
     public async Task An_islands_host_compiles(string template, string runtime)
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
         var name = $"Isl{template}{runtime}";

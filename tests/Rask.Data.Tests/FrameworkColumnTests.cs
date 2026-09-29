@@ -40,15 +40,15 @@ public sealed class FrameworkColumnTests : IDisposable
         // And the version token is still there, because that default did NOT move.
         Assert.NotNull(receipt.FindProperty(Columns.Version));
 
-        var kept = await Receipt.Create(r => r.Note("keep"));
-        var gone = await Receipt.Create(r => r.Note("go"));
+        var kept = await Receipt.Create(r => r.Note("keep"), cancellationToken: TestContext.Current.CancellationToken);
+        var gone = await Receipt.Create(r => r.Note("go"), cancellationToken: TestContext.Current.CancellationToken);
 
-        await Receipt.Delete(gone.Id);
+        await Receipt.Delete(gone.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         // Gone means gone: not hidden by a filter, actually absent from the table.
-        Assert.Null(await database.LoadAsync<Receipt>(gone.Id));
-        Assert.Equal(0, await Receipt.IgnoreQueryFilters().Count(r => r.Id == gone.Id));
-        Assert.NotNull(await database.LoadAsync<Receipt>(kept.Id));
+        Assert.Null(await database.LoadAsync<Receipt>(gone.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(0, await Receipt.IgnoreQueryFilters().Count(r => r.Id == gone.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.LoadAsync<Receipt>(kept.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class FrameworkColumnTests : IDisposable
 
         var memo = Memo.Write("once");
         database.Context.Add(memo);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(start.UtcDateTime, memo.CreatedAt);
         Assert.Equal(start.UtcDateTime, memo.UpdatedAt);
@@ -103,9 +103,9 @@ public sealed class FrameworkColumnTests : IDisposable
 
         clock.UtcNow = start.AddHours(1);
         memo.Edit("twice");
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var stored = (await database.LoadAsync<Memo>(memo.Id))!;
+        var stored = (await database.LoadAsync<Memo>(memo.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("twice", stored.Text);
         Assert.Equal(start.UtcDateTime, stored.CreatedAt);
         Assert.Equal(start.AddHours(1).UtcDateTime, stored.UpdatedAt);
@@ -119,12 +119,12 @@ public sealed class FrameworkColumnTests : IDisposable
 
         var memo = Memo.Write("doomed");
         database.Context.Add(memo);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         database.Context.Remove(memo);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(0, await Memo.Count());
+        Assert.Equal(0, await Memo.Count(TestContext.Current.CancellationToken));
         var deleted = Assert.Single(await Memo.IgnoreQueryFilters());
         Assert.NotNull(deleted.DeletedAt);
     }

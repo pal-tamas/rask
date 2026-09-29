@@ -64,7 +64,7 @@ public sealed class ManualClockTests
     {
         // The two BCL waits HttpFetchDemo builds on the injected clock.
         var clock = new ManualClock();
-        var delay = Task.Delay(TimeSpan.FromMilliseconds(150), clock);
+        var delay = Task.Delay(TimeSpan.FromMilliseconds(150), clock, TestContext.Current.CancellationToken);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5), clock);
 
         Assert.False(delay.IsCompleted);

@@ -26,7 +26,7 @@ public class QuiescentRenderTests
 
                 return "loaded";
             },
-            TimeSpan.FromSeconds(5));
+            TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("loaded", result.Html);
         Assert.False(result.TimedOut);
@@ -53,7 +53,7 @@ public class QuiescentRenderTests
 
                 return "html";
             },
-            TimeSpan.FromSeconds(5));
+            TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([false, true, true], seen);
     }
@@ -71,7 +71,7 @@ public class QuiescentRenderTests
                 QuiescenceScope.Current!.TrackExternal(new TaskCompletionSource().Task);
                 return "still-loading";
             },
-            TimeSpan.FromMilliseconds(120));
+            TimeSpan.FromMilliseconds(120), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.TimedOut);
         Assert.Equal("still-loading", result.Html);
@@ -93,7 +93,7 @@ public class QuiescentRenderTests
                 return "blocked";
             },
             TimeSpan.FromSeconds(30),
-            isBlocked: () => true);
+            isBlocked: () => true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(5), "it waited for work it was told could not finish");
         Assert.False(result.TimedOut);
@@ -116,7 +116,7 @@ public class QuiescentRenderTests
                 return "endless";
             },
             TimeSpan.FromSeconds(30),
-            maxWaves: 3);
+            maxWaves: 3, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.TimedOut);
         Assert.Equal(3, result.Waves);

@@ -18,7 +18,7 @@ public sealed class JsonIndexTests : IDisposable
         var plan = await PlanAsync(db, db.Orders.Where(o => o.Meta.Status == "open").ToQueryString());
 
         Assert.Contains("USING INDEX IX_Orders_Meta.Status", plan, StringComparison.Ordinal);
-        Assert.Equal([2], await db.Orders.Where(o => o.Meta.Status == "open").Select(o => o.Id).ToListAsync());
+        Assert.Equal([2], await db.Orders.Where(o => o.Meta.Status == "open").Select(o => o.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public sealed class JsonIndexTests : IDisposable
         var plan = await PlanAsync(db, db.Orders.Where(o => o.Meta.Address.City == "Pécs").ToQueryString());
 
         Assert.Contains("USING INDEX IX_Orders_Meta.Address.City", plan, StringComparison.Ordinal);
-        Assert.Equal([1], await db.Orders.Where(o => o.Meta.Address.City == "Pécs").Select(o => o.Id).ToListAsync());
+        Assert.Equal([1], await db.Orders.Where(o => o.Meta.Address.City == "Pécs").Select(o => o.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]

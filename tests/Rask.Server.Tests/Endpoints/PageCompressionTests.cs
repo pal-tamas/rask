@@ -46,10 +46,10 @@ public class PageCompressionTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Empty(response.Content.Headers.ContentEncoding);
-        Assert.Contains("path=/", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("path=/", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class PageCompressionTests
         var response = await GetAsync(host, "br", "gzip");
 
         Assert.Empty(response.Content.Headers.ContentEncoding);
-        Assert.Contains("path=/", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("path=/", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -111,10 +111,10 @@ public class PageCompressionTests
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/echo?q=abc");
         request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Empty(response.Content.Headers.ContentEncoding);
-        Assert.Contains("s3cr3t", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("s3cr3t", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class PageCompressionTests
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/");
         request.Headers.TryAddWithoutValidation("Accept-Encoding", acceptEncoding);
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(expected is null ? Array.Empty<string>() : new[] { expected }, response.Content.Headers.ContentEncoding);
     }
@@ -152,7 +152,7 @@ public class PageCompressionTests
         // variant it stores first decides what the next client gets otherwise.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("Accept-Encoding", response.Headers.Vary);
     }

@@ -13,7 +13,7 @@ public sealed class SubscriptionWireTests
         await using var wire = Wire.Connect();
         await using var stream = await OpenAsync<Announced>(wire);
 
-        await wire.Server.Publish(new Announced("hello"));
+        await wire.Server.Publish(new Announced("hello"), TestContext.Current.CancellationToken);
 
         Assert.Equal(new Announced("hello"), await stream.NextAsync());
     }
@@ -41,8 +41,8 @@ public sealed class SubscriptionWireTests
         await using var wire = Wire.Connect();
         await using var stream = await OpenAsync<RoomMessage>(wire, new WatchRoom(1));
 
-        await wire.Server.Publish(new RoomMessage(2, "elsewhere"));
-        await wire.Server.Publish(new RoomMessage(1, "here"));
+        await wire.Server.Publish(new RoomMessage(2, "elsewhere"), TestContext.Current.CancellationToken);
+        await wire.Server.Publish(new RoomMessage(1, "here"), TestContext.Current.CancellationToken);
 
         Assert.Equal(new RoomMessage(1, "here"), await stream.NextAsync());
     }
@@ -64,8 +64,8 @@ public sealed class SubscriptionWireTests
         await using var wire = Wire.Connect();
         await using (await OpenAsync<Announced>(wire))
         {
-            await wire.Server.Publish(new Announced("first"));
-            await wire.Server.Publish(new Announced("latest"));
+            await wire.Server.Publish(new Announced("first"), TestContext.Current.CancellationToken);
+            await wire.Server.Publish(new Announced("latest"), TestContext.Current.CancellationToken);
         }
 
         await using var late = await OpenAsync<Announced>(wire);
@@ -90,7 +90,7 @@ public sealed class SubscriptionWireTests
 
         var refused = await Assert.ThrowsAsync<RemoteDispatchException>(() => OpenAsync<Announced>(wire));
         await using var open = await OpenAsync<PublicNotice>(wire);
-        await wire.Server.Publish(new PublicNotice("everyone"));
+        await wire.Server.Publish(new PublicNotice("everyone"), TestContext.Current.CancellationToken);
 
         Assert.Equal(401, refused.StatusCode);
         Assert.Equal(new PublicNotice("everyone"), await open.NextAsync());
@@ -119,7 +119,7 @@ public sealed class SubscriptionWireTests
         request.Headers.Add(RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
         request.Headers.Add("X-Test-User", "tester");
 
-        using var response = await wire.Http.SendAsync(request);
+        using var response = await wire.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(400, (int)response.StatusCode);
     }
@@ -134,7 +134,7 @@ public sealed class SubscriptionWireTests
             RemoteEndpointDefaults.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment + "/" + Uri.EscapeDataString(contract.Name));
         request.Headers.Add("X-Test-User", "tester");
 
-        using var response = await wire.Http.SendAsync(request);
+        using var response = await wire.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(400, (int)response.StatusCode);
     }

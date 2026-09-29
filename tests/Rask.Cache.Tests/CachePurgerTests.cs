@@ -13,9 +13,9 @@ public sealed class CachePurgerTests
     public async Task Purger_deletes_expired_entries_and_keeps_fresh_ones()
     {
         await using var harness = new CacheHarness();
-        await harness.Distributed.SetAsync("keep", Bytes("v"), new DistributedCacheEntryOptions());
+        await harness.Distributed.SetAsync("keep", Bytes("v"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         await harness.Distributed.SetAsync("drop", Bytes("v"),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }, TestContext.Current.CancellationToken);
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
 
         await harness.Purger.StartAsync(CancellationToken.None);
@@ -29,7 +29,7 @@ public sealed class CachePurgerTests
         }
 
         await using var db = harness.NewContext();
-        var remaining = await db.Set<CacheEntry>().Select(e => e.Key).ToListAsync();
+        var remaining = await db.Set<CacheEntry>().Select(e => e.Key).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(["keep"], remaining);
     }
 }

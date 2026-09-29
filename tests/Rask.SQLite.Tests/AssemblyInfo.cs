@@ -6,4 +6,4 @@
 // concurrency stress test especially — surfacing a flaky ObjectDisposedException('SQLitePCL.sqlite3').
 // Serialise the assembly so no teardown races another class's live connections. (The SQLite load harness
 // serialises its arms for the same reason — see tests/Rask.Benchmarks.Sqlite/Program.cs.)
-[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]
+[assembly: Xunit.v3.Parallelization(Mode = Xunit.Sdk.ParallelMode.None)]

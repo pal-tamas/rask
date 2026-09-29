@@ -49,7 +49,7 @@ public class NonNullableCallbackTests
 
         var compilation = Compile(source);
 
-        Assert.Empty(compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error));
     }
 
     // The same steps a `Callback<int>?` gets: the sync shape, the async shape, and a pass-through that
@@ -73,13 +73,13 @@ public class NonNullableCallbackTests
 
         var compilation = Compile(source);
 
-        Assert.Empty(compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error));
         var tree = compilation.SyntaxTrees.First(t => t.ToString().Contains("class Page", StringComparison.Ordinal));
-        var page = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
+        var page = tree.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<ClassDeclarationSyntax>()
             .First(c => c.Identifier.Text == "Page");
         var call = page.DescendantNodes().OfType<InvocationExpressionSyntax>()
             .First(i => i.Expression is MemberAccessExpressionSyntax);
-        var bound = (IMethodSymbol)compilation.GetSemanticModel(tree).GetSymbolInfo(call).Symbol!;
+        var bound = (IMethodSymbol)compilation.GetSemanticModel(tree).GetSymbolInfo(call, cancellationToken: TestContext.Current.CancellationToken).Symbol!;
         Assert.Equal(expectedParameter, bound.Parameters[^1].Type.ToDisplayString());
     }
 
@@ -113,7 +113,7 @@ public class NonNullableCallbackTests
 
         var compilation = Compile(source);
 
-        Assert.Empty(compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error));
     }
 
     private static CSharpCompilation Compile(string source)

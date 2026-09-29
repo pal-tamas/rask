@@ -11,7 +11,7 @@ public class FluentValidationValidatorTests
         var p = new Person { Name = "", Age = 0 };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        var ok = await ctx.ValidateAsync();
+        var ok = await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.False(ok);
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
@@ -25,7 +25,7 @@ public class FluentValidationValidatorTests
         var ctx = RegisterValidator(p, new PersonValidator());
 
         // Age has rules but Name's "" should not bleed in.
-        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Age"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Age"), TestContext.Current.CancellationToken);
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
         // Age=999 is fine for our rule (just >0), so no messages.
@@ -38,7 +38,7 @@ public class FluentValidationValidatorTests
         var p = new Person { Name = "", Age = 5 };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"), TestContext.Current.CancellationToken);
 
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
@@ -49,7 +49,7 @@ public class FluentValidationValidatorTests
         var p = new Person { Name = "throw", Age = 1 };
         var ctx = RegisterValidator(p, new ThrowingValidator());
 
-        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"), TestContext.Current.CancellationToken);
 
         var msgs = ctx.GetValidationMessages(new FieldIdentifier(p, "Name"));
         Assert.Contains(msgs, m => m.Contains("could not be completed"));
@@ -63,7 +63,7 @@ public class FluentValidationValidatorTests
         var p = new Person { Name = "taken", Age = 1 };
         var ctx = RegisterValidator(p, new AsyncNameValidator());
 
-        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"), TestContext.Current.CancellationToken);
 
         Assert.Contains("Name taken", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
@@ -74,7 +74,7 @@ public class FluentValidationValidatorTests
         var p = new Person { Name = "free", Age = 1 };
         var ctx = RegisterValidator(p, new AsyncNameValidator());
 
-        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"), TestContext.Current.CancellationToken);
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
@@ -85,7 +85,7 @@ public class FluentValidationValidatorTests
         var p = new Person { Name = "taken", Age = 1 };
         var ctx = RegisterValidator(p, new AsyncNameValidator());
 
-        var ok = await ctx.ValidateAsync();
+        var ok = await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.False(ok);
         Assert.Contains("Name taken", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));

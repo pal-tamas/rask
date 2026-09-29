@@ -13,7 +13,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        var attempted = await restorer.RestoreAsync();
+        var attempted = await restorer.RestoreAsync(TestContext.Current.CancellationToken);
 
         Assert.True(attempted);
         Assert.Equal(["restore", "-if-replica-exists", "-o", _dbPath, "s3://bucket/app"], executor.LastArguments);
@@ -22,12 +22,12 @@ public sealed class LitestreamRestorerTests : IDisposable
     [Fact]
     public async Task RestoreAsync_skips_when_database_already_exists()
     {
-        await File.WriteAllTextAsync(_dbPath, "existing");
+        await File.WriteAllTextAsync(_dbPath, "existing", TestContext.Current.CancellationToken);
         var options = new LitestreamOptions { DatabasePath = _dbPath, ReplicaUrl = "s3://bucket/app" };
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        var attempted = await restorer.RestoreAsync();
+        var attempted = await restorer.RestoreAsync(TestContext.Current.CancellationToken);
 
         Assert.False(attempted);
         Assert.Equal(0, executor.CallCount);
@@ -45,7 +45,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        Assert.False(await restorer.RestoreAsync());
+        Assert.False(await restorer.RestoreAsync(TestContext.Current.CancellationToken));
         Assert.Equal(0, executor.CallCount);
     }
 
@@ -56,19 +56,19 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        Assert.False(await restorer.RestoreAsync());
+        Assert.False(await restorer.RestoreAsync(TestContext.Current.CancellationToken));
         Assert.Equal(0, executor.CallCount);
     }
 
     [Fact]
     public async Task RestoreAsync_restores_over_a_zero_byte_file()
     {
-        await File.WriteAllBytesAsync(_dbPath, []);
+        await File.WriteAllBytesAsync(_dbPath, [], TestContext.Current.CancellationToken);
         var options = new LitestreamOptions { DatabasePath = _dbPath, ReplicaUrl = "s3://bucket/app" };
         var executor = new FakeExecutor(exitCode: 0);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        Assert.True(await restorer.RestoreAsync());
+        Assert.True(await restorer.RestoreAsync(TestContext.Current.CancellationToken));
         Assert.Equal(1, executor.CallCount);
     }
 
@@ -79,7 +79,7 @@ public sealed class LitestreamRestorerTests : IDisposable
         var executor = new FakeExecutor(exitCode: 1);
         var restorer = new LitestreamRestorer(options, executor, NullLogger<LitestreamRestorer>.Instance);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => restorer.RestoreAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => restorer.RestoreAsync(TestContext.Current.CancellationToken));
     }
 
     public void Dispose()

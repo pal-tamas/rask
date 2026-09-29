@@ -16,7 +16,7 @@ public sealed class MailFakeTests
     {
         using var mail = Mail.Fake();
 
-        await Mail.Send(Welcome("ann@x.io"));
+        await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken);
 
         mail.Sent().To("ann@x.io").Once();
     }
@@ -26,7 +26,7 @@ public sealed class MailFakeTests
     {
         using var mail = Mail.Fake();
 
-        await Mail.Send(Welcome("ann@x.io")).In(24.Hours);
+        await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken).In(24.Hours);
 
         mail.Sent().In(24.Hours).Once();
         mail.Sent().In(1.Hour).None();
@@ -38,7 +38,7 @@ public sealed class MailFakeTests
         var midnight = new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero);
         using var mail = Mail.Fake();
 
-        await Mail.Send(Welcome("ann@x.io")).At(midnight);
+        await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken).At(midnight);
 
         mail.Sent().At(midnight).Once();
     }
@@ -48,8 +48,8 @@ public sealed class MailFakeTests
     {
         using var mail = Mail.Fake();
 
-        await Mail.Send(Welcome("ann@x.io"));
-        await Mail.Send(Email.To("bo@x.io").Subject("Receipt").Html("<p>thanks</p>"));
+        await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken);
+        await Mail.Send(Email.To("bo@x.io").Subject("Receipt").Html("<p>thanks</p>"), TestContext.Current.CancellationToken);
 
         mail.Sent().Twice();
         mail.Sent().To("ann@x.io").WithSubject("Welcome").Once();
@@ -61,7 +61,7 @@ public sealed class MailFakeTests
     {
         using var mail = Mail.Fake();
 
-        await Mail.Send(Welcome("ann@x.io"));
+        await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken);
 
         var sent = mail.Sent().To("ann@x.io").Only();
         Assert.Contains("unsubscribe", sent.Html, StringComparison.Ordinal);
@@ -72,8 +72,8 @@ public sealed class MailFakeTests
     {
         using var mail = Mail.Fake();
 
-        await Mail.Send(Welcome("bo@x.io"));
-        await Mail.Send(Welcome("cy@x.io"));
+        await Mail.Send(Welcome("bo@x.io"), TestContext.Current.CancellationToken);
+        await Mail.Send(Welcome("cy@x.io"), TestContext.Current.CancellationToken);
 
         var error = Assert.Throws<CountingException>(() => mail.Sent().To("ann@x.io").Once());
         Assert.Contains("Expected one email to \"ann@x.io\"", error.Message, StringComparison.Ordinal);
@@ -96,12 +96,12 @@ public sealed class MailFakeTests
     {
         using (var mail = Mail.Fake())
         {
-            await Mail.Send(Welcome("ann@x.io"));
+            await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken);
             mail.Sent().Once();
         }
 
         // Nothing stands in the way now, and no app is in progress, so the facade says which line compiles.
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () => await Mail.Send(Welcome("ann@x.io")));
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () => await Mail.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken));
         Assert.Contains("Inject IMail", error.Message, StringComparison.Ordinal);
     }
 
@@ -111,7 +111,7 @@ public sealed class MailFakeTests
         using var mail = Mail.Fake();
         IMail injected = mail;
 
-        await injected.Send(Welcome("ann@x.io")).In(2.Hours);
+        await injected.Send(Welcome("ann@x.io"), TestContext.Current.CancellationToken).In(2.Hours);
 
         mail.Sent().To("ann@x.io").In(2.Hours).Once();
     }

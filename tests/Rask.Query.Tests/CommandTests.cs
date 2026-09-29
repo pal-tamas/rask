@@ -33,7 +33,7 @@ public class CommandTests
         Assert.Equal(CommandStatus.Idle, ship.Status);
         Assert.False(ship.IsPending);
 
-        await ship.Send(new ShipOrder(7));
+        await ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken);
 
         Assert.Equal(CommandStatus.Success, ship.Status);
         Assert.True(ship.IsSuccess);
@@ -49,7 +49,7 @@ public class CommandTests
 
         // It is called from an event handler, where an exception has nowhere to go and would surface
         // as an unhandled framework error rather than as something the screen can show.
-        await ship.Send(new ShipOrder(7));
+        await ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken);
 
         Assert.Equal(CommandStatus.Error, ship.Status);
         Assert.True(ship.IsError);
@@ -62,7 +62,7 @@ public class CommandTests
         var (client, dispatcher, _) = NewClient();
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
         var ship = client.Command<ShipOrder>();
-        await ship.Send(new ShipOrder(7));
+        await ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken);
 
         ship.Reset();
 
@@ -79,7 +79,7 @@ public class CommandTests
         await Settle(orders);
 
         dispatcher.Result = "after ship";
-        await client.Command<ShipOrder>().Send(new ShipOrder(7));
+        await client.Command<ShipOrder>().Send(new ShipOrder(7), TestContext.Current.CancellationToken);
         await Settle(orders);
 
         Assert.Equal(2, dispatcher.QueryCountFor<GetOrders>());
@@ -93,7 +93,7 @@ public class CommandTests
         dispatcher.CommandResult = 7;
         var count = client.Command<CountOrders, int>();
 
-        var returned = await count.Send(new CountOrders());
+        var returned = await count.Send(new CountOrders(), TestContext.Current.CancellationToken);
 
         Assert.Equal(7, returned);
         Assert.Equal(7, count.Data);
@@ -114,7 +114,7 @@ public class CommandTests
         dispatcher.Block();
         var ship = client.Command<ShipOrder>();
 
-        var running = ship.Send(new ShipOrder(7))
+        var running = ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken)
             .Optimistically(orders.Optimistic(current => current + " (shipping)"))
             .AsTask();
 
@@ -135,7 +135,7 @@ public class CommandTests
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
         var ship = client.Command<ShipOrder>();
 
-        await ship.Send(new ShipOrder(7)).Optimistically(orders.Optimistic(current => current + " (shipping)"));
+        await ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken).Optimistically(orders.Optimistic(current => current + " (shipping)"));
 
         // The whole point. A screen still showing the optimistic result after a refused save tells
         // the user something happened that did not, which is worse than never having shown it.
@@ -154,7 +154,7 @@ public class CommandTests
         dispatcher.Result = "shipped";
         var ship = client.Command<ShipOrder>();
 
-        await ship.Send(new ShipOrder(7)).Optimistically(orders.Optimistic(current => current + " (shipping)"));
+        await ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken).Optimistically(orders.Optimistic(current => current + " (shipping)"));
         await Settle(orders);
 
         // The guess is not kept: the command's [Invalidates] refetches and the truth wins.
@@ -172,7 +172,7 @@ public class CommandTests
         dispatcher.Block();
         using var orders = client.Query(new GetOrders(9), keep);
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-        await client.Command<ShipOrder>().Send(new ShipOrder(7)).Optimistically(orders.Optimistic(current => current + " (shipping)"));
+        await client.Command<ShipOrder>().Send(new ShipOrder(7), TestContext.Current.CancellationToken).Optimistically(orders.Optimistic(current => current + " (shipping)"));
 
         dispatcher.Release();
         await Settle(orders);
@@ -194,7 +194,7 @@ public class CommandTests
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
         var ship = client.Command<ShipOrder>();
 
-        await ship.Send(new ShipOrder(7)).Optimistically(one.Optimistic(c => c + " (a)"), two.Optimistic(c => c + " (b)"));
+        await ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken).Optimistically(one.Optimistic(c => c + " (a)"), two.Optimistic(c => c + " (b)"));
 
         // A rollback covering only the edits made before the failure leaves the rest applied.
         Assert.Equal("first", one.Data);
@@ -220,7 +220,7 @@ public class CommandTests
         {
             ran = true;
             return Task.CompletedTask;
-        });
+        }, TestContext.Current.CancellationToken);
         await Settle(people);
 
         Assert.True(ran);
@@ -237,7 +237,7 @@ public class CommandTests
         await Settle(people);
         var save = client.Command(invalidates: "people");
 
-        await save.Send(_ => Task.FromException(new InvalidOperationException("refused")));
+        await save.Send(_ => Task.FromException(new InvalidOperationException("refused")), TestContext.Current.CancellationToken);
         await Settle(people);
 
         Assert.True(save.IsError);
@@ -251,8 +251,8 @@ public class CommandTests
         var (client, _, _) = NewClient();
         var save = client.Command();
 
-        var created = await save.Send(_ => Task.FromResult("person 7"));
-        var refused = await save.Send(_ => Task.FromException<string>(new InvalidOperationException()));
+        var created = await save.Send(_ => Task.FromResult("person 7"), TestContext.Current.CancellationToken);
+        var refused = await save.Send(_ => Task.FromException<string>(new InvalidOperationException()), TestContext.Current.CancellationToken);
 
         Assert.Equal("person 7", created);
         Assert.Null(refused);
@@ -272,7 +272,7 @@ public class CommandTests
 
         // The type is the first part, so a command naming the type reaches every key about it by prefix
         // — and nothing else.
-        await client.Command(invalidates: typeof(Person)).Send(_ => Task.CompletedTask);
+        await client.Command(invalidates: typeof(Person)).Send(_ => Task.CompletedTask, TestContext.Current.CancellationToken);
         await Settle(people);
         await Settle(orders);
         client.Invalidate<Person>();
@@ -301,7 +301,7 @@ public class CommandTests
         await Settle(a);
         await Settle(b);
 
-        await client.Command(invalidates: [typeof(Person), "dashboard"]).Send(_ => Task.CompletedTask);
+        await client.Command(invalidates: [typeof(Person), "dashboard"]).Send(_ => Task.CompletedTask, TestContext.Current.CancellationToken);
         await Settle(a);
         await Settle(b);
 
@@ -321,7 +321,7 @@ public class CommandTests
         // Made per send, so it captures THIS click's id — the reason it is not registered up front.
         var id = 7;
         var running = client.Command<ShipOrder>()
-            .Send(new ShipOrder(id))
+            .Send(new ShipOrder(id), TestContext.Current.CancellationToken)
             .Optimistically(orders.Optimistic(c => $"{c} without #{id}"))
             .AsTask();
 
@@ -345,7 +345,7 @@ public class CommandTests
             {
                 await gate.Task;
                 throw new InvalidOperationException("refused");
-            })
+            }, TestContext.Current.CancellationToken)
             .Optimistically(people.Optimistic(name => name + ", bob"))
             .AsTask();
 
@@ -367,7 +367,7 @@ public class CommandTests
 
         var gate = new TaskCompletionSource();
         dispatcher.CommandGate = gate;
-        var running = ship.Send(new ShipOrder(7)).AsTask();
+        var running = ship.Send(new ShipOrder(7), TestContext.Current.CancellationToken).AsTask();
 
         // What a pending render reads to say what is in flight.
         Assert.True(ship.IsPending);
@@ -391,7 +391,7 @@ public class CommandTests
         int? seenAtSuccess = null;
 
         // Whatever renders on the success notification must already see the result.
-        var running = count.Send(new CountOrders()).AsTask();
+        var running = count.Send(new CountOrders(), TestContext.Current.CancellationToken).AsTask();
         await running;
         if (count.IsSuccess)
         {

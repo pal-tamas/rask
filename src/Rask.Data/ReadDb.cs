@@ -81,11 +81,23 @@ public static class ReadDb
 
     /// <summary>A fresh read context the caller owns and disposes.</summary>
     /// <exception cref="InvalidOperationException">The read side has not been configured.</exception>
-    internal static DbContext CreateContext() =>
-        (_factory ?? throw new InvalidOperationException(
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
+        Justification = "As Configure(IServiceProvider): the factory is the app's own registration, which reported EF's "
+                        + "IL2026 at the line that chose EF.")]
+    internal static DbContext CreateContext()
+    {
+        // The work in progress's own app first — as the write side does — so two apps side by side (two tests, each
+        // with its own database) never read each other's rows through the one process-wide factory.
+        if ((Db.ScopeServices ?? Ambient.Services)?.GetService<IDbContextFactory<RaskReadDbContext>>() is { } scoped)
+        {
+            return scoped.CreateDbContext();
+        }
+
+        return (_factory ?? throw new InvalidOperationException(
             "The read faces have not been pointed at a database. A Rask app gets this from the host, beside "
             + "Db.Configure(app.Services); elsewhere call ReadDb.Configure(app.Services) once after building "
             + "the container."))();
+    }
 
     // Asked once per closed generic rather than per call: the answer cannot change, and an interface
     // check on every terminal operator would be paid by every read in the app.

@@ -37,6 +37,11 @@ public sealed class RaskWasmOptions
     /// </remarks>
     public Battery Ui { get; } = new();
 
+    /// <summary>
+    /// Where <c>Toast.Success(…)</c> appears and how long it stays: <c>c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds)</c>.
+    /// </summary>
+    public ToastOptions Toasts { get; } = new();
+
     // Remote dispatch (Rask.Cqrs.Client) deliberately has NO switch here. It is referenced by this
     // package, but wiring it needs an endpoint to dispatch to, which only the app knows — and registering
     // it without one would replace the local dispatcher with one that cannot reach anything. So it stays

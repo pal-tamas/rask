@@ -31,7 +31,7 @@ public sealed class UploadPairingTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(
             "\"file-0,file-1,file-2,file-3,file-4,file-5,file-6,file-7,file-8,file-9,file-10\"",
-            await response.Content.ReadAsStringAsync());
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class UploadPairingTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(
             "\"file-0,file-1,file-2,file-3,file-4,file-5,file-6,file-7,file-8,file-9,file-10\"",
-            await response.Content.ReadAsStringAsync());
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class UploadPairingTests
         content.Add(part, "0", "big.bin");
         request.Content = content;
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
     }

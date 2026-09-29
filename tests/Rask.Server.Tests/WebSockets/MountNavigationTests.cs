@@ -45,7 +45,7 @@ public sealed class MountNavigationTests : IDisposable
         using var host = CreateHost();
         using var ws = await ConnectAsync(host, "/host-page");
 
-        await ws.SendJsonAsync(new { type = "navigate", path = "/_mounted", query = "?tab=1" });
+        await ws.SendJsonAsync(new { type = "navigate", path = "/_mounted", query = "?tab=1" }, ct: TestContext.Current.CancellationToken);
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
 
@@ -60,7 +60,7 @@ public sealed class MountNavigationTests : IDisposable
         using var host = CreateHost();
         using var ws = await ConnectAsync(host, "/_mounted");
 
-        await ws.SendJsonAsync(new { type = "navigate", path = "/host-page", query = "", replace = true });
+        await ws.SendJsonAsync(new { type = "navigate", path = "/host-page", query = "", replace = true }, ct: TestContext.Current.CancellationToken);
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
 
@@ -76,7 +76,7 @@ public sealed class MountNavigationTests : IDisposable
         using var host = CreateHost();
         using var ws = await ConnectAsync(host, "/host-page");
 
-        await ws.SendJsonAsync(new { type = "navigate", path = "/host-other", query = "" });
+        await ws.SendJsonAsync(new { type = "navigate", path = "/host-other", query = "" }, ct: TestContext.Current.CancellationToken);
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
 
@@ -90,7 +90,7 @@ public sealed class MountNavigationTests : IDisposable
     public async Task A_host_sessions_router_does_not_match_a_mounted_page()
     {
         using var host = CreateHost();
-        var html = await host.Http.GetStringAsync("/host-page");
+        var html = await host.Http.GetStringAsync("/host-page", TestContext.Current.CancellationToken);
         var session = host.Store.Get(MarkupAssert.SessionId(html))!;
 
         var table = session.Services.GetRequiredService<RouteState>().CurrentTable;

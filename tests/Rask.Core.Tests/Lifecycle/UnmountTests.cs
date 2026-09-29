@@ -173,7 +173,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         c.RaiseLifecycleBeforeRender(true);
 
         var disposeTask = ComponentLifecycle.DisposeComponentTreeAsync(c);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.False(disposeTask.IsCompleted);
 
         tcs.SetResult();
@@ -207,7 +207,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
             tcs.SetResult();
             for (var i = 0; i < 20 && !sw.ToString().Contains("async-unmount-fault"); i++)
             {
-                await Task.Delay(10);
+                await Task.Delay(10, TestContext.Current.CancellationToken);
             }
         }
         finally

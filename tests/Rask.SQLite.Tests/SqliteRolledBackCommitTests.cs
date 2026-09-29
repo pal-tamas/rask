@@ -128,7 +128,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
                 {
                     throw new SqliteTransactionRolledBackException("COMMIT;", 1);
                 }
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, invocations);
 
@@ -153,7 +153,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
                 {
                     invocations++;
                     throw new SqliteTransactionRolledBackException("COMMIT;", 1);
-                }));
+                }, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.True(invocations > 1, $"expected more than one attempt, got {invocations}");
 
@@ -188,7 +188,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
                     await using var command = c.CreateCommand();
                     command.CommandText = "INSERT INTO t(v) VALUES('self-committed'); COMMIT;";
                     await command.ExecuteNonQueryAsync(ct);
-                }));
+                }, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(1, invocations);
         Assert.Equal(raw.SQLITE_ABORT, exception.SqliteErrorCode);

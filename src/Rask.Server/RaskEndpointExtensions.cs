@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -142,6 +143,15 @@ public static partial class RaskEndpointExtensions
         AddOptionsAndKeyRing(services, configure, configureServer);
         AddSessionHosting(services);
         AddSessionServices(services, configureCulture);
+
+        // A test is running this app's Program.cs (Page.Visit): a server that opens no socket, and the started app
+        // handed to the test rather than served. Every Rask server app comes through here, however it is wired.
+        if (AppCapture.Current is { } capture)
+        {
+            services.AddSingleton<IServer, CapturedServer>();
+            services.AddSingleton<IHostedService>(sp => new CapturedHandOff(
+                capture, sp, sp.GetRequiredService<IHostApplicationLifetime>()));
+        }
 
         return services;
     }

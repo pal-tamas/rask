@@ -562,14 +562,22 @@ public abstract partial class SharedSmokeTests
 
         // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
         await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");
-        await AssertGuideDemosAsync(9, "composition-lists");
+        await AssertGuideDemosAsync(10, "composition-lists");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the page still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        // The toast walk that stood here drove BsToast / the dismissible BsAlert it rendered. Both went
-        // with Rask.Bootstrap, and no sample raises an IToaster message any more.
+        // Built-in toasts: the demo mounts nothing — pressing Save shows "Saved" through the outlet the host
+        // mounts after the app, in the kit's look; the sticky error stays until its dismiss control is pressed.
+        await Page.Locator("#toast-save").ClickAsync();
+        await Expect(Page.Locator("[role=status]:has-text('Saved')")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Page.Locator("#toast-fail").ClickAsync();
+        var stuck = Page.Locator("[role=alert]:has-text(\"Couldn't reach the server\")");
+        await Expect(stuck).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await stuck.Locator("button").Last.ClickAsync();
+        await Expect(stuck).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
         var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First

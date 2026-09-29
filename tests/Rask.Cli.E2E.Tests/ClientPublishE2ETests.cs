@@ -20,10 +20,10 @@ namespace Rask.Cli.E2E.Tests;
 /// </remarks>
 public sealed class ClientPublishE2ETests
 {
-    [SkippableFact]
+    [Fact]
     public async Task The_browser_app_reaches_the_publish_output()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -50,7 +50,7 @@ public sealed class ClientPublishE2ETests
             // map is a page that cannot resolve the fingerprinted runtime: it boots in a build and not here.
             var index = Path.Combine(wwwroot, "index.html");
             Assert.True(File.Exists(index), $"the browser app's boot page is absent: {index}");
-            var page = await File.ReadAllTextAsync(index);
+            var page = await File.ReadAllTextAsync(index, TestContext.Current.CancellationToken);
             Assert.Contains("data-rask-root", page, StringComparison.Ordinal);
             Assert.Matches(new Regex(@"<script type=""importmap"">\s*\{"), page);
 
@@ -77,10 +77,10 @@ public sealed class ClientPublishE2ETests
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task The_bundle_carries_the_client_transport_and_the_server_does_not()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -125,10 +125,10 @@ public sealed class ClientPublishE2ETests
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task The_bundle_can_call_an_API_controller_that_only_the_server_compiles()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -179,7 +179,7 @@ public sealed class ClientPublishE2ETests
                 """);
 
             var csproj = Path.Combine(projectDir, name + ".csproj");
-            var text = await File.ReadAllTextAsync(csproj);
+            var text = await File.ReadAllTextAsync(csproj, TestContext.Current.CancellationToken);
 
             // Rask.Api hosts and carries the generator; Rask.Api.Client is the runtime the generated client
             // calls. The companion's copy of the runtime is added by the client targets when the baked file
@@ -193,7 +193,7 @@ public sealed class ClientPublishE2ETests
                    </ItemGroup>
                  </Project>
                  """);
-            await File.WriteAllTextAsync(csproj, text);
+            await File.WriteAllTextAsync(csproj, text, TestContext.Current.CancellationToken);
 
             // BUILD FIRST, then publish, and that order is the point. The publish's compile is then up to date
             // and skipped, and a skipped compile writes no generated files — which is exactly when a cleanup

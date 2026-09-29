@@ -29,7 +29,7 @@ public sealed class BlobRangeStreamTests
 
         stream.Seek(90, SeekOrigin.Begin);
         var rest = new MemoryStream();
-        await stream.CopyToAsync(rest);
+        await stream.CopyToAsync(rest, TestContext.Current.CancellationToken);
 
         Assert.Equal(Content[90..], rest.ToArray());
         Assert.Equal([(90L, (long?)null)], store.Opens);
@@ -43,12 +43,12 @@ public sealed class BlobRangeStreamTests
 
         stream.Seek(10, SeekOrigin.Begin);
         var buffer = new byte[10];
-        await stream.ReadExactlyAsync(buffer);
+        await stream.ReadExactlyAsync(buffer, TestContext.Current.CancellationToken);
         Assert.Equal(Content[10..20], buffer);
         Assert.Equal([(10L, (long?)10)], store.Opens);
 
         var next = new byte[5];
-        await stream.ReadExactlyAsync(next);
+        await stream.ReadExactlyAsync(next, TestContext.Current.CancellationToken);
         Assert.Equal(Content[20..25], next);
         Assert.Equal((20L, (long?)null), store.Opens[^1]);
     }
@@ -58,7 +58,7 @@ public sealed class BlobRangeStreamTests
     {
         await using var stream = new BlobRangeStream(new MemoryBackend(null), "ab/k", 10, null, null);
 
-        await Assert.ThrowsAsync<IOException>(async () => await stream.ReadExactlyAsync(new byte[4]));
+        await Assert.ThrowsAsync<IOException>(async () => await stream.ReadExactlyAsync(new byte[4], TestContext.Current.CancellationToken));
     }
 
     private sealed class MemoryBackend(byte[]? content) : IBlobBackend

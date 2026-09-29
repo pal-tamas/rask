@@ -181,9 +181,9 @@ public sealed class AzureBlobBackendTests : IDisposable
     {
         var (backend, handler) = Create("UseDevelopmentStorage=true");
         handler.Respond(HttpStatusCode.Created);
-        await File.WriteAllBytesAsync(_spool, "hello"u8.ToArray());
+        await File.WriteAllBytesAsync(_spool, "hello"u8.ToArray(), TestContext.Current.CancellationToken);
 
-        await backend.PutFileAsync("ab/abcd", _spool, 5, new("image/png", "inline", "private, no-store"), default);
+        await backend.PutFileAsync("ab/abcd", _spool, 5, new("image/png", "inline", "private, no-store"), TestContext.Current.CancellationToken);
 
         var put = handler.Last;
         Assert.Equal("http://127.0.0.1:10000/devstoreaccount1/files/ab/abcd", put.Uri.ToString());
@@ -201,7 +201,7 @@ public sealed class AzureBlobBackendTests : IDisposable
         var (backend, handler) = Create("BlobEndpoint=https://myaccount.blob.core.windows.net;SharedAccessSignature=sv=2024-11-04&sig=abc");
         handler.Respond(HttpStatusCode.OK, ListXml(null, "app/ab/one"));
 
-        await backend.ListAsync("app/", default).ToListAsync();
+        await backend.ListAsync("app/", TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("restype=container&comp=list", handler.Last.Uri.Query);
         Assert.EndsWith("&sv=2024-11-04&sig=abc", handler.Last.Uri.Query);
@@ -226,7 +226,7 @@ public sealed class AzureBlobBackendTests : IDisposable
         var (backend, handler) = Create("UseDevelopmentStorage=true");
         handler.Respond(HttpStatusCode.OK, ListXml("page-2", "app/ab/one")).Respond(HttpStatusCode.OK, ListXml(null, "app/cd/two"));
 
-        var entries = await backend.ListAsync("app/", default).ToListAsync();
+        var entries = await backend.ListAsync("app/", TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["app/ab/one", "app/cd/two"], entries.Select(e => e.Key));
         Assert.Equal(7, entries[0].Size);
@@ -239,12 +239,12 @@ public sealed class AzureBlobBackendTests : IDisposable
         var (backend, handler) = Create("UseDevelopmentStorage=true");
         handler.Respond(HttpStatusCode.PartialContent, "x").Respond(HttpStatusCode.NotFound);
 
-        await using (await backend.OpenReadAsync("ab/abcd", 5, 10, default))
+        await using (await backend.OpenReadAsync("ab/abcd", 5, 10, TestContext.Current.CancellationToken))
         {
             Assert.Equal("bytes=5-14", handler.Last.Header("x-ms-range"));
         }
 
-        Assert.Null(await backend.OpenReadAsync("ab/none", 0, null, default));
+        Assert.Null(await backend.OpenReadAsync("ab/none", 0, null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public sealed class AzureBlobBackendTests : IDisposable
         var (backend, handler) = Create("UseDevelopmentStorage=true");
         handler.Respond(HttpStatusCode.Forbidden, null, ("x-ms-error-code", "AuthenticationFailed"));
 
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => backend.DeleteAsync("ab/abcd", default));
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => backend.DeleteAsync("ab/abcd", TestContext.Current.CancellationToken));
 
         Assert.Contains("AuthenticationFailed", ex.Message);
     }

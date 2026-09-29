@@ -12,7 +12,7 @@ public class WasmHostedServicesTests
         var second = new RecordingHostedService("second");
         var host = Build(first, second);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         Assert.True(first.Started);
         Assert.True(second.Started);
@@ -23,7 +23,7 @@ public class WasmHostedServicesTests
     {
         var host = new WasmHostedServices(new ServiceCollection().BuildServiceProvider());
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(host.Started);
     }
@@ -37,7 +37,7 @@ public class WasmHostedServicesTests
             new RecordingHostedService("second", log),
             new RecordingHostedService("third", log));
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(["start:first", "start:second", "start:third"], log);
     }
@@ -51,7 +51,7 @@ public class WasmHostedServicesTests
         var after = new RecordingHostedService("after");
         var host = Build(throwing, after);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         Assert.True(after.Started);
     }
@@ -63,7 +63,7 @@ public class WasmHostedServicesTests
         var after = new RecordingHostedService("after");
         var host = Build(throwing, after);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         // Not merely cosmetic: stopping a BackgroundService that never entered ExecuteAsync would hand
         // it a stop signal for work it never began.
@@ -81,7 +81,7 @@ public class WasmHostedServicesTests
         collection.AddSingleton<IHostedService, ThrowingConstructorService>();
         var host = new WasmHostedServices(collection.BuildServiceProvider());
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(host.Started);
     }
@@ -93,7 +93,7 @@ public class WasmHostedServicesTests
         collection.AddSingleton<IHostedService, NeedsMissingDependencyService>();
         var host = new WasmHostedServices(collection.BuildServiceProvider());
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(host.Started);
     }
@@ -106,7 +106,7 @@ public class WasmHostedServicesTests
         var service = new FaultingBackgroundService();
         var host = Build(service);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         await Assert.ThrowsAnyAsync<Exception>(() => service.ExecuteTask!);
 
         // Observed: an unobserved faulted Task would otherwise surface only at finalization.
@@ -122,7 +122,7 @@ public class WasmHostedServicesTests
             new RecordingHostedService("second", log),
             new RecordingHostedService("third", log));
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         log.Clear();
         await host.StopAsync(TimeSpan.FromSeconds(1));
 
@@ -136,7 +136,7 @@ public class WasmHostedServicesTests
         var throwing = new ThrowingHostedService(onStart: true);
         var host = Build(throwing);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TimeSpan.FromSeconds(1));
 
         Assert.False(throwing.Stopped);
@@ -149,7 +149,7 @@ public class WasmHostedServicesTests
         var service = new RecordingHostedService("only");
         var host = Build(service);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TimeSpan.FromSeconds(1));
         await host.StopAsync(TimeSpan.FromSeconds(1));
 
@@ -163,7 +163,7 @@ public class WasmHostedServicesTests
         var earlier = new RecordingHostedService("earlier");
         var host = Build(earlier, throwing);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TimeSpan.FromSeconds(1));
 
         Assert.Equal(1, earlier.StopCount);
@@ -188,7 +188,7 @@ public class WasmHostedServicesTests
         var service = new TokenCapturingHostedService();
         var host = Build(service);
 
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TimeSpan.FromMilliseconds(50));
 
         Assert.True(service.StopToken.CanBeCanceled);

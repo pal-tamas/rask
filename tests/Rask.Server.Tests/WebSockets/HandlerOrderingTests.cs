@@ -46,7 +46,7 @@ public class HandlerOrderingTests
         using var stress = new ThreadPoolStress(8);
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
         Assert.Equal(10, handlerIds.Count);
@@ -98,7 +98,7 @@ public class HandlerOrderingTests
         using var stress = new ThreadPoolStress(8);
 
         using var host = RaskTestHost.Create<OrderedDispatchApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
 
