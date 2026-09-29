@@ -270,7 +270,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         {
             spc.ReportDiagnostic(Diagnostic.Create(
                 EndpointSkipped, registration.Site, where,
-                "its route pattern is not a compile-time constant, so no client method can name it"));
+                "its route pattern is not a compile-time constant, so no client method can name it — map it with a literal or const route"));
             return null;
         }
 
@@ -345,7 +345,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         {
             spc.ReportDiagnostic(Diagnostic.Create(
                 EndpointSkipped, site, declaredBy,
-                "its route has a catch-all segment, which a typed client cannot fill from a parameter"));
+                "its route has a catch-all segment, which a typed client cannot fill from a parameter — name the segments, or call it by hand"));
             return null;
         }
 
@@ -378,7 +378,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
         {
             spc.ReportDiagnostic(Diagnostic.Create(
                 EndpointSkipped, site, declaredBy,
-                $"its route names '{{{unfilled}}}' but no parameter supplies it"));
+                $"its route names '{{{unfilled}}}' but no parameter supplies it — add a parameter named '{unfilled}'"));
             return null;
         }
 
@@ -425,7 +425,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
                     EndpointSkipped, site, declaredBy,
-                    $"parameter '{parameter.Name}' would be a second request body, and a request has one"));
+                    $"parameter '{parameter.Name}' would be a second request body, and a request has one — combine the bodies into one type"));
                 return false;
             }
 

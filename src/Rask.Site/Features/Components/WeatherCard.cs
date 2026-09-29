@@ -12,15 +12,11 @@ public sealed partial class WeatherCard(HttpClient http) : Component
 {
     private Forecast? _forecast;
 
-    // Only the public settable properties feed the generated factory, so the
-    // call site is Generated.WeatherCard(City: "Helsinki") — `http` resolves
-    // from DI via ActivatorUtilities, invisible to the caller. City is a
-    // non-nullable, no-initializer property, so the generator emits it as a
-    // *required* factory parameter (RASK001) — note there's no `required`
-    // keyword: that keyword plus a DI-only constructor (no parameterless ctor)
-    // would be RASK002, since ActivatorUtilities can't satisfy `required`
-    // members. Rask assigns City
-    // after construction, which the CS8618 suppression acknowledges.
+    // Only the public settable properties become chain steps, so the call
+    // site is WeatherCard.City("Helsinki") — `http` resolves from DI,
+    // invisible to the caller. City is non-nullable with no initializer, so
+    // it is a *required* step (RASK001); Rask assigns it after construction,
+    // which the CS8618 suppression acknowledges.
 #pragma warning disable CS8618
     public string City { get; set; }
 #pragma warning restore CS8618
