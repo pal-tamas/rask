@@ -315,12 +315,12 @@ As RASK016, for `{Name}.ts` matching multiple component classes.
 ## RASK019
 **`<head>` is a framework-managed slot** · Error
 
-Children were passed to `Head()`. Rask collects, dedupes, and splices head content itself, so the
+Children were passed to `Head[…]`. Rask collects, dedupes, and splices head content itself, so the
 `<head>` element doesn't take children.
 
-**Fix:** override `protected override Component? Head => ...` on any component and return your
+**Fix:** override `protected override Component? HeadAssets => ...` on any component and return your
 `Title`/`Meta`/`Link`/`Script` — a single tag, or a collection expression like
-`Head => [Title(...)["..."], Meta(...)]`. See [the head guide](getting-started.md).
+`HeadAssets => [Title["..."], Meta.Name("description").Content("...")]`. See [the head guide](getting-started.md).
 
 ## RASK020
 **Scoped-TS simple-name collision** · Warning
@@ -349,13 +349,13 @@ protected override Component? Render() =>
 protected override Component? Render() => Router;
 ```
 
-**Fix:** return the body's content (usually `Router()`) and move the shell's pieces to the overrides
+**Fix:** return the body's content (usually `Router`) and move the shell's pieces to the overrides
 that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<html dir>` to `HtmlDir`, `<body class>` to `BodyClass`,
 and a genuinely custom document to `Shell(head, body)`, which receives the framework's `<head>` and the
 rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
 `Doctype`/`Html`/`Head`/`Body` stay ordinary tag components for documents you build by hand
 (`ToHtml()`, an email body) — they have just left the app-authoring path. See
-[the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
+[the document and the `HeadAssets` override](getting-started.md#7-the-document-and-the-headassets-override).
 
 ## RASK022
 **List item is missing a `Key`** · Warning
