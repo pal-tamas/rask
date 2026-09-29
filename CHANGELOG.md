@@ -9,6 +9,38 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Toasts are built in.** `Toast.Success("Saved")` — or `Info`, `Warning`, `Error` — shows a toast from anywhere,
+  with nothing injected and nothing mounted: the host draws it in the UI kit's look, or a small look of Rask's own
+  with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:
+
+  ```csharp
+  Toast.Success("Your order was placed").Title("Order 42");
+  Toast.Info("Order placed").Action("View order", () => Routes.OrderPage(order.Id).Go());
+  Toast.Error("Payment failed").For(30.Seconds);
+  Toast.Error("Couldn't reach the server").UntilDismissed();
+
+  RaskApp.Create(args).Configure(c => c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds)).Run<App>();
+  ```
+
+  `Rask:Toasts` in appsettings says the same. An app that mounts its own `ToastOutlet` gets every toast in its own
+  look; the built-in one steps aside. A test records them with `using var toasts = Toast.Fake();` and
+  `toasts.Shown("Saved").Once()`. `ToastOutlet` now draws a toast on its next render rather than the moment it is
+  queued, so the steps after `Toast.X(…)` are part of it.
+- **`Routes.X().Go()` navigates from inside a component.** `SomePage.Go()` did not compile there, because a page's
+  bare name inside markup is its chain entry — so a save had to inject `Navigator`. A route URL now navigates
+  itself: `Routes.ProductsPage().Go()`.
+- **`Page.Visit(url)` runs your app.** A test used to hand `Visit` a service provider it built itself, and a page
+  behind `[Authorize]` rendered anyway. `Visit` now boots the app's own `Program.cs` — its services, settings and
+  pages, with fresh database files per visit — and applies the route guards, so a signed-out visitor lands on
+  `/login`. `.As(user)` visits signed in, as a row of the app's user table or any `ClaimsPrincipal`:
+
+  ```csharp
+  var page = Page.Visit("/products/new").As(admin);
+  ```
+
+  The app starts as it does in production (migrations applied) but opens no port. `Page.Visit(url, services)`
+  still routes over a provider you pass, for a component library with no app.
+
 - **BREAKING: a Data read is awaited, and its terminals drop `Async`.** A query runs when you await it; the rest
   read as words. A read handed no token is cancelled with the work it belongs to (the request, the job, the
   component, the query-cache fetch).

@@ -221,25 +221,48 @@ The rest of this guide covers `Rask`'s own in-repo test helpers (`Rask.TestSuppo
 ## 1. Driving the app the way a person does
 
 `Page.Render` gives you one component and its handler ids. For a test about a **feature** — fill this in,
-press that, see what it says — open the app at a URL instead. `Page.Visit` goes through the real router,
-so the page registered for that URL renders with its route and query parameters bound, and a click that
-navigates moves to the next page:
+press that, see what it says — open the app at a URL instead. `Page.Visit` **runs your app**: the test
+project references it, and `Visit` boots its own `Program.cs` — its services, its settings, its pages — with a
+database of its own for this test, then opens the URL through the real router, route guards included:
 
 ```csharp
 [Fact]
-public async Task Saving_a_product_shows_it_in_the_catalogue()
+public async Task An_admin_adds_a_product()
 {
-    var page = Page.Visit("/products/new", services);
+    var admin = await User.Create(new() { Email = "ann@example.com", Roles = [RaskRoles.Admin] });
+    var page = Page.Visit("/products/new").As(admin);
 
     await page.Type("Tea").Into("Name");
     await page.Pick("Green").From("Category");
     await page.Check("In stock");
     await page.Click("Save");
 
-    page.Shows("Product saved");
+    page.Shows("Saved");
     page.IsAt("/products");
+    Assert.Equal(1, await Product.Count());
+}
+
+[Fact]
+public void A_visitor_is_sent_to_sign_in()
+{
+    var page = Page.Visit("/products/new");
+
+    page.IsAt("/login");
 }
 ```
+
+- **The app, as written.** Whatever `Program.cs` registers and configures is what the page gets; no service
+  collection to build in the test. The app starts the way it does in production — pending migrations are
+  applied — but opens no port.
+- **A database per test.** Each visit gets fresh database files, so tests never see each other's rows and run
+  side by side. The test's own reads and writes — `User.Create(…)`, `await Product.Count()` — reach the same
+  database the page does.
+- **`.As(user)`** — visit signed in, as a row of your app's user table (or any `ClaimsPrincipal`), exactly
+  as that user would be after signing in: `[Authorize]`, `Authorize.Roles(…)` and `Current.UserId` all see them.
+  Without it the visitor is signed out, and a guarded page sends them to `/login` (or `/forbidden` when they
+  are signed in without the role), as the running app does.
+
+A component library has no app to run; there `Page.Visit(url, services)` routes over the services you pass.
 
 Nothing here names a handler id, a selector or a `data-testid`. A field is found by the text beside it —
 its label, then its placeholder, then its `aria-label` — which is the same thing a person looks for, and

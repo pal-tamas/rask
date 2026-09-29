@@ -99,7 +99,29 @@ public sealed partial class RaskApp
         // assembly would say the same in production and lie under `dotnet ef`, whose entry point is ef.dll.
         var app = new RaskApp(builder);
         app._options.AppAssembly = Assembly.GetCallingAssembly();
+
+        // Before any Configure, so what Program.cs says about toasts wins over appsettings.
+        ReadToasts(builder.Configuration.GetSection("Rask:Toasts"), app._options.Toasts);
         return app;
+    }
+
+    private static void ReadToasts(IConfigurationSection section, ToastOptions toasts)
+    {
+        if (Enum.TryParse<Ui.Position>(section["Position"], ignoreCase: true, out var position))
+        {
+            toasts.Position = position;
+        }
+
+        if (Enum.TryParse<Ui.Align>(section["Align"], ignoreCase: true, out var align))
+        {
+            toasts.Align = align;
+        }
+
+        if (TimeSpan.TryParse(section["Duration"], System.Globalization.CultureInfo.InvariantCulture, out var duration) &&
+            duration > TimeSpan.Zero)
+        {
+            toasts.Duration = duration;
+        }
     }
 
     /// <summary>Says how this app differs from a default one — which batteries it does without, and how the rest are set up.</summary>
@@ -137,14 +159,14 @@ public sealed partial class RaskApp
     /// <summary>Builds the pipeline and runs the app, with <typeparamref name="TApp"/> as the root component.</summary>
     public void Run<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         string pathBase = "")
-        where TApp : Component =>
-        Build<TApp>(pathBase).Run();
+        where TApp : Component
+        => Build<TApp>(pathBase).Run();
 
     /// <summary>The awaitable <see cref="Run{TApp}"/>.</summary>
     public Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         string pathBase = "")
-        where TApp : Component =>
-        Build<TApp>(pathBase).RunAsync();
+        where TApp : Component
+        => Build<TApp>(pathBase).RunAsync();
 
     /// <summary>Builds the <see cref="WebApplication"/> and applies the pipeline, without running it.</summary>
     public WebApplication Build<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
@@ -160,7 +182,7 @@ public sealed partial class RaskApp
 
         // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
         // Only here, not in AddRask: a hand-wired host writes its own document and keeps it.
-        _builder.Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, _options.Ui.Enabled));
+        _builder.Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, _options.Ui.Enabled, _options.Toasts));
 
         var app = _builder.Build();
 

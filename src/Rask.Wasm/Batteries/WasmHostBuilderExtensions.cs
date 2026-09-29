@@ -44,6 +44,9 @@ public static class WasmHostBuilderExtensions
     internal static bool UiEnabled(WasmHostBuilder host) =>
         !Options.TryGetValue(host, out var configured) || configured.Ui.Enabled;
 
+    internal static ToastOptions Toasts(WasmHostBuilder host) =>
+        Options.TryGetValue(host, out var configured) ? configured.Toasts : new ToastOptions();
+
     // Applied by the host just before it builds the provider, so everything Program.cs said has been said.
     // An app that never called Configure has no entry here and gets the defaults — every battery on.
     internal static void Wire(WasmHostBuilder host, IServiceCollection services)

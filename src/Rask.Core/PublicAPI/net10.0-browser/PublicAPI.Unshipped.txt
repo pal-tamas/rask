@@ -13355,3 +13355,46 @@ static RaskEntriesRask_Core.Var.get -> Rask.Core.HTMLElement!
 static RaskEntriesRask_Core.Video.get -> Rask.Core.HTMLVideoElement!
 static RaskEntriesRask_Core.View.get -> Rask.Core.SVGViewElement!
 static RaskEntriesRask_Core.Wbr.get -> Rask.Core.HTMLElement!
+Rask.Core.Authentication.IPrincipalFor
+Rask.Core.Authentication.IPrincipalFor.For(object! user) -> System.Security.Claims.ClaimsPrincipal?
+Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShowingToast.For(System.TimeSpan duration) -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShowingToast.ShowingToast() -> void
+Rask.Core.Messaging.ShowingToast.Title(string! title) -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShowingToast.UntilDismissed() -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShownToasts
+Rask.Core.Messaging.ShownToasts.As(Rask.Core.Messaging.ToastLevel level) -> void
+Rask.Core.Messaging.ShownToasts.Count.get -> int
+Rask.Core.Messaging.ShownToasts.Never() -> void
+Rask.Core.Messaging.ShownToasts.Once() -> void
+Rask.Core.Messaging.ShownToasts.ShownToasts() -> void
+Rask.Core.Messaging.ToastAction
+Rask.Core.Messaging.ToastAction.<Clone>$() -> Rask.Core.Messaging.ToastAction!
+Rask.Core.Messaging.ToastAction.Deconstruct(out string! Label, out Rask.Core.Callback Run) -> void
+Rask.Core.Messaging.ToastAction.Equals(Rask.Core.Messaging.ToastAction? other) -> bool
+Rask.Core.Messaging.ToastAction.Label.get -> string!
+Rask.Core.Messaging.ToastAction.Label.init -> void
+Rask.Core.Messaging.ToastAction.Run.get -> Rask.Core.Callback
+Rask.Core.Messaging.ToastAction.Run.init -> void
+Rask.Core.Messaging.ToastAction.ToastAction(string! Label, Rask.Core.Callback Run) -> void
+Rask.Core.Messaging.ToastFake
+Rask.Core.Messaging.ToastFake.Dispose() -> void
+Rask.Core.Messaging.ToastFake.Shown(string! message) -> Rask.Core.Messaging.ShownToasts
+Rask.Core.Messaging.ToastMessage.Action.get -> Rask.Core.Messaging.ToastAction?
+Rask.Core.Messaging.ToastMessage.Action.init -> void
+Rask.Core.Messaging.ToastMessage.Duration.get -> System.TimeSpan?
+Rask.Core.Messaging.ToastMessage.Duration.init -> void
+Rask.Core.Routing.RouteUrl.Go(bool replace = false) -> void
+Rask.Core.Toast
+override Rask.Core.Messaging.ToastAction.Equals(object? obj) -> bool
+override Rask.Core.Messaging.ToastAction.GetHashCode() -> int
+override Rask.Core.Messaging.ToastAction.ToString() -> string!
+static Rask.Core.Messaging.ToastAction.operator !=(Rask.Core.Messaging.ToastAction? left, Rask.Core.Messaging.ToastAction? right) -> bool
+static Rask.Core.Messaging.ToastAction.operator ==(Rask.Core.Messaging.ToastAction? left, Rask.Core.Messaging.ToastAction? right) -> bool
+static Rask.Core.Toast.Error(string! message) -> Rask.Core.Messaging.ShowingToast
+static Rask.Core.Toast.Fake() -> Rask.Core.Messaging.ToastFake!
+static Rask.Core.Toast.Info(string! message) -> Rask.Core.Messaging.ShowingToast
+static Rask.Core.Toast.Success(string! message) -> Rask.Core.Messaging.ShowingToast
+static Rask.Core.Toast.Warning(string! message) -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShowingToast.Action(string! label, System.Action! run) -> Rask.Core.Messaging.ShowingToast
+Rask.Core.Messaging.ShowingToast.Action(string! label, System.Func<System.Threading.Tasks.Task!>! run) -> Rask.Core.Messaging.ShowingToast

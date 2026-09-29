@@ -191,7 +191,7 @@ public sealed class WasmHostBuilder
     {
         // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
         // Registered before either path below builds the container, so the boot and the baked pages agree.
-        Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, WasmHostBuilderExtensions.UiEnabled(this)));
+        Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, WasmHostBuilderExtensions.UiEnabled(this), WasmHostBuilderExtensions.Toasts(this)));
 
         // Publish-time prerendering, driven from the app's OWN entry point. Program.cs is where the
         // services are registered, so a generated entry point compiled without it would leave every

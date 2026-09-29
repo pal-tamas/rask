@@ -121,6 +121,8 @@
         <Project Path="tests/Rask.Validation.Tests/Rask.Validation.Tests.csproj" />
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj" />
         <Project Path="tests/Rask.Testing.Tests/Rask.Testing.Tests.csproj" />
+        <Project Path="tests/Rask.Testing.Host.Tests/Rask.Testing.Host.Tests.csproj" />
+        <Project Path="tests/Rask.Testing.Fixture.App/Rask.Testing.Fixture.App.csproj" />
         <Project Path="tests/Rask.WebPush.Tests/Rask.WebPush.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj" />

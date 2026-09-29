@@ -31,7 +31,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag entries, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
 | [Subscriptions](subscriptions.md) | Keeping a page current. `[Live(typeof(Order))]` on a query refetches it when anyone writes an order — no event, no record, no policy, and nothing in `Render`. For what is genuinely an event, `QueryClient.Subscribe<T>()` re-renders every subscribed page, narrowed by an `ISubscription<T>` record and its watch policy, over server-sent events from WebAssembly. `Notify.Send(…)` publishes with nothing injected. |
-| [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
+| [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), built-in toasts (`Toast.Success("Saved")`), `VirtualizeModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
 | [Browser APIs](browser-apis.md) | The map of all 53 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
 | [Capability matrix](browser-capabilities.md) | Where each of the 53 APIs works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
