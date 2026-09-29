@@ -9,6 +9,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rendering allocates less.** Text or an attribute that needs encoding — an accented letter, an apostrophe,
+  `&`, a style's `;` — is encoded through a stack buffer instead of a new string per value per render
+  (`RenderEncodedText` 197.5 KB → 113.1 KB, −43%); a `RaskUrl.Trusted` href/src is written without cutting its
+  marker off (`RenderTrustedUrls` −32%); a server render's `int`/`long`/`Guid` `Key` is formatted in place
+  (ints under 300 were already free); a full-HTML live frame is encoded from the pooled page buffer, not a
+  page-sized string; a handler ack is formatted straight to UTF-8; and a WASM event no longer copies the frame
+  it just sent. `Context.Provide` no longer writes an `AsyncLocal` per provider per render, so context answers
+  only inside the render walk — where `Context.Get` is documented to be called: a task started in `Render()`
+  that reads context later sees none, so read the value in `Render()` and pass it in.
+
 - **The kit says `Title`, and a control's own text goes in its indexer.** `Heading` is `Title` on every kit
   component that had it — `Ui.Card`, `Ui.Header`, `Ui.Empty`, `Ui.Toast`, `Ui.MenuGroup`, `Ui.MenuRadioGroup`,
   `Ui.MenuSub`, `Ui.NavGroup`, `Ui.FileInput` (and `HeadingLevel` is `TitleLevel`); inside such a component the

@@ -54,18 +54,48 @@ internal static class HtmlSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void AppendEncoded(StringBuilder sb, string value)
     {
-        if (value.Length == 0)
-        {
-            return;
-        }
-
-        if (value.AsSpan().IndexOfAnyExcept(SafeAsciiForHtml) < 0)
+        var unsafeAt = value.AsSpan().IndexOfAnyExcept(SafeAsciiForHtml);
+        if (unsafeAt < 0)
         {
             sb.Append(value);
             return;
         }
 
-        sb.Append(HtmlEncoder.Default.Encode(value));
+        AppendEncodedFrom(sb, value, unsafeAt);
+    }
+
+    /// <inheritdoc cref="AppendEncoded(StringBuilder, string)" />
+    internal static void AppendEncoded(StringBuilder sb, ReadOnlySpan<char> value)
+    {
+        var unsafeAt = value.IndexOfAnyExcept(SafeAsciiForHtml);
+        if (unsafeAt < 0)
+        {
+            sb.Append(value);
+            return;
+        }
+
+        AppendEncodedFrom(sb, value, unsafeAt);
+    }
+
+    // The encoder leaves the safe prefix alone, so it goes in verbatim; the rest is encoded through a stack
+    // chunk rather than HtmlEncoder.Encode(string), which allocates the encoded string on every render of
+    // any value holding ';', '\'', '&' or a non-ASCII letter. 256 chars always fit one escape (at most 10).
+    private static void AppendEncodedFrom(StringBuilder sb, ReadOnlySpan<char> value, int unsafeAt)
+    {
+        sb.Append(value[..unsafeAt]);
+        var rest = value[unsafeAt..];
+        Span<char> chunk = stackalloc char[256];
+        while (true)
+        {
+            var status = HtmlEncoder.Default.Encode(rest, chunk, out var consumed, out var written);
+            sb.Append(chunk[..written]);
+            if (status != OperationStatus.DestinationTooSmall)
+            {
+                return;
+            }
+
+            rest = rest[consumed..];
+        }
     }
 
     /// <summary>

@@ -8,20 +8,30 @@ namespace Rask.Core.Components;
 ///     enclosing provider. Mirrors <see cref="Rask.Core.Forms.EditContextScope" /> but holds a
 ///     linked stack so nested and differently-typed providers coexist.
 ///     <para>
+///         Thread-static, not <see cref="AsyncLocal{T}" />: the walk never awaits, so the thread IS the
+///         walk, and an <see cref="AsyncLocal{T}" /> write copies the execution context's value map —
+///         twice per provider per render. The price is that context answers only inside the walk, which
+///         is where <c>Context.Get</c> is documented to be called.
+///     </para>
+///     <para>
 ///         Named <c>ContextStack</c> (not <c>ContextScope</c>) to avoid colliding with the
 ///         nested <c>LiveRenderContext.ContextScope</c> pop helper.
 ///     </para>
 /// </summary>
 internal static class ContextStack
 {
-    private static readonly AsyncLocal<Entry?> _head = new();
+    [ThreadStatic] private static Entry? t_head;
 
-    internal static Entry? Head => _head.Value;
-
-    internal static IDisposable Push(Type valueType, string? name, object? value)
+    internal static Entry? Head
     {
-        var prev = _head.Value;
-        _head.Value = new Entry(valueType, name, value, prev);
+        get => t_head;
+        private set => t_head = value;
+    }
+
+    internal static Popper Push(Type valueType, string? name, object? value)
+    {
+        var prev = t_head;
+        t_head = new Entry(valueType, name, value, prev);
         return new Popper(prev);
     }
 
@@ -46,7 +56,7 @@ internal static class ContextStack
     /// <summary>The entry <see cref="TryGet" /> resolves to, or null. The devtools read which provider answered.</summary>
     internal static Entry? Find(Type requested, string? name)
     {
-        for (var e = _head.Value; e is not null; e = e.Parent)
+        for (var e = t_head; e is not null; e = e.Parent)
         {
             if (string.Equals(e.Name, name, StringComparison.Ordinal) && requested.IsAssignableFrom(e.ValueType))
             {
@@ -59,19 +69,8 @@ internal static class ContextStack
 
     internal sealed record Entry(Type ValueType, string? Name, object? Value, Entry? Parent);
 
-    private sealed class Popper(Entry? prev) : IDisposable
+    internal readonly struct Popper(Entry? prev) : IDisposable
     {
-        private bool _disposed;
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            _disposed = true;
-            _head.Value = prev;
-        }
+        public void Dispose() => Head = prev;
     }
 }

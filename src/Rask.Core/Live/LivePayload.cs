@@ -348,6 +348,21 @@ public static class LivePayload
         IReadOnlyList<PendingJsInvoke>? jsInvokes = null,
         string? resume = null,
         DevErrorInfo? devError = null)
+        => BuildPayloadUtf8Spliced(output, html.AsSpan(), sessionId, false,
+            historyUrl, replace, auth, download, jsInvokes, resume, devError);
+
+    // The session's full-HTML send: the page stays in its pooled buffer rather than becoming a string.
+    internal static void BuildPayloadUtf8WithRoot(
+        ArrayBufferWriter<byte> output,
+        ReadOnlySpan<char> html,
+        string sessionId,
+        string? historyUrl,
+        bool replace,
+        AuthInstruction? auth,
+        PendingDownload? download,
+        IReadOnlyList<PendingJsInvoke>? jsInvokes,
+        string? resume,
+        DevErrorInfo? devError)
         => BuildPayloadUtf8Spliced(output, html, sessionId, false,
             historyUrl, replace, auth, download, jsInvokes, resume, devError);
 
@@ -598,7 +613,7 @@ public static class LivePayload
 
     private static void BuildPayloadUtf8Spliced(
         ArrayBufferWriter<byte> output,
-        string html,
+        ReadOnlySpan<char> html,
         string sessionId,
         bool includeOnlyBody,
         string? historyUrl,
@@ -621,7 +636,8 @@ public static class LivePayload
         var sliceEndChar = bodyOpenChar < 0 ? -1 : SliceEnd(html, bodyOpenChar, includeOnlyBody);
         if (sliceEndChar < 0)
         {
-            BuildPayloadUtf8(output, html, historyUrl, replace, auth, download, jsInvokes, resume);
+            using var plain = new Utf8JsonWriter(output, DiffWriterOptions);
+            WriteJson(plain, html, historyUrl, replace, auth, download, jsInvokes, resume, null);
             return;
         }
 
@@ -633,8 +649,8 @@ public static class LivePayload
         //   2. " data-rask-root=\"{encodedSessionId}\""                (the injection)
         //   3. html[bodyOpenChar + "<body".Length .. sliceEndChar)     (tail)
         var headEndChar = bodyOpenChar + bodyOpenLen;
-        var headSlice = html.AsSpan(sliceStartChar, headEndChar - sliceStartChar);
-        var tailSlice = html.AsSpan(headEndChar, sliceEndChar - headEndChar);
+        var headSlice = html.Slice(sliceStartChar, headEndChar - sliceStartChar);
+        var tailSlice = html.Slice(headEndChar, sliceEndChar - headEndChar);
 
         var encodedSessionId = HtmlEncoder.Default.Encode(sessionId);
         var totalBytes = Encoding.UTF8.GetByteCount(headSlice) + RootAttrPrefix.Length
@@ -676,14 +692,14 @@ public static class LivePayload
 
     // Where the spliced payload ends: just past </body> when only the body ships, else the end of the page.
     // An unterminated body answers -1, since there is nothing sound to splice.
-    private static int SliceEnd(string html, int bodyOpenChar, bool includeOnlyBody)
+    private static int SliceEnd(ReadOnlySpan<char> html, int bodyOpenChar, bool includeOnlyBody)
     {
         if (!includeOnlyBody)
         {
             return html.Length;
         }
 
-        var tagEndRel = html.AsSpan(bodyOpenChar).IndexOf('>');
+        var tagEndRel = html[bodyOpenChar..].IndexOf('>');
         if (tagEndRel < 0)
         {
             return -1;
@@ -723,7 +739,7 @@ public static class LivePayload
 
     private static void WriteJson(
         Utf8JsonWriter writer,
-        string html,
+        ReadOnlySpan<char> html,
         string? historyUrl,
         bool replace,
         AuthInstruction? auth,
@@ -929,7 +945,7 @@ public static class LivePayload
             html.AsSpan(insertAt));
     }
 
-    private static int IndexOfBodyOpen(string html)
+    private static int IndexOfBodyOpen(ReadOnlySpan<char> html)
     {
         // Case-insensitive scan for "<body" followed by a tag boundary character (space, >, /,
         // or end-of-string). Matches the regex `<body\b` shape without an engine allocation.
@@ -958,7 +974,7 @@ public static class LivePayload
         return -1;
     }
 
-    private static int IndexOfIgnoreCase(string source, string value, int startIndex)
+    private static int IndexOfIgnoreCase(ReadOnlySpan<char> source, string value, int startIndex)
     {
         var end = source.Length - value.Length;
         for (var i = startIndex; i <= end; i++)
@@ -972,7 +988,7 @@ public static class LivePayload
         return -1;
     }
 
-    private static bool MatchesIgnoreCase(string source, int sourceIndex, string value)
+    private static bool MatchesIgnoreCase(ReadOnlySpan<char> source, int sourceIndex, string value)
     {
         for (var j = 0; j < value.Length; j++)
         {

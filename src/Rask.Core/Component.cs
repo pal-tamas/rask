@@ -842,13 +842,37 @@ public abstract partial class Component : RaskMarkup
     // RaskUrl.Trusted(...) to opt out. Otherwise identical to AppendAttr (incl. frame sink).
     protected static void AppendUrlAttr(StringBuilder sb, string name, string? value)
     {
+        if (value is not null && value.StartsWith(RaskUrl.TrustedPrefix, StringComparison.Ordinal))
+        {
+            AppendTrustedUrlAttr(sb, name, value);
+            return;
+        }
+
         AppendAttr(sb, name, UrlSanitizer.Sanitize(value));
+    }
+
+    // A trusted URL is written from behind its marker in place; the unmarked string is cut only for a
+    // frame writer, which keeps the value to diff against.
+    private static void AppendTrustedUrlAttr(StringBuilder sb, string name, string value)
+    {
+        var url = value.AsSpan(RaskUrl.TrustedPrefix.Length);
+        sb.Append(' ').Append(name).Append("=\"");
+        HtmlSerializer.AppendEncoded(sb, url);
+        sb.Append('"');
+
+        FrameSinkScope.Current?.Attribute(name, url.ToString());
     }
 
     // Media URL attribute (img/audio/video/source src, poster). As AppendUrlAttr but also
     // allows data:image/*, data:video/*, data:audio/* (inline media is common and inert here).
     protected static void AppendMediaUrlAttr(StringBuilder sb, string name, string? value)
     {
+        if (value is not null && value.StartsWith(RaskUrl.TrustedPrefix, StringComparison.Ordinal))
+        {
+            AppendTrustedUrlAttr(sb, name, value);
+            return;
+        }
+
         AppendAttr(sb, name, UrlSanitizer.SanitizeMedia(value));
     }
 

@@ -2256,16 +2256,28 @@ public static partial class RaskEndpointExtensions
     // ack (socket closing, cancellation) is covered by the client's hard-timeout backstop.
     private static async Task SendHandlerAckAsync(LiveSession session, long seq)
     {
+        // Formatted straight to UTF-8 in a rented buffer — the send is awaited before it goes back.
+        var buffer = ArrayPool<byte>.Shared.Rent(64);
         try
         {
-            var payload = Encoding.UTF8.GetBytes(
-                "{\"type\":\"ack\",\"seq\":" + seq.ToString(CultureInfo.InvariantCulture) + "}");
-            await session.SendOutOfBandAsync(payload).ConfigureAwait(false);
+            await session.SendOutOfBandAsync(buffer.AsMemory(0, WriteHandlerAck(buffer, seq))).ConfigureAwait(false);
         }
         catch
         {
             // Swallow: the client re-syncs on the next ack or its hard-timeout backstop.
         }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    // {"type":"ack","seq":N} — 41 bytes at most (long.MinValue).
+    internal static int WriteHandlerAck(Span<byte> destination, long seq)
+    {
+        System.Text.Unicode.Utf8.TryWrite(destination, CultureInfo.InvariantCulture,
+            $"{{\"type\":\"ack\",\"seq\":{seq}}}", out var written);
+        return written;
     }
 
     private static Task DispatchHandlerAsync(

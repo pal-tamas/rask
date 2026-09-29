@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Rask.Core.Live;
 
@@ -459,6 +460,22 @@ public abstract partial class Element : Component
         }
     }
 
+    // data-rask-key for the element's own Key. The documented keys — int, long, Guid — format into the builder
+    // in place, as KeyString spells them (invariant digits, Guid "D") and never needing encoding; the string
+    // is built only for a frame writer, which keeps the value to diff against.
+    private void AppendOwnKey(StringBuilder sb)
+    {
+        if (Key is int or long or Guid && FrameSinkScope.Current is null)
+        {
+            Span<char> buffer = stackalloc char[36]; // a Guid "D" is 36; long.MinValue is 20
+            _ = ((ISpanFormattable)Key).TryFormat(buffer, out var written, default, CultureInfo.InvariantCulture);
+            sb.Append(" data-rask-key=\"").Append(buffer[..written]).Append('"');
+            return;
+        }
+
+        AppendAttr(sb, "data-", "rask-key", KeyString);
+    }
+
     private void WriteDataGroup(StringBuilder sb)
     {
         // Effective keyed-list identity: this element's own Key, else a key forwarded from a
@@ -466,18 +483,22 @@ public abstract partial class Element : Component
         // adopts it). Emitted in the data-* group below so FrameDiffer.ExtractRaskKey finds it
         // among the leading attribute frames, same as a Data["rask-key"] entry.
         var forwarded = KeyForwardScope.Consume();
-        var key = KeyString ?? forwarded;
+        var hasKey = Key is not null || forwarded is not null;
 
         if (Data is not null)
         {
             // A literal Data["rask-key"] is superseded by an effective Key to avoid a duplicate
             // attribute — Key is the canonical API; Data stays for back-compat.
-            AppendPrefixedAttrs(sb, "data-", Data, key is not null ? "rask-key" : null);
+            AppendPrefixedAttrs(sb, "data-", Data, hasKey ? "rask-key" : null);
         }
 
-        if (key is not null)
+        if (Key is not null)
         {
-            AppendAttr(sb, "data-", "rask-key", key);
+            AppendOwnKey(sb);
+        }
+        else if (forwarded is not null)
+        {
+            AppendAttr(sb, "data-", "rask-key", forwarded);
         }
 
         // Element ref handle (JS interop): a data-* attribute, emitted alongside rask-key so it
