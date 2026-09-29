@@ -394,10 +394,10 @@ public sealed class DevHostTests
             using var connection = await listener.AcceptTcpClientAsync();
             await using var tls = new System.Net.Security.SslStream(connection.GetStream(), leaveInnerStreamOpen: false);
             await tls.AuthenticateAsServerAsync(served);
-        });
+        }, TestContext.Current.CancellationToken);
 
         using var client = new System.Net.Sockets.TcpClient();
-        await client.ConnectAsync(System.Net.IPAddress.Loopback, port);
+        await client.ConnectAsync(System.Net.IPAddress.Loopback, port, TestContext.Current.CancellationToken);
 
         await using var clientTls = new System.Net.Security.SslStream(
             client.GetStream(),

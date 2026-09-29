@@ -25,7 +25,9 @@ public sealed partial class AmbientTests : global::Rask.Core.RaskMarkup
 
         var html = view.RenderAsLiveRoot(sp);
         using var click = JsonDocument.Parse("{}");
+#pragma warning disable xUnit1051 // no dispatch token on purpose: the handler's token must be its component's
         await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-click")!, click.RootElement, sp);
+#pragma warning restore xUnit1051
 
         Assert.Equal("session", seenServices?.GetService<Marker>()?.Name);
         Assert.True(seenToken.CanBeCanceled);
@@ -57,6 +59,6 @@ public sealed partial class AmbientTests : global::Rask.Core.RaskMarkup
         using var _ = Ambient.Enter(ambient.Token);
 
         Assert.Equal(passed.Token, Ambient.Or(passed.Token));
-        Assert.Equal(ambient.Token, Ambient.Or(default));
+        Assert.Equal(ambient.Token, Ambient.Or(CancellationToken.None));
     }
 }

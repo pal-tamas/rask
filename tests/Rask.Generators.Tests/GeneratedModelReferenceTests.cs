@@ -187,14 +187,14 @@ public class GeneratedModelReferenceTests
             }
             """,
             new CSharpParseOptions(LanguageVersion.Latest),
-            "/proj/ProductModel.g.cs");
+            "/proj/ProductModel.g.cs", cancellationToken: TestContext.Current.CancellationToken);
         var generated = run.RunResult.Results
             .SelectMany(r => r.GeneratedSources)
             .Select(s => CSharpSyntaxTree.ParseText(s.SourceText, new CSharpParseOptions(LanguageVersion.Latest), s.HintName));
 
         Assert.Empty(run.Compilation
             .AddSyntaxTrees(generated.Append(standIn))
-            .GetDiagnostics()
+            .GetDiagnostics(TestContext.Current.CancellationToken)
             .Where(d => d.Severity == DiagnosticSeverity.Error));
     }
 }

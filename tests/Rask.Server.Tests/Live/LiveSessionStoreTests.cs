@@ -21,7 +21,7 @@ public class LiveSessionStoreTests
         // Reconnect within the grace window: Get must cancel the pending removal.
         Assert.NotNull(store.Get(session.Id));
 
-        await Task.Delay(250);
+        await Task.Delay(250, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, store.Count);
         Assert.NotNull(store.Get(session.Id));
@@ -38,7 +38,7 @@ public class LiveSessionStoreTests
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
         while (store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(0, store.Count);
@@ -60,7 +60,7 @@ public class LiveSessionStoreTests
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
         while (store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(0, store.Count);
@@ -86,7 +86,7 @@ public class LiveSessionStoreTests
                     store.ScheduleRemoval(id, TimeSpan.FromMilliseconds(5));
                     _ = store.Get(id); // reconnect cancels the pending removal
                 }
-            }));
+            }, TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);

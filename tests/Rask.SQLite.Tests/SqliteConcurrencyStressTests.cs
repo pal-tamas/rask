@@ -17,8 +17,9 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
     // Microsoft.Data.Sqlite's connection pool is process-global, and so is ClearAllPools(): it disposes the
     // underlying sqlite3 handle of connections that are currently LEASED AND IN USE, not just idle ones
     // (verified against plain MDS, so not a Rask defect). Classes across the SQLite test assemblies call it
-    // in Dispose to release a temp-file handle, and vstest batches compatible assemblies into ONE testhost
-    // process — so `[assembly: CollectionBehavior(DisableTestParallelization)]`, which is per-assembly,
+    // in Dispose to release a temp-file handle, and under xUnit v2 vstest batched compatible assemblies into ONE
+    // testhost process (v3 runs each assembly as its own process; pooling stays off regardless) — so
+    // `[assembly: Parallelization(Mode = ParallelMode.None)]`, which is per-assembly,
     // cannot keep a SIBLING ASSEMBLY's teardown away from this class's live connections. That is exactly
     // why the 500-writer burst fails only in a solution-wide run and never alone or per-assembly: a sibling
     // clears the pool mid-burst, and `connection.Handle` then hands a disposed SafeHandle to the next raw
@@ -95,7 +96,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
                 })));
 
             // With only 8 worker threads, this completes only because the wait yields the thread.
-            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromSeconds(60));
+            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
 
             Assert.Equal(writers, CountRows());
         }

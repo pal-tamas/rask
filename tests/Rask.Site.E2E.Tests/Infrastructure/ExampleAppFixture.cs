@@ -65,7 +65,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         }
     }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var repoRoot = LocateRepoRoot();
         var projectPath = Path.Combine(repoRoot, ProjectRelativePath);
@@ -117,7 +117,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_process is null)
         {

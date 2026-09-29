@@ -29,7 +29,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     private HealthClient _health = null!;
     private PostStore _store = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _store = new PostStore();
 
@@ -57,16 +57,16 @@ public sealed class RoundTripTests : IAsyncLifetime
         _health = new HealthClient(http, options);
     }
 
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _host.Dispose();
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
     [Fact]
     public async Task A_route_parameter_reaches_the_right_resource()
     {
-        var post = await _posts.Get(2);
+        var post = await _posts.Get(2, TestContext.Current.CancellationToken);
 
         Assert.NotNull(post);
         Assert.Equal(2, post.Id);
@@ -79,7 +79,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     {
         // Asserted through the server's own observation rather than the response: the point is that the
         // value bound, and a response echoing it could be right for the wrong reason.
-        _ = await _posts.List(page: 7);
+        _ = await _posts.List(page: 7, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(7, _store.LastPageAsked);
     }
@@ -89,7 +89,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     {
         // ?page= and no page at all are different requests: the binder reads the first as present-and-
         // blank. A null must be omitted, not sent empty, or the action's own default never applies.
-        _ = await _posts.List();
+        _ = await _posts.List(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(1, _store.LastPageAsked);
     }
@@ -97,7 +97,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     [Fact]
     public async Task A_collection_result_round_trips()
     {
-        var posts = await _posts.List(1);
+        var posts = await _posts.List(1, TestContext.Current.CancellationToken);
 
         Assert.NotNull(posts);
         Assert.Equal(2, posts.Count);
@@ -107,7 +107,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     [Fact]
     public async Task A_request_body_round_trips()
     {
-        var created = await _posts.Create(new NewPost("third", ["fresh"]));
+        var created = await _posts.Create(new NewPost("third", ["fresh"]), TestContext.Current.CancellationToken);
 
         Assert.NotNull(created);
         Assert.Equal("third", created.Title);
@@ -118,7 +118,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     [Fact]
     public async Task A_void_action_answers_without_a_body()
     {
-        await _posts.Remove(1);
+        await _posts.Remove(1, TestContext.Current.CancellationToken);
 
         Assert.Null(_store.Find(1));
     }
@@ -128,7 +128,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     {
         // [FromServices] comes from the container. If it reached the signature, this would not compile —
         // which is the assertion. The call proves the endpoint still works with it filtered out.
-        var title = await _posts.Title(1);
+        var title = await _posts.Title(1, TestContext.Current.CancellationToken);
 
         Assert.Equal("first", title);
     }
@@ -136,7 +136,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     [Fact]
     public async Task A_controller_token_in_the_route_resolves()
     {
-        var status = await _health.Get();
+        var status = await _health.Get(TestContext.Current.CancellationToken);
 
         Assert.Equal("ok", status);
     }
@@ -144,7 +144,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     [Fact]
     public async Task A_failure_status_arrives_as_an_ApiException_carrying_it()
     {
-        var error = await Assert.ThrowsAsync<ApiException>(() => _posts.Get(404));
+        var error = await Assert.ThrowsAsync<ApiException>(() => _posts.Get(404, TestContext.Current.CancellationToken));
 
         Assert.Equal(404, error.StatusCode);
         Assert.Equal("GET", error.Method);
@@ -161,7 +161,7 @@ public sealed class RoundTripTests : IAsyncLifetime
         using var unreachable = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:1/") };
         var client = new PostsClient(unreachable, new ApiClientOptions());
 
-        var error = await Assert.ThrowsAsync<ApiException>(() => client.Get(1));
+        var error = await Assert.ThrowsAsync<ApiException>(() => client.Get(1, TestContext.Current.CancellationToken));
 
         Assert.Null(error.StatusCode);
         Assert.NotNull(error.InnerException);
@@ -178,7 +178,7 @@ public sealed class RoundTripTests : IAsyncLifetime
         // The failure this prevents is not a 404 but a *wrong request*: an unescaped "/" or "?" in a
         // segment changes which endpoint the call reaches, or turns part of the value into a query. Both
         // look like the server misbehaving from the call site.
-        var echoed = await _health.Echo(value);
+        var echoed = await _health.Echo(value, TestContext.Current.CancellationToken);
 
         Assert.Equal(value, echoed);
     }
@@ -190,7 +190,7 @@ public sealed class RoundTripTests : IAsyncLifetime
         // {"errors":{"Name":["..."]},"title":"...","status":400,"detail":"..."} — `detail` sits AFTER a
         // nested object. Reading it used to stop at the nested value's closing token and report nothing,
         // so a caller got a bare "answered 400" for the one response that explains itself best.
-        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked()));
+        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked(), TestContext.Current.CancellationToken));
 
         Assert.Equal(400, error.StatusCode);
         Assert.NotNull(error.ProblemType);
@@ -203,7 +203,7 @@ public sealed class RoundTripTests : IAsyncLifetime
         // "something was wrong", when the server sent messages that were written to be shown — the same
         // map, from the same problem type, that RemoteDispatchException.Errors carries for a rejected
         // CQRS request, so one rejection handler covers both seams.
-        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked()));
+        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked(), TestContext.Current.CancellationToken));
 
         Assert.NotNull(error.Errors);
         Assert.True(error.Errors!.ContainsKey("Name"), $"no 'Name' in {string.Join(", ", error.Errors.Keys)}");
@@ -218,7 +218,7 @@ public sealed class RoundTripTests : IAsyncLifetime
         // them. DataAnnotations is kept because dropping it changes BEHAVIOUR rather than only weight —
         // this endpoint would start accepting what it used to reject, silently. That claim is only
         // worth making if something checks it.
-        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked()));
+        var error = await Assert.ThrowsAsync<ApiException>(() => _health.Checked(new Checked(), TestContext.Current.CancellationToken));
 
         Assert.Equal(400, error.StatusCode);
     }

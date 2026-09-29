@@ -214,7 +214,7 @@ public class TypeScriptModuleTests
         var tree = CSharpSyntaxTree.ParseText(Preamble + """
             public sealed record Zebra(Guid Id);
             public sealed record Alpha(Guid Id);
-            """);
+            """, cancellationToken: TestContext.Current.CancellationToken);
         var references = AppDomain.CurrentDomain
             .GetAssemblies()
             .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))

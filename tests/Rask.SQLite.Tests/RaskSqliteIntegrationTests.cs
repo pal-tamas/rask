@@ -20,7 +20,7 @@ public sealed class RaskSqliteIntegrationTests : IDisposable
         await using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISqlite>();
 
-        await using var connection = await factory.CreateOpenAsync();
+        await using var connection = await factory.CreateOpenAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("wal", ReadPragma(connection, "journal_mode"));
         Assert.Equal("1", ReadPragma(connection, "foreign_keys"));

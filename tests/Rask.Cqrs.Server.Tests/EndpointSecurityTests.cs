@@ -26,7 +26,7 @@ public sealed class EndpointSecurityTests
         // GET surface safe.
         using var client = Host().CreateClient();
 
-        var response = await client.GetAsync(Url("Rask.Cqrs.Server.Tests.GetPublicStats", "{}"));
+        var response = await client.GetAsync(Url("Rask.Cqrs.Server.Tests.GetPublicStats", "{}"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -91,7 +91,7 @@ public sealed class EndpointSecurityTests
         var response = await Send(HttpMethod.Get, "Rask.Cqrs.Server.Tests.GetPublicStats", "{}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("7", await response.Content.ReadAsStringAsync());
+        Assert.Equal("7", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class EndpointSecurityTests
             HttpMethod.Get, "Rask.Cqrs.Server.Tests.GetSecret", """{"id":42}""", authenticated: true);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("\"secret-42\"", await response.Content.ReadAsStringAsync());
+        Assert.Equal("\"secret-42\"", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class EndpointSecurityTests
     public async Task A_handler_failure_never_leaks_what_went_wrong()
     {
         var response = await Send(HttpMethod.Get, "Rask.Cqrs.Server.Tests.Explodes", "{}", authenticated: true);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType!.MediaType);
@@ -172,7 +172,7 @@ public sealed class EndpointSecurityTests
         using var request = Request(HttpMethod.Post, "Rask.Cqrs.Server.Tests.DeleteThing", authenticated: true);
         request.Content = new StringContent($$"""{"id":1,"pad":"{{new string('x', 500)}}"}""", Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
     }
@@ -207,10 +207,10 @@ public sealed class EndpointSecurityTests
         content.Add(part, "0", "a.txt");
         request.Content = content;
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("\"hi:payload\"", await response.Content.ReadAsStringAsync());
+        Assert.Equal("\"hi:payload\"", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     private static string Url(string name, string message) =>

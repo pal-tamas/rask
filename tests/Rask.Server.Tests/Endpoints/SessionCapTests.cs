@@ -20,7 +20,7 @@ public class SessionCapTests
 
         for (var i = 0; i < 5; i++)
         {
-            (await host.Http.GetAsync($"/p{i}")).EnsureSuccessStatusCode();
+            (await host.Http.GetAsync($"/p{i}", TestContext.Current.CancellationToken)).EnsureSuccessStatusCode();
         }
 
         Assert.Equal(5, host.Store.Count);
@@ -32,11 +32,11 @@ public class SessionCapTests
         using var host = RaskTestHost.Create<TestApp>();
         host.Store.MaxSessions = 1;
 
-        var first = await host.Http.GetAsync("/first");
+        var first = await host.Http.GetAsync("/first", TestContext.Current.CancellationToken);
         first.EnsureSuccessStatusCode();
         Assert.Equal(1, host.Store.Count);
 
-        var second = await host.Http.GetAsync("/second");
+        var second = await host.Http.GetAsync("/second", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, second.StatusCode);
         Assert.True(second.Headers.TryGetValues("Retry-After", out var retry));

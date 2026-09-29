@@ -108,7 +108,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 
         Assert.NotNull(captured);
 
-        await captured!.ValidateFieldAsync(new FieldIdentifier(p, nameof(Person.Name)));
+        await captured!.ValidateFieldAsync(new FieldIdentifier(p, nameof(Person.Name)), TestContext.Current.CancellationToken);
 
         Assert.Contains("async-too-short",
             captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));

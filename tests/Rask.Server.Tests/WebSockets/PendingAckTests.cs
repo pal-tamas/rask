@@ -18,7 +18,7 @@ public class PendingAckTests
 
         // NoOpApp renders byte-identically, so the handler produces no frame — the ack is
         // the only thing on the wire, and the client needs it to clear the pending bar.
-        await ws.SendJsonAsync(new { id = handlerId, seq = 1 });
+        await ws.SendJsonAsync(new { id = handlerId, seq = 1 }, ct: TestContext.Current.CancellationToken);
         var (renders, ackSeq) = await ReadUntilAckAsync(ws);
 
         Assert.Empty(renders);
@@ -31,7 +31,7 @@ public class PendingAckTests
         using var host = RaskTestHost.Create<TestApp>();
         var (ws, handlerId) = await ConnectAsync(host);
 
-        await ws.SendJsonAsync(new { id = handlerId, seq = 7 });
+        await ws.SendJsonAsync(new { id = handlerId, seq = 7 }, ct: TestContext.Current.CancellationToken);
         var (renders, ackSeq) = await ReadUntilAckAsync(ws);
 
         // The render frame lands first (the chain acks only after the dispatch's render),
@@ -49,7 +49,7 @@ public class PendingAckTests
 
         // Opt-in: a seq-less client gets the render frame and nothing else — the exact
         // pre-feature contract, so existing dedup/ordering behaviour is untouched.
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var render = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(render);
@@ -68,7 +68,7 @@ public class PendingAckTests
 
         // Unknown handler id → TryInvokeHandlerAsync is false → no render runs, yet the
         // dispatch still completes, so the ack must flow and unwedge the client.
-        await ws.SendJsonAsync(new { id = "does-not-exist", seq = 9 });
+        await ws.SendJsonAsync(new { id = "does-not-exist", seq = 9 }, ct: TestContext.Current.CancellationToken);
         var (renders, ackSeq) = await ReadUntilAckAsync(ws);
 
         Assert.Empty(renders);
@@ -81,9 +81,9 @@ public class PendingAckTests
         using var host = RaskTestHost.Create<NoOpApp>();
         var (ws, handlerId) = await ConnectAsync(host);
 
-        await ws.SendJsonAsync(new { id = handlerId, seq = 1 });
-        await ws.SendJsonAsync(new { id = handlerId, seq = 2 });
-        await ws.SendJsonAsync(new { id = handlerId, seq = 3 });
+        await ws.SendJsonAsync(new { id = handlerId, seq = 1 }, ct: TestContext.Current.CancellationToken);
+        await ws.SendJsonAsync(new { id = handlerId, seq = 2 }, ct: TestContext.Current.CancellationToken);
+        await ws.SendJsonAsync(new { id = handlerId, seq = 3 }, ct: TestContext.Current.CancellationToken);
 
         // The handler chain dispatches in WS-arrival order, so acks come back 1, 2, 3.
         var seqs = new List<long>();
@@ -105,7 +105,7 @@ public class PendingAckTests
 
         // navigate is handled inline, never through the handler chain, so it carries no
         // seq from the client and the server must not ack it even if a seq is present.
-        await ws.SendJsonAsync(new { type = "navigate", path = "/other", query = "", seq = 1 });
+        await ws.SendJsonAsync(new { type = "navigate", path = "/other", query = "", seq = 1 }, ct: TestContext.Current.CancellationToken);
 
         string? frame;
         while ((frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500))) is not null)

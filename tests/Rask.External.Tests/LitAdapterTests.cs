@@ -23,7 +23,7 @@ public sealed class LitAdapterTests
 {
     private const string Fixture = "LitAdapterFixture";
 
-    [SkippableFact]
+    [Fact]
     public void The_element_mounts_and_updates_with_the_props_csharp_rendered()
     {
         var doc = Run();
@@ -32,7 +32,7 @@ public sealed class LitAdapterTests
         Assert.Equal("Costs", doc.GetProperty("labelAfterUpdate").GetString());
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_prop_csharp_stops_sending_falls_back_to_the_elements_own_default()
     {
         var doc = Run();
@@ -44,7 +44,7 @@ public sealed class LitAdapterTests
         Assert.Equal("danger", doc.GetProperty("toneAfterResent").GetString());
     }
 
-    [SkippableFact]
+    [Fact]
     public void An_event_reaches_csharp_once_and_a_rerender_keeping_the_handler_adds_no_second_listener()
     {
         var doc = Run();
@@ -55,7 +55,7 @@ public sealed class LitAdapterTests
         Assert.Equal(["c7:3", "c7:3"], Ids(doc, "afterSameHandler"));
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_replaced_handler_takes_over_and_a_cleared_one_stops_firing()
     {
         var doc = Run();
@@ -64,13 +64,13 @@ public sealed class LitAdapterTests
         Assert.Equal(["c7:3", "c7:3", "c7:4"], Ids(doc, "afterClear"));
     }
 
-    [SkippableFact]
+    [Fact]
     public void Unmount_removes_the_element()
     {
         Assert.True(Run().GetProperty("islandEmptyAfterUnmount").GetBoolean(), "the island still had children after unmount");
     }
 
-    [SkippableFact]
+    [Fact]
     public void Children_land_in_the_light_dom_and_a_keyed_child_keeps_its_identity_when_reordered()
     {
         // A Lit element projects its light DOM through <slot>, so that is where children go. Moving a keyed child rather
@@ -83,7 +83,7 @@ public sealed class LitAdapterTests
         Assert.True(doc.GetProperty("textNodeKept").GetBoolean(), "the text child was re-created rather than updated");
     }
 
-    [SkippableFact]
+    [Fact]
     public void Children_csharp_removes_are_taken_out_and_the_element_stays()
     {
         var doc = Run();
@@ -92,7 +92,7 @@ public sealed class LitAdapterTests
         Assert.True(doc.GetProperty("cardKept").GetBoolean(), "removing the children removed the element with them");
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_style_an_islands_library_injects_before_the_page_runtime_arms_is_kept_through_the_takeover()
     {
         // On a prerendered page the island runtime mounts islands before the page runtime watches <head>. A library that
@@ -119,13 +119,13 @@ public sealed class LitAdapterTests
     /// <summary>Runs the fixture, or skips with the reason it could not.</summary>
     private static JsonElement Run()
     {
-        Skip.IfNot(
+        Assert.SkipUnless(
             File.Exists(NodeFixture.ScriptPath(Fixture)),
             $"'{NodeFixture.ScriptPath(Fixture)}' was not bundled: npm could not install happy-dom for the fixtures (no npm, "
             + "no network, or RaskPreactFixture=false), so the Lit adapter was not exercised on this machine.");
 
         var doc = NodeFixture.Run(Fixture);
-        Skip.If(doc is null, "node is not on PATH, so the Lit adapter was not exercised.");
+        Assert.SkipWhen(doc is null, "node is not on PATH, so the Lit adapter was not exercised.");
 
         return doc!.Value;
     }

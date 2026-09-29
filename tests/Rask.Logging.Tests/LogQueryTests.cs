@@ -17,7 +17,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     {
         await using var harness = await SeededAsync();
 
-        var page = await harness.Store.Search(new LogQuery { MinimumLevel = LogLevel.Warning });
+        var page = await harness.Store.Search(new LogQuery { MinimumLevel = LogLevel.Warning }, TestContext.Current.CancellationToken);
 
         Assert.All(page.Entries, e => Assert.True(e.Level >= LogLevel.Warning));
         Assert.Equal(page.Entries.Count, page.TotalCount);
@@ -28,7 +28,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     {
         await using var harness = await SeededAsync();
 
-        var page = await harness.Store.Search(new LogQuery { Category = "checkout" });
+        var page = await harness.Store.Search(new LogQuery { Category = "checkout" }, TestContext.Current.CancellationToken);
 
         Assert.NotEmpty(page.Entries);
         Assert.All(page.Entries, e => Assert.Contains("Checkout", e.Category, StringComparison.Ordinal));
@@ -42,7 +42,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
         harness.Logger().LogError(new InvalidOperationException("needle in the trace"), "opaque message");
         await harness.RunUntilStoredAsync(2);
 
-        var page = await harness.Store.Search(new LogQuery { Search = "needle" });
+        var page = await harness.Store.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken);
 
         var entry = Assert.Single(page.Entries);
         Assert.Equal("opaque message", entry.Message);
@@ -59,7 +59,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
         harness.Logger().LogInformation("Disk Nearly FULL");
         await harness.RunUntilStoredAsync(1);
 
-        Assert.Single((await harness.Store.Search(new LogQuery { Search = "nearly full" })).Entries);
+        Assert.Single((await harness.Store.Search(new LogQuery { Search = "nearly full" }, TestContext.Current.CancellationToken)).Entries);
     }
 
     /// <summary>
@@ -74,9 +74,9 @@ public abstract class LogQueryContract(LogStoreKind kind)
         harness.Logger().LogInformation("everything is fine");
         await harness.RunUntilStoredAsync(2);
 
-        Assert.Single((await harness.Store.Search(new LogQuery { Search = "100%" })).Entries);
-        Assert.Empty((await harness.Store.Search(new LogQuery { Search = "%fine%" })).Entries);
-        Assert.Empty((await harness.Store.Search(new LogQuery { Search = "ever_thing" })).Entries);
+        Assert.Single((await harness.Store.Search(new LogQuery { Search = "100%" }, TestContext.Current.CancellationToken)).Entries);
+        Assert.Empty((await harness.Store.Search(new LogQuery { Search = "%fine%" }, TestContext.Current.CancellationToken)).Entries);
+        Assert.Empty((await harness.Store.Search(new LogQuery { Search = "ever_thing" }, TestContext.Current.CancellationToken)).Entries);
     }
 
     [Fact]
@@ -90,10 +90,10 @@ public abstract class LogQueryContract(LogStoreKind kind)
         harness.Logger().LogInformation("late");
         await harness.RunUntilStoredAsync(2);
 
-        var recent = await harness.Store.Search(new LogQuery { From = start.AddHours(1) });
+        var recent = await harness.Store.Search(new LogQuery { From = start.AddHours(1) }, TestContext.Current.CancellationToken);
         Assert.Equal("late", Assert.Single(recent.Entries).Message);
 
-        var old = await harness.Store.Search(new LogQuery { To = start.AddHours(1) });
+        var old = await harness.Store.Search(new LogQuery { To = start.AddHours(1) }, TestContext.Current.CancellationToken);
         Assert.Equal("early", Assert.Single(old.Entries).Message);
     }
 
@@ -108,12 +108,12 @@ public abstract class LogQueryContract(LogStoreKind kind)
         }
         await harness.RunUntilStoredAsync(10);
 
-        var first = await harness.Store.Search(new LogQuery { PageSize = 4 });
+        var first = await harness.Store.Search(new LogQuery { PageSize = 4 }, TestContext.Current.CancellationToken);
         Assert.Equal(10, first.TotalCount);
         Assert.Equal(3, first.PageCount);
         Assert.Equal(["entry 9", "entry 8", "entry 7", "entry 6"], first.Entries.Select(e => e.Message));
 
-        var last = await harness.Store.Search(new LogQuery { PageSize = 4, Page = 3 });
+        var last = await harness.Store.Search(new LogQuery { PageSize = 4, Page = 3 }, TestContext.Current.CancellationToken);
         Assert.Equal(["entry 1", "entry 0"], last.Entries.Select(e => e.Message));
     }
 
@@ -122,7 +122,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     {
         await using var harness = await SeededAsync();
 
-        var page = await harness.Store.Search(new LogQuery { PageSize = 2, Page = 9 });
+        var page = await harness.Store.Search(new LogQuery { PageSize = 2, Page = 9 }, TestContext.Current.CancellationToken);
 
         Assert.Empty(page.Entries);
         Assert.Equal(3, page.TotalCount);
@@ -133,7 +133,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     {
         await using var harness = await SeededAsync();
 
-        var page = await harness.Store.Search(new LogQuery { Search = "no such text anywhere" });
+        var page = await harness.Store.Search(new LogQuery { Search = "no such text anywhere" }, TestContext.Current.CancellationToken);
 
         Assert.Empty(page.Entries);
         Assert.Equal(0, page.TotalCount);
@@ -145,7 +145,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     {
         await using var harness = await SeededAsync();
 
-        var categories = await harness.Store.Categories();
+        var categories = await harness.Store.Categories(TestContext.Current.CancellationToken);
 
         Assert.Equal(["Shop.Checkout", "Shop.Orders"], categories);
     }
@@ -155,10 +155,10 @@ public abstract class LogQueryContract(LogStoreKind kind)
     {
         await using var harness = await SeededAsync();
 
-        await harness.Store.Clear();
+        await harness.Store.Clear(TestContext.Current.CancellationToken);
 
-        Assert.Equal(0, await harness.Store.Count());
-        Assert.Empty(await harness.Store.Categories());
+        Assert.Equal(0, await harness.Store.Count(TestContext.Current.CancellationToken));
+        Assert.Empty(await harness.Store.Categories(TestContext.Current.CancellationToken));
     }
 
     /// <summary>Querying a store nothing has written to yet returns empty rather than failing.</summary>
@@ -167,10 +167,10 @@ public abstract class LogQueryContract(LogStoreKind kind)
     {
         await using var harness = Harness();
 
-        var page = await harness.Store.Search(new LogQuery());
+        var page = await harness.Store.Search(new LogQuery(), TestContext.Current.CancellationToken);
 
         Assert.Empty(page.Entries);
-        Assert.Equal(0, await harness.Store.Count());
+        Assert.Equal(0, await harness.Store.Count(TestContext.Current.CancellationToken));
     }
 
     /// <summary>Every entry field survives the store, the timestamp as the same UTC instant.</summary>
@@ -182,9 +182,9 @@ public abstract class LogQueryContract(LogStoreKind kind)
 
         await harness.Store.Append(
             [new LogRecord(0, at, LogLevel.Critical, "Shop.Payments", 42, "card declined", "System.Exception: boom",
-                [new LogScopeValue("RequestId", "r1")])]);
+                [new LogScopeValue("RequestId", "r1")])], TestContext.Current.CancellationToken);
 
-        var entry = Assert.Single((await harness.Store.Search(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries);
         Assert.True(entry.Id > 0);
         Assert.Equal(at.UtcTicks, entry.Timestamp.UtcTicks);
         Assert.Equal(LogLevel.Critical, entry.Level);
@@ -209,9 +209,9 @@ public abstract class LogQueryContract(LogStoreKind kind)
         [
             new LogRecord(0, now, LogLevel.Warning, "Shop\0Input", 0, "user sent a\0b", "System.Exception: x\0y"),
             new LogRecord(0, now, LogLevel.Information, "Shop.Input", 0, "an ordinary line", null),
-        ]);
+        ], TestContext.Current.CancellationToken);
 
-        var page = await harness.Store.Search(new LogQuery());
+        var page = await harness.Store.Search(new LogQuery(), TestContext.Current.CancellationToken);
         Assert.Equal(2, page.TotalCount);
 
         var entry = page.Entries.Single(e => e.Level == LogLevel.Warning);

@@ -5,4 +5,4 @@
 // clear the pool out from under another's live connection — a flaky ObjectDisposedException('SQLitePCL.sqlite3').
 // Serialise the assembly so no teardown races another class's live connections. See the sibling note in
 // Rask.SQLite.Tests/AssemblyInfo.cs.
-[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]
+[assembly: Xunit.v3.Parallelization(Mode = Xunit.Sdk.ParallelMode.None)]

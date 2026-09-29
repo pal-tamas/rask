@@ -69,6 +69,9 @@ public class ComponentHotReloadTests
         await LiveSessionBase.RerenderAllForHotReloadAsync(); // must not throw despite `faulting`
 
         Assert.Equal(1, healthy.RenderRequests);
+        // Registration is a process-wide list with no way off it but collection, so the faulting session would
+        // fail the next class member's apply too (it announces nothing while any session failed to repaint).
+        faulting.Throw = false;
         GC.KeepAlive(faulting);
         GC.KeepAlive(healthy);
     }

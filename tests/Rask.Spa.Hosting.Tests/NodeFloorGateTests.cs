@@ -26,11 +26,11 @@ namespace Rask.Spa.Hosting.Tests;
 public sealed class NodeFloorGateTests
 {
     /// <summary>A floor no release can satisfy: the probe must refuse, naming what it found.</summary>
-    [SkippableFact]
+    [Fact]
     public async Task A_node_below_the_floor_is_refused()
     {
         var node = await NodeVersion();
-        Skip.If(node is null, "node is not on PATH, so the floor gate was never exercised.");
+        Assert.SkipWhen(node is null, "node is not on PATH, so the floor gate was never exercised.");
 
         var (exit, output) = await Probe("99.0.0");
 
@@ -43,10 +43,10 @@ public sealed class NodeFloorGateTests
     }
 
     /// <summary>The negative control: a satisfied floor is silent.</summary>
-    [SkippableFact]
+    [Fact]
     public async Task A_node_above_the_floor_is_accepted()
     {
-        Skip.If(await NodeVersion() is null, "node is not on PATH, so the floor gate was never exercised.");
+        Assert.SkipWhen(await NodeVersion() is null, "node is not on PATH, so the floor gate was never exercised.");
 
         var (exit, output) = await Probe("0.0.1");
 
@@ -58,12 +58,12 @@ public sealed class NodeFloorGateTests
     ///     The default floor ships satisfied by the current LTS — the version this machine runs is on or
     ///     above it, so <c>rask new</c> does not scaffold a project the developer's own Node cannot build.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task The_shipped_default_floor_accepts_the_current_lts()
     {
         var node = await NodeVersion();
-        Skip.If(node is null, "node is not on PATH.");
-        Skip.If(
+        Assert.SkipWhen(node is null, "node is not on PATH.");
+        Assert.SkipWhen(
             Version.Parse(node!).Major < 22,
             $"this machine runs Node {node}, below every supported line; the default floor cannot be judged here.");
 

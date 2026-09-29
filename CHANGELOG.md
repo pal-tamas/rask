@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: tests run on xUnit v3, and so does the test project `rask new` scaffolds.** Every test project in
+  the repo and the scaffolded `<Name>.Tests` now references `xunit.v3` 4.0.1 instead of `xunit` 2.9.3, and is an
+  executable (`<OutputType>Exe</OutputType>`). `dotnet test` still runs through VSTest (`xunit.runner.visualstudio`),
+  so `--filter` works as before; `<IsTestingPlatformApplication>false</IsTestingPlatformApplication>` keeps the
+  .NET 10 SDK from refusing that route. `Xunit.SkippableFact` is gone: `[SkippableFact]` + `Skip.IfNot(…)` is
+  `[Fact]` + `Assert.SkipUnless(…)`. Test calls that take a token pass `TestContext.Current.CancellationToken`
+  (xUnit1051), except where the missing token is what the test proves. `xunit.runner.json` keeps the same
+  parallelism, and assemblies that ran serially use `[assembly: Parallelization(Mode = ParallelMode.None)]`.
 - **BREAKING: a Data read is awaited, and its terminals drop `Async`.** A query runs when you await it; the rest
   read as words. A read handed no token is cancelled with the work it belongs to (the request, the job, the
   component, the query-cache fetch).

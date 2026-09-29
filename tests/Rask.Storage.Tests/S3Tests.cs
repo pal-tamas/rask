@@ -168,10 +168,10 @@ public sealed class S3BlobBackendTests : IDisposable
     {
         var (backend, handler) = Create();
         handler.Respond(HttpStatusCode.OK);
-        await File.WriteAllBytesAsync(_spool, "hello"u8.ToArray());
+        await File.WriteAllBytesAsync(_spool, "hello"u8.ToArray(), TestContext.Current.CancellationToken);
 
         await backend.PutFileAsync("ab/abcd", _spool, 5,
-            new BlobHeaders("image/png", "inline; filename=a.png", "private, no-store"), default);
+            new BlobHeaders("image/png", "inline; filename=a.png", "private, no-store"), TestContext.Current.CancellationToken);
 
         var put = handler.Last;
         Assert.Equal(HttpMethod.Put, put.Method);
@@ -191,7 +191,7 @@ public sealed class S3BlobBackendTests : IDisposable
         var (backend, handler) = Create(o => o.UsePathStyle = false);
         handler.Respond(HttpStatusCode.OK, "x");
 
-        await using var _ = await backend.OpenReadAsync("ab/abcd", 0, null, default);
+        await using var _ = await backend.OpenReadAsync("ab/abcd", 0, null, TestContext.Current.CancellationToken);
 
         Assert.Equal("https://my-bucket.s3.example.com/ab/abcd", handler.Last.Uri.ToString());
     }
@@ -202,10 +202,10 @@ public sealed class S3BlobBackendTests : IDisposable
         var (backend, handler) = Create();
         handler.Respond(HttpStatusCode.PartialContent, "0123456789");
 
-        await using var stream = await backend.OpenReadAsync("ab/abcd", 4096, 10, default);
+        await using var stream = await backend.OpenReadAsync("ab/abcd", 4096, 10, TestContext.Current.CancellationToken);
 
         Assert.Equal("bytes=4096-4105", handler.Last.Header("range"));
-        Assert.Equal("0123456789", await new StreamReader(stream!).ReadToEndAsync());
+        Assert.Equal("0123456789", await new StreamReader(stream!).ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -214,9 +214,9 @@ public sealed class S3BlobBackendTests : IDisposable
         var (backend, handler) = Create();
         handler.Respond(HttpStatusCode.NotFound).Respond(HttpStatusCode.RequestedRangeNotSatisfiable).Respond(HttpStatusCode.OK, "whole");
 
-        Assert.Null(await backend.OpenReadAsync("ab/none", 0, null, default));
-        Assert.Equal(0, (await backend.OpenReadAsync("ab/abcd", 99, null, default))!.Length);
-        await Assert.ThrowsAsync<IOException>(() => backend.OpenReadAsync("ab/abcd", 10, null, default));
+        Assert.Null(await backend.OpenReadAsync("ab/none", 0, null, TestContext.Current.CancellationToken));
+        Assert.Equal(0, (await backend.OpenReadAsync("ab/abcd", 99, null, TestContext.Current.CancellationToken))!.Length);
+        await Assert.ThrowsAsync<IOException>(() => backend.OpenReadAsync("ab/abcd", 10, null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -225,8 +225,8 @@ public sealed class S3BlobBackendTests : IDisposable
         var (backend, handler) = Create();
         handler.Respond(HttpStatusCode.NotFound).Respond(HttpStatusCode.NoContent);
 
-        await backend.DeleteAsync("ab/none", default);
-        await backend.DeleteAsync("ab/abcd", default);
+        await backend.DeleteAsync("ab/none", TestContext.Current.CancellationToken);
+        await backend.DeleteAsync("ab/abcd", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpMethod.Delete, handler.Last.Method);
     }
@@ -239,7 +239,7 @@ public sealed class S3BlobBackendTests : IDisposable
             .Respond(HttpStatusCode.OK, ListXml(true, ("app/ab/one", 12)))
             .Respond(HttpStatusCode.OK, ListXml(false, ("app/cd/two", 34)));
 
-        var entries = await backend.ListAsync("app/", default).ToListAsync();
+        var entries = await backend.ListAsync("app/", TestContext.Current.CancellationToken).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["app/ab/one", "app/cd/two"], entries.Select(e => e.Key));
         Assert.Equal(12, entries[0].Size);
@@ -254,7 +254,7 @@ public sealed class S3BlobBackendTests : IDisposable
         handler.Respond(HttpStatusCode.Forbidden,
             "<Error><Code>SignatureDoesNotMatch</Code><AWSAccessKeyId>AKID</AWSAccessKeyId><StringToSign>SECRET-ish</StringToSign></Error>");
 
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => backend.DeleteAsync("ab/abcd", default));
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => backend.DeleteAsync("ab/abcd", TestContext.Current.CancellationToken));
 
         Assert.Contains("SignatureDoesNotMatch", ex.Message);
         Assert.Contains("Rask__Storage__", ex.Message);
@@ -269,7 +269,7 @@ public sealed class S3BlobBackendTests : IDisposable
         var (backend, handler) = Create();
         handler.Respond(HttpStatusCode.Forbidden, "<Error><Code>RequestTimeTooSkewed</Code></Error>");
 
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => backend.DeleteAsync("ab/abcd", default));
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => backend.DeleteAsync("ab/abcd", TestContext.Current.CancellationToken));
 
         Assert.Contains("clock", ex.Message);
     }

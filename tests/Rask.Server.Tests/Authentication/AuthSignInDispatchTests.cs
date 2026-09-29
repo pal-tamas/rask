@@ -16,16 +16,16 @@ public class AuthSignInDispatchTests
     public async Task A_sign_in_handler_emits_an_auth_block_and_a_history_replace()
     {
         using var host = CreateHost();
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = signInHandlerId });
+        await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(text);
@@ -43,8 +43,8 @@ public class AuthSignInDispatchTests
     public async Task Redeeming_then_reconnecting_applies_the_new_identity()
     {
         using var host = CreateHost();
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
@@ -53,10 +53,10 @@ public class AuthSignInDispatchTests
 
         using (var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+            await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-            await ws.SendJsonAsync(new { id = signInHandlerId });
+            await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
             var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
             Assert.NotNull(text);
@@ -69,7 +69,7 @@ public class AuthSignInDispatchTests
             // backed HttpClient to do the same.
             var redeem = await host.Http.PostAsJsonAsync(
                 "/_rask/auth/redeem",
-                new { ticket, session = sessionId });
+                new { ticket, session = sessionId }, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.OK, redeem.StatusCode);
 
@@ -90,7 +90,7 @@ public class AuthSignInDispatchTests
         };
 
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(afterReconnect);
@@ -109,20 +109,20 @@ public class AuthSignInDispatchTests
     public async Task Clicks_after_the_auth_emit_are_suppressed()
     {
         using var host = CreateHost();
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = signInHandlerId });
+        await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         // Now the session is in suppressed mode. A second click should produce no payload.
-        await ws.SendJsonAsync(new { id = signInHandlerId });
+        await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
         var second = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
 
         Assert.Null(second);

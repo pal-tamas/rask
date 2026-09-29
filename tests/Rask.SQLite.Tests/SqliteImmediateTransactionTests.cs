@@ -25,7 +25,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
     public async Task Commits_the_work()
     {
         await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await connection.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions(),
@@ -34,7 +34,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
                 await using var cmd = c.CreateCommand();
                 cmd.CommandText = "INSERT INTO t(v) VALUES('committed');";
                 await cmd.ExecuteNonQueryAsync(ct);
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(1, Count());
     }
@@ -43,7 +43,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
     public async Task Rolls_back_when_work_throws()
     {
         await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             connection.InImmediateTransactionAsync(
@@ -54,7 +54,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
                     cmd.CommandText = "INSERT INTO t(v) VALUES('doomed');";
                     await cmd.ExecuteNonQueryAsync(ct);
                     throw new InvalidOperationException("boom");
-                }));
+                }, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(0, Count());
     }
@@ -64,16 +64,16 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
     {
         // A holds the write lock, released after ~50 ms. The waiter must poll (thread-free) and then commit.
         await using var holder = new SqliteConnection(_connectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         var holderTx = holder.BeginImmediate();
         Insert(holder, holderTx, "holder");
         var release = Task.Run(async () =>
         {
             await Task.Delay(50);
             holderTx.Commit();
-        });
+        }, TestContext.Current.CancellationToken);
         await using var waiter = new SqliteConnection(_connectionString);
-        await waiter.OpenAsync();
+        await waiter.OpenAsync(TestContext.Current.CancellationToken);
 
         await waiter.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5), PollInterval = TimeSpan.FromMilliseconds(1) },
@@ -82,7 +82,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
                 await using var cmd = c.CreateCommand();
                 cmd.CommandText = "INSERT INTO t(v) VALUES('waiter');";
                 await cmd.ExecuteNonQueryAsync(ct);
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         await release;
 
@@ -94,16 +94,16 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
     {
         // BEGIN IMMEDIATE takes the write lock up front, before any write — a deferred BEGIN would not.
         await using var holder = new SqliteConnection(_connectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         using var holderTx = holder.BeginImmediate();
         await using var waiter = new SqliteConnection(_connectionString);
-        await waiter.OpenAsync();
+        await waiter.OpenAsync(TestContext.Current.CancellationToken);
 
         var stopwatch = Stopwatch.StartNew();
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
             waiter.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions { Timeout = TimeSpan.FromMilliseconds(150), PollInterval = TimeSpan.FromMilliseconds(1) },
-                (_, _) => Task.CompletedTask));
+                (_, _) => Task.CompletedTask, cancellationToken: TestContext.Current.CancellationToken));
         stopwatch.Stop();
 
         Assert.Equal(5, exception.SqliteErrorCode); // SQLITE_BUSY
@@ -120,7 +120,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         // once autocommit is off, a plain BEGIN IMMEDIATE would fail non-retryably ("cannot start a
         // transaction within a transaction"). The entry guard must clear it and still commit the work.
         await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         Exec(connection, "BEGIN IMMEDIATE;"); // leak a write transaction onto the raw handle
         Assert.Equal(0, raw.sqlite3_get_autocommit(connection.Handle!)); // precondition: mid-transaction
 
@@ -131,7 +131,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
                 await using var cmd = c.CreateCommand();
                 cmd.CommandText = "INSERT INTO t(v) VALUES('recovered');";
                 await cmd.ExecuteNonQueryAsync(ct);
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(1, Count());
         Assert.Equal(1, raw.sqlite3_get_autocommit(connection.Handle!)); // handle left clean
@@ -146,13 +146,13 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         // their next step), so this documents that the entry guard copes rather than reproducing a failure:
         // it passes both before and after the retry hardening.
         await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         Exec(connection, "INSERT INTO t(v) VALUES('seed');");
         Exec(connection, "BEGIN IMMEDIATE;");
         var command = connection.CreateCommand();
         command.CommandText = "SELECT v FROM t;";
-        var reader = await command.ExecuteReaderAsync();
-        await reader.ReadAsync(); // mid-scan: the statement is active on the handle
+        var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        await reader.ReadAsync(TestContext.Current.CancellationToken); // mid-scan: the statement is active on the handle
 
         await connection.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5) },
@@ -161,7 +161,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
                 await using var cmd = c.CreateCommand();
                 cmd.CommandText = "INSERT INTO t(v) VALUES('recovered');";
                 await cmd.ExecuteNonQueryAsync(ct);
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         await reader.DisposeAsync();
         await command.DisposeAsync();
@@ -185,10 +185,10 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         // — deferred takes no write lock, so it only flips autocommit, which is exactly the state the bug
         // needs. Fails with SQLITE_ERROR (1) before the fix; passes after.
         await using var holder = new SqliteConnection(_connectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         using var holderTx = holder.BeginImmediate();
         await using var waiter = new SqliteConnection(_connectionString);
-        await waiter.OpenAsync();
+        await waiter.OpenAsync(TestContext.Current.CancellationToken);
         var waiterHandle = waiter.Handle!;
         var injected = Task.Run(async () =>
         {
@@ -196,7 +196,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
             raw.sqlite3_exec(waiterHandle, "BEGIN;"); // autocommit -> 0, no write lock taken
             await Task.Delay(150);
             holderTx.Commit(); // release the write lock so BEGIN IMMEDIATE can finally succeed
-        });
+        }, TestContext.Current.CancellationToken);
 
         await waiter.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(10), PollInterval = TimeSpan.FromMilliseconds(10) },
@@ -205,7 +205,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
                 await using var cmd = c.CreateCommand();
                 cmd.CommandText = "INSERT INTO t(v) VALUES('after-injected-transaction');";
                 await cmd.ExecuteNonQueryAsync(ct);
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
         await injected;
 
@@ -218,7 +218,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
     {
         // The finally guard must never return a mid-transaction handle to the pool, even when work throws.
         await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             connection.InImmediateTransactionAsync(
@@ -229,7 +229,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
                     cmd.CommandText = "INSERT INTO t(v) VALUES('doomed');";
                     await cmd.ExecuteNonQueryAsync(ct);
                     throw new InvalidOperationException("boom");
-                }));
+                }, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(0, Count());
         Assert.Equal(1, raw.sqlite3_get_autocommit(connection.Handle!)); // rolled back, pool not poisoned

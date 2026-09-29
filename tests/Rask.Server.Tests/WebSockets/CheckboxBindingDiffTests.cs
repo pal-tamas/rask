@@ -12,15 +12,15 @@ public class CheckboxBindingDiffTests
     public async Task A_checkbox_change_sets_the_model_to_the_reported_state_across_many_clicks()
     {
         using var host = RaskTestHost.Create<CheckboxJsInvokeApp>();
-        var initial = await host.Http.GetAsync("/");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = Regex.Match(initialHtml, "data-rask-root=\"([^\"]+)\"").Groups[1].Value;
         var changeId = Regex.Match(initialHtml, "data-rask-on-change=\"(h\\d+)\"").Groups[1].Value;
         Assert.False(string.IsNullOrEmpty(changeId), $"no change handler in: {initialHtml}");
         Assert.Contains("S=False", initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         async Task AssertEchoAsync(string sentValue, string expectedEcho, string label)

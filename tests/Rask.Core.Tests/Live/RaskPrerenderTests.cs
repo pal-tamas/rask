@@ -16,7 +16,7 @@ public class RaskPrerenderTests
     public async Task It_renders_a_whole_document()
     {
         var result = await RaskPrerender.RenderDocumentAsync(
-            new PlainPage(), Services(), TimeSpan.FromSeconds(5));
+            new PlainPage(), Services(), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         // The shell the hosts compose, not just the component's own markup.
         Assert.Contains("<!doctype html>", result.Html, StringComparison.OrdinalIgnoreCase);
@@ -32,7 +32,7 @@ public class RaskPrerenderTests
         // The entire reason this goes through the wave loop. Rendering once would write the placeholder
         // — which is exactly the "Loading…" a crawler sees today, in a different costume.
         var result = await RaskPrerender.RenderDocumentAsync(
-            new AsyncPage(), Services(), TimeSpan.FromSeconds(5));
+            new AsyncPage(), Services(), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("loaded", result.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("loading", result.Html, StringComparison.Ordinal);
@@ -46,7 +46,7 @@ public class RaskPrerenderTests
         // that writes the HTML blindly publishes an error page under the route's own name — and nothing
         // at build time would say so. Faulted is how it says so.
         var result = await RaskPrerender.RenderDocumentAsync(
-            new ThrowingPage(), Services(), TimeSpan.FromSeconds(5));
+            new ThrowingPage(), Services(), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Faulted);
         Assert.NotEmpty(result.Html);
@@ -61,7 +61,7 @@ public class RaskPrerenderTests
         // exactly how sixteen of this repo's own twenty routes went unwritten while the publish stayed
         // green.
         var result = await RaskPrerender.RenderDocumentAsync(
-            new ThrowingPage(), Services(), TimeSpan.FromSeconds(5));
+            new ThrowingPage(), Services(), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(result.Error);
         Assert.IsType<InvalidOperationException>(result.Error);
@@ -73,7 +73,7 @@ public class RaskPrerenderTests
     {
         // The other half, so Error cannot become "always populated" and quietly stop meaning anything.
         var result = await RaskPrerender.RenderDocumentAsync(
-            new PlainPage(), Services(), TimeSpan.FromSeconds(5));
+            new PlainPage(), Services(), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.Faulted);
         Assert.Null(result.Error);
@@ -85,7 +85,7 @@ public class RaskPrerenderTests
         // Same trap: the markup that comes back is the placeholder. Baking that is worse than not
         // prerendering the route at all, because it looks prerendered.
         var result = await RaskPrerender.RenderDocumentAsync(
-            new NeverSettlesPage(), Services(), TimeSpan.FromMilliseconds(150));
+            new NeverSettlesPage(), Services(), TimeSpan.FromMilliseconds(150), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.TimedOut);
         Assert.Contains("still-loading", result.Html, StringComparison.Ordinal);
@@ -100,7 +100,7 @@ public class RaskPrerenderTests
         services.GetRequiredService<RouteState>().Path = "/seeded";
 
         var result = await RaskPrerender.RenderDocumentAsync(
-            new RouteEchoPage(services.GetRequiredService<RouteState>()), services, TimeSpan.FromSeconds(5));
+            new RouteEchoPage(services.GetRequiredService<RouteState>()), services, TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("/seeded", result.Html, StringComparison.Ordinal);
     }
@@ -152,7 +152,7 @@ public class RaskPrerenderTests
             new Dictionary<string, string?> { ["data-kit"] = "" });
 
         var html = (await RaskPrerender.RenderDocumentAsync(
-            new TitledPage(), Services(defaults), TimeSpan.FromSeconds(5))).Html;
+            new TitledPage(), Services(defaults), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken)).Html;
 
         Assert.Contains("<html lang=\"en\" data-kit=\"\">", html, StringComparison.Ordinal);
         var order = new[] { "charset=\"utf-8\"", "name=\"viewport\"", "/css/kit.css", "/css/app.css", "page</title>" }
@@ -167,7 +167,7 @@ public class RaskPrerenderTests
         var defaults = new RaskDocumentDefaults(null, null, new Dictionary<string, string?> { ["data-kit"] = "" });
 
         var html = (await RaskPrerender.RenderDocumentAsync(
-            new OwnShellPage(), Services(defaults), TimeSpan.FromSeconds(5))).Html;
+            new OwnShellPage(), Services(defaults), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken)).Html;
 
         Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-kit", html, StringComparison.Ordinal);
@@ -177,7 +177,7 @@ public class RaskPrerenderTests
     public async Task A_host_with_no_defaults_writes_only_what_the_App_writes()
     {
         var html = (await RaskPrerender.RenderDocumentAsync(
-            new PlainPage(), Services(), TimeSpan.FromSeconds(5))).Html;
+            new PlainPage(), Services(), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken)).Html;
 
         Assert.DoesNotContain("charset", html, StringComparison.Ordinal);
         Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);

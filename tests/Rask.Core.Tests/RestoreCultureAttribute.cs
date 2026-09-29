@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Reflection;
-using Xunit.Sdk;
+using Xunit.v3;
 
 namespace Rask.Core.Tests;
 
@@ -21,13 +21,13 @@ public sealed class RestoreCultureAttribute : BeforeAfterTestAttribute
     private CultureInfo? _culture;
     private CultureInfo? _uiCulture;
 
-    public override void Before(MethodInfo methodUnderTest)
+    public override void Before(MethodInfo methodUnderTest, IXunitTest test)
     {
         _culture = CultureInfo.CurrentCulture;
         _uiCulture = CultureInfo.CurrentUICulture;
     }
 
-    public override void After(MethodInfo methodUnderTest)
+    public override void After(MethodInfo methodUnderTest, IXunitTest test)
     {
         if (_culture is not null)
         {

@@ -219,13 +219,13 @@ public class CrossAssemblyRequiredPropertyTests
                 public class Card { public required string Title { get; set; } }
                 public static class Runtime { public static T Entry<T>() where T : new() => new T(); }
                 public static class Call { public static object Use() => Runtime.Entry<Card>(); }
-                """, new CSharpParseOptions(LanguageVersion.Latest)) },
+                """, new CSharpParseOptions(LanguageVersion.Latest), cancellationToken: TestContext.Current.CancellationToken) },
             GeneratorDriverFixture.BuildReferences(),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
 
         Assert.Contains(
-            compilation.GetDiagnostics(),
+            compilation.GetDiagnostics(TestContext.Current.CancellationToken),
             d => d.Severity == DiagnosticSeverity.Error && d.Id == "CS9040");
     }
 

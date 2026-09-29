@@ -16,7 +16,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using (var context = NewContext(strict: false))
         {
-            await context.Database.EnsureCreatedAsync();
+            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.DoesNotContain("STRICT", ReadDdl(), StringComparison.Ordinal);
@@ -27,7 +27,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using (var context = NewContext(strict: true))
         {
-            await context.Database.EnsureCreatedAsync();
+            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
         var ddl = ReadDdl();
@@ -43,15 +43,15 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using (var context = NewContext(strict: true))
         {
-            await context.Database.EnsureCreatedAsync();
+            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
         await using var connection = new SqliteConnection($"Data Source={_dbPath}");
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var insert = connection.CreateCommand();
         insert.CommandText = "INSERT INTO Rows (Quantity, Amount, Name) VALUES ('lots', '1.00', 'x')";
 
-        var ex = await Assert.ThrowsAsync<SqliteException>(() => insert.ExecuteNonQueryAsync());
+        var ex = await Assert.ThrowsAsync<SqliteException>(() => insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
         Assert.Contains("cannot store TEXT value in INTEGER column", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -60,21 +60,21 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using (var context = NewContext(strict: false))
         {
-            await context.Database.EnsureCreatedAsync();
+            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
         await using var connection = new SqliteConnection($"Data Source={_dbPath}");
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         await using (var insert = connection.CreateCommand())
         {
             insert.CommandText = "INSERT INTO Rows (Quantity, Amount, Name) VALUES ('lots', '1.00', 'x')";
-            await insert.ExecuteNonQueryAsync();
+            await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
 
         await using var read = connection.CreateCommand();
         read.CommandText = "SELECT typeof(Quantity) FROM Rows";
-        Assert.Equal("text", await read.ExecuteScalarAsync());
+        Assert.Equal("text", await read.ExecuteScalarAsync(TestContext.Current.CancellationToken));
     }
 
     // A decimal is TEXT in SQLite, so it is legal in a STRICT table — and still ordered by the
@@ -84,17 +84,17 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
     {
         await using (var context = NewContext(strict: true))
         {
-            await context.Database.EnsureCreatedAsync();
+            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
             context.Rows.AddRange(
                 new ProbeRow { Amount = 19.95m, Quantity = 1, Name = "a" },
                 new ProbeRow { Amount = 2.00m, Quantity = 2, Name = "b" },
                 new ProbeRow { Amount = 100.50m, Quantity = 3, Name = "c" },
                 new ProbeRow { Amount = 9.50m, Quantity = 4, Name = "d" });
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var reader = NewContext(strict: true);
-        var ordered = await reader.Rows.OrderBy(r => r.Amount).Select(r => r.Amount).ToListAsync();
+        var ordered = await reader.Rows.OrderBy(r => r.Amount).Select(r => r.Amount).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([2.00m, 9.50m, 19.95m, 100.50m], ordered);
     }
@@ -110,7 +110,7 @@ public sealed class RaskSqliteStrictTableTests : IDisposable
                 .Options);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => context.Database.EnsureCreatedAsync());
+            () => context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("Widgets", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Label", ex.Message, StringComparison.Ordinal);

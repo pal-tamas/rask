@@ -53,15 +53,15 @@ public sealed class ModelQueryableTests : IDisposable
 
         var first = Widget.Create("first");
         database.Context.Add(first);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         Assert.Equal(["first"], query.ToList().Select(w => w.Name));
 
         database.Context.AddRange(Widget.Create("second"), Widget.Create("hidden"));
         first.Rename("renamed");
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(["renamed", "second"], query.OrderBy(w => w.Name).ToList().Select(w => w.Name));
-        Assert.Equal(2, await query.CountAsync());
+        Assert.Equal(2, await query.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -72,11 +72,11 @@ public sealed class ModelQueryableTests : IDisposable
 
         var query = Widget.AsQueryable();
 
-        Assert.Equal(3, (await query.ToListAsync()).Count);
-        Assert.Equal(3, await query.CountAsync());
-        Assert.True(await query.AnyAsync(w => w.Name == "bravo"));
-        Assert.Equal("alpha", (await query.OrderBy(w => w.Name).FirstOrDefaultAsync())!.Name);
-        Assert.Null(await query.FirstOrDefaultAsync(w => w.Name == "nope"));
+        Assert.Equal(3, (await query.ToListAsync(cancellationToken: TestContext.Current.CancellationToken)).Count);
+        Assert.Equal(3, await query.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.True(await query.AnyAsync(w => w.Name == "bravo", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal("alpha", (await query.OrderBy(w => w.Name).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken))!.Name);
+        Assert.Null(await query.FirstOrDefaultAsync(w => w.Name == "nope", cancellationToken: TestContext.Current.CancellationToken));
 
         var streamed = new List<string>();
         await foreach (var widget in query.OrderByDescending(w => w.Name).AsAsyncEnumerable())
@@ -94,11 +94,11 @@ public sealed class ModelQueryableTests : IDisposable
         var (gone, _) = await SeedAsync(database, "gone", "live");
 
         database.Context.Remove(gone);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(1, Widget.AsQueryable().Count());
         Assert.Equal(2, Widget.IgnoreQueryFilters().AsQueryable().Count());
-        Assert.Equal(2, await Widget.IgnoreQueryFilters().AsQueryable().CountAsync());
+        Assert.Equal(2, await Widget.IgnoreQueryFilters().AsQueryable().CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(1, Widget.Where(w => w.Name == "gone").IgnoreQueryFilters().AsQueryable().Count());
     }
 
@@ -111,7 +111,7 @@ public sealed class ModelQueryableTests : IDisposable
         var query = Widget.AsQueryable();
 
         Assert.Equal(["alpha", "bravo"], query.OrderBy(w => w.Name).Select(w => w.Name).ToList());
-        Assert.Equal(["alpha", "bravo"], await query.OrderBy(w => w.Name).Select(w => w.Name).ToListAsync());
+        Assert.Equal(["alpha", "bravo"], await query.OrderBy(w => w.Name).Select(w => w.Name).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -154,12 +154,12 @@ public sealed class ModelQueryableTests : IDisposable
 
         var query = Widget.AsQueryable();
 
-        _ = await query.ToListAsync();
-        _ = await query.CountAsync();
-        _ = await query.FirstOrDefaultAsync(w => w.Name == "bravo");
+        _ = await query.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+        _ = await query.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
+        _ = await query.FirstOrDefaultAsync(w => w.Name == "bravo", cancellationToken: TestContext.Current.CancellationToken);
 
         // A stream abandoned after its first row, which is the case a missing dispose would leak.
-        await using (var rows = query.AsAsyncEnumerable().GetAsyncEnumerator())
+        await using (var rows = query.AsAsyncEnumerable().GetAsyncEnumerator(TestContext.Current.CancellationToken))
         {
             Assert.True(await rows.MoveNextAsync());
         }
@@ -177,8 +177,8 @@ public sealed class ModelQueryableTests : IDisposable
         var untranslatable = Widget.AsQueryable().Where(w => IsInteresting(w.Name));
 
         Assert.Throws<InvalidOperationException>(() => untranslatable.Count());
-        await Assert.ThrowsAsync<InvalidOperationException>(() => untranslatable.CountAsync());
-        await Assert.ThrowsAsync<InvalidOperationException>(() => untranslatable.ToListAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => untranslatable.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => untranslatable.ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         AssertEveryContextReleased(tally, executions: 3);
     }

@@ -63,7 +63,7 @@ public sealed class DevErrorOverlayTests
         using var host = RaskTestHost.Create<ThrowingOnRenderApp>(
             diffMode: LiveDiffMode.DisabledFull, environment: "Development");
 
-        var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var html = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("Something went wrong", html, StringComparison.Ordinal);
     }
@@ -77,22 +77,22 @@ public sealed class DevErrorOverlayTests
         using var host = RaskTestHost.Create<ThrowingApp>(
             diffMode: LiveDiffMode.DisabledFull, environment: "Development");
 
-        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlers = Regex.Matches(initialHtml, "data-rask-on-click=\"(h\\d+)\"")
             .Select(m => m.Groups[1].Value)
             .ToArray();
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = handlers[0] });   // throw
+        await ws.SendJsonAsync(new { id = handlers[0] }, ct: TestContext.Current.CancellationToken);   // throw
         var faulted = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.Contains("\"devError\"", faulted!, StringComparison.Ordinal);
 
-        await ws.SendJsonAsync(new { id = handlers[1] });   // bump — an ordinary click
+        await ws.SendJsonAsync(new { id = handlers[1] }, ct: TestContext.Current.CancellationToken);   // bump — an ordinary click
         var next = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(next);

@@ -106,7 +106,7 @@ public sealed class HttpTransportSecurityTests
             };
             request.Headers.Add("Rask-Stream", generation);
 
-            using var refused = await host.Http.SendAsync(request);
+            using var refused = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, refused.StatusCode);
         }
@@ -134,7 +134,7 @@ public sealed class HttpTransportSecurityTests
             request.Headers.Add("Rask-Stream", generation);
             request.Headers.TransferEncodingChunked = true;
 
-            using var refused = await host.Http.SendAsync(request);
+            using var refused = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.RequestEntityTooLarge, refused.StatusCode);
         }
@@ -160,7 +160,7 @@ public sealed class HttpTransportSecurityTests
             };
             request.Headers.Add("Rask-Stream", generation);
 
-            using var refused = await host.Http.SendAsync(request);
+            using var refused = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
 
@@ -182,7 +182,7 @@ public sealed class HttpTransportSecurityTests
             using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/leave/{sessionId}");
             request.Headers.Add("Rask-Stream", generation);
 
-            using var left = await host.Http.SendAsync(request);
+            using var left = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.NoContent, left.StatusCode);
 
@@ -203,7 +203,7 @@ public sealed class HttpTransportSecurityTests
         using var request = new HttpRequestMessage(new HttpMethod(method), string.Format(path, sessionId));
         request.Headers.Add("Sec-Fetch-Site", "cross-site");
 
-        using var refused = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        using var refused = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
     }

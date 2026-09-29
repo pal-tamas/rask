@@ -18,7 +18,7 @@ public sealed class MissingLeaseColumnTests
         // Recreate the Jobs table as it looked before this change — no ClaimToken, no ClaimedUntil.
         await using (var db = h.NewContext())
         {
-            await db.Database.ExecuteSqlRawAsync("DROP TABLE Job;");
+            await db.Database.ExecuteSqlRawAsync("DROP TABLE Job;", cancellationToken: TestContext.Current.CancellationToken);
             await db.Database.ExecuteSqlRawAsync(
                 """
                 CREATE TABLE Job (
@@ -30,7 +30,7 @@ public sealed class MissingLeaseColumnTests
                     Attempts INTEGER NOT NULL,
                     Error TEXT NULL,
                     CreatedAt TEXT NOT NULL);
-                """);
+                """, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         await h.Processor.StartAsync(CancellationToken.None);

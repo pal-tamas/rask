@@ -65,9 +65,9 @@ public sealed class SendTimeoutTests
             () => session.SendOutOfBandAsync("hello"u8.ToArray()));
 
         // Dispose takes the same lock the wedged send was holding. If it returns, the lock was released.
-        var disposed = Task.Run(() => session.Dispose());
+        var disposed = Task.Run(() => session.Dispose(), TestContext.Current.CancellationToken);
 
-        Assert.True(await Task.WhenAny(disposed, Task.Delay(TimeSpan.FromSeconds(5))) == disposed,
+        Assert.True(await Task.WhenAny(disposed, Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)) == disposed,
             "Dispose must not block on a lock the timed-out send still holds");
         await disposed;
     }
@@ -97,7 +97,7 @@ public sealed class SendTimeoutTests
         session.AttachSocket(socket, CancellationToken.None);
 
         var send = session.SendOutOfBandAsync("hello"u8.ToArray());
-        var finished = await Task.WhenAny(send, Task.Delay(TimeSpan.FromMilliseconds(400)));
+        var finished = await Task.WhenAny(send, Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken));
 
         Assert.NotSame(send, finished);
         Assert.Equal(0, socket.Aborted);

@@ -29,15 +29,15 @@ public sealed class DbContextLogStoreTests
             await harness.WaitUntilAsync(async () => await harness.Store.Count() >= 1);
 
             // Fifteen flush intervals of nothing to write but whatever the store logged about itself.
-            await Task.Delay(TimeSpan.FromMilliseconds(300));
+            await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
 
-            Assert.Equal(1, await harness.Store.Count());
-            Assert.Equal(["App.Checkout"], await harness.Store.Categories());
+            Assert.Equal(1, await harness.Store.Count(TestContext.Current.CancellationToken));
+            Assert.Equal(["App.Checkout"], await harness.Store.Categories(TestContext.Current.CancellationToken));
 
             // The guard is the store's own flow, not a category: the application's EF Core commands are still its log.
-            await using (var db = await harness.Get<IDbContextFactory<LogTestDbContext>>().CreateDbContextAsync())
+            await using (var db = await harness.Get<IDbContextFactory<LogTestDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken))
             {
-                _ = await db.Widgets.CountAsync();
+                _ = await db.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
             }
 
             await harness.WaitUntilAsync(async () =>
@@ -59,21 +59,21 @@ public sealed class DbContextLogStoreTests
         await using var harness = new LoggingHarness(kind: LogStoreKind.DbContext);
         var contexts = harness.Get<IDbContextFactory<LogTestDbContext>>();
 
-        await using (var db = await contexts.CreateDbContextAsync())
+        await using (var db = await contexts.CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
-            await using var transaction = await db.Database.BeginTransactionAsync();
+            await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
             db.Widgets.Add(new Widget { Name = "never committed" });
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             harness.Logger("App.Checkout").LogError("payment failed, rolling back");
-            await transaction.RollbackAsync();
+            await transaction.RollbackAsync(TestContext.Current.CancellationToken);
         }
 
         await harness.RunUntilAsync(async () =>
             (await harness.Store.Search(new LogQuery { Search = "rolling back" })).TotalCount == 1);
 
-        await using var verify = await contexts.CreateDbContextAsync();
-        Assert.Equal(0, await verify.Widgets.CountAsync());
+        await using var verify = await contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(0, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -124,9 +124,9 @@ public sealed class DbContextLogStoreTests
         var category = new string('c', LogEntry.CategoryMaxLength + 88);
 
         await harness.Store.Append(
-            [new LogRecord(0, harness.Clock.GetUtcNow(), LogLevel.Warning, category, 0, "long category", null)]);
+            [new LogRecord(0, harness.Clock.GetUtcNow(), LogLevel.Warning, category, 0, "long category", null)], TestContext.Current.CancellationToken);
 
-        var entry = Assert.Single((await harness.Store.Search(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.Search(new LogQuery(), TestContext.Current.CancellationToken)).Entries);
         Assert.Equal(category[..LogEntry.CategoryMaxLength], entry.Category);
     }
 

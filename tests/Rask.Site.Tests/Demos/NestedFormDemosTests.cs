@@ -122,7 +122,7 @@ public sealed partial class NestedFormDemosTests : global::Rask.Core.RaskMarkup
         var model = new NestedOrderModel();
         model.Lines.Add(new NestedOrderLine());
 
-        var result = await v.ValidateAsync(model);
+        var result = await v.ValidateAsync(model, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName == "CustomerName");
@@ -136,7 +136,7 @@ public sealed partial class NestedFormDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new NestedOrderLineValidator();
 
-        var result = await v.ValidateAsync(new NestedOrderLine { Sku = "OK", Quantity = 0 });
+        var result = await v.ValidateAsync(new NestedOrderLine { Sku = "OK", Quantity = 0 }, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName == "Quantity");
@@ -147,7 +147,7 @@ public sealed partial class NestedFormDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new NestedOrderAddressValidator();
 
-        var result = await v.ValidateAsync(new NestedOrderAddress());
+        var result = await v.ValidateAsync(new NestedOrderAddress(), TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName == "Street");

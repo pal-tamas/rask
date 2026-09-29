@@ -26,7 +26,7 @@ public class NavigationCoalescingTests
     {
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
         // Expect a single coalesced frame carrying the navigation target. Pre-fix
         // an earlier history-less frame would arrive first because the eager
@@ -69,7 +69,7 @@ public class NavigationCoalescingTests
         // — without that, navigation would silently lose its pushState.
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
         // Drain every frame until the receive window closes. The last frame
         // must still carry history.url even if internal rebuilds ran.

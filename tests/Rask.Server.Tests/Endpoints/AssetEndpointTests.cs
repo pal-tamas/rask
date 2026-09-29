@@ -29,7 +29,7 @@ public class AssetEndpointTests
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
@@ -52,7 +52,7 @@ public class AssetEndpointTests
         ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
@@ -69,13 +69,13 @@ public class AssetEndpointTests
         var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var bundle = await host.Http.GetStringAsync($"/_rask/a/{hash}.js");
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js.map");
+        var bundle = await host.Http.GetStringAsync($"/_rask/a/{hash}.js", TestContext.Current.CancellationToken);
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js.map", TestContext.Current.CancellationToken);
 
         Assert.EndsWith($"//# sourceMappingURL={hash}.js.map\n", bundle, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
-        Assert.Contains("\"sections\"", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("\"sections\"", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,9 +85,9 @@ public class AssetEndpointTests
         var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
         using var host = RaskTestHost.Create<TestApp>();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync($"/_rask/a/{hash}.js.map")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_rask/a/000000000000.js.map")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_rask/a/not-a-hash.js.map")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync($"/_rask/a/{hash}.js.map", TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_rask/a/000000000000.js.map", TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_rask/a/not-a-hash.js.map", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class AssetEndpointTests
         var registryBytes = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
         using var host = RaskTestHost.Create<TestApp>();
 
-        var bodyBytes = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css");
+        var bodyBytes = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(registryBytes, bodyBytes);
     }
@@ -113,11 +113,11 @@ public class AssetEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
 
         using var req = new HttpRequestMessage(HttpMethod.Head, $"/_rask/a/{hash}.css");
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal($"\"{hash}\"", response.Headers.ETag?.ToString());
-        var bodyBytes = await response.Content.ReadAsByteArrayAsync();
+        var bodyBytes = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
         Assert.Empty(bodyBytes);
     }
 
@@ -132,7 +132,7 @@ public class AssetEndpointTests
         {
             Content = new StringContent("")
         };
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
@@ -148,7 +148,7 @@ public class AssetEndpointTests
         {
             Content = new StringContent("")
         };
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
@@ -161,7 +161,7 @@ public class AssetEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
 
         using var req = new HttpRequestMessage(HttpMethod.Delete, $"/_rask/a/{hash}.css");
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
@@ -177,10 +177,10 @@ public class AssetEndpointTests
 
         using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.css");
         req.Headers.TryAddWithoutValidation("If-None-Match", $"\"{hash}\"");
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotModified, response.StatusCode);
-        Assert.Empty(await response.Content.ReadAsByteArrayAsync());
+        Assert.Empty(await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -192,10 +192,10 @@ public class AssetEndpointTests
 
         using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.css");
         req.Headers.TryAddWithoutValidation("If-None-Match", "\"000000000000\"");
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.NotEmpty(await response.Content.ReadAsByteArrayAsync());
+        Assert.NotEmpty(await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
     }
 
     // ─── Range requests ──────────────────────────────────────────────────
@@ -211,10 +211,10 @@ public class AssetEndpointTests
 
         using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.css");
         req.Headers.Range = new RangeHeaderValue(0, 99);
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.PartialContent, response.StatusCode);
-        var body = await response.Content.ReadAsByteArrayAsync();
+        var body = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
         Assert.Equal(100, body.Length);
     }
 
@@ -228,7 +228,7 @@ public class AssetEndpointTests
         using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.css");
         // Request bytes way past end of the small body.
         req.Headers.TryAddWithoutValidation("Range", "bytes=100000-200000");
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.RequestedRangeNotSatisfiable, response.StatusCode);
     }
@@ -240,7 +240,7 @@ public class AssetEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/_rask/a/abcdef012345.css");
+        var response = await host.Http.GetAsync("/_rask/a/abcdef012345.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -253,7 +253,7 @@ public class AssetEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
 
         // The hash is real for CSS but unknown to JS bucket.
-        var response = await host.Http.GetAsync($"/_rask/a/{cssHash}.js");
+        var response = await host.Http.GetAsync($"/_rask/a/{cssHash}.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -266,7 +266,7 @@ public class AssetEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
 
         // Same hash but uppercase — rejected by IsLowercaseHex check.
-        var response = await host.Http.GetAsync($"/_rask/a/{hash.ToUpperInvariant()}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash.ToUpperInvariant()}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -276,7 +276,7 @@ public class AssetEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/_rask/a/notthexnoth.css");
+        var response = await host.Http.GetAsync("/_rask/a/notthexnoth.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -286,7 +286,7 @@ public class AssetEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/_rask/a/abc.css");
+        var response = await host.Http.GetAsync("/_rask/a/abc.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -296,7 +296,7 @@ public class AssetEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/_rask/a/abcdef0123456789.css");
+        var response = await host.Http.GetAsync("/_rask/a/abcdef0123456789.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -310,7 +310,7 @@ public class AssetEndpointTests
         // leaks. Asserting Content-Type is the cleanest signal.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/_rask/a/abcdef012345.gif");
+        var response = await host.Http.GetAsync("/_rask/a/abcdef012345.gif", TestContext.Current.CancellationToken);
         var ct = response.Content.Headers.ContentType?.MediaType;
 
         Assert.NotEqual("text/css", ct);
@@ -328,8 +328,8 @@ public class AssetEndpointTests
         var assetBytes = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/../../etc/{hash}.css");
-        var body = await response.Content.ReadAsByteArrayAsync();
+        var response = await host.Http.GetAsync($"/_rask/a/../../etc/{hash}.css", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
 
         // The exact body depends on the framework's fallback, but it must NOT be the
         // asset bytes (path traversal must not bypass the route constraint).
@@ -370,7 +370,7 @@ public class AssetEndpointTests
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var body = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css");
+        var body = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.True(body.Length > 1_000_000, $"expected >1MB body, got {body.Length}");
     }
@@ -385,7 +385,7 @@ public class AssetEndpointTests
         var expected = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
         using var host = RaskTestHost.Create<TestApp>();
 
-        var body = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css");
+        var body = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, body);
     }
@@ -403,12 +403,12 @@ public class AssetEndpointTests
 
         using var req = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{hash}.css");
         req.Headers.AcceptEncoding.ParseAdd("br");
-        var response = await host.Http.SendAsync(req);
+        var response = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Accept-Encoding", response.Headers.Vary);
 
-        var raw = await response.Content.ReadAsByteArrayAsync();
+        var raw = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
         if (response.Content.Headers.ContentEncoding.Contains("br"))
         {
             // Encoding-suffixed ETag so a conditional request matches the exact representation.
@@ -416,7 +416,7 @@ public class AssetEndpointTests
             Assert.True(raw.Length < expected.Length, "brotli should shrink the bundle");
             using var dst = new MemoryStream();
             await using var br = new BrotliStream(new MemoryStream(raw), CompressionMode.Decompress);
-            await br.CopyToAsync(dst);
+            await br.CopyToAsync(dst, TestContext.Current.CancellationToken);
             Assert.Equal(expected, dst.ToArray());
         }
         else

@@ -12,10 +12,10 @@ public class ResourceLimitTests
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.IdleSocketTimeout = TimeSpan.FromMilliseconds(300));
-        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // Send nothing further — the server must close the idle socket within the timeout window.
@@ -25,7 +25,7 @@ public class ResourceLimitTests
             if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null
                 && ws.State == WebSocketState.Open)
             {
-                await Task.Delay(20);
+                await Task.Delay(20, TestContext.Current.CancellationToken);
             }
         }
 
@@ -38,20 +38,20 @@ public class ResourceLimitTests
         // Comfortably larger than the inter-send gap below, so only genuine inactivity trips it.
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.IdleSocketTimeout = TimeSpan.FromSeconds(5));
-        var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var html = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(html);
         var handlerId = MarkupAssert.FirstHandlerId(html);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromMilliseconds(500));
 
         // Keep sending well within the 5 s window — the socket must stay open across a span
         // (~3 s) that would have tripped a naive total-lifetime timeout.
         for (var i = 0; i < 4; i++)
         {
-            await Task.Delay(800);
-            await ws.SendJsonAsync(new { id = handlerId });
+            await Task.Delay(800, TestContext.Current.CancellationToken);
+            await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         }
 
@@ -65,17 +65,17 @@ public class ResourceLimitTests
         // (the count cap is left generous so this isolates the byte path).
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => { o.MaxPendingHandlerBytes = 1; o.MaxPendingHandlers = 10_000; });
-        var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var html = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(html);
         var handlerId = MarkupAssert.FirstHandlerId(html);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         for (var i = 0; i < 20; i++)
         {
-            try { await ws.SendJsonAsync(new { id = handlerId }); }
+            try { await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken); }
             catch { break; }
         }
 
@@ -85,7 +85,7 @@ public class ResourceLimitTests
             if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null
                 && ws.State == WebSocketState.Open)
             {
-                await Task.Delay(20);
+                await Task.Delay(20, TestContext.Current.CancellationToken);
             }
         }
 

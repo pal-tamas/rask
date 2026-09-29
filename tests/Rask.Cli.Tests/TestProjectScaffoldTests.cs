@@ -20,8 +20,22 @@ public sealed class TestProjectScaffoldTests
         Assert.Contains("""<ProjectReference Include="..\Shop.csproj"/>""", csproj, StringComparison.Ordinal);
         Assert.Contains($"""<PackageReference Include="Rask.Testing" Version="{Version}"/>""", csproj, StringComparison.Ordinal);
         Assert.Contains("""<PackageReference Include="Microsoft.NET.Test.Sdk" """, csproj, StringComparison.Ordinal);
-        Assert.Contains("""<PackageReference Include="xunit" """, csproj, StringComparison.Ordinal);
+        Assert.Contains("""<PackageReference Include="xunit.v3" """, csproj, StringComparison.Ordinal);
         Assert.Contains("""<PackageReference Include="xunit.runner.visualstudio" """, csproj, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    public void The_test_project_is_an_xunit_v3_executable_that_dotnet_test_runs_through_vstest(string template)
+    {
+        var files = template == "wasm" ? Wasm(off: []) : Server(off: []);
+
+        var csproj = files["Shop.Tests/Shop.Tests.csproj"];
+
+        Assert.Contains("<OutputType>Exe</OutputType>", csproj, StringComparison.Ordinal);
+        Assert.Contains("<IsTestingPlatformApplication>false</IsTestingPlatformApplication>", csproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("""<PackageReference Include="xunit" """, csproj, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -100,7 +114,7 @@ public sealed class TestProjectScaffoldTests
 
         foreach (var csproj in projects)
         {
-            foreach (var package in new[] { "Microsoft.NET.Test.Sdk", "xunit", "xunit.runner.visualstudio" })
+            foreach (var package in new[] { "Microsoft.NET.Test.Sdk", "xunit.v3", "xunit.runner.visualstudio" })
             {
                 Assert.Contains($"<PackageReference Include=\"{package}\" Version=\"{pins[package]}\"", csproj, StringComparison.Ordinal);
             }

@@ -25,7 +25,7 @@ public sealed class RuntimeScriptInjectionTests
     {
         using var host = RaskTestHost.Create<ShellApp>();
 
-        var body = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("<script src=\"/rask/rask.js\"></script></body>", body);
     }
@@ -35,7 +35,7 @@ public sealed class RuntimeScriptInjectionTests
     {
         using var host = RaskTestHost.Create<ShellApp>(pathBase: "/appA");
 
-        var body = await (await host.Http.GetAsync("/appA/")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("<script src=\"/appA/rask/rask.js\"></script></body>", body);
     }
@@ -45,7 +45,7 @@ public sealed class RuntimeScriptInjectionTests
     {
         using var host = RaskTestHost.Create<LegacyShellApp>();
 
-        var body = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         var marker = "src=\"/rask/rask.js\"";
         var first = body.IndexOf(marker, StringComparison.Ordinal);

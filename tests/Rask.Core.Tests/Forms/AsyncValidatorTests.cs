@@ -12,7 +12,7 @@ public class AsyncValidatorTests
         var fid = new FieldIdentifier(m, "Name");
         ctx.AddValidator(new DelayedValidator(20, "Name", "bad"));
 
-        var ok = await ctx.ValidateFieldAsync(fid);
+        var ok = await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
 
         Assert.False(ok);
         Assert.Equal(new[] { "bad" }, ctx.GetValidationMessages(fid));
@@ -42,8 +42,8 @@ public class AsyncValidatorTests
         };
         ctx.AddValidator(validator);
 
-        var first = ctx.ValidateFieldAsync(fid);
-        var second = ctx.ValidateFieldAsync(fid);
+        var first = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var second = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
 
         secondGate.SetResult();
         await second;
@@ -66,7 +66,7 @@ public class AsyncValidatorTests
         var stateChanges = 0;
         ctx.ValidationStateChanged += (_, _) => stateChanges++;
 
-        var task = ctx.ValidateFieldAsync(fid);
+        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
 
         Assert.True(ctx.IsValidating(fid));
         Assert.True(ctx.IsValidatingAny);
@@ -111,8 +111,8 @@ public class AsyncValidatorTests
             }
         }));
 
-        var fieldTask = ctx.ValidateFieldAsync(fid);
-        var formTask = ctx.ValidateAsync();
+        var fieldTask = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var formTask = ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         fieldGate.SetResult();
         await fieldTask;
@@ -129,7 +129,7 @@ public class AsyncValidatorTests
         var fid = new FieldIdentifier(m, "Name");
         ctx.AddValidator(new GatedValidator((_, _, _) => throw new HttpRequestException("boom")));
 
-        var ok = await ctx.ValidateFieldAsync(fid);
+        var ok = await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
 
         Assert.False(ok);
         Assert.Equal(new[] { "Validation could not be completed." }, ctx.GetValidationMessages(fid));

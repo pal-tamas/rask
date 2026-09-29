@@ -18,11 +18,11 @@ public sealed class ErrorPageResponseTests
         // would store it, crawlers would index it, and an uptime check would report the site green.
         using var host = RaskTestHost.Create<ThrowingOnRenderApp>(diffMode: LiveDiffMode.DisabledFull);
 
-        var response = await host.Http.GetAsync("/start");
+        var response = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
         // The body is unchanged: still the error page, not an empty 500.
-        var html = await response.Content.ReadAsStringAsync();
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("Something went wrong", html, StringComparison.Ordinal);
     }
 
@@ -31,7 +31,7 @@ public sealed class ErrorPageResponseTests
     {
         using var host = RaskTestHost.Create<ThrowingApp>(diffMode: LiveDiffMode.DisabledFull);
 
-        var response = await host.Http.GetAsync("/start");
+        var response = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
 
         // ThrowingApp only throws from a click handler, so its initial render is healthy.
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -44,7 +44,7 @@ public sealed class ErrorPageResponseTests
         // reload as the only way out of a fault that had not damaged anything.
         using var host = RaskTestHost.Create<ThrowingOnRenderApp>(diffMode: LiveDiffMode.DisabledFull);
 
-        var html = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var html = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("Try again", html, StringComparison.Ordinal);
         Assert.Contains("Reload this page", html, StringComparison.Ordinal);
@@ -58,17 +58,17 @@ public sealed class ErrorPageResponseTests
         // The common fault is a handler that threw, not a render that cannot succeed: the tree is
         // intact, so recovering restores the app with its state rather than costing a round trip.
         using var host = RaskTestHost.Create<ThrowingApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var throwingId = Regex.Matches(initialHtml, "data-rask-on-click=\"(h\\d+)\"")
             .Select(m => m.Groups[1].Value)
             .First();
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = throwingId });
+        await ws.SendJsonAsync(new { id = throwingId }, ct: TestContext.Current.CancellationToken);
         var faulted = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(faulted);
@@ -79,7 +79,7 @@ public sealed class ErrorPageResponseTests
             .Groups[1].Value;
         Assert.NotEmpty(retryId);
 
-        await ws.SendJsonAsync(new { id = retryId });
+        await ws.SendJsonAsync(new { id = retryId }, ct: TestContext.Current.CancellationToken);
         var recovered = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(recovered);

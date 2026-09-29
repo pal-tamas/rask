@@ -52,10 +52,10 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
 
         // Completes immediately but takes the async path (an async validator is registered),
         // so the finally arms the 100ms sticky timer.
-        await ctx.ValidateFieldAsync(new FieldIdentifier(model, "Name"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
 
         ctx.Dispose(); // must dispose the armed timer before it fires
-        await Task.Delay(250); // well past the sticky window
+        await Task.Delay(250, TestContext.Current.CancellationToken); // well past the sticky window
 
         Assert.Equal(0, renderRequests);
         Assert.True(ctx.IsDisposed);
@@ -95,7 +95,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedAsyncValidator(gate));
 
         // Start validation; it parks inside the gated async validator's await.
-        var validation = ctx.ValidateFieldAsync(new FieldIdentifier(model, "Name"));
+        var validation = ctx.ValidateFieldAsync(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
         await Task.Yield();
 
         ctx.Dispose();          // form unmounts mid-validation

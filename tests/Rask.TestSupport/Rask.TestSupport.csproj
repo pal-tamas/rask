@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <!-- Shared test-helper library, not a test project: references xunit (for Assert in
+    <!-- Shared test-helper library, not a test project: references xunit.v3.assert (for Assert in
          Markup) but ships no test runner, so dotnet test must not try to execute it. -->
     <IsTestProject>false</IsTestProject>
   </PropertyGroup>
@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.v3.assert"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
   </ItemGroup>
 

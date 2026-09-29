@@ -1,6 +1,6 @@
 using System.Reflection;
 using Rask.Core.Live;
-using Xunit.Sdk;
+using Xunit.v3;
 
 // Applies to every test in this assembly: guarantees a clean LiveRenderContext.CurrentSync
 // before each test body runs. The thread-static sync mirror can linger on a pooled thread after
@@ -13,5 +13,5 @@ namespace Rask.Core.Tests;
 
 public sealed class ResetLiveSyncContextAttribute : BeforeAfterTestAttribute
 {
-    public override void Before(MethodInfo methodUnderTest) => LiveRenderContext.ResetSyncForTests();
+    public override void Before(MethodInfo methodUnderTest, IXunitTest test) => LiveRenderContext.ResetSyncForTests();
 }

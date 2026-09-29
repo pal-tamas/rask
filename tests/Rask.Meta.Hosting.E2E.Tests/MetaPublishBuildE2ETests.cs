@@ -132,10 +132,10 @@ public class MetaPublishBuildE2ETests : IDisposable
         "Set RASK_META_PUBLISH_E2E=1 to run the meta-framework publish gate (runs dotnet publish; needs node).";
 
     /// <summary>Nitro's whole output directory is published under the front-end directory.</summary>
-    [SkippableFact]
+    [Fact]
     public void A_nitro_build_is_published_beside_the_app()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         Scaffold("nuxt", ".output/server/index.mjs", ".output/public/_nuxt/entry.abc.js");
 
@@ -155,10 +155,10 @@ public class MetaPublishBuildE2ETests : IDisposable
     ///     source-relative layout rather than flattening is what lets one <c>AppDirectory</c> default be
     ///     correct in development and in the published app alike.
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public void Next_publishes_the_server_and_both_asset_roots()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         Scaffold(
             "nextjs",
@@ -182,10 +182,10 @@ public class MetaPublishBuildE2ETests : IDisposable
     ///     Caught at once rather than as a missing entry file forty seconds into an npm build, which is
     ///     what a typo would otherwise look like.
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public void An_unknown_framework_name_fails_the_build()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         Scaffold("nextjs");
         Write("App.csproj", File.ReadAllText(Path.Combine(_dir, "App.csproj"))

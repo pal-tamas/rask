@@ -1,5 +1,3 @@
-using Xunit.Abstractions;
-
 namespace Rask.Core.Tests.Performance;
 
 // Quantifies Counter render allocation against the Blazor 1.46x loss baseline from

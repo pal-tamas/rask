@@ -20,7 +20,7 @@ public sealed class DevToolsTreeTabTests
         using var watch = feed.WatchTree();
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         // First that the page actually dispatched: a tree can only come from a render, and the wire feed says whether one
         // was asked for at all.
@@ -44,8 +44,8 @@ public sealed class DevToolsTreeTabTests
         var (_, feed, socket, handlerId) = await LivePage(host);
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
-        await Task.Delay(500);
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
+        await Task.Delay(500, TestContext.Current.CancellationToken);
 
         Assert.Null(feed.TreeSnapshot());
         socket.Dispose();
@@ -59,14 +59,14 @@ public sealed class DevToolsTreeTabTests
         using var watch = feed.WatchTree();
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
         var first = await WaitForTree(feed, TimeSpan.FromSeconds(5));
 
         Assert.NotNull(first);
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
-        await Task.Delay(300);
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
+        await Task.Delay(300, TestContext.Current.CancellationToken);
         var second = feed.TreeSnapshot();
 
         // The id is what a panel keys its expanded branches on, so it must outlive the render it was taken in.
@@ -83,7 +83,7 @@ public sealed class DevToolsTreeTabTests
         using var watch = feed.WatchTree();
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
 

@@ -25,7 +25,7 @@ public class CultureNegotiationEndpointTests
         using var host = Host();
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("hu"));
 
-        var html = await host.Http.GetStringAsync("/");
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         // Not "the page corrects itself afterwards" — the first bytes off the server are already Hungarian.
         Assert.Contains("lang=\"hu\"", html, StringComparison.Ordinal);
@@ -39,7 +39,7 @@ public class CultureNegotiationEndpointTests
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("hu", 0.3));
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("en", 0.9));
 
-        Assert.Contains("lang=\"en\"", await host.Http.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains("lang=\"en\"", await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class CultureNegotiationEndpointTests
         using var host = Host();
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("hu", 0));
 
-        Assert.Contains("lang=\"en\"", await host.Http.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains("lang=\"en\"", await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -58,8 +58,8 @@ public class CultureNegotiationEndpointTests
         using var host = Host();
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("en"));
 
-        var response = await host.Http.GetAsync("/?culture=hu");
-        var html = await response.Content.ReadAsStringAsync();
+        var response = await host.Http.GetAsync("/?culture=hu", TestContext.Current.CancellationToken);
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("lang=\"hu\"", html, StringComparison.Ordinal);
 
@@ -86,7 +86,7 @@ public class CultureNegotiationEndpointTests
         // Request.Cookies, so this is what guarantees a persisted choice actually survives.
         using var host = Host();
 
-        var first = await host.Http.GetAsync("/?culture=hu");
+        var first = await host.Http.GetAsync("/?culture=hu", TestContext.Current.CancellationToken);
         var setCookie = Assert.Single(
             first.Headers.GetValues("Set-Cookie"),
             v => v.StartsWith(".AspNetCore.Culture", StringComparison.Ordinal));
@@ -94,7 +94,7 @@ public class CultureNegotiationEndpointTests
         using var replay = Host();
         replay.Http.DefaultRequestHeaders.Add("Cookie", setCookie.Split(';')[0]);
 
-        Assert.Contains("lang=\"hu\"", await replay.Http.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains("lang=\"hu\"", await replay.Http.GetStringAsync("/", TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class CultureNegotiationEndpointTests
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("en"));
         host.Http.DefaultRequestHeaders.Add("Cookie", ".AspNetCore.Culture=c=hu|uic=hu");
 
-        Assert.Contains("lang=\"hu\"", await host.Http.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains("lang=\"hu\"", await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -113,14 +113,14 @@ public class CultureNegotiationEndpointTests
         using var host = Host();
 
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("ar"));
-        var arabic = await host.Http.GetStringAsync("/");
+        var arabic = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("dir=\"rtl\"", arabic, StringComparison.Ordinal);
 
         using var latin = Host();
         latin.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("hu"));
 
-        Assert.DoesNotContain("dir=", await latin.Http.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.DoesNotContain("dir=", await latin.Http.GetStringAsync("/", TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class CultureNegotiationEndpointTests
     {
         using var host = Host();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         var vary = string.Join(",", response.Headers.Vary);
         Assert.Contains("Accept-Language", vary, StringComparison.Ordinal);
@@ -144,7 +144,7 @@ public class CultureNegotiationEndpointTests
         using var host = RaskTestHost.Create<CulturePage>();
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("hu"));
 
-        var html = await host.Http.GetStringAsync("/");
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("lang=\"en\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("dir=", html, StringComparison.Ordinal);
@@ -156,7 +156,7 @@ public class CultureNegotiationEndpointTests
         using var host = Host();
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("ja-JP"));
 
-        Assert.Contains("lang=\"en\"", await host.Http.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains("lang=\"en\"", await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     // Renders the negotiated language into the body, so a test can see the culture the SESSION got

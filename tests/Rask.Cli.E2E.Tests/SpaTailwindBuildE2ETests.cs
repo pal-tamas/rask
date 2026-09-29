@@ -57,12 +57,12 @@ public sealed class SpaTailwindBuildE2ETests
     /// </remarks>
     private const string ProbeDeclaration = "margin-top:13px";
 
-    [SkippableTheory]
+    [Theory]
     [InlineData("react")]
     [InlineData("angular")]
     public async Task A_utility_class_reaches_the_bundlers_emitted_css(string frameworkKey)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
         Assert.True(SpaFramework.TryGet(frameworkKey, out var framework));
@@ -102,7 +102,7 @@ public sealed class SpaTailwindBuildE2ETests
             {
                 if (File.Exists(patch.Path))
                 {
-                    fs.WriteAllText(patch.Path, patch.Transform(await File.ReadAllTextAsync(patch.Path)));
+                    fs.WriteAllText(patch.Path, patch.Transform(await File.ReadAllTextAsync(patch.Path, TestContext.Current.CancellationToken)));
                 }
             }
 

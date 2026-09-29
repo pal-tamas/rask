@@ -70,7 +70,7 @@ public sealed class AuthorizeTests
     {
         using var host = await StartAsync();
 
-        var response = await host.GetTestClient().GetAsync("/api/secret");
+        var response = await host.GetTestClient().GetAsync("/api/secret", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -84,14 +84,14 @@ public sealed class AuthorizeTests
         var client = host.GetTestClient();
         client.DefaultRequestHeaders.Add("X-Test-User", "ada");
 
-        var response = await client.GetAsync("/api/secret");
+        var response = await client.GetAsync("/api/secret", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         // `ada`, not `"ada"`. This client sends no Accept header, so content negotiation hands a
         // string-returning action to StringOutputFormatter and the answer is text/plain. The generated
         // API client asks for application/json precisely so it never meets this — see ApiCall.SendAsync.
-        Assert.Equal("ada", await response.Content.ReadAsStringAsync());
+        Assert.Equal("ada", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
     }
 
@@ -103,7 +103,7 @@ public sealed class AuthorizeTests
         var client = host.GetTestClient();
         client.DefaultRequestHeaders.Add("X-Test-User", "ada");
 
-        var response = await client.GetAsync("/api/secret/admin");
+        var response = await client.GetAsync("/api/secret/admin", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -117,7 +117,7 @@ public sealed class AuthorizeTests
         client.DefaultRequestHeaders.Add("X-Test-User", "root");
         client.DefaultRequestHeaders.Add("X-Test-Roles", "admin");
 
-        var response = await client.GetAsync("/api/secret/admin");
+        var response = await client.GetAsync("/api/secret/admin", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -127,7 +127,7 @@ public sealed class AuthorizeTests
     {
         using var host = await StartAsync();
 
-        var response = await host.GetTestClient().GetAsync("/api/secret/open");
+        var response = await host.GetTestClient().GetAsync("/api/secret/open", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

@@ -70,7 +70,7 @@ internal static class CliBuildE2E
     internal static readonly Lazy<Task<(string Feed, string Version)>> LocalFeed = new(PackLocalFeedAsync);
 
     /// <summary>
-    /// Why a build gate didn't run. Reported through <c>Skip.IfNot</c> so an un-run gate shows up as SKIPPED in
+    /// Why a build gate didn't run. Reported through <c>Assert.SkipUnless</c> so an un-run gate shows up as SKIPPED in
     /// the test output instead of passing silently — these are the only tests that prove the CLI emits code that
     /// actually compiles, so "green" must never be able to mean "never ran".
     /// </summary>

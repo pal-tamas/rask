@@ -177,7 +177,7 @@ public sealed class DemoMarkupGoldenTests
         var before = pages.ToDictionary(p => p.key, p => SkeletonOf(p.page.Html), StringComparer.Ordinal);
 
         // Past the longest settle any of them holds (500 ms), with room to spare on a loaded machine.
-        await Task.Delay(900);
+        await Task.Delay(900, TestContext.Current.CancellationToken);
 
         var offenders = pages
             .Select(p =>

@@ -36,7 +36,7 @@ public class SessionUploadStoreTests
 
         Assert.Equal("data.bin", entry!.Name);
         Assert.Equal(writeBytes.Length, entry.Size);
-        var staged = await File.ReadAllBytesAsync(entry.Path);
+        var staged = await File.ReadAllBytesAsync(entry.Path, TestContext.Current.CancellationToken);
         Assert.Equal(writeBytes, staged);
 
         store.Release("session-1", entry.Token);

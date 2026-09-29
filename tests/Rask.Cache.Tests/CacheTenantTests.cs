@@ -37,22 +37,22 @@ public sealed class CacheTenantTests
 
         using (Tenant.Use(_acme))
         {
-            await harness.Distributed.SetAsync("greeting", Bytes("acme"), new DistributedCacheEntryOptions());
+            await harness.Distributed.SetAsync("greeting", Bytes("acme"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         }
 
         using (Tenant.Use(_globex))
         {
-            await harness.Distributed.SetAsync("greeting", Bytes("globex"), new DistributedCacheEntryOptions());
+            await harness.Distributed.SetAsync("greeting", Bytes("globex"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         }
 
         using (Tenant.Use(_acme))
         {
-            Assert.Equal("acme", Str((await harness.Distributed.GetAsync("greeting"))!));
+            Assert.Equal("acme", Str((await harness.Distributed.GetAsync("greeting", TestContext.Current.CancellationToken))!));
         }
 
         using (Tenant.Use(_globex))
         {
-            Assert.Equal("globex", Str((await harness.Distributed.GetAsync("greeting"))!));
+            Assert.Equal("globex", Str((await harness.Distributed.GetAsync("greeting", TestContext.Current.CancellationToken))!));
         }
     }
 
@@ -63,12 +63,12 @@ public sealed class CacheTenantTests
 
         using (Tenant.Use(_acme))
         {
-            await harness.Distributed.SetAsync("secret", Bytes("acme"), new DistributedCacheEntryOptions());
+            await harness.Distributed.SetAsync("secret", Bytes("acme"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         }
 
         using (Tenant.Use(_globex))
         {
-            Assert.Null(await harness.Distributed.GetAsync("secret"));
+            Assert.Null(await harness.Distributed.GetAsync("secret", TestContext.Current.CancellationToken));
         }
     }
 
@@ -79,18 +79,18 @@ public sealed class CacheTenantTests
 
         using (Tenant.Use(_acme))
         {
-            await harness.Distributed.SetAsync("k", Bytes("acme"), new DistributedCacheEntryOptions());
+            await harness.Distributed.SetAsync("k", Bytes("acme"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         }
 
         using (Tenant.Use(_globex))
         {
-            await harness.Distributed.SetAsync("k", Bytes("globex"), new DistributedCacheEntryOptions());
-            await harness.Distributed.RemoveAsync("k");
+            await harness.Distributed.SetAsync("k", Bytes("globex"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
+            await harness.Distributed.RemoveAsync("k", TestContext.Current.CancellationToken);
         }
 
         using (Tenant.Use(_acme))
         {
-            Assert.Equal("acme", Str((await harness.Distributed.GetAsync("k"))!));
+            Assert.Equal("acme", Str((await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken))!));
         }
     }
 
@@ -101,11 +101,11 @@ public sealed class CacheTenantTests
 
         // The case that rules out a query filter: ASP.NET session and output caching run on anonymous
         // requests, where there is no tenant at all. That has to keep working exactly as before.
-        await harness.Distributed.SetAsync("anonymous", Bytes("v"), new DistributedCacheEntryOptions());
+        await harness.Distributed.SetAsync("anonymous", Bytes("v"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
 
-        Assert.Equal("v", Str((await harness.Distributed.GetAsync("anonymous"))!));
+        Assert.Equal("v", Str((await harness.Distributed.GetAsync("anonymous", TestContext.Current.CancellationToken))!));
         await using var db = harness.NewContext();
-        Assert.True(await db.Set<CacheEntry>().AnyAsync(e => e.Key == "anonymous"));
+        Assert.True(await db.Set<CacheEntry>().AnyAsync(e => e.Key == "anonymous", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -115,17 +115,17 @@ public sealed class CacheTenantTests
 
         using (Tenant.Use(_acme))
         {
-            await harness.Distributed.SetAsync("a", Bytes("1"), new DistributedCacheEntryOptions());
+            await harness.Distributed.SetAsync("a", Bytes("1"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         }
 
         using (Tenant.Use(_globex))
         {
-            await harness.Distributed.SetAsync("b", Bytes("2"), new DistributedCacheEntryOptions());
+            await harness.Distributed.SetAsync("b", Bytes("2"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         }
 
         // No filter on the table, so a sweep reaches both — which is the whole reason the isolation is in
         // the key rather than in a query filter.
         await using var db = harness.NewContext();
-        Assert.Equal(2, await db.Set<CacheEntry>().CountAsync());
+        Assert.Equal(2, await db.Set<CacheEntry>().CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 }

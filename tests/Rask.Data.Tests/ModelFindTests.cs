@@ -18,7 +18,7 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var (_, bravo) = await SeedAsync(database, Widget.Create("alpha"), Widget.Create("bravo"));
 
-        var found = await database.LoadAsync<Widget>(bravo.Id);
+        var found = await database.LoadAsync<Widget>(bravo.Id, TestContext.Current.CancellationToken);
 
         Assert.NotNull(found);
         Assert.Equal("bravo", found.Name);
@@ -30,7 +30,7 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SeedAsync(database, Widget.Create("alpha"), Widget.Create("bravo"));
 
-        Assert.Null(await database.LoadAsync<Widget>(Guid.NewGuid()));
+        Assert.Null(await database.LoadAsync<Widget>(Guid.NewGuid(), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -40,10 +40,10 @@ public sealed class ModelFindTests : IDisposable
         var (doomed, _) = await SeedAsync(database, Widget.Create("doomed"), Widget.Create("kept"));
 
         database.Context.Remove(doomed);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Null(await database.LoadAsync<Widget>(doomed.Id));
-        Assert.NotNull(await Widget.IgnoreQueryFilters().First(w => w.Id == doomed.Id));
+        Assert.Null(await database.LoadAsync<Widget>(doomed.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await Widget.IgnoreQueryFilters().First(w => w.Id == doomed.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -52,14 +52,14 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var gadget = Gadget.Create("typed", "T1", 5m);
         database.Context.Add(gadget);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("typed", (await database.LoadAsync<Gadget>(gadget.Id))!.Name);
-        Assert.Equal("typed", (await database.LoadAsync<Gadget>([gadget.Id]))!.Name);
-        Assert.Null(await database.LoadAsync<Gadget>(new GadgetId(Guid.NewGuid())));
+        Assert.Equal("typed", (await database.LoadAsync<Gadget>(gadget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Equal("typed", (await database.LoadAsync<Gadget>([gadget.Id], TestContext.Current.CancellationToken))!.Name);
+        Assert.Null(await database.LoadAsync<Gadget>(new GadgetId(Guid.NewGuid()), TestContext.Current.CancellationToken));
 
         // The raw Guid underneath is not a GadgetId — the point of having one.
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Gadget>(gadget.Id.Value));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Gadget>(gadget.Id.Value, TestContext.Current.CancellationToken));
         Assert.Contains(nameof(GadgetId), error.Message, StringComparison.Ordinal);
     }
 
@@ -69,14 +69,14 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var (widget, _) = await SeedAsync(database, Widget.Create("alpha"), Widget.Create("bravo"));
 
-        var first = await database.LoadAsync<Widget>(widget.Id);
-        var second = await database.LoadAsync<Widget>(widget.Id);
+        var first = await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken);
+        var second = await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken);
 
         // Two contexts, no identity map shared between them: a change to one copy is invisible to the other.
         Assert.NotSame(first, second);
         first!.Rename("changed-in-memory");
         Assert.Equal("alpha", second!.Name);
-        Assert.Equal("alpha", (await database.LoadAsync<Widget>(widget.Id))!.Name);
+        Assert.Equal("alpha", (await database.LoadAsync<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
     }
 
     [Fact]
@@ -85,8 +85,8 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         var tooMany = await Assert.ThrowsAsync<ArgumentException>(() =>
-            database.LoadAsync<Widget>([Guid.NewGuid(), Guid.NewGuid()]));
-        await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>(Array.Empty<object?>()));
+            database.LoadAsync<Widget>([Guid.NewGuid(), Guid.NewGuid()], TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>(Array.Empty<object?>(), TestContext.Current.CancellationToken));
 
         Assert.Contains("1 value(s)", tooMany.Message, StringComparison.Ordinal);
     }
@@ -96,9 +96,9 @@ public sealed class ModelFindTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>([null]));
-        await Assert.ThrowsAsync<ArgumentNullException>(() => database.LoadAsync<Widget>((object)null!));
-        await Assert.ThrowsAsync<ArgumentNullException>(() => database.LoadAsync<Widget>((object?[])null!));
+        await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>([null], TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => database.LoadAsync<Widget>((object)null!, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => database.LoadAsync<Widget>((object?[])null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class ModelFindTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>("not-a-guid"));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>("not-a-guid", TestContext.Current.CancellationToken));
 
         Assert.Contains(nameof(Guid), error.Message, StringComparison.Ordinal);
     }

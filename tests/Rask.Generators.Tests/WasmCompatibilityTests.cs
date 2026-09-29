@@ -46,7 +46,7 @@ public class WasmCompatibilityTests
                   }
                   """;
 
-        var syntaxTree = CSharpSyntaxTree.ParseText(src);
+        var syntaxTree = CSharpSyntaxTree.ParseText(src, cancellationToken: TestContext.Current.CancellationToken);
         var compilation = CSharpCompilation.Create(
             "WasmCompat",
             new[] { syntaxTree },
@@ -55,12 +55,12 @@ public class WasmCompatibilityTests
                 nullableContextOptions: NullableContextOptions.Enable));
 
         var driver = CSharpGeneratorDriver.Create(new ComponentFactoryGenerator());
-        var result = driver.RunGenerators(compilation).GetRunResult();
+        var result = driver.RunGenerators(compilation, TestContext.Current.CancellationToken).GetRunResult();
         var generated = result.Results.SelectMany(r => r.GeneratedSources).ToList();
         Assert.NotEmpty(generated);
 
         var combined = compilation.AddSyntaxTrees(generated.Select(s => s.SyntaxTree));
-        var diagnostics = combined.GetDiagnostics()
+        var diagnostics = combined.GetDiagnostics(TestContext.Current.CancellationToken)
             .Where(d => d.Severity == DiagnosticSeverity.Error)
             .ToList();
 

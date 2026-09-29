@@ -26,7 +26,7 @@ public sealed class DevToolsWithoutUiKitTests
             },
             environment: "Development");
 
-        var html = await host.Http.GetStringAsync("/");
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         // The page itself must still be live, or the absence below would prove nothing.
         Assert.Contains("data-rask-root=", html, StringComparison.Ordinal);
@@ -36,7 +36,7 @@ public sealed class DevToolsWithoutUiKitTests
             e => e.RoutePattern.RawText == DevToolsServerEndpoints.HostScriptPath);
         Assert.Equal(
             HttpStatusCode.NotFound,
-            (await host.Http.GetAsync(DevToolsServerEndpoints.Prefix + "/?inspect=x&t=y")).StatusCode);
+            (await host.Http.GetAsync(DevToolsServerEndpoints.Prefix + "/?inspect=x&t=y", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]

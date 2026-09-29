@@ -25,7 +25,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 public sealed class BootFailureReportingTests
 {
     /// <summary>The commonest real failure, and the one the issue was opened for.</summary>
-    [SkippableFact]
+    [Fact]
     public void A_runtime_that_will_not_load_says_so_on_the_page_instead_of_spinning()
     {
         var result = RunFixture("runtime-fails");
@@ -61,7 +61,7 @@ public sealed class BootFailureReportingTests
     ///     frame is pushed from inside it, so a boot screen still on the page at that point is a fact, not a
     ///     guess about how slow the network is.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public void An_app_that_starts_but_never_renders_is_reported_rather_than_left_spinning()
     {
         var result = RunFixture("never-painted");
@@ -85,7 +85,7 @@ public sealed class BootFailureReportingTests
     ///     journey then failed against an app whose own console said <c>first render applied</c>. The
     ///     browser gate caught it; this test could not, because it was asking the same wrong question.
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public void Once_the_app_has_painted_the_boot_surface_stays_silent()
     {
         var result = RunFixture("already-painted");
@@ -102,7 +102,7 @@ public sealed class BootFailureReportingTests
     ///     <c>dotnet.create()</c> — the step most likely to fail — would escape the very net meant to catch
     ///     it. Asserted on the success path so it cannot be satisfied by the failure path alone.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public void The_global_failure_handlers_are_installed_before_the_first_await()
     {
         var result = RunFixture("already-painted");
@@ -119,7 +119,7 @@ public sealed class BootFailureReportingTests
     private static JsonElement RunFixture(string scenario)
     {
         var node = ResolveNode();
-        Skip.If(node is null, "node is not on PATH, so the JS-driven boot fixture cannot run.");
+        Assert.SkipWhen(node is null, "node is not on PATH, so the JS-driven boot fixture cannot run.");
 
         var repoRoot = LocateRepoRoot();
         var fixtureScript = Path.Combine(AppContext.BaseDirectory, "node-fixtures", "BootFailureFixture.mjs");

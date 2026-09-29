@@ -61,7 +61,7 @@ public class QuiescenceScopeStaleThreadTests
                 }
 
                 after = QuiescenceScope.Current;
-            });
+            }, TestContext.Current.CancellationToken);
         }
 
         await work;

@@ -88,7 +88,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
         await using (var db = new GizmoContext(_options))
         {
             db.Add(Gizmo.Create("Axle", 12));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await page.On(".join button:has-text(\"2\")").ClickAsync();

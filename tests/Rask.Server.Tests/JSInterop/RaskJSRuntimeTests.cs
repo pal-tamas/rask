@@ -20,12 +20,12 @@ public class RaskJSRuntimeTests
         // jsInvokes, asserts shape, sends a jsResult back; the component's awaiting Task
         // resolves and posts the result into a publicly observable TCS.
         using var host = RaskTestHost.Create<JsRoundTripApp>();
-        var initialResponse = await host.Http.GetAsync("/");
-        var initialHtml = await initialResponse.Content.ReadAsStringAsync();
+        var initialResponse = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        var initialHtml = await initialResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         // First frame after hello: server re-renders and ships the pending jsInvoke.
         var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -45,11 +45,11 @@ public class RaskJSRuntimeTests
 
             var taskId = invoke.GetProperty("id").GetInt64();
             // Send jsResult: emulate JS-side returning "stored-value" for sessionStorage.getItem.
-            await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = true, result = "stored-value" });
+            await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = true, result = "stored-value" }, ct: TestContext.Current.CancellationToken);
         }
 
         // Wait for the TCS to be completed by the await-continuation in the component.
-        var observed = await JsRoundTripApp.LastResult.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var observed = await JsRoundTripApp.LastResult.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal("stored-value", observed);
     }
 
@@ -57,11 +57,11 @@ public class RaskJSRuntimeTests
     public async Task A_failed_invoke_surfaces_as_a_JSException()
     {
         using var host = RaskTestHost.Create<JsErrorApp>();
-        var initialHtml = await host.Http.GetStringAsync("/");
+        var initialHtml = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         Assert.NotNull(first);
 
@@ -69,9 +69,9 @@ public class RaskJSRuntimeTests
         var invoke = doc.RootElement.GetProperty("jsInvokes")[0];
         var taskId = invoke.GetProperty("id").GetInt64();
 
-        await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = false, error = "TypeError: nope" });
+        await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = false, error = "TypeError: nope" }, ct: TestContext.Current.CancellationToken);
 
-        var ex = await JsErrorApp.Caught.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var ex = await JsErrorApp.Caught.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.IsType<JSException>(ex);
         Assert.Contains("TypeError: nope", ex.Message);
     }
@@ -85,11 +85,11 @@ public class RaskJSRuntimeTests
         // The dispatch must spawn the handler so the loop keeps reading; cross-handler
         // ordering is preserved by session.Lock.
         using var host = RaskTestHost.Create<JsClickApp>();
-        var initialHtml = await host.Http.GetStringAsync("/");
+        var initialHtml = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         // No hello-time frame to drain: JsClickApp has no pending state mutations or JS
         // invokes during the GET→hello handoff, so FlushPendingRenderAsync skips. Read
@@ -100,7 +100,7 @@ public class RaskJSRuntimeTests
 
         // Click the button → handler runs SetAsync → awaits InvokeVoidAsync. With the
         // fire-and-forget dispatch, the receive loop must still be reading.
-        await ws.SendJsonAsync(new { id = clickId, type = "click" });
+        await ws.SendJsonAsync(new { id = clickId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         // We expect the next frame to carry a jsInvokes entry for sessionStorage.setItem.
         var clickFrame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -114,11 +114,11 @@ public class RaskJSRuntimeTests
 
         // Send jsResult — receive loop must process this concurrently with the still-running
         // handler. If it deadlocks, this message is never read and the test times out.
-        await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = true });
+        await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = true }, ct: TestContext.Current.CancellationToken);
 
         // The handler completes, sets _status, and re-renders. Awaiting on a TCS sidesteps
         // having to poll for the post-completion render frame.
-        await JsClickApp.Completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await JsClickApp.Completed.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
         Assert.Equal("done", JsClickApp.LastStatus);
     }
 
@@ -135,11 +135,11 @@ public class RaskJSRuntimeTests
         // BeginInvokeJS → loop. Both paths are closed; this test exercises the
         // in-render-walk path through a real session.
         using var host = RaskTestHost.Create<JsRenderStormApp>();
-        var initialHtml = await host.Http.GetStringAsync("/");
+        var initialHtml = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         // First post-hello frame: server renders, Rendered fires, queues one jsInvoke.
         var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -164,7 +164,7 @@ public class RaskJSRuntimeTests
         // → forever. Post-fix: no extra render scheduled.
         foreach (var id in taskIds)
         {
-            await ws.SendJsonAsync(new { type = "jsResult", id, success = true });
+            await ws.SendJsonAsync(new { type = "jsResult", id, success = true }, ct: TestContext.Current.CancellationToken);
         }
 
         // Drain anything that arrives in the next 500 ms. A correctly-behaving server

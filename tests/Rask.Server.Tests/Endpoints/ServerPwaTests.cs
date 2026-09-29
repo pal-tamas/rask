@@ -31,17 +31,17 @@ public sealed class ServerPwaTests
     {
         using var host = RaskTestHost.Create<ShellApp>();
 
-        var body = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("rel=\"manifest\"", body);
 
         // The PWA endpoints are not mapped, so these paths fall through to the SPA catch-all and render
         // the app shell (text/html) rather than serving manifest JSON / the service-worker script.
-        var manifest = await host.Http.GetAsync("/rask/manifest.webmanifest");
+        var manifest = await host.Http.GetAsync("/rask/manifest.webmanifest", TestContext.Current.CancellationToken);
 
         Assert.NotEqual("application/manifest+json", manifest.Content.Headers.ContentType?.MediaType);
 
-        var sw = await host.Http.GetAsync("/rask-sw.js");
+        var sw = await host.Http.GetAsync("/rask-sw.js", TestContext.Current.CancellationToken);
 
         Assert.NotEqual("text/javascript", sw.Content.Headers.ContentType?.MediaType);
     }
@@ -51,7 +51,7 @@ public sealed class ServerPwaTests
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()));
 
-        var body = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("rel=\"manifest\"", body);
         Assert.Contains("href=\"/rask/manifest.webmanifest\"", body);
@@ -72,7 +72,7 @@ public sealed class ServerPwaTests
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(new WebAppManifest { Name = "Bare" }));
 
-        var body = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("rel=\"manifest\"", body);
         Assert.DoesNotContain("name=\"theme-color\"", body);
@@ -83,12 +83,12 @@ public sealed class ServerPwaTests
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()));
 
-        var response = await host.Http.GetAsync("/rask/manifest.webmanifest");
+        var response = await host.Http.GetAsync("/rask/manifest.webmanifest", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/manifest+json", response.Content.Headers.ContentType?.MediaType);
 
-        var json = await response.Content.ReadAsStringAsync();
+        var json = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var doc = System.Text.Json.JsonDocument.Parse(json);
         var root = doc.RootElement;
         Assert.Equal("Rask Server Showcase", root.GetProperty("name").GetString());
@@ -101,12 +101,12 @@ public sealed class ServerPwaTests
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()));
 
-        var response = await host.Http.GetAsync("/rask-sw.js");
+        var response = await host.Http.GetAsync("/rask-sw.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
 
-        var sw = await response.Content.ReadAsStringAsync();
+        var sw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         // Shared push handler is present...
         Assert.Contains("addEventListener(\"push\"", sw);
         Assert.Contains("offline.html", sw);
@@ -120,17 +120,17 @@ public sealed class ServerPwaTests
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()), pathBase: "/appA");
 
-        var body = await (await host.Http.GetAsync("/appA/")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("href=\"/appA/rask/manifest.webmanifest\"", body);
 
-        var json = await (await host.Http.GetAsync("/appA/rask/manifest.webmanifest")).Content.ReadAsStringAsync();
+        var json = await (await host.Http.GetAsync("/appA/rask/manifest.webmanifest", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var doc = System.Text.Json.JsonDocument.Parse(json);
 
         Assert.Equal("/appA/", doc.RootElement.GetProperty("start_url").GetString());
         Assert.Equal("/appA/icon.svg", doc.RootElement.GetProperty("icons")[0].GetProperty("src").GetString());
 
-        Assert.Equal(HttpStatusCode.OK, (await host.Http.GetAsync("/appA/rask-sw.js")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await host.Http.GetAsync("/appA/rask-sw.js", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     private sealed class ShellApp : Component

@@ -33,8 +33,8 @@ public class HelloMessageTests
         // emitted lazily by the next real state mutation or event. Aligns Server's initial-
         // mount behaviour with WASM's (which has no analogous GET→hello handoff phase).
         using var host = RaskTestHost.Create<TestApp>();
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
@@ -61,12 +61,12 @@ public class HelloMessageTests
         // connect before its own push, and the test would pass without exercising the handoff window at all.
         DetachedPushApp.Pushed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var host = RaskTestHost.Create<DetachedPushApp>();
-        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
 
         // Let MountAsyncApp's Mount await complete before opening the socket.
         // The continuation calls StateHasChanged with no socket attached, setting the
         // session's pending-render flag.
-        await DetachedPushApp.Pushed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await DetachedPushApp.Pushed.Task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
@@ -91,7 +91,7 @@ public class HelloMessageTests
         // socket's browser tab reliably gets the current state, even when the HTML
         // matches the seeded GET-time baseline byte-for-byte.
         using var host = RaskTestHost.Create<TestApp>();
-        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
 
         var ws1 = await LiveTestConnection.OpenAsync(host, transport, sessionId);
         _ = await ws1.TryReceiveTextAsync(TimeSpan.FromMilliseconds(200));
@@ -111,14 +111,14 @@ public class HelloMessageTests
     public async Task A_second_hello_on_one_socket_closes_it_with_a_policy_violation_and_the_count_returns_to_zero()
     {
         using var host = RaskTestHost.Create<TestApp>();
-        var first = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
-        var second = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+        var first = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
+        var second = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = first });
+        await ws.SendJsonAsync(new { type = "hello", session = first }, ct: TestContext.Current.CancellationToken);
         await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
 
-        await ws.SendJsonAsync(new { type = "hello", session = second });
+        await ws.SendJsonAsync(new { type = "hello", session = second }, ct: TestContext.Current.CancellationToken);
 
         var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5));
         Assert.NotNull(close);
@@ -136,7 +136,7 @@ public class HelloMessageTests
         using var host = RaskTestHost.Create<TestApp>();
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
 
-        await ws.SendJsonAsync(new { type = "hello" });
+        await ws.SendJsonAsync(new { type = "hello" }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300));
 
         Assert.Null(text);

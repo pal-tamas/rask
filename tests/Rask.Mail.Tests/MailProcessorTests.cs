@@ -15,7 +15,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.Send(SampleEmail());
+            await harness.Queue.Send(SampleEmail(), TestContext.Current.CancellationToken);
             // Wait for the ROW, not for the send. The processor marks the row after the sender returns, so
             // waiting on Sent.Count leaves the ProcessedAt assertion below racing that write — which is
             // exactly how this failed under a full-suite load while passing every time in isolation.
@@ -42,7 +42,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.Send(Email.To("ada@example.com").Subject("Hi").Body(GreetingEmail.Name("Ada")));
+            await harness.Queue.Send(Email.To("ada@example.com").Subject("Hi").Body(GreetingEmail.Name("Ada")), TestContext.Current.CancellationToken);
             await harness.WaitUntilAsync(async () => harness.Sender.Sent.Count == 1);
 
             var sent = Assert.Single(harness.Sender.Sent);
@@ -65,7 +65,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         {
             for (var i = 0; i < 5; i++)
             {
-                await harness.Queue.Send(Email.To($"user{i}@example.com").Subject($"#{i}").Html("<p>hi</p>"));
+                await harness.Queue.Send(Email.To($"user{i}@example.com").Subject($"#{i}").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
             }
 
             // Wait for the ROWS, not for the sends: the processor marks a row after its sender returns, so waiting
@@ -91,10 +91,10 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.Send(SampleEmail()).In(TimeSpan.FromHours(1));
+            await harness.Queue.Send(SampleEmail(), TestContext.Current.CancellationToken).In(TimeSpan.FromHours(1));
 
             // The clock is not advanced, so the message stays in the future — give the poll loop time to prove it.
-            await Task.Delay(200);
+            await Task.Delay(200, TestContext.Current.CancellationToken);
             Assert.Empty(harness.Sender.Sent);
 
             harness.Clock.Advance(TimeSpan.FromHours(1));
@@ -114,7 +114,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.Send(SampleEmail());
+            await harness.Queue.Send(SampleEmail(), TestContext.Current.CancellationToken);
             // Wait for the ROW to be marked processed, not merely for the send to have happened. The
             // processor writes ProcessedAt after handing the mail to the sender, so waiting on
             // `Sent.Count == 1` can return in the window between the two and leave ProcessedAt null —
@@ -146,7 +146,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.Send(SampleEmail());
+            await harness.Queue.Send(SampleEmail(), TestContext.Current.CancellationToken);
             // Wait for attempt 3 to *finish*, not just to start: the claim increments Attempts before the
             // send runs, so `Attempts == 3` is already true while the third send is still in flight — and
             // the snapshot of sender.Attempts below would then be taken mid-attempt. An unclaimed row is
@@ -162,7 +162,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
             // Once at MaxAttempts the message is a dead letter — no longer claimed, never delivered.
             var attemptsAtDeadLetter = sender.Attempts;
             harness.Clock.Advance(TimeSpan.FromHours(2));
-            await Task.Delay(200);
+            await Task.Delay(200, TestContext.Current.CancellationToken);
 
             Assert.Equal(attemptsAtDeadLetter, sender.Attempts);
             Assert.Empty(sender.Sent);
@@ -184,7 +184,7 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
         await harness.Processor.StartAsync(CancellationToken.None);
         try
         {
-            await harness.Queue.Send(SampleEmail());
+            await harness.Queue.Send(SampleEmail(), TestContext.Current.CancellationToken);
             await harness.WaitUntilAsync(async () => harness.Sender.Sent.Count == 1);
 
             // Advance past retention + the 1h purge throttle so the next purge tick removes the sent row.

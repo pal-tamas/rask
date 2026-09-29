@@ -43,7 +43,7 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     protected abstract string FixtureName { get; }
     protected abstract string ServerLog { get; }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _ctx = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -136,7 +136,7 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         };
     }
 
-    public async Task DisposeAsync() => await _ctx.DisposeAsync();
+    public async ValueTask DisposeAsync() => await _ctx.DisposeAsync();
 
     // Default = direct deep link. Overridden by hosts (e.g. WasmAppHost) that don't install
     // a SPA fallback; those must navigate via the home shell + sidebar instead.

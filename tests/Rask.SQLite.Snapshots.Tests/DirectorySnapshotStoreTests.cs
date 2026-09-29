@@ -8,7 +8,7 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
     public async Task SaveAsync_moves_the_snapshot_into_the_directory()
     {
         var source = Path.Combine(Path.GetTempPath(), $"rask-snap-src-{Guid.NewGuid():N}.db");
-        await File.WriteAllTextAsync(source, "snapshot");
+        await File.WriteAllTextAsync(source, "snapshot", TestContext.Current.CancellationToken);
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
 
         await store.SaveAsync(source, "app-1.db", CancellationToken.None);
@@ -25,11 +25,11 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
         for (var i = 0; i < 3; i++)
         {
             var path = Path.Combine(_dir, $"app-{i}.db");
-            await File.WriteAllTextAsync(path, new string('x', i + 1));
+            await File.WriteAllTextAsync(path, new string('x', i + 1), TestContext.Current.CancellationToken);
             File.SetLastWriteTimeUtc(path, baseTime.AddMinutes(i));   // app-2 is newest
         }
         // Same pattern scoping as PruneAsync: what you can see is what retention manages.
-        await File.WriteAllTextAsync(Path.Combine(_dir, "unrelated.txt"), "ignore me");
+        await File.WriteAllTextAsync(Path.Combine(_dir, "unrelated.txt"), "ignore me", TestContext.Current.CancellationToken);
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
 
         var snapshots = await store.ListAsync(CancellationToken.None);
@@ -64,12 +64,12 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
         for (var i = 0; i < 5; i++)
         {
             var path = Path.Combine(_dir, $"app-{i}.db");
-            await File.WriteAllTextAsync(path, "x");
+            await File.WriteAllTextAsync(path, "x", TestContext.Current.CancellationToken);
             File.SetLastWriteTimeUtc(path, baseTime.AddMinutes(i));   // app-4 is newest
         }
         // A file that does not match the pattern must be left untouched.
         var unrelated = Path.Combine(_dir, "unrelated.txt");
-        await File.WriteAllTextAsync(unrelated, "keep me");
+        await File.WriteAllTextAsync(unrelated, "keep me", TestContext.Current.CancellationToken);
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
 
         await store.PruneAsync(retain: 2, CancellationToken.None);

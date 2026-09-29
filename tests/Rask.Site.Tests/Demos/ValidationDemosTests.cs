@@ -399,7 +399,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new OrderValidator();
 
-        var result = await v.ValidateAsync(new OrderModel());
+        var result = await v.ValidateAsync(new OrderModel(), TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.PropertyName == "Product");
@@ -411,7 +411,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new OrderValidator();
 
-        var result = await v.ValidateAsync(new OrderModel { Product = "Coffee", Quantity = 2 });
+        var result = await v.ValidateAsync(new OrderModel { Product = "Coffee", Quantity = 2 }, TestContext.Current.CancellationToken);
 
         Assert.True(result.IsValid);
     }
@@ -421,7 +421,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new TicketValidator();
 
-        var result = await v.ValidateAsync(new TicketModel { Code = "" });
+        var result = await v.ValidateAsync(new TicketModel { Code = "" }, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Single(result.Errors);
@@ -433,7 +433,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new TicketValidator();
 
-        var result = await v.ValidateAsync(new TicketModel { Code = "bad-code" });
+        var result = await v.ValidateAsync(new TicketModel { Code = "bad-code" }, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Single(result.Errors);
@@ -445,7 +445,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new TicketValidator();
 
-        var result = await v.ValidateAsync(new TicketModel { Code = "TKT-002" });
+        var result = await v.ValidateAsync(new TicketModel { Code = "TKT-002" }, TestContext.Current.CancellationToken);
 
         Assert.False(result.IsValid);
         Assert.Single(result.Errors);
@@ -457,7 +457,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     {
         var v = new TicketValidator();
 
-        var result = await v.ValidateAsync(new TicketModel { Code = "TKT-999" });
+        var result = await v.ValidateAsync(new TicketModel { Code = "TKT-999" }, TestContext.Current.CancellationToken);
 
         Assert.True(result.IsValid);
     }
