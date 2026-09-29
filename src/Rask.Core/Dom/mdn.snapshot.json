@@ -5323,7 +5323,10 @@
     }
    ],
    "events": [
-    "abort"
+    {
+     "type": "abort",
+     "interface": "Event"
+    }
    ]
   },
   "AbstractRange": {
@@ -5970,9 +5973,18 @@
     }
    ],
    "events": [
-    "finish",
-    "cancel",
-    "remove"
+    {
+     "type": "finish",
+     "interface": "AnimationPlaybackEvent"
+    },
+    {
+     "type": "cancel",
+     "interface": "AnimationPlaybackEvent"
+    },
+    {
+     "type": "remove",
+     "interface": "AnimationPlaybackEvent"
+    }
    ]
   },
   "AnimationEffect": {
@@ -7094,7 +7106,10 @@
     }
    ],
    "events": [
-    "dequeue"
+    {
+     "type": "dequeue",
+     "interface": "Event"
+    }
    ]
   },
   "AudioDestinationNode": {
@@ -7276,7 +7291,10 @@
     }
    ],
    "events": [
-    "dequeue"
+    {
+     "type": "dequeue",
+     "interface": "Event"
+    }
    ]
   },
   "AudioListener": {
@@ -7891,7 +7909,10 @@
     }
    ],
    "events": [
-    "ended"
+    {
+     "type": "ended",
+     "interface": "Event"
+    }
    ]
   },
   "AudioWorklet": {
@@ -7973,7 +7994,10 @@
     }
    ],
    "events": [
-    "processorerror"
+    {
+     "type": "processorerror",
+     "interface": "ErrorEvent"
+    }
    ]
   },
   "AuthenticatorAssertionResponse": {
@@ -8557,7 +8581,10 @@
     }
    ],
    "events": [
-    "statechange"
+    {
+     "type": "statechange",
+     "interface": "Event"
+    }
    ]
   },
   "BeforeUnloadEvent": {
@@ -8978,8 +9005,14 @@
     }
    ],
    "events": [
-    "message",
-    "messageerror"
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    },
+    {
+     "type": "messageerror",
+     "interface": "MessageEvent"
+    }
    ]
   },
   "ByteLengthQueuingStrategy": {
@@ -11883,8 +11916,14 @@
     }
    ],
    "events": [
-    "cancel",
-    "close"
+    {
+     "type": "cancel",
+     "interface": "Event"
+    },
+    {
+     "type": "close",
+     "interface": "Event"
+    }
    ]
   },
   "CommandEvent": {
@@ -12432,7 +12471,10 @@
     }
    ],
    "events": [
-    "change"
+    {
+     "type": "change",
+     "interface": "CookieChangeEvent"
+    }
    ]
   },
   "CookieStoreManager": {
@@ -19418,16 +19460,46 @@
     }
    ],
    "events": [
-    "fullscreenchange",
-    "fullscreenerror",
-    "readystatechange",
-    "visibilitychange",
-    "pointerlockchange",
-    "pointerlockerror",
-    "scroll",
-    "scrollend",
-    "securitypolicyviolation",
-    "selectionchange"
+    {
+     "type": "fullscreenchange",
+     "interface": "Event"
+    },
+    {
+     "type": "fullscreenerror",
+     "interface": "Event"
+    },
+    {
+     "type": "readystatechange",
+     "interface": "Event"
+    },
+    {
+     "type": "visibilitychange",
+     "interface": "Event"
+    },
+    {
+     "type": "pointerlockchange",
+     "interface": "Event"
+    },
+    {
+     "type": "pointerlockerror",
+     "interface": "Event"
+    },
+    {
+     "type": "scroll",
+     "interface": "Event"
+    },
+    {
+     "type": "scrollend",
+     "interface": "Event"
+    },
+    {
+     "type": "securitypolicyviolation",
+     "interface": "Event"
+    },
+    {
+     "type": "selectionchange",
+     "interface": "Event"
+    }
    ]
   },
   "DocumentFragment": {
@@ -19694,7 +19766,10 @@
     }
    ],
    "events": [
-    "enter"
+    {
+     "type": "enter",
+     "interface": "DocumentPictureInPictureEvent"
+    }
    ]
   },
   "DocumentPictureInPictureEvent": {
@@ -24886,8 +24961,14 @@
     }
    ],
    "events": [
-    "fullscreenchange",
-    "fullscreenerror"
+    {
+     "type": "fullscreenchange",
+     "interface": "Event"
+    },
+    {
+     "type": "fullscreenerror",
+     "interface": "Event"
+    }
    ]
   },
   "ElementInternals": {
@@ -26405,9 +26486,18 @@
     }
    ],
    "events": [
-    "open",
-    "message",
-    "error"
+    {
+     "type": "open",
+     "interface": "Event"
+    },
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    },
+    {
+     "type": "error",
+     "interface": "Event"
+    }
    ]
   },
   "EventTarget": {
@@ -26911,12 +27001,30 @@
     }
    ],
    "events": [
-    "loadstart",
-    "progress",
-    "load",
-    "abort",
-    "error",
-    "loadend"
+    {
+     "type": "loadstart",
+     "interface": "ProgressEvent"
+    },
+    {
+     "type": "progress",
+     "interface": "ProgressEvent"
+    },
+    {
+     "type": "load",
+     "interface": "ProgressEvent"
+    },
+    {
+     "type": "abort",
+     "interface": "ProgressEvent"
+    },
+    {
+     "type": "error",
+     "interface": "ProgressEvent"
+    },
+    {
+     "type": "loadend",
+     "interface": "ProgressEvent"
+    }
    ]
   },
   "FileSystem": {
@@ -27908,9 +28016,18 @@
     }
    ],
    "events": [
-    "loading",
-    "loadingdone",
-    "loadingerror"
+    {
+     "type": "loading",
+     "interface": "FontFaceSetLoadEvent"
+    },
+    {
+     "type": "loadingdone",
+     "interface": "FontFaceSetLoadEvent"
+    },
+    {
+     "type": "loadingerror",
+     "interface": "FontFaceSetLoadEvent"
+    }
    ]
   },
   "FontFaceSetLoadEvent": {
@@ -30452,7 +30569,10 @@
     }
    ],
    "events": [
-    "uncapturederror"
+    {
+     "type": "uncapturederror",
+     "interface": "GPUUncapturedErrorEvent"
+    }
    ]
   },
   "GPUDeviceLostInfo": {
@@ -35554,18 +35674,54 @@
     }
    ],
    "events": [
-    "beforetoggle",
-    "change",
-    "command",
-    "drag",
-    "dragend",
-    "dragenter",
-    "dragleave",
-    "dragover",
-    "dragstart",
-    "drop",
-    "load",
-    "toggle"
+    {
+     "type": "beforetoggle",
+     "interface": "ToggleEvent"
+    },
+    {
+     "type": "change",
+     "interface": "Event"
+    },
+    {
+     "type": "command",
+     "interface": "CommandEvent"
+    },
+    {
+     "type": "drag",
+     "interface": "DragEvent"
+    },
+    {
+     "type": "dragend",
+     "interface": "DragEvent"
+    },
+    {
+     "type": "dragenter",
+     "interface": "DragEvent"
+    },
+    {
+     "type": "dragleave",
+     "interface": "DragEvent"
+    },
+    {
+     "type": "dragover",
+     "interface": "DragEvent"
+    },
+    {
+     "type": "dragstart",
+     "interface": "DragEvent"
+    },
+    {
+     "type": "drop",
+     "interface": "DragEvent"
+    },
+    {
+     "type": "load",
+     "interface": "Event"
+    },
+    {
+     "type": "toggle",
+     "interface": "Event"
+    }
    ]
   },
   "HTMLEmbedElement": {
@@ -39402,8 +39558,14 @@
     }
    ],
    "events": [
-    "encrypted",
-    "waitingforkey"
+    {
+     "type": "encrypted",
+     "interface": "MediaEncryptedEvent"
+    },
+    {
+     "type": "waitingforkey",
+     "interface": "Event"
+    }
    ]
   },
   "HTMLMenuElement": {
@@ -43992,8 +44154,14 @@
     }
    ],
    "events": [
-    "enterpictureinpicture",
-    "leavepictureinpicture"
+    {
+     "type": "enterpictureinpicture",
+     "interface": "PictureInPictureEvent"
+    },
+    {
+     "type": "leavepictureinpicture",
+     "interface": "PictureInPictureEvent"
+    }
    ]
   },
   "IDBCursor": {
@@ -44327,9 +44495,18 @@
     }
    ],
    "events": [
-    "abort",
-    "close",
-    "versionchange"
+    {
+     "type": "abort",
+     "interface": "Event"
+    },
+    {
+     "type": "close",
+     "interface": "Event"
+    },
+    {
+     "type": "versionchange",
+     "interface": "IDBVersionChangeEvent"
+    }
    ]
   },
   "IDBFactory": {
@@ -45251,8 +45428,14 @@
    "spec": "https://w3c.github.io/IndexedDB/#idbopendbrequest",
    "members": [],
    "events": [
-    "blocked",
-    "upgradeneeded"
+    {
+     "type": "blocked",
+     "interface": "IDBVersionChangeEvent"
+    },
+    {
+     "type": "upgradeneeded",
+     "interface": "IDBVersionChangeEvent"
+    }
    ]
   },
   "IDBRecord": {
@@ -45380,8 +45563,14 @@
     }
    ],
    "events": [
-    "success",
-    "error"
+    {
+     "type": "success",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "Event"
+    }
    ]
   },
   "IDBTransaction": {
@@ -45507,9 +45696,18 @@
     }
    ],
    "events": [
-    "abort",
-    "complete",
-    "error"
+    {
+     "type": "abort",
+     "interface": "Event"
+    },
+    {
+     "type": "complete",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "Event"
+    }
    ]
   },
   "IDBVersionChangeEvent": {
@@ -47698,7 +47896,10 @@
     }
    ],
    "events": [
-    "devicechange"
+    {
+     "type": "devicechange",
+     "interface": "DeviceChangeEvent"
+    }
    ]
   },
   "MediaElementAudioSourceNode": {
@@ -48131,8 +48332,14 @@
     }
    ],
    "events": [
-    "keystatuseschange",
-    "message"
+    {
+     "type": "keystatuseschange",
+     "interface": "Event"
+    },
+    {
+     "type": "message",
+     "interface": "MediaKeyMessageEvent"
+    }
    ]
   },
   "MediaKeyStatusMap": {
@@ -48464,7 +48671,10 @@
     }
    ],
    "events": [
-    "change"
+    {
+     "type": "change",
+     "interface": "MediaQueryListEvent"
+    }
    ]
   },
   "MediaQueryListEvent": {
@@ -48721,12 +48931,30 @@
     }
    ],
    "events": [
-    "start",
-    "stop",
-    "dataavailable",
-    "pause",
-    "resume",
-    "error"
+    {
+     "type": "start",
+     "interface": "Event"
+    },
+    {
+     "type": "stop",
+     "interface": "Event"
+    },
+    {
+     "type": "dataavailable",
+     "interface": "BlobEvent"
+    },
+    {
+     "type": "pause",
+     "interface": "Event"
+    },
+    {
+     "type": "resume",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "ErrorEvent"
+    }
    ]
   },
   "MediaSession": {
@@ -49053,9 +49281,18 @@
     }
    ],
    "events": [
-    "sourceopen",
-    "sourceended",
-    "sourceclose"
+    {
+     "type": "sourceopen",
+     "interface": "Event"
+    },
+    {
+     "type": "sourceended",
+     "interface": "Event"
+    },
+    {
+     "type": "sourceclose",
+     "interface": "Event"
+    }
    ]
   },
   "MediaSourceHandle": {
@@ -49258,8 +49495,14 @@
     }
    ],
    "events": [
-    "addtrack",
-    "removetrack"
+    {
+     "type": "addtrack",
+     "interface": "MediaStreamTrackEvent"
+    },
+    {
+     "type": "removetrack",
+     "interface": "MediaStreamTrackEvent"
+    }
    ]
   },
   "MediaStreamAudioDestinationNode": {
@@ -49545,9 +49788,18 @@
     }
    ],
    "events": [
-    "mute",
-    "unmute",
-    "ended"
+    {
+     "type": "mute",
+     "interface": "Event"
+    },
+    {
+     "type": "unmute",
+     "interface": "Event"
+    },
+    {
+     "type": "ended",
+     "interface": "Event"
+    }
    ]
   },
   "MediaStreamTrackEvent": {
@@ -49826,8 +50078,14 @@
     }
    ],
    "events": [
-    "message",
-    "messageerror"
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    },
+    {
+     "type": "messageerror",
+     "interface": "MessageEvent"
+    }
    ]
   },
   "MIDIAccess": {
@@ -49937,7 +50195,10 @@
    "spec": "https://webaudio.github.io/web-midi-api/#midiinput-interface",
    "members": [],
    "events": [
-    "midimessage"
+    {
+     "type": "midimessage",
+     "interface": "MIDIMessageEvent"
+    }
    ]
   },
   "MIDIInputMap": {
@@ -50166,7 +50427,10 @@
     }
    ],
    "events": [
-    "statechange"
+    {
+     "type": "statechange",
+     "interface": "MIDIConnectionEvent"
+    }
    ]
   },
   "MouseEvent": {
@@ -51291,10 +51555,22 @@
     }
    ],
    "events": [
-    "navigate",
-    "navigatesuccess",
-    "navigateerror",
-    "currententrychange"
+    {
+     "type": "navigate",
+     "interface": "NavigateEvent"
+    },
+    {
+     "type": "navigatesuccess",
+     "interface": "Event"
+    },
+    {
+     "type": "navigateerror",
+     "interface": "ErrorEvent"
+    },
+    {
+     "type": "currententrychange",
+     "interface": "NavigationCurrentEntryChangeEvent"
+    }
    ]
   },
   "NavigationActivation": {
@@ -51595,7 +51871,10 @@
     }
    ],
    "events": [
-    "dispose"
+    {
+     "type": "dispose",
+     "interface": "Event"
+    }
    ]
   },
   "NavigationPrecommitController": {
@@ -53296,10 +53575,22 @@
     }
    ],
    "events": [
-    "click",
-    "show",
-    "error",
-    "close"
+    {
+     "type": "click",
+     "interface": "Event"
+    },
+    {
+     "type": "show",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "Event"
+    },
+    {
+     "type": "close",
+     "interface": "Event"
+    }
    ]
   },
   "OES_draw_buffers_indexed": {
@@ -53838,7 +54129,10 @@
     }
    ],
    "events": [
-    "complete"
+    {
+     "type": "complete",
+     "interface": "OfflineAudioCompletionEvent"
+    }
    ]
   },
   "OffscreenCanvas": {
@@ -53955,8 +54249,14 @@
     }
    ],
    "events": [
-    "contextlost",
-    "contextrestored"
+    {
+     "type": "contextlost",
+     "interface": "Event"
+    },
+    {
+     "type": "contextrestored",
+     "interface": "Event"
+    }
    ]
   },
   "OffscreenCanvasRenderingContext2D": {
@@ -56733,7 +57033,10 @@
     }
    ],
    "events": [
-    "paymentmethodchange"
+    {
+     "type": "paymentmethodchange",
+     "interface": "PaymentMethodChangeEvent"
+    }
    ]
   },
   "PaymentRequestUpdateEvent": {
@@ -56949,7 +57252,10 @@
     }
    ],
    "events": [
-    "payerdetailchange"
+    {
+     "type": "payerdetailchange",
+     "interface": "PaymentRequestUpdateEvent"
+    }
    ]
   },
   "Performance": {
@@ -57205,7 +57511,10 @@
     }
    ],
    "events": [
-    "resourcetimingbufferfull"
+    {
+     "type": "resourcetimingbufferfull",
+     "interface": "Event"
+    }
    ]
   },
   "PerformanceEntry": {
@@ -58342,7 +58651,10 @@
     }
    ],
    "events": [
-    "change"
+    {
+     "type": "change",
+     "interface": "Event"
+    }
    ]
   },
   "PictureInPictureEvent": {
@@ -58433,7 +58745,10 @@
     }
    ],
    "events": [
-    "resize"
+    {
+     "type": "resize",
+     "interface": "Event"
+    }
    ]
   },
   "PointerEvent": {
@@ -60441,9 +60756,18 @@
     }
    ],
    "events": [
-    "connecting",
-    "connect",
-    "disconnect"
+    {
+     "type": "connecting",
+     "interface": "Event"
+    },
+    {
+     "type": "connect",
+     "interface": "Event"
+    },
+    {
+     "type": "disconnect",
+     "interface": "Event"
+    }
    ]
   },
   "ReportingObserver": {
@@ -61613,12 +61937,30 @@
     }
    ],
    "events": [
-    "open",
-    "bufferedamountlow",
-    "error",
-    "closing",
-    "close",
-    "message"
+    {
+     "type": "open",
+     "interface": "Event"
+    },
+    {
+     "type": "bufferedamountlow",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "RTCErrorEvent"
+    },
+    {
+     "type": "closing",
+     "interface": "Event"
+    },
+    {
+     "type": "close",
+     "interface": "Event"
+    },
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    }
    ]
   },
   "RTCDataChannelEvent": {
@@ -61722,8 +62064,14 @@
     }
    ],
    "events": [
-    "statechange",
-    "error"
+    {
+     "type": "statechange",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "RTCErrorEvent"
+    }
    ]
   },
   "RTCDTMFSender": {
@@ -61794,7 +62142,10 @@
     }
    ],
    "events": [
-    "tonechange"
+    {
+     "type": "tonechange",
+     "interface": "RTCDTMFToneChangeEvent"
+    }
    ]
   },
   "RTCDTMFToneChangeEvent": {
@@ -62422,9 +62773,18 @@
     }
    ],
    "events": [
-    "statechange",
-    "gatheringstatechange",
-    "selectedcandidatepairchange"
+    {
+     "type": "statechange",
+     "interface": "Event"
+    },
+    {
+     "type": "gatheringstatechange",
+     "interface": "Event"
+    },
+    {
+     "type": "selectedcandidatepairchange",
+     "interface": "Event"
+    }
    ]
   },
   "RTCPeerConnection": {
@@ -63009,15 +63369,42 @@
     }
    ],
    "events": [
-    "negotiationneeded",
-    "icecandidate",
-    "icecandidateerror",
-    "signalingstatechange",
-    "iceconnectionstatechange",
-    "icegatheringstatechange",
-    "connectionstatechange",
-    "track",
-    "datachannel"
+    {
+     "type": "negotiationneeded",
+     "interface": "Event"
+    },
+    {
+     "type": "icecandidate",
+     "interface": "RTCPeerConnectionIceEvent"
+    },
+    {
+     "type": "icecandidateerror",
+     "interface": "RTCPeerConnectionIceErrorEvent"
+    },
+    {
+     "type": "signalingstatechange",
+     "interface": "Event"
+    },
+    {
+     "type": "iceconnectionstatechange",
+     "interface": "Event"
+    },
+    {
+     "type": "icegatheringstatechange",
+     "interface": "Event"
+    },
+    {
+     "type": "connectionstatechange",
+     "interface": "Event"
+    },
+    {
+     "type": "track",
+     "interface": "RTCTrackEvent"
+    },
+    {
+     "type": "datachannel",
+     "interface": "RTCDataChannelEvent"
+    }
    ]
   },
   "RTCPeerConnectionIceErrorEvent": {
@@ -63691,7 +64078,10 @@
     }
    ],
    "events": [
-    "statechange"
+    {
+     "type": "statechange",
+     "interface": "Event"
+    }
    ]
   },
   "RTCSessionDescription": {
@@ -64241,7 +64631,10 @@
     }
    ],
    "events": [
-    "change"
+    {
+     "type": "change",
+     "interface": "Event"
+    }
    ]
   },
   "ScrollTimeline": {
@@ -65090,8 +65483,14 @@
     }
    ],
    "events": [
-    "connect",
-    "disconnect"
+    {
+     "type": "connect",
+     "interface": "Event"
+    },
+    {
+     "type": "disconnect",
+     "interface": "Event"
+    }
    ]
   },
   "ServiceWorker": {
@@ -65169,8 +65568,14 @@
     }
    ],
    "events": [
-    "statechange",
-    "error"
+    {
+     "type": "statechange",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "Event"
+    }
    ]
   },
   "ServiceWorkerContainer": {
@@ -65281,9 +65686,18 @@
     }
    ],
    "events": [
-    "controllerchange",
-    "message",
-    "messageerror"
+    {
+     "type": "controllerchange",
+     "interface": "Event"
+    },
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    },
+    {
+     "type": "messageerror",
+     "interface": "MessageEvent"
+    }
    ]
   },
   "ServiceWorkerRegistration": {
@@ -65472,7 +65886,10 @@
     }
    ],
    "events": [
-    "updatefound"
+    {
+     "type": "updatefound",
+     "interface": "Event"
+    }
    ]
   },
   "ShadowRoot": {
@@ -65802,7 +66219,10 @@
     }
    ],
    "events": [
-    "error"
+    {
+     "type": "error",
+     "interface": "Event"
+    }
    ]
   },
   "SourceBuffer": {
@@ -65964,11 +66384,26 @@
     }
    ],
    "events": [
-    "updatestart",
-    "update",
-    "updateend",
-    "error",
-    "abort"
+    {
+     "type": "updatestart",
+     "interface": "Event"
+    },
+    {
+     "type": "update",
+     "interface": "Event"
+    },
+    {
+     "type": "updateend",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "Event"
+    },
+    {
+     "type": "abort",
+     "interface": "Event"
+    }
    ]
   },
   "SourceBufferList": {
@@ -65998,8 +66433,14 @@
     }
    ],
    "events": [
-    "addsourcebuffer",
-    "removesourcebuffer"
+    {
+     "type": "addsourcebuffer",
+     "interface": "Event"
+    },
+    {
+     "type": "removesourcebuffer",
+     "interface": "Event"
+    }
    ]
   },
   "SpeechRecognitionAlternative": {
@@ -66372,7 +66813,10 @@
     }
    ],
    "events": [
-    "voiceschanged"
+    {
+     "type": "voiceschanged",
+     "interface": "Event"
+    }
    ]
   },
   "SpeechSynthesisErrorEvent": {
@@ -66627,13 +67071,34 @@
     }
    ],
    "events": [
-    "start",
-    "end",
-    "error",
-    "pause",
-    "resume",
-    "mark",
-    "boundary"
+    {
+     "type": "start",
+     "interface": "SpeechSynthesisEvent"
+    },
+    {
+     "type": "end",
+     "interface": "SpeechSynthesisEvent"
+    },
+    {
+     "type": "error",
+     "interface": "SpeechSynthesisErrorEvent"
+    },
+    {
+     "type": "pause",
+     "interface": "SpeechSynthesisEvent"
+    },
+    {
+     "type": "resume",
+     "interface": "SpeechSynthesisEvent"
+    },
+    {
+     "type": "mark",
+     "interface": "SpeechSynthesisEvent"
+    },
+    {
+     "type": "boundary",
+     "interface": "SpeechSynthesisEvent"
+    }
    ]
   },
   "SpeechSynthesisVoice": {
@@ -69627,7 +70092,10 @@
     }
    ],
    "events": [
-    "load"
+    {
+     "type": "load",
+     "interface": "Event"
+    }
    ]
   },
   "SVGEllipseElement": {
@@ -79786,7 +80254,10 @@
     }
    ],
    "events": [
-    "prioritychange"
+    {
+     "type": "prioritychange",
+     "interface": "TaskPriorityChangeEvent"
+    }
    ]
   },
   "Text": {
@@ -80545,7 +81016,10 @@
     }
    ],
    "events": [
-    "cuechange"
+    {
+     "type": "cuechange",
+     "interface": "Event"
+    }
    ]
   },
   "TextTrackCue": {
@@ -80623,8 +81097,14 @@
     }
    ],
    "events": [
-    "enter",
-    "exit"
+    {
+     "type": "enter",
+     "interface": "Event"
+    },
+    {
+     "type": "exit",
+     "interface": "Event"
+    }
    ]
   },
   "TextTrackCueList": {
@@ -80717,9 +81197,18 @@
     }
    ],
    "events": [
-    "change",
-    "addtrack",
-    "removetrack"
+    {
+     "type": "change",
+     "interface": "Event"
+    },
+    {
+     "type": "addtrack",
+     "interface": "TrackEvent"
+    },
+    {
+     "type": "removetrack",
+     "interface": "TrackEvent"
+    }
    ]
   },
   "TimeRanges": {
@@ -83221,7 +83710,10 @@
     }
    ],
    "events": [
-    "dequeue"
+    {
+     "type": "dequeue",
+     "interface": "Event"
+    }
    ]
   },
   "VideoEncoder": {
@@ -83381,7 +83873,10 @@
     }
    ],
    "events": [
-    "dequeue"
+    {
+     "type": "dequeue",
+     "interface": "Event"
+    }
    ]
   },
   "VideoFrame": {
@@ -83953,9 +84448,18 @@
     }
    ],
    "events": [
-    "resize",
-    "scroll",
-    "scrollend"
+    {
+     "type": "resize",
+     "interface": "Event"
+    },
+    {
+     "type": "scroll",
+     "interface": "Event"
+    },
+    {
+     "type": "scrollend",
+     "interface": "Event"
+    }
    ]
   },
   "VTTCue": {
@@ -84325,7 +84829,10 @@
     }
    ],
    "events": [
-    "release"
+    {
+     "type": "release",
+     "interface": "Event"
+    }
    ]
   },
   "WaveShaperNode": {
@@ -95531,10 +96038,22 @@
     }
    ],
    "events": [
-    "open",
-    "error",
-    "close",
-    "message"
+    {
+     "type": "open",
+     "interface": "Event"
+    },
+    {
+     "type": "error",
+     "interface": "Event"
+    },
+    {
+     "type": "close",
+     "interface": "CloseEvent"
+    },
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    }
    ]
   },
   "WebTransport": {
@@ -97628,31 +98147,106 @@
     }
    ],
    "events": [
-    "deviceorientation",
-    "deviceorientationabsolute",
-    "devicemotion",
-    "blur",
-    "focus",
-    "load",
-    "resize",
-    "gamepadconnected",
-    "gamepaddisconnected",
-    "afterprint",
-    "beforeprint",
-    "hashchange",
-    "languagechange",
-    "message",
-    "messageerror",
-    "offline",
-    "online",
-    "pagehide",
-    "pagereveal",
-    "pageshow",
-    "popstate",
-    "rejectionhandled",
-    "storage",
-    "unhandledrejection",
-    "unload"
+    {
+     "type": "deviceorientation",
+     "interface": "DeviceOrientationEvent"
+    },
+    {
+     "type": "deviceorientationabsolute",
+     "interface": "DeviceOrientationEvent"
+    },
+    {
+     "type": "devicemotion",
+     "interface": "DeviceMotionEvent"
+    },
+    {
+     "type": "blur",
+     "interface": "Event"
+    },
+    {
+     "type": "focus",
+     "interface": "Event"
+    },
+    {
+     "type": "load",
+     "interface": "Event"
+    },
+    {
+     "type": "resize",
+     "interface": "Event"
+    },
+    {
+     "type": "gamepadconnected",
+     "interface": "GamepadEvent"
+    },
+    {
+     "type": "gamepaddisconnected",
+     "interface": "GamepadEvent"
+    },
+    {
+     "type": "afterprint",
+     "interface": "Event"
+    },
+    {
+     "type": "beforeprint",
+     "interface": "Event"
+    },
+    {
+     "type": "hashchange",
+     "interface": "HashChangeEvent"
+    },
+    {
+     "type": "languagechange",
+     "interface": "Event"
+    },
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    },
+    {
+     "type": "messageerror",
+     "interface": "MessageEvent"
+    },
+    {
+     "type": "offline",
+     "interface": "Event"
+    },
+    {
+     "type": "online",
+     "interface": "Event"
+    },
+    {
+     "type": "pagehide",
+     "interface": "PageTransitionEvent"
+    },
+    {
+     "type": "pagereveal",
+     "interface": "PageRevealEvent"
+    },
+    {
+     "type": "pageshow",
+     "interface": "PageTransitionEvent"
+    },
+    {
+     "type": "popstate",
+     "interface": "PopStateEvent"
+    },
+    {
+     "type": "rejectionhandled",
+     "interface": "PromiseRejectionEvent"
+    },
+    {
+     "type": "storage",
+     "interface": "StorageEvent"
+    },
+    {
+     "type": "unhandledrejection",
+     "interface": "PromiseRejectionEvent"
+    },
+    {
+     "type": "unload",
+     "interface": "Event"
+    }
    ]
   },
   "Worker": {
@@ -97739,9 +98333,18 @@
     }
    ],
    "events": [
-    "error",
-    "message",
-    "messageerror"
+    {
+     "type": "error",
+     "interface": "Event"
+    },
+    {
+     "type": "message",
+     "interface": "MessageEvent"
+    },
+    {
+     "type": "messageerror",
+     "interface": "MessageEvent"
+    }
    ]
   },
   "Worklet": {
@@ -98386,7 +98989,10 @@
     }
    ],
    "events": [
-    "readystatechange"
+    {
+     "type": "readystatechange",
+     "interface": "Event"
+    }
    ]
   },
   "XMLHttpRequestEventTarget": {
@@ -99576,6 +100182,11 @@
    "nextslide",
    "enterpictureinpicture",
    "voiceactivity"
+  ],
+  "MediaSessionEnterPictureInPictureReason": [
+   "other",
+   "useraction",
+   "contentoccluded"
   ],
   "MediaSessionPlaybackState": [
    "none",
@@ -102087,6 +102698,14 @@
     }
    ]
   },
+  "EncodedAudioChunkMetadata": {
+   "members": [
+    {
+     "name": "decoderConfig",
+     "type": "AudioDecoderConfig"
+    }
+   ]
+  },
   "EncodedVideoChunkInit": {
    "members": [
     {
@@ -102111,6 +102730,22 @@
     {
      "name": "transfer",
      "type": "sequence<ArrayBuffer>"
+    }
+   ]
+  },
+  "EncodedVideoChunkMetadata": {
+   "members": [
+    {
+     "name": "decoderConfig",
+     "type": "VideoDecoderConfig"
+    },
+    {
+     "name": "svc",
+     "type": "SvcOutputMetadata"
+    },
+    {
+     "name": "alphaSideData",
+     "type": "BufferSource"
     }
    ]
   },
@@ -104428,6 +105063,35 @@
     }
    ]
   },
+  "MediaSessionActionDetails": {
+   "members": [
+    {
+     "name": "action",
+     "type": "MediaSessionAction",
+     "required": true
+    },
+    {
+     "name": "seekOffset",
+     "type": "double"
+    },
+    {
+     "name": "seekTime",
+     "type": "double"
+    },
+    {
+     "name": "fastSeek",
+     "type": "boolean"
+    },
+    {
+     "name": "isActivating",
+     "type": "boolean"
+    },
+    {
+     "name": "enterPictureInPictureReason",
+     "type": "MediaSessionEnterPictureInPictureReason"
+    }
+   ]
+  },
   "MediaSettingsRange": {
    "members": [
     {
@@ -106140,6 +106804,14 @@
     }
    ]
   },
+  "PerformanceObserverCallbackOptions": {
+   "members": [
+    {
+     "name": "droppedEntriesCount",
+     "type": "unsigned long long"
+    }
+   ]
+  },
   "PerformanceObserverInit": {
    "members": [
     {
@@ -106790,6 +107462,25 @@
      "type": "ServiceWorkerUpdateViaCache"
     }
    ]
+  },
+  "Report": {
+   "members": [
+    {
+     "name": "type",
+     "type": "DOMString"
+    },
+    {
+     "name": "url",
+     "type": "DOMString"
+    },
+    {
+     "name": "body",
+     "type": "ReportBody?"
+    }
+   ]
+  },
+  "ReportBody": {
+   "members": []
   },
   "ReportingObserverOptions": {
    "members": [
@@ -108107,6 +108798,14 @@
     }
    ]
   },
+  "SvcOutputMetadata": {
+   "members": [
+    {
+     "name": "temporalLayerId",
+     "type": "unsigned long"
+    }
+   ]
+  },
   "SVGBoundingBoxOptions": {
    "members": [
     {
@@ -108864,6 +109563,56 @@
     }
    ]
   },
+  "VideoFrameCallbackMetadata": {
+   "members": [
+    {
+     "name": "presentationTime",
+     "type": "DOMHighResTimeStamp",
+     "required": true
+    },
+    {
+     "name": "expectedDisplayTime",
+     "type": "DOMHighResTimeStamp",
+     "required": true
+    },
+    {
+     "name": "width",
+     "type": "unsigned long",
+     "required": true
+    },
+    {
+     "name": "height",
+     "type": "unsigned long",
+     "required": true
+    },
+    {
+     "name": "mediaTime",
+     "type": "double",
+     "required": true
+    },
+    {
+     "name": "presentedFrames",
+     "type": "unsigned long",
+     "required": true
+    },
+    {
+     "name": "processingDuration",
+     "type": "double"
+    },
+    {
+     "name": "captureTime",
+     "type": "DOMHighResTimeStamp"
+    },
+    {
+     "name": "receiveTime",
+     "type": "DOMHighResTimeStamp"
+    },
+    {
+     "name": "rtpTimestamp",
+     "type": "unsigned long"
+    }
+   ]
+  },
   "VideoFrameCopyToOptions": {
    "members": [
     {
@@ -109195,6 +109944,380 @@
     {
      "name": "credentials",
      "type": "RequestCredentials"
+    }
+   ]
+  }
+ },
+ "callbacks": {
+  "AudioDataOutputCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "output",
+     "type": "AudioData"
+    }
+   ]
+  },
+  "BlobCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "blob",
+     "type": "Blob?"
+    }
+   ]
+  },
+  "CreateHTMLCallback": {
+   "returns": "DOMString?",
+   "args": [
+    {
+     "name": "input",
+     "type": "DOMString"
+    },
+    {
+     "name": "arguments",
+     "type": "any",
+     "variadic": true
+    }
+   ]
+  },
+  "CreateScriptCallback": {
+   "returns": "DOMString?",
+   "args": [
+    {
+     "name": "input",
+     "type": "DOMString"
+    },
+    {
+     "name": "arguments",
+     "type": "any",
+     "variadic": true
+    }
+   ]
+  },
+  "CreateScriptURLCallback": {
+   "returns": "USVString?",
+   "args": [
+    {
+     "name": "input",
+     "type": "DOMString"
+    },
+    {
+     "name": "arguments",
+     "type": "any",
+     "variadic": true
+    }
+   ]
+  },
+  "CustomElementConstructor": {
+   "returns": "HTMLElement",
+   "args": []
+  },
+  "DecodeErrorCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "error",
+     "type": "DOMException"
+    }
+   ]
+  },
+  "DecodeSuccessCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "decodedData",
+     "type": "AudioBuffer"
+    }
+   ]
+  },
+  "EncodedAudioChunkOutputCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "output",
+     "type": "EncodedAudioChunk"
+    },
+    {
+     "name": "metadata",
+     "type": "EncodedAudioChunkMetadata",
+     "optional": true
+    }
+   ]
+  },
+  "EncodedVideoChunkOutputCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "chunk",
+     "type": "EncodedVideoChunk"
+    },
+    {
+     "name": "metadata",
+     "type": "EncodedVideoChunkMetadata",
+     "optional": true
+    }
+   ]
+  },
+  "ErrorCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "err",
+     "type": "DOMException"
+    }
+   ]
+  },
+  "FileCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "file",
+     "type": "File"
+    }
+   ]
+  },
+  "FileSystemEntriesCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "entries",
+     "type": "sequence<FileSystemEntry>"
+    }
+   ]
+  },
+  "FileSystemEntryCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "entry",
+     "type": "FileSystemEntry"
+    }
+   ]
+  },
+  "FrameRequestCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "time",
+     "type": "DOMHighResTimeStamp"
+    }
+   ]
+  },
+  "Function": {
+   "returns": "any",
+   "args": [
+    {
+     "name": "arguments",
+     "type": "any",
+     "variadic": true
+    }
+   ]
+  },
+  "FunctionStringCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "data",
+     "type": "DOMString"
+    }
+   ]
+  },
+  "IdleRequestCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "deadline",
+     "type": "IdleDeadline"
+    }
+   ]
+  },
+  "IntersectionObserverCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "entries",
+     "type": "sequence<IntersectionObserverEntry>"
+    },
+    {
+     "name": "observer",
+     "type": "IntersectionObserver"
+    }
+   ]
+  },
+  "LockGrantedCallback": {
+   "returns": "Promise<any>",
+   "args": [
+    {
+     "name": "lock",
+     "type": "Lock?"
+    }
+   ]
+  },
+  "MediaSessionActionHandler": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "details",
+     "type": "MediaSessionActionDetails"
+    }
+   ]
+  },
+  "MutationCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "mutations",
+     "type": "sequence<MutationRecord>"
+    },
+    {
+     "name": "observer",
+     "type": "MutationObserver"
+    }
+   ]
+  },
+  "NavigationInterceptHandler": {
+   "returns": "Promise<undefined>",
+   "args": []
+  },
+  "NavigationPrecommitHandler": {
+   "returns": "Promise<undefined>",
+   "args": [
+    {
+     "name": "controller",
+     "type": "NavigationPrecommitController"
+    }
+   ]
+  },
+  "NotificationPermissionCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "permission",
+     "type": "NotificationPermission"
+    }
+   ]
+  },
+  "PerformanceObserverCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "entries",
+     "type": "PerformanceObserverEntryList"
+    },
+    {
+     "name": "observer",
+     "type": "PerformanceObserver"
+    },
+    {
+     "name": "options",
+     "type": "PerformanceObserverCallbackOptions",
+     "optional": true
+    }
+   ]
+  },
+  "PositionCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "position",
+     "type": "GeolocationPosition"
+    }
+   ]
+  },
+  "PositionErrorCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "positionError",
+     "type": "GeolocationPositionError"
+    }
+   ]
+  },
+  "QueuingStrategySize": {
+   "returns": "unrestricted double",
+   "args": [
+    {
+     "name": "chunk",
+     "type": "any"
+    }
+   ]
+  },
+  "RemotePlaybackAvailabilityCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "available",
+     "type": "boolean"
+    }
+   ]
+  },
+  "ReportingObserverCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "reports",
+     "type": "sequence<Report>"
+    },
+    {
+     "name": "observer",
+     "type": "ReportingObserver"
+    }
+   ]
+  },
+  "ResizeObserverCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "entries",
+     "type": "sequence<ResizeObserverEntry>"
+    },
+    {
+     "name": "observer",
+     "type": "ResizeObserver"
+    }
+   ]
+  },
+  "SchedulerPostTaskCallback": {
+   "returns": "any",
+   "args": []
+  },
+  "VideoFrameOutputCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "output",
+     "type": "VideoFrame"
+    }
+   ]
+  },
+  "VideoFrameRequestCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "now",
+     "type": "DOMHighResTimeStamp"
+    },
+    {
+     "name": "metadata",
+     "type": "VideoFrameCallbackMetadata"
+    }
+   ]
+  },
+  "ViewTransitionUpdateCallback": {
+   "returns": "Promise<any>",
+   "args": []
+  },
+  "VoidFunction": {
+   "returns": "undefined",
+   "args": []
+  },
+  "WebCodecsErrorCallback": {
+   "returns": "undefined",
+   "args": [
+    {
+     "name": "error",
+     "type": "DOMException"
     }
    ]
   }

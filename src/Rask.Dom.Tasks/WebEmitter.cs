@@ -37,6 +37,7 @@ internal static class WebEmitter
 
         var interfaces = root["interfaces"]!;
         var proxies = Proxies(root, types);
+        var payloads = new WebPayloads(root, types);
         var members = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
         var extras = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
         foreach (var name in proxies.OrderBy(n => Depth(interfaces, n)).ThenBy(n => n, StringComparer.Ordinal))
@@ -50,7 +51,8 @@ internal static class WebEmitter
                 creates.UnionWith(extras[b].Where(m => string.Equals(m.Name, "Create", StringComparison.Ordinal)).Select(m => m.ParameterTypes));
             }
 
-            members[name] = WebMember.Of(name, interfaces[name]!, types, proxies, taken, Denied);
+            members[name] = WebMember.Of(name, interfaces[name]!, types, proxies, taken, Denied, root["callbacks"]);
+            members[name].AddRange(WebMember.EventsOf(interfaces[name]!, payloads, taken));
             extras[name] = WebMember.StaticsOf(name, interfaces[name]!, types, proxies, taken);
             if (!taken.Contains("Create"))
             {
@@ -65,6 +67,7 @@ internal static class WebEmitter
             files.Add(new KeyValuePair<string, string>(name + ".g.cs", Proxy(name, interfaces[name]!, Base(interfaces, proxies, name), hasChildren, members[name])));
         }
 
+        files.Add(new KeyValuePair<string, string>("WebEvents.g.cs", payloads.Declarations()));
         files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(new Model(interfaces, proxies, members, extras))));
         files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext")));
         return files;

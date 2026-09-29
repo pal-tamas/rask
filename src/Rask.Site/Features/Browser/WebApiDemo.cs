@@ -9,17 +9,21 @@ public sealed partial class WebApiDemo : Component
     private string _read = "";
     private string _stored = "";
     private string _kept = "";
+    private string _width = "";
+    private IAsyncDisposable? _watch;
 
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Ui.Button.Tone(Ui.Tone.Primary).Id("web-read").OnClick(Read)["Read the browser"],
                 Ui.Button.Variant(Ui.Variant.Outline).Id("web-store").OnClick(Store)["Round-trip localStorage"],
-                Ui.Button.Variant(Ui.Variant.Outline).Id("web-keep").OnClick(Keep)["Keep a media query"]
+                Ui.Button.Variant(Ui.Variant.Outline).Id("web-keep").OnClick(Keep)["Keep a media query"],
+                Ui.Button.Variant(Ui.Variant.Outline).Id("web-watch").OnClick(Watch)["Watch the width"]
             ],
             P.Id("web-read-out").Class("text-sm mb-1")[_read],
             P.Id("web-store-out").Class("text-sm mb-1")[_stored],
-            P.Id("web-keep-out").Class("text-sm mb-0")[_kept]
+            P.Id("web-keep-out").Class("text-sm mb-1")[_kept],
+            P.Id("web-watch-out").Class("text-sm mb-0")[_width]
         ];
 
     // navigator.language, document.visibilityState, matchMedia(…).matches: three round trips.
@@ -35,6 +39,21 @@ public sealed partial class WebApiDemo : Component
     {
         await LocalStorage.SetItem("rask-web-demo", "stored by Rask.Web");
         _stored = $"localStorage says: {await LocalStorage.GetItem("rask-web-demo")}";
+    }
+
+    // MediaQueryList's `change` event: the handler runs here each time the page crosses 900px, and re-renders this.
+    private async Task Watch()
+    {
+        _watch ??= await Window.MatchMedia("(min-width: 900px)").OnChange(e => _width = $"{e.Media} now matches: {e.Matches}");
+        _width = "Watching (min-width: 900px)";
+    }
+
+    protected override async Task OnUnmount()
+    {
+        if (_watch is not null)
+        {
+            await _watch.DisposeAsync();
+        }
     }
 
     // Awaiting the MediaQueryList keeps it in the browser; `await using` lets it go.
