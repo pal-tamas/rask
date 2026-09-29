@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The kit says `Title`, and a control's own text goes in its indexer.** `Heading` is `Title` on every kit
+  component that had it — `Ui.Card`, `Ui.Header`, `Ui.Empty`, `Ui.Toast`, `Ui.MenuGroup`, `Ui.MenuRadioGroup`,
+  `Ui.MenuSub`, `Ui.NavGroup`, `Ui.FileInput` (and `HeadingLevel` is `TitleLevel`); inside such a component the
+  `<title>` tag is `Markup.Title`. `Ui.Link`, `Ui.Checkbox`, `Ui.Toggle` and `Ui.Step` drop `.Text(…)`: write
+  `Ui.Link.Href(Routes.HomePage())["Home"]` and `Ui.Checkbox.Bind(() => _agree)["I agree"]`.
 - **A RaskApp applies its pending migrations when it starts.** Before any battery's worker runs and before the
   server listens — so `/health` is never Healthy over an un-migrated database, and a fresh clone or deploy works
   with `dotnet run` alone. `rask new` now only adds the `Init` migration (no `rask db update`), and after a model

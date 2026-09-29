@@ -153,7 +153,7 @@ public sealed partial class LogsPage(
         {
             return Ui.Card[
                 Ui.Empty
-                    .Heading("Log capture is off")
+                    .Title("Log capture is off")
                     .Detail("Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
                     + "Rask.Logging to keep them across restarts.")
             ];
@@ -161,7 +161,7 @@ public sealed partial class LogsPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Heading("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
+            Ui.Header.Title("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
             DashboardError.Message(LoadError),
             IsHistory ? HistoryBody(now) : LiveBody(now),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
@@ -278,7 +278,7 @@ public sealed partial class LogsPage(
             [.. buffer.Snapshot(MinimumLevel, Category).Select(ToRow)],
             now,
             Ui.Empty
-                .Heading("Nothing captured yet")
+                .Title("Nothing captured yet")
                 .Detail("Entries appear here as the application logs them — subject to the app's own "
                 + "Logging:LogLevel configuration, which filters before the dashboard sees them."),
             paged: false);
@@ -290,7 +290,7 @@ public sealed partial class LogsPage(
             IsLoading
                 ? DashboardLoading
                 : Ui.Empty
-                    .Heading("Nothing stored matches")
+                    .Title("Nothing stored matches")
                     .Detail("Either nothing has been logged into the store yet, or no entry matches this filter. "
                     + "Retention drops entries by age and by count."),
             paged: true);

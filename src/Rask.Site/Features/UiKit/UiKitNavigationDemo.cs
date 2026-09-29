@@ -106,9 +106,9 @@ public sealed partial class UiKitNavigationDemo : Component
                     Ui.MenuItem.Key("m3").Text("Logs").Href("#logs")
                 ],
                 Ui.Steps[
-                    Ui.Step.Key("s1").Text("Ordered").Tone(Ui.Tone.Success),
-                    Ui.Step.Key("s2").Text("Packed").Tone(Ui.Tone.Success),
-                    Ui.Step.Key("s3").Text("Shipped")
+                    Ui.Step.Key("s1").Tone(Ui.Tone.Success)["Ordered"],
+                    Ui.Step.Key("s2").Tone(Ui.Tone.Success)["Packed"],
+                    Ui.Step.Key("s3")["Shipped"]
                 ],
                 // Already data-shaped: the crumbs are a list of (text, href), and the last one has no
                 // href because the page you are on is not a link to itself.

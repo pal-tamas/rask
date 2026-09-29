@@ -69,7 +69,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void A_bound_checkbox_takes_its_checked_state_from_the_model(bool agreed)
     {
         var model = new Profile { Agreed = agreed };
-        var html = Ui.Checkbox.Bind(() => model.Agreed).Text("I agree").ToHtml();
+        var html = Ui.Checkbox.Bind(() => model.Agreed)["I agree"].ToHtml();
 
         Assert.Equal(agreed, html.Contains("checked", StringComparison.Ordinal));
     }
@@ -265,7 +265,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Profile { Alerts = alerts };
 
-        return Ui.Toggle.Bind(() => model.Alerts).Text("Email alerts").ToHtml();
+        return Ui.Toggle.Bind(() => model.Alerts)["Email alerts"].ToHtml();
     }
 
     private static string Rating(int stars)

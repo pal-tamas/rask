@@ -24,7 +24,7 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Form { InStock = inStock };
 
-        var html = Ui.Checkbox.Bind(() => model.InStock).Text("In stock").ToHtml();
+        var html = Ui.Checkbox.Bind(() => model.InStock)["In stock"].ToHtml();
 
         Assert.Equal(isChecked, html.Contains("checked", StringComparison.Ordinal));
     }
@@ -34,7 +34,7 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Form { InStock = true };
 
-        Assert.Contains("checked", Ui.Toggle.Bind(() => model.InStock).Text("In stock").ToHtml());
+        Assert.Contains("checked", Ui.Toggle.Bind(() => model.InStock)["In stock"].ToHtml());
         Assert.Contains("checked", Ui.Radio.Bind(() => model.InStock).Text("In stock").Group("stock").ToHtml());
     }
 
@@ -120,7 +120,7 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
         // so no Convert is added and the bind is exactly what was written.
         var model = new Plain { Agreed = true };
 
-        var control = Ui.Checkbox.Bind(() => model.Agreed).Text("I agree");
+        var control = Ui.Checkbox.Bind(() => model.Agreed);
 
         Assert.IsAssignableFrom<System.Linq.Expressions.MemberExpression>(control.Bind!.Body);
     }

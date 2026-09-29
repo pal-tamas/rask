@@ -7,13 +7,13 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiHeader : Component
 {
-    public required string Heading { get; set; }
+    public new required string Title { get; set; }
 
     /// <summary>
     ///     The heading's level in the page's outline, 1 to 6. <c>&lt;h1&gt;</c> unless this says otherwise — a page's own
     ///     header is its top heading, and a second header lower down is not.
     /// </summary>
-    public int? HeadingLevel { get; set; }
+    public int? TitleLevel { get; set; }
 
     public string? Caption { get; set; }
 
@@ -26,7 +26,7 @@ public sealed partial class UiHeader : Component
     protected override Component? Render() =>
         Div.Class("flex flex-wrap items-center gap-x-3 gap-y-2")[
             Icon is { } icon ? Ui.Icon.Name(icon).Class("size-5 shrink-0 opacity-60") : null,
-            global::Rask.UiHeading.Element(HeadingLevel ?? 1)(UiStyles.Heading)[Heading],
+            global::Rask.UiHeading.Element(TitleLevel ?? 1)(UiStyles.Heading)[Title],
             Caption is null ? null : Span.Class("text-xs opacity-60")[Caption],
             // Full width on its own line below sm, so a row of actions never squeezes the heading to
             // nothing; trailing-aligned beside it from sm up.

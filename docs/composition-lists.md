@@ -133,7 +133,7 @@ To draw them with the [UI kit](ui-kit.md) instead of your own markup, hand the m
 
 ```csharp
 ToastOutlet.Template((messages, dismiss) =>
-    Ui.Toaster[messages.Select(m => Ui.Toast.Key(m.Id).Message(m.Message).Heading(m.Title)
+    Ui.Toaster[messages.Select(m => Ui.Toast.Key(m.Id).Message(m.Message).Title(m.Title)
         .OnDismiss(() => dismiss(m.Id)))])
 ```
 

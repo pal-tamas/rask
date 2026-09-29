@@ -24,7 +24,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     public void A_routed_button_and_link_carry_the_deploy_path_base() => UnderPathBase("/shop", () =>
     {
         Assert.Contains("href=\"/shop/orders\"", Ui.Button.Href(Orders)["Orders"].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("href=\"/shop/orders\"", Ui.Link.Href(Orders).Text("Orders").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("href=\"/shop/orders\"", Ui.Link.Href(Orders)["Orders"].ToHtml(), StringComparison.Ordinal);
     });
 
     [Fact]
@@ -40,7 +40,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     public void A_string_is_written_as_given() => UnderPathBase("/shop", () =>
     {
         Assert.Contains("href=\"/orders\"", Ui.Button.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("href=\"/orders\"", Ui.Link.Href("/orders").Text("Orders").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("href=\"/orders\"", Ui.Link.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
     });
 
     // #1070: every kit component that takes a RouteUrl follows Ui.Button and Ui.Link. A generated route navigates in
@@ -78,7 +78,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     private string Render(string component, RouteUrl href) => component switch
     {
         "Ui.Stat" => Ui.Stat.Value("OK").Label("Status").Href(href).ToHtml(),
-        "Ui.Card" => Ui.Card.Heading("Status").Href(href)[Span["body"]].ToHtml(),
+        "Ui.Card" => Ui.Card.Title("Status").Href(href)[Span["body"]].ToHtml(),
         "Ui.NavTab" => Ui.NavTab.Label("Status").Href(href).ToHtml(),
         "Ui.Brand" => Ui.Brand.Label("Status").Href(href).ToHtml(),
         _ => throw new ArgumentOutOfRangeException(nameof(component)),

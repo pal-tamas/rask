@@ -28,7 +28,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     public void The_input_stays_named_by_the_label()
     {
         // The input is what a keyboard and a screen reader land on; the words are drawn beside it, not in it.
-        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).Heading("Drop receipts here").ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).Title("Drop receipts here").ToHtml();
 
         Assert.Contains("aria-label=\"Receipts\"", html, StringComparison.Ordinal);
         Assert.Contains(">Drop receipts here</p>", html, StringComparison.Ordinal);

@@ -13,15 +13,14 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiEmpty : Component
 {
-    // Not `Title`: that name is the <title> tag's builder entry, inherited from Component.
-    public required string Heading { get; set; }
+    public new required string Title { get; set; }
 
     public string? Detail { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class("py-6 text-center")[
-            Div.Class("text-base font-medium text-base-content")[Heading],
+            Div.Class("text-base font-medium text-base-content")[Title],
             Detail is null ? null : Div.Class("mx-auto mt-1 max-w-prose text-sm opacity-60")[Detail]
         ];
 }

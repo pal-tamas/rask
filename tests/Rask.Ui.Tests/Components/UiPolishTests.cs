@@ -37,7 +37,7 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
     {
         // All three together: a new tab without rel=noopener can reach the opener through window.opener, and
         // a tab that opens unannounced takes the back button away from a reader who did not ask for one.
-        var html = Ui.Link.Text("The spec").Href("https://example.com").External(true).ToHtml();
+        var html = Ui.Link.Href("https://example.com").External(true)["The spec"].ToHtml();
 
         Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
         Assert.Contains("rel=\"noopener noreferrer\"", html, StringComparison.Ordinal);
@@ -47,14 +47,14 @@ public partial class UiPolishTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_ordinary_link_is_untouched() =>
         Assert.DoesNotContain("target=\"_blank\"",
-            Ui.Link.Text("Docs").Href("/docs").ToHtml(), StringComparison.Ordinal);
+            Ui.Link.Href("/docs")["Docs"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_generated_route_is_never_external()
     {
         // It is one of your own pages by definition. Opening it in a second tab would be the app twice over.
         var route = new global::Rask.Core.Routing.RouteUrl("/docs", null, typeof(UiPolishTests));
-        var html = Ui.Link.Text("Docs").Href(route).External(true).ToHtml();
+        var html = Ui.Link.Href(route).External(true)["Docs"].ToHtml();
 
         Assert.DoesNotContain("target=\"_blank\"", html, StringComparison.Ordinal);
     }
