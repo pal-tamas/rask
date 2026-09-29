@@ -14,49 +14,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Rask.Cqrs" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Cqrs.Server" Version="{{RaskVersion}}"/>
+    <!-- The host and every battery. A battery this app does without is switched off in Program.cs. -->
+    <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
     <!--
-      Finds the Client folder in this project by convention (a `Client` directory holding a
+      Finds the client folder in this project by convention (a `client` directory holding a
       package.json), runs its install and build, writes the generated TypeScript
       contracts into its src/rask/, and copies the bundle into wwwroot on publish. Set
       RaskSpaClientDir to point somewhere else, or -p:RaskSpaBuild=false to skip node entirely —
       the API still works, and the site serves a page saying there is nothing built yet.
+      Named directly, not left to Rask.Server: a package's build steps reach only the project that references it.
     -->
     <PackageReference Include="Rask.Spa.Hosting" Version="{{RaskVersion}}"/>
-    <!-- rask:if data -->
-    <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.SQLite.Litestream" Version="{{RaskVersion}}"/>
-    <!-- Accounts as JSON only. Rask.Auth is the same battery plus the built-in sign-in PAGES,
-         which are Rask components — and this host renders none, so it carries no Rask.Core for
-         them to render with. -->
-    <PackageReference Include="Rask.Auth.Api" Version="{{RaskVersion}}"/>
-    <!-- rask:if outbox -->
-    <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if jobs -->
-    <PackageReference Include="Rask.Jobs" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if mail -->
-    <PackageReference Include="Rask.Mail" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if cache -->
-    <PackageReference Include="Rask.Cache" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if storage -->
-    <PackageReference Include="Rask.Storage" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if snapshots -->
-    <PackageReference Include="Rask.SQLite.Snapshots" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:end -->
-    <!-- rask:if logs -->
-    <PackageReference Include="Rask.Logging" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if push pwa -->
-    <PackageReference Include="Rask.WebPush" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
   </ItemGroup>
 
 </Project>

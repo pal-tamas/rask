@@ -135,13 +135,11 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
         // opens and disposes its own. Your own aggregates work the same way — Product.Where(…).
         _sessions = await Session
             .Where(s => s.UserId == me)
-            .OrderByDescending(s => s.LastSeenAt)
-            .ToListAsync(CancellationToken);
+            .OrderByDescending(s => s.LastSeenAt);
 
         _passkeys = await Passkey
             .Where(p => p.UserId == me)
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync(CancellationToken);
+            .OrderByDescending(p => p.CreatedAt);
     }
 
     private static string Describe(string? userAgent) =>

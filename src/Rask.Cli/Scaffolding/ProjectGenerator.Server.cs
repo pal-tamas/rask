@@ -98,9 +98,9 @@ internal static partial class ProjectGenerator
         return [.. files.Select(f => string.Equals(f.Path, program, StringComparison.Ordinal) ? f with { Content = text } : f)];
     }
 
-    // Null when every battery is on: the committed one-liner is then the file. `prefix` is what precedes the app
-    // (a using, or nothing) and `run` is the line that starts it.
-    private static string? ConfiguredProgramCs(string prefix, List<string> off, string run)
+    // Null when every battery is on: the committed file is then the file. `prefix` is what precedes the app
+    // (a using, or nothing), `services` what the app registers of its own, and `run` the line that starts it.
+    private static string? ConfiguredProgramCs(string prefix, List<string> off, string run, string services = "")
     {
         if (off.Count == 0)
         {
@@ -117,7 +117,7 @@ internal static partial class ProjectGenerator
             // Every other battery is on, and every setting lives in appsettings.json under "Rask" (docs/configuration.md).
             {{configure}}
 
-            {{run}}
+            {{services}}{{run}}
 
             """;
     }

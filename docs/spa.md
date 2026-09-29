@@ -114,9 +114,25 @@ Two ways out, and both are honest ones:
 
 | | |
 |---|---|
-| `Shop/` | The ASP.NET host: your message records, their handlers, and the JSON endpoint the client dispatches through. |
+| `Shop/` | The ASP.NET host: `RaskApp.Create(args).Serve()`, your message records and their handlers. |
 | `Shop/client/` | The client, as `create-vite` scaffolds it, plus Rask's overlay — a Vite config for the dev proxy, the entry, and the component that dispatches. No client-side data or routing library: the component calls `rask.dispatch` and holds its own state. |
 | `Shop/client/src/rask/` | Generated on every build. Gitignored. |
+
+**The host is a `RaskApp`.** Its whole `Program.cs`:
+
+```csharp
+var app = RaskApp.Create(args);
+app.Services.AddSingleton<VisitCounter>();   // the starter's own service
+app.Serve();
+```
+
+`Serve()` is the same call the [wasm-hosted template](#a-rask-webassembly-app) makes: every battery, the
+endpoint the client dispatches through (`/_rask/cqrs`), the accounts API at `/api/auth`, the Push battery's
+`/_rask/push`, the operator console at `/_rask`, health at `/health`, and `MapRaskSpa()` last, answering every
+other path — so no endpoint can land behind its fallback. The csproj references `Rask.Server` (the host and
+every battery) and `Rask.Spa.Hosting`, named directly because its build steps — the client's install and
+build, the generated contracts — reach only the project that references it. A battery the app does without is
+a line: `app.Configure(c => c.Jobs.Off());`.
 
 **One project, with the front end as a folder inside it.** A C#-on-both-halves solution needs a
 `.Shared` project because both halves are C# and must compile the same record — but here the client's
@@ -594,17 +610,18 @@ from that path, controlling one sub-tree and never seeing a push.
 
 ### The subscription
 
-`--push` also vendors `src/rask/push.ts`, the one browser API worth generating: the endpoints and the
-payload belong to your host, not to the platform.
+`--push` also scaffolds `src/push.ts` — yours to edit, because when to ask for permission is your app's
+decision, not the platform's.
 
 ```ts
-import { subscribeToPush, unsubscribeFromPush } from './rask/push'
+import { subscribeToPush, unsubscribeFromPush } from './push'
 
 await subscribeToPush()      // null if unsupported, unconfigured, or denied
 ```
 
-It calls three endpoints the host maps: `GET /_push/key` for the **public** VAPID key, and
-`POST /_push/{subscribe,unsubscribe}`. The private key signs and never leaves the server.
+It calls the three endpoints the Push battery maps under `Serve()`: `GET /_rask/push/key` for the **public**
+VAPID key, and `POST /_rask/push/{subscribe,unsubscribe}`, which keep each subscription in the app's database.
+The private key signs and never leaves the server.
 
 The reason it is a vendored file rather than a snippet in this page is one line of it.
 `PushSubscription.toJSON()` nests the keys — `{ endpoint, keys: { p256dh, auth } }` — while the host
@@ -613,20 +630,20 @@ request **still answers 204**: `endpoint` binds, both keys arrive null, and ever
 encrypt for a subscription that looked like it registered. `push.ts` flattens it.
 
 A scaffolded app's development key pair is already in its gitignored `appsettings.Development.json`;
-elsewhere, mint one with `VapidKeys.Generate()`. Until a pair is configured, `/_push/key` answers with an
+elsewhere, mint one with `VapidKeys.Generate()`. Until a pair is configured, `/_rask/push/key` answers with an
 empty key and `subscribeToPush()` returns `null` rather than throwing. See [Web Push](pwa.md).
 
 ## Signing people in
 
-The [accounts battery](authentication.md) is on in the host, and `rask new` maps its endpoints — an app
-with a database gets `app.MapRaskAuth()` in its `Program.cs`, before `MapRaskSpa()`, because that call
-ends the pipeline with a fallback to `index.html` and an endpoint added after it would answer HTML
-instead of JSON. The `rask dev` proxy forwards `/api/auth` alongside `/_rask`, so a sign-in works the
-same in development, where the browser is talking to the bundler rather than to Kestrel.
+The [accounts battery](authentication.md) is on in the host, and `Serve()` maps its JSON endpoints under
+`/api/auth` whenever it is — an app with a database declares its `User` (`Features/Shared/User.cs`), and that
+is what switches accounts on. They are mapped ahead of `MapRaskSpa()`'s fallback to `index.html`, which would
+otherwise answer them with HTML instead of JSON. The `rask dev` proxy forwards `/api/auth` alongside `/_rask`,
+so a sign-in works the same in development, where the browser is talking to the bundler rather than to Kestrel.
 
-This lane takes **`Rask.Auth.Api`** rather than `Rask.Auth` — the same battery, the same
-`AddRaskAuth`/`MapRaskAuth`, the same `Rask.Auth` namespace, minus the built-in sign-in *pages* and
-`IAuth`, both of which need a renderer this host does not have. See
+A host wired by hand calls `app.MapRaskAuth()` itself, after `UseAuthentication()`/`UseAuthorization()` and
+before `MapRaskSpa()`. Without `Rask.Server` it can take **`Rask.Auth.Api`** alone — the same battery, the
+same `AddRaskAuth`/`MapRaskAuth`, minus the built-in sign-in *pages*, which need a renderer. See
 [two packages, one battery](authentication.md#two-packages-one-battery).
 
 **The screens are scaffolded too.** `/login` and `/register` are in the template, drawn with the same
