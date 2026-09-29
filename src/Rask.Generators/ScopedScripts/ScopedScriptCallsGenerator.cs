@@ -234,7 +234,7 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
 
         foreach (var name in decls.NotCallable)
         {
-            Report(name, "it is a value, not a function — only functions (a declaration or an arrow in a const) and classes reach C#");
+            Report(name, "it is a value, not a function — only functions (a declaration or an arrow in a const) and classes reach C#, so export a function that returns it");
         }
 
         if (decls.Functions.Count == 0 && decls.Classes.Count == 0)

@@ -185,7 +185,7 @@ public sealed class AccountRecoveryTests
         using var scope = harness.NewScope();
 
         var outcome = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>()
-            .RegisterAsync("someone@example.com", Password, firstRunToken: null, client: null);
+            .RegisterAsync("someone@example.com", Password, firstRunToken: null, client: null, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(AuthError.EmailNotConfirmed, outcome.Result.Error);
         Assert.Null(outcome.Principal);
@@ -329,15 +329,15 @@ public sealed class AccountRecoveryTests
         await using var harness = await ClaimedAsync();
         var owner = (await harness.UserAsync(Owner))!;
         var sessions = harness.Services.GetRequiredService<IAuthSessions>();
-        var theirs = await sessions.StartAsync(owner.Id, "203.0.113.9", "someone else", persistent: true);
-        var mine = await sessions.StartAsync(owner.Id, "10.0.0.1", "me", persistent: false);
+        var theirs = await sessions.StartAsync(owner.Id, "203.0.113.9", "someone else", persistent: true, cancellationToken: TestContext.Current.CancellationToken);
+        var mine = await sessions.StartAsync(owner.Id, "10.0.0.1", "me", persistent: false, cancellationToken: TestContext.Current.CancellationToken);
 
         var sent = await RequestResetAsync(harness, Owner);
         var (userId, token) = Parse(sent!.Link!);
         Assert.True((await ResetAsync(harness, userId, token, NewPassword)).Succeeded);
 
-        Assert.Null(await sessions.ResumeAsync(theirs));
-        Assert.Null(await sessions.ResumeAsync(mine));
+        Assert.Null(await sessions.ResumeAsync(theirs, TestContext.Current.CancellationToken));
+        Assert.Null(await sessions.ResumeAsync(mine, TestContext.Current.CancellationToken));
     }
 
     [Fact]

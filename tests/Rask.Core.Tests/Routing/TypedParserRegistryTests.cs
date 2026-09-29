@@ -62,14 +62,28 @@ public sealed class TypedParserRegistryTests
     [Fact]
     public void RouteValueParser_uses_the_registry_for_a_registered_custom_type()
     {
-        RaskBinding.RegisterParsable<Sku>();
+        RaskBinding.RegisterParsable<Isbn>();
 
-        Assert.True(RouteValueParser.TryParse(typeof(Sku), "B-200", out var value));
-        Assert.Equal(new Sku("B-200"), value);
+        Assert.True(RouteValueParser.TryParse(typeof(Isbn), "B-200", out var value));
+        Assert.Equal(new Isbn("B-200"), value);
 
         // Nullable wrapper unwraps to the same registered parser.
-        Assert.True(RouteValueParser.TryParse(typeof(Sku?), "C-300", out var nullableValue));
-        Assert.Equal(new Sku("C-300"), nullableValue);
+        Assert.True(RouteValueParser.TryParse(typeof(Isbn?), "C-300", out var nullableValue));
+        Assert.Equal(new Isbn("C-300"), nullableValue);
+    }
+
+    // The registry is process-wide and has no unregister, so each test registers a type of its own: sharing Sku
+    // made the "no parser until registered" test depend on running before this one.
+    private readonly record struct Isbn(string Code) : IParsable<Isbn>
+    {
+        public static Isbn Parse(string s, IFormatProvider? provider) =>
+            TryParse(s, provider, out var result) ? result : throw new FormatException($"Invalid ISBN '{s}'.");
+
+        public static bool TryParse(string? s, IFormatProvider? provider, out Isbn result)
+        {
+            result = string.IsNullOrWhiteSpace(s) ? default : new Isbn(s);
+            return !string.IsNullOrWhiteSpace(s);
+        }
     }
 
     private readonly record struct Sku(string Code) : IParsable<Sku>

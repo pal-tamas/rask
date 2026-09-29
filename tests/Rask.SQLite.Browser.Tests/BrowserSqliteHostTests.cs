@@ -152,7 +152,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
         await host.StartAsync(CancellationToken.None);
 
         Assert.True(host.IsOwner);
-        Assert.Equal("restored", await File.ReadAllTextAsync(options.DatabasePath));
+        Assert.Equal("restored", await File.ReadAllTextAsync(options.DatabasePath, TestContext.Current.CancellationToken));
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -209,7 +209,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
         _locks.ReleaseElsewhere(lockName);               // that tab closes
 
-        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5));
+        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -225,7 +225,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
         await host.StartAsync(CancellationToken.None);
 
         _locks.ReleaseElsewhere(lockName);
-        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5));
+        await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Free for a tab that can actually use it — a reloaded page, or another tab.
         Assert.DoesNotContain(await _locks.QueryAsync(), l => l.Name == lockName);
@@ -238,7 +238,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
         var host = Host(Options());
 
         await host.StartAsync(CancellationToken.None);
-        await Task.Delay(60);
+        await Task.Delay(60, TestContext.Current.CancellationToken);
 
         // The owner has nothing to wait for; completing here would tell an app to reload for no reason.
         Assert.False(_ownership.Available.IsCompleted);
@@ -255,10 +255,10 @@ public sealed class BrowserSqliteHostTests : IDisposable
         await host.StartAsync(CancellationToken.None);
 
         // Returns only once the watcher has stopped — a watcher still polling after shutdown would hang it.
-        await host.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
+        await host.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         _locks.ReleaseElsewhere(lockName);
-        await Task.Delay(60);
+        await Task.Delay(60, TestContext.Current.CancellationToken);
 
         Assert.False(_ownership.Available.IsCompleted);
     }
@@ -273,7 +273,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
         await host.StartAsync(CancellationToken.None);
 
-        Assert.Equal("newest", await File.ReadAllTextAsync(options.DatabasePath));
+        Assert.Equal("newest", await File.ReadAllTextAsync(options.DatabasePath, TestContext.Current.CancellationToken));
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -296,13 +296,13 @@ public sealed class BrowserSqliteHostTests : IDisposable
     public async Task Starting_does_not_overwrite_a_database_file_that_already_exists()
     {
         var options = Options();
-        await File.WriteAllTextAsync(options.DatabasePath, "live");
+        await File.WriteAllTextAsync(options.DatabasePath, "live", TestContext.Current.CancellationToken);
         Seed(options.Name, "app-20260808-140000000.db", "snapshot");
         var host = Host(options);
 
         await host.StartAsync(CancellationToken.None);
 
-        Assert.Equal("live", await File.ReadAllTextAsync(options.DatabasePath));
+        Assert.Equal("live", await File.ReadAllTextAsync(options.DatabasePath, TestContext.Current.CancellationToken));
         await host.StopAsync(CancellationToken.None);
     }
 

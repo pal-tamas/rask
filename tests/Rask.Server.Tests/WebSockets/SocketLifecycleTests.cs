@@ -17,7 +17,7 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
 
-        var response = await host.Http.GetAsync("/rask/ws");
+        var response = await host.Http.GetAsync("/rask/ws", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -27,11 +27,11 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
@@ -39,7 +39,7 @@ public class SocketLifecycleTests
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
         while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(0, host.Store.Count);
@@ -50,16 +50,16 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromSeconds(2));
-        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
         // Reconnect well inside the grace window.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         var rerender = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(rerender);
@@ -72,23 +72,23 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
-        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
 
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
         while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(0, host.Store.Count);
 
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(reply);
@@ -99,22 +99,22 @@ public class SocketLifecycleTests
     public async Task A_reconnect_while_the_old_socket_is_attached_makes_the_new_socket_authoritative()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = Regex.Match(initialHtml, "data-rask-on-click=\"(h\\d+)\"").Groups[1].Value;
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         // Open ws2 with the same session id while ws1 is still attached.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         _ = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         // ws2 is authoritative now; a handler invocation should render to ws2.
-        await ws2.SendJsonAsync(new { id = handlerId });
+        await ws2.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var ws2Reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(ws2Reply);
@@ -129,17 +129,17 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
-        var initialHtml = await host.Http.GetStringAsync("/start");
+        var initialHtml = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = Regex.Match(initialHtml, "data-rask-on-click=\"(h\\d+)\"").Groups[1].Value;
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
 
         // A reconnect always emits a frame, so receiving one proves ws2 is attached.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         Assert.NotNull(await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5)));
 
@@ -147,13 +147,13 @@ public class SocketLifecycleTests
         await ws1.CloseAndAwaitServerCleanupAsync();
 
         // Outlast the 50 ms grace a wrongly armed removal would use.
-        await Task.Delay(300);
+        await Task.Delay(300, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, host.Store.Count);
         Assert.Equal(1, host.Store.ConnectedCount);
 
         // And ws2 still receives renders.
-        await ws2.SendJsonAsync(new { id = handlerId });
+        await ws2.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
 
         Assert.NotNull(reply);
@@ -171,25 +171,25 @@ public class SocketLifecycleTests
     public async Task A_replaced_socket_cannot_dispatch_handlers()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initialHtml = await host.Http.GetStringAsync("/start");
+        var initialHtml = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = Regex.Match(initialHtml, "data-rask-on-click=\"(h\\d+)\"").Groups[1].Value;
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
 
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         Assert.NotNull(await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5)));
 
         // The replaced socket clicks: had it dispatched, the render would arrive on ws2, the attached one.
-        await ws1.SendJsonAsync(new { id = handlerId });
+        await ws1.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
 
         Assert.Null(await ws2.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500)));
 
         // The attached socket's click is the first one that counts.
-        await ws2.SendJsonAsync(new { id = handlerId });
+        await ws2.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
 
         var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
         Assert.NotNull(reply);
@@ -202,10 +202,10 @@ public class SocketLifecycleTests
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
-        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "policy-violation-bye",
@@ -214,7 +214,7 @@ public class SocketLifecycleTests
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
         while (host.Store.Count > 0 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(0, host.Store.Count);

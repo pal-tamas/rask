@@ -19,7 +19,7 @@ public sealed class CacheActionTests
 
         await using var db = h.NewContext();
 
-        Assert.Equal(["a", "c"], await db.Set<CacheEntry>().Select(e => e.Key).OrderBy(k => k).ToListAsync());
+        Assert.Equal(["a", "c"], await db.Set<CacheEntry>().Select(e => e.Key).OrderBy(k => k).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class CacheActionTests
                 // Past its expiry but still a row: the purge sweep runs on its own schedule, and the gap
                 // between "stops being served" and "actually deleted" is worth showing.
                 CacheEntry.For("stale", new byte[5], now.AddHours(-1), now));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var stats = await h.Get<ICachePanelReader>().StatsAsync(CancellationToken.None);

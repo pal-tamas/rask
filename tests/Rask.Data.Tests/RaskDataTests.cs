@@ -40,7 +40,7 @@ public sealed class RaskDataTests : IDisposable
         {
             var widget = Widget.Create("first");
             db.Widgets.Add(widget);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             id = widget.Id;
             Assert.Equal(_clock.UtcNow.UtcDateTime, widget.CreatedAt);
             Assert.Equal(_clock.UtcNow.UtcDateTime, widget.UpdatedAt);
@@ -50,9 +50,9 @@ public sealed class RaskDataTests : IDisposable
 
         await using (var db = NewContext())
         {
-            var widget = await db.Widgets.SingleAsync(x => x.Id == id);
+            var widget = await db.Widgets.SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
             widget.Rename("second");
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             Assert.Equal(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero).UtcDateTime, widget.CreatedAt);
             Assert.Equal(_clock.UtcNow.UtcDateTime, widget.UpdatedAt);
         }
@@ -66,21 +66,21 @@ public sealed class RaskDataTests : IDisposable
         {
             var widget = Widget.Create("doomed");
             db.Widgets.Add(widget);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             id = widget.Id;
         }
 
         await using (var db = NewContext())
         {
-            var widget = await db.Widgets.SingleAsync(x => x.Id == id);
+            var widget = await db.Widgets.SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
             db.Widgets.Remove(widget);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var read = NewContext())
         {
-            Assert.Empty(await read.Widgets.ToListAsync());                       // hidden by the filter
-            var raw = await read.Widgets.IgnoreQueryFilters().SingleAsync(x => x.Id == id);
+            Assert.Empty(await read.Widgets.ToListAsync(cancellationToken: TestContext.Current.CancellationToken));                       // hidden by the filter
+            var raw = await read.Widgets.IgnoreQueryFilters().SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
             Assert.NotNull(raw.DeletedAt);                                        // still there, soft-deleted
         }
     }
@@ -93,22 +93,22 @@ public sealed class RaskDataTests : IDisposable
         {
             var widget = Widget.Create("v");
             db.Widgets.Add(widget);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             id = widget.Id;
             Assert.Equal(0, widget.Version);
         }
 
         await using var first = NewContext();
         await using var second = NewContext();
-        var a = await first.Widgets.SingleAsync(x => x.Id == id);
-        var b = await second.Widgets.SingleAsync(x => x.Id == id);
+        var a = await first.Widgets.SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
+        var b = await second.Widgets.SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
 
         a.Rename("a");
-        await first.SaveChangesAsync();
+        await first.SaveChangesAsync(TestContext.Current.CancellationToken);
         Assert.Equal(1, a.Version); // bumped by the interceptor
 
         b.Rename("b"); // b still holds Version 0
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public sealed class RaskDataTests : IDisposable
         {
             widget = Widget.Create("evented");
             db.Widgets.Add(widget);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Contains(_recorder.Events, e => e is WidgetCreated created && created.Id == widget.Id);
@@ -134,16 +134,16 @@ public sealed class RaskDataTests : IDisposable
         {
             var widget = Widget.Create("to-delete");
             db.Widgets.Add(widget);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             id = widget.Id;
         }
 
         await using (var db = NewContext())
         {
-            var widget = await db.Widgets.SingleAsync(x => x.Id == id);
+            var widget = await db.Widgets.SingleAsync(x => x.Id == id, cancellationToken: TestContext.Current.CancellationToken);
             widget.MarkDeleted();      // event raised before the row is physically removed
             db.Widgets.Remove(widget);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         // Collected in SavingChanges (while still tracked), so the delete doesn't lose the event.

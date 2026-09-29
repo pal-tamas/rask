@@ -169,7 +169,7 @@ public static class Db
     {
         // The ambient scope wins when one is open, because it is the only thing that can build a context
         // carrying the current user — and therefore the current tenant.
-        if (AmbientScope.Value is { } scope &&
+        if ((AmbientScope.Value ?? Ambient.Services) is { } scope &&
             scope.GetService<AmbientContextBinding>() is { } scoped)
         {
             return scoped.CreateContext();

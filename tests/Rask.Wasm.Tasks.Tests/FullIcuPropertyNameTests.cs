@@ -27,11 +27,11 @@ namespace Rask.Wasm.Tasks.Tests;
 /// </remarks>
 public sealed class FullIcuPropertyNameTests
 {
-    [SkippableFact]
+    [Fact]
     public void Rask_sets_the_property_the_WebAssembly_SDK_reads()
     {
         var sdkTargets = WebAssemblySdkTargets();
-        Skip.If(sdkTargets is null, "the Microsoft.NET.Runtime.WebAssembly.Sdk pack is not on this machine.");
+        Assert.SkipWhen(sdkTargets is null, "the Microsoft.NET.Runtime.WebAssembly.Sdk pack is not on this machine.");
 
         // Every WasmIncludeFullIcu* spelling the SDK knows about, comments INCLUDED: the SDK declares
         // this property in a documentation block, so stripping comments there finds nothing at all.

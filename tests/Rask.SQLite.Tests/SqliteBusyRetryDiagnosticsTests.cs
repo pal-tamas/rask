@@ -15,7 +15,7 @@ public sealed class SqliteBusyRetryDiagnosticsTests : IDisposable
     public async Task A_genuine_error_throws_a_diagnosable_exception()
     {
         await using var connection = new SqliteConnection($"Data Source={_dbPath}");
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
             SqliteBusyRetry.ExecAsync(
@@ -37,7 +37,7 @@ public sealed class SqliteBusyRetryDiagnosticsTests : IDisposable
     public async Task Ok_statements_do_not_throw()
     {
         await using var connection = new SqliteConnection($"Data Source={_dbPath}");
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
 
         // A well-formed statement returns SQLITE_OK and completes without a diagnosis.
         await SqliteBusyRetry.ExecAsync(

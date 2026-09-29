@@ -38,7 +38,7 @@ public sealed class PostgresClaimTests : IAsyncLifetime
 {
     private readonly List<ServiceProvider> _providers = [];
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (!Postgres.Available)
         {
@@ -49,7 +49,7 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         await Postgres.ResetSchemaAsync(db, ClaimDbContext.Schema);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         foreach (var provider in _providers)
         {
@@ -63,10 +63,10 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Twenty_concurrent_claims_never_hand_the_same_job_to_two_instances()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         const int jobs = 200;
         const int instances = 20;
@@ -86,10 +86,10 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         // pure interleaving.
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task An_expired_lease_is_reclaimed_by_exactly_one_of_many_instances()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await SeedAsync(1);
         var now = DateTime.UtcNow;
@@ -106,10 +106,10 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         Assert.Equal(1, reclaimed.Sum(batch => batch.Count));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task The_largest_allowed_batch_claims_in_one_statement()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         // BatchSize is capped at 1000 because the claim sends the candidate ids as a Contains list. EF Core 10
         // pads that into a parameter list, so the cap is only safe if PostgreSQL accepts the widest one.

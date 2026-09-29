@@ -29,13 +29,13 @@ public sealed class DiskBlobBackendTests : IDisposable
         var backend = new DiskBlobBackend(_root);
         var spool = await SpoolAsync(backend, [1, 2, 3, 4, 5]);
 
-        await backend.PutFileAsync("ab/abcd", spool, 5, Headers, default);
+        await backend.PutFileAsync("ab/abcd", spool, 5, Headers, TestContext.Current.CancellationToken);
 
         Assert.False(File.Exists(spool));
-        await using var stream = await backend.OpenReadAsync("ab/abcd", 2, null, default);
+        await using var stream = await backend.OpenReadAsync("ab/abcd", 2, null, TestContext.Current.CancellationToken);
         Assert.NotNull(stream);
         var rest = new MemoryStream();
-        await stream!.CopyToAsync(rest);
+        await stream!.CopyToAsync(rest, TestContext.Current.CancellationToken);
         Assert.Equal([3, 4, 5], rest.ToArray());
     }
 
@@ -43,10 +43,10 @@ public sealed class DiskBlobBackendTests : IDisposable
     public async Task Storing_never_overwrites()
     {
         var backend = new DiskBlobBackend(_root);
-        await backend.PutFileAsync("ab/one", await SpoolAsync(backend, [1]), 1, Headers, default);
+        await backend.PutFileAsync("ab/one", await SpoolAsync(backend, [1]), 1, Headers, TestContext.Current.CancellationToken);
 
         var second = await SpoolAsync(backend, [2]);
-        Assert.ThrowsAny<IOException>(() => backend.PutFileAsync("ab/one", second, 1, Headers, default).GetAwaiter().GetResult());
+        Assert.ThrowsAny<IOException>(() => backend.PutFileAsync("ab/one", second, 1, Headers, TestContext.Current.CancellationToken).GetAwaiter().GetResult());
     }
 
     [Fact]
@@ -62,19 +62,19 @@ public sealed class DiskBlobBackendTests : IDisposable
     {
         var backend = new DiskBlobBackend(_root);
 
-        Assert.Null(await backend.OpenReadAsync("ab/none", 0, null, default));
-        await backend.DeleteAsync("ab/none", default);
+        Assert.Null(await backend.OpenReadAsync("ab/none", 0, null, TestContext.Current.CancellationToken));
+        await backend.DeleteAsync("ab/none", TestContext.Current.CancellationToken);
     }
 
     [Fact]
     public async Task The_listing_skips_the_spool_and_honours_the_prefix()
     {
         var backend = new DiskBlobBackend(_root);
-        await backend.PutFileAsync("app/ab/one", await SpoolAsync(backend, [1]), 1, Headers, default);
-        await backend.PutFileAsync("other/ab/two", await SpoolAsync(backend, [2]), 1, Headers, default);
+        await backend.PutFileAsync("app/ab/one", await SpoolAsync(backend, [1]), 1, Headers, TestContext.Current.CancellationToken);
+        await backend.PutFileAsync("other/ab/two", await SpoolAsync(backend, [2]), 1, Headers, TestContext.Current.CancellationToken);
         _ = await SpoolAsync(backend, [3]); // a save in flight
 
-        var keys = await backend.ListAsync("app/", default).Select(e => e.Key).ToListAsync();
+        var keys = await backend.ListAsync("app/", TestContext.Current.CancellationToken).Select(e => e.Key).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["app/ab/one"], keys);
     }
@@ -88,8 +88,8 @@ public sealed class DiskBlobBackendTests : IDisposable
     {
         var backend = new DiskBlobBackend(_root);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => backend.OpenReadAsync(key, 0, null, default));
-        await Assert.ThrowsAsync<ArgumentException>(() => backend.DeleteAsync(key, default));
+        await Assert.ThrowsAsync<ArgumentException>(() => backend.OpenReadAsync(key, 0, null, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => backend.DeleteAsync(key, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class DiskBlobBackendTests : IDisposable
         var fresh = await SpoolAsync(backend, [2]);
         File.SetLastWriteTimeUtc(stale, DateTime.UtcNow.AddDays(-2));
 
-        await backend.DeleteStaleSpoolAsync(DateTimeOffset.UtcNow.AddDays(-1), default);
+        await backend.DeleteStaleSpoolAsync(DateTimeOffset.UtcNow.AddDays(-1), TestContext.Current.CancellationToken);
 
         Assert.False(File.Exists(stale));
         Assert.True(File.Exists(fresh));

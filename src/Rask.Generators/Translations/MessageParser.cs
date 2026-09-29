@@ -102,14 +102,14 @@ internal static class MessageParser
         placeholder = null;
         if (body.Length == 0)
         {
-            return "an empty placeholder '{}'";
+            return "an empty placeholder '{}' — name it, as in '{count}', or write '{{}}' for literal braces";
         }
 
         var parts = body.Split(':');
         var name = parts[0].Trim();
         if (name.Length == 0)
         {
-            return "a placeholder with no name";
+            return "a placeholder with no name — name it, as in '{count}'";
         }
 
         if (IsAllDigits(name))
@@ -122,7 +122,7 @@ internal static class MessageParser
             sawNamed = true;
             if (!IsIdentifier(name))
             {
-                return $"'{name}' is not usable as a parameter name";
+                return $"'{name}' is not usable as a parameter name — use a C# identifier";
             }
         }
 

@@ -75,15 +75,15 @@ public sealed class ModelSetTests : IDisposable
     {
         await SeedAsync("alpha", "beta");
 
-        Assert.Equal(2, await Widget.Count());
-        Assert.Equal(1, await Widget.Count(w => w.Name == "alpha"));
-        Assert.Equal(2L, await Widget.LongCount());
-        Assert.True(await Widget.Any());
-        Assert.True(await Widget.Any(w => w.Name == "beta"));
-        Assert.False(await Widget.Any(w => w.Name == "nope"));
+        Assert.Equal(2, await Widget.Count(TestContext.Current.CancellationToken));
+        Assert.Equal(1, await Widget.Count(w => w.Name == "alpha", TestContext.Current.CancellationToken));
+        Assert.Equal(2L, await Widget.LongCount(TestContext.Current.CancellationToken));
+        Assert.True(await Widget.Any(TestContext.Current.CancellationToken));
+        Assert.True(await Widget.Any(w => w.Name == "beta", TestContext.Current.CancellationToken));
+        Assert.False(await Widget.Any(w => w.Name == "nope", TestContext.Current.CancellationToken));
         Assert.Equal(2, (await Widget.All).Count);
-        Assert.NotNull(await Widget.Single(w => w.Name == "alpha"));
-        Assert.Null(await Widget.First(w => w.Name == "nope"));
+        Assert.NotNull(await Widget.Single(w => w.Name == "alpha", TestContext.Current.CancellationToken));
+        Assert.Null(await Widget.First(w => w.Name == "nope", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -96,7 +96,9 @@ public sealed class ModelSetTests : IDisposable
         using var work = Ambient.Enter(stopped.Token);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Widget.All);
+#pragma warning disable xUnit1051 // the missing token is the point: the read must pick up the ambient one
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Widget.Count());
+#pragma warning restore xUnit1051
     }
 
     [Fact]
@@ -105,11 +107,11 @@ public sealed class ModelSetTests : IDisposable
         // Every terminal opens its own context, so a half-built query kept in a field is not pinned to
         // what the database held when it was built.
         var live = Widget.Where(w => w.Name != "hidden");
-        Assert.Equal(0, await live.Count());
+        Assert.Equal(0, await live.Count(TestContext.Current.CancellationToken));
 
         await SeedAsync("alpha", "hidden");
 
-        Assert.Equal(1, await live.Count());
+        Assert.Equal(1, await live.Count(TestContext.Current.CancellationToken));
         Assert.Equal(["alpha"], (await live.OrderBy(w => w.Name)).Select(w => w.Name));
     }
 
@@ -129,12 +131,12 @@ public sealed class ModelSetTests : IDisposable
 
         await using (var db = NewContext())
         {
-            db.Remove((await db.Widgets.FindAsync(doomed.Id))!);
-            await db.SaveChangesAsync();
+            db.Remove((await db.Widgets.FindAsync([doomed.Id], TestContext.Current.CancellationToken))!);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         // Gone from ordinary queries — the global filter ApplyRaskConventions added.
-        Assert.Equal(0, await Widget.Count());
+        Assert.Equal(0, await Widget.Count(TestContext.Current.CancellationToken));
 
         // Still there, stamped, behind IgnoreQueryFilters.
         var deleted = await Widget.IgnoreQueryFilters();
@@ -156,9 +158,9 @@ public sealed class ModelSetTests : IDisposable
     {
         var widget = (await SeedAsync("before"))[0];
 
-        var found = await Widget.Find(widget.Id);
+        var found = await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken);
         found!.Rename("after");
-        await found.Save();
+        await found.Save(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains(_recorder.Events, e => e is WidgetRenamed renamed && renamed.Id == widget.Id);
         Assert.Empty(found.DomainEvents);
@@ -171,12 +173,12 @@ public sealed class ModelSetTests : IDisposable
 
         await using (var db = NewContext())
         {
-            (await db.Widgets.FindAsync(widget.Id))!.Rename("after");
-            await db.SaveChangesAsync();
+            (await db.Widgets.FindAsync([widget.Id], TestContext.Current.CancellationToken))!.Rename("after");
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Contains(_recorder.Events, e => e is WidgetRenamed renamed && renamed.Id == widget.Id);
-        Assert.Equal(1, await Widget.Count(w => w.Name == "after"));
+        Assert.Equal(1, await Widget.Count(w => w.Name == "after", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -188,7 +190,7 @@ public sealed class ModelSetTests : IDisposable
             .GroupBy(w => w.Name.Substring(0, 1))
             .Select(g => new { Initial = g.Key, Count = g.Count() })
             .OrderBy(x => x.Initial)
-            .ToListAsync(ct));
+            .ToListAsync(ct), TestContext.Current.CancellationToken);
 
         Assert.Equal(["a", "b", "g"], initials.Select(x => x.Initial));
         Assert.All(initials, x => Assert.Equal(1, x.Count));
@@ -201,7 +203,7 @@ public sealed class ModelSetTests : IDisposable
 
         Assert.False(Db.IsConfigured);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Count());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Count(TestContext.Current.CancellationToken));
         Assert.Contains("Db.Configure", error.Message, StringComparison.Ordinal);
 
         // A queryable composed before startup (a page field, say) fails the same way when it runs, not

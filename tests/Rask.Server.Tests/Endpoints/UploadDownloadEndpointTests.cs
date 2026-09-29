@@ -16,7 +16,7 @@ public class UploadDownloadEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
         var form = BuildSingleFileForm("hi.txt", new byte[] { 1, 2, 3 });
 
-        var response = await host.Http.PostAsync("/_rask/upload/no-such-session", form);
+        var response = await host.Http.PostAsync("/_rask/upload/no-such-session", form, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -28,10 +28,10 @@ public class UploadDownloadEndpointTests
         var sessionId = await CreateSessionAsync(host);
         var form = BuildSingleFileForm("data.bin", new byte[] { 9, 8, 7, 6, 5 });
 
-        var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form);
+        var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form, TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         using var doc = JsonDocument.Parse(body);
         var files = doc.RootElement.GetProperty("files");
         Assert.Equal(1, files.GetArrayLength());
@@ -42,7 +42,7 @@ public class UploadDownloadEndpointTests
         var store = host.Server.Services.GetRequiredService<SessionUploadStore>();
         var entry = store.Get(sessionId, f.GetProperty("token").GetString()!);
         Assert.NotNull(entry);
-        var staged = await File.ReadAllBytesAsync(entry!.Path);
+        var staged = await File.ReadAllBytesAsync(entry!.Path, TestContext.Current.CancellationToken);
         Assert.Equal(new byte[] { 9, 8, 7, 6, 5 }, staged);
     }
 
@@ -57,10 +57,10 @@ public class UploadDownloadEndpointTests
         var entry = store.StageBytes(sessionId, "report.txt", bytes, "text/plain");
 
         var url = $"/_rask/download/{sessionId}/{entry.Token}";
-        var first = await host.Http.GetAsync(url);
+        var first = await host.Http.GetAsync(url, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
-        var content = await first.Content.ReadAsByteArrayAsync();
+        var content = await first.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
         Assert.Equal(bytes, content);
         Assert.Equal("text/plain", first.Content.Headers.ContentType?.MediaType);
         Assert.Contains("attachment", first.Content.Headers.ContentDisposition?.ToString() ?? "");
@@ -70,7 +70,7 @@ public class UploadDownloadEndpointTests
         Assert.Equal("nosniff", nosniff.Single());
 
         // One-shot: a second fetch returns 404.
-        var second = await host.Http.GetAsync(url);
+        var second = await host.Http.GetAsync(url, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, second.StatusCode);
     }
@@ -80,7 +80,7 @@ public class UploadDownloadEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/_rask/download/missing-session/nope");
+        var response = await host.Http.GetAsync("/_rask/download/missing-session/nope", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -92,10 +92,10 @@ public class UploadDownloadEndpointTests
         var sessionId = await CreateSessionAsync(host);
         var form = BuildSingleFileForm("../../etc/passwd", new byte[] { 1, 2, 3 });
 
-        var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form);
+        var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form, TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var name = doc.RootElement.GetProperty("files")[0].GetProperty("name").GetString();
         // The directory components are stripped before the name is stored and echoed, so a host
         // that surfaces it cannot be steered into a traversal (and it must still HTML-encode it).
@@ -114,7 +114,7 @@ public class UploadDownloadEndpointTests
         };
         request.Headers.Add("Origin", "http://evil.example");
 
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -131,12 +131,12 @@ public class UploadDownloadEndpointTests
         var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/download/{sessionId}/{entry.Token}");
         request.Headers.Add("Origin", "http://evil.example");
 
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         // The cross-origin attempt must not consume the one-shot entry — a legitimate same-origin
         // fetch still succeeds afterward.
-        var legit = await host.Http.GetAsync($"/_rask/download/{sessionId}/{entry.Token}");
+        var legit = await host.Http.GetAsync($"/_rask/download/{sessionId}/{entry.Token}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, legit.StatusCode);
     }

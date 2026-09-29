@@ -100,10 +100,10 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
                 {
                     done.Set();
                 }
-            });
+            }, TestContext.Current.CancellationToken);
         }
 
-        Assert.True(done.Wait(TimeSpan.FromSeconds(30)), "the suppressed-flow render never completed");
+        Assert.True(done.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken), "the suppressed-flow render never completed");
 
         Assert.False(
             German.Equals(ambientInsideSuppressedFlow),

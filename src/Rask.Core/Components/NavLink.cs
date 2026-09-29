@@ -13,6 +13,9 @@ namespace Rask.Core.Components;
 /// </summary>
 public sealed partial class NavLink : Element
 {
+    // Re-renders itself when the route changes (StateHasChanged), unlike a plain tag.
+    private protected override bool OwnsRenderHandle => true;
+
     // Cached at mount because LiveRenderContext.Current is null during disposal, so
     // Unmount can't re-resolve RouteState from the render scope.
     private RouteState? _route;

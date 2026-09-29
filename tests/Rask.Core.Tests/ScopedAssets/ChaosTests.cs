@@ -60,7 +60,7 @@ public class ChaosTests
                 ScopedAssetRegistry.RegisterCss(typeof(WidgetA),
                     $".x {{ color: rgb({i % 256},0,0); }}");
             }
-        });
+        }, TestContext.Current.CancellationToken);
         var t2 = Task.Run(() =>
         {
             for (var i = 0; i < 200; i++)
@@ -70,7 +70,7 @@ public class ChaosTests
                     _ = ScopedAssetRegistry.GetByHash(h, AssetKind.Css);
                 }
             }
-        });
+        }, TestContext.Current.CancellationToken);
         await Task.WhenAll(t1, t2);
 
         Assert.True(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var final));

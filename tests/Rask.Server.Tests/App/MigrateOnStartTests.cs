@@ -25,8 +25,8 @@ public sealed class MigrateOnStartTests
         using var database = new TempDatabase();
         var app = DataOnlyApp<AccountContext>(database);
 
-        await app.StartAsync();
-        await app.StopAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([CreateAccounts.Id], await Applied<AccountContext>(app));
     }
@@ -37,8 +37,8 @@ public sealed class MigrateOnStartTests
         using var database = new TempDatabase();
         var app = DataOnlyApp<AccountContext>(database, arrange: a => a.Configure(c => c.MigrateOnStart = false));
 
-        await app.StartAsync();
-        await app.StopAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.False(File.Exists(database.Path), "nothing should have opened the database");
     }
@@ -49,8 +49,8 @@ public sealed class MigrateOnStartTests
         using var database = new TempDatabase();
         var app = DataOnlyApp<AccountContext>(database, setting: "false");
 
-        await app.StartAsync();
-        await app.StopAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.False(File.Exists(database.Path), "nothing should have opened the database");
     }
@@ -62,8 +62,8 @@ public sealed class MigrateOnStartTests
         var app = DataOnlyApp<AccountContext>(
             database, setting: "false", arrange: a => a.Configure(c => c.MigrateOnStart = true));
 
-        await app.StartAsync();
-        await app.StopAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([CreateAccounts.Id], await Applied<AccountContext>(app));
     }
@@ -74,7 +74,7 @@ public sealed class MigrateOnStartTests
         using var database = new TempDatabase();
         var app = DataOnlyApp<DriftedAccountContext>(database);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("has changed since its last migration", error.Message, StringComparison.Ordinal);
         Assert.Contains("rask db add <Name>", error.Message, StringComparison.Ordinal);
@@ -97,8 +97,8 @@ public sealed class MigrateOnStartTests
         });
         var built = app.Build<MinimalApp>();
 
-        await built.StartAsync();
-        await built.StopAsync();
+        await built.StartAsync(TestContext.Current.CancellationToken);
+        await built.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains(logs.Messages, m => m.Contains("RaskAppDbContext has no migrations yet", StringComparison.Ordinal)
                                             && m.Contains("rask db add Init", StringComparison.Ordinal));
@@ -111,8 +111,8 @@ public sealed class MigrateOnStartTests
         using var database = new TempDatabase();
         var app = DataOnlyApp<AccountContext>(database, arrange: a => a.Configure(c => c.Data.Off()));
 
-        await app.StartAsync();
-        await app.StopAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await app.StopAsync(TestContext.Current.CancellationToken);
 
         Assert.False(File.Exists(database.Path), "nothing should have opened the database");
     }

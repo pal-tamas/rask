@@ -19,7 +19,7 @@ public sealed class WireTests
     {
         await using var wire = Wire.Connect();
 
-        var greeting = await wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: true));
+        var greeting = await wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: true), TestContext.Current.CancellationToken);
 
         Assert.Equal("Good day, Ada.", greeting.Text);
         Assert.Equal(14, greeting.Length);
@@ -38,7 +38,7 @@ public sealed class WireTests
         await using var wire = Wire.Connect();
         var padding = new string('x', 4000);
 
-        var counted = await wire.SendAsync<int>(new CountCharacters(padding));
+        var counted = await wire.SendAsync<int>(new CountCharacters(padding), TestContext.Current.CancellationToken);
 
         Assert.Equal(4000, counted);
         Assert.Equal(HttpMethod.Post, wire.Recorder.Last.Method);
@@ -50,8 +50,8 @@ public sealed class WireTests
     {
         await using var wire = Wire.Connect();
 
-        Assert.Equal(3, await wire.SendAsync<int>(new Bump(3)));
-        Assert.Equal(5, await wire.SendAsync<int>(new Bump(2)));
+        Assert.Equal(3, await wire.SendAsync<int>(new Bump(3), TestContext.Current.CancellationToken));
+        Assert.Equal(5, await wire.SendAsync<int>(new Bump(2), TestContext.Current.CancellationToken));
 
         Assert.Equal(5, wire.Ledger.Count);
         Assert.Equal(HttpMethod.Post, wire.Recorder.Last.Method);
@@ -62,7 +62,7 @@ public sealed class WireTests
     {
         await using var wire = Wire.Connect();
 
-        await wire.SendAsync(new Touch("kettle"));
+        await wire.SendAsync(new Touch("kettle"), TestContext.Current.CancellationToken);
 
         Assert.Contains("touched:kettle", wire.Ledger.Entries);
     }
@@ -74,7 +74,7 @@ public sealed class WireTests
         // server did with it. The client must be happy with either — it reads no body.
         await using var wire = Wire.Connect();
 
-        await wire.Publish(new Announce("deployed"));
+        await wire.Publish(new Announce("deployed"), TestContext.Current.CancellationToken);
 
         Assert.Contains("announced:deployed", wire.Ledger.Entries);
     }
@@ -85,12 +85,12 @@ public sealed class WireTests
         // The CSRF control, from both ends at once: the client sets it on every request and the server
         // rejects anything without it. Neither suite alone can show the two agree on the spelling.
         await using var wire = Wire.Connect();
-        await wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false));
+        await wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false), TestContext.Current.CancellationToken);
         var uri = wire.Recorder.Last.Uri;
         using var bare = new HttpRequestMessage(HttpMethod.Get, uri);
         bare.Headers.TryAddWithoutValidation("X-Test-User", "tester");
 
-        using var refused = await wire.Http.SendAsync(bare);
+        using var refused = await wire.Http.SendAsync(bare, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
     }
@@ -101,7 +101,7 @@ public sealed class WireTests
         await using var wire = Wire.Connect();
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
-            () => wire.SendAsync<int>(new Unhandled()));
+            () => wire.SendAsync<int>(new Unhandled(), TestContext.Current.CancellationToken));
 
         Assert.Equal((int)HttpStatusCode.NotFound, error.StatusCode);
         Assert.Equal("Rask.Cqrs.Transport.Tests.Unhandled", error.MessageName);
@@ -113,7 +113,7 @@ public sealed class WireTests
         await using var wire = Wire.Connect(user: null);
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
-            () => wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false)));
+            () => wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false), TestContext.Current.CancellationToken));
 
         Assert.Equal((int)HttpStatusCode.Unauthorized, error.StatusCode);
     }
@@ -123,7 +123,7 @@ public sealed class WireTests
     {
         await using var wire = Wire.Connect(roles: "reader");
 
-        var error = await Assert.ThrowsAsync<RemoteDispatchException>(() => wire.SendAsync(new Purge()));
+        var error = await Assert.ThrowsAsync<RemoteDispatchException>(() => wire.SendAsync(new Purge(), TestContext.Current.CancellationToken));
 
         Assert.Equal((int)HttpStatusCode.Forbidden, error.StatusCode);
         Assert.DoesNotContain("purged", wire.Ledger.Entries);
@@ -134,7 +134,7 @@ public sealed class WireTests
     {
         await using var wire = Wire.Connect(roles: "admin");
 
-        await wire.SendAsync(new Purge());
+        await wire.SendAsync(new Purge(), TestContext.Current.CancellationToken);
 
         Assert.Contains("purged", wire.Ledger.Entries);
     }
@@ -148,7 +148,7 @@ public sealed class WireTests
         await using var wire = Wire.Connect();
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
-            () => wire.SendAsync<int>(new Explodes()));
+            () => wire.SendAsync<int>(new Explodes(), TestContext.Current.CancellationToken));
 
         Assert.Equal((int)HttpStatusCode.InternalServerError, error.StatusCode);
         Assert.DoesNotContain("hunter2", error.Message, StringComparison.Ordinal);
@@ -162,7 +162,7 @@ public sealed class WireTests
         await using var wire = Wire.Connect(configureServer: o => o.IncludeExceptionDetail = true);
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
-            () => wire.SendAsync<int>(new Explodes()));
+            () => wire.SendAsync<int>(new Explodes(), TestContext.Current.CancellationToken));
 
         Assert.Contains("hunter2", error.Detail ?? string.Empty, StringComparison.Ordinal);
     }
@@ -182,7 +182,7 @@ public sealed class WireTests
             RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
         request.Headers.TryAddWithoutValidation("X-Test-User", "tester");
 
-        using var response = await wire.Http.SendAsync(request);
+        using var response = await wire.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         Assert.Equal(0, wire.Ledger.Count);
@@ -197,7 +197,7 @@ public sealed class WireTests
         await using var wire = Wire.Connect(configureClient: o => o.RoutePrefix = "/elsewhere/cqrs");
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
-            () => wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false)));
+            () => wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false), TestContext.Current.CancellationToken));
 
         Assert.Equal((int)HttpStatusCode.NotFound, error.StatusCode);
     }
@@ -209,7 +209,7 @@ public sealed class WireTests
             configureServer: o => o.RoutePrefix = "/elsewhere/cqrs",
             configureClient: o => o.RoutePrefix = "/elsewhere/cqrs");
 
-        var greeting = await wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false));
+        var greeting = await wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false), TestContext.Current.CancellationToken);
 
         Assert.Equal("hi Ada", greeting.Text);
         Assert.StartsWith("/elsewhere/cqrs/", wire.Recorder.Last.Uri.AbsolutePath, StringComparison.Ordinal);

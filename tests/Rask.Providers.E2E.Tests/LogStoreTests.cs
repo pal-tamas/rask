@@ -187,7 +187,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
 {
     private readonly List<ServiceProvider> _hosts = [];
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (Postgres.Available)
         {
@@ -196,7 +196,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Postgres.Available)
         {
@@ -210,42 +210,42 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Filters_ignore_case_and_pages_come_newest_first()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await LogStoreScenarios.FiltersAndPagesAsync(Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Retention_and_the_row_cap_sweep_in_pages()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await LogStoreScenarios.RetentionAndRowCapAsync(Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Two_hosts_purging_at_once_remove_each_row_once()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await LogStoreScenarios.TwoHostsPurgingAtOnceAsync(Store(NewHost()), Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task A_nul_character_costs_nothing_but_itself()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await LogStoreScenarios.ANulCharacterCostsNothingButItselfAsync(Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task A_line_survives_the_applications_rollback()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
         var host = NewHost();
 
         await LogStoreScenarios.ALineSurvivesTheApplicationsRollbackAsync(
@@ -273,7 +273,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
 {
     private readonly List<ServiceProvider> _hosts = [];
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (SqlServer.Available)
         {
@@ -283,7 +283,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (SqlServer.Available)
         {
@@ -297,42 +297,42 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Filters_ignore_case_and_pages_come_newest_first()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         await LogStoreScenarios.FiltersAndPagesAsync(Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Retention_and_the_row_cap_sweep_in_pages()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         await LogStoreScenarios.RetentionAndRowCapAsync(Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Two_hosts_purging_at_once_remove_each_row_once()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         await LogStoreScenarios.TwoHostsPurgingAtOnceAsync(Store(NewHost()), Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task A_nul_character_costs_nothing_but_itself()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         await LogStoreScenarios.ANulCharacterCostsNothingButItselfAsync(Store(NewHost()));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task A_line_survives_the_applications_rollback()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
         var host = NewHost();
 
         await LogStoreScenarios.ALineSurvivesTheApplicationsRollbackAsync(

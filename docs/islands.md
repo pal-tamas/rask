@@ -509,7 +509,7 @@ keeps a property out of the props entirely.
 
 > **A prop named after an HTML tag is fine.** `Title`, `Label`, `Data`, `Form`, `Style` and friends
 > hide the chain entry of the same name, and CS0108 used to make that fatal under `-warnaserror`.
-> [RASKSUP001](diagnostics.md#cs0108-a-member-hides-a-builder-entry) now suppresses it, so these
+> [RASKSUP001](diagnostics.md#cs0108-a-member-hides-a-chain-entry) now suppresses it, so these
 > natural prop names cost nothing. Inside the component the hidden name resolves to your property —
 > qualify the tag on the rare occasion you want the element instead.
 

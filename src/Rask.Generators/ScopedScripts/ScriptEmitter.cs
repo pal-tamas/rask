@@ -63,7 +63,7 @@ internal sealed class ScriptEmitter(
     {
         if (cls.Generic)
         {
-            report(cls.Name, "a generic class has no single C# shape");
+            report(cls.Name, "a generic class has no single C# shape — make it non-generic");
             mapper.Classes.Remove(cls.Name);
             return;
         }
@@ -92,7 +92,7 @@ internal sealed class ScriptEmitter(
     {
         if (csName is null)
         {
-            return "its name is not a C# identifier";
+            return "its name is not a C# identifier — rename it";
         }
 
         if (_recordNames.TryGetValue(csName, out var shape))
@@ -109,7 +109,7 @@ internal sealed class ScriptEmitter(
         var ctor = new TsFunctionDecl(newName, cls.Constructors[0], new TsNamed(cls.Name), false, cls.Doc);
         if (!_taken.Add(newName))
         {
-            report(cls.Name, $"{typeName} already has a member named '{newName}'");
+            report(cls.Name, $"{typeName} already has a member named '{newName}' — rename one of them");
             return;
         }
 
@@ -131,7 +131,7 @@ internal sealed class ScriptEmitter(
         var csName = Names.Pascal(fn.Name);
         if (csName is null)
         {
-            report(fn.Name, "its name is not a C# identifier");
+            report(fn.Name, "its name is not a C# identifier — rename it");
             return;
         }
 
@@ -236,7 +236,7 @@ internal sealed class ScriptEmitter(
             var name = Names.Pascal(method.Name);
             if (name is null || !taken.Add(name))
             {
-                report(member, name is null ? "its name is not a C# identifier" : $"'{name}' is already taken on the proxy");
+                report(member, name is null ? "its name is not a C# identifier — rename it" : $"'{name}' is already taken on the proxy — rename it");
                 continue;
             }
 
@@ -269,7 +269,7 @@ internal sealed class ScriptEmitter(
     {
         if (fn.Generic)
         {
-            error = "a generic function has no single C# signature";
+            error = "a generic function has no single C# signature — make it non-generic";
             return null;
         }
 

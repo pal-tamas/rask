@@ -16,7 +16,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Address = new Address { Street = "" } };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateAsync();
+        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("Street required",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address!, "Street")));
@@ -32,7 +32,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateAsync();
+        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("Code required",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address!.Postal!.Country!, "Code")));
@@ -47,7 +47,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Items = new List<LineItem> { alpha, beta, gamma } };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateAsync();
+        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("Item name required",
             ctx.GetValidationMessages(new FieldIdentifier(alpha, "Name")));
@@ -66,7 +66,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Address = new Address { Street = "" }, Items = new List<LineItem> { alpha, beta } };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateFieldAsync(new FieldIdentifier(beta, "Name"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(beta, "Name"), TestContext.Current.CancellationToken);
 
         // Only beta's field gets the message — sibling list item alpha and the sub-object
         // Address.Street stay untouched even though they're also invalid.
@@ -82,7 +82,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "", Address = new Address { Street = "" } };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateFieldAsync(new FieldIdentifier(p.Address!, "Street"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p.Address!, "Street"), TestContext.Current.CancellationToken);
 
         Assert.Contains("Street required",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address!, "Street")));
@@ -97,7 +97,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "" };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"));
+        await ctx.ValidateFieldAsync(new FieldIdentifier(p, "Name"), TestContext.Current.CancellationToken);
 
         Assert.Contains("Name required",
             ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
@@ -111,7 +111,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "BLOCKED" };
         var ctx = RegisterValidator(p, new PersonValidator());
 
-        await ctx.ValidateAsync();
+        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("Person is blocked",
             ctx.GetValidationMessages(new FieldIdentifier(p, string.Empty)));
@@ -126,7 +126,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" } } };
         var ctx = RegisterValidator(p, new StaleIndexValidator());
 
-        await ctx.ValidateAsync();
+        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains(
             "stale-index error",

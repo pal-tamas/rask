@@ -7,7 +7,7 @@ public sealed class PlaywrightFixture : IAsyncLifetime
     public IPlaywright Playwright { get; private set; } = default!;
     public IBrowser Browser { get; private set; } = default!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         // Fully qualified: this file is source-linked into Rask.Templates.E2E.Tests too, where a
         // bare `Program` binds to that assembly's own generated entry point instead.
@@ -21,7 +21,7 @@ public sealed class PlaywrightFixture : IAsyncLifetime
         Browser = await Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Browser is not null)
         {

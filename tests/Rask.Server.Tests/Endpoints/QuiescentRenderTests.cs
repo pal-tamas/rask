@@ -17,7 +17,7 @@ public class QuiescentRenderTests
     {
         using var host = RaskTestHost.Create<AsyncDataApp>();
 
-        var body = await host.Http.GetStringAsync("/");
+        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("forecast-loaded", body);
         Assert.DoesNotContain("still-loading", body);
@@ -30,7 +30,7 @@ public class QuiescentRenderTests
         // work. A single wait would serve the parent's data and the child's placeholder.
         using var host = RaskTestHost.Create<NestedAsyncDataApp>();
 
-        var body = await host.Http.GetStringAsync("/");
+        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("child-loaded", body);
         Assert.DoesNotContain("child-loading", body);
@@ -49,7 +49,7 @@ public class QuiescentRenderTests
         // re-render the stale child, find nothing pending and serve the placeholder at 200.
         using var host = RaskTestHost.Create<NestedConfigureAwaitApp>();
 
-        var body = await host.Http.GetStringAsync("/");
+        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("ca-child-loaded", body);
         Assert.DoesNotContain("ca-child-loading", body);
@@ -62,14 +62,14 @@ public class QuiescentRenderTests
             configureServer: o => o.QuiescenceTimeout = TimeSpan.FromMilliseconds(150));
 
         var started = DateTime.UtcNow;
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
         var elapsed = DateTime.UtcNow - started;
 
         response.EnsureSuccessStatusCode();
         // Served, not hung. The page keeps its live session and finishes loading over the socket
         // exactly as it does today.
         Assert.True(elapsed < TimeSpan.FromSeconds(5), $"took {elapsed}");
-        Assert.Contains("still-loading", await response.Content.ReadAsStringAsync());
+        Assert.Contains("still-loading", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class QuiescentRenderTests
             configureServer: o => o.QuiescenceTimeout = TimeSpan.FromSeconds(5));
 
         var started = DateTime.UtcNow;
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
         var elapsed = DateTime.UtcNow - started;
 
         response.EnsureSuccessStatusCode();
@@ -97,7 +97,7 @@ public class QuiescentRenderTests
         using var host = RaskTestHost.Create<AsyncDataApp>(
             configureServer: o => o.QuiescenceTimeout = TimeSpan.Zero);
 
-        var body = await host.Http.GetStringAsync("/");
+        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         // Zero is the documented opt-out, and it must genuinely opt out — not merely wait less.
         Assert.Contains("still-loading", body);

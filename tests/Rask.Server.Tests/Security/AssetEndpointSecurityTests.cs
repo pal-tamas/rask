@@ -29,7 +29,7 @@ public class AssetEndpointSecurityTests
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.True(response.Headers.TryGetValues("X-Content-Type-Options", out var v));
         Assert.Equal("nosniff", v.Single());
@@ -45,7 +45,7 @@ public class AssetEndpointSecurityTests
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"),
             "Default endpoint must not set Access-Control-Allow-Origin; let the host opt in via UseCors().");
@@ -62,8 +62,8 @@ public class AssetEndpointSecurityTests
         var assetBytes = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/%2e%2e%2f%2e%2e%2f{hash}.css");
-        var body = await response.Content.ReadAsByteArrayAsync();
+        var response = await host.Http.GetAsync($"/_rask/a/%2e%2e%2f%2e%2e%2f{hash}.css", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
 
         Assert.NotEqual(assetBytes, body);
     }
@@ -78,7 +78,7 @@ public class AssetEndpointSecurityTests
         using var host = RaskTestHost.Create<TestApp>();
         try
         {
-            var response = await host.Http.GetAsync("/_rask/a/abcd%00ef0123.css");
+            var response = await host.Http.GetAsync("/_rask/a/abcd%00ef0123.css", TestContext.Current.CancellationToken);
             Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("null", StringComparison.OrdinalIgnoreCase))
@@ -100,7 +100,7 @@ public class AssetEndpointSecurityTests
         var longHash = new string('a', 10_000);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{longHash}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{longHash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -118,11 +118,11 @@ public class AssetEndpointSecurityTests
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         // The bytes survived round-trip; the browser will parse them as CSS and the
         // <script> string is just a CSS content value, never executed.
         Assert.Contains("<script>", body);
@@ -144,8 +144,8 @@ public class AssetEndpointSecurityTests
         ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js");
-        var body = await response.Content.ReadAsStringAsync();
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         // The user text appears inside the IIFE; the structural wrapper still surrounds it
         // (i.e. the file still ends with the closing `})();})();\n` from WrapModule).
@@ -166,7 +166,7 @@ public class AssetEndpointSecurityTests
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var cssHash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{cssHash}.js");
+        var response = await host.Http.GetAsync($"/_rask/a/{cssHash}.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -185,7 +185,7 @@ public class AssetEndpointSecurityTests
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);

@@ -76,7 +76,7 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
 
     public string ServerLog => $"in-process static-file host over published wwwroot: {Wwwroot}";
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         var repoRoot = LocateRepoRoot();
         Wwwroot = Path.Combine(repoRoot, ProjectRelativePath, "bin", Configuration,
@@ -97,7 +97,7 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
         await WaitForReadyAsync(TimeSpan.FromSeconds(30));
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         try { _cts?.Cancel(); }
         catch

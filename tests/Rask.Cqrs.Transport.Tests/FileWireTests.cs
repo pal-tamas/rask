@@ -16,7 +16,7 @@ public sealed class FileWireTests
         await using var wire = Wire.Connect();
 
         var answer = await wire.SendAsync<string>(
-            new Attach("receipt", new PickedFile("march.csv", "text/csv", "id,total\n1,9"u8.ToArray())));
+            new Attach("receipt", new PickedFile("march.csv", "text/csv", "id,total\n1,9"u8.ToArray())), TestContext.Current.CancellationToken);
 
         Assert.Equal("receipt|march.csv|text/csv|id,total\n1,9", answer);
         Assert.Equal(HttpMethod.Post, wire.Recorder.Last.Method);
@@ -32,7 +32,7 @@ public sealed class FileWireTests
 
         var answer = await wire.SendAsync<string>(new AttachTwo(
             new PickedFile("first.txt", "text/plain", "one"u8.ToArray()),
-            new PickedFile("second.txt", "text/plain", "two"u8.ToArray())));
+            new PickedFile("second.txt", "text/plain", "two"u8.ToArray())), TestContext.Current.CancellationToken);
 
         Assert.Equal("first.txt=one;second.txt=two", answer);
     }
@@ -48,7 +48,7 @@ public sealed class FileWireTests
         var payload = new string('a', 40);
 
         var answer = await wire.SendAsync<string>(
-            new Attach("bulk", new PickedFile("big.txt", "text/plain", Encoding.UTF8.GetBytes(payload))));
+            new Attach("bulk", new PickedFile("big.txt", "text/plain", Encoding.UTF8.GetBytes(payload))), TestContext.Current.CancellationToken);
 
         Assert.Equal($"bulk|big.txt|text/plain|{payload}", answer);
 
@@ -72,7 +72,7 @@ public sealed class FileWireTests
         var payload = new string('b', 40);
 
         var answer = await wire.SendAsync<string>(
-            new Attach("resumed", new PickedFile("big.txt", "text/plain", Encoding.UTF8.GetBytes(payload))));
+            new Attach("resumed", new PickedFile("big.txt", "text/plain", Encoding.UTF8.GetBytes(payload))), TestContext.Current.CancellationToken);
 
         Assert.Equal($"resumed|big.txt|text/plain|{payload}", answer);
         Assert.True(wire.Recorder.Dropped, "the harness never dropped a chunk, so nothing was resumed");
@@ -86,13 +86,13 @@ public sealed class FileWireTests
         // reduces to a safe leaf and the client unquotes — two transformations, one on each side.
         await using var wire = Wire.Connect();
 
-        var download = await wire.SendAsync<FileDownload>(new Export(2026));
+        var download = await wire.SendAsync<FileDownload>(new Export(2026), TestContext.Current.CancellationToken);
 
         Assert.Equal("orders-2026.csv", download.FileName);
         Assert.Equal("text/csv", download.ContentType);
 
         using var reader = new StreamReader(download.OpenReadStream());
-        Assert.Equal("id,year\n1,2026", await reader.ReadToEndAsync());
+        Assert.Equal("id,year\n1,2026", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     // Small enough that a readable test file is over it, so the chunked route is taken by a payload a

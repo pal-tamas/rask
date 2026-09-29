@@ -48,8 +48,8 @@ public sealed class CultureResumeTests
         host.Http.DefaultRequestHeaders.Add("Cookie", ".AspNetCore.Culture=c%3Dhu%7Cuic%3Dhu");
 
         // Establish a Hungarian session and take its resume record off the wire.
-        var initial = await host.Http.GetAsync("/");
-        var html = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        var html = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("<p>hu</p>", html, StringComparison.Ordinal);
 
@@ -58,7 +58,7 @@ public sealed class CultureResumeTests
 
         using (var first = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
-            await first.SendJsonAsync(new { type = "hello", session = sessionId });
+            await first.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             var session = host.Store.Get(sessionId)!;
             session.Services.GetRequiredService<IPersistentState>().Persist("counter", 41);
             await session.View.StateHasChangedAsync();
@@ -68,7 +68,7 @@ public sealed class CultureResumeTests
             host.Store.Remove(sessionId);
 
             using var second = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await second.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
+            await second.SendJsonAsync(new { type = "hello", session = sessionId, resume = token }, ct: TestContext.Current.CancellationToken);
 
             var rebuilt = await ReadHtmlAsync(second);
 

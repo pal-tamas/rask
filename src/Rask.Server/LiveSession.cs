@@ -75,6 +75,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // modifier gives, kept explicit so every read site says so.
     private ILiveTransport? _transport;
     private CancellationToken _socketCt;
+    private CancellationTokenSource? _sendCts;
+    private CancellationToken _sendCtsSocket;
 
     // Serialises AttachTransport against DetachTransport, so a detach can compare the connection and clear
     // the pair (_transport, _socketCt) as one step. Readers stay lock-free, as above. Without it a
@@ -440,6 +442,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     {
         _htmlBuffers.Dispose();
         _renderCache?.Dispose();
+        _sendCts?.Dispose();
+        _sendCts = null;
     }
 
     private void ReleaseFileStores()
@@ -792,6 +796,20 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     ///         whose link stalled briefly reconnects to the page it already had.
     ///     </para>
     /// </remarks>
+    // The send timeout's source, one per connection rather than a linked source and timer per send. Only touched
+    // under _renderLock, which every send holds; rebuilt when a reconnect attaches a new socket token.
+    private CancellationTokenSource SendTimeoutSource()
+    {
+        if (_sendCts is { IsCancellationRequested: false } cts && _sendCtsSocket == _socketCt)
+        {
+            return cts;
+        }
+
+        _sendCts?.Dispose();
+        _sendCtsSocket = _socketCt;
+        return _sendCts = CancellationTokenSource.CreateLinkedTokenSource(_socketCt);
+    }
+
     private async ValueTask SendGuardedAsync(ReadOnlyMemory<byte> payload)
     {
         var transport = Volatile.Read(ref _transport)!;
@@ -802,7 +820,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             return;
         }
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_socketCt);
+        var cts = SendTimeoutSource();
         cts.CancelAfter(_sendTimeout);
         try
         {
@@ -820,6 +838,15 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             transport.Abort();
 
             throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Send timed out.", timedOut);
+        }
+        finally
+        {
+            // Disarm the timer for the next send, however this one ended; a source that fired is replaced.
+            if (!cts.TryReset())
+            {
+                cts.Dispose();
+                _sendCts = null;
+            }
         }
     }
 

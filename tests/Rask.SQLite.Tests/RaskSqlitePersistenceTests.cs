@@ -19,7 +19,7 @@ public sealed class RaskSqlitePersistenceTests : IDisposable
         var factory = provider.GetRequiredService<ISqlite>();
 
         // Write via one connection (create the table + insert), then dispose it.
-        await using (var write = await factory.CreateOpenAsync())
+        await using (var write = await factory.CreateOpenAsync(TestContext.Current.CancellationToken))
         {
             Execute(write, "CREATE TABLE todos(id TEXT PRIMARY KEY, title TEXT NOT NULL, completed INTEGER NOT NULL);");
             Execute(write, "INSERT INTO todos VALUES('a', 'Buy milk', 0);");
@@ -28,7 +28,7 @@ public sealed class RaskSqlitePersistenceTests : IDisposable
 
         // A brand-new connection from the factory (WAL is on) sees the committed rows — durability across
         // the connection lifetime, which on-device is what survives an app restart.
-        await using var read = await factory.CreateOpenAsync();
+        await using var read = await factory.CreateOpenAsync(TestContext.Current.CancellationToken);
         using var command = read.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM todos;";
         Assert.Equal(2L, (long)command.ExecuteScalar()!);

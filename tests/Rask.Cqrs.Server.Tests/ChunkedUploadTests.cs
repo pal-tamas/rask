@@ -41,7 +41,7 @@ public sealed class ChunkedUploadTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(
             $"\"hi:{Encoding.UTF8.GetString(payload)}\"",
-            await response.Content.ReadAsStringAsync());
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class ChunkedUploadTests
         request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.UploadFileHeader, "0");
         request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.UploadOffsetHeader, "0");
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

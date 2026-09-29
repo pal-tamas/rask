@@ -92,22 +92,22 @@ public class ShutdownDrainTests
         // here is a second of the one-minute gate.
         using var host = RaskTestHost.Create<DrainGateApp>(
             configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromSeconds(1));
-        var html = await host.Http.GetStringAsync("/start");
+        var html = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(html);
         var handlerId = MarkupAssert.FirstHandlerId(html);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         var session = host.Store.Get(sessionId)!;
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         await WaitForAsync(() => session.PendingHandlers > 0, TimeSpan.FromSeconds(2));
 
         var stop = host.StopAsync();
 
         // The drain is settling on this handler, so the stop must not have completed yet.
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.False(stop.IsCompleted);
 
         DrainGateApp.Gate.SetResult();
@@ -142,14 +142,14 @@ public class ShutdownDrainTests
         {
             using var host = RaskTestHost.Create<DrainGateApp>(
                 configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
-            var html = await host.Http.GetStringAsync("/start");
+            var html = await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken);
             var sessionId = MarkupAssert.SessionId(html);
             var handlerId = MarkupAssert.FirstHandlerId(html);
 
             using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+            await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
-            await ws.SendJsonAsync(new { id = handlerId });
+            await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
 
             var session = host.Store.Get(sessionId)!;
             await WaitForAsync(() => session.PendingHandlers > 0, TimeSpan.FromSeconds(2));
@@ -207,7 +207,7 @@ public class ShutdownDrainTests
         using var host = RaskTestHost.Create<TestApp>();
         await host.StopAsync();
 
-        var response = await host.Http.GetAsync("/start");
+        var response = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         // Distinct from the capacity 503's Retry-After: 5 — the replacement instance is already up.
@@ -223,11 +223,11 @@ public class ShutdownDrainTests
         var readiness = new RaskReadinessHealthCheck(drain);
         var context = new HealthCheckContext();
 
-        Assert.Equal(HealthStatus.Healthy, (await readiness.CheckHealthAsync(context)).Status);
+        Assert.Equal(HealthStatus.Healthy, (await readiness.CheckHealthAsync(context, TestContext.Current.CancellationToken)).Status);
 
         await host.StopAsync();
 
-        Assert.Equal(HealthStatus.Unhealthy, (await readiness.CheckHealthAsync(context)).Status);
+        Assert.Equal(HealthStatus.Unhealthy, (await readiness.CheckHealthAsync(context, TestContext.Current.CancellationToken)).Status);
 
         // The capacity check keeps its own meaning — an empty store is not "at capacity".
         //
@@ -237,7 +237,7 @@ public class ShutdownDrainTests
         // load rather than on anything it meant to test (#732).
         var capacity = new RaskLiveHealthCheck(host.Store) { MemoryLoadReader = () => 0.0 };
 
-        Assert.Equal(HealthStatus.Healthy, (await capacity.CheckHealthAsync(context)).Status);
+        Assert.Equal(HealthStatus.Healthy, (await capacity.CheckHealthAsync(context, TestContext.Current.CancellationToken)).Status);
     }
 
     [Fact]
@@ -250,14 +250,14 @@ public class ShutdownDrainTests
             configureServices: s => s.AddHealthChecks().AddRaskLiveSessions(),
             configureMiddleware: app => app.UseHealthChecks("/health"));
 
-        var before = await host.Http.GetAsync("/health");
+        var before = await host.Http.GetAsync("/health", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, before.StatusCode);
-        Assert.Equal("Healthy", await before.Content.ReadAsStringAsync());
+        Assert.Equal("Healthy", await before.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         await host.StopAsync();
 
-        var during = await host.Http.GetAsync("/health");
+        var during = await host.Http.GetAsync("/health", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, during.StatusCode);
     }

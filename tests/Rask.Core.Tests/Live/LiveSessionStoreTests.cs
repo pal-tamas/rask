@@ -80,7 +80,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
         var fetched = store.Get(session.Id);
 
         Assert.NotNull(fetched);
-        await Task.Delay(400);
+        await Task.Delay(400, TestContext.Current.CancellationToken);
         Assert.NotNull(store.Get(session.Id));
     }
 
@@ -93,7 +93,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(50));
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(5));
 
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
         Assert.NotNull(store.Get(session.Id));
     }
 

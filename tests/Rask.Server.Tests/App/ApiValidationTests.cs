@@ -124,7 +124,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -144,7 +144,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -172,7 +172,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -207,7 +207,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -230,7 +230,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -255,7 +255,7 @@ public sealed class ApiValidationTests
                 Quantity = 1,
             });
             context.AddValidator(validator!);
-            await context.ValidateAsync();
+            await context.ValidateAsync(TestContext.Current.CancellationToken);
 
             var fromForm = context.GetValidationEntries()
                 .Where(entry => entry.Field == nameof(Order.Reference))
@@ -273,7 +273,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -293,11 +293,11 @@ public sealed class ApiValidationTests
             var minimal = await PostAsync(app, "/api/minimal-orders", """{"reference":"ok","quantity":2}""");
 
             Assert.Equal(HttpStatusCode.OK, minimal.StatusCode);
-            Assert.Equal("\"ok\"", await minimal.Content.ReadAsStringAsync());
+            Assert.Equal("\"ok\"", await minimal.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -317,7 +317,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -344,7 +344,7 @@ public sealed class ApiValidationTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
 
             // Process-wide, so it is put back rather than left for whatever runs next. RaskApp.Build sets
             // it, which is why every test in this assembly is serialised (AssemblyInfo.cs).

@@ -49,6 +49,27 @@ public partial class InvariantWireFormatTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     [RestoreCulture]
+    public void Long_and_guid_keys_are_spelled_the_same_with_or_without_a_frame_writer()
+    {
+        CultureInfo.CurrentCulture = Hostile("sv-SE");
+        var guid = Guid.Parse("0f8fad5b-d9cb-469f-a165-70867728950e");
+        var writer = new FrameWriter();
+        var framed = new System.Text.StringBuilder();
+
+        var plain = Ul[Li.Key(long.MinValue), Li.Key(guid)].ToHtml();
+        using (FrameSinkScope.Push(writer))
+        {
+            HtmlSerializer.Serialize(Ul[Li.Key(long.MinValue), Li.Key(guid)], framed);
+        }
+
+        const string expected = "<ul><li data-rask-key=\"-9223372036854775808\"></li>"
+                                + "<li data-rask-key=\"0f8fad5b-d9cb-469f-a165-70867728950e\"></li></ul>";
+        Assert.Equal(expected, plain);
+        Assert.Equal(expected, framed.ToString());
+    }
+
+    [Fact]
+    [RestoreCulture]
     public void Decimal_and_date_key_strings_are_invariant_under_German()
     {
         CultureInfo.CurrentCulture = Hostile("de-DE");

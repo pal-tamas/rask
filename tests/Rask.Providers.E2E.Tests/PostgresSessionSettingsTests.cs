@@ -14,10 +14,10 @@ namespace Rask.Providers.E2E.Tests;
 [Collection(PostgresCollection.Name)]
 public sealed class PostgresSessionSettingsTests
 {
-    [SkippableFact]
+    [Fact]
     public async Task Every_opened_connection_carries_the_configured_timeouts()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         var options = new DbContextOptionsBuilder<SettingsContext>()
             .UseRaskPostgresAt(Postgres.Required, o =>
@@ -32,7 +32,7 @@ public sealed class PostgresSessionSettingsTests
         for (var pass = 0; pass < 2; pass++)
         {
             await using var db = new SettingsContext(options);
-            await db.Database.OpenConnectionAsync();
+            await db.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
 
             await AssertTimeoutsAsync(db.Database.GetDbConnection());
 
@@ -44,7 +44,7 @@ public sealed class PostgresSessionSettingsTests
         // Opened directly on the DbConnection, with no EF open in the path at all.
         await using var raw = new SettingsContext(options);
         var connection = raw.Database.GetDbConnection();
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await AssertTimeoutsAsync(connection);
         await connection.CloseAsync();
     }

@@ -28,6 +28,9 @@ public sealed class LiveRenderContext : IDisposable
     private readonly Stack<ErrorBoundary> _boundaryStack = new();
     private readonly Dictionary<ObjectKey, EditContext> _currentEditContexts;
     private readonly IRenderHandle? _handle;
+
+    // The session this render belongs to — what a node without a handle of its own (a plain tag) reaches it by.
+    internal IRenderHandle? Handle => _handle;
     private readonly Stack<Component> _parentStack = new();
     private readonly LiveRenderContext? _previous;
     private readonly Dictionary<ObjectKey, EditContext> _previousEditContexts;
@@ -409,7 +412,9 @@ public sealed class LiveRenderContext : IDisposable
             return;
         }
 
-        parent.AdoptChild(component, parent.RenderHandle);
+        // The walk's parent can be a plain tag, which keeps no handle of its own (OwnsRenderHandle): the
+        // session's is the one the adopted component re-renders through either way.
+        parent.AdoptChild(component, parent.RenderHandle ?? _handle);
         if (!component.HasInitializedInternal)
         {
             component.MarkAdoptedByWalkInternal();

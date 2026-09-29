@@ -68,23 +68,23 @@ public sealed class SpaDebugProxyTests
         await using var app = await HostAsync("/does/not/exist/BrowserDebugHost.dll");
         using var http = app.GetTestServer().CreateClient();
 
-        var response = await http.GetAsync("/_framework/debug/ws-proxy?browser=ws%3A%2F%2Fattacker.example%3A9222%2Fdevtools%2Fbrowser%2Fabc");
+        var response = await http.GetAsync("/_framework/debug/ws-proxy?browser=ws%3A%2F%2Fattacker.example%3A9222%2Fdevtools%2Fbrowser%2Fabc", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task The_real_proxy_starts_and_the_debugger_is_redirected_to_it()
     {
         // The proxy the WebAssembly SDK ships, when this machine has restored it — as any machine that has built a
         // Rask WebAssembly project has.
         var host = FindBrowserDebugHost();
-        Skip.If(host is null, "No BrowserDebugHost.dll in the NuGet cache (build any WebAssembly project to restore it).");
+        Assert.SkipWhen(host is null, "No BrowserDebugHost.dll in the NuGet cache (build any WebAssembly project to restore it).");
 
         await using var app = await HostAsync(host!);
         using var http = app.GetTestServer().CreateClient();
 
-        var response = await http.GetAsync("/_framework/debug/ws-proxy?browser=ws%3A%2F%2F127.0.0.1%3A9222%2Fdevtools%2Fbrowser%2Fabc");
+        var response = await http.GetAsync("/_framework/debug/ws-proxy?browser=ws%3A%2F%2F127.0.0.1%3A9222%2Fdevtools%2Fbrowser%2Fabc", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = response.Headers.Location!.ToString();

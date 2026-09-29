@@ -25,7 +25,7 @@ public sealed class StorageTenantTests
         using (Tenant.Use(_acme))
         {
             using var content = new MemoryStream(Samples.Text);
-            var file = await harness.Files.Save(content, "data.csv");
+            var file = await harness.Files.Save(content, "data.csv", TestContext.Current.CancellationToken);
 
             Assert.Equal(_acme, file.TenantId);
         }
@@ -38,7 +38,7 @@ public sealed class StorageTenantTests
         using var content = new MemoryStream(Samples.Text);
 
         // Not an error: a file written at startup, or by a console tool, has no tenant.
-        var file = await harness.Files.Save(content, "data.csv");
+        var file = await harness.Files.Save(content, "data.csv", TestContext.Current.CancellationToken);
 
         Assert.Null(file.TenantId);
     }
@@ -52,18 +52,18 @@ public sealed class StorageTenantTests
         using (Tenant.Use(_acme))
         {
             using var content = new MemoryStream(Samples.Text);
-            id = (await harness.Files.Save(content, "data.csv")).Id;
+            id = (await harness.Files.Save(content, "data.csv", TestContext.Current.CancellationToken)).Id;
         }
 
         using (Tenant.Use(_globex))
         {
-            Assert.Null(await harness.Files.Get(id));
-            Assert.Null(await harness.Files.OpenRead(id));
+            Assert.Null(await harness.Files.Get(id, TestContext.Current.CancellationToken));
+            Assert.Null(await harness.Files.OpenRead(id, TestContext.Current.CancellationToken));
         }
 
         using (Tenant.Use(_acme))
         {
-            Assert.NotNull(await harness.Files.Get(id));
+            Assert.NotNull(await harness.Files.Get(id, TestContext.Current.CancellationToken));
         }
     }
 
@@ -76,17 +76,17 @@ public sealed class StorageTenantTests
         using (Tenant.Use(_acme))
         {
             using var content = new MemoryStream(Samples.Text);
-            id = (await harness.Files.Save(content, "data.csv")).Id;
+            id = (await harness.Files.Save(content, "data.csv", TestContext.Current.CancellationToken)).Id;
         }
 
         using (Tenant.Use(_globex))
         {
-            Assert.False(await harness.Files.Delete(id));
+            Assert.False(await harness.Files.Delete(id, TestContext.Current.CancellationToken));
         }
 
         using (Tenant.Use(_acme))
         {
-            Assert.NotNull(await harness.Files.Get(id));
+            Assert.NotNull(await harness.Files.Get(id, TestContext.Current.CancellationToken));
         }
     }
 
@@ -98,18 +98,18 @@ public sealed class StorageTenantTests
         using (Tenant.Use(_acme))
         {
             using var a = new MemoryStream(Samples.Text);
-            await harness.Files.Save(a, "a.csv");
+            await harness.Files.Save(a, "a.csv", TestContext.Current.CancellationToken);
         }
 
         using (Tenant.Use(_globex))
         {
             using var b = new MemoryStream(Samples.Text);
-            await harness.Files.Save(b, "b.csv");
+            await harness.Files.Save(b, "b.csv", TestContext.Current.CancellationToken);
         }
 
         // No filter on the table, so the sweep reaches both — which is why the scoping is in the two
         // by-id queries rather than in a query filter.
         await using var db = harness.NewContext();
-        Assert.Equal(2, await db.Set<StoredFile>().CountAsync());
+        Assert.Equal(2, await db.Set<StoredFile>().CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 }

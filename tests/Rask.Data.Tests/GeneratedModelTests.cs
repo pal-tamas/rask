@@ -134,8 +134,8 @@ public sealed class GeneratedModelTests : IDisposable
     {
         await SeedAsync(Doodad.Create("plain"));
 
-        Assert.Equal(1, await Doodad.Count());
-        Assert.Equal("plain", (await Doodad.First(d => d.Label == "plain"))!.Label);
+        Assert.Equal(1, await Doodad.Count(TestContext.Current.CancellationToken));
+        Assert.Equal("plain", (await Doodad.First(d => d.Label == "plain", TestContext.Current.CancellationToken))!.Label);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class GeneratedModelTests : IDisposable
         // Through a context, because a VALUE OBJECT is what is being round-tripped and only the aggregate
         // still has one. How the same data looks flattened is the next test.
         await using var db = NewContext();
-        var gadget = await db.Set<Gadget>().AsNoTracking().FirstOrDefaultAsync(g => g.Code == "P1");
+        var gadget = await db.Set<Gadget>().AsNoTracking().FirstOrDefaultAsync(g => g.Code == "P1", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotNull(gadget);
         Assert.Equal(new Money(19.99m, "EUR"), gadget.Price);
@@ -208,7 +208,7 @@ public sealed class GeneratedModelTests : IDisposable
     {
         await SeedAsync(Gadget.Create("priced", "P1", 19.99m));
 
-        var row = await Gadget.First(g => g.Code == "P1");
+        var row = await Gadget.First(g => g.Code == "P1", TestContext.Current.CancellationToken);
 
         Assert.NotNull(row);
         Assert.Equal(19.99m, row.PriceAmount);
@@ -238,8 +238,8 @@ public sealed class GeneratedModelTests : IDisposable
 
         // Both routes: through the key, and through a predicate comparing the id type itself.
         await using var db = NewContext();
-        Assert.NotNull(await db.Set<Gadget>().FindAsync([id]));
-        Assert.Equal("typed", (await Gadget.First(g => g.Id == id))!.Name);
+        Assert.NotNull(await db.Set<Gadget>().FindAsync([id], TestContext.Current.CancellationToken));
+        Assert.Equal("typed", (await Gadget.First(g => g.Id == id, TestContext.Current.CancellationToken))!.Name);
     }
 
     [Fact]

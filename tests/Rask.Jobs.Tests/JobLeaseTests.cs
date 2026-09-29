@@ -40,7 +40,7 @@ public sealed class JobLeaseTests
         await using var __ = b;
         for (var i = 0; i < 6; i++)
         {
-            await a.Queue.Enqueue(new RecordJob("x"));
+            await a.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken);
         }
 
         var first = await ClaimAsync(a);
@@ -59,7 +59,7 @@ public sealed class JobLeaseTests
         await using var __ = b;
         for (var i = 0; i < 6; i++)
         {
-            await a.Queue.Enqueue(new RecordJob("x"));
+            await a.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken);
         }
 
         var first = await ClaimAsync(a);
@@ -79,7 +79,7 @@ public sealed class JobLeaseTests
         var (a, b) = Pair(o => o.LeaseDuration = TimeSpan.FromMinutes(5));
         await using var _ = a;
         await using var __ = b;
-        await a.Queue.Enqueue(new RecordJob("x"));
+        await a.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken);
 
         var first = await ClaimAsync(a);
         Assert.Single(first);
@@ -107,7 +107,7 @@ public sealed class JobLeaseTests
         });
         await using var _ = a;
         await using var __ = b;
-        await a.Queue.Enqueue(new RecordJob("x"));
+        await a.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken);
 
         for (var attempt = 0; attempt < 3; attempt++)
         {
@@ -118,7 +118,7 @@ public sealed class JobLeaseTests
         Assert.Empty(await ClaimAsync(a));
 
         await using var db = a.NewContext();
-        var job = await db.Set<Job>().SingleAsync();
+        var job = await db.Set<Job>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, job.Attempts);
         Assert.Null(job.ProcessedAt);
     }
@@ -131,7 +131,7 @@ public sealed class JobLeaseTests
         var (a, b) = Pair(o => o.LeaseDuration = TimeSpan.FromMinutes(5));
         await using var _ = a;
         await using var __ = b;
-        await a.Queue.Enqueue(new RecordJob("x"));
+        await a.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken);
 
         await using var slow = a.NewContext();
         var mine = await a.Jobs.ClaimAsync(slow, a.Clock.GetUtcNow().UtcDateTime, CancellationToken.None);
@@ -142,7 +142,7 @@ public sealed class JobLeaseTests
 
         mine[0].Completed(a.Clock.GetUtcNow().UtcDateTime);
 
-        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => slow.SaveChangesAsync());
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => slow.SaveChangesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class JobLeaseTests
         var (a, b) = Pair(o => o.LeaseDuration = TimeSpan.FromMinutes(30));
         await using var _ = a;
         await using var __ = b;
-        await a.Queue.Enqueue(new RecordJob("x"));
+        await a.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken);
 
         Assert.Single(await ClaimAsync(a));
         Assert.Empty(await ClaimAsync(b));
@@ -211,12 +211,12 @@ public sealed class JobLeaseTests
     {
         // A finished job must not sit there looking claimed until its lease runs out.
         await using var h = new JobsHarness();
-        await h.Queue.Enqueue(new RecordJob("x"));
+        await h.Queue.Enqueue(new RecordJob("x"), TestContext.Current.CancellationToken);
 
         await h.RunUntilAsync(() => h.Recorder.Values.Count > 0);
 
         await using var db = h.NewContext();
-        var job = await db.Set<Job>().SingleAsync();
+        var job = await db.Set<Job>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(job.ProcessedAt);
         Assert.Null(job.ClaimToken);
         Assert.Null(job.ClaimedUntil);

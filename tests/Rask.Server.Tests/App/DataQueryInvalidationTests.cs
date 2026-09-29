@@ -100,10 +100,10 @@ public sealed class DataQueryInvalidationTests
         // What the host does around a session's render and every handler it dispatches.
         using (Db.UseScope(session.ServiceProvider))
         {
-            await using var db = await services.GetRequiredService<IDbContextFactory<NotesContext>>().CreateDbContextAsync();
-            await db.Database.EnsureCreatedAsync();
+            await using var db = await services.GetRequiredService<IDbContextFactory<NotesContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken);
+            await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
             db.Notes.Add(new Note { Text = "hello" });
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await Settled(notes);

@@ -9,11 +9,11 @@ public class RuntimeScriptEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/rask/rask.js");
+        var response = await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.NotEmpty(body);
     }
 
@@ -32,7 +32,7 @@ public class RuntimeScriptEndpointTests
         // gate keys on, which is only in the bundle if the gate's module is.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("\"Rask.\"", body, StringComparison.Ordinal);
     }
@@ -47,7 +47,7 @@ public class RuntimeScriptEndpointTests
         // alone, but the whitespace around the `=` does not survive Release.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("window.__raskPush", body, StringComparison.Ordinal);
         Assert.Contains("window.__raskNotify", body, StringComparison.Ordinal);
@@ -62,7 +62,7 @@ public class RuntimeScriptEndpointTests
         // Server client — they need boot behaviour / a hardware channel the WebSocket transport can't give.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("window.__raskPwa", body);
         Assert.DoesNotContain("window.__raskSerial", body);
@@ -79,7 +79,7 @@ public class RuntimeScriptEndpointTests
         // gesture on the Server host too — where the imperative service can't be injected.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var body = await (await host.Http.GetAsync("/rask/rask.js")).Content.ReadAsStringAsync();
+        var body = await (await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("window.__raskFullscreen", body);
         Assert.Contains("window.__raskEyeDropper", body);

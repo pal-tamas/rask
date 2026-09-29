@@ -76,7 +76,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
         // thread inside LifecycleSyncContext.Post, which historically called
         // _component.StateHasChanged() unconditionally.
         c.Gate.SetResult();
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         Assert.Equal(renderCountBefore, handle.RequestRenderCount);
     }

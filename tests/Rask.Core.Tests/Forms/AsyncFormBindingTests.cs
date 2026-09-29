@@ -160,9 +160,9 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(changeId);
 
         using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
-        await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement, sp);
+        await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement, sp, TestContext.Current.CancellationToken);
         using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
-        await view.TryInvokeHandlerAsync(changeId!, changeDoc.RootElement, sp);
+        await view.TryInvokeHandlerAsync(changeId!, changeDoc.RootElement, sp, TestContext.Current.CancellationToken);
 
         var post = view.RenderAsLiveRoot(sp);
 
@@ -180,7 +180,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         // Simulate an in-flight async validation by bumping PendingCount through ValidateFieldAsync.
         // (We don't await; we just observe the indicator's render against a forced pending state.)
         ctx.AddValidator(new NeverCompletingAsyncValidator());
-        _ = ctx.ValidateFieldAsync(fid);
+        _ = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
         Assert.True(ctx.IsValidating(fid));
 
         var html = Page.Render(() => Form.Model(model).Context(ctx)[

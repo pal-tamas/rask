@@ -17,8 +17,8 @@ public class CrossSessionCallbackTests
     public async Task A_socket_cannot_fire_another_session_s_gesture_callback_but_its_own_session_still_can()
     {
         using var host = RaskTestHost.Create<GestureApp>();
-        var victimHtml = await host.Http.GetStringAsync("/");
-        var attackerHtml = await host.Http.GetStringAsync("/");
+        var victimHtml = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        var attackerHtml = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
         var victimRid = ResultId(victimHtml);
         using var victim = await Connect(host, victimHtml);
         using var attacker = await Connect(host, attackerHtml);
@@ -35,7 +35,7 @@ public class CrossSessionCallbackTests
         // A framed page is how a signed-in user is clickjacked into an action they did not mean.
         using var host = RaskTestHost.Create<GestureApp>();
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal("SAMEORIGIN", response.Headers.GetValues("X-Frame-Options").Single());
         Assert.Equal("frame-ancestors 'self'", response.Headers.GetValues("Content-Security-Policy").Single());

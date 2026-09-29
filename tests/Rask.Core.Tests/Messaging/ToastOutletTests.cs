@@ -119,7 +119,7 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
         string html;
         do
         {
-            await Task.Delay(25);
+            await Task.Delay(25, TestContext.Current.CancellationToken);
             html = host.RenderAsLiveRoot(sp);
         } while (html.Contains("gone soon") && DateTime.UtcNow < deadline);
 

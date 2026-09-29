@@ -57,8 +57,8 @@ public sealed class Rfc8291RoundTripTests
         var h1 = new RecordingHandler();
         var h2 = new RecordingHandler();
 
-        await TestSender.Create(h1).Send(sub, WebPushMessage.Text("A"));
-        await TestSender.Create(h2).Send(sub, WebPushMessage.Text("A"));
+        await TestSender.Create(h1).Send(sub, WebPushMessage.Text("A"), TestContext.Current.CancellationToken);
+        await TestSender.Create(h2).Send(sub, WebPushMessage.Text("A"), TestContext.Current.CancellationToken);
 
         // Same plaintext, but the ciphertext differs (random salt + ephemeral key each time)...
         Assert.False(h1.Body.AsSpan().SequenceEqual(h2.Body));

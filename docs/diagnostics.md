@@ -13,7 +13,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 |----|-------------------------|
 | **RASK001** | adds the `required` modifier |
 | **RASK014** | rewrites `new Widget()` into the bare entry `Widget` |
-| **RASK023** | appends `.Alt("")` to the chain (or `Alt: ""` on a factory call) |
+| **RASK023** | appends `.Alt("")` to the chain |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
 | **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
 | **RASK084** | makes the accessor `private set` / `private init`, or the field `private` |
@@ -39,7 +39,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 
 | ID | Severity | Summary |
 |----|----------|---------|
-| [RASK001](#rask001) | Hidden | Property is treated as a required factory parameter |
+| [RASK001](#rask001) | Hidden | Property is a required chain step |
 | [RASK002](#rask002) | Warning | `required` property cannot be honored by the chain |
 | [RASK003](#rask003) | Error | Malformed route template |
 | [RASK004](#rask004) | Error | Route segment has no matching property |
@@ -74,15 +74,15 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | — | *Retired* — the `BsDataGrid` it analysed went with `Rask.Bootstrap` |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
-| [RASK036](#rask036) | Warning | A builder-entry host must be `partial` |
-| [RASK037](#rask037) | Warning | `using` alias is hidden by a builder entry |
-| [RASK038](#rask038) | Error | Builder chain does not set a required property |
-| [RASK039](#rask039) | Warning | Builder chain is split across statements, so its required properties can't be checked |
-| [RASK040](#rask040) | Warning | Two components share a simple name, so neither can have a builder entry |
-| [RASK041](#rask041) | Warning | The builder surface's shared pending-bit budget is exhausted |
+| [RASK036](#rask036) | Warning | A chain-entry host must be `partial` |
+| [RASK037](#rask037) | Warning | `using` alias is hidden by a chain entry |
+| [RASK038](#rask038) | Error | Chain does not set a required property |
+| [RASK039](#rask039) | Warning | Chain is split across statements, so its required properties can't be checked |
+| [RASK040](#rask040) | Warning | Two components share a simple name, so neither can have a chain entry |
+| [RASK041](#rask041) | Warning | The chain surface's shared pending-bit budget is exhausted |
 | [RASK042](#rask042) | — | *Retired* — delegate-typed property cannot receive a builder setter |
-| [RASK043](#rask043) | Warning | A component name is used in a type that has no builder entries |
-| [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
+| [RASK043](#rask043) | Warning | A component name is used in a type that has no chain entries |
+| [RASK044](#rask044) | Warning | Chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
 | [RASK046](#rask046) | — | *Retired* — Key had to open a component's chain |
 | RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
@@ -140,7 +140,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 ---
 
 ## RASK001
-**Property is treated as a required chain step** · Hidden
+**Property is a required chain step** · Hidden
 
 A non-nullable reference-type property with no initializer becomes a **required step** — one the chain
 must take before it produces a component at all. This is informational: the generator already enforces
@@ -172,7 +172,7 @@ set, so nothing ever assigns it and the consumer build fails with `CS9035`.
 > set) and the steps assign afterwards — so a `required` property with no member initializer
 > is honored. RASK002 does **not** fire in that case.
 
-**Fix:** remove the member initializer so the `required` property becomes a plain factory parameter,
+**Fix:** remove the member initializer so the `required` property becomes a chain step,
 **or** remove `required`. Framework services (`RouteState`, `Navigator`, `HttpClient`, `IJSRuntime`)
 should come through the constructor, never as settable properties.
 
@@ -553,19 +553,19 @@ first (ordered by fully-qualified name), naming the page it collides with.
 ## RASK033
 **Hardcoded path for internal navigation instead of the generated route URL** · Warning
 
-Rask generates a type-safe `RouteUrl` factory — `Routes.<Page>()` — for every page's **primary** `[Route]`
+Rask generates a type-safe route helper — `Routes.<Page>()` — for every page's **primary** `[Route]`
 (see [Routing → type-safe URLs](routing.md)). Using the raw path string for internal navigation bypasses
 that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
 whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
 passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink.Href(…)`,
 `Ui.NavItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
-the path maps to a generated parameterless factory.
+the path maps to a generated parameterless route helper.
 
 It deliberately leaves alone:
 - **External URLs** — `https://…`, or anything wrapped in `RouteUrl.External("…")`.
 - **Parameterised routes** — `/users/42` needs `Routes.UserPage("42")`, which can't be reconstructed from a
   bare literal.
-- **Secondary `[Route]` templates** — the factory formats a page's *first* template only, so a literal like
+- **Secondary `[Route]` templates** — the helper formats a page's *first* template only, so a literal like
   `/todos/new` on a page whose primary route is `todos` has no `Routes.*()` equivalent and is not flagged.
 
 ```csharp
@@ -575,7 +575,7 @@ nav.NavigateTo("/todos");            // ✗ RASK033 — use Routes.TodosPage()
 NavLink.Href("/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
 
 nav.NavigateTo(Routes.TodosPage());  // ✓ type-safe; a renamed route is a compile error
-nav.NavigateTo("/todos/new");        // ✓ secondary template — no factory, left alone
+nav.NavigateTo("/todos/new");        // ✓ secondary template — no helper, left alone
 A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
 ```
 
@@ -627,7 +627,7 @@ non-generic — nesting inside a plain `static class` is the usual way to keep e
 you never enqueue that type.
 
 ## RASK036
-**A builder-entry host must be `partial`** · Warning
+**A chain-entry host must be `partial`** · Warning
 
 Rask's own components (`Div`, `Span`, …) get their entries from `Rask.Core.RaskMarkup`, which
 `Component` derives from — so every component inherits them, and so does anything else that derives
@@ -668,7 +668,7 @@ For a host that **derives** from `RaskMarkup`, nothing else is lost: the compone
 gets its own entry *elsewhere*, and the type itself is unaffected — `new SalesCard()` inside Rask.Core keeps
 working from anywhere. An **`[RaskMarkup]`** host loses more, and the message says so: the generated
 `partial` is where its base — or, when the base slot is already spent, the framework tags themselves —
-would have come from, so without `partial` it gets no builder surface at all.
+would have come from, so without `partial` it gets no chain entries at all.
 
 A **nested** host is injected into as well — the generated file re-opens each enclosing type as a
 `partial` around it — so every one of them has to be `partial` too. When one is not, this is the warning
@@ -689,12 +689,12 @@ The framework's own tags reach a nested component by *inheritance*, where nestin
 not `partial` would silently lose them, which is what this reports instead.
 
 **Fix:** add `partial`. Suppress with `#pragma warning disable RASK036` / `.editorconfig`
-(`dotnet_diagnostic.RASK036.severity = none`) if you build every component through the factory.
+(`dotnet_diagnostic.RASK036.severity = none`) if you never name a component unqualified inside that type.
 
 ## RASK037
-**`using` alias is hidden by a builder entry** · Warning
+**`using` alias is hidden by a chain entry** · Warning
 
-On the builder surface every component type contributes an **entry** — a member named after itself,
+Every component type contributes a chain **entry** — a member named after itself,
 inherited by every component (`Div`, `Card`, `Line`). Inside a component body a member beats a
 `using` alias in simple-name lookup, so an alias that shares an entry's name quietly stops meaning
 what it says:
@@ -723,7 +723,7 @@ The two-letter tag names are the ones that bite: `A`, `B`, `I`, `P`, `Td`, `Tr`.
 the alias is only ever used outside a component body.
 
 ## RASK038
-**Builder chain does not set a required property** · Error
+**Chain does not set a required property** · Error
 
 A non-nullable property with no member initializer is **required** — see [RASK001](#rask001). Most
 required properties are enforced by the chain's own type: they are steps the component does not exist
@@ -748,7 +748,7 @@ Properties **declared in your own compilation** are read straight off the syntax
 initializer is right there. A property from a **referenced assembly** cannot be: an initializer
 compiles into the constructor and leaves no trace in metadata, so `string Title` and
 `string Title = ""` are the same symbol from outside. The owning assembly therefore publishes the
-answer — the factory generator emits one
+answer — the chain generator emits one
 `[assembly: RaskRequiredProperties("Lib.Card", "Title")]` per component with such a
 property — and this analyzer reads it back. A library built by an older Rask, or by no Rask at all,
 publishes nothing, and its properties are then counted only when they carry the language's `required`
@@ -759,7 +759,7 @@ type or a member initializer, which is what marks it optional for both surfaces.
 `#pragma warning disable RASK038` / `.editorconfig` (`dotnet_diagnostic.RASK038.severity = none`).
 
 ## RASK039
-**Builder chain is split across statements, so its required properties can't be checked** · Warning
+**Chain is split across statements, so its required properties can't be checked** · Warning
 
 [RASK038](#rask038) is only sound while the chain is a single expression. Store it in a local or a
 field and the remaining setters can be applied anywhere — in a branch, a loop, another method — so
@@ -780,7 +780,7 @@ Suppress with `#pragma warning disable RASK039` / `.editorconfig`
 (`dotnet_diagnostic.RASK039.severity = none`) if you assemble components across statements by design.
 
 ## RASK040
-**Two components share a simple name, so neither can have a builder entry** · Warning
+**Two components share a simple name, so neither can have a chain entry** · Warning
 
 A member name has no namespace, so the two do not separate the way the types themselves do. An
 entry is keyed by **simple name**: it is a single member named after its type (an element's after its tag), and one name can only
@@ -800,12 +800,12 @@ compiling — you just cannot write `Card` bare.
 you are happy to build both with `new` from inside Rask.Core.
 
 ## RASK041
-**The builder surface's shared pending-bit budget is exhausted** · Warning
+**The chain surface's shared pending-bit budget is exhausted** · Warning
 
 This one is for people *changing Rask itself*, not for app code. A chain writes only the properties
-it names, so a builder entry marks its folding properties **pending** and resets whatever is still
+it names, so a chain entry marks its folding properties **pending** and resets whatever is still
 pending when the parent's `Render()` returns — that is what makes `Div.Id("x")` on one render and a
-bare `Div` on the next drop the `id`, exactly as the factory does. The pending bits are split so a
+bare `Div` on the next drop the `id`. The pending bits are split so a
 component compiled against one `Rask.Core` cannot collide with a shared property added in a later
 one: the shared `Element`/`Component` surface owns the low 32 (`BuilderRuntime.OwnPendingBit`), each
 component's own properties get the rest.
@@ -835,7 +835,7 @@ non-invocable **struct** — while a template or selector is an `Fn<…>`, so lo
 setter. A carrier is simply what every callback property is now. The ID is not reused.
 
 ## RASK043
-**A component name is used in a type that has no builder entries** · Warning
+**A component name is used in a type that has no chain entries** · Warning
 
 The chain is reachable only from **inside a type that has the entries**. They are *inherited members* —
 that is the whole design, because a static-imported property loses to a same-named type (CS0119) while
@@ -879,7 +879,7 @@ host works too, since simple-name lookup walks out through enclosing types. Supp
 `#pragma warning disable RASK043` / `.editorconfig`
 (`dotnet_diagnostic.RASK043.severity = none`).
 
-## CS0108 (a member hides a builder entry)
+## CS0108 (a member hides a chain entry)
 
 Not a Rask diagnostic, and — since RASKSUP001 — not something you have to answer. Because every
 component contributes an entry named after itself, and the HTML/SVG tags land on `RaskMarkup` which
@@ -897,7 +897,7 @@ public sealed partial class ConfirmDialog : Component
 
 None of these needs a `new`. Inside that component the name is its own member; the element is still one word
 away — **`Markup.Footer`**, `Markup.Label` — because every tag is also a static member of `Rask.Markup`.
-**`RASKSUP001` suppresses CS0108 whenever the hidden member is a builder
+**`RASKSUP001` suppresses CS0108 whenever the hidden member is a chain
 entry** — a member named after the component it builds, declared on the markup surface. There are
 about 170 such names (`Title`, `Label`, `Form`, `Data`, `Filter`, `Marker`, `Address`, `B`…), and a
 framework should not spend a keyword of your source per accidental collision with one of them.
@@ -929,7 +929,7 @@ alias has already lost the lookup, which is what [RASK037](#rask037) exists for.
 ---
 
 ## RASK044
-**Builder chain sets the same property twice** · Warning
+**Chain sets the same property twice** · Warning
 
 A setter writes its property and hands the component back, so a chain that names one twice simply
 overwrites it. The last call wins, the earlier one has no effect, and the compiler is perfectly happy —

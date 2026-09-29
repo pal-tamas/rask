@@ -82,12 +82,16 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         private string? _loaded;
 
+        // Released by the test once it has seen the placeholder — a wall-clock delay here raced the first
+        // render on a loaded machine (#1142).
+        public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         protected override async Task OnMount()
         {
             // ConfigureAwait(false) throughout, like the dashboard's PollingPanel: LifecycleSyncContext's
             // Post never fires, so the repaint can only come from the terminal StateHasChanged — which
             // needs the render handle this fix gives the component.
-            await Task.Delay(20).ConfigureAwait(false);
+            await Gate.Task.ConfigureAwait(false);
             _loaded = "loaded";
         }
 
@@ -97,11 +101,12 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task WaitForAsync_sees_the_result_of_an_asynchronous_mount()
     {
-        var page = Page.Render(new SlowLoader());
-
+        var loader = new SlowLoader();
+        var page = Page.Render(loader);
         // The placeholder is what the old harness returned forever.
         Assert.Contains("placeholder", page.Html);
 
+        loader.Gate.SetResult();
         var html = await page.WaitForAsync("loaded");
 
         Assert.Contains("loaded", html);

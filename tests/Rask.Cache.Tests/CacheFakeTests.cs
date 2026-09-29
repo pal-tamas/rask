@@ -14,8 +14,8 @@ public sealed class CacheFakeTests
         using var cache = Cache.Fake();
         var loads = 0;
 
-        var first = await Cache.Remember("products", () => ++loads).For(10.Minutes);
-        var second = await Cache.Remember("products", () => ++loads).For(10.Minutes);
+        var first = await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken).For(10.Minutes);
+        var second = await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken).For(10.Minutes);
 
         Assert.Equal(1, first);
         Assert.Equal(1, second);
@@ -30,9 +30,9 @@ public sealed class CacheFakeTests
         using var cache = Cache.Fake();
         var loads = 0;
 
-        await Cache.Remember("products", () => ++loads).For(10.Minutes);
+        await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken).For(10.Minutes);
         clock.Advance(11.Minutes);
-        var afterExpiry = await Cache.Remember("products", () => ++loads).For(10.Minutes);
+        var afterExpiry = await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken).For(10.Minutes);
 
         // Expiry is real and reads the app's clock, so a test proves staleness by moving time rather than
         // by sleeping — which is the difference between a 3 ms test and an 11-minute one.
@@ -47,11 +47,11 @@ public sealed class CacheFakeTests
         using var cache = Cache.Fake();
         var loads = 0;
 
-        await Cache.Remember("session", () => ++loads).Sliding(10.Minutes);
+        await Cache.Remember("session", () => ++loads, TestContext.Current.CancellationToken).Sliding(10.Minutes);
         clock.Advance(8.Minutes);
-        await Cache.Remember("session", () => ++loads).Sliding(10.Minutes);
+        await Cache.Remember("session", () => ++loads, TestContext.Current.CancellationToken).Sliding(10.Minutes);
         clock.Advance(8.Minutes);
-        var stillThere = await Cache.Remember("session", () => ++loads).Sliding(10.Minutes);
+        var stillThere = await Cache.Remember("session", () => ++loads, TestContext.Current.CancellationToken).Sliding(10.Minutes);
 
         Assert.Equal(1, stillThere);
         cache.Loaded("session").Once();
@@ -63,9 +63,9 @@ public sealed class CacheFakeTests
         using var cache = Cache.Fake();
         var loads = 0;
 
-        await Cache.Remember("products", () => ++loads).For(10.Minutes);
-        await Cache.Forget("products");
-        var reloaded = await Cache.Remember("products", () => ++loads).For(10.Minutes);
+        await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken).For(10.Minutes);
+        await Cache.Forget("products", TestContext.Current.CancellationToken);
+        var reloaded = await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken).For(10.Minutes);
 
         Assert.Equal(2, reloaded);
         cache.Forgotten("products").Once();
@@ -77,9 +77,9 @@ public sealed class CacheFakeTests
     {
         using var cache = Cache.Fake();
 
-        await Cache.Set("banner", "closed for lunch").For(1.Hour);
+        await Cache.Set("banner", "closed for lunch", TestContext.Current.CancellationToken).For(1.Hour);
 
-        Assert.Equal("closed for lunch", await Cache.Get<string>("banner"));
+        Assert.Equal("closed for lunch", await Cache.Get<string>("banner", TestContext.Current.CancellationToken));
         cache.Read("banner").Once();
     }
 
@@ -88,7 +88,7 @@ public sealed class CacheFakeTests
     {
         using var cache = Cache.Fake();
 
-        await Cache.Remember("products", () => 1).For(1.Hour);
+        await Cache.Remember("products", () => 1, TestContext.Current.CancellationToken).For(1.Hour);
 
         var error = Assert.Throws<CountingException>(() => cache.Loaded("orders").Once());
         Assert.Contains("\"products\"", error.Message, StringComparison.Ordinal);
@@ -99,12 +99,12 @@ public sealed class CacheFakeTests
     {
         using (var cache = Cache.Fake())
         {
-            await Cache.Remember("products", () => 1).For(1.Hour);
+            await Cache.Remember("products", () => 1, TestContext.Current.CancellationToken).For(1.Hour);
             cache.Loaded("products").Once();
         }
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await Cache.Remember("products", () => 1).For(1.Hour));
+            async () => await Cache.Remember("products", () => 1, TestContext.Current.CancellationToken).For(1.Hour));
         Assert.Contains("Inject ICache", error.Message, StringComparison.Ordinal);
     }
 
@@ -114,7 +114,7 @@ public sealed class CacheFakeTests
         using var cache = Cache.Fake();
         ICache injected = cache;
 
-        await injected.Remember("products", () => 1).For(1.Hour);
+        await injected.Remember("products", () => 1, TestContext.Current.CancellationToken).For(1.Hour);
 
         cache.Loaded("products").Once();
     }

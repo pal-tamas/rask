@@ -24,7 +24,7 @@ public sealed class MinimalApiRoundTripTests : IAsyncLifetime
     private IHost _host = null!;
     private WidgetsClient _widgets = null!;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         _host = await new HostBuilder()
             .ConfigureWebHost(web => web
@@ -40,16 +40,16 @@ public sealed class MinimalApiRoundTripTests : IAsyncLifetime
         _widgets = new WidgetsClient(_host.GetTestClient(), new ApiClientOptions());
     }
 
-    public Task DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         _host.Dispose();
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
     [Fact]
     public async Task A_route_parameter_reaches_the_right_endpoint()
     {
-        var widget = await _widgets.GetById(4);
+        var widget = await _widgets.GetById(4, TestContext.Current.CancellationToken);
 
         Assert.NotNull(widget);
         Assert.Equal(4, widget.Id);
@@ -59,7 +59,7 @@ public sealed class MinimalApiRoundTripTests : IAsyncLifetime
     [Fact]
     public async Task A_query_parameter_binds()
     {
-        var widget = await _widgets.Get(9);
+        var widget = await _widgets.Get(9, TestContext.Current.CancellationToken);
 
         Assert.NotNull(widget);
         Assert.Equal("page-9", widget.Name);
@@ -68,7 +68,7 @@ public sealed class MinimalApiRoundTripTests : IAsyncLifetime
     [Fact]
     public async Task A_request_body_round_trips()
     {
-        var created = await _widgets.Post(new Widget(41, "answer"));
+        var created = await _widgets.Post(new Widget(41, "answer"), TestContext.Current.CancellationToken);
 
         Assert.NotNull(created);
         Assert.Equal(42, created.Id);
@@ -81,7 +81,7 @@ public sealed class MinimalApiRoundTripTests : IAsyncLifetime
         // Results<Ok<string>, NotFound> is the shape an author reaches for when they want both a typed
         // body and a real 404. Without reading it, the whole TypedResults style — the one Microsoft
         // recommends — would report as having no statically known response type and get no client.
-        var name = await _widgets.GetByIdName(5);
+        var name = await _widgets.GetByIdName(5, TestContext.Current.CancellationToken);
 
         Assert.Equal("widget-5", name);
     }
@@ -91,7 +91,7 @@ public sealed class MinimalApiRoundTripTests : IAsyncLifetime
     {
         // The method is called Untag, not DeleteByIdTag. If the derived name had won this would not
         // compile, which is the assertion.
-        await _widgets.Untag(3);
+        await _widgets.Untag(3, TestContext.Current.CancellationToken);
     }
 }
 

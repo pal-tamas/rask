@@ -96,10 +96,10 @@ public sealed class MailUnitTests
                 To = [new EmailAddress("ada@example.com")],
                 Subject = "Hello",
                 HtmlBody = "<p>hi</p>",
-            });
+            }, TestContext.Current.CancellationToken);
 
             var file = Assert.Single(Directory.GetFiles(dir, "*.eml"));
-            var contents = await File.ReadAllTextAsync(file);
+            var contents = await File.ReadAllTextAsync(file, TestContext.Current.CancellationToken);
             Assert.Contains("Subject: Hello", contents);
             Assert.Contains("ada@example.com", contents);
         }

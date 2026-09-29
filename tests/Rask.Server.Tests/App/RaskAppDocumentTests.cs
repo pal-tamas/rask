@@ -58,16 +58,16 @@ public sealed class RaskAppDocumentTests
         var app = builder.Build();
         app.UseRouting();
         app.MapRask<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         string html;
         try
         {
-            html = await app.GetTestClient().GetStringAsync("/");
+            html = await app.GetTestClient().GetStringAsync("/", TestContext.Current.CancellationToken);
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.DoesNotContain(UiStylesheet.ThemeScopeAttribute, html, StringComparison.Ordinal);

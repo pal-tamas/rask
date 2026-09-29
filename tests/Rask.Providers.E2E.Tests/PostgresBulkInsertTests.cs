@@ -43,7 +43,7 @@ public sealed class BulkDbContext(DbContextOptions<BulkDbContext> options) : DbC
 [Collection(PostgresCollection.Name)]
 public sealed class PostgresBulkInsertTests : IAsyncLifetime
 {
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (Postgres.Available)
         {
@@ -52,7 +52,7 @@ public sealed class PostgresBulkInsertTests : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Postgres.Available)
         {
@@ -61,12 +61,12 @@ public sealed class PostgresBulkInsertTests : IAsyncLifetime
         }
     }
 
-    [SkippableTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Ten_thousand_rows_land_in_a_keyword_named_table(bool singleTransaction)
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         var orders = Enumerable.Range(0, 10_000)
             .Select(i => new Order
@@ -87,16 +87,16 @@ public sealed class PostgresBulkInsertTests : IAsyncLifetime
             {
                 o.SkipChangeTracking = true;
                 o.SingleTransaction = singleTransaction;
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(10_000, written);
         }
 
         await using var verify = NewContext();
-        Assert.Equal(10_000, await verify.Orders.CountAsync());
-        Assert.Equal(orders.Sum(o => (long)o.Select), await verify.Orders.SumAsync(o => (long)o.Select));
-        Assert.Equal(orders.Sum(o => o.Total), await verify.Orders.SumAsync(o => o.Total));
-        Assert.Equal(orders.Count(o => o.Note is null), await verify.Orders.CountAsync(o => o.Note == null));
+        Assert.Equal(10_000, await verify.Orders.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(orders.Sum(o => (long)o.Select), await verify.Orders.SumAsync(o => (long)o.Select, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(orders.Sum(o => o.Total), await verify.Orders.SumAsync(o => o.Total, cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(orders.Count(o => o.Note is null), await verify.Orders.CountAsync(o => o.Note == null, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     private static BulkDbContext NewContext() =>

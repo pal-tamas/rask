@@ -19,10 +19,10 @@ public class RouteGuardPipelineTests
     {
         using var host = CreateHost();
 
-        var resp = await host.Http.GetAsync("/e2e/public");
+        var resp = await host.Http.GetAsync("/e2e/public", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        Assert.Contains("public-content", await resp.Content.ReadAsStringAsync());
+        Assert.Contains("public-content", await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class RouteGuardPipelineTests
     {
         using var host = CreateHost();
 
-        var resp = await host.Http.GetAsync("/e2e/members");
+        var resp = await host.Http.GetAsync("/e2e/members", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
         Assert.Equal("/login", resp.Headers.Location!.AbsolutePath);
@@ -42,7 +42,7 @@ public class RouteGuardPipelineTests
     {
         using var host = CreateHost();
 
-        var resp = await host.Http.GetAsync("/e2e/admin");
+        var resp = await host.Http.GetAsync("/e2e/admin", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
         Assert.Equal("/login", resp.Headers.Location!.AbsolutePath);
@@ -57,7 +57,7 @@ public class RouteGuardPipelineTests
         var resp = await GetWithCookieAsync(host, "/e2e/members", cookie);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("members-content", body);
         Assert.Contains("alice", body); // SessionUserProvider seeded from the cookie principal
     }
@@ -83,7 +83,7 @@ public class RouteGuardPipelineTests
         var resp = await GetWithCookieAsync(host, "/e2e/admin", cookie);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-        Assert.Contains("admin-content", await resp.Content.ReadAsStringAsync());
+        Assert.Contains("admin-content", await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]

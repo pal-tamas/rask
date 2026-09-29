@@ -300,7 +300,7 @@ public sealed class SiteExampleTests
     {
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
 
-        var page = await http.GetStringAsync(path);
+        var page = await http.GetStringAsync(path, TestContext.Current.CancellationToken);
 
         Assert.Matches("<link rel=\"stylesheet\" href=\"[^\"]*/_rask/a/[0-9a-f]+\\.css\" data-rask-key=\"rsk-css\">", page);
         Assert.Matches(" data-r-[0-9a-f]{8}", page);
@@ -731,20 +731,20 @@ public sealed class SiteExampleTests
         // the files exist at the URLs the index, the <link rel="alternate"> and the sitemap point at.
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
 
-        var index = await http.GetStringAsync("/llms.txt");
+        var index = await http.GetStringAsync("/llms.txt", TestContext.Current.CancellationToken);
         Assert.StartsWith("# Rask\n", index, StringComparison.Ordinal);
         Assert.Contains("(https://rask.sh/docs/guides/cqrs.md): ", index, StringComparison.Ordinal);
 
         // The twin the index names is the doc itself, with its demo markers gone.
-        var twin = await http.GetStringAsync("/docs/guides/cqrs.md");
+        var twin = await http.GetStringAsync("/docs/guides/cqrs.md", TestContext.Current.CancellationToken);
         Assert.StartsWith("# CQRS", twin, StringComparison.Ordinal);
         Assert.DoesNotContain("<!-- demo:", twin, StringComparison.Ordinal);
 
-        var full = await http.GetStringAsync("/llms-full.txt");
+        var full = await http.GetStringAsync("/llms-full.txt", TestContext.Current.CancellationToken);
         Assert.Contains("\nSource: https://rask.sh/docs/guides/getting-started/\n", full, StringComparison.Ordinal);
 
         // The prerendered guide carries its graph and advertises its twin.
-        var guide = await http.GetStringAsync("/docs/guides/cqrs/index.html");
+        var guide = await http.GetStringAsync("/docs/guides/cqrs/index.html", TestContext.Current.CancellationToken);
         // Written as ld&#x2B;json — the encoder escapes '+' in an attribute, and a parser decodes it.
         Assert.Matches("type=\"application/ld(\\+|&#x2B;)json\"", guide);
         Assert.Contains("\"@type\":\"TechArticle\"", guide, StringComparison.Ordinal);
@@ -753,11 +753,11 @@ public sealed class SiteExampleTests
 
         // And the sitemap dates it — read back off the page's article:modified_time, which the build took
         // from git. No <lastmod> here would mean the history target, the page or the pass lost it.
-        var sitemap = await http.GetStringAsync("/sitemap.xml");
+        var sitemap = await http.GetStringAsync("/sitemap.xml", TestContext.Current.CancellationToken);
         Assert.Contains("<loc>https://rask.sh/docs/guides/cqrs/</loc><lastmod>", sitemap, StringComparison.Ordinal);
 
         // The social card every page's og:image names is actually in the bundle, as a PNG.
-        using var card = await http.GetAsync("/img/og-card.png");
+        using var card = await http.GetAsync("/img/og-card.png", TestContext.Current.CancellationToken);
         Assert.True(card.IsSuccessStatusCode, $"/img/og-card.png answered {(int)card.StatusCode}");
         Assert.Equal("image/png", card.Content.Headers.ContentType?.MediaType);
         Assert.Contains("property=\"og:image\" content=\"https://rask.sh/img/og-card.png\"", guide, StringComparison.Ordinal);
@@ -773,7 +773,7 @@ public sealed class SiteExampleTests
         // link table in one; dropped by the guide renderer). A comment shown as code is &lt;!-- and passes.
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
 
-        var page = await http.GetStringAsync(path);
+        var page = await http.GetStringAsync(path, TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("<!--", page, StringComparison.Ordinal);
     }

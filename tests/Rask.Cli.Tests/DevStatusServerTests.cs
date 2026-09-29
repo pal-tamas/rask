@@ -18,10 +18,10 @@ public sealed class DevStatusServerTests
         Assert.NotNull(server);
 
         using var client = new HttpClient();
-        var ok = await client.GetStringAsync(server.Url);
+        var ok = await client.GetStringAsync(server.Url, TestContext.Current.CancellationToken);
 
         watcher.Observe("/app/A.cs(1,1): error CS0103: nope [/app/App.csproj]");
-        var failed = await client.GetStringAsync(server.Url);
+        var failed = await client.GetStringAsync(server.Url, TestContext.Current.CancellationToken);
 
         Assert.Contains("\"state\":\"ok\"", ok, StringComparison.Ordinal);
         // Read live, not snapshotted at start: the whole point is to answer about the build happening now.
@@ -38,7 +38,7 @@ public sealed class DevStatusServerTests
         Assert.NotNull(server);
 
         using var client = new HttpClient();
-        using var response = await client.GetAsync(server.Url);
+        using var response = await client.GetAsync(server.Url, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
@@ -53,7 +53,7 @@ public sealed class DevStatusServerTests
         Assert.NotNull(server);
 
         using var client = new HttpClient();
-        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Options, server.Url));
+        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Options, server.Url), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
@@ -86,6 +86,6 @@ public sealed class DevStatusServerTests
         server.Dispose();
 
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-        await Assert.ThrowsAnyAsync<Exception>(() => client.GetStringAsync(url));
+        await Assert.ThrowsAnyAsync<Exception>(() => client.GetStringAsync(url, TestContext.Current.CancellationToken));
     }
 }

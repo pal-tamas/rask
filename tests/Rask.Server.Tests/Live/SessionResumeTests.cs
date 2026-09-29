@@ -243,8 +243,8 @@ public sealed class SessionResumeTests
     public async Task An_idle_session_still_emits_no_frame_at_all(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<CounterApp>();
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync());
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
@@ -257,11 +257,11 @@ public sealed class SessionResumeTests
     public async Task An_unchanged_render_carries_no_record()
     {
         using var host = RaskTestHost.Create<CounterApp>();
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync());
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         var session = host.Store.Get(sessionId)!;
         session.Services.GetRequiredService<IPersistentState>().Persist(StateKey, 1);
@@ -293,7 +293,7 @@ public sealed class SessionResumeTests
         await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token }, ct: TestContext.Current.CancellationToken);
         await ReadFrameWithHtmlAsync(ws);
 
         Assert.Equal(1, host.Store.ConnectedCount);
@@ -315,12 +315,12 @@ public sealed class SessionResumeTests
         await host.Store.RemoveAsync(sessionId);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token }, ct: TestContext.Current.CancellationToken);
         await ReadFrameWithHtmlAsync(ws);
 
         Assert.Equal(1, host.Store.Count);
 
-        await ws.SendJsonAsync(new { type = "hello", session = "another-unknown-id", resume = token });
+        await ws.SendJsonAsync(new { type = "hello", session = "another-unknown-id", resume = token }, ct: TestContext.Current.CancellationToken);
 
         var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5));
 
@@ -401,13 +401,13 @@ public sealed class SessionResumeTests
 
         Assert.False(host.Services.GetRequiredService<SessionResumeSupport>().Enabled);
 
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync());
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = SessionIdFrom(await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         await host.Store.RemoveAsync(sessionId);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 

@@ -54,7 +54,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         await c.Done.Task;
         await WaitUntilAsync(() => handle.RequestRenderCount >= 1);
         // Settle: the claim is exactly one, and only elapsed time evidences the absence of a second.
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, handle.RequestRenderCount);
     }
@@ -79,7 +79,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         await c.Done.Task;
         await WaitUntilAsync(() => handle.RequestRenderCount >= 1);
         // Settle: the claim is exactly one, and only elapsed time evidences the absence of a second.
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, handle.RequestRenderCount);
     }
@@ -97,7 +97,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
             LiveRenderContext.NotifyParameters(resolved, true);
         }
 
-        await Task.Delay(20);
+        await Task.Delay(20, TestContext.Current.CancellationToken);
         Assert.Equal(0, handle.RequestRenderCount);
     }
 
@@ -115,7 +115,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
         c.RenderAsLiveRoot(sp);
 
-        await Task.Delay(20);
+        await Task.Delay(20, TestContext.Current.CancellationToken);
         var beforeGate = handle.RequestPublishRenderCount;
 
         c.Gate.SetResult();
@@ -141,11 +141,11 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
         c.RenderAsLiveRoot(sp);
         c.Release();
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         c.RenderAsLiveRoot(sp);
         c.Release();
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         Assert.True(handle.RequestRenderCount < 5,
             $"render storm detected: {handle.RequestRenderCount} renders");
@@ -167,7 +167,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
         root.RenderAsLiveRoot(sp);
         root.ReleaseAll();
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
 
         Assert.True(handle.RequestPublishRenderCount < 8,
             $"cascade detected: {handle.RequestPublishRenderCount} publish renders");

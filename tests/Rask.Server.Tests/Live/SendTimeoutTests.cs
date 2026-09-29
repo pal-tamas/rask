@@ -65,9 +65,9 @@ public sealed class SendTimeoutTests
             () => session.SendOutOfBandAsync("hello"u8.ToArray()));
 
         // Dispose takes the same lock the wedged send was holding. If it returns, the lock was released.
-        var disposed = Task.Run(() => session.Dispose());
+        var disposed = Task.Run(() => session.Dispose(), TestContext.Current.CancellationToken);
 
-        Assert.True(await Task.WhenAny(disposed, Task.Delay(TimeSpan.FromSeconds(5))) == disposed,
+        Assert.True(await Task.WhenAny(disposed, Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)) == disposed,
             "Dispose must not block on a lock the timed-out send still holds");
         await disposed;
     }
@@ -87,6 +87,48 @@ public sealed class SendTimeoutTests
         Assert.Equal(0, socket.Aborted);
     }
 
+    /// <summary>
+    /// The timeout's source is kept between sends: one send's timer must never fire into a later send, however
+    /// long the gap between them.
+    /// </summary>
+    [Fact]
+    public async Task Healthy_sends_spread_wider_than_the_timeout_are_never_aborted()
+    {
+        var store = NewStore(TimeSpan.FromMilliseconds(100));
+        var session = store.Create(_ => new Shell());
+        var socket = new StallingWebSocket();
+        session.AttachSocket(socket, CancellationToken.None);
+        socket.Release();
+
+        for (var i = 0; i < 3; i++)
+        {
+            await session.SendOutOfBandAsync("hello"u8.ToArray());
+            await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(0, socket.Aborted);
+    }
+
+    /// <summary>A reconnect brings a new socket token; the bound must follow it to the new socket.</summary>
+    [Fact]
+    public async Task A_reattached_socket_that_stops_reading_is_still_aborted()
+    {
+        var store = NewStore(TimeSpan.FromMilliseconds(200));
+        var session = store.Create(_ => new Shell());
+        var first = new StallingWebSocket();
+        using var firstLifetime = new CancellationTokenSource();
+        session.AttachSocket(first, firstLifetime.Token);
+        first.Release();
+        await session.SendOutOfBandAsync("hello"u8.ToArray());
+        var second = new StallingWebSocket();
+
+        session.AttachSocket(second, CancellationToken.None);
+        await Assert.ThrowsAsync<WebSocketException>(() => session.SendOutOfBandAsync("hello"u8.ToArray()));
+
+        Assert.Equal(0, first.Aborted);
+        Assert.Equal(1, second.Aborted);
+    }
+
     /// <summary>Zero restores the prior unbounded behaviour for anyone who needs it back.</summary>
     [Fact]
     public async Task A_zero_timeout_does_not_arm_the_bound()
@@ -97,7 +139,7 @@ public sealed class SendTimeoutTests
         session.AttachSocket(socket, CancellationToken.None);
 
         var send = session.SendOutOfBandAsync("hello"u8.ToArray());
-        var finished = await Task.WhenAny(send, Task.Delay(TimeSpan.FromMilliseconds(400)));
+        var finished = await Task.WhenAny(send, Task.Delay(TimeSpan.FromMilliseconds(400), TestContext.Current.CancellationToken));
 
         Assert.NotSame(send, finished);
         Assert.Equal(0, socket.Aborted);

@@ -74,7 +74,7 @@ public sealed class HelloSameUserTests
         var sessionId = await StartSessionAsync(host, "alice");
 
         using var ws = await ConnectAsync(host, "bob");
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
@@ -93,7 +93,7 @@ public sealed class HelloSameUserTests
         var sessionId = await StartSessionAsync(host, "alice");
 
         using var ws = await ConnectAsync(host, "alice");
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         // Nothing is pushed when nothing changed, so the attach is observed through the store rather than
         // by waiting for a frame that correctly never comes.
@@ -112,7 +112,7 @@ public sealed class HelloSameUserTests
         var sessionId = await StartSessionAsync(host, user: null);
 
         using var ws = await ConnectAsync(host, "bob");
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         await WaitForConnectedAsync(host, 1);
         Assert.Equal(1, host.Store.ConnectedCount);
@@ -129,7 +129,7 @@ public sealed class HelloSameUserTests
         var sessionId = await StartSessionAsync(host, "alice");
 
         using var ws = await ConnectAsync(host, user: null);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
@@ -175,7 +175,7 @@ public sealed class HelloSameUserTests
         await RedeemAsync(host, AuthAction.SignOut, sessionId, toUser: null);
 
         using var ws = await ConnectAsync(host, user: null);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         await WaitForConnectedAsync(host, 1);
         Assert.Equal(1, host.Store.ConnectedCount);
@@ -195,14 +195,14 @@ public sealed class HelloSameUserTests
 
         using (var stranger = await ConnectAsync(host, "carol"))
         {
-            await stranger.SendJsonAsync(new { type = "hello", session = sessionId });
+            await stranger.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             var reply = await stranger.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
             Assert.NotNull(reply);
             Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
         }
 
         using var ws = await ConnectAsync(host, "bob");
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         await WaitForConnectedAsync(host, 1);
         Assert.Equal(1, host.Store.ConnectedCount);

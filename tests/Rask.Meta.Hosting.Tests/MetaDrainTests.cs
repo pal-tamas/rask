@@ -81,18 +81,18 @@ public class MetaDrainTests
         var check = new RaskMetaHealthCheck(readiness, drain);
         var context = new HealthCheckContext();
 
-        var starting = await check.CheckHealthAsync(context);
+        var starting = await check.CheckHealthAsync(context, TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Unhealthy, starting.Status);
         Assert.Contains("not listening", starting.Description, StringComparison.Ordinal);
 
         readiness.MarkReady();
-        var ready = await check.CheckHealthAsync(context);
+        var ready = await check.CheckHealthAsync(context, TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Healthy, ready.Status);
 
         drain.BeginDrain();
-        var draining = await check.CheckHealthAsync(context);
+        var draining = await check.CheckHealthAsync(context, TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Unhealthy, draining.Status);
         Assert.Contains("draining", draining.Description, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public class MetaDrainTests
         var drain = new MetaDrain();
         drain.BeginDrain();
 
-        var result = await new RaskMetaHealthCheck(readiness, drain).CheckHealthAsync(new HealthCheckContext());
+        var result = await new RaskMetaHealthCheck(readiness, drain).CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
         Assert.Equal(HealthStatus.Unhealthy, result.Status);
     }

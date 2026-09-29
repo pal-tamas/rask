@@ -178,6 +178,7 @@ public static partial class DemoRegistry
             ["virtualize-provider"] = () => CodeSample.Files(["VirtualizeProviderDemo.cs"]).Result(VirtualizeProviderDemo),
             ["keyed-lists-reorder"] = () => CodeSample.Files(["KeyedListsReorderDemo.cs"]).Result(KeyedListsReorderDemo),
             ["master-detail"] = () => CodeSample.Files(["MasterDetailDemo.cs"]).Result(MasterDetailDemo),
+            ["toast-built-in"] = () => CodeSample.Files(["BuiltInToastDemo.cs"]).Result(BuiltInToastDemo),
             ["drag-drop-sortable"] = () => CodeSample.Files(["DragDropSortableDemo.cs"]).Result(DragDropSortableDemo),
             ["drag-drop-kanban"] = () => CodeSample.Files(["DragDropKanbanDemo.cs"]).Result(DragDropKanbanDemo),
             ["boom-handler"] = () => CodeSample.Files(["BoomHandlerDemo.cs"]).Result(BoomHandlerDemo),
@@ -353,15 +354,15 @@ public static partial class DemoRegistry
             // --- User components (factory generation) → getting-started.md §6 (its /components page folded in). ---
             ["components-greeting"] = () => CodeSample
                 .Files(["ComponentsGreetingDemo.cs", "Greeting.cs"])
-                .Notes("Non-nullable property without an initializer → required factory parameter. Nullable property "
-                + "→ optional with default null. Property with an initializer → excluded from the factory.")
+                .Notes("Non-nullable property without an initializer → required chain step. Nullable property "
+                + "→ optional step, null when unset. Property with a constant initializer → optional step "
+                + "defaulting to it.")
                 .Result(ComponentsGreetingDemo),
             ["components-di"] = () => CodeSample
                 .Files(["ComponentsDiDemo.cs", "WeatherCard.cs", "WeatherJsonContext.cs"])
                 .Notes("Inject services (HttpClient/Navigator/RouteState) through the constructor, never as a public "
-                + "settable property — that would become a required factory parameter, and `required` on a "
-                + "property with a DI-only constructor is RASK002. Constructor params resolve from DI via "
-                + "ActivatorUtilities; only public settable properties feed the generated factory."),
+                + "settable property — that would become a required chain step. Constructor params resolve from DI; only public "
+                + "settable properties become chain steps."),
             ["components-skipfactory"] = () => CodeSample
                 .Files(["ComponentsSkipFactoryDemo.cs", "SkipFactoryCounter.cs"])
                 .Notes("[SkipFactory] keeps a property settable in code while removing it from the generated factory "

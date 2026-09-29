@@ -8,6 +8,10 @@
     <!-- A test constructs the component under test directly; the chain's entry only exists inside a
          markup host. Every other sample/test project that renders a component does the same. -->
     <NoWarn>$(NoWarn);RASK014</NoWarn>
+    <!-- The namespace every test here already uses. xUnit v3's test platform generates a class into the
+         root namespace, and the default one (Rask.Ui.Tests) would open a `Rask.Ui` namespace that hides the
+         `Rask.Ui` kit class from every `Rask.Ui.Marker`-style reference in this project. -->
+    <RootNamespace>Rask.UiTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +26,7 @@
          lever under CPM — transitive pinning does not move it. See Directory.Packages.props. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.v3"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

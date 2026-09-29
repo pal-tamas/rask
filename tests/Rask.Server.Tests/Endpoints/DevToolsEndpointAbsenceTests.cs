@@ -28,7 +28,7 @@ public class DevToolsEndpointAbsenceTests
     {
         using var host = RaskTestHost.Create<TestApp>(environment: "Development");
 
-        var html = await host.Http.GetStringAsync("/");
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         // The page itself must still be live, or the absence below would prove nothing.
         Assert.Contains("data-rask-root=", html, StringComparison.Ordinal);

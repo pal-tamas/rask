@@ -60,7 +60,7 @@ public sealed class OutboxConcurrencyTests : IDisposable
             });
 
             // A few more poll cycles, to prove the state is stable rather than momentary.
-            await Task.Delay(300);
+            await Task.Delay(300, TestContext.Current.CancellationToken);
         }
         finally
         {
@@ -68,7 +68,7 @@ public sealed class OutboxConcurrencyTests : IDisposable
         }
 
         await using var read = NewContext();
-        var messages = await read.Set<OutboxMessage>().OrderBy(m => m.Id).ToListAsync();
+        var messages = await read.Set<OutboxMessage>().OrderBy(m => m.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(2, messages.Count);
         Assert.All(messages, m => Assert.NotNull(m.ProcessedAt));
         // One attempt started each, none of them a retry — Attempts counts claims, not failures.

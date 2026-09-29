@@ -80,15 +80,15 @@ public sealed class WatchHotReloadE2ETests
     ///     </para>
     /// </summary>
 
-    [SkippableFact]
+    [Fact]
     public async Task Editing_a_render_body_reaches_the_open_session_without_restarting_it()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         await using var app = await WatchApp.StartAsync("WatchEdit");
 
         // The dev flag must be on the served HTML, or the client would ignore every dev frame.
-        var html = await app.Http.GetStringAsync("/");
+        var html = await app.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
         Assert.Contains("data-rask-dev", html, StringComparison.Ordinal);
         Assert.Contains(WatchApp.OriginalHeading, html, StringComparison.Ordinal);
 
@@ -118,14 +118,14 @@ public sealed class WatchHotReloadE2ETests
         Assert.Contains(WatchApp.EditedHeading, all, StringComparison.Ordinal);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task An_applied_hot_reload_is_announced_to_the_browser()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         await using var app = await WatchApp.StartAsync("WatchPing");
 
-        var sessionId = WatchApp.SessionId(await app.Http.GetStringAsync("/"));
+        var sessionId = WatchApp.SessionId(await app.Http.GetStringAsync("/", TestContext.Current.CancellationToken));
         using var socket = await app.ConnectAsync(sessionId);
 
         app.ReplaceInFile("Features/Home/HomePage.cs", WatchApp.OriginalHeading, WatchApp.EditedHeading);
@@ -145,10 +145,10 @@ public sealed class WatchHotReloadE2ETests
             f => f.Contains("""{"type":"hotReload","status":"applied"}""", StringComparison.Ordinal));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Editing_a_route_template_serves_the_new_url()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         // Routes are registered by a [ModuleInitializer], which the runtime never re-runs — before the
         // generated RefreshAll() existed this silently did nothing at all.
@@ -158,7 +158,7 @@ public sealed class WatchHotReloadE2ETests
         // exercises HotReloadAutoRestart: without it a restart would stop at an interactive prompt.
         await using var app = await WatchApp.StartAsync("WatchRoute");
 
-        Assert.Contains(WatchApp.OriginalHeading, await app.Http.GetStringAsync("/"), StringComparison.Ordinal);
+        Assert.Contains(WatchApp.OriginalHeading, await app.Http.GetStringAsync("/", TestContext.Current.CancellationToken), StringComparison.Ordinal);
 
         app.ReplaceInFile("Features/Home/HomePage.cs", "[Route(\"/\")]", "[Route(\"/moved\")]");
 
@@ -170,7 +170,7 @@ public sealed class WatchHotReloadE2ETests
             "/moved", WatchApp.OriginalHeading, TimeSpan.FromSeconds(120));
         Assert.True(moved, $"'/moved' never started serving the home page.{app.Log}");
 
-        var body = await app.Http.GetStringAsync("/moved");
+        var body = await app.Http.GetStringAsync("/moved", TestContext.Current.CancellationToken);
         // Replaced, not appended: re-running the generated registry with Add() would have registered the
         // page twice, and the router would render it twice under the one route.
         Assert.Single(Regex.Matches(body, Regex.Escape(WatchApp.OriginalHeading)));
@@ -179,11 +179,11 @@ public sealed class WatchHotReloadE2ETests
         // status is the stronger claim, and it is only available because a fallen-through path answers
         // 404; while it answered 200 this had to be expressed as "the body lost the heading", which is
         // why GetStringAsync — which throws on a non-2xx — used to be fine here.
-        var old = await app.Http.GetAsync("/");
+        var old = await app.Http.GetAsync("/", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, old.StatusCode);
         Assert.DoesNotContain(
             WatchApp.OriginalHeading,
-            await old.Content.ReadAsStringAsync(),
+            await old.Content.ReadAsStringAsync(TestContext.Current.CancellationToken),
             StringComparison.Ordinal);
     }
 

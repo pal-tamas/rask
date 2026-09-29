@@ -69,8 +69,8 @@ internal static partial class JSInterop
 
         // DispatchAsync builds the frame and pushes it to JS itself — zero-copy via applyRender
         // (a MemoryView over its write buffer), with a double-buffered dedup. There is nothing to
-        // apply here; the byte[] it returns is retained only as a unit-test seam.
-        await _session.DispatchAsync(json).ConfigureAwait(false);
+        // apply here, so it is told not to copy the frame back.
+        await _session.DispatchAsync(json, copyFrame: false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -256,9 +256,9 @@ internal static partial class JSInterop
 
     public static Task Dispatch(byte[] json)
     {
-        // Non-browser stub: drop the return value (matches the JSExport's Task return).
+        // Non-browser stub, shaped like the JSExport: no copy of the frame.
         // Tests call session.DispatchAsync(json) directly to inspect the byte[] payload.
-        return _session?.DispatchAsync(json) ?? Task.CompletedTask;
+        return _session?.DispatchAsync(json, copyFrame: false) ?? Task.CompletedTask;
     }
 
     public static void ApplyRender(Span<byte> payload)

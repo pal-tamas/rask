@@ -40,7 +40,7 @@ public sealed class HiddenBuilderEntrySuppressor : DiagnosticSuppressor
     private static readonly SuppressionDescriptor RaskSup001 = new(
         "RASKSUP001",
         HidesInheritedMember,
-        "The hidden member is a generated Rask builder entry named after a component or HTML tag, "
+        "The hidden member is a generated Rask chain entry named after a component or HTML tag, "
         + "not a member of the author's own base type.");
 
     public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions { get; } =

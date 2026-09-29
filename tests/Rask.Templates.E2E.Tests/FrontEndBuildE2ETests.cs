@@ -32,11 +32,11 @@ public sealed class FrontEndBuildE2ETests
     public static TheoryData<string> FrontEnds() =>
         [.. SpaFramework.All.Select(f => f.Key).Concat(MetaTemplate.All.Select(f => f.Key))];
 
-    [SkippableTheory]
+    [Theory]
     [MemberData(nameof(FrontEnds))]
     public async Task Every_front_end_template_installs_lints_and_builds(string key)
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
         var name = "Fe" + key.Replace("-", "", StringComparison.Ordinal);

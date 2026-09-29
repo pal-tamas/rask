@@ -144,11 +144,11 @@ public sealed class OutboxTests : IDisposable
         await using (var db = NewContext())
         {
             db.Orders.Add(Order.Place("ada"));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var read = NewContext();
-        var message = await read.Set<OutboxMessage>().SingleAsync();
+        var message = await read.Set<OutboxMessage>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains("OrderPlaced", message.Type, StringComparison.Ordinal);
         Assert.Contains("ada", message.Payload, StringComparison.Ordinal);
         Assert.Null(message.ProcessedAt); // not yet drained
@@ -162,7 +162,7 @@ public sealed class OutboxTests : IDisposable
         {
             var order = Order.Place("grace");
             db.Orders.Add(order);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             id = order.Id;
         }
 
@@ -189,7 +189,7 @@ public sealed class OutboxTests : IDisposable
 
         Assert.Contains(_recorder.Events, e => e.Id == id && e.Customer == "grace");
         await using var read = NewContext();
-        Assert.NotNull((await read.Set<OutboxMessage>().SingleAsync()).ProcessedAt); // marked processed
+        Assert.NotNull((await read.Set<OutboxMessage>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).ProcessedAt); // marked processed
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public sealed class OutboxTests : IDisposable
         await using (var db = NewContext())
         {
             db.Orders.Add(Order.PlaceRaisingKeywordEvent("ada"));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var processor = _provider.GetServices<IHostedService>().OfType<OutboxProcessor<OutboxDbContext>>().Single();
@@ -219,7 +219,7 @@ public sealed class OutboxTests : IDisposable
         }
 
         await using var read = NewContext();
-        var message = await read.Set<OutboxMessage>().SingleAsync();
+        var message = await read.Set<OutboxMessage>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         // Delivered — and, the load-bearing half, delivered without a failed attempt. A key miss doesn't
         // throw: it records "No registered outbox event type '...'" and retries until MaxAttempts, so
         // asserting only on ProcessedAt would miss the bug entirely.

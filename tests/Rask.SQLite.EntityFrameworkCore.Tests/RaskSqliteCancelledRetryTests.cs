@@ -22,11 +22,11 @@ public sealed class RaskSqliteCancelledRetryTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         // Hold the write lock for the whole test, so SaveChanges is stuck retrying.
         await using var holder = new SqliteConnection(ConnectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         using var holderTx = holder.BeginImmediate();
 
         using var cts = new CancellationTokenSource();
@@ -34,7 +34,7 @@ public sealed class RaskSqliteCancelledRetryTests : IDisposable
         var save = context.SaveChangesAsync(cts.Token);
 
         // Let it get well into the retry loop, then cancel the way a deadline or an aborted request would.
-        await Task.Delay(1500);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
         await cts.CancelAsync();
 
         var exception = await Record.ExceptionAsync(() => save);

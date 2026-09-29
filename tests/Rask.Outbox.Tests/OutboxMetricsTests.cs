@@ -46,7 +46,7 @@ public sealed class OutboxMetricsTests : IDisposable
         {
             db.Set<OutboxMessage>().Add(
                 OutboxMessage.For("Nothing.Registered.Here", "{}", DateTime.UtcNow));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await RunUntilAsync(() => collector.Sum("rask.outbox.deadlettered") >= 1);

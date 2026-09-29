@@ -485,8 +485,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         if (!usedDiff)
         {
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
-            // this ships the whole body anyway, so materialising it as a string here is not wasted.
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, new string(html.Span), sessionId, historyUrl,
+            // encoded straight from the pooled page buffer — a page-sized string here would be garbage
+            // the moment the payload is written, and on the large-object heap past ~42K chars.
+            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html.Span, sessionId, historyUrl,
                 replace, auth, download, jsInvokes, resume, devError);
             // Keep the cache in lockstep with the client even when shipping full HTML: promote
             // current → previous so the NEXT diff's baseline matches what the client received. Skip

@@ -56,10 +56,10 @@ public sealed class PostgresValueCollectionTests
 {
     private const string Schema = "value_collections";
 
-    [SkippableFact]
+    [Fact]
     public async Task Both_value_collections_round_trip_and_are_queried_in_sql()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await using (var db = NewContext())
         {
@@ -75,13 +75,13 @@ public sealed class PostgresValueCollectionTests
             other.StopAt("Rome", 1);
 
             db.AddRange(trip, other);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var db = NewContext())
         {
             // The round trip: what the domain methods added is still there, in order.
-            var loaded = await db.Trips.SingleAsync(t => t.Name == "grand tour");
+            var loaded = await db.Trips.SingleAsync(t => t.Name == "grand tour", cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(["urgent"], loaded.Tags);
             Assert.Equal([("Vienna", 1), ("Prague", 2)], loaded.Stops.Select(s => (s.City, s.Day)));
 
@@ -93,12 +93,12 @@ public sealed class PostgresValueCollectionTests
             // primitive collection to a native text[] and filters with `'urgent' = ANY (t."Tags")`, and the
             // value objects to jsonb read back through `jsonb_to_recordset(t."Stops") ... WITH ORDINALITY`.
             // SQLite uses json_each for both; SQL Server uses OPENJSON.
-            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Tags.Contains("urgent")).SingleAsync()).Name);
-            Assert.Equal("weekend", (await db.Trips.Where(t => t.Tags.Contains("calm")).SingleAsync()).Name);
-            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Stops.Any(s => s.City == "Vienna")).SingleAsync()).Name);
+            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Tags.Contains("urgent")).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
+            Assert.Equal("weekend", (await db.Trips.Where(t => t.Tags.Contains("calm")).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
+            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Stops.Any(s => s.City == "Vienna")).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
 
             // A non-string member of the document, so the comparison is typed rather than textual.
-            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Stops.Any(s => s.Day >= 2)).SingleAsync()).Name);
+            Assert.Equal("grand tour", (await db.Trips.Where(t => t.Stops.Any(s => s.Day >= 2)).SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Name);
         }
 
         await using (var db = NewContext())

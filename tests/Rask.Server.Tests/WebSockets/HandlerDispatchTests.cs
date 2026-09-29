@@ -16,16 +16,16 @@ public class HandlerDispatchTests
     public async Task A_known_handler_id_invokes_the_handler_and_sends_a_render()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(text);
@@ -38,14 +38,14 @@ public class HandlerDispatchTests
     public async Task An_unknown_handler_id_sends_no_payload()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = "h999" });
+        await ws.SendJsonAsync(new { id = "h999" }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
 
         Assert.Null(text);
@@ -59,23 +59,23 @@ public class HandlerDispatchTests
         // resolves to whatever now occupies that slot. h0 here is the parameterless "bump" click; an
         // `input` frame landing on it used to RUN it, with nothing to say the wrong thing had fired.
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = handlerId, type = "input", value = "x" });
+        await ws.SendJsonAsync(new { id = handlerId, type = "input", value = "x" }, ct: TestContext.Current.CancellationToken);
 
         // No render: the counter was never bumped. Answered exactly like the stale id it is.
         Assert.Null(await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400)));
         Assert.Equal(WebSocketState.Open, ws.State);
 
         // ...and the socket still dispatches the frame that DOES fit.
-        await ws.SendJsonAsync(new { id = handlerId, type = "click" });
+        await ws.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(text);
@@ -87,14 +87,14 @@ public class HandlerDispatchTests
     public async Task A_message_with_no_id_and_no_type_is_ignored()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { foo = "bar" });
+        await ws.SendJsonAsync(new { foo = "bar" }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
 
         Assert.Null(text);
@@ -108,13 +108,13 @@ public class HandlerDispatchTests
         // the socket and scheduling the session for removal — one bad (buggy or adversarial)
         // frame dropped the whole session. Now it is dropped and the loop keeps serving.
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
         Assert.Equal(1, host.Store.Count);
 
@@ -123,7 +123,7 @@ public class HandlerDispatchTests
 
         // No teardown: the socket stays open, the session is not removed, and a subsequent
         // valid handler frame still dispatches and renders.
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(text);
@@ -137,13 +137,13 @@ public class HandlerDispatchTests
     public async Task A_message_missing_its_type_but_carrying_other_fields_is_ignored()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
+        var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { foo = "bar", x = 1 });
+        await ws.SendJsonAsync(new { foo = "bar", x = 1 }, ct: TestContext.Current.CancellationToken);
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
 
         Assert.Null(text);
@@ -154,18 +154,18 @@ public class HandlerDispatchTests
     public async Task Concurrent_handler_invocations_are_serialised_by_the_per_session_lock()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         for (var i = 0; i < 5; i++)
         {
-            await ws.SendJsonAsync(new { id = handlerId });
+            await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         }
 
         var counts = new List<int>();
@@ -186,8 +186,8 @@ public class HandlerDispatchTests
     public async Task A_handler_that_throws_trips_the_implicit_root_boundary_and_the_dispatcher_keeps_running()
     {
         using var host = RaskTestHost.Create<ThrowingApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
 
         var handlerIds = Regex.Matches(initialHtml, "data-rask-on-click=\"(h\\d+)\"")
@@ -197,7 +197,7 @@ public class HandlerDispatchTests
         var throwingId = handlerIds[0];
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // MapRask<TApp> wraps the App in an implicit RootErrorBoundary, so a handler throw trips the boundary
@@ -209,7 +209,7 @@ public class HandlerDispatchTests
         // session lock), so the frame is coming — but a session can also push a render nobody asked for, and on
         // a loaded machine one of those can arrive here instead. #1120 was exactly that: a pre-trip document
         // read as a missing error boundary, green on an idle machine and red under the full gate.
-        await ws.SendJsonAsync(new { id = throwingId });
+        await ws.SendJsonAsync(new { id = throwingId }, ct: TestContext.Current.CancellationToken);
         var afterThrow = await ws.ReceiveUntilAsync(
             f => f.Contains("rask-error-boundary", StringComparison.Ordinal), TimeSpan.FromSeconds(5));
 
@@ -218,7 +218,7 @@ public class HandlerDispatchTests
         Assert.DoesNotContain("count=", afterThrow);
 
         // Unknown id post-trip still gets handled gracefully (no payload, socket alive).
-        await ws.SendJsonAsync(new { id = "h999" });
+        await ws.SendJsonAsync(new { id = "h999" }, ct: TestContext.Current.CancellationToken);
         var unknown = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
 
         Assert.Null(unknown);

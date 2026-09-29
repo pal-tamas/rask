@@ -93,7 +93,7 @@ public sealed class ScaffoldContextShapeTests
 
             // Translating a query needs the bound context's model but no table, so an in-memory database
             // with no schema is enough to prove the read opened RaskShapedContext and found Doodad mapped.
-            var sql = await Doodad.Query((q, _) => Task.FromResult(q.ToQueryString()));
+            var sql = await Doodad.Query((q, _) => Task.FromResult(q.ToQueryString()), TestContext.Current.CancellationToken);
             Assert.Contains("Doodad", sql, StringComparison.Ordinal);
         }
         finally

@@ -18,17 +18,17 @@ public class InitialRenderDiffTests
     public async Task A_text_only_change_on_the_first_interaction_ships_a_diff_not_full_html()
     {
         using var host = RaskTestHost.Create<TestApp>();
-        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(2));
 
         // The VERY FIRST interaction: bump the counter (count=0 -> count=1, a pure text-node
         // change). With the GET-seeded frame baseline this ships a diff, not full HTML.
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(frame);

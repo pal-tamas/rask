@@ -25,7 +25,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask028 = new(
         "RASK028",
         "Ambiguous request handler",
-        "Request type '{0}' is handled by more than one handler; a query or command must have exactly one handler",
+        "Request type '{0}' is handled by more than one handler, and a query or command must have exactly one — keep one and delete the others, or give each its own request type",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,

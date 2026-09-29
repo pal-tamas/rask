@@ -17,7 +17,7 @@ public sealed class LitestreamVerificationServiceTests
         var service = VerificationService(provider);
 
         await service.StartAsync(CancellationToken.None);
-        await verifier.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5));
+        await verifier.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         await service.StopAsync(CancellationToken.None);
 
         Assert.True(verifier.CallCount >= 3, $"expected repeats, got {verifier.CallCount} pass(es).");
@@ -36,7 +36,7 @@ public sealed class LitestreamVerificationServiceTests
         var service = VerificationService(provider);
 
         await service.StartAsync(CancellationToken.None);
-        await verifier.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5));
+        await verifier.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         await service.StopAsync(CancellationToken.None);
 
         Assert.Equal(1, verifier.CallCount);
@@ -56,7 +56,7 @@ public sealed class LitestreamVerificationServiceTests
         var service = VerificationService(provider);
 
         await service.StartAsync(CancellationToken.None);
-        await verifier.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5));
+        await verifier.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         await service.StopAsync(CancellationToken.None);
 
         Assert.True(verifier.CallCount >= 3, $"the schedule stopped after {verifier.CallCount} pass(es).");
