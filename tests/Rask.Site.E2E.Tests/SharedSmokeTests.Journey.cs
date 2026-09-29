@@ -1431,6 +1431,19 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#web-keep").ClickAsync();
         await Expect(Page.Locator("#web-keep-out")).ToHaveTextAsync("Kept the MediaQueryList for (min-width: 1px): matches True; a URL for /docs/guides/web-apis",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        // An event: MediaQueryList's `change`, subscribed from C#, fires as the viewport crosses 900px and re-renders.
+        var viewport = Page.ViewportSize;
+        await Page.SetViewportSizeAsync(1200, 900);
+        await Page.Locator("#web-watch").ClickAsync();
+        await Expect(Page.Locator("#web-watch-out")).ToHaveTextAsync("Watching (min-width: 900px)", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.SetViewportSizeAsync(800, 900);
+        await Expect(Page.Locator("#web-watch-out")).ToHaveTextAsync("(min-width: 900px) now matches: False", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.SetViewportSizeAsync(1200, 900);
+        await Expect(Page.Locator("#web-watch-out")).ToHaveTextAsync("(min-width: 900px) now matches: True", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        if (viewport is not null)
+        {
+            await Page.SetViewportSizeAsync(viewport.Width, viewport.Height);
+        }
 
         // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
         // enumerable is materialised at render time so each demo's component instance is reconciled and

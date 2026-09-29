@@ -46,6 +46,9 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
     public bool IsValue(string name) =>
         _external.Contains(name) || _enums[name] is not null || _dictionaries[name] is not null || (_interfaces[name] is not null && ToJson(name));
 
+    // Whether a C# type this mapped (bare or qualified) is one of MDN's enums: a value type, as a C# enum is.
+    public bool IsEnum(string type) => _enums[type.Substring(type.LastIndexOf('.') + 1)] is not null;
+
     private string Qualify(string name) => _external.Contains(name) ? CorePrefix + name : prefix + name;
 
     public static void Header(StringBuilder sb)
@@ -113,11 +116,11 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 
     private static string? Primitive(string idl) => idl switch
     {
-        "DOMString" or "USVString" or "CSSOMString" => "string",
+        "DOMString" or "USVString" or "CSSOMString" or "ByteString" => "string",
         "boolean" => "bool",
         "byte" or "octet" or "short" or "unsigned short" or "long" or "unsigned long" => "int",
-        "long long" or "unsigned long long" => "long",
-        "float" or "unrestricted float" or "double" or "unrestricted double" => "double",
+        "long long" or "unsigned long long" or "EpochTimeStamp" => "long",
+        "float" or "unrestricted float" or "double" or "unrestricted double" or "DOMHighResTimeStamp" => "double",
         _ => null,
     };
 

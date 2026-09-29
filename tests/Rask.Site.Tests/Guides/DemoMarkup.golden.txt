@@ -4524,6 +4524,8 @@ div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-outline
 button .btn .btn-outline
+button .btn .btn-outline
+p .mb-1 .text-sm
 p .mb-1 .text-sm
 p .mb-1 .text-sm
 p .mb-0 .text-sm

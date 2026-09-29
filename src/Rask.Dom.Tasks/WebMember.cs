@@ -93,11 +93,97 @@ internal sealed class WebMember
         return result;
     }
 
+    // Every combination of the arguments' types that crosses the wire, each with how it goes into the call: a value
+    // as itself, a callback (an IDL callback whose arguments are values) as a C# handler handed over by JsChain.Callback.
+    // A method with one callback takes it sync or async; with more, each is an Action.
+    internal static IEnumerable<List<(string Type, string Name, string Arg)>> Expand(List<JsonNode> args, DomValueTypes types, JsonNode? callbacks)
+    {
+        IEnumerable<List<(string Type, string Name, string Arg)>> combos = new[] { new List<(string Type, string Name, string Arg)>() };
+        foreach (var a in args)
+        {
+            var name = DomRefEmitter.Identifier(a["name"]!.AsString()!);
+            var alternatives = new List<(string Type, string Arg)>();
+            foreach (var t in DomValueTypes.Alternatives(a["type"]!.AsString()!))
+            {
+                if (types.CSharp(t, returned: false) is { } value)
+                {
+                    alternatives.Add((value, name));
+                }
+                else
+                {
+                    alternatives.AddRange(Handlers(t, types, callbacks).Select(h => (h, $"global::Rask.Web.JsChain.Callback({name})")));
+                }
+            }
+
+            combos = combos.SelectMany(c => alternatives.Select(t => new List<(string Type, string Name, string Arg)>(c) { (t.Type, name, t.Arg) })).ToList();
+        }
+
+        return combos.Where(c => !c.Any(p => p.Type.StartsWith("global::System.Func<", StringComparison.Ordinal))
+                                 || c.Count(p => p.Arg.StartsWith("global::Rask.Web.JsChain.Callback", StringComparison.Ordinal)) == 1);
+    }
+
+    // The C# handler types an IDL callback can be written as: Action<…> and Func<…, Task>, for one that returns nothing
+    // and whose arguments are values.
+    private static IEnumerable<string> Handlers(string idl, DomValueTypes types, JsonNode? callbacks)
+    {
+        var nullable = idl.EndsWith("?", StringComparison.Ordinal) ? "?" : "";
+        if (callbacks?[idl.TrimEnd('?')] is not { } callback || !string.Equals(callback["returns"]?.AsString(), "undefined", StringComparison.Ordinal))
+        {
+            yield break;
+        }
+
+        var args = callback["args"]?.Items ?? new List<JsonNode>();
+        var mapped = args.Select(x => types.CSharp(x["type"]!.AsString()!, returned: false)).ToList();
+        if (args.Count > 3 || mapped.Any(x => x is null) || args.Any(x => x["variadic"]?.AsBoolean() == true))
+        {
+            yield break;
+        }
+
+        yield return mapped.Count == 0 ? "global::System.Action" + nullable : $"global::System.Action<{string.Join(", ", mapped)}>{nullable}";
+        if (mapped.Count <= 1)
+        {
+            yield return mapped.Count == 0
+                ? "global::System.Func<global::System.Threading.Tasks.Task>" + nullable
+                : $"global::System.Func<{mapped[0]}, global::System.Threading.Tasks.Task>{nullable}";
+        }
+    }
+
+    // An interface's events, each as On{Event}(handler): sync or async, with the event or without it. The subscription
+    // they return removes the listener when disposed of; so does the handler's component unmounting.
+    public static List<WebMember> EventsOf(JsonNode data, WebPayloads payloads, HashSet<string> taken)
+    {
+        var result = new List<WebMember>();
+        foreach (var e in data["events"]?.Items ?? new List<JsonNode>())
+        {
+            var type = e["type"]!.AsString()!;
+            var name = DomEventEmitter.HandlerName(type);
+            if (!taken.Add(name))
+            {
+                continue;
+            }
+
+            var (payload, fields) = payloads.Of(e["interface"]?.AsString() ?? "Event");
+            var head = $"Chain.Listen(\"{type}\", {fields}, handler, static p => new {payload}(p), ";
+            var summary = $"MDN's <c>{type}</c> event: the handler runs, in its component's order, each time it fires. Dispose of the subscription to stop.";
+            const string returns = "ValueTask<global::System.IAsyncDisposable>";
+            result.Add(new WebMember(e, summary, returns, name, $"global::System.Action<{payload}> handler", "handler",
+                head + "e => { handler(e); return global::System.Threading.Tasks.Task.CompletedTask; })"));
+            result.Add(new WebMember(e, summary, returns, name, $"global::System.Func<{payload}, global::System.Threading.Tasks.Task> handler", "handler",
+                head + "handler)"));
+            result.Add(new WebMember(e, summary, returns, name, "global::System.Action handler", "handler",
+                head + "_ => { handler(); return global::System.Threading.Tasks.Task.CompletedTask; })"));
+            result.Add(new WebMember(e, summary, returns, name, "global::System.Func<global::System.Threading.Tasks.Task> handler", "handler",
+                head + "_ => handler())"));
+        }
+
+        return result;
+    }
+
     private WebMember AsStatic(string root) =>
         new(_data, _summary, _returns, Name, _parameters, _arguments, _body.Replace("Chain.", root + "."), "static ", ParameterTypes);
 
     public static List<WebMember> Of(
-        string iface, JsonNode data, DomValueTypes types, HashSet<string> proxies, HashSet<string> taken, HashSet<string> denied)
+        string iface, JsonNode data, DomValueTypes types, HashSet<string> proxies, HashSet<string> taken, HashSet<string> denied, JsonNode? callbacks = null)
     {
         var result = new List<WebMember>();
         foreach (var m in data["members"]?.Items ?? new List<JsonNode>())
@@ -110,7 +196,7 @@ internal sealed class WebMember
             }
 
             var added = string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal)
-                ? Operation(m, idl, types, proxies)
+                ? Operation(m, idl, types, proxies, callbacks)
                 : Attribute(m, idl, types, proxies, denied.Contains(iface + "." + idl + "="));
             result.AddRange(added.Where(x => !taken.Contains(x.Name)));
             taken.UnionWith(added.Select(x => x.Name));
@@ -148,7 +234,7 @@ internal sealed class WebMember
         return result;
     }
 
-    private static List<WebMember> Operation(JsonNode m, string idl, DomValueTypes types, HashSet<string> proxies)
+    private static List<WebMember> Operation(JsonNode m, string idl, DomValueTypes types, HashSet<string> proxies, JsonNode? callbacks)
     {
         var result = new List<WebMember>();
         var returns = m["returns"]!.AsString()!;
@@ -158,7 +244,7 @@ internal sealed class WebMember
         lists.AddRange((m["overloads"]?.Items ?? new List<JsonNode>()).Select(o => o.Items));
         foreach (var args in lists.Where(a => !a.Any(x => x["variadic"]?.AsBoolean() == true)))
         {
-            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => DomRefEmitter.Expand(prefix, types))
+            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks))
                 .Where(p => signatures.Add(string.Join(",", p.Select(x => x.Type))));
             foreach (var parameters in distinct)
             {
@@ -173,12 +259,13 @@ internal sealed class WebMember
     }
 
     private static WebMember? Call(
-        JsonNode m, string idl, string method, string returns, List<(string Type, string Name)> parameters, DomValueTypes types, HashSet<string> proxies)
+        JsonNode m, string idl, string method, string returns, List<(string Type, string Name, string Arg)> parameters, DomValueTypes types, HashSet<string> proxies)
     {
         var declared = string.Join(", ", parameters.Select(p => p.Type + " " + p.Name));
         var names = string.Join(", ", parameters.Select(p => p.Name));
+        var values = string.Join(", ", parameters.Select(p => p.Arg));
         // Always an explicit array: a lone string[] argument would otherwise BE the params array (array covariance).
-        var args = parameters.Count == 0 ? "" : ", new object?[] { " + names + " }";
+        var args = parameters.Count == 0 ? "" : ", new object?[] { " + values + " }";
         var promised = returns.StartsWith("Promise<", StringComparison.Ordinal) ? returns.Substring(8, returns.Length - 9) : null;
         var summary = $"MDN's <c>{idl}()</c>, called in the browser.";
         if (promised is not null && proxies.Contains(promised.TrimEnd('?')))

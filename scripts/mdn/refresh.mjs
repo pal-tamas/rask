@@ -91,7 +91,7 @@ for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1"
 }
 
 // ---- IDL: merge partials and mixins -------------------------------------------------------------
-const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map();
+const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map(), callbacks = new Map();
 function merge(map, def) {
   const cur = map.get(def.name);
   if (!cur) map.set(def.name, { name: def.name, inheritance: def.inheritance ?? null, members: [...def.members], extAttrs: def.extAttrs ?? [] });
@@ -108,6 +108,7 @@ for (const ast of Object.values(await idlPkg.parseAll())) {
     else if (def.type === "includes") includes.push(def);
     else if (def.type === "enum") enums.set(def.name, def.values.map(v => v.value));
     else if (def.type === "dictionary") merge(dictionaries, def);
+    else if (def.type === "callback") callbacks.set(def.name, def);
   }
 }
 for (const inc of includes) {
@@ -319,7 +320,7 @@ function extrasOf(name) {
         : { kind: "operation", name: m.name, returns: typeOf(m.idlType), args: args(m), ...meta(compat) });
     } else if (m.type === "attribute" && m.name?.startsWith("on") && typeOf(m.idlType).startsWith("EventHandler")) {
       const type = m.name.slice(2);
-      if (ships(api[`${type}_event`]?.__compat)) events.push(type);
+      if (ships(api[`${type}_event`]?.__compat)) events.push({ type, interface: eventInterface(name, type) });
     }
   }
   return { constructors, statics, events };
@@ -387,11 +388,26 @@ for (const [name, def] of interfaces) {
   for (let n = name; n && !interfaceOut[n]; n = interfaces.get(n)?.inheritance) interfaceOut[n] = describe(n);
 }
 
-// ---- Enums and dictionaries the members reach (for typed refs) -----------------------------------
-const reachedEnums = {}, reachedDicts = {};
+// The interface an event of `type` is dispatched with at `target` (or an ancestor of it): @webref/events says, and a
+// plain Event where it says nothing.
+function eventInterface(target, type) {
+  const chain = [];
+  for (let n = target; n; n = interfaces.get(n)?.inheritance) chain.push(n);
+  const entry = webrefEvents.find(e => e.type === type && (e.targets ?? []).some(t => chain.includes(t.target)));
+  return entry?.interface && isEvent(entry.interface) ? entry.interface : "Event";
+}
+
+// ---- Enums, dictionaries and callbacks the members reach (for typed refs and Rask.Web) -------------
+const reachedEnums = {}, reachedDicts = {}, reachedCallbacks = {};
 function reach(type) {
   for (const n of type.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []) {
     if (enums.has(n) && !reachedEnums[n]) reachedEnums[n] = enums.get(n);
+    const c = callbacks.get(n);
+    if (c && !reachedCallbacks[n]) {
+      reachedCallbacks[n] = { returns: typeOf(c.idlType), args: c.arguments.map(a => ({ name: a.name, type: typeOf(a.idlType), optional: a.optional || undefined, variadic: a.variadic || undefined })) };
+      reach(reachedCallbacks[n].returns);
+      for (const a of reachedCallbacks[n].args) reach(a.type);
+    }
     const d = dictionaries.get(n);
     if (d && !reachedDicts[n]) {
       reachedDicts[n] = { parent: d.inheritance ?? undefined, members: d.members.filter(m => m.name).map(m => ({ name: m.name, type: typeOf(m.idlType), required: m.required || undefined })) };
@@ -424,6 +440,7 @@ const snapshot = {
   interfaces: sortObj(interfaceOut),
   enums: sortObj(reachedEnums),
   dictionaries: sortObj(reachedDicts),
+  callbacks: sortObj(reachedCallbacks),
 };
 writeFileSync(out, JSON.stringify(snapshot, null, 1) + "\n");
 console.log(`${elements.length} elements, ${events.length} events, ${Object.keys(interfaceOut).length} interfaces → ${out}`);

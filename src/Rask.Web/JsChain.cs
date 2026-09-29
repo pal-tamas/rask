@@ -5,7 +5,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
+using Rask.Core;
 using Rask.Core.Live;
+using Rask.Core.ScopedAssets;
 using Rask.Web.Types;
 
 namespace Rask.Web;
@@ -16,7 +18,9 @@ namespace Rask.Web;
 /// </summary>
 /// <remarks>
 ///     The steps cross as one JSON string, written with Rask.Web's own trim-safe metadata, so neither host's runtime has
-///     to know Rask.Web's types: the runtime carries a string there and a <see cref="JsonElement" /> back.
+///     to know Rask.Web's types: the runtime carries a string there and a <see cref="JsonElement" /> back. What JSON
+///     cannot carry — a C# handler, a kept object, an element — rides beside the steps as its own argument, which the
+///     host revives, and the steps name it by position: <c>{"__raskArg__": 0}</c>.
 /// </remarks>
 internal sealed class JsChain
 {
@@ -25,6 +29,10 @@ internal sealed class JsChain
     private const char StepCall = 'c';
     private const char StepWrite = 's';
     private const char StepNew = 'n';
+
+    // What JSInterop's InvokeAsync<T> asks of a result type, so the trimmer keeps it deserializable.
+    private const DynamicallyAccessedMemberTypes Json =
+        DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties;
 
     private readonly JsChain? _parent;
     private readonly char _kind;
@@ -45,7 +53,6 @@ internal sealed class JsChain
         _runtime = runtime;
     }
 
-    /// <summary>The window: where every global starts.</summary>
     internal static JsChain Window { get; } = new(null, StepRoot, null, null);
 
     // A chain that is an object the browser holds for us rather than a path to one.
@@ -81,7 +88,7 @@ internal sealed class JsChain
     internal async ValueTask<JsChain> Keep()
     {
         var runtime = Runtime;
-        var handle = await runtime.InvokeAsync<IJSObjectReference>("__raskWeb.run", Start._handle, Steps()).ConfigureAwait(false);
+        var handle = await runtime.InvokeAsync<IJSObjectReference>("__raskWeb.run", Arguments()).ConfigureAwait(false);
         return new JsChain(null, StepRoot, null, null, handle, runtime);
     }
 
@@ -89,17 +96,93 @@ internal sealed class JsChain
 
     // Whether the browser has what the chain ends at.
     internal ValueTask<bool> Exists() =>
-        _kind == StepRoot ? ValueTask.FromResult(true) : Runtime.InvokeAsync<bool>("__raskWeb.has", Start._handle, Steps());
+        _kind == StepRoot ? ValueTask.FromResult(true) : Runtime.InvokeAsync<bool>("__raskWeb.has", Arguments());
 
     internal ValueTask Release() => _handle?.DisposeAsync() ?? default;
 
-    private async ValueTask<T> Run<[DynamicallyAccessedMembers(Json)] T>()
+    // Adds `handler` to the object the chain ends at, for events of `type`; each one arrives as the fields named in
+    // `fields` (a JSON array: only what the payload type reads), read into a TEvent. Disposing of what this returns
+    // removes it; so does the owner unmounting.
+    internal async ValueTask<IAsyncDisposable> Listen<TEvent>(
+        string type, string fields, Delegate handler, Func<JsonElement, TEvent> read, Func<TEvent, Task> invoke)
     {
-        var result = await Runtime.InvokeAsync<JsonElement>("__raskWeb.run", Start._handle, Steps()).ConfigureAwait(false);
-        return result.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? default! : result.Deserialize(TypeInfo<T>())!;
+        var callback = ScopedScript.Handler(Owner(handler), args => invoke(read(First(args))));
+        var runtime = Runtime;
+        var (steps, extras) = Serialize();
+        int id;
+        try
+        {
+            id = await runtime.InvokeAsync<int>("__raskWeb.listen", [Start._handle, steps, type, fields, callback, .. extras]).ConfigureAwait(false);
+        }
+        catch
+        {
+            ScopedScript.Release(callback);
+            throw;
+        }
+
+        return new Listening(runtime, id, callback);
     }
 
-    private ValueTask Run() => Runtime.InvokeVoidAsync("__raskWeb.run", Start._handle, Steps());
+    // A C# handler as a function the browser can call: runs in its component's order and re-renders it. Released when
+    // the component unmounts.
+    internal static object? Callback(Action? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), _ => Done(handler));
+
+    internal static object? Callback(Func<Task>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), _ => handler());
+
+    internal static object? Callback<[DynamicallyAccessedMembers(Json)] T1>(Action<T1>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), a => Done(() => handler(Arg<T1>(a, 0))));
+
+    internal static object? Callback<[DynamicallyAccessedMembers(Json)] T1>(Func<T1, Task>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), a => handler(Arg<T1>(a, 0)));
+
+    internal static object? Callback<[DynamicallyAccessedMembers(Json)] T1, [DynamicallyAccessedMembers(Json)] T2>(Action<T1, T2>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), a => Done(() => handler(Arg<T1>(a, 0), Arg<T2>(a, 1))));
+
+    internal static object? Callback<[DynamicallyAccessedMembers(Json)] T1, [DynamicallyAccessedMembers(Json)] T2, [DynamicallyAccessedMembers(Json)] T3>(
+        Action<T1, T2, T3>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), a => Done(() => handler(Arg<T1>(a, 0), Arg<T2>(a, 1), Arg<T3>(a, 2))));
+
+    // One field of an event's payload, as the generated payload types read it.
+    internal static T Field<[DynamicallyAccessedMembers(Json)] T>(JsonElement payload, string name) =>
+        payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty(name, out var value) ? Value<T>(value) : default!;
+
+    private static T Arg<[DynamicallyAccessedMembers(Json)] T>(JsonElement args, int index) =>
+        args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > index ? Value<T>(args[index]) : default!;
+
+    private static T Value<[DynamicallyAccessedMembers(Json)] T>(JsonElement value) =>
+        value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined ? default! : value.Deserialize(TypeInfo<T>())!;
+
+    private static JsonElement First(JsonElement args) =>
+        args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 ? args[0] : default;
+
+    private static Task Done(Action run)
+    {
+        run();
+        return Task.CompletedTask;
+    }
+
+    // The component a handler belongs to: the one it re-renders, whose order it runs in, and whose unmount releases it.
+    private static Component Owner(Delegate handler) =>
+        DelegateOwner.Resolve(handler) ?? throw new InvalidOperationException(
+            "A handler handed to the browser has to belong to a component — a lambda written in one, or a method of it — " +
+            "since it runs in that component's order and re-renders it.");
+
+    private async ValueTask<T> Run<[DynamicallyAccessedMembers(Json)] T>()
+    {
+        var result = await Runtime.InvokeAsync<JsonElement>("__raskWeb.run", Arguments()).ConfigureAwait(false);
+        return Value<T>(result);
+    }
+
+    private ValueTask Run() => Runtime.InvokeVoidAsync("__raskWeb.run", Arguments());
+
+    // [root, steps, …the arguments the steps name by position].
+    private object?[] Arguments()
+    {
+        var (steps, extras) = Serialize();
+        return [Start._handle, steps, .. extras];
+    }
 
     private JsChain Start
     {
@@ -123,7 +206,9 @@ internal sealed class JsChain
             "A web API was called outside a page: call it from an event handler or from OnRendered, where the page is live.");
 
     // [["g","navigator"],["g","clipboard"],["c","writeText",["hi"]]]
-    internal string Steps()
+    internal string Steps() => Serialize().Steps;
+
+    private (string Steps, List<object> Extras) Serialize()
     {
         var steps = new List<JsChain>();
         for (var c = this; c._kind != StepRoot; c = c._parent!)
@@ -132,22 +217,23 @@ internal sealed class JsChain
         }
 
         steps.Reverse();
+        var extras = new List<object>();
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartArray();
             foreach (var step in steps)
             {
-                step.WriteStep(writer);
+                step.WriteStep(writer, extras);
             }
 
             writer.WriteEndArray();
         }
 
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return (Encoding.UTF8.GetString(buffer.WrittenSpan), extras);
     }
 
-    private void WriteStep(Utf8JsonWriter writer)
+    private void WriteStep(Utf8JsonWriter writer, List<object> extras)
     {
         writer.WriteStartArray();
         writer.WriteStringValue(_kind.ToString());
@@ -157,15 +243,7 @@ internal sealed class JsChain
             writer.WriteStartArray();
             foreach (var arg in _args)
             {
-                if (arg is null)
-                {
-                    writer.WriteNullValue();
-                }
-                else
-                {
-                    JsonSerializer.Serialize(writer, arg, RaskWebJsonContext.Default.GetTypeInfo(arg.GetType())
-                        ?? throw new NotSupportedException($"{arg.GetType()} has no JSON metadata in Rask.Web."));
-                }
+                WriteArg(writer, arg, extras);
             }
 
             writer.WriteEndArray();
@@ -174,11 +252,47 @@ internal sealed class JsChain
         writer.WriteEndArray();
     }
 
+    private static void WriteArg(Utf8JsonWriter writer, object? arg, List<object> extras)
+    {
+        switch (arg)
+        {
+            case null:
+                writer.WriteNullValue();
+                break;
+            case ScopedScript.ScriptCallback or IJSObjectReference or ElementRef:
+                Placeholder(writer, arg, extras);
+                break;
+            case JsObject { Chain.IsKept: true } kept:
+                Placeholder(writer, kept.Chain._handle!, extras);
+                break;
+            case JsObject:
+                throw new InvalidOperationException("Only a kept object can be handed to the browser: await it first, to keep it.");
+            default:
+                JsonSerializer.Serialize(writer, arg, RaskWebJsonContext.Default.GetTypeInfo(arg.GetType())
+                    ?? throw new NotSupportedException($"{arg.GetType()} has no JSON metadata in Rask.Web."));
+                break;
+        }
+    }
+
+    private static void Placeholder(Utf8JsonWriter writer, object value, List<object> extras)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("__raskArg__", extras.Count);
+        writer.WriteEndObject();
+        extras.Add(value);
+    }
+
     private static JsonTypeInfo<T> TypeInfo<[DynamicallyAccessedMembers(Json)] T>() =>
         (JsonTypeInfo<T>)(RaskWebJsonContext.Default.GetTypeInfo(typeof(T))
                           ?? throw new NotSupportedException($"{typeof(T)} has no JSON metadata in Rask.Web."));
 
-    // What JSInterop's InvokeAsync<T> asks of a result type, so the trimmer keeps it deserializable.
-    private const DynamicallyAccessedMemberTypes Json =
-        DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties;
+    // A subscription: disposing of it removes the listener in the browser and drops the handler here.
+    private sealed class Listening(IJSRuntime runtime, int id, ScopedScript.ScriptCallback callback) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            ScopedScript.Release(callback);
+            return runtime.InvokeVoidAsync("__raskWeb.unlisten", id);
+        }
+    }
 }
