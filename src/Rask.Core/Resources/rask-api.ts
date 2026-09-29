@@ -64,11 +64,21 @@ const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
     }
     return target;
 };
+// What JSON cannot carry — a C# handler, a kept object, an element — arrives as its own argument, revived by the host,
+// and the steps name it by position: {"__raskArg__": 0}.
+const raskWebSteps = (steps: string, extras: unknown[]): RaskWebStep[] =>
+    JSON.parse(steps, (_key, value: unknown) => {
+        const index = value && typeof value === "object" ? (value as { __raskArg__?: unknown }).__raskArg__ : undefined;
+        return typeof index === "number" ? extras[index] : value;
+    }) as RaskWebStep[];
+// A subscription's listener, by the id C# holds to remove it.
+const raskWebListeners = new Map<number, { target: EventTarget; type: string; listener: (event: Event) => void }>();
+let raskWebNextListener = 0;
 window.__raskWeb = window.__raskWeb || {
-    run: (root: unknown, steps: string) => raskWebWalk(root, JSON.parse(steps) as RaskWebStep[]),
+    run: (root: unknown, steps: string, ...extras: unknown[]) => raskWebWalk(root, raskWebSteps(steps, extras)),
     // Whether the browser has what the chain ends at: the object before it exists and holds a member of that name.
-    has: (root: unknown, steps: string) => {
-        const parsed = JSON.parse(steps) as RaskWebStep[];
+    has: (root: unknown, steps: string, ...extras: unknown[]) => {
+        const parsed = raskWebSteps(steps, extras);
         const last = parsed.pop();
         try {
             const owner = raskWebWalk(root, parsed);
@@ -76,6 +86,28 @@ window.__raskWeb = window.__raskWeb || {
         } catch {
             return false;
         }
+    },
+    // Listens on what the chain ends at; each event reaches C# as the fields its payload type reads, and nothing else
+    // (an event's `view` is a Window, which does not serialize).
+    listen: (root: unknown, steps: string, type: string, fields: string, handler: (payload: unknown) => void, ...extras: unknown[]) => {
+        const target = raskWebWalk(root, raskWebSteps(steps, extras)) as EventTarget | null;
+        if (!target || typeof target.addEventListener !== "function") throw new Error(`Rask: there is nothing to listen to for ${type}`);
+        const names = JSON.parse(fields) as string[];
+        const listener = (event: Event) => {
+            const payload: Record<string, unknown> = {};
+            for (const name of names) payload[name] = (event as unknown as Record<string, unknown>)[name];
+            handler(payload);
+        };
+        target.addEventListener(type, listener);
+        const id = ++raskWebNextListener;
+        raskWebListeners.set(id, { target, type, listener });
+        return id;
+    },
+    unlisten: (id: number) => {
+        const entry = raskWebListeners.get(id);
+        if (!entry) return;
+        entry.target.removeEventListener(entry.type, entry.listener);
+        raskWebListeners.delete(id);
     }
 };
 

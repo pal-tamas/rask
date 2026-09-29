@@ -10153,3 +10153,1303 @@ static Rask.Web.WritableStream.Create() -> System.Threading.Tasks.ValueTask<Rask
 static Rask.Web.XMLHttpRequest.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XMLHttpRequest!>
 static Rask.Web.XMLSerializer.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XMLSerializer!>
 static Rask.Web.XPathEvaluator.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XPathEvaluator!>
+Rask.Web.Types.AbortSignal.OnAbort(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AbortSignal.OnAbort(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AbortSignal.OnAbort(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AbortSignal.OnAbort(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnCancel(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnCancel(System.Action<Rask.Web.Types.AnimationPlaybackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnCancel(System.Func<Rask.Web.Types.AnimationPlaybackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnCancel(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnFinish(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnFinish(System.Action<Rask.Web.Types.AnimationPlaybackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnFinish(System.Func<Rask.Web.Types.AnimationPlaybackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnFinish(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnRemove(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnRemove(System.Action<Rask.Web.Types.AnimationPlaybackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnRemove(System.Func<Rask.Web.Types.AnimationPlaybackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Animation.OnRemove(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AnimationPlaybackEvent
+Rask.Web.Types.AnimationPlaybackEvent.AnimationPlaybackEvent() -> void
+Rask.Web.Types.AudioDecoder.OnDequeue(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioDecoder.OnDequeue(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioDecoder.OnDequeue(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioDecoder.OnDequeue(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioEncoder.OnDequeue(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioEncoder.OnDequeue(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioEncoder.OnDequeue(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioEncoder.OnDequeue(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioScheduledSourceNode.OnEnded(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioScheduledSourceNode.OnEnded(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioScheduledSourceNode.OnEnded(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioScheduledSourceNode.OnEnded(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action<Rask.Web.Types.ErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<Rask.Web.Types.ErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BaseAudioContext.OnStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BaseAudioContext.OnStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BaseAudioContext.OnStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BaseAudioContext.OnStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BlobEvent
+Rask.Web.Types.BlobEvent.BlobEvent() -> void
+Rask.Web.Types.BroadcastChannel.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BroadcastChannel.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BroadcastChannel.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BroadcastChannel.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BroadcastChannel.OnMessageError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BroadcastChannel.OnMessageError(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BroadcastChannel.OnMessageError(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.BroadcastChannel.OnMessageError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseEvent
+Rask.Web.Types.CloseEvent.CloseEvent() -> void
+Rask.Web.Types.CloseEvent.Code.get -> int
+Rask.Web.Types.CloseEvent.Code.init -> void
+Rask.Web.Types.CloseEvent.Reason.get -> string!
+Rask.Web.Types.CloseEvent.Reason.init -> void
+Rask.Web.Types.CloseEvent.WasClean.get -> bool
+Rask.Web.Types.CloseEvent.WasClean.init -> void
+Rask.Web.Types.CloseWatcher.OnCancel(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseWatcher.OnCancel(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseWatcher.OnCancel(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseWatcher.OnCancel(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseWatcher.OnClose(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseWatcher.OnClose(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseWatcher.OnClose(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CloseWatcher.OnClose(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CookieChangeEvent
+Rask.Web.Types.CookieChangeEvent.Changed.get -> Rask.Web.Types.CookieListItem![]!
+Rask.Web.Types.CookieChangeEvent.Changed.init -> void
+Rask.Web.Types.CookieChangeEvent.CookieChangeEvent() -> void
+Rask.Web.Types.CookieChangeEvent.Deleted.get -> Rask.Web.Types.CookieListItem![]!
+Rask.Web.Types.CookieChangeEvent.Deleted.init -> void
+Rask.Web.Types.CookieStore.OnChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CookieStore.OnChange(System.Action<Rask.Web.Types.CookieChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CookieStore.OnChange(System.Func<Rask.Web.Types.CookieChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.CookieStore.OnChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.DataTransferItem.GetAsString(System.Action<string!>? callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.DataTransferItem.GetAsString(System.Func<string!, System.Threading.Tasks.Task!>? callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.DeviceMotionEvent
+Rask.Web.Types.DeviceMotionEvent.DeviceMotionEvent() -> void
+Rask.Web.Types.DeviceMotionEvent.Interval.get -> double
+Rask.Web.Types.DeviceMotionEvent.Interval.init -> void
+Rask.Web.Types.DeviceOrientationEvent
+Rask.Web.Types.DeviceOrientationEvent.Absolute.get -> bool
+Rask.Web.Types.DeviceOrientationEvent.Absolute.init -> void
+Rask.Web.Types.DeviceOrientationEvent.Alpha.get -> double?
+Rask.Web.Types.DeviceOrientationEvent.Alpha.init -> void
+Rask.Web.Types.DeviceOrientationEvent.Beta.get -> double?
+Rask.Web.Types.DeviceOrientationEvent.Beta.init -> void
+Rask.Web.Types.DeviceOrientationEvent.DeviceOrientationEvent() -> void
+Rask.Web.Types.DeviceOrientationEvent.Gamma.get -> double?
+Rask.Web.Types.DeviceOrientationEvent.Gamma.init -> void
+Rask.Web.Types.Document.OnFullscreenChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnFullscreenChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnFullscreenChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnFullscreenChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnFullscreenError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnFullscreenError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnFullscreenError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnFullscreenError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnPointerLockError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnReadyStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnReadyStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnReadyStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnReadyStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScroll(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScroll(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScroll(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScroll(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScrollEnd(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScrollEnd(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScrollEnd(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnScrollEnd(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSecurityPolicyViolation(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSecurityPolicyViolation(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSecurityPolicyViolation(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSecurityPolicyViolation(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSelectionChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSelectionChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSelectionChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnSelectionChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnVisibilityChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnVisibilityChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnVisibilityChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Document.OnVisibilityChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.DocumentPictureInPicture.OnEnter(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.DocumentPictureInPicture.OnEnter(System.Action<Rask.Web.Types.DocumentPictureInPictureEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.DocumentPictureInPicture.OnEnter(System.Func<Rask.Web.Types.DocumentPictureInPictureEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.DocumentPictureInPicture.OnEnter(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.DocumentPictureInPictureEvent
+Rask.Web.Types.DocumentPictureInPictureEvent.DocumentPictureInPictureEvent() -> void
+Rask.Web.Types.ErrorEvent
+Rask.Web.Types.ErrorEvent.Colno.get -> int
+Rask.Web.Types.ErrorEvent.Colno.init -> void
+Rask.Web.Types.ErrorEvent.ErrorEvent() -> void
+Rask.Web.Types.ErrorEvent.Filename.get -> string!
+Rask.Web.Types.ErrorEvent.Filename.init -> void
+Rask.Web.Types.ErrorEvent.Lineno.get -> int
+Rask.Web.Types.ErrorEvent.Lineno.init -> void
+Rask.Web.Types.ErrorEvent.Message.get -> string!
+Rask.Web.Types.ErrorEvent.Message.init -> void
+Rask.Web.Types.EventSource.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnOpen(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnOpen(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnOpen(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.EventSource.OnOpen(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnAbort(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnAbort(System.Action<Rask.Web.Types.ProgressEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnAbort(System.Func<Rask.Web.Types.ProgressEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnAbort(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnError(System.Action<Rask.Web.Types.ProgressEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnError(System.Func<Rask.Web.Types.ProgressEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoad(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoad(System.Action<Rask.Web.Types.ProgressEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoad(System.Func<Rask.Web.Types.ProgressEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoad(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadEnd(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadEnd(System.Action<Rask.Web.Types.ProgressEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadEnd(System.Func<Rask.Web.Types.ProgressEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadEnd(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadStart(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadStart(System.Action<Rask.Web.Types.ProgressEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadStart(System.Func<Rask.Web.Types.ProgressEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnLoadStart(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnProgress(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnProgress(System.Action<Rask.Web.Types.ProgressEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnProgress(System.Func<Rask.Web.Types.ProgressEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FileReader.OnProgress(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoading(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoading(System.Action<Rask.Web.Types.FontFaceSetLoadEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoading(System.Func<Rask.Web.Types.FontFaceSetLoadEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoading(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingDone(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingDone(System.Action<Rask.Web.Types.FontFaceSetLoadEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingDone(System.Func<Rask.Web.Types.FontFaceSetLoadEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingDone(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingError(System.Action<Rask.Web.Types.FontFaceSetLoadEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingError(System.Func<Rask.Web.Types.FontFaceSetLoadEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSet.OnLoadingError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.FontFaceSetLoadEvent
+Rask.Web.Types.FontFaceSetLoadEvent.FontFaceSetLoadEvent() -> void
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action<Rask.Web.Types.GPUUncapturedErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<Rask.Web.Types.GPUUncapturedErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUUncapturedErrorEvent
+Rask.Web.Types.GPUUncapturedErrorEvent.GPUUncapturedErrorEvent() -> void
+Rask.Web.Types.GamepadEvent
+Rask.Web.Types.GamepadEvent.GamepadEvent() -> void
+Rask.Web.Types.Geolocation.GetCurrentPosition(System.Action<Rask.Web.Types.GeolocationPosition!>! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Geolocation.GetCurrentPosition(System.Func<Rask.Web.Types.GeolocationPosition!, System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Geolocation.WatchPosition(System.Action<Rask.Web.Types.GeolocationPosition!>! successCallback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.Geolocation.WatchPosition(System.Func<Rask.Web.Types.GeolocationPosition!, System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GeolocationCoordinates
+Rask.Web.Types.GeolocationCoordinates.<Clone>$() -> Rask.Web.Types.GeolocationCoordinates!
+Rask.Web.Types.GeolocationCoordinates.Accuracy.get -> double?
+Rask.Web.Types.GeolocationCoordinates.Accuracy.init -> void
+Rask.Web.Types.GeolocationCoordinates.Altitude.get -> double?
+Rask.Web.Types.GeolocationCoordinates.Altitude.init -> void
+Rask.Web.Types.GeolocationCoordinates.AltitudeAccuracy.get -> double?
+Rask.Web.Types.GeolocationCoordinates.AltitudeAccuracy.init -> void
+Rask.Web.Types.GeolocationCoordinates.Equals(Rask.Web.Types.GeolocationCoordinates? other) -> bool
+Rask.Web.Types.GeolocationCoordinates.GeolocationCoordinates() -> void
+Rask.Web.Types.GeolocationCoordinates.Heading.get -> double?
+Rask.Web.Types.GeolocationCoordinates.Heading.init -> void
+Rask.Web.Types.GeolocationCoordinates.Latitude.get -> double?
+Rask.Web.Types.GeolocationCoordinates.Latitude.init -> void
+Rask.Web.Types.GeolocationCoordinates.Longitude.get -> double?
+Rask.Web.Types.GeolocationCoordinates.Longitude.init -> void
+Rask.Web.Types.GeolocationCoordinates.Speed.get -> double?
+Rask.Web.Types.GeolocationCoordinates.Speed.init -> void
+Rask.Web.Types.GeolocationPosition
+Rask.Web.Types.GeolocationPosition.<Clone>$() -> Rask.Web.Types.GeolocationPosition!
+Rask.Web.Types.GeolocationPosition.Coords.get -> Rask.Web.Types.GeolocationCoordinates?
+Rask.Web.Types.GeolocationPosition.Coords.init -> void
+Rask.Web.Types.GeolocationPosition.Equals(Rask.Web.Types.GeolocationPosition? other) -> bool
+Rask.Web.Types.GeolocationPosition.GeolocationPosition() -> void
+Rask.Web.Types.HashChangeEvent
+Rask.Web.Types.HashChangeEvent.HashChangeEvent() -> void
+Rask.Web.Types.HashChangeEvent.NewURL.get -> string!
+Rask.Web.Types.HashChangeEvent.NewURL.init -> void
+Rask.Web.Types.HashChangeEvent.OldURL.get -> string!
+Rask.Web.Types.HashChangeEvent.OldURL.init -> void
+Rask.Web.Types.IDBDatabase.OnAbort(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnAbort(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnAbort(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnAbort(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnClose(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnClose(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnClose(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnClose(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnVersionChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnVersionChange(System.Action<Rask.Web.Types.IDBVersionChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnVersionChange(System.Func<Rask.Web.Types.IDBVersionChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBDatabase.OnVersionChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnBlocked(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnBlocked(System.Action<Rask.Web.Types.IDBVersionChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnBlocked(System.Func<Rask.Web.Types.IDBVersionChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnBlocked(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnUpgradeNeeded(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnUpgradeNeeded(System.Action<Rask.Web.Types.IDBVersionChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnUpgradeNeeded(System.Func<Rask.Web.Types.IDBVersionChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBOpenDBRequest.OnUpgradeNeeded(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnSuccess(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnSuccess(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnSuccess(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBRequest.OnSuccess(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnAbort(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnAbort(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnAbort(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnAbort(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnComplete(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnComplete(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnComplete(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnComplete(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBTransaction.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.IDBVersionChangeEvent
+Rask.Web.Types.IDBVersionChangeEvent.IDBVersionChangeEvent() -> void
+Rask.Web.Types.IDBVersionChangeEvent.NewVersion.get -> long?
+Rask.Web.Types.IDBVersionChangeEvent.NewVersion.init -> void
+Rask.Web.Types.IDBVersionChangeEvent.OldVersion.get -> long
+Rask.Web.Types.IDBVersionChangeEvent.OldVersion.init -> void
+Rask.Web.Types.MIDIConnectionEvent
+Rask.Web.Types.MIDIConnectionEvent.MIDIConnectionEvent() -> void
+Rask.Web.Types.MIDIInput.OnMidiMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MIDIInput.OnMidiMessage(System.Action<Rask.Web.Types.MIDIMessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MIDIInput.OnMidiMessage(System.Func<Rask.Web.Types.MIDIMessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MIDIInput.OnMidiMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MIDIMessageEvent
+Rask.Web.Types.MIDIMessageEvent.MIDIMessageEvent() -> void
+Rask.Web.Types.MIDIPort.OnStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MIDIPort.OnStateChange(System.Action<Rask.Web.Types.MIDIConnectionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MIDIPort.OnStateChange(System.Func<Rask.Web.Types.MIDIConnectionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MIDIPort.OnStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaDevices.OnDeviceChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaDevices.OnDeviceChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaDevices.OnDeviceChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaDevices.OnDeviceChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeyMessageEvent
+Rask.Web.Types.MediaKeyMessageEvent.MediaKeyMessageEvent() -> void
+Rask.Web.Types.MediaKeyMessageEvent.MessageType.get -> Rask.Web.Types.MediaKeyMessageType
+Rask.Web.Types.MediaKeyMessageEvent.MessageType.init -> void
+Rask.Web.Types.MediaKeyMessageType
+Rask.Web.Types.MediaKeyMessageType.IndividualizationRequest = 3 -> Rask.Web.Types.MediaKeyMessageType
+Rask.Web.Types.MediaKeyMessageType.LicenseRelease = 2 -> Rask.Web.Types.MediaKeyMessageType
+Rask.Web.Types.MediaKeyMessageType.LicenseRenewal = 1 -> Rask.Web.Types.MediaKeyMessageType
+Rask.Web.Types.MediaKeyMessageType.LicenseRequest = 0 -> Rask.Web.Types.MediaKeyMessageType
+Rask.Web.Types.MediaKeySession.OnKeyStatusesChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeySession.OnKeyStatusesChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeySession.OnKeyStatusesChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeySession.OnKeyStatusesChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeySession.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeySession.OnMessage(System.Action<Rask.Web.Types.MediaKeyMessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeySession.OnMessage(System.Func<Rask.Web.Types.MediaKeyMessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaKeySession.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaQueryList.OnChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaQueryList.OnChange(System.Action<Rask.Web.Types.MediaQueryListEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaQueryList.OnChange(System.Func<Rask.Web.Types.MediaQueryListEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaQueryList.OnChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaQueryListEvent
+Rask.Web.Types.MediaQueryListEvent.Matches.get -> bool
+Rask.Web.Types.MediaQueryListEvent.Matches.init -> void
+Rask.Web.Types.MediaQueryListEvent.Media.get -> string!
+Rask.Web.Types.MediaQueryListEvent.Media.init -> void
+Rask.Web.Types.MediaQueryListEvent.MediaQueryListEvent() -> void
+Rask.Web.Types.MediaRecorder.OnDataAvailable(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnDataAvailable(System.Action<Rask.Web.Types.BlobEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnDataAvailable(System.Func<Rask.Web.Types.BlobEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnDataAvailable(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnError(System.Action<Rask.Web.Types.ErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnError(System.Func<Rask.Web.Types.ErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnPause(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnPause(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnPause(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnPause(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnResume(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnResume(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnResume(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnResume(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStart(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStart(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStart(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStart(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStop(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStop(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStop(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaRecorder.OnStop(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSession.SetActionHandler(Rask.Web.Types.MediaSessionAction action, System.Action<Rask.Web.Types.MediaSessionActionDetails!>? handler) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaSession.SetActionHandler(Rask.Web.Types.MediaSessionAction action, System.Func<Rask.Web.Types.MediaSessionActionDetails!, System.Threading.Tasks.Task!>? handler) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaSessionActionDetails
+Rask.Web.Types.MediaSessionActionDetails.<Clone>$() -> Rask.Web.Types.MediaSessionActionDetails!
+Rask.Web.Types.MediaSessionActionDetails.Action.get -> Rask.Web.Types.MediaSessionAction
+Rask.Web.Types.MediaSessionActionDetails.Action.init -> void
+Rask.Web.Types.MediaSessionActionDetails.EnterPictureInPictureReason.get -> Rask.Web.Types.MediaSessionEnterPictureInPictureReason?
+Rask.Web.Types.MediaSessionActionDetails.EnterPictureInPictureReason.init -> void
+Rask.Web.Types.MediaSessionActionDetails.Equals(Rask.Web.Types.MediaSessionActionDetails? other) -> bool
+Rask.Web.Types.MediaSessionActionDetails.FastSeek.get -> bool?
+Rask.Web.Types.MediaSessionActionDetails.FastSeek.init -> void
+Rask.Web.Types.MediaSessionActionDetails.IsActivating.get -> bool?
+Rask.Web.Types.MediaSessionActionDetails.IsActivating.init -> void
+Rask.Web.Types.MediaSessionActionDetails.MediaSessionActionDetails() -> void
+Rask.Web.Types.MediaSessionActionDetails.SeekOffset.get -> double?
+Rask.Web.Types.MediaSessionActionDetails.SeekOffset.init -> void
+Rask.Web.Types.MediaSessionActionDetails.SeekTime.get -> double?
+Rask.Web.Types.MediaSessionActionDetails.SeekTime.init -> void
+Rask.Web.Types.MediaSessionEnterPictureInPictureReason
+Rask.Web.Types.MediaSessionEnterPictureInPictureReason.Contentoccluded = 2 -> Rask.Web.Types.MediaSessionEnterPictureInPictureReason
+Rask.Web.Types.MediaSessionEnterPictureInPictureReason.Other = 0 -> Rask.Web.Types.MediaSessionEnterPictureInPictureReason
+Rask.Web.Types.MediaSessionEnterPictureInPictureReason.Useraction = 1 -> Rask.Web.Types.MediaSessionEnterPictureInPictureReason
+Rask.Web.Types.MediaSource.OnSourceClose(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceClose(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceClose(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceClose(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceEnded(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceEnded(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceEnded(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceEnded(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceOpen(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceOpen(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceOpen(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaSource.OnSourceOpen(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnAddTrack(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnAddTrack(System.Action<Rask.Web.Types.MediaStreamTrackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnAddTrack(System.Func<Rask.Web.Types.MediaStreamTrackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnAddTrack(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnRemoveTrack(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnRemoveTrack(System.Action<Rask.Web.Types.MediaStreamTrackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnRemoveTrack(System.Func<Rask.Web.Types.MediaStreamTrackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStream.OnRemoveTrack(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnEnded(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnEnded(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnEnded(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnEnded(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnMute(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnMute(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnMute(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnMute(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnUnmute(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnUnmute(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnUnmute(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrack.OnUnmute(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MediaStreamTrackEvent
+Rask.Web.Types.MediaStreamTrackEvent.MediaStreamTrackEvent() -> void
+Rask.Web.Types.MessageEvent
+Rask.Web.Types.MessageEvent.LastEventId.get -> string!
+Rask.Web.Types.MessageEvent.LastEventId.init -> void
+Rask.Web.Types.MessageEvent.MessageEvent() -> void
+Rask.Web.Types.MessageEvent.Origin.get -> string!
+Rask.Web.Types.MessageEvent.Origin.init -> void
+Rask.Web.Types.MessagePort.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MessagePort.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MessagePort.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MessagePort.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MessagePort.OnMessageError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MessagePort.OnMessageError(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MessagePort.OnMessageError(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.MessagePort.OnMessageError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.NavigateEvent
+Rask.Web.Types.NavigateEvent.CanIntercept.get -> bool
+Rask.Web.Types.NavigateEvent.CanIntercept.init -> void
+Rask.Web.Types.NavigateEvent.DownloadRequest.get -> string?
+Rask.Web.Types.NavigateEvent.DownloadRequest.init -> void
+Rask.Web.Types.NavigateEvent.HasUAVisualTransition.get -> bool
+Rask.Web.Types.NavigateEvent.HasUAVisualTransition.init -> void
+Rask.Web.Types.NavigateEvent.HashChange.get -> bool
+Rask.Web.Types.NavigateEvent.HashChange.init -> void
+Rask.Web.Types.NavigateEvent.NavigateEvent() -> void
+Rask.Web.Types.NavigateEvent.NavigationType.get -> Rask.Web.Types.NavigationType
+Rask.Web.Types.NavigateEvent.NavigationType.init -> void
+Rask.Web.Types.NavigateEvent.UserInitiated.get -> bool
+Rask.Web.Types.NavigateEvent.UserInitiated.init -> void
+Rask.Web.Types.Navigation.OnCurrentEntryChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnCurrentEntryChange(System.Action<Rask.Web.Types.NavigationCurrentEntryChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnCurrentEntryChange(System.Func<Rask.Web.Types.NavigationCurrentEntryChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnCurrentEntryChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigate(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigate(System.Action<Rask.Web.Types.NavigateEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigate(System.Func<Rask.Web.Types.NavigateEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigate(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateError(System.Action<Rask.Web.Types.ErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateError(System.Func<Rask.Web.Types.ErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateSuccess(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateSuccess(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateSuccess(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Navigation.OnNavigateSuccess(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.NavigationCurrentEntryChangeEvent
+Rask.Web.Types.NavigationCurrentEntryChangeEvent.NavigationCurrentEntryChangeEvent() -> void
+Rask.Web.Types.NavigationCurrentEntryChangeEvent.NavigationType.get -> Rask.Web.Types.NavigationType?
+Rask.Web.Types.NavigationCurrentEntryChangeEvent.NavigationType.init -> void
+Rask.Web.Types.NavigationHistoryEntry.OnDispose(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.NavigationHistoryEntry.OnDispose(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.NavigationHistoryEntry.OnDispose(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.NavigationHistoryEntry.OnDispose(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClick(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClick(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClick(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClick(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClose(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClose(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClose(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnClose(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnShow(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnShow(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnShow(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Notification.OnShow(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OfflineAudioCompletionEvent
+Rask.Web.Types.OfflineAudioCompletionEvent.OfflineAudioCompletionEvent() -> void
+Rask.Web.Types.OfflineAudioContext.OnComplete(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OfflineAudioContext.OnComplete(System.Action<Rask.Web.Types.OfflineAudioCompletionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OfflineAudioContext.OnComplete(System.Func<Rask.Web.Types.OfflineAudioCompletionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OfflineAudioContext.OnComplete(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextLost(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextLost(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextLost(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextLost(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextRestored(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextRestored(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextRestored(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.OffscreenCanvas.OnContextRestored(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PageRevealEvent
+Rask.Web.Types.PageRevealEvent.PageRevealEvent() -> void
+Rask.Web.Types.PageTransitionEvent
+Rask.Web.Types.PageTransitionEvent.PageTransitionEvent() -> void
+Rask.Web.Types.PageTransitionEvent.Persisted.get -> bool
+Rask.Web.Types.PageTransitionEvent.Persisted.init -> void
+Rask.Web.Types.PaymentMethodChangeEvent
+Rask.Web.Types.PaymentMethodChangeEvent.MethodName.get -> string!
+Rask.Web.Types.PaymentMethodChangeEvent.MethodName.init -> void
+Rask.Web.Types.PaymentMethodChangeEvent.PaymentMethodChangeEvent() -> void
+Rask.Web.Types.PaymentRequest.OnPaymentMethodChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PaymentRequest.OnPaymentMethodChange(System.Action<Rask.Web.Types.PaymentMethodChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PaymentRequest.OnPaymentMethodChange(System.Func<Rask.Web.Types.PaymentMethodChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PaymentRequest.OnPaymentMethodChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PaymentRequestUpdateEvent
+Rask.Web.Types.PaymentRequestUpdateEvent.PaymentRequestUpdateEvent() -> void
+Rask.Web.Types.PaymentResponse.OnPayerDetailChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PaymentResponse.OnPayerDetailChange(System.Action<Rask.Web.Types.PaymentRequestUpdateEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PaymentResponse.OnPayerDetailChange(System.Func<Rask.Web.Types.PaymentRequestUpdateEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PaymentResponse.OnPayerDetailChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Performance.OnResourceTimingBufferFull(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Performance.OnResourceTimingBufferFull(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Performance.OnResourceTimingBufferFull(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Performance.OnResourceTimingBufferFull(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PermissionStatus.OnChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PermissionStatus.OnChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PermissionStatus.OnChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PermissionStatus.OnChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PictureInPictureWindow.OnResize(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PictureInPictureWindow.OnResize(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PictureInPictureWindow.OnResize(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PictureInPictureWindow.OnResize(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.PopStateEvent
+Rask.Web.Types.PopStateEvent.HasUAVisualTransition.get -> bool
+Rask.Web.Types.PopStateEvent.HasUAVisualTransition.init -> void
+Rask.Web.Types.PopStateEvent.PopStateEvent() -> void
+Rask.Web.Types.ProgressEvent
+Rask.Web.Types.ProgressEvent.LengthComputable.get -> bool
+Rask.Web.Types.ProgressEvent.LengthComputable.init -> void
+Rask.Web.Types.ProgressEvent.Loaded.get -> double
+Rask.Web.Types.ProgressEvent.Loaded.init -> void
+Rask.Web.Types.ProgressEvent.ProgressEvent() -> void
+Rask.Web.Types.ProgressEvent.Total.get -> double
+Rask.Web.Types.ProgressEvent.Total.init -> void
+Rask.Web.Types.PromiseRejectionEvent
+Rask.Web.Types.PromiseRejectionEvent.PromiseRejectionEvent() -> void
+Rask.Web.Types.RTCDTMFSender.OnToneChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDTMFSender.OnToneChange(System.Action<Rask.Web.Types.RTCDTMFToneChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDTMFSender.OnToneChange(System.Func<Rask.Web.Types.RTCDTMFToneChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDTMFSender.OnToneChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDTMFToneChangeEvent
+Rask.Web.Types.RTCDTMFToneChangeEvent.RTCDTMFToneChangeEvent() -> void
+Rask.Web.Types.RTCDTMFToneChangeEvent.Tone.get -> string!
+Rask.Web.Types.RTCDTMFToneChangeEvent.Tone.init -> void
+Rask.Web.Types.RTCDataChannel.OnBufferedAmountLow(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnBufferedAmountLow(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnBufferedAmountLow(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnBufferedAmountLow(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClose(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClose(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClose(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClose(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClosing(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClosing(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClosing(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnClosing(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnError(System.Action<Rask.Web.Types.RTCErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnError(System.Func<Rask.Web.Types.RTCErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnOpen(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnOpen(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnOpen(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannel.OnOpen(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDataChannelEvent
+Rask.Web.Types.RTCDataChannelEvent.RTCDataChannelEvent() -> void
+Rask.Web.Types.RTCDtlsTransport.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDtlsTransport.OnError(System.Action<Rask.Web.Types.RTCErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDtlsTransport.OnError(System.Func<Rask.Web.Types.RTCErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDtlsTransport.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDtlsTransport.OnStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDtlsTransport.OnStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDtlsTransport.OnStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCDtlsTransport.OnStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCErrorEvent
+Rask.Web.Types.RTCErrorEvent.RTCErrorEvent() -> void
+Rask.Web.Types.RTCIceTransport.OnGatheringStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnGatheringStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnGatheringStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnGatheringStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnSelectedCandidatePairChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnSelectedCandidatePairChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnSelectedCandidatePairChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnSelectedCandidatePairChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCIceTransport.OnStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnConnectionStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnConnectionStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnConnectionStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnConnectionStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnDataChannel(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnDataChannel(System.Action<Rask.Web.Types.RTCDataChannelEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnDataChannel(System.Func<Rask.Web.Types.RTCDataChannelEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnDataChannel(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidate(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidate(System.Action<Rask.Web.Types.RTCPeerConnectionIceEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidate(System.Func<Rask.Web.Types.RTCPeerConnectionIceEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidate(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidateError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidateError(System.Action<Rask.Web.Types.RTCPeerConnectionIceErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidateError(System.Func<Rask.Web.Types.RTCPeerConnectionIceErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceCandidateError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceConnectionStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceConnectionStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceConnectionStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceConnectionStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceGatheringStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceGatheringStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceGatheringStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnIceGatheringStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnNegotiationNeeded(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnNegotiationNeeded(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnNegotiationNeeded(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnNegotiationNeeded(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnSignalingStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnSignalingStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnSignalingStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnSignalingStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnTrack(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnTrack(System.Action<Rask.Web.Types.RTCTrackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnTrack(System.Func<Rask.Web.Types.RTCTrackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnection.OnTrack(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.Address.get -> string?
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.Address.init -> void
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.ErrorCode.get -> int
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.ErrorCode.init -> void
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.ErrorText.get -> string!
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.ErrorText.init -> void
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.Port.get -> int?
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.Port.init -> void
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.RTCPeerConnectionIceErrorEvent() -> void
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.Url.get -> string!
+Rask.Web.Types.RTCPeerConnectionIceErrorEvent.Url.init -> void
+Rask.Web.Types.RTCPeerConnectionIceEvent
+Rask.Web.Types.RTCPeerConnectionIceEvent.RTCPeerConnectionIceEvent() -> void
+Rask.Web.Types.RTCSctpTransport.OnStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCSctpTransport.OnStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCSctpTransport.OnStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCSctpTransport.OnStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RTCTrackEvent
+Rask.Web.Types.RTCTrackEvent.RTCTrackEvent() -> void
+Rask.Web.Types.RemotePlayback.OnConnect(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnConnect(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnConnect(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnConnect(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnConnecting(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnConnecting(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnConnecting(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnConnecting(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnDisconnect(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnDisconnect(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnDisconnect(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.OnDisconnect(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.RemotePlayback.WatchAvailability(System.Action<bool>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.RemotePlayback.WatchAvailability(System.Func<bool, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.ScreenOrientation.OnChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ScreenOrientation.OnChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ScreenOrientation.OnChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ScreenOrientation.OnChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnConnect(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnConnect(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnConnect(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnConnect(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnDisconnect(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnDisconnect(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnDisconnect(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SerialPort.OnDisconnect(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorker.OnStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnControllerChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnControllerChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnControllerChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnControllerChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessageError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessageError(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessageError(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerContainer.OnMessageError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerRegistration.OnUpdateFound(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerRegistration.OnUpdateFound(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerRegistration.OnUpdateFound(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.ServiceWorkerRegistration.OnUpdateFound(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SharedWorker.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SharedWorker.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SharedWorker.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SharedWorker.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnAbort(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnAbort(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnAbort(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnAbort(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdate(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdate(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdate(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdate(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateEnd(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateEnd(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateEnd(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateEnd(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateStart(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateStart(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateStart(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBuffer.OnUpdateStart(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnAddSourceBuffer(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnAddSourceBuffer(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnAddSourceBuffer(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnAddSourceBuffer(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnRemoveSourceBuffer(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnRemoveSourceBuffer(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnRemoveSourceBuffer(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SourceBufferList.OnRemoveSourceBuffer(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesis.OnVoicesChanged(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesis.OnVoicesChanged(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesis.OnVoicesChanged(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesis.OnVoicesChanged(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.AudioBusy = 2 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.AudioHardware = 3 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.Canceled = 0 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.Interrupted = 1 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.InvalidArgument = 10 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.LanguageUnavailable = 7 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.Network = 4 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.NotAllowed = 11 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.SynthesisFailed = 6 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.SynthesisUnavailable = 5 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.TextTooLong = 9 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorCode.VoiceUnavailable = 8 -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorEvent
+Rask.Web.Types.SpeechSynthesisErrorEvent.Error.get -> Rask.Web.Types.SpeechSynthesisErrorCode
+Rask.Web.Types.SpeechSynthesisErrorEvent.Error.init -> void
+Rask.Web.Types.SpeechSynthesisErrorEvent.SpeechSynthesisErrorEvent() -> void
+Rask.Web.Types.SpeechSynthesisEvent
+Rask.Web.Types.SpeechSynthesisEvent.CharIndex.get -> int
+Rask.Web.Types.SpeechSynthesisEvent.CharIndex.init -> void
+Rask.Web.Types.SpeechSynthesisEvent.CharLength.get -> int
+Rask.Web.Types.SpeechSynthesisEvent.CharLength.init -> void
+Rask.Web.Types.SpeechSynthesisEvent.ElapsedTime.get -> double
+Rask.Web.Types.SpeechSynthesisEvent.ElapsedTime.init -> void
+Rask.Web.Types.SpeechSynthesisEvent.Name.get -> string!
+Rask.Web.Types.SpeechSynthesisEvent.Name.init -> void
+Rask.Web.Types.SpeechSynthesisEvent.SpeechSynthesisEvent() -> void
+Rask.Web.Types.SpeechSynthesisUtterance.OnBoundary(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnBoundary(System.Action<Rask.Web.Types.SpeechSynthesisEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnBoundary(System.Func<Rask.Web.Types.SpeechSynthesisEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnBoundary(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnEnd(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnEnd(System.Action<Rask.Web.Types.SpeechSynthesisEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnEnd(System.Func<Rask.Web.Types.SpeechSynthesisEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnEnd(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnError(System.Action<Rask.Web.Types.SpeechSynthesisErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnError(System.Func<Rask.Web.Types.SpeechSynthesisErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnMark(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnMark(System.Action<Rask.Web.Types.SpeechSynthesisEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnMark(System.Func<Rask.Web.Types.SpeechSynthesisEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnMark(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnPause(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnPause(System.Action<Rask.Web.Types.SpeechSynthesisEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnPause(System.Func<Rask.Web.Types.SpeechSynthesisEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnPause(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnResume(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnResume(System.Action<Rask.Web.Types.SpeechSynthesisEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnResume(System.Func<Rask.Web.Types.SpeechSynthesisEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnResume(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnStart(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnStart(System.Action<Rask.Web.Types.SpeechSynthesisEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnStart(System.Func<Rask.Web.Types.SpeechSynthesisEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.SpeechSynthesisUtterance.OnStart(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.StorageEvent
+Rask.Web.Types.StorageEvent.Key.get -> string?
+Rask.Web.Types.StorageEvent.Key.init -> void
+Rask.Web.Types.StorageEvent.NewValue.get -> string?
+Rask.Web.Types.StorageEvent.NewValue.init -> void
+Rask.Web.Types.StorageEvent.OldValue.get -> string?
+Rask.Web.Types.StorageEvent.OldValue.init -> void
+Rask.Web.Types.StorageEvent.StorageEvent() -> void
+Rask.Web.Types.StorageEvent.Url.get -> string!
+Rask.Web.Types.StorageEvent.Url.init -> void
+Rask.Web.Types.TaskPriorityChangeEvent
+Rask.Web.Types.TaskPriorityChangeEvent.PreviousPriority.get -> Rask.Web.Types.TaskPriority
+Rask.Web.Types.TaskPriorityChangeEvent.PreviousPriority.init -> void
+Rask.Web.Types.TaskPriorityChangeEvent.TaskPriorityChangeEvent() -> void
+Rask.Web.Types.TaskSignal.OnPriorityChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TaskSignal.OnPriorityChange(System.Action<Rask.Web.Types.TaskPriorityChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TaskSignal.OnPriorityChange(System.Func<Rask.Web.Types.TaskPriorityChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TaskSignal.OnPriorityChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrack.OnCueChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrack.OnCueChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrack.OnCueChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrack.OnCueChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnEnter(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnEnter(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnEnter(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnEnter(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnExit(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnExit(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnExit(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackCue.OnExit(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnAddTrack(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnAddTrack(System.Action<Rask.Web.Types.TrackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnAddTrack(System.Func<Rask.Web.Types.TrackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnAddTrack(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnRemoveTrack(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnRemoveTrack(System.Action<Rask.Web.Types.TrackEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnRemoveTrack(System.Func<Rask.Web.Types.TrackEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TextTrackList.OnRemoveTrack(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.TrackEvent
+Rask.Web.Types.TrackEvent.TrackEvent() -> void
+Rask.Web.Types.VideoDecoder.OnDequeue(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VideoDecoder.OnDequeue(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VideoDecoder.OnDequeue(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VideoDecoder.OnDequeue(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VideoEncoder.OnDequeue(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VideoEncoder.OnDequeue(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VideoEncoder.OnDequeue(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VideoEncoder.OnDequeue(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnResize(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnResize(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnResize(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnResize(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScroll(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScroll(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScroll(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScroll(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScrollEnd(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScrollEnd(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScrollEnd(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.VisualViewport.OnScrollEnd(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WakeLockSentinel.OnRelease(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WakeLockSentinel.OnRelease(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WakeLockSentinel.OnRelease(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WakeLockSentinel.OnRelease(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnClose(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnClose(System.Action<Rask.Web.Types.CloseEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnClose(System.Func<Rask.Web.Types.CloseEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnClose(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnOpen(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnOpen(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnOpen(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.WebSocket.OnOpen(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnAfterPrint(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnAfterPrint(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnAfterPrint(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnAfterPrint(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBeforePrint(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBeforePrint(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBeforePrint(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBeforePrint(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBlur(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBlur(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBlur(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnBlur(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceMotion(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceMotion(System.Action<Rask.Web.Types.DeviceMotionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceMotion(System.Func<Rask.Web.Types.DeviceMotionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceMotion(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientation(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientation(System.Action<Rask.Web.Types.DeviceOrientationEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientation(System.Func<Rask.Web.Types.DeviceOrientationEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientation(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientationAbsolute(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientationAbsolute(System.Action<Rask.Web.Types.DeviceOrientationEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientationAbsolute(System.Func<Rask.Web.Types.DeviceOrientationEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnDeviceOrientationAbsolute(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnFocus(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnFocus(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnFocus(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnFocus(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadConnected(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadConnected(System.Action<Rask.Web.Types.GamepadEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadConnected(System.Func<Rask.Web.Types.GamepadEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadConnected(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadDisconnected(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadDisconnected(System.Action<Rask.Web.Types.GamepadEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadDisconnected(System.Func<Rask.Web.Types.GamepadEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnGamepadDisconnected(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnHashChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnHashChange(System.Action<Rask.Web.Types.HashChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnHashChange(System.Func<Rask.Web.Types.HashChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnHashChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLanguageChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLanguageChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLanguageChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLanguageChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLoad(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLoad(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLoad(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnLoad(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessageError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessageError(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessageError(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnMessageError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOffline(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOffline(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOffline(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOffline(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOnline(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOnline(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOnline(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnOnline(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageHide(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageHide(System.Action<Rask.Web.Types.PageTransitionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageHide(System.Func<Rask.Web.Types.PageTransitionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageHide(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageReveal(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageReveal(System.Action<Rask.Web.Types.PageRevealEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageReveal(System.Func<Rask.Web.Types.PageRevealEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageReveal(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageShow(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageShow(System.Action<Rask.Web.Types.PageTransitionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageShow(System.Func<Rask.Web.Types.PageTransitionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPageShow(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPopState(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPopState(System.Action<Rask.Web.Types.PopStateEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPopState(System.Func<Rask.Web.Types.PopStateEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnPopState(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnRejectionHandled(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnRejectionHandled(System.Action<Rask.Web.Types.PromiseRejectionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnRejectionHandled(System.Func<Rask.Web.Types.PromiseRejectionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnRejectionHandled(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnResize(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnResize(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnResize(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnResize(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnStorage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnStorage(System.Action<Rask.Web.Types.StorageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnStorage(System.Func<Rask.Web.Types.StorageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnStorage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnhandledRejection(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnhandledRejection(System.Action<Rask.Web.Types.PromiseRejectionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnhandledRejection(System.Func<Rask.Web.Types.PromiseRejectionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnhandledRejection(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnload(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnload(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnload(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.OnUnload(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Window.QueueMicrotask(System.Action! callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Window.QueueMicrotask(System.Func<System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Worker.OnError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessageError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessageError(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessageError(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.Worker.OnMessageError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.XMLHttpRequest.OnReadyStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.XMLHttpRequest.OnReadyStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.XMLHttpRequest.OnReadyStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.XMLHttpRequest.OnReadyStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+override Rask.Web.Types.GeolocationCoordinates.Equals(object? obj) -> bool
+override Rask.Web.Types.GeolocationCoordinates.GetHashCode() -> int
+override Rask.Web.Types.GeolocationCoordinates.ToString() -> string!
+override Rask.Web.Types.GeolocationPosition.Equals(object? obj) -> bool
+override Rask.Web.Types.GeolocationPosition.GetHashCode() -> int
+override Rask.Web.Types.GeolocationPosition.ToString() -> string!
+override Rask.Web.Types.MediaSessionActionDetails.Equals(object? obj) -> bool
+override Rask.Web.Types.MediaSessionActionDetails.GetHashCode() -> int
+override Rask.Web.Types.MediaSessionActionDetails.ToString() -> string!
+static Rask.Web.CookieStore.OnChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.CookieStore.OnChange(System.Action<Rask.Web.Types.CookieChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.CookieStore.OnChange(System.Func<Rask.Web.Types.CookieChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.CookieStore.OnChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnFullscreenError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockError(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockError(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnPointerLockError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnReadyStateChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnReadyStateChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnReadyStateChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnReadyStateChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScroll(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScroll(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScroll(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScroll(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScrollEnd(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScrollEnd(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScrollEnd(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnScrollEnd(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSecurityPolicyViolation(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSecurityPolicyViolation(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSecurityPolicyViolation(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSecurityPolicyViolation(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSelectionChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSelectionChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSelectionChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnSelectionChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnVisibilityChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnVisibilityChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnVisibilityChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Document.OnVisibilityChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.DocumentPictureInPicture.OnEnter(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.DocumentPictureInPicture.OnEnter(System.Action<Rask.Web.Types.DocumentPictureInPictureEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.DocumentPictureInPicture.OnEnter(System.Func<Rask.Web.Types.DocumentPictureInPictureEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.DocumentPictureInPicture.OnEnter(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnCurrentEntryChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnCurrentEntryChange(System.Action<Rask.Web.Types.NavigationCurrentEntryChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnCurrentEntryChange(System.Func<Rask.Web.Types.NavigationCurrentEntryChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnCurrentEntryChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigate(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigate(System.Action<Rask.Web.Types.NavigateEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigate(System.Func<Rask.Web.Types.NavigateEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigate(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateError(System.Action<Rask.Web.Types.ErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateError(System.Func<Rask.Web.Types.ErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateSuccess(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateSuccess(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateSuccess(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Navigation.OnNavigateSuccess(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Performance.OnResourceTimingBufferFull(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Performance.OnResourceTimingBufferFull(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Performance.OnResourceTimingBufferFull(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Performance.OnResourceTimingBufferFull(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.SpeechSynthesis.OnVoicesChanged(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.SpeechSynthesis.OnVoicesChanged(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.SpeechSynthesis.OnVoicesChanged(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.SpeechSynthesis.OnVoicesChanged(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Types.GeolocationCoordinates.operator !=(Rask.Web.Types.GeolocationCoordinates? left, Rask.Web.Types.GeolocationCoordinates? right) -> bool
+static Rask.Web.Types.GeolocationCoordinates.operator ==(Rask.Web.Types.GeolocationCoordinates? left, Rask.Web.Types.GeolocationCoordinates? right) -> bool
+static Rask.Web.Types.GeolocationPosition.operator !=(Rask.Web.Types.GeolocationPosition? left, Rask.Web.Types.GeolocationPosition? right) -> bool
+static Rask.Web.Types.GeolocationPosition.operator ==(Rask.Web.Types.GeolocationPosition? left, Rask.Web.Types.GeolocationPosition? right) -> bool
+static Rask.Web.Types.MediaSessionActionDetails.operator !=(Rask.Web.Types.MediaSessionActionDetails? left, Rask.Web.Types.MediaSessionActionDetails? right) -> bool
+static Rask.Web.Types.MediaSessionActionDetails.operator ==(Rask.Web.Types.MediaSessionActionDetails? left, Rask.Web.Types.MediaSessionActionDetails? right) -> bool
+static Rask.Web.VisualViewport.OnResize(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnResize(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnResize(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnResize(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScroll(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScroll(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScroll(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScroll(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScrollEnd(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScrollEnd(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScrollEnd(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.VisualViewport.OnScrollEnd(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnAfterPrint(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnAfterPrint(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnAfterPrint(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnAfterPrint(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBeforePrint(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBeforePrint(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBeforePrint(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBeforePrint(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBlur(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBlur(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBlur(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnBlur(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceMotion(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceMotion(System.Action<Rask.Web.Types.DeviceMotionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceMotion(System.Func<Rask.Web.Types.DeviceMotionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceMotion(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientation(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientation(System.Action<Rask.Web.Types.DeviceOrientationEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientation(System.Func<Rask.Web.Types.DeviceOrientationEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientation(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientationAbsolute(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientationAbsolute(System.Action<Rask.Web.Types.DeviceOrientationEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientationAbsolute(System.Func<Rask.Web.Types.DeviceOrientationEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnDeviceOrientationAbsolute(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnFocus(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnFocus(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnFocus(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnFocus(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadConnected(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadConnected(System.Action<Rask.Web.Types.GamepadEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadConnected(System.Func<Rask.Web.Types.GamepadEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadConnected(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadDisconnected(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadDisconnected(System.Action<Rask.Web.Types.GamepadEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadDisconnected(System.Func<Rask.Web.Types.GamepadEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnGamepadDisconnected(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnHashChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnHashChange(System.Action<Rask.Web.Types.HashChangeEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnHashChange(System.Func<Rask.Web.Types.HashChangeEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnHashChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLanguageChange(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLanguageChange(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLanguageChange(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLanguageChange(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLoad(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLoad(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLoad(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnLoad(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessage(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessage(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessageError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessageError(System.Action<Rask.Web.Types.MessageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessageError(System.Func<Rask.Web.Types.MessageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnMessageError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOffline(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOffline(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOffline(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOffline(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOnline(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOnline(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOnline(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnOnline(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageHide(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageHide(System.Action<Rask.Web.Types.PageTransitionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageHide(System.Func<Rask.Web.Types.PageTransitionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageHide(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageReveal(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageReveal(System.Action<Rask.Web.Types.PageRevealEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageReveal(System.Func<Rask.Web.Types.PageRevealEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageReveal(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageShow(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageShow(System.Action<Rask.Web.Types.PageTransitionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageShow(System.Func<Rask.Web.Types.PageTransitionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPageShow(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPopState(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPopState(System.Action<Rask.Web.Types.PopStateEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPopState(System.Func<Rask.Web.Types.PopStateEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnPopState(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnRejectionHandled(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnRejectionHandled(System.Action<Rask.Web.Types.PromiseRejectionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnRejectionHandled(System.Func<Rask.Web.Types.PromiseRejectionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnRejectionHandled(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnResize(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnResize(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnResize(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnResize(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnStorage(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnStorage(System.Action<Rask.Web.Types.StorageEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnStorage(System.Func<Rask.Web.Types.StorageEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnStorage(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnhandledRejection(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnhandledRejection(System.Action<Rask.Web.Types.PromiseRejectionEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnhandledRejection(System.Func<Rask.Web.Types.PromiseRejectionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnhandledRejection(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnload(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnload(System.Action<Rask.Core.Event!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnload(System.Func<Rask.Core.Event!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.OnUnload(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+static Rask.Web.Window.QueueMicrotask(System.Action! callback) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Window.QueueMicrotask(System.Func<System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioTimestamp.PerformanceTime.get -> double?
+Rask.Web.Types.AudioTimestamp.PerformanceTime.init -> void
+Rask.Web.Types.BlobEvent.Timecode.get -> double
+Rask.Web.Types.BlobEvent.Timecode.init -> void
+Rask.Web.Types.DocumentTimelineOptions
+Rask.Web.Types.DocumentTimelineOptions.<Clone>$() -> Rask.Web.Types.DocumentTimelineOptions!
+Rask.Web.Types.DocumentTimelineOptions.DocumentTimelineOptions() -> void
+Rask.Web.Types.DocumentTimelineOptions.Equals(Rask.Web.Types.DocumentTimelineOptions? other) -> bool
+Rask.Web.Types.DocumentTimelineOptions.OriginTime.get -> double?
+Rask.Web.Types.DocumentTimelineOptions.OriginTime.init -> void
+Rask.Web.Types.Gamepad.Timestamp.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.GeolocationPosition.Timestamp.get -> long?
+Rask.Web.Types.GeolocationPosition.Timestamp.init -> void
+Rask.Web.Types.Headers.Append(string! name, string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Headers.Delete(string! name) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Headers.Get(string! name) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.Headers.GetSetCookie() -> System.Threading.Tasks.ValueTask<string![]!>
+Rask.Web.Types.Headers.Has(string! name) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Headers.Set(string! name, string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.IdleDeadline.TimeRemaining() -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.IntersectionObserverEntry.Time.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.MIDIOutput.Send(int[]! data, double timestamp) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaRecorderOptions.VideoKeyFrameIntervalDuration.get -> double?
+Rask.Web.Types.MediaRecorderOptions.VideoKeyFrameIntervalDuration.init -> void
+Rask.Web.Types.NavigationPreloadManager.SetHeaderValue(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.NavigationPreloadState.HeaderValue.get -> string?
+Rask.Web.Types.NavigationPreloadState.HeaderValue.init -> void
+Rask.Web.Types.NotificationOptions.Timestamp.get -> long?
+Rask.Web.Types.NotificationOptions.Timestamp.init -> void
+Rask.Web.Types.Performance.Mark(string! markName, Rask.Web.Types.PerformanceMarkOptions! markOptions) -> Rask.Web.Types.PerformanceMark!
+Rask.Web.Types.Performance.Measure(string! measureName, Rask.Web.Types.PerformanceMeasureOptions! startOrMeasureOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
+Rask.Web.Types.Performance.Measure(string! measureName, Rask.Web.Types.PerformanceMeasureOptions! startOrMeasureOptions, string! endMark) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
+Rask.Web.Types.Performance.Now() -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.Performance.TimeOrigin.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.PerformanceEntry.Duration.get -> double?
+Rask.Web.Types.PerformanceEntry.Duration.init -> void
+Rask.Web.Types.PerformanceEntry.StartTime.get -> double?
+Rask.Web.Types.PerformanceEntry.StartTime.init -> void
+Rask.Web.Types.PerformanceMarkOptions
+Rask.Web.Types.PerformanceMarkOptions.<Clone>$() -> Rask.Web.Types.PerformanceMarkOptions!
+Rask.Web.Types.PerformanceMarkOptions.Equals(Rask.Web.Types.PerformanceMarkOptions? other) -> bool
+Rask.Web.Types.PerformanceMarkOptions.PerformanceMarkOptions() -> void
+Rask.Web.Types.PerformanceMarkOptions.StartTime.get -> double?
+Rask.Web.Types.PerformanceMarkOptions.StartTime.init -> void
+Rask.Web.Types.PerformanceMeasureOptions
+Rask.Web.Types.PerformanceMeasureOptions.<Clone>$() -> Rask.Web.Types.PerformanceMeasureOptions!
+Rask.Web.Types.PerformanceMeasureOptions.Duration.get -> double?
+Rask.Web.Types.PerformanceMeasureOptions.Duration.init -> void
+Rask.Web.Types.PerformanceMeasureOptions.Equals(Rask.Web.Types.PerformanceMeasureOptions? other) -> bool
+Rask.Web.Types.PerformanceMeasureOptions.PerformanceMeasureOptions() -> void
+Rask.Web.Types.PerformanceObserverInit.DurationThreshold.get -> double?
+Rask.Web.Types.PerformanceObserverInit.DurationThreshold.init -> void
+Rask.Web.Types.PushSubscription.ExpirationTime.get -> System.Threading.Tasks.ValueTask<long?>
+Rask.Web.Types.PushSubscriptionJSON.ExpirationTime.get -> long?
+Rask.Web.Types.PushSubscriptionJSON.ExpirationTime.init -> void
+Rask.Web.Types.RTCCertificate.Expires.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.RTCEncodedFrameMetadata.CaptureTime.get -> double?
+Rask.Web.Types.RTCEncodedFrameMetadata.CaptureTime.init -> void
+Rask.Web.Types.RTCEncodedFrameMetadata.ReceiveTime.get -> double?
+Rask.Web.Types.RTCEncodedFrameMetadata.ReceiveTime.init -> void
+Rask.Web.Types.RTCEncodedFrameMetadata.SenderCaptureTimeOffset.get -> double?
+Rask.Web.Types.RTCEncodedFrameMetadata.SenderCaptureTimeOffset.init -> void
+Rask.Web.Types.RTCRtpContributingSource.Timestamp.get -> double
+Rask.Web.Types.RTCRtpContributingSource.Timestamp.init -> void
+Rask.Web.Types.RTCRtpReceiver.JitterBufferTarget.get -> System.Threading.Tasks.ValueTask<double?>
+Rask.Web.Types.RTCRtpReceiver.SetJitterBufferTarget(double? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Request.Method.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.RequestInit.Method.get -> string?
+Rask.Web.Types.RequestInit.Method.init -> void
+Rask.Web.Types.Response.StatusText.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.ResponseInit.StatusText.get -> string?
+Rask.Web.Types.ResponseInit.StatusText.init -> void
+Rask.Web.Types.VideoPlaybackQuality.CreationTime.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.Window.Atob(string! data) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.Window.RequestAnimationFrame(System.Action<double>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.Window.RequestAnimationFrame(System.Func<double, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.XMLHttpRequest.GetAllResponseHeaders() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.XMLHttpRequest.GetResponseHeader(string! name) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.XMLHttpRequest.Open(string! method, string! url) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Open(string! method, string! url, bool async) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Open(string! method, string! url, bool async, string? username) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Open(string! method, string! url, bool async, string? username, string? password) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.SetRequestHeader(string! name, string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.StatusText.get -> System.Threading.Tasks.ValueTask<string!>
+override Rask.Web.Types.DocumentTimelineOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.DocumentTimelineOptions.GetHashCode() -> int
+override Rask.Web.Types.DocumentTimelineOptions.ToString() -> string!
+override Rask.Web.Types.PerformanceMarkOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.PerformanceMarkOptions.GetHashCode() -> int
+override Rask.Web.Types.PerformanceMarkOptions.ToString() -> string!
+override Rask.Web.Types.PerformanceMeasureOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.PerformanceMeasureOptions.GetHashCode() -> int
+override Rask.Web.Types.PerformanceMeasureOptions.ToString() -> string!
+static Rask.Web.DocumentTimeline.Create(Rask.Web.Types.DocumentTimelineOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DocumentTimeline!>
+static Rask.Web.Performance.Mark(string! markName, Rask.Web.Types.PerformanceMarkOptions! markOptions) -> Rask.Web.Types.PerformanceMark!
+static Rask.Web.Performance.Measure(string! measureName, Rask.Web.Types.PerformanceMeasureOptions! startOrMeasureOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
+static Rask.Web.Performance.Measure(string! measureName, Rask.Web.Types.PerformanceMeasureOptions! startOrMeasureOptions, string! endMark) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
+static Rask.Web.Performance.Now() -> System.Threading.Tasks.ValueTask<double>
+static Rask.Web.Performance.TimeOrigin.get -> System.Threading.Tasks.ValueTask<double>
+static Rask.Web.PerformanceMark.Create(string! markName, Rask.Web.Types.PerformanceMarkOptions! markOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMark!>
+static Rask.Web.Types.DocumentTimelineOptions.operator !=(Rask.Web.Types.DocumentTimelineOptions? left, Rask.Web.Types.DocumentTimelineOptions? right) -> bool
+static Rask.Web.Types.DocumentTimelineOptions.operator ==(Rask.Web.Types.DocumentTimelineOptions? left, Rask.Web.Types.DocumentTimelineOptions? right) -> bool
+static Rask.Web.Types.PerformanceMarkOptions.operator !=(Rask.Web.Types.PerformanceMarkOptions? left, Rask.Web.Types.PerformanceMarkOptions? right) -> bool
+static Rask.Web.Types.PerformanceMarkOptions.operator ==(Rask.Web.Types.PerformanceMarkOptions? left, Rask.Web.Types.PerformanceMarkOptions? right) -> bool
+static Rask.Web.Types.PerformanceMeasureOptions.operator !=(Rask.Web.Types.PerformanceMeasureOptions? left, Rask.Web.Types.PerformanceMeasureOptions? right) -> bool
+static Rask.Web.Types.PerformanceMeasureOptions.operator ==(Rask.Web.Types.PerformanceMeasureOptions? left, Rask.Web.Types.PerformanceMeasureOptions? right) -> bool
+static Rask.Web.Window.Atob(string! data) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Web.Window.RequestAnimationFrame(System.Action<double>! callback) -> System.Threading.Tasks.ValueTask<int>
+static Rask.Web.Window.RequestAnimationFrame(System.Func<double, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<int>

@@ -42,6 +42,16 @@ namespace Rask.Core.Dom.Build
             "pause", "reset", "ended", "error", "slot", "lost", "menu", "copy", "drag", "drop", "down", "move",
             "over", "load", "play", "rate", "time", "blur", "form", "data", "raw", "end", "run", "aux", "can",
             "cue", "cut", "dbl", "key", "out", "got", "up", "progress",
+            // Rask.Web's: the events the rest of the platform fires (gamepadconnected, unhandledrejection, …).
+            "absolute", "add", "after", "amount", "available", "blocked", "boundary", "buffer", "buffered", "candidate",
+            "changed", "channel", "closing", "complete", "connect", "connected", "connecting", "connection", "controller",
+            "current", "dequeue", "detail", "device", "disconnect", "disconnected", "dispose", "done", "encrypted", "entry",
+            "exit", "finish", "for", "found", "full", "gamepad", "gathering", "handled", "hash", "hide", "ice", "language",
+            "loading", "lock", "low", "mark", "message", "method", "midi", "motion", "mute", "navigate", "needed",
+            "negotiation", "offline", "online", "open", "orientation", "page", "pair", "payer", "payment", "picture",
+            "pop", "print", "priority", "processor", "ready", "rejection", "release", "remove", "resource", "resume",
+            "reveal", "selected", "show", "signaling", "source", "statuses", "stop", "storage", "success", "timing", "tone",
+            "track", "uncaptured", "unhandled", "unload", "unmute", "upgrade", "version", "voices",
         };
 
         private static string? CSharp(string idl) => idl.TrimEnd('?') switch
