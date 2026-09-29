@@ -24,8 +24,8 @@ public sealed class BuilderEntryAliasAnalyzer : DiagnosticAnalyzer
 {
     private static readonly DiagnosticDescriptor Rask037 = new(
         "RASK037",
-        "'using' alias is hidden by a builder entry",
-        "The 'using' alias '{0}' is hidden by the builder entry '{0}' on '{1}' — inside a component, a member beats an alias in simple-name lookup, so '{0}.Something' resolves to the entry and fails with CS1061. Rename the alias.",
+        "'using' alias is hidden by a chain entry",
+        "The 'using' alias '{0}' is hidden by the chain entry '{0}' on '{1}' — inside a component a member beats an alias, so '{0}.Something' resolves to the entry and fails with CS1061; rename the alias",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,

@@ -36,10 +36,10 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        "Rask generates a type-safe RouteUrl factory ('Routes.<Page>()') for every page's primary [Route]. "
+        "Rask generates a type-safe route helper ('Routes.<Page>()') for every page's primary [Route]. "
         + "Passing the raw path string to internal navigation (Navigator.NavigateTo, or a RouteUrl Href/To "
         + "slot) bypasses that safety: a renamed or removed route leaves a dead link that still compiles. "
-        + "Only internal paths that map to a parameterless generated factory are flagged; external URLs "
+        + "Only internal paths that map to a parameterless route helper are flagged; external URLs "
         + "(RouteUrl.External) and parameterised/secondary routes are left alone.",
         DiagnosticHelp.Link("RASK033"));
 
