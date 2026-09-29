@@ -24,7 +24,7 @@ public sealed class LitestreamReplicationServiceTests
         var service = provider.GetServices<IHostedService>().OfType<LitestreamReplicationService>().Single();
 
         await service.StartAsync(CancellationToken.None);
-        await executor.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5));
+        await executor.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         await service.StopAsync(CancellationToken.None);
 
         Assert.True(executor.CallCount >= 3, $"expected restarts, got {executor.CallCount} call(s).");

@@ -45,10 +45,10 @@ namespace Rask.Cli.E2E.Tests;
 /// </remarks>
 public sealed partial class TutorialChapterBuildE2ETests
 {
-    [SkippableFact]
+    [Fact]
     public async Task The_tutorial_builds_when_you_type_it_in()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var ch2 = Fences("02-first-feature.md");
         var ch3 = Fences("03-orders-and-auth.md");

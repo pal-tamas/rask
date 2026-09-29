@@ -60,20 +60,20 @@ public sealed class OutboxTenantTests
 
             await using (var db = new OutboxDbContext(options))
             {
-                await db.Database.EnsureCreatedAsync();
+                await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
                 using (Tenant.Use(_acme))
                 {
                     db.Add(OutboxMessage.For("T", "{}", DateTime.UtcNow));
                 }
 
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             }
 
             await using (var db = new OutboxDbContext(options))
             {
                 // The drain sees it whatever tenant is in flight — no filter on this table, by design.
-                var stored = await db.Set<OutboxMessage>().SingleAsync();
+                var stored = await db.Set<OutboxMessage>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(_acme, stored.TenantId);
             }
         }

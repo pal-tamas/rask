@@ -28,10 +28,10 @@ public sealed class ProviderSmokeTests
 
     private static string S3Secret => Environment.GetEnvironmentVariable("RASK_STORAGE_S3_SECRET") ?? "raskminiosecret";
 
-    [SkippableFact]
+    [Fact]
     public async Task S3_round_trips_a_file_and_its_presigned_url_opens()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
         await CreateBucketAsync();
 
         await using var harness = new StorageHarness(o =>
@@ -46,10 +46,10 @@ public sealed class ProviderSmokeTests
         await RoundTripAsync(harness);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Azure_round_trips_a_file_and_its_sas_url_opens()
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
         await CreateContainerAsync();
 
         await using var harness = new StorageHarness(o =>

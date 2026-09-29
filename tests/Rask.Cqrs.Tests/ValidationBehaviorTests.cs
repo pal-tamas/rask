@@ -24,7 +24,7 @@ public sealed class ValidationBehaviorTests
     {
         await using var sp = Build(validators: new Rejects());
 
-        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 3));
+        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 3), TestContext.Current.CancellationToken);
 
         Assert.Equal(5, result);
     }
@@ -35,7 +35,7 @@ public sealed class ValidationBehaviorTests
         await using var sp = Build(validators: new Rejects(when: -1));
 
         var ex = await Assert.ThrowsAsync<RaskValidationException>(
-            () => sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3)));
+            () => sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3), TestContext.Current.CancellationToken));
 
         Assert.Equal(["A must not be negative."], ex.Errors["A"]);
     }
@@ -48,7 +48,7 @@ public sealed class ValidationBehaviorTests
         await using var sp = Build(validators: [new Rejects(when: -1), new AlsoRejects()]);
 
         var ex = await Assert.ThrowsAsync<RaskValidationException>(
-            () => sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3)));
+            () => sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3), TestContext.Current.CancellationToken));
 
         Assert.Equal(["A must not be negative."], ex.Errors["A"]);
         Assert.Equal(["B is suspicious."], ex.Errors["B"]);
@@ -60,7 +60,7 @@ public sealed class ValidationBehaviorTests
         await using var sp = Build(validators: new RejectsWholeRequest());
 
         var ex = await Assert.ThrowsAsync<RaskValidationException>(
-            () => sp.GetRequiredService<IDispatcher>().Query(new Add(1, 1)));
+            () => sp.GetRequiredService<IDispatcher>().Query(new Add(1, 1), TestContext.Current.CancellationToken));
 
         Assert.Equal(["The request as a whole is wrong."], ex.Errors[string.Empty]);
     }
@@ -70,7 +70,7 @@ public sealed class ValidationBehaviorTests
     {
         await using var sp = Build(o => o.ValidateRequests = false, new Rejects(when: -1));
 
-        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3));
+        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, result);
     }
@@ -80,7 +80,7 @@ public sealed class ValidationBehaviorTests
     {
         await using var sp = Build();
 
-        Assert.Equal(5, await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 3)));
+        Assert.Equal(5, await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 3), TestContext.Current.CancellationToken));
     }
 
     private sealed class Rejects(int when = int.MinValue) : IRequestValidator<Add>

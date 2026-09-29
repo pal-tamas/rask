@@ -65,10 +65,10 @@ public sealed class PostgresTenancyTests
     private readonly Guid _acme = Guid.NewGuid();
     private readonly Guid _globex = Guid.NewGuid();
 
-    [SkippableFact]
+    [Fact]
     public async Task A_tenant_sees_only_its_own_rows_and_Across_sees_all()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await using (var db = NewContext())
         {
@@ -77,13 +77,13 @@ public sealed class PostgresTenancyTests
             using (Tenant.Use(_acme))
             {
                 db.Add(Ledger.For("ACME-1"));
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             }
 
             using (Tenant.Use(_globex))
             {
                 db.Add(Ledger.For("GLOBEX-1"));
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
             }
         }
 
@@ -91,17 +91,17 @@ public sealed class PostgresTenancyTests
         {
             using (Tenant.Use(_acme))
             {
-                Assert.Equal(["ACME-1"], await db.Ledgers.Select(l => l.Reference).ToListAsync());
+                Assert.Equal(["ACME-1"], await db.Ledgers.Select(l => l.Reference).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
             }
 
             using (Tenant.Use(_globex))
             {
-                Assert.Equal(["GLOBEX-1"], await db.Ledgers.Select(l => l.Reference).ToListAsync());
+                Assert.Equal(["GLOBEX-1"], await db.Ledgers.Select(l => l.Reference).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
             }
 
             using (Tenant.Across())
             {
-                Assert.Equal(2, await db.Ledgers.CountAsync());
+                Assert.Equal(2, await db.Ledgers.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
             }
         }
 
@@ -111,10 +111,10 @@ public sealed class PostgresTenancyTests
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Two_nulls_in_a_unique_index_are_distinct_here_which_is_why_TenantKey_exists()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         await using var db = NewContext();
         await Postgres.ResetSchemaAsync(db, Schema);
@@ -128,12 +128,12 @@ public sealed class PostgresTenancyTests
             using (Tenant.Across())
             {
                 db.Add(Member.For("root@example.com", owner: null));
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
                 db.Add(Member.For("root@example.com", owner: null));
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-                Assert.Equal(2, await db.Members.CountAsync());
+                Assert.Equal(2, await db.Members.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
             }
         }
         finally

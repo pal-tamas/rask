@@ -17,7 +17,7 @@ public class NotFoundStatusTests
     {
         using var host = RaskTestHost.Create<RoutedTestApp>();
 
-        var response = await host.Http.GetAsync("/no-such-page");
+        var response = await host.Http.GetAsync("/no-such-page", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -27,11 +27,11 @@ public class NotFoundStatusTests
     {
         using var host = RaskTestHost.Create<RoutedTestApp>();
 
-        var response = await host.Http.GetAsync("/no-such-page");
+        var response = await host.Http.GetAsync("/no-such-page", TestContext.Current.CancellationToken);
 
         // Only the status changes. The page still renders and the live session still attaches, so
         // the reload button and navigating away both keep working.
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("data-rask-root=\"", body);
         Assert.Equal("text/html; charset=utf-8", response.Content.Headers.ContentType?.ToString());
     }
@@ -41,7 +41,7 @@ public class NotFoundStatusTests
     {
         using var host = RaskTestHost.Create<RoutedTestApp>();
 
-        var response = await host.Http.GetAsync("/ssr-404-probe/known");
+        var response = await host.Http.GetAsync("/ssr-404-probe/known", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -55,7 +55,7 @@ public class NotFoundStatusTests
         // fixed. This is why the status is confirmed against what the render mounted.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/anything-at-all");
+        var response = await host.Http.GetAsync("/anything-at-all", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

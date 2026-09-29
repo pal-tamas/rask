@@ -24,13 +24,13 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
 
         // Hold the write lock from an unrelated connection, as a concurrent writer would.
         await using var holder = new SqliteConnection(ConnectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         using var holderTx = holder.BeginImmediate();
 
         // A plain read on a fresh context. In WAL a reader never blocks on a writer, so this must succeed --
         // unless something in the open path itself needs the lock.
         await using var context = new ProbeDbContext(options);
-        var exception = await Record.ExceptionAsync(() => context.Rows.CountAsync());
+        var exception = await Record.ExceptionAsync(() => context.Rows.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Null(exception);
     }
@@ -41,7 +41,7 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
         await CreateDatabaseAsync();
 
         await using var holder = new SqliteConnection(ConnectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         using var holderTx = holder.BeginImmediate();
 
         // Exactly what the interceptor runs on every open when configureRetry is supplied: busy_timeout=0
@@ -49,7 +49,7 @@ public sealed class RaskSqliteOpenUnderLockTests : IDisposable
         var script = SqlitePragmas.BuildScript(new SqliteOptions { BusyTimeout = TimeSpan.Zero });
 
         await using var connection = new SqliteConnection(ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = script;
 

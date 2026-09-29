@@ -128,13 +128,13 @@ public class BuilderCarrierSetterTests
 
         var compilation = Compile(source);
 
-        Assert.Empty(compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error));
 
         var tree = compilation.SyntaxTrees.First(t => t.ToString().Contains("class Page", StringComparison.Ordinal));
         var model = compilation.GetSemanticModel(tree);
-        var call = tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>()
+        var call = tree.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<InvocationExpressionSyntax>()
             .First(i => i.Expression is MemberAccessExpressionSyntax);
-        var bound = (IMethodSymbol)model.GetSymbolInfo(call).Symbol!;
+        var bound = (IMethodSymbol)model.GetSymbolInfo(call, cancellationToken: TestContext.Current.CancellationToken).Symbol!;
 
         Assert.Equal(expectedParameter, bound.Parameters[^1].Type.ToDisplayString());
     }

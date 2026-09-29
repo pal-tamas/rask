@@ -30,7 +30,7 @@ public sealed class PropsExtractorTests : IDisposable
 
     public void Dispose() => Directory.Delete(_project, recursive: true);
 
-    [SkippableFact]
+    [Fact]
     public void Each_island_is_written_exactly_as_its_committed_snapshot()
     {
         var typescript = Toolchain();
@@ -75,7 +75,7 @@ public sealed class PropsExtractorTests : IDisposable
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_missing_package_or_export_fails_only_its_own_island()
     {
         var typescript = Toolchain();
@@ -94,7 +94,7 @@ public sealed class PropsExtractorTests : IDisposable
         Assert.True(File.Exists(Path.Combine(output, "FixtureButton.props.json")));
     }
 
-    [SkippableFact]
+    [Fact]
     public void What_cannot_be_mounted_as_a_lit_or_angular_island_is_refused_by_name()
     {
         var typescript = Toolchain();
@@ -124,7 +124,7 @@ public sealed class PropsExtractorTests : IDisposable
         Assert.Equal("lit-tag-unknown", results["FxBorrowed"].Code);
     }
 
-    [SkippableFact]
+    [Fact]
     public void The_snapshot_does_not_depend_on_the_order_the_islands_are_listed_in()
     {
         var typescript = Toolchain();
@@ -186,7 +186,7 @@ public sealed class PropsExtractorTests : IDisposable
     /// <summary>The pinned <c>typescript.js</c>, after skipping when node or the compiler is unavailable.</summary>
     private static string Toolchain()
     {
-        Skip.IfNot(NodeRuns(), "node is not installed, so the props extractor cannot run here.");
+        Assert.SkipUnless(NodeRuns(), "node is not installed, so the props extractor cannot run here.");
 
         var props = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Rask.External", "build", "Rask.External.props"));
         var version = Regex.Match(props, "<RaskExternalTypeScriptVersion[^>]*>([^<]+)<").Groups[1].Value;
@@ -194,7 +194,7 @@ public sealed class PropsExtractorTests : IDisposable
 
         var engine = new RecordingEngine();
         var resolve = new ResolveTypeScriptToolTask { BuildEngine = engine, Tool = "typescript", Version = version };
-        Skip.IfNot(
+        Assert.SkipUnless(
             resolve.Execute(),
             $"typescript@{version} is not cached and could not be fetched: {string.Join(" ", engine.Errors.Select(e => e.Message))}");
 

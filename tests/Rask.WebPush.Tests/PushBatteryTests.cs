@@ -15,8 +15,8 @@ public sealed class PushBatteryTests
     {
         await using var harness = new PushHarness();
 
-        await harness.Push.Subscribe(PushHarness.Browser("phone"));
-        await harness.Push.Subscribe(PushHarness.Browser("phone"));
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, harness.Rows());
     }
@@ -30,7 +30,7 @@ public sealed class PushBatteryTests
         PushSubscriber row;
         using (Current.UseUser(ada))
         {
-            row = await harness.Push.Subscribe(PushHarness.Browser("laptop"));
+            row = await harness.Push.Subscribe(PushHarness.Browser("laptop"), TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(ada, row.UserId);
@@ -40,10 +40,10 @@ public sealed class PushBatteryTests
     public async Task A_send_reaches_every_subscriber_and_counts_the_deliveries()
     {
         await using var harness = new PushHarness();
-        await harness.Push.Subscribe(PushHarness.Browser("phone"));
-        await harness.Push.Subscribe(PushHarness.Browser("laptop"));
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
+        await harness.Push.Subscribe(PushHarness.Browser("laptop"), TestContext.Current.CancellationToken);
 
-        var delivered = await harness.Push.Send(WebPushMessage.Text("Order shipped"));
+        var delivered = await harness.Push.Send(WebPushMessage.Text("Order shipped"), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, delivered);
         Assert.Equal(2, harness.Sender.Reached.Count);
@@ -56,15 +56,15 @@ public sealed class PushBatteryTests
         var ada = Guid.NewGuid();
         using (Current.UseUser(ada))
         {
-            await harness.Push.Subscribe(PushHarness.Browser("ada-phone"));
+            await harness.Push.Subscribe(PushHarness.Browser("ada-phone"), TestContext.Current.CancellationToken);
         }
 
         using (Current.UseUser(Guid.NewGuid()))
         {
-            await harness.Push.Subscribe(PushHarness.Browser("someone-else"));
+            await harness.Push.Subscribe(PushHarness.Browser("someone-else"), TestContext.Current.CancellationToken);
         }
 
-        var delivered = await harness.Push.Send(WebPushMessage.Text("Your order shipped")).To(ada);
+        var delivered = await harness.Push.Send(WebPushMessage.Text("Your order shipped"), TestContext.Current.CancellationToken).To(ada);
 
         Assert.Equal(1, delivered);
         Assert.Equal(["https://push.example/ada-phone"], harness.Sender.Reached);
@@ -74,11 +74,11 @@ public sealed class PushBatteryTests
     public async Task A_subscription_the_push_service_says_is_gone_is_dropped()
     {
         await using var harness = new PushHarness();
-        await harness.Push.Subscribe(PushHarness.Browser("phone"));
-        await harness.Push.Subscribe(PushHarness.Browser("uninstalled"));
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
+        await harness.Push.Subscribe(PushHarness.Browser("uninstalled"), TestContext.Current.CancellationToken);
         harness.Sender.Gone.Add("https://push.example/uninstalled");
 
-        var delivered = await harness.Push.Send(WebPushMessage.Text("Hello"));
+        var delivered = await harness.Push.Send(WebPushMessage.Text("Hello"), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, delivered);
         Assert.Equal(1, harness.Rows());
@@ -88,12 +88,12 @@ public sealed class PushBatteryTests
     public async Task The_facade_reaches_the_battery_of_the_work_in_progress()
     {
         await using var harness = new PushHarness();
-        await harness.Push.Subscribe(PushHarness.Browser("phone"));
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
 
         int delivered;
         using (Ambient.Enter(harness.Services))
         {
-            delivered = await Push.Send(WebPushMessage.Text("Order shipped", "#1042 is on its way", "/orders/1042"));
+            delivered = await Push.Send(WebPushMessage.Text("Order shipped", "#1042 is on its way", "/orders/1042"), TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(1, delivered);
@@ -103,10 +103,10 @@ public sealed class PushBatteryTests
     public async Task Sending_without_a_key_pair_names_the_settings_to_set()
     {
         await using var harness = new PushHarness(stubSender: false);
-        await harness.Push.Subscribe(PushHarness.Browser("phone"));
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await harness.Push.Send(WebPushMessage.Text("Hello")));
+            await harness.Push.Send(WebPushMessage.Text("Hello"), TestContext.Current.CancellationToken));
 
         Assert.Contains("Rask:WebPush:VapidKeys:PublicKey", error.Message, StringComparison.Ordinal);
         Assert.Contains("Rask:WebPush:Subject", error.Message, StringComparison.Ordinal);
@@ -118,7 +118,7 @@ public sealed class PushBatteryTests
         var ada = Guid.NewGuid();
         using var push = Push.Fake();
 
-        await Push.Send(WebPushMessage.Text("Order shipped", "#1042 is on its way")).To(ada);
+        await Push.Send(WebPushMessage.Text("Order shipped", "#1042 is on its way"), TestContext.Current.CancellationToken).To(ada);
 
         push.Sent().To(ada).WithTitle("Order shipped").Saying("#1042").Once();
         push.Sent().ToEveryone().None();
@@ -149,10 +149,10 @@ public sealed class PushBatteryTests
         builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={database}"));
         await using var app = builder.Build();
         app.MapRaskPush();
-        await app.StartAsync();
-        await using (var db = await app.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContextAsync())
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        await using (var db = await app.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
-            await db.Database.EnsureCreatedAsync();
+            await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         }
 
         using var http = app.GetTestClient();
@@ -161,17 +161,17 @@ public sealed class PushBatteryTests
             endpoint = "https://push.example/browser",
             p256dh = "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
             auth = "tBHItJI5svbpez7KI4CCXg",
-        });
-        var key = await http.GetFromJsonAsync<Dictionary<string, string>>("/_rask/push/key");
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        var key = await http.GetFromJsonAsync<Dictionary<string, string>>("/_rask/push/key", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, subscribed.StatusCode);
         Assert.Equal("", key!["publicKey"]);
-        await using (var db = await app.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContextAsync())
+        await using (var db = await app.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
-            Assert.Equal("https://push.example/browser", (await db.Set<PushSubscriber>().SingleAsync()).Endpoint);
+            Assert.Equal("https://push.example/browser", (await db.Set<PushSubscriber>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Endpoint);
         }
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         File.Delete(database);
     }
@@ -184,7 +184,7 @@ public sealed class PushBatteryTests
     {
         await using var harness = new PushHarness();
 
-        await Assert.ThrowsAsync<ArgumentException>(() => harness.Push.Subscribe(new PushSubscription(endpoint, p256dh, auth)));
+        await Assert.ThrowsAsync<ArgumentException>(() => harness.Push.Subscribe(new PushSubscription(endpoint, p256dh, auth), TestContext.Current.CancellationToken));
 
         Assert.Equal(0, harness.Rows());
     }
@@ -193,15 +193,15 @@ public sealed class PushBatteryTests
     public async Task A_malformed_subscription_already_stored_is_removed_and_does_not_stop_the_others()
     {
         await using var harness = new PushHarness();
-        await using (var db = await harness.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContextAsync())
+        await using (var db = await harness.Services.GetRequiredService<IDbContextFactory<PushDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken))
         {
             db.Add(PushSubscriber.For(new PushSubscription("http://x", "!", "!"), null, DateTime.UtcNow));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        await harness.Push.Subscribe(PushHarness.Browser("phone"));
+        await harness.Push.Subscribe(PushHarness.Browser("phone"), TestContext.Current.CancellationToken);
 
-        var delivered = await harness.Push.Send(WebPushMessage.Text("Order shipped"));
+        var delivered = await harness.Push.Send(WebPushMessage.Text("Order shipped"), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, delivered);
         Assert.Equal(["https://push.example/phone"], harness.Sender.Reached);
@@ -218,13 +218,13 @@ public sealed class PushBatteryTests
         builder.Services.AddDbContextFactory<PushDbContext>(o => o.UseSqlite($"Data Source={database}"));
         await using var app = builder.Build();
         app.MapRaskPush();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
         using var http = app.GetTestClient();
 
-        var subscribed = await http.PostAsJsonAsync("/_rask/push/subscribe", new { endpoint = "https://push.example/x", p256dh = "!", auth = "!" });
+        var subscribed = await http.PostAsJsonAsync("/_rask/push/subscribe", new { endpoint = "https://push.example/x", p256dh = "!", auth = "!" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, subscribed.StatusCode);
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         File.Delete(database);
     }

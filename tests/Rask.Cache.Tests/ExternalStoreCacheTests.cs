@@ -32,9 +32,9 @@ public sealed class ExternalStoreCacheTests
         });
         var cache = provider.GetRequiredService<ICache>();
 
-        await cache.Set("k", new Sample("hello", 42));
+        await cache.Set("k", new Sample("hello", 42), TestContext.Current.CancellationToken);
 
-        Assert.Equal(new Sample("hello", 42), await cache.Get<Sample>("k"));
+        Assert.Equal(new Sample("hello", 42), await cache.Get<Sample>("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -55,8 +55,8 @@ public sealed class ExternalStoreCacheTests
             return Task.FromResult(new Sample("made", 1));
         }
 
-        Assert.Equal(new Sample("made", 1), await cache.Remember("k", Factory));
-        Assert.Equal(new Sample("made", 1), await cache.Remember("k", Factory));
+        Assert.Equal(new Sample("made", 1), await cache.Remember("k", Factory, TestContext.Current.CancellationToken));
+        Assert.Equal(new Sample("made", 1), await cache.Remember("k", Factory, TestContext.Current.CancellationToken));
         Assert.Equal(1, calls);
     }
 
@@ -99,9 +99,9 @@ public sealed class ExternalStoreCacheTests
         });
         var cache = provider.GetRequiredService<ICache>();
 
-        await cache.Set("k", new Sample("late", 7));
+        await cache.Set("k", new Sample("late", 7), TestContext.Current.CancellationToken);
 
-        Assert.Equal(new Sample("late", 7), await cache.Get<Sample>("k"));
+        Assert.Equal(new Sample("late", 7), await cache.Get<Sample>("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]

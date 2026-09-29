@@ -24,11 +24,11 @@ namespace Rask.External.Tests;
 public sealed class IslandNodeFloorGateTests
 {
     /// <summary>A floor no release can satisfy: the probe must refuse, naming what it found.</summary>
-    [SkippableFact]
+    [Fact]
     public async Task A_node_below_the_floor_is_refused()
     {
         var node = await NodeVersion();
-        Skip.If(node is null, "node is not on PATH, so the floor gate was never exercised.");
+        Assert.SkipWhen(node is null, "node is not on PATH, so the floor gate was never exercised.");
 
         var (exit, output) = await Probe("99.0.0");
 
@@ -47,10 +47,10 @@ public sealed class IslandNodeFloorGateTests
     ///     throwaway project — the package.json gate moves, the <c>**/*.tsx</c> glob gains an Exclude —
     ///     MSBuild exits 0 having done nothing and both of the other assertions here would still pass.
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public async Task A_node_above_the_floor_is_accepted()
     {
-        Skip.If(await NodeVersion() is null, "node is not on PATH, so the floor gate was never exercised.");
+        Assert.SkipWhen(await NodeVersion() is null, "node is not on PATH, so the floor gate was never exercised.");
 
         var (exit, output) = await Probe("0.0.1", verbose: true);
 
@@ -78,17 +78,17 @@ public sealed class IslandNodeFloorGateTests
     ///         itself deliberately lets those through — the test has to tolerate what production tolerates.
     ///     </para>
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public async Task The_shipped_default_floor_accepts_the_current_lts()
     {
         var node = await NodeVersion();
-        Skip.If(node is null, "node is not on PATH.");
+        Assert.SkipWhen(node is null, "node is not on PATH.");
 
         var floor = ShippedFloor();
-        Skip.If(
+        Assert.SkipWhen(
             !Version.TryParse(node, out var running),
             $"node reports '{node}', which the probe itself skips rather than comparing.");
-        Skip.If(
+        Assert.SkipWhen(
             running < floor,
             $"this machine runs Node {node}, below the shipped floor ({floor}); it cannot judge the default.");
 

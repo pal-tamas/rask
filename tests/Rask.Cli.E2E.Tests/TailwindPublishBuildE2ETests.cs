@@ -41,12 +41,12 @@ namespace Rask.Cli.E2E.Tests;
 /// </remarks>
 public sealed class TailwindPublishBuildE2ETests
 {
-    [SkippableTheory]
+    [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
     public async Task The_compiled_stylesheet_reaches_the_publish_output(string template)
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 
@@ -124,10 +124,10 @@ public sealed class TailwindPublishBuildE2ETests
     ///         clone is wrong, which is every CI run and nobody's machine.
     ///     </para>
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public async Task A_class_librarys_compiled_stylesheet_reaches_the_consuming_apps_publish()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
 

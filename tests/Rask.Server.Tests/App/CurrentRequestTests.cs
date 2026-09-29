@@ -35,7 +35,7 @@ public sealed class CurrentRequestTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -53,7 +53,7 @@ public sealed class CurrentRequestTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 

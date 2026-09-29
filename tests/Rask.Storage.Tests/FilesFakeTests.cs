@@ -13,7 +13,7 @@ public sealed class FilesFakeTests
     {
         using var files = Files.Fake();
 
-        await Files.Save(Bytes("hello"), "note.txt");
+        await Files.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken);
 
         files.Saved().Named("note.txt").Once();
     }
@@ -23,8 +23,8 @@ public sealed class FilesFakeTests
     {
         using var files = Files.Fake();
 
-        await Files.Save(Bytes("avatar"), "avatar.png").Public();
-        await Files.Save(Bytes("invoice"), "invoice.pdf");
+        await Files.Save(Bytes("avatar"), "avatar.png", TestContext.Current.CancellationToken).Public();
+        await Files.Save(Bytes("invoice"), "invoice.pdf", TestContext.Current.CancellationToken);
 
         files.Saved().Public().Named("avatar.png").Once();
         files.Saved().Private().Named("invoice.pdf").Once();
@@ -36,9 +36,9 @@ public sealed class FilesFakeTests
     {
         using var files = Files.Fake();
 
-        var saved = await Files.Save(Bytes("hello"), "note.txt");
+        var saved = await Files.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken);
 
-        var row = await Files.Get(saved.Id);
+        var row = await Files.Get(saved.Id, TestContext.Current.CancellationToken);
         Assert.NotNull(row);
         Assert.Equal("note.txt", row.Name);
         Assert.Equal("hello", Encoding.UTF8.GetString(files.Bytes(saved.Id)!));
@@ -48,11 +48,11 @@ public sealed class FilesFakeTests
     public async Task A_deleted_file_is_gone_and_recorded_as_deleted()
     {
         using var files = Files.Fake();
-        var saved = await Files.Save(Bytes("hello"), "note.txt");
+        var saved = await Files.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken);
 
-        Assert.True(await Files.Delete(saved.Id));
+        Assert.True(await Files.Delete(saved.Id, TestContext.Current.CancellationToken));
 
-        Assert.Null(await Files.Get(saved.Id));
+        Assert.Null(await Files.Get(saved.Id, TestContext.Current.CancellationToken));
         files.Deleted(saved.Id).Once();
     }
 
@@ -60,23 +60,23 @@ public sealed class FilesFakeTests
     public async Task A_share_link_is_made_for_a_file_that_exists_and_not_for_one_that_does_not()
     {
         using var files = Files.Fake();
-        var saved = await Files.Save(Bytes("invoice"), "invoice.pdf");
+        var saved = await Files.Save(Bytes("invoice"), "invoice.pdf", TestContext.Current.CancellationToken);
 
-        Assert.NotNull(await Files.Share(saved.Id).For(15.Minutes));
-        Assert.Null(await Files.Share(Guid.NewGuid()).For(15.Minutes));
+        Assert.NotNull(await Files.Share(saved.Id, TestContext.Current.CancellationToken).For(15.Minutes));
+        Assert.Null(await Files.Share(Guid.NewGuid(), TestContext.Current.CancellationToken).For(15.Minutes));
     }
 
     [Fact]
     public async Task A_stream_is_opened_over_what_was_saved()
     {
         using var files = Files.Fake();
-        var saved = await Files.Save(Bytes("hello"), "note.txt");
+        var saved = await Files.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken);
 
-        await using var stream = await Files.OpenRead(saved.Id);
+        await using var stream = await Files.OpenRead(saved.Id, TestContext.Current.CancellationToken);
 
         Assert.NotNull(stream);
         using var reader = new StreamReader(stream);
-        Assert.Equal("hello", await reader.ReadToEndAsync());
+        Assert.Equal("hello", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class FilesFakeTests
     {
         using var files = Files.Fake();
 
-        await Files.Save(Bytes("hello"), "note.txt");
+        await Files.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken);
 
         var error = Assert.Throws<CountingException>(() => files.Saved().Named("avatar.png").Once());
         Assert.Contains("\"note.txt\"", error.Message, StringComparison.Ordinal);
@@ -95,12 +95,12 @@ public sealed class FilesFakeTests
     {
         using (var files = Files.Fake())
         {
-            await Files.Save(Bytes("hello"), "note.txt");
+            await Files.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken);
             files.Saved().Once();
         }
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await Files.Save(Bytes("hello"), "note.txt"));
+            async () => await Files.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken));
         Assert.Contains("Inject IFiles", error.Message, StringComparison.Ordinal);
     }
 
@@ -110,7 +110,7 @@ public sealed class FilesFakeTests
         using var files = Files.Fake();
         IFiles injected = files;
 
-        await injected.Save(Bytes("hello"), "note.txt").Public();
+        await injected.Save(Bytes("hello"), "note.txt", TestContext.Current.CancellationToken).Public();
 
         files.Saved().Public().Once();
     }

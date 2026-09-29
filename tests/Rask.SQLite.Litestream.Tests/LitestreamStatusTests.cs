@@ -32,7 +32,7 @@ public sealed class LitestreamStatusTests
         await service.StartAsync(CancellationToken.None);
         try
         {
-            await executor.Started.WaitAsync(TimeSpan.FromSeconds(5));
+            await executor.Started.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
             var current = status.Current;
             Assert.True(current.IsReplicating);
@@ -59,7 +59,7 @@ public sealed class LitestreamStatusTests
         await service.StartAsync(CancellationToken.None);
         try
         {
-            await executor.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5));
+            await executor.ReachedTarget.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         }
         finally
         {
@@ -84,7 +84,7 @@ public sealed class LitestreamStatusTests
         await service.StartAsync(CancellationToken.None);
         try
         {
-            await executor.Threw.WaitAsync(TimeSpan.FromSeconds(5));
+            await executor.Threw.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         }
         finally
         {

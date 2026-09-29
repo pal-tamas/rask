@@ -115,13 +115,13 @@ public class NodeSupervisorTests
         await supervisor.StartAsync(CancellationToken.None);
 
         var stopping = supervisor.StopAsync(CancellationToken.None);
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
 
         Assert.False(stopping.IsCompleted, "stopping did not wait for the in-flight forward");
 
         drain.Exit();
 
-        await stopping.WaitAsync(TimeSpan.FromSeconds(10));
+        await stopping.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ public class NodeSupervisorTests
             new TestLifetime(), NullLogger<NodeSupervisor>.Instance);
 
         await supervisor.StartAsync(CancellationToken.None);
-        await supervisor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
+        await supervisor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 
     /// <summary>

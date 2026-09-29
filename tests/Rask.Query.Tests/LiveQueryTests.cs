@@ -62,7 +62,7 @@ public sealed class LiveQueryTests
 
         await Changed(dispatcher, clock, typeof(Order));
 
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.Equal(before, dispatcher.QueryCountFor<GetQuietOrders>());
     }
 
@@ -77,7 +77,7 @@ public sealed class LiveQueryTests
 
         await Changed(dispatcher, clock, typeof(Customer));
 
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.Equal(before, fetches);
     }
 
@@ -93,9 +93,9 @@ public sealed class LiveQueryTests
         // A subscription starts with the last value published. That write happened before this listener existed,
         // so the fetch that brought the page up already reflects it: acting on it would cost a second request.
         await dispatcher.Publish(
-            new DataChanged(typeof(Order).FullName!, clock.GetUtcNow() - TimeSpan.FromMinutes(1)));
+            new DataChanged(typeof(Order).FullName!, clock.GetUtcNow() - TimeSpan.FromMinutes(1)), TestContext.Current.CancellationToken);
 
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.Equal(before, fetches);
     }
 
@@ -110,7 +110,7 @@ public sealed class LiveQueryTests
 
         await Changed(dispatcher, clock, typeof(Order));
 
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.Equal(before, fetches);
     }
 
@@ -124,7 +124,7 @@ public sealed class LiveQueryTests
         client.Query(new GetLiveOrders(1), Keep);
 
         await Eventually(() => dispatcher.SubscriberCount == 1);
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.Equal(1, dispatcher.SubscriberCount);
     }
 
@@ -166,7 +166,7 @@ public sealed class LiveQueryTests
         await scope.DisposeAsync();
         await Changed(dispatcher, clock, typeof(Order));
 
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
         Assert.Equal(before, fetches);
     }
 

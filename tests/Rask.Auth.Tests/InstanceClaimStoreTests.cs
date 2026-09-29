@@ -23,7 +23,7 @@ public sealed class InstanceClaimStoreTests
     {
         await using var harness = new AuthHarness();
 
-        Assert.False(await Store(harness).IsClaimedAsync());
+        Assert.False(await Store(harness).IsClaimedAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -32,8 +32,8 @@ public sealed class InstanceClaimStoreTests
         await using var harness = new AuthHarness();
         var store = Store(harness);
 
-        Assert.True(await store.TryClaimAsync(UserId(1)));
-        Assert.True(await store.IsClaimedAsync());
+        Assert.True(await store.TryClaimAsync(UserId(1), TestContext.Current.CancellationToken));
+        Assert.True(await store.IsClaimedAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -42,8 +42,8 @@ public sealed class InstanceClaimStoreTests
         await using var harness = new AuthHarness();
         var store = Store(harness);
 
-        Assert.True(await store.TryClaimAsync(UserId(1)));
-        Assert.False(await store.TryClaimAsync(UserId(2)));
+        Assert.True(await store.TryClaimAsync(UserId(1), TestContext.Current.CancellationToken));
+        Assert.False(await store.TryClaimAsync(UserId(2), TestContext.Current.CancellationToken));
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public sealed class InstanceClaimStoreTests
     {
         await WithStoreAsync(new FailBeforeWriteInterceptor(), async store =>
         {
-            await Assert.ThrowsAsync<DbUpdateException>(() => store.TryClaimAsync(UserId(1)));
+            await Assert.ThrowsAsync<DbUpdateException>(() => store.TryClaimAsync(UserId(1), TestContext.Current.CancellationToken));
             Assert.False(await store.IsClaimedAsync());
         });
     }

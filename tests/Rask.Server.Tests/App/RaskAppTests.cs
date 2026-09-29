@@ -50,7 +50,7 @@ public sealed class RaskAppTests
     {
         // The headline: this is the entire Program.cs of a working Rask app.
         var app = NewApp().Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -60,7 +60,7 @@ public sealed class RaskAppTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -73,7 +73,7 @@ public sealed class RaskAppTests
         // and a test asserting the REGISTRATIONS would have passed throughout. This one asks the running
         // server for the file.
         var app = NewApp().Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -88,11 +88,11 @@ public sealed class RaskAppTests
             // Status alone would prove nothing: MapRask ends in a catch-all serving the app for any
             // unmatched path, so an ABSENT worker answers 200 with HTML. The content type is the evidence.
             Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
-            Assert.Contains("push", await response.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("push", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -102,7 +102,7 @@ public sealed class RaskAppTests
         // Name is `required` on WebAppManifest, so the default cannot be empty -- it is the app's own
         // name, which makes a freshly created app installable without configuring anything.
         var app = NewApp().Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -110,12 +110,12 @@ public sealed class RaskAppTests
 
             Assert.True(response.IsSuccessStatusCode, $"the manifest answered {(int)response.StatusCode}");
 
-            var manifest = await response.Content.ReadAsStringAsync();
+            var manifest = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             Assert.Contains("\"name\"", manifest, StringComparison.Ordinal);
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -125,7 +125,7 @@ public sealed class RaskAppTests
         // Off means off: the battery is on by default, so the only evidence that `c.Pwa.Off()` does
         // anything is that the file stops being served.
         var app = NewApp(a => a.Configure(c => c.Pwa.Off())).Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -137,7 +137,7 @@ public sealed class RaskAppTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -148,7 +148,7 @@ public sealed class RaskAppTests
         // routes are mapped too, and an app built on RaskApp writes no MapRaskStorage line. An unreadable token is
         // asked for because it is answered before the database is touched — a fresh app has no migrated table.
         var app = NewApp().Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -163,7 +163,7 @@ public sealed class RaskAppTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -171,7 +171,7 @@ public sealed class RaskAppTests
     public async Task Turning_storage_off_unmaps_its_routes()
     {
         var app = NewApp(a => a.Configure(c => c.Storage.Off())).Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -183,7 +183,7 @@ public sealed class RaskAppTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -194,7 +194,7 @@ public sealed class RaskAppTests
         // plain HTTP with no X-Forwarded-Proto, so a redirected endpoint 307s to a port nothing listens
         // on and the blue-green swap is gated on a probe that can never succeed.
         var app = NewApp().Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -204,7 +204,7 @@ public sealed class RaskAppTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -214,18 +214,18 @@ public sealed class RaskAppTests
         // The seam works. What it is NOT is a fix for an ordering bug — see the test below, which maps
         // the same endpoint on the other side of the catch-all and gets the same answer.
         var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
             var response = await GetAsync(app, "/ping");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal("pong", await response.Content.ReadAsStringAsync());
+            Assert.Equal("pong", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -251,18 +251,18 @@ public sealed class RaskAppTests
         // The batteries claim: referencing Rask is what turns a battery on. The app below configures
         // nothing — no AddRaskApi, no MapRaskApi, no AddControllers — and the controller answers.
         var app = NewApiApp().Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
             var response = await GetAsync(app, "/api/probe/7");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal("{\"value\":7}", await response.Content.ReadAsStringAsync());
+            Assert.Equal("{\"value\":7}", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -273,7 +273,7 @@ public sealed class RaskAppTests
         // the catch-all and renders the app with a 200, and the caller's JSON parse fails a long way
         // from the cause.
         var app = NewApiApp().Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -284,7 +284,7 @@ public sealed class RaskAppTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -292,7 +292,7 @@ public sealed class RaskAppTests
     public async Task The_API_battery_can_be_turned_off_like_any_other()
     {
         var app = NewApiApp(a => a.Configure(c => c.Api.Off())).Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -300,11 +300,11 @@ public sealed class RaskAppTests
             var response = await GetAsync(app, "/api/probe/7");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Contains("DOCTYPE", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            Assert.Contains("DOCTYPE", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -328,29 +328,29 @@ public sealed class RaskAppTests
         app.MapGet("/api/items/{id}", (int id) => Results.Json(new { id }));
         app.MapPost("/api/items", () => Results.Json(new { created = true }));
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
             using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
 
-            var literal = await client.GetAsync("/ping");
+            var literal = await client.GetAsync("/ping", TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.OK, literal.StatusCode);
-            Assert.Equal("pong", await literal.Content.ReadAsStringAsync());
+            Assert.Equal("pong", await literal.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
-            var parameterised = await client.GetAsync("/api/items/7");
+            var parameterised = await client.GetAsync("/api/items/7", TestContext.Current.CancellationToken);
 
-            Assert.Equal("{\"id\":7}", await parameterised.Content.ReadAsStringAsync());
+            Assert.Equal("{\"id\":7}", await parameterised.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
             // The catch-all is MapGet, so a POST proves the verb is not what saves this either.
-            var posted = await client.PostAsync("/api/items", content: null);
+            var posted = await client.PostAsync("/api/items", content: null, cancellationToken: TestContext.Current.CancellationToken);
 
-            Assert.Equal("{\"created\":true}", await posted.Content.ReadAsStringAsync());
+            Assert.Equal("{\"created\":true}", await posted.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -360,7 +360,7 @@ public sealed class RaskAppTests
         // The other half of the ordering: user endpoints go first, but they must not swallow the
         // catch-all. If they did, every page in the app would 404.
         var app = NewApp(a => a.MapEndpoints(e => e.MapGet("/ping", () => "pong"))).Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
@@ -370,7 +370,7 @@ public sealed class RaskAppTests
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -387,20 +387,20 @@ public sealed class RaskAppTests
             scheme = ctx.Request.Scheme;
             return ctx.Request.Scheme;
         }))).Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
             using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
             client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
 
-            await client.GetAsync("/scheme");
+            await client.GetAsync("/scheme", TestContext.Current.CancellationToken);
 
             Assert.Equal("http", scheme);
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -417,20 +417,20 @@ public sealed class RaskAppTests
                 return ctx.Request.Scheme;
             }));
         }).Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
             using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
             client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
 
-            await client.GetAsync("/scheme");
+            await client.GetAsync("/scheme", TestContext.Current.CancellationToken);
 
             Assert.Equal("https", scheme);
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
         }
     }
 
@@ -446,17 +446,17 @@ public sealed class RaskAppTests
         });
         app.MapEndpoints(e => e.MapGet("/scheme", (HttpContext ctx) => scheme = ctx.Request.Scheme));
         var built = app.Build<MinimalApp>();
-        await built.StartAsync();
+        await built.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {
             using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(built)) };
             client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
-            await client.GetAsync("/scheme");
+            await client.GetAsync("/scheme", TestContext.Current.CancellationToken);
         }
         finally
         {
-            await built.StopAsync();
+            await built.StopAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Equal("https", scheme);
@@ -478,19 +478,19 @@ public sealed class RaskAppTests
     public async Task An_app_with_an_icon_installs_with_it()
     {
         var webRoot = Directory.CreateTempSubdirectory("rask-icon-").FullName;
-        await File.WriteAllTextAsync(Path.Combine(webRoot, "icon.svg"), "<svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+        await File.WriteAllTextAsync(Path.Combine(webRoot, "icon.svg"), "<svg xmlns=\"http://www.w3.org/2000/svg\"/>", TestContext.Current.CancellationToken);
         var app = RaskApp.Create(["--webroot", webRoot], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"))
             .Build<MinimalApp>();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         string manifest;
         try
         {
-            manifest = await (await GetAsync(app, "/rask/manifest.webmanifest")).Content.ReadAsStringAsync();
+            manifest = await (await GetAsync(app, "/rask/manifest.webmanifest")).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         }
         finally
         {
-            await app.StopAsync();
+            await app.StopAsync(TestContext.Current.CancellationToken);
             Directory.Delete(webRoot, recursive: true);
         }
 

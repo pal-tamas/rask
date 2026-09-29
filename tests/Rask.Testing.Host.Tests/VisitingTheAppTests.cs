@@ -19,7 +19,7 @@ public sealed class VisitingTheAppTests
         page.Shows("Hello from Program.cs");
     }
 
-    [Fact(Skip = "Needs the per-test hook, which xUnit v3 runs — un-skipped by the merge that moves every test to v3.")]
+    [Fact]
     public void What_a_test_does_before_its_visit_happens_in_the_app_it_visits()
     {
         Guestbook().Names.Add("Ann");

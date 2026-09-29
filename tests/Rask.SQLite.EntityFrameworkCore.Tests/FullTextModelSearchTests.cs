@@ -49,8 +49,8 @@ public sealed class FullTextModelSearchTests : IDisposable
     {
         Assert.Equal(["Alpha"], (await Post.Search("search").Where(p => p.Title != "Charlie")).Select(p => p.Title));
         Assert.Equal(["Alpha", "Charlie"], (await Post.Search("search").OrderBy(p => p.Title)).Select(p => p.Title));
-        Assert.Equal(2, await Post.Search("search").Count());
-        Assert.Equal(3, await Post.Search("  ").Count());
+        Assert.Equal(2, await Post.Search("search").Count(TestContext.Current.CancellationToken));
+        Assert.Equal(3, await Post.Search("  ").Count(TestContext.Current.CancellationToken));
     }
 
     [Fact]

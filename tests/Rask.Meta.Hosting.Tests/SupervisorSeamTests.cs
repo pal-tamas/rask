@@ -45,7 +45,7 @@ public class SupervisorSeamTests
 
         Assert.False(app.Services.GetRequiredService<NodeReadiness>().IsReady);
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         Assert.True(app.Services.GetRequiredService<NodeReadiness>().IsReady);
     }
@@ -61,7 +61,7 @@ public class SupervisorSeamTests
     public async Task A_request_after_the_drain_begins_is_refused()
     {
         await using var app = BuildHost(options => options.SuperviseNode = false);
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         app.Services.GetRequiredService<MetaDrain>().BeginDrain();
 
@@ -91,18 +91,18 @@ public class SupervisorSeamTests
         var supervisor = app.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<NodeSupervisor>().Single();
         var readiness = app.Services.GetRequiredService<NodeReadiness>();
 
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
         readiness.MarkNotReady();
 
         // ExecuteTask is the loop itself; with supervision off it returns as soon as it has run.
         if (supervisor.ExecuteTask is { } loop)
         {
-            await loop.WaitAsync(TimeSpan.FromSeconds(10));
+            await loop.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         }
 
         Assert.False(readiness.IsReady);
 
-        await app.StopAsync();
+        await app.StopAsync(TestContext.Current.CancellationToken);
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ public class SupervisorSeamTests
             options.Framework = MetaFramework.Nuxt;
         });
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("nuxt", error.Message, StringComparison.Ordinal);
         Assert.Contains("no-such-frontend", error.Message, StringComparison.Ordinal);

@@ -6,7 +6,7 @@ namespace Rask.Providers.E2E.Tests;
 
 /// <summary>The PostgreSQL server under test, named by <c>RASK_PG_TEST_DB</c>.</summary>
 /// <remarks>
-/// A fact that needs it calls <c>Skip.IfNot(Postgres.Available, Postgres.SkipReason)</c> first, so a run with no
+/// A fact that needs it calls <c>Assert.SkipUnless(Postgres.Available, Postgres.SkipReason)</c> first, so a run with no
 /// server reports SKIPPED instead of a wall of red — and never PASSED, which is the lie that matters.
 /// </remarks>
 internal static class Postgres

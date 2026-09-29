@@ -226,7 +226,7 @@ public sealed class UseRaskSqlServerTests
         var interceptor = new RaskSqlServerConnectionInterceptor();
 
         Assert.Null(Record.Exception(() => interceptor.ConnectionOpened(new NotSqlServerConnection(), null!)));
-        Assert.Null(await Record.ExceptionAsync(() => interceptor.ConnectionOpenedAsync(new NotSqlServerConnection(), null!)));
+        Assert.Null(await Record.ExceptionAsync(() => interceptor.ConnectionOpenedAsync(new NotSqlServerConnection(), null!, TestContext.Current.CancellationToken)));
     }
 
     private static DbContextOptions<TContext> Options<TContext>(Action<SqlServerOptions>? configure = null)

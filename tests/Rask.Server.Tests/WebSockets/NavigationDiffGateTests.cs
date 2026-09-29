@@ -24,11 +24,11 @@ public class NavigationDiffGateTests
         // Navigate to /seed first so the asserted transition below is /seed -> /destination
         // (a same-<head> change). The GET render already seeded the diff baseline, so this
         // nav itself diffs against it; we drain and ignore it.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" }, ct: TestContext.Current.CancellationToken);
         _ = await DrainToLastFrame(fixture.Ws);
 
         // Second nav: head unchanged (static <title>), body diffs → diff + history.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
         var frame = await DrainToLastFrame(fixture.Ws);
 
@@ -48,13 +48,13 @@ public class NavigationDiffGateTests
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>(LiveDiffMode.Forced);
 
         // Navigate to /page first so the re-navigation below is a same-path query-only change.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "" }, ct: TestContext.Current.CancellationToken);
         _ = await DrainToLastFrame(fixture.Ws);
 
         // Re-navigate to the SAME path with a query. The app renders only the path, so the
         // body is unchanged → zero DOM ops. The nav must still ship to pushState the URL,
         // as a history-only diff (empty ops) rather than the whole document.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "?q=1" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "?q=1" }, ct: TestContext.Current.CancellationToken);
 
         var frame = await DrainToLastFrame(fixture.Ws);
 
@@ -74,13 +74,13 @@ public class NavigationDiffGateTests
         await using var fixture = await ConnectedSession.Connect<RouteTitleNavApp>(LiveDiffMode.Forced);
 
         // Navigate to /seed first so the asserted transition below is /seed -> /destination.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" }, ct: TestContext.Current.CancellationToken);
         _ = await DrainToLastFrame(fixture.Ws);
 
         // RouteTitleNavApp changes the <title> AND an H1 text per route. The body delta is a
         // supported UpdateText op, so the nav ships a diff carrying the new <head> as a
         // fragment (client morphs it into document.head) rather than the whole document.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
         var frame = await DrainToLastFrame(fixture.Ws);
 
@@ -100,13 +100,13 @@ public class NavigationDiffGateTests
     {
         await using var fixture = await ConnectedSession.Connect<RouteTitleStructuralNavApp>(LiveDiffMode.Forced);
 
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/seed", query = "" }, ct: TestContext.Current.CancellationToken);
         _ = await DrainToLastFrame(fixture.Ws);
 
         // The body restructures per route (div ↔ unkeyed list) → untrusted positional
         // structural ops → DiffOpsAreClientSupported rejects → full HTML. The head fragment
         // is never sent; the full-document morph carries the head delta instead.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
         var frame = await DrainToLastFrame(fixture.Ws);
 

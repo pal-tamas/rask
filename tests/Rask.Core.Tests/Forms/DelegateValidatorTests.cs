@@ -50,7 +50,7 @@ public class DelegateValidatorTests
                 return v == "x" ? new[] { "bad" } : Array.Empty<string>();
             }));
 
-        Assert.False(await ctx.ValidateFieldAsync(fid));
+        Assert.False(await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken));
         Assert.Contains("bad", ctx.GetValidationMessages(fid));
     }
 
@@ -81,7 +81,7 @@ public class DelegateValidatorTests
                 }
             }));
 
-        var firstTask = ctx.ValidateFieldAsync(fid).AsTask();
+        var firstTask = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken).AsTask();
         await firstStarted.Task;
 
         // Re-register with a quick second delegate and validate again. The CTS-based latest-
@@ -93,7 +93,7 @@ public class DelegateValidatorTests
                 return new[] { "second" };
             }));
 
-        var secondTask = ctx.ValidateFieldAsync(fid).AsTask();
+        var secondTask = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken).AsTask();
         await secondTask;
 
         // First should have observed cancellation.
@@ -132,7 +132,7 @@ public class DelegateValidatorTests
                 return string.IsNullOrEmpty(model.Name) ? new[] { "async form bad" } : Array.Empty<string>();
             }));
 
-        Assert.False(await ctx.ValidateAsync());
+        Assert.False(await ctx.ValidateAsync(TestContext.Current.CancellationToken));
         var formField = new FieldIdentifier(m, "");
         Assert.Contains("async form bad", ctx.GetValidationMessages(formField));
     }

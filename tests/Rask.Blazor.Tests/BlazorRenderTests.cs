@@ -55,7 +55,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
 
         var result = await QuiescentRender.RunAsync(
             _ => Page.Render(island, services).Html,
-            TimeSpan.FromSeconds(5));
+            TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("Hello (loaded)", result.Html, StringComparison.Ordinal);
     }

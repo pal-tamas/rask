@@ -92,7 +92,7 @@ public class WasmPrerenderTests : IDisposable
             Assert.False(Directory.Exists(Path.Combine(dir, "products")));
 
             // What landed is a real document, not a fragment.
-            var home = await File.ReadAllTextAsync(Path.Combine(dir, "index.html"));
+            var home = await File.ReadAllTextAsync(Path.Combine(dir, "index.html"), TestContext.Current.CancellationToken);
             Assert.Contains("<!doctype html>", home, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("home-page", home, StringComparison.Ordinal);
         }
@@ -186,7 +186,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"), TestContext.Current.CancellationToken);
 
             Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/about/</loc>"));
             Assert.Equal(1, Occurrences(sitemap, "<loc>https://example.com/extra/</loc>"));
@@ -224,7 +224,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"), TestContext.Current.CancellationToken);
 
             Assert.Contains("<loc>https://example.com/</loc>", sitemap, StringComparison.Ordinal);
 
@@ -278,7 +278,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"), TestContext.Current.CancellationToken);
 
             Assert.Contains("<loc>https://example.com/about</loc>", sitemap, StringComparison.Ordinal);
             Assert.DoesNotContain("/about/</loc>", sitemap, StringComparison.Ordinal);
@@ -316,7 +316,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<PathPrinter>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var where = await File.ReadAllTextAsync(Path.Combine(dir, "where", "index.html"));
+            var where = await File.ReadAllTextAsync(Path.Combine(dir, "where", "index.html"), TestContext.Current.CancellationToken);
 
             Assert.Contains($"<code>{expected}</code>", where, StringComparison.Ordinal);
         }
@@ -354,7 +354,7 @@ public class WasmPrerenderTests : IDisposable
             Assert.True(File.Exists(Path.Combine(dir, "fine", "index.html")), "/fine was not written");
             Assert.False(File.Exists(Path.Combine(dir, "broken", "index.html")), "/broken WAS written");
 
-            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"), TestContext.Current.CancellationToken);
 
             Assert.Contains("/fine", sitemap, StringComparison.Ordinal);
             Assert.DoesNotContain("/broken", sitemap, StringComparison.Ordinal);
@@ -451,7 +451,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<DatedOnOneRoute>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"));
+            var sitemap = await File.ReadAllTextAsync(Path.Combine(dir, "sitemap.xml"), TestContext.Current.CancellationToken);
 
             Assert.Contains(
                 "<url><loc>https://example.com/dated/</loc><lastmod>2026-09-10</lastmod></url>",
@@ -527,18 +527,18 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var written = await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt"));
+            var written = await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt"), TestContext.Current.CancellationToken);
 
             Assert.Contains("Sitemap: https://example.com/sitemap.xml", written, StringComparison.Ordinal);
 
             // Now the app's own, on a second pass over the same directory.
-            await File.WriteAllTextAsync(Path.Combine(dir, "robots.txt"), "User-agent: *\nDisallow: /\n");
+            await File.WriteAllTextAsync(Path.Combine(dir, "robots.txt"), "User-agent: *\nDisallow: /\n", TestContext.Current.CancellationToken);
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
             Assert.Equal(
                 "User-agent: *\nDisallow: /\n",
-                await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt")));
+                await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt"), TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -628,7 +628,7 @@ public class WasmPrerenderTests : IDisposable
             <script type="importmap">{"imports":{}}</script></head>
             <body data-rask-root><div class="rask-boot">Loading…</div>
             <script src="main.js" type="module"></script></body></html>
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
@@ -638,7 +638,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var root = await File.ReadAllTextAsync(Path.Combine(dir, "index.html"));
+            var root = await File.ReadAllTextAsync(Path.Combine(dir, "index.html"), TestContext.Current.CancellationToken);
 
             Assert.Contains("home-page", root, StringComparison.Ordinal);
             Assert.Contains("<script src=\"main.js\" type=\"module\">", root, StringComparison.Ordinal);
@@ -647,7 +647,7 @@ public class WasmPrerenderTests : IDisposable
 
             // Every route gets the shell, not just the root one — a sub-page without the boot script
             // is a dead end, and it is the page a search result links to.
-            var about = await File.ReadAllTextAsync(Path.Combine(dir, "about", "index.html"));
+            var about = await File.ReadAllTextAsync(Path.Combine(dir, "about", "index.html"), TestContext.Current.CancellationToken);
             Assert.Contains("home-page", about, StringComparison.Ordinal);
             Assert.Contains("<script src=\"main.js\" type=\"module\">", about, StringComparison.Ordinal);
         }
@@ -676,7 +676,7 @@ public class WasmPrerenderTests : IDisposable
             """
             <!doctype html><html><head><title>Rask</title></head>
             <body><div class="rask-boot">Loading…</div><script src="main.js" type="module"></script></body></html>
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
@@ -686,7 +686,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var about = await File.ReadAllTextAsync(Path.Combine(dir, "about", "index.html"));
+            var about = await File.ReadAllTextAsync(Path.Combine(dir, "about", "index.html"), TestContext.Current.CancellationToken);
 
             Assert.Equal(1, Occurrences(about, "home-page"));
             Assert.Equal(1, Occurrences(about, "main.js"));
@@ -719,7 +719,7 @@ public class WasmPrerenderTests : IDisposable
             <script type="importmap">{"imports":{}}</script></head>
             <body data-rask-root><div class="rask-boot">Loading…</div>
             <script src="main.js" type="module"></script></body></html>
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
@@ -729,7 +729,7 @@ public class WasmPrerenderTests : IDisposable
             await WasmPrerender.RunAsync<Home>(
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
-            var fallback = await File.ReadAllTextAsync(Path.Combine(dir, "404.html"));
+            var fallback = await File.ReadAllTextAsync(Path.Combine(dir, "404.html"), TestContext.Current.CancellationToken);
 
             // It can boot — the import map, the base href and the boot script are all there.
             Assert.Contains("<script src=\"main.js\" type=\"module\">", fallback, StringComparison.Ordinal);
@@ -742,7 +742,7 @@ public class WasmPrerenderTests : IDisposable
 
             // The root page really was prerendered, so the check above is not passing because nothing
             // happened.
-            Assert.Contains("home-page", await File.ReadAllTextAsync(Path.Combine(dir, "index.html")), StringComparison.Ordinal);
+            Assert.Contains("home-page", await File.ReadAllTextAsync(Path.Combine(dir, "index.html"), TestContext.Current.CancellationToken), StringComparison.Ordinal);
         }
         finally
         {
@@ -808,7 +808,7 @@ public class WasmPrerenderTests : IDisposable
 
             Assert.Equal(
                 "User-agent: *\nAllow: /\nSitemap: https://example.com/sitemap.xml\n",
-                await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt")));
+                await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt"), TestContext.Current.CancellationToken));
         }
         finally
         {
@@ -847,7 +847,7 @@ public class WasmPrerenderTests : IDisposable
             <script type="importmap">{"imports":{}}</script></head>
             <body data-rask-root><div class="rask-boot">Loading…</div>
             <script src="main.js" type="module"></script></body></html>
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
@@ -866,7 +866,7 @@ public class WasmPrerenderTests : IDisposable
             // rather than only that something did.
             foreach (var page in new[] { "index.html", Path.Combine("about", "index.html") })
             {
-                var html = await File.ReadAllTextAsync(Path.Combine(dir, page));
+                var html = await File.ReadAllTextAsync(Path.Combine(dir, page), TestContext.Current.CancellationToken);
                 Assert.Equal(1, Occurrences(html, "name=\"description\""));
                 Assert.Equal(1, Occurrences(html, "property=\"og:title\""));
                 Assert.Equal(1, Occurrences(html, "type=\"importmap\""));
@@ -901,7 +901,7 @@ public class WasmPrerenderTests : IDisposable
             """
             <!doctype html><html lang="en" data-rask-prerendered><head><title>Rask</title></head>
             <body><div class="home-page"></div><script src="main.js" type="module"></script></body></html>
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();

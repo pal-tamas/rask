@@ -84,10 +84,10 @@ public sealed class EntityCollectionMappingTests : IDisposable
         cart.Add("apple", 3);
         cart.Add("pear", 1);
         database.Context.Add(cart);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // The model surface opens a context of its own, so this reads what was saved, not what is tracked.
-        var loaded = await Cart.Query((q, ct) => q.Include(c => c.Lines).SingleAsync(ct));
+        var loaded = await Cart.Query((q, ct) => q.Include(c => c.Lines).SingleAsync(ct), TestContext.Current.CancellationToken);
 
         Assert.Equal("ada", loaded.Owner);
         Assert.Equal(
@@ -103,19 +103,19 @@ public sealed class EntityCollectionMappingTests : IDisposable
         var cart = Cart.Open("grace");
         cart.Add("apple", 1);
         database.Context.Add(cart);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // A fresh context, the way a request handler sees the row: load, change through the entity, save.
         await using (var context = new RaskDbContext(Options()))
         {
-            var loaded = await context.Set<Cart>().Include(c => c.Lines).SingleAsync(c => c.Id == cart.Id);
+            var loaded = await context.Set<Cart>().Include(c => c.Lines).SingleAsync(c => c.Id == cart.Id, cancellationToken: TestContext.Current.CancellationToken);
             loaded.Add("pear", 2);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var context = new RaskDbContext(Options()))
         {
-            var reloaded = await context.Set<Cart>().Include(c => c.Lines).SingleAsync(c => c.Id == cart.Id);
+            var reloaded = await context.Set<Cart>().Include(c => c.Lines).SingleAsync(c => c.Id == cart.Id, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(
                 ["apple", "pear"],
                 reloaded.Lines.Select(l => l.Product).Order(StringComparer.Ordinal));

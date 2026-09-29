@@ -11,7 +11,7 @@ namespace Rask.External.Tests;
 /// <summary>The React adapter's children, against the real react and react-dom.</summary>
 public sealed class ReactAdapterTests
 {
-    [SkippableFact]
+    [Fact]
     public void A_child_island_renders_inside_its_parent_keeps_its_state_and_unmounts_when_removed() =>
         ChildAdapterRun.AssertChildren("ReactAdapterFixture", "React", remounts: "badgeEffectsAfterParentUpdate");
 }
@@ -19,7 +19,7 @@ public sealed class ReactAdapterTests
 /// <summary>The Vue adapter's children — the component's default slot — against the real vue runtime.</summary>
 public sealed class VueAdapterTests
 {
-    [SkippableFact]
+    [Fact]
     public void A_child_island_renders_inside_its_parent_keeps_its_state_and_unmounts_when_removed() =>
         ChildAdapterRun.AssertChildren("VueAdapterFixture", "Vue", remounts: "badgeEffectsAfterParentUpdate");
 }
@@ -28,7 +28,7 @@ public sealed class VueAdapterTests
 public sealed class SolidAdapterTests
 {
     // Solid runs a component function once for its life, so the count of runs IS the remount check.
-    [SkippableFact]
+    [Fact]
     public void A_child_island_renders_inside_its_parent_keeps_its_state_and_unmounts_when_removed() =>
         ChildAdapterRun.AssertChildren("SolidAdapterFixture", "Solid", remounts: "badgeRunsAfterParentUpdate");
 }
@@ -60,13 +60,13 @@ internal static class ChildAdapterRun
 
     private static JsonElement Run(string fixture, string runtime)
     {
-        Skip.IfNot(
+        Assert.SkipUnless(
             File.Exists(NodeFixture.ScriptPath(fixture)),
             $"'{NodeFixture.ScriptPath(fixture)}' was not bundled: npm could not install the adapter fixtures (no npm, no "
             + $"network, or RaskPreactFixture=false), so the {runtime} adapter's children were not exercised on this machine.");
 
         var doc = NodeFixture.Run(fixture);
-        Skip.If(doc is null, $"node is not on PATH, so the {runtime} adapter's children were not exercised.");
+        Assert.SkipWhen(doc is null, $"node is not on PATH, so the {runtime} adapter's children were not exercised.");
 
         return doc!.Value;
     }

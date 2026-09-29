@@ -18,9 +18,9 @@ public sealed class JobProcessorConcurrencyTests
         await using var h = new JobsHarness();
         // Ordered by (RunAt, Id), so the saboteur is drained first and deletes the last row while the batch that
         // contains it is still in flight.
-        await h.Queue.Enqueue(new SaboteurJob());
-        await h.Queue.Enqueue(new RecordJob("b"));
-        await h.Queue.Enqueue(new RecordJob("c"));
+        await h.Queue.Enqueue(new SaboteurJob(), TestContext.Current.CancellationToken);
+        await h.Queue.Enqueue(new RecordJob("b"), TestContext.Current.CancellationToken);
+        await h.Queue.Enqueue(new RecordJob("c"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -35,7 +35,7 @@ public sealed class JobProcessorConcurrencyTests
             });
 
             // Give the poll loop a few more cycles to prove the state is stable rather than momentary.
-            await Task.Delay(200);
+            await Task.Delay(200, TestContext.Current.CancellationToken);
         }
         finally
         {
@@ -43,7 +43,7 @@ public sealed class JobProcessorConcurrencyTests
         }
 
         await using var db = h.NewContext();
-        var jobs = await db.Set<Job>().OrderBy(j => j.Id).ToListAsync();
+        var jobs = await db.Set<Job>().OrderBy(j => j.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(2, jobs.Count);
         Assert.All(jobs, j => Assert.NotNull(j.ProcessedAt));
@@ -59,8 +59,8 @@ public sealed class JobProcessorConcurrencyTests
     public async Task A_faulting_cycle_does_not_stop_the_processor()
     {
         await using var h = new JobsHarness();
-        await h.Queue.Enqueue(new SaboteurJob());
-        await h.Queue.Enqueue(new RecordJob("first"));
+        await h.Queue.Enqueue(new SaboteurJob(), TestContext.Current.CancellationToken);
+        await h.Queue.Enqueue(new RecordJob("first"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -75,7 +75,7 @@ public sealed class JobProcessorConcurrencyTests
             });
 
             // The loop must still be alive: work enqueued after the fault still gets drained.
-            await h.Queue.Enqueue(new RecordJob("after-the-fault"));
+            await h.Queue.Enqueue(new RecordJob("after-the-fault"), TestContext.Current.CancellationToken);
             await h.WaitUntilAsync(() => Task.FromResult(h.Recorder.Values.Contains("after-the-fault")));
         }
         finally

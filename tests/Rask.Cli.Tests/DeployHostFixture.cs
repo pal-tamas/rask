@@ -39,7 +39,7 @@ public sealed class DeployHostFixture : IAsyncLifetime
     /// </summary>
     public string? Unavailable { get; private set; }
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (!DeployE2E.Enabled)
         {
@@ -118,7 +118,7 @@ public sealed class DeployHostFixture : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_started)
         {

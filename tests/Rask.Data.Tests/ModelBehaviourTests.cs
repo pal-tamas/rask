@@ -152,10 +152,10 @@ public sealed class ModelBehaviourTests : IDisposable
         var order = Order.Place("B-1");
         await SeedAsync(database, order, Shipment.For(order.Id, dispatched: false));
 
-        Assert.True(await order.TryCancelAsync(database.Context, Now));
-        await database.Context.SaveChangesAsync();
+        Assert.True(await order.TryCancelAsync(database.Context, Now, TestContext.Current.CancellationToken));
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var reloaded = await database.LoadAsync<Order>(order.Id);
+        var reloaded = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
         Assert.Equal(OrderStatus.Cancelled, reloaded!.Status);
         Assert.Equal(Now, reloaded.CancelledAt);
     }
@@ -168,10 +168,10 @@ public sealed class ModelBehaviourTests : IDisposable
         var order = Order.Place("B-2");
         await SeedAsync(database, order, Shipment.For(order.Id, dispatched: true));
 
-        Assert.False(await order.TryCancelAsync(database.Context, Now));
-        Assert.Equal(0, await database.Context.SaveChangesAsync());
+        Assert.False(await order.TryCancelAsync(database.Context, Now, TestContext.Current.CancellationToken));
+        Assert.Equal(0, await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
 
-        var reloaded = await database.LoadAsync<Order>(order.Id);
+        var reloaded = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
         Assert.Equal(OrderStatus.Open, reloaded!.Status);
         Assert.Null(reloaded.CancelledAt);
     }
@@ -187,13 +187,13 @@ public sealed class ModelBehaviourTests : IDisposable
         var second = Order.Place("D-2");
         await SeedAsync(database, first, second);
 
-        Assert.True(await first.TryCancelAsync(database.Context, Now));
-        Assert.True(await second.TryCancelAsync(database.Context, Now));
-        Assert.Equal(0, await Order.Count(o => o.Status == OrderStatus.Cancelled));
+        Assert.True(await first.TryCancelAsync(database.Context, Now, TestContext.Current.CancellationToken));
+        Assert.True(await second.TryCancelAsync(database.Context, Now, TestContext.Current.CancellationToken));
+        Assert.Equal(0, await Order.Count(o => o.Status == OrderStatus.Cancelled, TestContext.Current.CancellationToken));
 
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(2, await Order.Count(o => o.Status == OrderStatus.Cancelled));
+        Assert.Equal(2, await Order.Count(o => o.Status == OrderStatus.Cancelled, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -205,7 +205,7 @@ public sealed class ModelBehaviourTests : IDisposable
         var order = Order.Place("B-3");
         await SeedAsync(database, order);
 
-        var reloaded = await database.LoadAsync<Order>(order.Id);
+        var reloaded = await database.LoadAsync<Order>(order.Id, TestContext.Current.CancellationToken);
 
         Assert.Equal(Now, reloaded!.CreatedAt);
     }
@@ -219,10 +219,10 @@ public sealed class ModelBehaviourTests : IDisposable
         await SeedAsync(database, order);
 
         database.Context.Remove(order);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // The interceptors are wired by the fixture, so the conventions behave as they do in production.
-        Assert.Equal(0, await Order.Count());
+        Assert.Equal(0, await Order.Count(TestContext.Current.CancellationToken));
         Assert.Single(await Order.IgnoreQueryFilters().Where(o => o.Id == order.Id));
     }
 

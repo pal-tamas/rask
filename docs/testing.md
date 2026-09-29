@@ -286,7 +286,8 @@ The handler-id API in section 0 is still there underneath, and the two mix freel
 
 ## 2. The test stack
 
-Tests run on **xUnit**. The `Rask.TestSupport` project (`tests/Rask.TestSupport/`) builds on
+Tests run on **xUnit v3** (`xunit.v3`; every `*.Tests` project is an executable, set once in
+`tests/Directory.Build.props`). The `Rask.TestSupport` project (`tests/Rask.TestSupport/`) builds on
 `Rask.Testing` and adds only what the shipped package deliberately doesn't have — helpers that call
 `Assert` (the package is test-framework-agnostic and stays so), and helpers below the HTML +
 handler-dispatch seam it covers. Attribute lookups over an HTML string are `MarkupAssert.Attr(html, name)`,

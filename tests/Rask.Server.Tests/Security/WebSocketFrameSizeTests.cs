@@ -54,11 +54,11 @@ public class WebSocketFrameSizeTests
         // Guard against a too-tight cap regressing legitimate traffic: a normal hello round-trips
         // fine under the default cap.
         using var host = RaskTestHost.Create<TestApp>();
-        var get = await host.Http.GetAsync("/");
-        var sessionId = MarkupAssert.SessionId(await get.Content.ReadAsStringAsync());
+        var get = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(await get.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         // No exception, socket stays open.
         Assert.Equal(WebSocketState.Open, ws.State);

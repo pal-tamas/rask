@@ -18,8 +18,8 @@ public class AsyncValidationDispatchTests
     public async Task An_async_validators_post_handler_frame_shows_the_message_and_no_indicator()
     {
         using var host = RaskTestHost.Create<AsyncValidationApp>(diffMode: LiveDiffMode.DisabledFull);
-        var initial = await host.Http.GetAsync("/");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var inputId = MarkupAssert.Attr(initialHtml, "data-rask-on-input");
         var changeId = MarkupAssert.Attr(initialHtml, "data-rask-on-change");
@@ -27,16 +27,16 @@ public class AsyncValidationDispatchTests
         Assert.NotNull(changeId);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         // Discard the recovery render the dispatcher emits right after socket attach.
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = inputId, value = "admin" });
+        await ws.SendJsonAsync(new { id = inputId, value = "admin" }, ct: TestContext.Current.CancellationToken);
         // OnInput is synchronous (the field isn't touched yet, so StringSetHandler
         // doesn't trigger validation); a single post-handler frame should land.
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-        await ws.SendJsonAsync(new { id = changeId, value = "admin" });
+        await ws.SendJsonAsync(new { id = changeId, value = "admin" }, ct: TestContext.Current.CancellationToken);
 
         // Drain every frame the dispatcher emits for this handler — typically the mid-await
         // ("Checking...") plus the post-handler. The last frame on the wire must reflect the

@@ -37,7 +37,7 @@ public sealed class TenantAccountTests
         await AddAsync(harness, "ada@example.com", _globex);
 
         await using var db = harness.NewContext();
-        Assert.Equal(2, await db.Set<TestUser>().CountAsync(u => u.Email == "ada@example.com"));
+        Assert.Equal(2, await db.Set<TestUser>().CountAsync(u => u.Email == "ada@example.com", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class TenantAccountTests
         await AddAsync(harness, "root@example.com", tenant: null);
 
         await using var db = harness.NewContext();
-        var admin = await db.Set<TestUser>().SingleAsync();
+        var admin = await db.Set<TestUser>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Null(admin.TenantId);
         Assert.Equal(Guid.Empty, db.Entry(admin).Property<Guid>(Columns.TenantKey).CurrentValue);
@@ -85,7 +85,7 @@ public sealed class TenantAccountTests
         await AddAsync(harness, "ada@example.com", _acme);
 
         await using var db = harness.NewContext();
-        var user = await db.Set<TestUser>().SingleAsync();
+        var user = await db.Set<TestUser>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // The tenant is an OUTCOME of authentication, not an input to routing: sign-in finds the user, and
         // the user says which tenant they are in. So it rides on the principal, and the data layer reads it
@@ -103,7 +103,7 @@ public sealed class TenantAccountTests
         await AddAsync(harness, "root@example.com", tenant: null);
 
         await using var db = harness.NewContext();
-        var admin = await db.Set<TestUser>().SingleAsync();
+        var admin = await db.Set<TestUser>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // No claim, so a tenant-scoped read throws until they choose a tenant to work in. That is the
         // intended behaviour: an admin should say which tenant they are acting in, not silently read across.

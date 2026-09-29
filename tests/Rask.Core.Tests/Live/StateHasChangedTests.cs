@@ -36,7 +36,7 @@ public partial class StateHasChangedTests : global::Rask.Core.RaskMarkup
         var session = NewSession(out _);
         await session.RequestRenderAsync();
         // Lock must remain free after the call.
-        Assert.True(session.Lock.Wait(0));
+        Assert.True(session.Lock.Wait(0, TestContext.Current.CancellationToken));
         session.Lock.Release();
     }
 
@@ -45,7 +45,7 @@ public partial class StateHasChangedTests : global::Rask.Core.RaskMarkup
     {
         var session = NewSession(out _);
 
-        await session.Lock.WaitAsync();
+        await session.Lock.WaitAsync(TestContext.Current.CancellationToken);
         try
         {
             session.InHandlerScope = true;
@@ -64,7 +64,7 @@ public partial class StateHasChangedTests : global::Rask.Core.RaskMarkup
     {
         var session = NewSession(out _);
         await session.RequestRenderAsync();
-        Assert.True(session.Lock.Wait(0));
+        Assert.True(session.Lock.Wait(0, TestContext.Current.CancellationToken));
         session.Lock.Release();
 
         Assert.False(session.InHandlerScope);

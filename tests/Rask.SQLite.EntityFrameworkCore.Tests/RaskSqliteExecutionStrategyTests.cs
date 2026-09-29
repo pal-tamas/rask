@@ -20,7 +20,7 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.OpenConnectionAsync();
+        await context.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
         var connection = (SqliteConnection)context.Database.GetDbConnection();
 
         // busy_timeout=0 hands all waiting to the async execution strategy.
@@ -37,7 +37,7 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.OpenConnectionAsync();
+        await context.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
         var connection = (SqliteConnection)context.Database.GetDbConnection();
 
         Assert.Equal("5000", ReadPragma(connection, "busy_timeout"));
@@ -53,23 +53,23 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         // A separate connection takes the write lock, then releases it after ~100 ms.
         await using var holder = new SqliteConnection(ConnectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         var holderTx = holder.BeginImmediate();
         var release = Task.Run(async () =>
         {
             await Task.Delay(100);
             holderTx.Commit();
-        });
+        }, TestContext.Current.CancellationToken);
 
         context.Rows.Add(new ProbeRow());
-        await context.SaveChangesAsync(); // must wait out the lock, not throw
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken); // must wait out the lock, not throw
 
         await release;
-        Assert.Equal(1, await context.Rows.CountAsync());
+        Assert.Equal(1, await context.Rows.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -80,14 +80,14 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         await using var holder = new SqliteConnection(ConnectionString);
-        await holder.OpenAsync();
+        await holder.OpenAsync(TestContext.Current.CancellationToken);
         using var holderTx = holder.BeginImmediate();
 
         context.Rows.Add(new ProbeRow());
-        var exception = await Assert.ThrowsAnyAsync<Exception>(() => context.SaveChangesAsync());
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() => context.SaveChangesAsync(TestContext.Current.CancellationToken));
 
         Assert.True(HasBusy(exception), $"expected SQLITE_BUSY in the exception chain, got {exception}");
     }
@@ -105,19 +105,19 @@ public sealed class RaskSqliteExecutionStrategyTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.EnsureCreatedAsync();
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         // Each contention must outlast Microsoft.Data.Sqlite's own ~1s blocking retry (CommandTimeout(1)),
         // or the driver absorbs the wait and the strategy never sees SQLITE_BUSY at all.
         await ContendedSaveAsync(context, TimeSpan.FromMilliseconds(1500));
 
         // Idle past Timeout, measured from that first contention.
-        await Task.Delay(TimeSpan.FromMilliseconds(2500));
+        await Task.Delay(TimeSpan.FromMilliseconds(2500), TestContext.Current.CancellationToken);
 
         // The clock must have reset with this SaveChanges — the lock frees well inside Timeout.
         await ContendedSaveAsync(context, TimeSpan.FromMilliseconds(1500));
 
-        Assert.Equal(2, await context.Rows.CountAsync());
+        Assert.Equal(2, await context.Rows.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     private async Task ContendedSaveAsync(ProbeDbContext context, TimeSpan hold)

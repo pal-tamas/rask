@@ -31,7 +31,7 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
         await using (var transaction = context.Database.BeginTransaction())
         {
             Assert.True(WriteLockHeldByAnotherConnection());
-            await transaction.RollbackAsync();
+            await transaction.RollbackAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.False(WriteLockHeldByAnotherConnection());
@@ -42,11 +42,11 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
     {
         await using var context = await CreateSchemaAsync();
 
-        await using var transaction = await context.Database.BeginTransactionAsync();
+        await using var transaction = await context.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
         Assert.True(WriteLockHeldByAnotherConnection());
 
-        await transaction.RollbackAsync();
+        await transaction.RollbackAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
         // Two rows, so EF opens a transaction rather than sending a single auto-committed command.
         context.Rows.Add(new ProbeRow());
         context.Rows.Add(new ProbeRow());
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.True(probe.LockHeldBeforeFirstCommand.HasValue, "the interceptor never fired");
         Assert.True(probe.LockHeldBeforeFirstCommand!.Value);
@@ -83,7 +83,7 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
         // write lock is taken until the transaction writes. This is what the probe reports as "free".
         Assert.False(WriteLockHeldByAnotherConnection());
 
-        await transaction.RollbackAsync();
+        await transaction.RollbackAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -91,19 +91,19 @@ public sealed class RaskSqliteTransactionModeTests : IDisposable
     {
         await using var context = await CreateSchemaAsync();
         context.Rows.Add(new ProbeRow());
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await using var transaction = await context.Database.BeginTransactionAsync();
+        await using var transaction = await context.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
         // Reading first is what would strand a DEFERRED transaction on a read lock it cannot upgrade —
         // an unretryable SQLITE_BUSY. Because the transaction is already IMMEDIATE, there is nothing to
         // upgrade and the write commits.
-        var row = await context.Rows.FirstAsync();
+        var row = await context.Rows.FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
         row.Note = "changed";
-        await context.SaveChangesAsync();
-        await transaction.CommitAsync();
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await transaction.CommitAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("changed", await context.Rows.Select(r => r.Note).FirstAsync());
+        Assert.Equal("changed", await context.Rows.Select(r => r.Note).FirstAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     // Asks a second connection for the write lock with SQLite's own busy handler off, so a held lock

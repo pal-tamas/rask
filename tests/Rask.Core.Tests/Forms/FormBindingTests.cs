@@ -108,7 +108,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
 
         // Force the name to be blank so the async rule produces a message.
         p.Name = "";
-        await captured!.ValidateAsync();
+        await captured!.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("async-form-rule",
             captured.GetValidationMessages(new FieldIdentifier(p, string.Empty)));

@@ -56,13 +56,13 @@ public sealed class BulkInsertTests : IDisposable
     {
         await using (var db = NewContext())
         {
-            var written = await db.BulkInsertAsync(Widgets(25), o => o.BatchSize = 4);
+            var written = await db.BulkInsertAsync(Widgets(25), o => o.BatchSize = 4, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(25, written);
         }
 
         await using (var db = NewContext())
         {
-            Assert.Equal(25, await db.Widgets.CountAsync());
+            Assert.Equal(25, await db.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -71,12 +71,12 @@ public sealed class BulkInsertTests : IDisposable
     {
         await using (var db = NewContext())
         {
-            await db.BulkInsertAsync(Widgets(5), o => o.BatchSize = 2);
+            await db.BulkInsertAsync(Widgets(5), o => o.BatchSize = 2, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         await using (var verify = NewContext())
         {
-            var stamped = await verify.Widgets.ToListAsync();
+            var stamped = await verify.Widgets.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(5, stamped.Count);
             Assert.All(stamped, w => Assert.Equal(_clock.UtcNow.UtcDateTime, w.CreatedAt));
             Assert.All(stamped, w => Assert.Equal(_clock.UtcNow.UtcDateTime, w.UpdatedAt));
@@ -88,7 +88,7 @@ public sealed class BulkInsertTests : IDisposable
     {
         await using (var db = NewContext())
         {
-            await db.BulkInsertAsync(Widgets(5), o => o.BatchSize = 2);
+            await db.BulkInsertAsync(Widgets(5), o => o.BatchSize = 2, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         // Widget.Create raises WidgetCreated, so each row's event must survive its batch being cleared.
@@ -102,7 +102,7 @@ public sealed class BulkInsertTests : IDisposable
         await using (var db = NewContext())
         {
             db.Widgets.Add(existing);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var fresh = Widget.Create("would-be-inserted");
@@ -115,14 +115,14 @@ public sealed class BulkInsertTests : IDisposable
             await Assert.ThrowsAnyAsync<DbUpdateException>(
                 () => db.BulkInsertAsync(
                     [fresh, existing],
-                    o => { o.BatchSize = 1; o.SingleTransaction = true; }));
+                    o => { o.BatchSize = 1; o.SingleTransaction = true; }, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using (var verify = NewContext())
         {
             // Only the pre-existing row survives: batch 1 went back with batch 2.
-            Assert.Equal(1, await verify.Widgets.CountAsync());
-            Assert.False(await verify.Widgets.AnyAsync(w => w.Id == fresh.Id));
+            Assert.Equal(1, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.False(await verify.Widgets.AnyAsync(w => w.Id == fresh.Id, cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -131,14 +131,14 @@ public sealed class BulkInsertTests : IDisposable
     {
         await using (var db = NewContext())
         {
-            await using var transaction = await db.Database.BeginTransactionAsync();
-            await db.BulkInsertAsync(QuietWidgets(6), o => o.BatchSize = 2);
-            await transaction.RollbackAsync();
+            await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
+            await db.BulkInsertAsync(QuietWidgets(6), o => o.BatchSize = 2, cancellationToken: TestContext.Current.CancellationToken);
+            await transaction.RollbackAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var verify = NewContext())
         {
-            Assert.Equal(0, await verify.Widgets.CountAsync());
+            Assert.Equal(0, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -149,7 +149,7 @@ public sealed class BulkInsertTests : IDisposable
         await using (var db = NewContext())
         {
             db.Widgets.Add(existing);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var fresh = Widget.Create("stays-put");
@@ -158,13 +158,13 @@ public sealed class BulkInsertTests : IDisposable
         {
             // The default is one transaction per batch, so batch 1 is already committed when batch 2 fails.
             await Assert.ThrowsAnyAsync<DbUpdateException>(
-                () => db.BulkInsertAsync([fresh, existing], o => o.BatchSize = 1));
+                () => db.BulkInsertAsync([fresh, existing], o => o.BatchSize = 1, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using (var verify = NewContext())
         {
-            Assert.Equal(2, await verify.Widgets.CountAsync());
-            Assert.True(await verify.Widgets.AnyAsync(w => w.Id == fresh.Id));
+            Assert.Equal(2, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.True(await verify.Widgets.AnyAsync(w => w.Id == fresh.Id, cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -174,7 +174,7 @@ public sealed class BulkInsertTests : IDisposable
         await using var db = NewContext();
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => db.BulkInsertAsync(Widgets(2), o => o.SingleTransaction = true));
+            () => db.BulkInsertAsync(Widgets(2), o => o.SingleTransaction = true, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("domain events", error.Message, StringComparison.Ordinal);
         Assert.Empty(_recorder.Events);
@@ -184,9 +184,9 @@ public sealed class BulkInsertTests : IDisposable
     public async Task Refuses_entities_carrying_domain_events_inside_an_ambient_transaction()
     {
         await using var db = NewContext();
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => db.BulkInsertAsync(Widgets(2)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.BulkInsertAsync(Widgets(2), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -196,12 +196,12 @@ public sealed class BulkInsertTests : IDisposable
         {
             Assert.Equal(6, await db.BulkInsertAsync(
                 QuietWidgets(6),
-                o => { o.BatchSize = 2; o.SingleTransaction = true; }));
+                o => { o.BatchSize = 2; o.SingleTransaction = true; }, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using (var verify = NewContext())
         {
-            Assert.Equal(6, await verify.Widgets.CountAsync());
+            Assert.Equal(6, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -212,7 +212,7 @@ public sealed class BulkInsertTests : IDisposable
         db.Widgets.Add(Widget.Create("unsaved"));
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => db.BulkInsertAsync(Widgets(2)));
+            () => db.BulkInsertAsync(Widgets(2), cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("no pending changes", error.Message, StringComparison.Ordinal);
     }
@@ -222,7 +222,7 @@ public sealed class BulkInsertTests : IDisposable
     {
         await using var db = NewContext();
 
-        Assert.Equal(0, await db.BulkInsertAsync(Array.Empty<Widget>()));
+        Assert.Equal(0, await db.BulkInsertAsync(Array.Empty<Widget>(), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -230,12 +230,12 @@ public sealed class BulkInsertTests : IDisposable
     {
         await using (var db = NewContext())
         {
-            Assert.Equal(3, await db.Widgets.BulkInsertAsync(Widgets(3)));
+            Assert.Equal(3, await db.Widgets.BulkInsertAsync(Widgets(3), cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using (var verify = NewContext())
         {
-            Assert.Equal(3, await verify.Widgets.CountAsync());
+            Assert.Equal(3, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -247,7 +247,7 @@ public sealed class BulkInsertTests : IDisposable
     {
         await using var db = NewContext();
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => db.BulkInsertAsync(Widgets(1), o => o.BatchSize = batchSize));
+            () => db.BulkInsertAsync(Widgets(1), o => o.BatchSize = batchSize, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public sealed class BulkInsertTests : IDisposable
         await using var db = NewContext();
         Assert.True(db.ChangeTracker.AutoDetectChangesEnabled);
 
-        await db.BulkInsertAsync(Widgets(4), o => o.BatchSize = 2);
+        await db.BulkInsertAsync(Widgets(4), o => o.BatchSize = 2, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(db.ChangeTracker.AutoDetectChangesEnabled);
         Assert.Empty(db.ChangeTracker.Entries());

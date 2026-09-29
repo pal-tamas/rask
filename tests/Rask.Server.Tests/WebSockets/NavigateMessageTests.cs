@@ -12,7 +12,7 @@ public class NavigateMessageTests
     {
         await using var fixture = await ConnectedSession.Connect<TestApp>();
 
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
 
         var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
@@ -31,7 +31,7 @@ public class NavigateMessageTests
     {
         await using var fixture = await ConnectedSession.Connect<TestApp>();
 
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/x", query = "", replace = true });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/x", query = "", replace = true }, ct: TestContext.Current.CancellationToken);
 
         var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
@@ -44,7 +44,7 @@ public class NavigateMessageTests
     {
         await using var fixture = await ConnectedSession.Connect<TestApp>();
 
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "" }, ct: TestContext.Current.CancellationToken);
         var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300));
 
         Assert.Null(text);
@@ -55,7 +55,7 @@ public class NavigateMessageTests
     {
         await using var fixture = await ConnectedSession.Connect<TestApp>();
 
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/x", query = "a=1&b=2" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/x", query = "a=1&b=2" }, ct: TestContext.Current.CancellationToken);
 
         var text = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 

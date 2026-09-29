@@ -22,7 +22,7 @@ public sealed class FullTextSearchTests : IDisposable
     {
         await using var db = await SeededAsync();
 
-        var titles = await db.Articles.Search("sqlite").Select(a => a.Title).ToListAsync();
+        var titles = await db.Articles.Search("sqlite").Select(a => a.Title).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // The article saying "sqlite" three times in a short body outranks the one mentioning it once in a long one.
         Assert.Equal(["All about SQLite", "Databases"], titles);
@@ -64,7 +64,7 @@ public sealed class FullTextSearchTests : IDisposable
     {
         await using var db = await SeededAsync();
 
-        Assert.Equal(await db.Articles.CountAsync(), await db.Articles.Search(text).CountAsync());
+        Assert.Equal(await db.Articles.CountAsync(cancellationToken: TestContext.Current.CancellationToken), await db.Articles.Search(text).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -85,8 +85,8 @@ public sealed class FullTextSearchTests : IDisposable
         await using var db = await SeededAsync();
 
         // Never a syntax error, and never an operator: whatever it matches, the table is still there.
-        _ = await db.Articles.Search(text).ToListAsync();
-        Assert.Equal(4, await db.Articles.CountAsync());
+        _ = await db.Articles.Search(text).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(4, await db.Articles.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -105,8 +105,8 @@ public sealed class FullTextSearchTests : IDisposable
 
         Assert.Equal(["Databases"], await Titles(db.Articles.Search("sqlite").Where(a => a.Published)));
         Assert.Equal(["Databases"], await Titles(db.Articles.Search("sqlite").Skip(1).Take(1)));
-        Assert.Equal(2, await db.Articles.Search("sqlite").CountAsync());
-        Assert.True(await db.Articles.Search("sqlite").AnyAsync());
+        Assert.Equal(2, await db.Articles.Search("sqlite").CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.True(await db.Articles.Search("sqlite").AnyAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class FullTextSearchTests : IDisposable
     {
         await using var db = await SeededAsync();
 
-        var ordered = await db.Articles.Search("sqlite").OrderByDescending(a => a.Title).Select(a => a.Title).ToListAsync();
+        var ordered = await db.Articles.Search("sqlite").OrderByDescending(a => a.Title).Select(a => a.Title).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["Databases", "All about SQLite"], ordered);
     }
@@ -127,12 +127,12 @@ public sealed class FullTextSearchTests : IDisposable
         db.Pages.AddRange(
             new Page { Id = 1, Text = "plain page about search" },
             new HelpPage { Id = 2, Text = "help page about search", Topic = "t" });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var help = await db.Set<Page>().OfType<HelpPage>().Search("search")
             .Select(p => new { p.Id, Text = FullText.Highlight(p.Text) })
-            .ToListAsync();
-        var all = await db.Pages.Search("search").CountAsync();
+            .ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var all = await db.Pages.Search("search").CountAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var hit = Assert.Single(help);
         Assert.Equal(2, hit.Id);
@@ -172,7 +172,7 @@ public sealed class FullTextSearchTests : IDisposable
 
         var hit = await db.Articles.Search("fast sqlite")
             .Select(a => new { a.Id, Title = FullText.Highlight(a.Title), Body = FullText.Highlight(a.Body) })
-            .SingleAsync();
+            .SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal($"All about {S}SQLite{E}", hit.Title);
         Assert.Equal($"{S}SQLite{E} is small, {S}SQLite{E} is {S}fast{E}, {S}SQLite{E} is everywhere.", hit.Body);
@@ -185,7 +185,7 @@ public sealed class FullTextSearchTests : IDisposable
 
         var snippet = await db.Articles.Search("postgres")
             .Select(a => FullText.Snippet(a.Body, 4))
-            .SingleAsync();
+            .SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal($"…like {S}Postgres{E} and SQLite…", snippet);
     }
@@ -196,7 +196,7 @@ public sealed class FullTextSearchTests : IDisposable
         await using var db = await SeededAsync();
         var words = 1000;
 
-        var snippet = await db.Articles.Search("postgres").Select(a => FullText.Snippet(a.Body, words)).SingleAsync();
+        var snippet = await db.Articles.Search("postgres").Select(a => FullText.Snippet(a.Body, words)).SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains($"{S}Postgres{E}", snippet, StringComparison.Ordinal);
     }
@@ -207,7 +207,7 @@ public sealed class FullTextSearchTests : IDisposable
         await using var db = await SeededAsync();
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            db.Articles.Select(a => FullText.Highlight(a.Title)).ToListAsync());
+            db.Articles.Select(a => FullText.Highlight(a.Title)).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("Article.Search(text).Select(p => FullText.Highlight(p.Title))", error.Message, StringComparison.Ordinal);
     }
@@ -218,7 +218,7 @@ public sealed class FullTextSearchTests : IDisposable
         await using var db = await SeededAsync();
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            db.Articles.Search("sqlite").Select(a => FullText.Highlight(a.Tag)).ToListAsync());
+            db.Articles.Search("sqlite").Select(a => FullText.Highlight(a.Tag)).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("Title, Body", error.Message, StringComparison.Ordinal);
     }
@@ -229,7 +229,7 @@ public sealed class FullTextSearchTests : IDisposable
         await using var db = Create<PlainArticleContext>();
         TestMigrations.Apply(db);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => db.Articles.Search("sqlite").ToListAsync());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => db.Articles.Search("sqlite").ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("HasFullTextSearch", error.Message, StringComparison.Ordinal);
     }
@@ -255,7 +255,7 @@ public sealed class FullTextSearchTests : IDisposable
         await using var db = Create<EnglishArticleContext>();
         TestMigrations.Apply(db);
         db.Articles.Add(new Article { Id = 1, Title = "Running", Body = "She runs every day." });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(["Running"], await Titles(db.Articles.Search("run")));
     }
@@ -267,10 +267,10 @@ public sealed class FullTextSearchTests : IDisposable
     {
         await using var db = await SeededAsync();
 
-        var article = await db.Articles.SingleAsync(a => a.Title == "Databases");
+        var article = await db.Articles.SingleAsync(a => a.Title == "Databases", cancellationToken: TestContext.Current.CancellationToken);
         article.Body = "Now about zebras.";
-        db.Articles.Remove(await db.Articles.SingleAsync(a => a.Title == "All about SQLite"));
-        await db.SaveChangesAsync();
+        db.Articles.Remove(await db.Articles.SingleAsync(a => a.Title == "All about SQLite", cancellationToken: TestContext.Current.CancellationToken));
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(await Titles(db.Articles.Search("sqlite")));
         Assert.Equal(["Databases"], await Titles(db.Articles.Search("zebras")));
@@ -281,9 +281,9 @@ public sealed class FullTextSearchTests : IDisposable
     {
         await using var db = await SeededAsync();
 
-        await db.Database.ExecuteSqlRawAsync("""INSERT INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (10, 'Raw', 'written by hand', 0);""");
-        await db.Database.ExecuteSqlRawAsync("""UPDATE "Articles" SET "Body" = 'zebras only' WHERE "Title" = 'Databases';""");
-        await db.Articles.Where(a => a.Title == "All about SQLite").ExecuteDeleteAsync();
+        await db.Database.ExecuteSqlRawAsync("""INSERT INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (10, 'Raw', 'written by hand', 0);""", cancellationToken: TestContext.Current.CancellationToken);
+        await db.Database.ExecuteSqlRawAsync("""UPDATE "Articles" SET "Body" = 'zebras only' WHERE "Title" = 'Databases';""", cancellationToken: TestContext.Current.CancellationToken);
+        await db.Articles.Where(a => a.Title == "All about SQLite").ExecuteDeleteAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["Raw"], await Titles(db.Articles.Search("hand")));
         Assert.Equal(["Databases"], await Titles(db.Articles.Search("zebras")));
@@ -299,15 +299,15 @@ public sealed class FullTextSearchTests : IDisposable
         await using var db = await SeededAsync();
 
         await db.Database.ExecuteSqlRawAsync(
-            """INSERT OR REPLACE INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (1, 'Replaced', 'zebras now', 0);""");
+            """INSERT OR REPLACE INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (1, 'Replaced', 'zebras now', 0);""", cancellationToken: TestContext.Current.CancellationToken);
         await db.Database.ExecuteSqlRawAsync(
-            """INSERT INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (3, 'Kittens', 'upserted giraffes', 0) ON CONFLICT ("Id") DO UPDATE SET "Body" = excluded."Body";""");
+            """INSERT INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (3, 'Kittens', 'upserted giraffes', 0) ON CONFLICT ("Id") DO UPDATE SET "Body" = excluded."Body";""", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["Databases"], await Titles(db.Articles.Search("sqlite")));
         Assert.Equal(["Replaced"], await Titles(db.Articles.Search("zebras")));
         Assert.Equal(["Kittens"], await Titles(db.Articles.Search("giraffes")));
         Assert.Empty(await Titles(db.Articles.Search("storage")));
-        Assert.Equal(4, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Articles_fts" """).SingleAsync());
+        Assert.Equal(4, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Articles_fts" """).SingleAsync(cancellationToken: TestContext.Current.CancellationToken));
         await AssertIntegrityAsync(db);
     }
 
@@ -318,14 +318,14 @@ public sealed class FullTextSearchTests : IDisposable
         TestMigrations.Apply(db);
         var id = Guid.NewGuid();
         db.Memos.Add(new Memo { Id = id, Text = "buy milk" });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         await db.Database.ExecuteSqlAsync(
-            $"""INSERT OR REPLACE INTO "Memos" ("Id", "Text") VALUES ({id}, 'sell bread')""");
+            $"""INSERT OR REPLACE INTO "Memos" ("Id", "Text") VALUES ({id}, 'sell bread')""", cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Empty(await db.Memos.Search("milk").ToListAsync());
-        Assert.Equal(id, (await db.Memos.Search("bread").SingleAsync()).Id);
-        Assert.Equal(1, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Memos_fts" """).SingleAsync());
+        Assert.Empty(await db.Memos.Search("milk").ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(id, (await db.Memos.Search("bread").SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Id);
+        Assert.Equal(1, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Memos_fts" """).SingleAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -341,13 +341,13 @@ public sealed class FullTextSearchTests : IDisposable
         TestMigrations.Apply(db);
 
         db.Set<Ticket>().AddRange(new Ticket { Id = new TicketId(7), Text = "printer on fire" }, new Ticket { Id = new TicketId(8), Text = "fine" });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // The migration saved with the model records the choice, so an older saved model cannot disagree with the query.
         Assert.Equal("rowid", db.Model.FindEntityType(typeof(Ticket))!.FindAnnotation("Rask:FullTextSearch:Layout")?.Value);
         Assert.DoesNotContain("Tickets_fts_keys", TestMigrations.Ddl(db), StringComparison.Ordinal);
 
-        var hit = await db.Set<Ticket>().Search("fire").Select(t => new { t.Id, Text = FullText.Highlight(t.Text) }).SingleAsync();
+        var hit = await db.Set<Ticket>().Search("fire").Select(t => new { t.Id, Text = FullText.Highlight(t.Text) }).SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(new TicketId(7), hit.Id);
         Assert.Equal($"printer on {S}fire{E}", hit.Text);
     }
@@ -398,7 +398,7 @@ public sealed class FullTextSearchTests : IDisposable
 
         // And writes no longer reach for an index that is gone.
         after.Articles.Add(new Article { Id = 20, Title = "After", Body = "no index" });
-        await after.SaveChangesAsync();
+        await after.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -430,7 +430,7 @@ public sealed class FullTextSearchTests : IDisposable
         Assert.Equal(["All about SQLite", "Databases"], await Titles(after.Articles.Search("sqlite")));
 
         after.Articles.Add(new Article { Id = 30, Title = "New", Body = "sqlite again and again and again", Tag = "x" });
-        await after.SaveChangesAsync();
+        await after.SaveChangesAsync(TestContext.Current.CancellationToken);
         Assert.Contains("New", await Titles(after.Articles.Search("sqlite")));
     }
 
@@ -446,7 +446,7 @@ public sealed class FullTextSearchTests : IDisposable
 
         Assert.Equal(["All about SQLite"], await Titles(after.Articles.Search("fast")));
         Assert.Equal($"{S}SQLite{E} is small, {S}SQLite{E} is fast, {S}SQLite{E} is everywhere.",
-            await after.Articles.Search("sqlite").Select(a => FullText.Highlight(a.Body)).FirstAsync());
+            await after.Articles.Search("sqlite").Select(a => FullText.Highlight(a.Body)).FirstAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -465,7 +465,7 @@ public sealed class FullTextSearchTests : IDisposable
     {
         await using var db = await SeededAsync();
 
-        await db.Database.ExecuteSqlRawAsync("VACUUM;");
+        await db.Database.ExecuteSqlRawAsync("VACUUM;", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["All about SQLite", "Databases"], await Titles(db.Articles.Search("sqlite")));
         await AssertIntegrityAsync(db);
@@ -482,17 +482,17 @@ public sealed class FullTextSearchTests : IDisposable
         var keep = Guid.NewGuid();
         var drop = Guid.NewGuid();
         db.Memos.AddRange(new Memo { Id = keep, Text = "buy milk" }, new Memo { Id = drop, Text = "buy bread" });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        db.Memos.Remove(await db.Memos.SingleAsync(m => m.Id == drop));
-        (await db.Memos.SingleAsync(m => m.Id == keep)).Text = "buy oat milk";
-        await db.SaveChangesAsync();
-        await db.Database.ExecuteSqlRawAsync("VACUUM;");
+        db.Memos.Remove(await db.Memos.SingleAsync(m => m.Id == drop, cancellationToken: TestContext.Current.CancellationToken));
+        (await db.Memos.SingleAsync(m => m.Id == keep, cancellationToken: TestContext.Current.CancellationToken)).Text = "buy oat milk";
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await db.Database.ExecuteSqlRawAsync("VACUUM;", cancellationToken: TestContext.Current.CancellationToken);
 
-        var hit = await db.Memos.Search("buy").Select(m => new { m.Id, Text = FullText.Highlight(m.Text) }).SingleAsync();
+        var hit = await db.Memos.Search("buy").Select(m => new { m.Id, Text = FullText.Highlight(m.Text) }).SingleAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(keep, hit.Id);
         Assert.Equal($"{S}buy{E} oat milk", hit.Text);
-        Assert.Equal(1, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Memos_fts_keys" """).SingleAsync());
+        Assert.Equal(1, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Memos_fts_keys" """).SingleAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         var plan = await PlanAsync(db, db.Memos.Search("buy").ToQueryString());
         Assert.Contains("VIRTUAL TABLE INDEX", plan, StringComparison.Ordinal);
@@ -505,14 +505,14 @@ public sealed class FullTextSearchTests : IDisposable
         {
             TestMigrations.Apply(before);
             before.Set<Memo>().Add(new Memo { Id = Guid.NewGuid(), Text = "already here" });
-            await before.SaveChangesAsync();
+            await before.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await using var after = Create<MemoContext>();
         Migrate<PlainMemoContext>(after);
 
-        Assert.Single(await after.Memos.Search("already").ToListAsync());
-        Assert.Equal(1, await after.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Memos_fts_keys" """).SingleAsync());
+        Assert.Single(await after.Memos.Search("already").ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(1, await after.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Memos_fts_keys" """).SingleAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -524,11 +524,11 @@ public sealed class FullTextSearchTests : IDisposable
         db.Entries.AddRange(
             new Entry { TenantId = 1, Code = "a", Text = "alpha shared" },
             new Entry { TenantId = 2, Code = "a", Text = "beta shared" });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var hits = await db.Entries.Search("shared").Where(e => e.TenantId == 2)
             .Select(e => new { e.TenantId, e.Code, Text = FullText.Highlight(e.Text) })
-            .ToListAsync();
+            .ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var hit = Assert.Single(hits);
         Assert.Equal((2, "a"), (hit.TenantId, hit.Code));

@@ -27,7 +27,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         CMD ["/bin/sh","-c","echo boot >> /data/boots.txt; exec nginx -g 'daemon off;'"]
         """;
 
-    [SkippableFact]
+    [Fact]
     public async Task Deploy_to_a_port_builds_runs_and_answers_its_health_check()
     {
         var project = Start(out var console, out var command);
@@ -55,7 +55,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     /// file only survives because <c>rask deploy</c> mounts a per-app named volume at <c>/data</c> — the
     /// single most destructive thing to get wrong, and previously asserted only against a mock.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Redeploy_keeps_the_data_volume()
     {
         var project = Start(out var console, out var command);
@@ -83,7 +83,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     ///     helper, that the app really is stopped and restarted around the swap, and that the file that comes
     ///     back is a readable SQLite database rather than a torn one. A unit test can only pin the argv.
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public async Task Backup_and_restore_round_trip_against_the_deployed_volume()
     {
         var project = Start(out var console, out var deploy);
@@ -134,7 +134,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     /// real host most — the Caddyfile is generated as text and only a running Caddy can say whether it is
     /// valid, and the colour bookkeeping is read back from live container labels.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Domain_deploy_swaps_colour_behind_a_real_caddy()
     {
         Start(out var console, out var command);
@@ -167,7 +167,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     /// A container that starts but never answers must not take the domain. The old version keeps serving and
     /// the failed colour is removed — the rollback that only exists at deploy time, proven end to end.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task A_failing_health_check_leaves_the_previous_version_serving()
     {
         var project = Start(out var console, out var command);
@@ -199,7 +199,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     /// (an nginx image on port 80) and which was undeployable, because the readiness probe and the proxy
     /// both aimed at a hardcoded 8080. Proven here against a real host: the probe has to actually connect.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task An_app_on_a_non_default_container_port_deploys()
     {
         var project = Start(out var console, out var command);
@@ -231,7 +231,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     /// The day-two verbs, against a real deployment. Rollback is the one that most needs a live host: it
     /// depends on image tags surviving a build that reuses them, which no mock can tell you.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Status_logs_and_rollback_operate_on_the_live_deployment()
     {
         var project = Start(out var console, out var command);
@@ -270,7 +270,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Equal("VERSION-TWO", await ServedBodyAsync("opsapp"));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Rollback_refuses_when_there_is_no_previous_image()
     {
         var project = Start(out var console, out var command);
@@ -291,7 +291,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     /// docker actually applies <c>--env-file</c>, and the second has to survive a real round-trip through
     /// <c>.rask/deploy.json</c>.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task Runtime_env_reaches_the_container_and_is_required_on_the_next_deploy()
     {
         var project = Start(out var console, out var command);
@@ -349,7 +349,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     /// </summary>
     private string Start(out StringConsole console, out DeployCommand command)
     {
-        Skip.IfNot(DeployE2E.Enabled, DeployE2E.SkipReason);
+        Assert.SkipUnless(DeployE2E.Enabled, DeployE2E.SkipReason);
 
         // Deliberately a FAILURE, not another skip: the gate was explicitly asked for with
         // RASK_DEPLOY_E2E=1, so "the harness couldn't start" is a result the runner must see. Skipping

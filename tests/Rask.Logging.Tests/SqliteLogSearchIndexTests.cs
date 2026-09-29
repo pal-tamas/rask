@@ -31,7 +31,7 @@ public sealed class SqliteLogSearchIndexTests
         harness.Logger().LogInformation("nothing");
         await harness.RunUntilStoredAsync(2);
 
-        Assert.Single((await harness.Store.Search(new LogQuery { Search = "7x" })).Entries);
+        Assert.Single((await harness.Store.Search(new LogQuery { Search = "7x" }, TestContext.Current.CancellationToken)).Entries);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class SqliteLogSearchIndexTests
         harness.Logger().LogInformation("mood 😀a today");
         await harness.RunUntilStoredAsync(1);
 
-        Assert.Single((await harness.Store.Search(new LogQuery { Search = "😀a" })).Entries);
+        Assert.Single((await harness.Store.Search(new LogQuery { Search = "😀a" }, TestContext.Current.CancellationToken)).Entries);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class SqliteLogSearchIndexTests
         harness.Logger().LogInformation("hi there");
         await harness.RunUntilStoredAsync(2);
 
-        Assert.Single((await harness.Store.Search(new LogQuery { Search = "\"hi there\"" })).Entries);
+        Assert.Single((await harness.Store.Search(new LogQuery { Search = "\"hi there\"" }, TestContext.Current.CancellationToken)).Entries);
     }
 
     [Fact]
@@ -65,15 +65,15 @@ public sealed class SqliteLogSearchIndexTests
         await harness.RunUntilStoredAsync(2);
 
         // The row cap, not the age: it keeps the newest row and deletes the other through the same paged DELETE.
-        await harness.Store.Trim().OlderThan(365.Days).KeepingNewest(1);
+        await harness.Store.Trim(TestContext.Current.CancellationToken).OlderThan(365.Days).KeepingNewest(1);
 
-        var hit = Assert.Single((await harness.Store.Search(new LogQuery { Search = "needle" })).Entries);
+        var hit = Assert.Single((await harness.Store.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken)).Entries);
         Assert.Equal("new needle", hit.Message);
         await AssertIntegrityAsync(harness.DbPath);
 
-        await harness.Store.Clear();
+        await harness.Store.Clear(TestContext.Current.CancellationToken);
 
-        Assert.Empty((await harness.Store.Search(new LogQuery { Search = "needle" })).Entries);
+        Assert.Empty((await harness.Store.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken)).Entries);
         await AssertIntegrityAsync(harness.DbPath);
     }
 
@@ -87,7 +87,7 @@ public sealed class SqliteLogSearchIndexTests
         // What a logs.db from the previous release looks like: the table, and no index beside it.
         await using (var raw = new SqliteConnection(harness.ConnectionString))
         {
-            await raw.OpenAsync();
+            await raw.OpenAsync(TestContext.Current.CancellationToken);
             await using var drop = raw.CreateCommand();
             drop.CommandText = """
                 DROP TRIGGER TR_RaskLog_Search_Insert;
@@ -95,13 +95,13 @@ public sealed class SqliteLogSearchIndexTests
                 DROP TRIGGER TR_RaskLog_Search_Update;
                 DROP TABLE RaskLogSearch;
                 """;
-            await drop.ExecuteNonQueryAsync();
+            await drop.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
 
         SqliteConnection.ClearAllPools();
         var reopened = new SqliteLogStore(harness.ConnectionString, new RaskLoggingOptions(), harness.Clock);
 
-        Assert.Single((await reopened.Search(new LogQuery { Search = "needle" })).Entries);
+        Assert.Single((await reopened.Search(new LogQuery { Search = "needle" }, TestContext.Current.CancellationToken)).Entries);
         await AssertIntegrityAsync(harness.DbPath);
     }
 

@@ -39,7 +39,7 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
     private const string DatabaseName = "rask_e2e_claim";
     private readonly List<ServiceProvider> _providers = [];
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (SqlServer.Available)
         {
@@ -49,7 +49,7 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         foreach (var provider in _providers)
         {
@@ -63,10 +63,10 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
         }
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Twenty_concurrent_claims_never_hand_the_same_job_to_two_instances()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         const int jobs = 200;
         await SeedAsync(jobs);
@@ -79,10 +79,10 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
         Assert.True(ids.Count <= jobs, $"claimed {ids.Count} of {jobs} jobs — more than exist.");
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task An_expired_lease_is_reclaimed_by_exactly_one_of_many_instances()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         await SeedAsync(1);
         var now = DateTime.UtcNow;
@@ -97,10 +97,10 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
         Assert.Equal(1, reclaimed.Sum(batch => batch.Count));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task The_largest_allowed_batch_claims_in_one_statement()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         // SQL Server's ceiling is 2,100 parameters per statement; EF Core 10 pads the claim's id list into
         // parameters, so the 1000-row BatchSize cap is only safe if the widest list fits.
@@ -176,10 +176,10 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
 [Collection(SqlServerCollection.Name)]
 public sealed class SqlServerSessionSettingsTests
 {
-    [SkippableFact]
+    [Fact]
     public async Task Every_connection_EF_opens_carries_the_configured_settings()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         var options = new DbContextOptionsBuilder<SqlClaimDbContext>()
             .UseRaskSqlServerAt(SqlServer.ConnectionString!, o =>
@@ -193,7 +193,7 @@ public sealed class SqlServerSessionSettingsTests
         for (var pass = 0; pass < 2; pass++)
         {
             await using var db = new SqlClaimDbContext(options);
-            await db.Database.OpenConnectionAsync();
+            await db.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
             var connection = db.Database.GetDbConnection();
 
             Assert.Equal(7000, await ScalarAsync(connection, "SELECT @@LOCK_TIMEOUT"));
@@ -224,7 +224,7 @@ public sealed class SqlServerCacheTests : IAsyncLifetime
     private const string DatabaseName = "rask_e2e_cache";
     private ServiceProvider? _provider;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (!SqlServer.Available)
         {
@@ -242,7 +242,7 @@ public sealed class SqlServerCacheTests : IAsyncLifetime
         await db.Database.EnsureCreatedAsync();
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_provider is null)
         {
@@ -257,26 +257,26 @@ public sealed class SqlServerCacheTests : IAsyncLifetime
         await _provider.DisposeAsync();
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task The_key_column_is_created_within_the_index_key_limit()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         // Asserted on the created column, not by a round trip: a 450-character key fits nvarchar(512) too, so a
         // round trip passes with the convention deleted.
         await using var db = await NewContextAsync();
-        await db.Database.OpenConnectionAsync();
+        await db.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
         await using var command = db.Database.GetDbConnection().CreateCommand();
         command.CommandText =
             "SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'CacheEntry' AND COLUMN_NAME = 'Key'";
 
-        Assert.Equal(450, Convert.ToInt32(await command.ExecuteScalarAsync(), System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(450, Convert.ToInt32(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken), System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task A_key_of_the_largest_allowed_length_round_trips()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         var cache = _provider!.GetRequiredService<IDistributedCache>();
         var key = new string('k', 450);
@@ -284,30 +284,30 @@ public sealed class SqlServerCacheTests : IAsyncLifetime
         await cache.SetAsync(key, "stored"u8.ToArray(), new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-        });
+        }, TestContext.Current.CancellationToken);
 
-        Assert.Equal("stored", Encoding.UTF8.GetString((await cache.GetAsync(key))!));
+        Assert.Equal("stored", Encoding.UTF8.GetString((await cache.GetAsync(key, TestContext.Current.CancellationToken))!));
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task A_longer_key_is_rejected_with_the_limit_named()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         var cache = _provider!.GetRequiredService<IDistributedCache>();
 
         var error = await Assert.ThrowsAsync<ArgumentException>(() => cache.SetAsync(
             new string('k', 451),
             "stored"u8.ToArray(),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }));
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }, TestContext.Current.CancellationToken));
 
         Assert.StartsWith("The cache key is 451 characters long, and this database's cache table holds keys of at most 450.", error.Message);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Fifty_concurrent_writers_on_one_cold_key_all_succeed()
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         var cache = _provider!.GetRequiredService<IDistributedCache>();
         var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -324,7 +324,7 @@ public sealed class SqlServerCacheTests : IAsyncLifetime
         start.SetResult();
         await Task.WhenAll(sets);
 
-        var stored = await cache.GetAsync("cold-key");
+        var stored = await cache.GetAsync("cold-key", TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
         Assert.Contains(Encoding.UTF8.GetString(stored), values);
     }
@@ -339,7 +339,7 @@ public sealed class SqlServerBulkInsertTests : IAsyncLifetime
 {
     private const string DatabaseName = "rask_e2e_bulk";
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (SqlServer.Available)
         {
@@ -349,7 +349,7 @@ public sealed class SqlServerBulkInsertTests : IAsyncLifetime
         }
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (SqlServer.Available)
         {
@@ -358,12 +358,12 @@ public sealed class SqlServerBulkInsertTests : IAsyncLifetime
         }
     }
 
-    [SkippableTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Ten_thousand_rows_land_in_a_keyword_named_table(bool singleTransaction)
     {
-        Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
 
         var orders = Enumerable.Range(0, 10_000)
             .Select(i => new Order { Id = Guid.NewGuid(), Group = $"g{i % 7}", Select = i })
@@ -375,14 +375,14 @@ public sealed class SqlServerBulkInsertTests : IAsyncLifetime
             {
                 o.SkipChangeTracking = true;
                 o.SingleTransaction = singleTransaction;
-            });
+            }, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(10_000, written);
         }
 
         await using var verify = NewContext();
-        Assert.Equal(10_000, await verify.Orders.CountAsync());
-        Assert.Equal(orders.Sum(o => (long)o.Select), await verify.Orders.SumAsync(o => (long)o.Select));
+        Assert.Equal(10_000, await verify.Orders.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(orders.Sum(o => (long)o.Select), await verify.Orders.SumAsync(o => (long)o.Select, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     private static SqlBulkDbContext NewContext() =>

@@ -54,12 +54,12 @@ public sealed class BulkInsertFastPathTests : IDisposable
 
         await using (var db = NewContext())
         {
-            Assert.Equal(7, await db.BulkInsertAsync(widgets, o => o.SkipChangeTracking = true));
+            Assert.Equal(7, await db.BulkInsertAsync(widgets, o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using (var verify = NewContext())
         {
-            var stored = await verify.Widgets.OrderBy(w => w.Name).ToListAsync();
+            var stored = await verify.Widgets.OrderBy(w => w.Name).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(7, stored.Count);
 
             // Guid keys and string values must survive the value converters the writer applies by hand.
@@ -76,7 +76,7 @@ public sealed class BulkInsertFastPathTests : IDisposable
 
         await using (var db = NewContext())
         {
-            await db.BulkInsertAsync(widgets, o => o.SkipChangeTracking = true);
+            await db.BulkInsertAsync(widgets, o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         var expected = _clock.UtcNow.UtcDateTime;
@@ -84,7 +84,7 @@ public sealed class BulkInsertFastPathTests : IDisposable
         // Stamped in the row...
         await using (var verify = NewContext())
         {
-            var stored = await verify.Widgets.ToListAsync();
+            var stored = await verify.Widgets.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.All(stored, w => Assert.Equal(expected, w.CreatedAt));
             Assert.All(stored, w => Assert.Equal(expected, w.UpdatedAt));
         }
@@ -102,17 +102,17 @@ public sealed class BulkInsertFastPathTests : IDisposable
 
         await using (var db = NewContext())
         {
-            await db.BulkInsertAsync(tracked);
+            await db.BulkInsertAsync(tracked, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         await using (var db = NewContext())
         {
-            await db.BulkInsertAsync(raw, o => o.SkipChangeTracking = true);
+            await db.BulkInsertAsync(raw, o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         await using (var verify = NewContext())
         {
-            var stored = await verify.Widgets.ToListAsync();
+            var stored = await verify.Widgets.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             var byPath = stored.ToLookup(w => tracked.Any(t => t.Id == w.Id));
 
             Assert.Equal(4, byPath[true].Count());
@@ -130,7 +130,7 @@ public sealed class BulkInsertFastPathTests : IDisposable
     {
         await using var db = NewContext();
 
-        await db.BulkInsertAsync(Widgets(5), o => { o.SkipChangeTracking = true; o.BatchSize = 2; });
+        await db.BulkInsertAsync(Widgets(5), o => { o.SkipChangeTracking = true; o.BatchSize = 2; }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(db.ChangeTracker.Entries());
     }
@@ -143,12 +143,12 @@ public sealed class BulkInsertFastPathTests : IDisposable
         // of this class from passing on a silent fall-back to the tracked path.
         var counter = new CountingInterceptor();
         await using var db = new CountingContext($"Data Source={_dbPath}-count", counter);
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
-        await db.BulkInsertAsync([new Note { Id = Guid.NewGuid(), Text = "raw" }], o => o.SkipChangeTracking = true);
+        await db.BulkInsertAsync([new Note { Id = Guid.NewGuid(), Text = "raw" }], o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(0, counter.Saves);
 
-        await db.BulkInsertAsync([new Note { Id = Guid.NewGuid(), Text = "tracked" }]);
+        await db.BulkInsertAsync([new Note { Id = Guid.NewGuid(), Text = "tracked" }], cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(1, counter.Saves);
     }
 
@@ -161,7 +161,7 @@ public sealed class BulkInsertFastPathTests : IDisposable
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
             () => db.BulkInsertAsync(
                 [Widget.Create("noisy")],
-                o => o.SkipChangeTracking = true));
+                o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("never be delivered", error.Message, StringComparison.Ordinal);
         Assert.Empty(_recorder.Events);
@@ -174,7 +174,7 @@ public sealed class BulkInsertFastPathTests : IDisposable
         await using (var db = NewContext())
         {
             db.Widgets.Add(existing);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var fresh = Widgets(1)[0];
@@ -183,13 +183,13 @@ public sealed class BulkInsertFastPathTests : IDisposable
         {
             await Assert.ThrowsAnyAsync<Exception>(() => db.BulkInsertAsync(
                 [fresh, existing],
-                o => { o.SkipChangeTracking = true; o.SingleTransaction = true; o.BatchSize = 1; }));
+                o => { o.SkipChangeTracking = true; o.SingleTransaction = true; o.BatchSize = 1; }, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         await using (var verify = NewContext())
         {
-            Assert.Equal(1, await verify.Widgets.CountAsync());
-            Assert.False(await verify.Widgets.AnyAsync(w => w.Id == fresh.Id));
+            Assert.Equal(1, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.False(await verify.Widgets.AnyAsync(w => w.Id == fresh.Id, cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -198,14 +198,14 @@ public sealed class BulkInsertFastPathTests : IDisposable
     {
         await using (var db = NewContext())
         {
-            await using var transaction = await db.Database.BeginTransactionAsync();
-            await db.BulkInsertAsync(Widgets(4), o => { o.SkipChangeTracking = true; o.BatchSize = 2; });
-            await transaction.RollbackAsync();
+            await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
+            await db.BulkInsertAsync(Widgets(4), o => { o.SkipChangeTracking = true; o.BatchSize = 2; }, cancellationToken: TestContext.Current.CancellationToken);
+            await transaction.RollbackAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var verify = NewContext())
         {
-            Assert.Equal(0, await verify.Widgets.CountAsync());
+            Assert.Equal(0, await verify.Widgets.CountAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -214,17 +214,17 @@ public sealed class BulkInsertFastPathTests : IDisposable
     {
         await using var db = NewContext();
 
-        Assert.Equal(0, await db.BulkInsertAsync(Array.Empty<Widget>(), o => o.SkipChangeTracking = true));
+        Assert.Equal(0, await db.BulkInsertAsync(Array.Empty<Widget>(), o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Refuses_a_store_assigned_integer_key_and_names_it()
     {
         await using var db = new GeneratedKeyContext($"Data Source={_dbPath}-gen");
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => db.BulkInsertAsync([new Counter { Label = "a" }], o => o.SkipChangeTracking = true));
+            () => db.BulkInsertAsync([new Counter { Label = "a" }], o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("store-assigned integer key", error.Message, StringComparison.Ordinal);
     }
@@ -233,12 +233,12 @@ public sealed class BulkInsertFastPathTests : IDisposable
     public async Task Refuses_an_entity_with_navigations_rather_than_dropping_related_rows()
     {
         await using var db = new GraphContext($"Data Source={_dbPath}-graph");
-        await db.Database.EnsureCreatedAsync();
+        await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
             () => db.BulkInsertAsync(
                 [new Parent { Id = Guid.NewGuid() }],
-                o => o.SkipChangeTracking = true));
+                o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Contains("navigations", error.Message, StringComparison.Ordinal);
     }

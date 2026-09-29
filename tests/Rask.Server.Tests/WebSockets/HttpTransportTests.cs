@@ -120,7 +120,7 @@ public sealed class HttpTransportTests
 
         for (var i = 0; i < 150 && host.Store.ConnectedCount > 0; i++)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(0, host.Store.ConnectedCount);
@@ -149,7 +149,7 @@ public sealed class HttpTransportTests
 
         for (var i = 0; i < 150 && host.Store.ConnectedCount > 0; i++)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         // The stream is gone, so this generation is no longer current: refused.
@@ -229,7 +229,7 @@ public sealed class HttpTransportTests
             // …and the session is attached, which is what makes this a live page rather than a download.
             for (var i = 0; i < 100 && host.Store.ConnectedCount == 0; i++)
             {
-                await Task.Delay(20);
+                await Task.Delay(20, TestContext.Current.CancellationToken);
             }
 
             Assert.Equal(1, host.Store.ConnectedCount);
@@ -273,7 +273,7 @@ public sealed class HttpTransportTests
         request.Headers.Add(UserHeader, "bob");
         request.Headers.Add("Rask-Stream", "1");
 
-        using var response = await host.Http.SendAsync(request);
+        using var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         // The same answer a session this host never had would give, so neither can be probed for.
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -290,7 +290,7 @@ public sealed class HttpTransportTests
             Content = JsonContent.Create(new[] { new { type = "navigate", url = "/" } }),
         };
 
-        using var response = await host.Http.SendAsync(request);
+        using var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         // A frame that cannot say which page it came from could belong to a tab that has already been
         // replaced — applying it to the current one is exactly what the generation exists to prevent.
@@ -316,7 +316,7 @@ public sealed class HttpTransportTests
             };
             request.Headers.Add("Rask-Stream", generation);
 
-            using var accepted = await host.Http.SendAsync(request);
+            using var accepted = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.NoContent, accepted.StatusCode);
         }
@@ -338,7 +338,7 @@ public sealed class HttpTransportTests
             using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/leave/{sessionId}");
             request.Headers.Add("Rask-Stream", generation);
 
-            using var left = await host.Http.SendAsync(request);
+            using var left = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.NoContent, left.StatusCode);
 

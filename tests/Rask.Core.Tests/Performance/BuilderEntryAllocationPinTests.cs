@@ -428,10 +428,22 @@ public class BuilderEntryAllocationPinTests
     /// </remarks>
     private static long Measure(Func<Component> build)
     {
+        // On a thread of its own with NO execution context flowed in. A render sets AsyncLocals, and what
+        // setting one allocates grows with how many the context already holds — the test runner's own
+        // (xUnit v3's TestContext) pushed the Head probe 80 B over its pin with no change to Rask. An app's
+        // render thread carries none of them, so this measures what the app pays.
         var best = long.MaxValue;
-        for (var round = 0; round < 3; round++)
+        using (ExecutionContext.SuppressFlow())
         {
-            best = Math.Min(best, MeasureOnce(build));
+            var thread = new Thread(() =>
+            {
+                for (var round = 0; round < 3; round++)
+                {
+                    best = Math.Min(best, MeasureOnce(build));
+                }
+            });
+            thread.Start();
+            thread.Join();
         }
 
         return best;

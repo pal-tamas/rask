@@ -30,7 +30,7 @@ public sealed class PostgresCacheTests : IAsyncLifetime
 {
     private ServiceProvider? _provider;
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
         if (!Postgres.Available)
         {
@@ -47,7 +47,7 @@ public sealed class PostgresCacheTests : IAsyncLifetime
         await Postgres.ResetSchemaAsync(db, CacheDbContext.Schema);
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (_provider is null)
         {
@@ -62,10 +62,10 @@ public sealed class PostgresCacheTests : IAsyncLifetime
         await _provider.DisposeAsync();
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task Fifty_concurrent_writers_on_one_cold_key_all_succeed()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         var cache = _provider!.GetRequiredService<IDistributedCache>();
         const int writers = 50;
@@ -87,15 +87,15 @@ public sealed class PostgresCacheTests : IAsyncLifetime
         await Task.WhenAll(sets);
 
         // Last writer wins, and which one that is is interleaving — but it is one of them, intact.
-        var stored = await cache.GetAsync("cold-key");
+        var stored = await cache.GetAsync("cold-key", TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
         Assert.Contains(Encoding.UTF8.GetString(stored), values);
     }
 
-    [SkippableFact]
+    [Fact]
     public async Task A_key_longer_than_the_column_is_rejected_with_the_limit_named()
     {
-        Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
 
         // PostgreSQL enforces varchar(512), so the insert fails on truncation and there is no row to update — the
         // cache names the limit instead of surfacing that provider error.
@@ -104,7 +104,7 @@ public sealed class PostgresCacheTests : IAsyncLifetime
         var error = await Assert.ThrowsAsync<ArgumentException>(() => cache.SetAsync(
             new string('k', 513),
             Encoding.UTF8.GetBytes("stored"),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }));
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }, TestContext.Current.CancellationToken));
 
         Assert.StartsWith("The cache key is 513 characters long, and this database's cache table holds keys of at most 512.", error.Message);
     }

@@ -48,11 +48,11 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     public static TheoryData<string> MetaTemplates() =>
         [.. TemplateSelection.Apply(MetaTemplate.All.Select(f => f.Key))];
 
-    [SkippableTheory]
+    [Theory]
     [MemberData(nameof(SpaTemplates))]
     public async Task A_spa_client_round_trips_a_dispatch_to_a_C_sharp_handler(string key)
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         await using var app = await BuildAndRunAsync(key, TimeSpan.FromMinutes(2));
         var page = await browser.Browser.NewPageAsync();
@@ -81,11 +81,11 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
                 + $"\n\nhost log:\n{app.Log}");
     }
 
-    [SkippableTheory]
+    [Theory]
     [MemberData(nameof(MetaTemplates))]
     public async Task A_meta_front_end_is_rendered_by_node_and_served_through_Kestrel(string key)
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         // Longer: this host starts Node and waits for the framework's own server to bind before it
         // answers anything, and a cold framework server is slow.
@@ -95,8 +95,8 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         // No browser, deliberately. If the markup is in the response then Node produced it and Kestrel
         // forwarded the request — which is the arrangement this lane exists for, and the one nothing
         // else in the repository exercises.
-        var page = await http.GetAsync(app.BaseUrl);
-        var html = await page.Content.ReadAsStringAsync();
+        var page = await http.GetAsync(app.BaseUrl, TestContext.Current.CancellationToken);
+        var html = await page.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.True(
             page.IsSuccessStatusCode,
@@ -111,8 +111,8 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         // lane ends its pipeline with MapFallback("{*path}") on purpose, exactly as the SPA lane falls
         // back to index.html, so "anything the host did not claim belongs to the front end" is the
         // contract rather than a leak. What must never happen is a mapped endpoint being shadowed.
-        var api = await http.GetAsync($"{app.BaseUrl}/healthz");
-        var apiBody = await api.Content.ReadAsStringAsync();
+        var api = await http.GetAsync($"{app.BaseUrl}/healthz", TestContext.Current.CancellationToken);
+        var apiBody = await api.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.False(
             apiBody.Contains("<!DOCTYPE html", StringComparison.OrdinalIgnoreCase)
@@ -144,11 +144,11 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     ///         lane's own socket has its own suite.
     ///     </para>
     /// </remarks>
-    [SkippableTheory]
+    [Theory]
     [InlineData("server")]
     public async Task A_C_sharp_host_renders_its_own_components(string key)
     {
-        Skip.IfNot(Enabled, SkipReason);
+        Assert.SkipUnless(Enabled, SkipReason);
 
         await using var app = await BuildAndRunAsync(key, TimeSpan.FromMinutes(2));
         var page = await browser.Browser.NewPageAsync();

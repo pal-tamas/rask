@@ -14,10 +14,10 @@ public class MapRaskSpaTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/orders/42");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("<div id=root>", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("<div id=root>", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public class MapRaskSpaTests
 
         // No Accept header at all — a bare curl, or an old client. Treated as a navigation, because
         // refusing it would break deep links for anything that does not announce itself.
-        var response = await host.Http.GetAsync("/orders/42");
+        var response = await host.Http.GetAsync("/orders/42", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -39,10 +39,10 @@ public class MapRaskSpaTests
         using var dist = new FakeDistDirectory();
         await using var host = await SpaTestServer.CreateAsync(dist.Path, withApi: true);
 
-        var response = await host.Http.GetAsync("/api/ping");
+        var response = await host.Http.GetAsync("/api/ping", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("pong", await response.Content.ReadAsStringAsync());
+        Assert.Equal("pong", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class MapRaskSpaTests
         // The failure this prevents: answering a module import with HTML, which the browser reports
         // as "Failed to load module script" — a message that reads as a broken framework rather than
         // as the missing file it is.
-        var response = await host.Http.GetAsync("/assets/does-not-exist.js");
+        var response = await host.Http.GetAsync("/assets/does-not-exist.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -75,7 +75,7 @@ public class MapRaskSpaTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -88,7 +88,7 @@ public class MapRaskSpaTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/not-mapped");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -99,7 +99,7 @@ public class MapRaskSpaTests
         using var dist = new FakeDistDirectory();
         await using var host = await SpaTestServer.CreateAsync(dist.Path);
 
-        var response = await host.Http.GetAsync("/index.html");
+        var response = await host.Http.GetAsync("/index.html", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
@@ -115,7 +115,7 @@ public class MapRaskSpaTests
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Accept.ParseAdd("text/html");
 
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("SAMEORIGIN", response.Headers.GetValues("X-Frame-Options").Single());
@@ -129,7 +129,7 @@ public class MapRaskSpaTests
         using var dist = new FakeDistDirectory();
         await using var host = await SpaTestServer.CreateAsync(dist.Path);
 
-        var response = await host.Http.GetAsync("/assets/index-DkK9xYz1.js");
+        var response = await host.Http.GetAsync("/assets/index-DkK9xYz1.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("immutable", response.Headers.CacheControl?.ToString(), StringComparison.Ordinal);
@@ -141,7 +141,7 @@ public class MapRaskSpaTests
         using var dist = new FakeDistDirectory();
         await using var host = await SpaTestServer.CreateAsync(dist.Path);
 
-        var response = await host.Http.GetAsync("/favicon.svg");
+        var response = await host.Http.GetAsync("/favicon.svg", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
@@ -155,7 +155,7 @@ public class MapRaskSpaTests
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/assets/index-DkK9xYz1.js");
         request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        var response = await host.Http.SendAsync(request);
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("br", response.Content.Headers.ContentEncoding);
@@ -177,12 +177,12 @@ public class MapRaskSpaTests
             environment: "Development",
             configure: o => o.DevServerUrl = "http://localhost:5173");
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         // 200, not 503. In development a missing dist/ is the normal state — the bundler is serving
         // the app — so a server error would send people hunting a bug that is not there.
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("http://localhost:5173", body, StringComparison.Ordinal);
     }
 
@@ -191,12 +191,12 @@ public class MapRaskSpaTests
     {
         await using var host = await SpaTestServer.CreateAsync(distPath: null);
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Contains(
             "single-page app is unavailable",
-            await response.Content.ReadAsStringAsync(),
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken),
             StringComparison.Ordinal);
     }
 
@@ -206,7 +206,7 @@ public class MapRaskSpaTests
         using var dist = new FakeDistDirectory();
         await using var host = await SpaTestServer.CreateAsync(dist.Path, pathBase: "/app");
 
-        var asset = await host.Http.GetAsync("/app/assets/index-DkK9xYz1.js");
+        var asset = await host.Http.GetAsync("/app/assets/index-DkK9xYz1.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
         Assert.Contains("immutable", asset.Headers.CacheControl?.ToString(), StringComparison.Ordinal);
@@ -214,14 +214,14 @@ public class MapRaskSpaTests
         using var deepLink = new HttpRequestMessage(HttpMethod.Get, "/app/orders/42");
         deepLink.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
 
-        Assert.Equal(HttpStatusCode.OK, (await host.Http.SendAsync(deepLink)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await host.Http.SendAsync(deepLink, TestContext.Current.CancellationToken)).StatusCode);
 
         // Outside the prefix the host answers nothing — which is what lets a second app, or an
         // unrelated set of endpoints, live beside this one.
         using var outside = new HttpRequestMessage(HttpMethod.Get, "/somewhere-else");
         outside.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
 
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.SendAsync(outside)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.SendAsync(outside, TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -232,7 +232,7 @@ public class MapRaskSpaTests
 
         // The immutable-prefix rule is written against "/assets/", so it only fires here if the
         // host strips its own prefix before consulting it.
-        var response = await host.Http.GetAsync("/app/assets/does-not-exist.js");
+        var response = await host.Http.GetAsync("/app/assets/does-not-exist.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -255,10 +255,10 @@ public class MapRaskSpaTests
 
             using var request = new HttpRequestMessage(HttpMethod.Get, "/orders/42");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
-            var response = await host.Http.SendAsync(request);
+            var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Contains("published", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            Assert.Contains("published", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
         }
         finally
         {
