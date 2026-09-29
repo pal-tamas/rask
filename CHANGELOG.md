@@ -9,12 +9,15 @@ them until tagged releases begin.
 
 ### Changed
 
-- **A live session holds ~25% less memory.** Every plain tag on a mounted page (`Tr`, `Td`, `Button`, …) carried a
-  ~260 B live-state object it never used — a render handle offered to every child, and two lifecycle flags. A tag
-  generated from MDN has no state, lifecycle or handler of its own, so it now takes none of that; `NavLink` and the
-  bound `Input`/`Select`/`TextArea`/`Form` keep theirs, as does any element declared outside Rask. Per session
-  (`session-footprint`, unconnected / connected): a 200-row table 1.20 MB → 0.88 MB / 1.63 MB → 1.31 MB, a
-  1000-row one 6.26 MB → 4.66 MB / 8.13 MB → 6.55 MB — 892 → 1,215 sessions per GiB on the 200-row page.
+- **A live session holds about half the memory.** Every plain tag on a mounted page (`Tr`, `Td`, `Button`, …)
+  carried a ~260 B live-state object it never used — a render handle offered to every child, and two lifecycle
+  flags. A tag generated from MDN has no state, lifecycle or handler of its own, so it now takes none of that;
+  `NavLink` and the bound `Input`/`Select`/`TextArea`/`Form` keep theirs, as does any element declared outside
+  Rask. And a component whose subtree is cached as a frame snapshot no longer keeps the tags its last render
+  built alongside it; a later change builds fresh ones. Per session (`session-footprint`, unconnected /
+  connected): a 200-row table 1.20 MB → 0.50 MB / 1.63 MB → 0.86 MB, a 1000-row one 6.26 MB → 2.80 MB /
+  8.13 MB → 4.23 MB — 892 → 2,127 sessions per GiB on the 200-row page. Rendering allocates less too:
+  `LiveRenderRoundTrip.RenderOnce` 97 KB → 65 KB, `SelectRender` ~6.8 KB → ~4.0 KB.
 
 - **Rendering allocates less.** Text or an attribute that needs encoding — an accented letter, an apostrophe,
   `&`, a style's `;` — is encoded through a stack buffer instead of a new string per value per render

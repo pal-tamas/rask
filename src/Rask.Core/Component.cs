@@ -1164,6 +1164,13 @@ public abstract partial class Component : RaskMarkup
     // lock, so a plain flag is sufficient — same threading contract as IsUnmounted.
     internal bool TryBeginDispose()
     {
+        // A plain tag that never took a LiveState has nothing to tear down, once or twice: don't allocate one to
+        // record that it was.
+        if (_live is null && !OwnsRenderHandle)
+        {
+            return true;
+        }
+
         if (Live.IsDisposed)
         {
             return false;
@@ -1206,7 +1213,7 @@ public abstract partial class Component : RaskMarkup
     // a component that never mounted has no unmount counterpart, symmetric with Mount.
     internal Task RaiseUnmount()
     {
-        if (!Live.HasInitialized)
+        if (_live is not { HasInitialized: true })
         {
             return Task.CompletedTask;
         }
@@ -1907,6 +1914,30 @@ public abstract partial class Component : RaskMarkup
         cached.Handlers = liveCtx?.CaptureHandlerRun(this);
         // Drop the Element object graph: a clean re-render now replays the frame span above.
         Live.CachedRenderResult = null;
+        _live.Children = WithoutPlainTags(_live.Children);
+        _live.PreviousChildren = WithoutPlainTags(_live.PreviousChildren);
+    }
+
+    // The position maps kept every tag the last Render() built, for that Render()'s successor to reuse — which
+    // held a cached component's whole element graph alive beside the snapshot that replaces it. A plain tag has
+    // no state to reuse, so a later dirty render simply builds fresh ones; anything with a handle of its own
+    // stays. An emptied map goes too.
+    private static Dictionary<(Type, int), Component>? WithoutPlainTags(Dictionary<(Type, int), Component>? map)
+    {
+        if (map is null)
+        {
+            return null;
+        }
+
+        foreach (var (slot, child) in map)
+        {
+            if (!child.OwnsRenderHandle)
+            {
+                map.Remove(slot);
+            }
+        }
+
+        return map.Count == 0 ? null : map;
     }
 
     // Copy the lean fields; the held snapshot drops the per-render HTML offsets and diff-only
@@ -2195,7 +2226,10 @@ public abstract partial class Component : RaskMarkup
     // subtree was cached as frames, and whether it still retains its Element object graph. A cached
     // component has the first true and the second false (the graph was released).
     internal bool IsCleanSubtreeCachedForTest => _live?.Cached is not null;
-    internal bool RetainsElementGraphForTest => _live?.CachedRenderResult is not null;
+    // The render result OR the position maps: either keeps the element graph alive.
+    internal bool RetainsElementGraphForTest =>
+        _live is { } live
+        && (live.CachedRenderResult is not null || live.Children is { Count: > 0 } || live.PreviousChildren is { Count: > 0 });
 
     // Whether a render has been REQUESTED for this component but not yet performed — the half of
     // StateHasChanged that happens synchronously, and so the only observable moment the quiescence
