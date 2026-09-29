@@ -10,6 +10,19 @@
           Condition=" Exists('$(MSBuildThisFileDirectory)Rask.Server.Client.targets') "/>
 
   <!--
+    The CQRS wire codec (and RASK053) only where messages cross a wire: a project with a browser client in Client/.
+    Rask.Server carries the server transport for Serve(), and a server-rendered app's messages never leave the
+    process. Here, in the package's own entry point, rather than in Rask.Server.Client.targets: that file is also
+    imported into every project of this repository, where it would switch the codec off for the client's own tests.
+  -->
+  <PropertyGroup>
+    <RaskCqrsCodec Condition=" '$(RaskCqrsCodec)' == '' ">$(RaskClient)</RaskCqrsCodec>
+  </PropertyGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskCqrsCodec"/>
+  </ItemGroup>
+
+  <!--
     Tailwind. Packed alongside this file by src\RaskTailwindBuildPack.targets, and imported from here
     because NuGet auto-imports only build/<PackageId>.{props,targets}. Referencing this host package is
     the whole of how an app gets Tailwind: there is no Rask.Tailwind package to add and no flag to pass.

@@ -376,30 +376,7 @@ public static partial class RaskEndpointExtensions
         string pathBase = "")
         where TApp : Component
     {
-        // Route every framework diagnostic (Rask.Core + this host) into the application's logging
-        // pipeline. No-ops when no ILoggerFactory is registered, leaving the stderr default in place.
-        var loggerFactory = app.Services.GetService<ILoggerFactory>();
-        RaskServerDiagnostics.Install(loggerFactory);
-
-        var logger = loggerFactory?.CreateLogger("Rask");
-        if (logger is not null)
-            Starting(logger, RaskVersion.Current);
-        else
-            Console.WriteLine($"Rask {RaskVersion.Current} (Server) starting");
-
-        WarnOnTightShutdownLadder(app.Services, logger);
-
-        // Resolve the scoped-CSS minification default from the host environment unless an explicit
-        // true/false was already set (via AddRask or directly): minify outside Development, and keep it
-        // readable + hot-reloadable in Development.
-        LiveOptions.MinifyScopedAssets ??= !app.Environment.IsDevelopment();
-
-        // Same idea, and the reason it is here rather than in Core: the host knows the answer, and every
-        // way of selecting Development that ISN'T an environment variable — --environment, appsettings,
-        // an IDE profile — used to give you the production error page while developing (#605).
-        LiveOptions.IsDevelopment ??= app.Environment.IsDevelopment();
-
-        app.UseWebSockets();
+        PrepareHost(app);
         ((IEndpointRouteBuilder)app).MapRask<TApp>(pattern, pathBase);
         return app;
     }
@@ -440,6 +417,79 @@ public static partial class RaskEndpointExtensions
             };
 #pragma warning restore RASK014
 
+        MapPages(endpoints, appFactory, pathBaseNormalized, pattern);
+        return endpoints;
+    }
+
+    private static void PrepareHost(WebApplication app)
+    {
+        // Route every framework diagnostic (Rask.Core + this host) into the application's logging
+        // pipeline. No-ops when no ILoggerFactory is registered, leaving the stderr default in place.
+        var loggerFactory = app.Services.GetService<ILoggerFactory>();
+        RaskServerDiagnostics.Install(loggerFactory);
+
+        var logger = loggerFactory?.CreateLogger("Rask");
+        if (logger is not null)
+            Starting(logger, RaskVersion.Current);
+        else
+            Console.WriteLine($"Rask {RaskVersion.Current} (Server) starting");
+
+        WarnOnTightShutdownLadder(app.Services, logger);
+
+        // Resolve the scoped-CSS minification default from the host environment unless an explicit
+        // true/false was already set (via AddRask or directly): minify outside Development, and keep it
+        // readable + hot-reloadable in Development.
+        LiveOptions.MinifyScopedAssets ??= !app.Environment.IsDevelopment();
+
+        // Same idea, and the reason it is here rather than in Core: the host knows the answer, and every
+        // way of selecting Development that ISN'T an environment variable — --environment, appsettings,
+        // an IDE profile — used to give you the production error page while developing (#605).
+        LiveOptions.IsDevelopment ??= app.Environment.IsDevelopment();
+
+        app.UseWebSockets();
+    }
+
+    /// <summary>
+    ///     Maps only the applications mounted under their own prefix — the operator console at <c>/_rask</c>, the
+    ///     devtools — for a host whose own UI is not a server-rendered root: <c>RaskApp.Serve()</c>, where a
+    ///     WebAssembly client owns every other path through <c>MapRaskSpa</c>'s fallback.
+    /// </summary>
+    /// <remarks>
+    ///     No host catch-all, which is the point: mapping one would take every path from the SPA fallback. With no
+    ///     mount registered nothing is mapped at all, not even the live runtime: there is no server-rendered page
+    ///     left for it to serve.
+    /// </remarks>
+    internal static WebApplication MapRaskMounts(this WebApplication app, string pathBase = "")
+    {
+        // Either way: the path base it settles is the one the storage and push routes mapped after this live under.
+        var endpoints = (IEndpointRouteBuilder)app;
+        var pathBaseNormalized = ApplyLiveOptions(endpoints, pathBase);
+        if (!app.Services.GetServices<RaskMountedApp>().Any())
+        {
+            return app;
+        }
+
+        PrepareHost(app);
+        MapPages(endpoints, NoHostApp, pathBaseNormalized, hostPattern: null);
+        return app;
+    }
+
+    // The root a mounts-only host builds for a path no mount covers. A GET never gets here: only the mounts'
+    // own patterns are mapped, and each resolves to its mount. What can is a resume record or an HTTP-transport
+    // request naming another path — forged or stale — and for that an empty root is the honest answer: this
+    // host has no application of its own to render.
+#pragma warning disable RASK014 // The root has no parent render context to construct it through.
+    private static Component NoHostApp(IServiceProvider services) => new RootErrorBoundary(new Fragment());
+#pragma warning restore RASK014
+
+    // The runtime, the host's catch-all when there is one, and each mounted application's own pattern — shared by
+    // MapRask and MapRaskMounts, which differ only in whether the host has a root of its own (hostPattern null).
+    private static void MapPages(
+        IEndpointRouteBuilder endpoints,
+        Func<IServiceProvider, Component> appFactory,
+        string pathBaseNormalized,
+        string? hostPattern)
+    {
         // Applications mounted under their own prefix — the operator console at /_rask is the one that
         // exists. Read from the container rather than named here, because Rask.Server cannot see the
         // packages that declare them and must not: it would drag EF and the batteries into a host that
@@ -451,30 +501,29 @@ public static partial class RaskEndpointExtensions
 
         EnsureRuntimeMapped(endpoints, pathBaseNormalized, selector);
 
-        // Scope the catch-all SPA route under the prefix when set. The pattern
-        // default ("/{**path}") is interpreted relative to the prefix root, so
-        // a request to /sub/users/42 matches with that whole path, and
-        // the handler strips the prefix before resolving against user routes
-        // (which are registered as "/users/{id}").
-        var scopedPattern = UnderPathBase(pathBaseNormalized, pattern);
-
         // Hoisted so the same handler can serve the host's catch-all AND each mounted application's
         // pattern. It already decides which application owns a request from the path, so mapping it more
         // than once adds a way in rather than a second behaviour.
         var pageHandler = (RequestDelegate)(httpContext => ServePageAsync(httpContext, selector, pathBaseNormalized));
 
-        endpoints.MapGet(scopedPattern, pageHandler);
+        // Scope the catch-all SPA route under the prefix when set. The pattern
+        // default ("/{**path}") is interpreted relative to the prefix root, so
+        // a request to /sub/users/42 matches with that whole path, and
+        // the handler strips the prefix before resolving against user routes
+        // (which are registered as "/users/{id}").
+        if (hostPattern is not null)
+        {
+            endpoints.MapGet(UnderPathBase(pathBaseNormalized, hostPattern), pageHandler);
+        }
 
         // A mounted application needs its own endpoint when the host's pattern does not reach it. The
         // default catch-all does, and ASP.NET prefers the more specific route either way, so this is
-        // what makes the console work on a host whose own pattern is narrow — a wasm-hosted app, where
-        // the SPA fallback would otherwise swallow /_rask.
+        // what makes the console work on a host whose own pattern is narrow — or that has none, like a
+        // wasm-hosted app, where the SPA fallback would otherwise swallow /_rask.
         foreach (var mountPattern in selector.Mounts.Select(mount => UnderPathBase(pathBaseNormalized, mount.Pattern)))
         {
             endpoints.MapGet(mountPattern, pageHandler);
         }
-
-        return endpoints;
     }
 
     private static string ApplyLiveOptions(IEndpointRouteBuilder endpoints, string pathBase)

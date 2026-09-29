@@ -15,9 +15,11 @@ using Rask.Api;
 using Rask.Auth;
 using Rask.Core;
 using Rask.Core.Live;
+using Rask.Cqrs.Server;
 using Rask.Data;
 using Rask.Server;
 using Rask.Server.Diagnostics;
+using Rask.Spa.Hosting;
 
 namespace Rask;
 
@@ -173,23 +175,81 @@ public sealed partial class RaskApp
         string pathBase = "")
         where TApp : Component
     {
+        // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
+        // Only here, not in AddRask: a hand-wired host writes its own document and keeps it.
+        var app = BuildHost(services =>
+            services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, _options.Ui.Enabled, _options.Toasts)));
+
+        MapEndpoints<TApp>(app, pathBase);
+        return app;
+    }
+
+    /// <summary>
+    /// Builds the pipeline and runs the app as the server of a WebAssembly client: every battery, the endpoints the
+    /// browser app calls, and the app itself — the bundle <c>Client/</c> builds into — instead of a root component.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The whole <c>Program.cs</c> of a wasm-hosted app:
+    /// </para>
+    /// <example>
+    /// <code>
+    /// RaskApp.Create(args).Serve();
+    /// </code>
+    /// </example>
+    /// <para>
+    /// Everything <see cref="Run{TApp}"/> does except render pages. The browser app owns every path nothing else
+    /// claims — <c>MapRaskSpa</c>'s fallback, mapped last — so a refresh or a deep link on a client-side route
+    /// still lands on it. The operator console keeps <c>/_rask</c>, remote dispatch its own prefix when the CQRS
+    /// battery is on, and the storage and push routes theirs. The PWA battery is the browser app's here
+    /// (<c>host.UsePwa</c> in <c>Client/Program.cs</c>): the server serves no manifest or worker of its own,
+    /// because a route for <c>rask-sw.js</c> would answer before the bundle's own file.
+    /// </para>
+    /// </remarks>
+    public void Serve() => BuildServe().Run();
+
+    /// <summary>The awaitable <see cref="Serve"/>.</summary>
+    public Task ServeAsync() => BuildServe().RunAsync();
+
+    /// <summary>What <see cref="Serve"/> runs: the WebAssembly client's server, built and not yet started.</summary>
+    internal WebApplication BuildServe()
+    {
+        // The browser app's, not this host's — see Serve.
+        _options.Pwa.Off();
+
+        var app = BuildHost(services =>
+        {
+            // Compression and the host defaults for the bundle. No RaskDocument: nothing here renders a page but
+            // the mounted console, which brings its own.
+            services.AddRaskSpaHost();
+
+            // After the batteries, which have already registered the mediator the way this app configured it;
+            // AddRaskCqrs is idempotent, so this adds only the endpoint half.
+            if (_options.Cqrs.Enabled)
+            {
+                services.AddRaskCqrsServer();
+            }
+        });
+
+        MapServeEndpoints(app);
+        return app;
+    }
+
+    private WebApplication BuildHost(Action<IServiceCollection> hostServices)
+    {
         AddLiveRuntime();
 
         // The batteries, LAST — after every Configure block and after anything Program.cs registered
         // itself. Both halves matter: the off-switches are only known now, and every AddRaskX is
         // idempotent, so an app that called one directly has already won.
         RaskBatteryWiring.Apply(_builder, _options);
-
-        // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
-        // Only here, not in AddRask: a hand-wired host writes its own document and keeps it.
-        _builder.Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, _options.Ui.Enabled, _options.Toasts));
+        hostServices(_builder.Services);
 
         var app = _builder.Build();
 
         BindAppServices(app);
         UseHostPipeline(app);
         UseRequestScope(app);
-        MapEndpoints<TApp>(app, pathBase);
 
         return app;
     }
@@ -322,6 +382,32 @@ public sealed partial class RaskApp
         WebApplication app, string pathBase)
         where TApp : Component
     {
+        MapAppEndpoints(app);
+        app.MapRask<TApp>(pathBase: pathBase);
+        MapBatteryEndpoints(app);
+    }
+
+    private void MapServeEndpoints(WebApplication app)
+    {
+        MapAppEndpoints(app);
+
+        // The messages the browser app dispatches: GET and POST on one route, the verb carrying what IQuery and
+        // ICommand already declare, so a command cannot be fired by a URL or a prefetch.
+        if (_options.Cqrs.Enabled)
+        {
+            app.MapRaskCqrs();
+        }
+
+        // The operator console and the devtools under their own prefixes, with no catch-all of the host's own.
+        app.MapRaskMounts();
+        MapBatteryEndpoints(app);
+
+        // LAST, because its fallback answers every path nothing above claims.
+        app.MapRaskSpa();
+    }
+
+    private void MapAppEndpoints(WebApplication app)
+    {
         // Controllers, and the 404 that keeps a wrong URL under the API prefix from being answered with
         // the app. Mapped for the same reason every other battery is wired here: an app that writes a
         // controller should not also have to know the line that makes it reachable.
@@ -350,12 +436,13 @@ public sealed partial class RaskApp
                 map(group);
             }
         }
+    }
 
-        app.MapRask<TApp>(pathBase: pathBase);
-
-        // The routes that serve public files and the temporary links the app signs itself. After MapRask, which
-        // sets the path base they live under; routing precedence, not order, is what keeps the literal
-        // /_rask/files prefix ahead of the catch-alls. Only when storage was actually wired — turning the
+    private void MapBatteryEndpoints(WebApplication app)
+    {
+        // The routes that serve public files and the temporary links the app signs itself. After MapRask
+        // (MapRaskMounts under Serve), which sets the path base they live under; routing precedence, not order,
+        // is what keeps the literal /_rask/files prefix ahead of the catch-alls. Only when storage was actually wired — turning the
         // database off takes it with it.
         if (_options.Storage.Enabled
             && app.Services.GetService<IServiceProviderIsService>()?.IsService(typeof(Storage.IFiles)) == true)

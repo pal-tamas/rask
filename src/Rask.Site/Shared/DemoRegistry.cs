@@ -75,6 +75,7 @@ public static partial class DemoRegistry
 
             // --- Browser APIs guide: the typed wrappers over the platform, one live demo each (their
             //     standalone example pages folded into docs/browser-apis.md). ---
+            ["web-apis"] = () => CodeSample.Files(["WebApiDemo.cs"]).Result(WebApiDemo),
             ["browser-intersection"] = () => CodeSample.Files(["IntersectionObserverDemo.cs"]).Result(IntersectionObserverDemo),
             ["browser-resize"] = () => CodeSample.Files(["ResizeObserverDemo.cs"]).Result(ResizeObserverDemo),
             ["browser-mutation"] = () => CodeSample.Files(["MutationObserverDemo.cs"]).Result(MutationObserverDemo),

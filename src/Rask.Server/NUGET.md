@@ -44,6 +44,14 @@ app.Configure(c =>
 app.Run<App>();
 ```
 
+The server of a WebAssembly client (`rask new Shop --template wasm-hosted`) is the same app without a
+server-rendered root — every battery, the CQRS endpoints the browser app calls, the operator console at
+`/_rask`, and the bundle `Client/` builds into for every other path:
+
+```csharp
+RaskApp.Create(args).Serve();
+```
+
 ```csharp
 [Route("/")]
 public sealed partial class Home : Component

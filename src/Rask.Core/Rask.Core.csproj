@@ -54,6 +54,8 @@
     <InternalsVisibleTo Include="Rask.Blazor"/>
     <InternalsVisibleTo Include="Rask.Blazor.Tests"/>
     <InternalsVisibleTo Include="Rask.External"/>
+    <InternalsVisibleTo Include="Rask.Web"/>
+    <InternalsVisibleTo Include="Rask.Web.Tests"/>
     <InternalsVisibleTo Include="Rask.External.Tests"/>
     <!-- Hosts cannot reference the devtools (the devtools reference the hosts), so they meet in Core: the
          loader and the probe seam live here, internal, and Rask.DevTools implements them. -->

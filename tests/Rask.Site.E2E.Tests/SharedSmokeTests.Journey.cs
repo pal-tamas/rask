@@ -1419,6 +1419,19 @@ public abstract partial class SharedSmokeTests
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
         var visible = new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 };
 
+        // Web APIs from MDN (Rask.Web): MDN's globals, generated, each chain one round trip — read values, round-trip
+        // localStorage, and keep a MediaQueryList as a handle.
+        await SideAsync("Web APIs from MDN", "Web APIs from MDN", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "web-apis");
+        await Page.Locator("#web-read").ClickAsync();
+        await Expect(Page.Locator("#web-read-out")).ToContainTextAsync("page Visible", contains);
+        await Page.Locator("#web-store").ClickAsync();
+        await Expect(Page.Locator("#web-store-out")).ToHaveTextAsync("localStorage says: stored by Rask.Web",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.Locator("#web-keep").ClickAsync();
+        await Expect(Page.Locator("#web-keep-out")).ToHaveTextAsync("Kept the MediaQueryList for (min-width: 1px): matches True",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
         // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
         // enumerable is materialised at render time so each demo's component instance is reconciled and
         // keeps its state across renders — see Component's IEnumerable<Component> indexer). Open the guide,

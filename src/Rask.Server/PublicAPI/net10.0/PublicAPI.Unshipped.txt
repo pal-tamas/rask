@@ -102,6 +102,8 @@ Rask.RaskApp.Environment.get -> Microsoft.AspNetCore.Hosting.IWebHostEnvironment
 Rask.RaskApp.MapEndpoints(System.Action<Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!>! map) -> Rask.RaskApp!
 Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
 Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
+Rask.RaskApp.Serve() -> void
+Rask.RaskApp.ServeAsync() -> System.Threading.Tasks.Task!
 Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.RaskAppDbContext
 Rask.RaskAppDbContext.RaskAppDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<Rask.RaskAppDbContext!>! options) -> void

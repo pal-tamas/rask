@@ -400,6 +400,11 @@ public static class GuideCatalog
         },
 
         // ---- Browser & devices ----
+        new("web-apis", "Web APIs from MDN", "Every web API the browser ships, as MDN names it, from C#.", "Browser & devices")
+        {
+            SearchTitle = "Call any browser Web API from C#, generated from MDN",
+            Description = "Every web API the browser ships, generated from MDN into C#: Navigator, Window, Document, localStorage by MDN's names, one round trip per await.",
+        },
         new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.", "Browser & devices")
         {
             SearchTitle = "Typed C# wrappers for browser Web APIs",
