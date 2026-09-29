@@ -76,6 +76,25 @@ stop the browser listening too.
 `IsSupported` asks the browser whether the object at the end of a path is there, instead of your guessing from its
 user agent: `await Navigator.Clipboard.IsSupported`, `await Navigator.IsSupported`.
 
+## Testing
+
+`Fake()` stands in for a web object in a test, for the test's own flow, until disposed of: every chain that starts at
+it is answered by the fake, and nothing reaches a browser.
+
+```csharp
+using var clipboard = Navigator.Clipboard.Fake();
+clipboard.Returns(c => c.ReadText(), "pasted");
+
+await page.Click("Paste");
+
+Assert.Equal("writeText", clipboard.Calls.Single().Member);
+```
+
+A read or call nobody set up answers the type's default, a write is remembered for the next read, and an object kept
+from a fake stays in it. `Raise("change", new MediaQueryListEvent { Matches = true })` fires an event at the handlers
+subscribed to it, which run in their components as the browser's would. The globals fake the same way:
+`using var storage = LocalStorage.Fake();`.
+
 ## Where to call it
 
 From an event handler or `OnRendered`, where the page is live — on the server host each chain runs over the page's
