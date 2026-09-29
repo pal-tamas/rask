@@ -79,23 +79,23 @@ Styling is not a flag either: every project is Tailwind. To leave a battery out,
 
 ```bash
 cd MyApp
-dotnet run            # server / wasm
+rask dev
 ```
 
 Open the URL printed in the console. **You should see** a single **"Hello, Rask! 👋"** welcome card that
 lists the `rask` commands you'll use next. The starter app is deliberately minimal — a clean shell with one
 page — so there's nothing to delete before you start building.
 
-> **Edit-and-refresh with hot reload.** Run `rask dev` instead of `dotnet run` for a live inner loop: edit
-> a component's `Render()` (or its scoped `.css`/`.ts`), a `[Route]` template, or a CQRS handler and save —
+> **Edit-and-refresh with hot reload.** `rask dev` is the live inner loop (`dotnet run` starts the app
+> without it): edit a component's `Render()` (or its scoped `.css`/`.ts`), a `[Route]` template, or a CQRS handler and save —
 > **C# Hot Reload** applies the change to the running app and Rask re-renders the open session in place, no
 > manual rebuild or browser refresh. A small "Hot reload applied" pill confirms it landed. Edits the
 > runtime can't apply (adding a type, changing a signature) restart the app instead, and the page reloads
 > itself. The full list is in [what hot-reloads](cli.md#what-hot-reloads).
 
 > **First build is slower, and the IDE may look broken — that's expected.** The first build is when
-> Rask's source generators run. Until then your IDE may flag `HomePage()`, `Counter()`, or
-> `NavLink(...)` as undefined — they're *generated* methods that don't exist until you build. Build
+> Rask's source generators run. Until then your IDE may flag `HomePage`, `Counter`, or
+> `Routes.HomePage()` as undefined — they're *generated* members that don't exist until you build. Build
 > once, then reload the solution so IntelliSense picks them up. (More on this in
 > [Troubleshooting](#troubleshooting) below.)
 
@@ -146,9 +146,9 @@ WASM templates differ mainly in `Program.cs`):
   ([Rask.Data](data.md)).
 
 - **`Features/Shared/App.cs`** — the **root component** `App`: it renders straight into
-  `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.
-  `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`
-  override, not by passing children to `Head()` (more in [section 7](#7-the-document-and-the-head-override)).
+  `<body>` — Rask builds the document around it — and drops a `Router` where the current page appears.
+  `<head>` is framework-managed — Rask writes the charset, viewport and stylesheets, and the app's title
+  goes in its `HeadAssets` override (more in [section 7](#7-the-document-and-the-headassets-override)).
   Beside it, `Features/Shared/User.cs` is the app's account type.
 
 - **`Features/Home/HomePage.cs`** — the `/` route, a small welcome card. Edit or replace it; it's your
@@ -308,23 +308,19 @@ cached internal state the caller shouldn't pass. The counter below starts at 7 (
 
 <!-- demo:components-skipfactory -->
 
-## 7. The document and the `Head` override
+## 7. The document and the `HeadAssets` override
 
 Your root component (the `TApp` you pass to the host — `App` in the template) renders straight into
 `<body>`. Rask composes the document around it: the doctype, `<html>`, a `<head>` filled from every
-mounted component's `Head` override (plus the scoped CSS and JS the page needs), and a `<body>` holding
-what the root rendered and the auto-appended runtime `<script>`. So a root is just its head
-contributions and a `Router()`:
+mounted component's `HeadAssets` override (plus the charset, viewport, the UI kit's stylesheet, your
+`Styles/app.css`, and the scoped CSS and JS the page needs), and a `<body>` holding what the root
+rendered and the auto-appended runtime `<script>`. So a root is just its title and a `Router`:
 
 ```csharp
 public sealed partial class App : Component
 {
-    // App-level head; pages can override their own Head to set a per-page Title.
-    protected override Component? Head => [
-        Title["My Rask App"],
-        Meta.Charset("utf-8"),
-        Meta.Name("viewport").Content("width=device-width, initial-scale=1")
-    ];
+    // App-level head; a page overrides its own HeadAssets to set a per-page Title.
+    protected override Component? HeadAssets => Title["My Rask App"];
 
     protected override Component? Render() => Router;
 }
@@ -350,30 +346,30 @@ protected override Component Shell(Component head, Component body) =>
 
 The doctype is still emitted ahead of whatever `Shell` returns, and the runtime `<script>` still lands
 in `<body>` — neither is yours to add. `Shell` is evaluated once per render, *before* your `Render()`
-runs, so it can't observe state that render produces; keep anything reactive in the body or in `Head`.
+runs, so it can't observe state that render produces; keep anything reactive in the body or in `HeadAssets`.
 
-Any component can contribute to `<head>` while it's in the tree by overriding `Head`. `<title>` and
+Any component can contribute to `<head>` while it's in the tree by overriding `HeadAssets`. `<title>` and
 `<base>` are singleton tags — the last contributor wins, so a page's `Title` overrides the app fallback:
 
 ```csharp
-protected override Component? Head => Title["Welcome — My Rask App"];
+protected override Component? HeadAssets => Title["Welcome — My Rask App"];
 ```
 
 > **Guardrails:** two compile-time checks catch the common mistakes (full list in
 > [diagnostics](diagnostics.md)) — **RASK021** if the root renders the shell itself, and **RASK019** if
-> you pass children to `Head()` instead of using the override.
+> you pass children to `Head[…]` instead of using the override.
 
 > **Already have an app?** Delete the shell from your root's `Render()` and return what was inside
-> `<body>` (usually just `Router()`). Its pieces move to the overrides that own them: the `lang` on
-> `Html(...)` becomes `HtmlLang`, the `Class` on `Body(...)` becomes `BodyClass`, the `Head()` slot just
-> goes away (your head contributions were already in the `Head` override), and anything left over
+> `<body>` (usually just `Router`). Its pieces move to the overrides that own them: the `lang` on
+> `Html` becomes `HtmlLang`, the `Class` on `Body` becomes `BodyClass`, the `Head[…]` slot just
+> goes away (your head contributions belong in the `HeadAssets` override), and anything left over
 > becomes a `Shell` override. `Doctype`, `Html`, `Head`, and `Body` are still ordinary tag components —
 > they're what you build a document out of by hand (`ToHtml()`, an email body), just not the app's page.
 
 ## 8. Add a route
 
-Put `[Route("/path")]` on a component to register it as a page (`Rask.Core.Routing` is the one namespace
-you bring in explicitly). `[RouteParam]` and `[QueryParam]` bind URL pieces to properties, and every
+Put `[Route("/path")]` on a component to register it as a page (`Rask.Core.Routing` comes in through the scaffold's
+`GlobalUsings.cs`). `[RouteParam]` and `[QueryParam]` bind URL pieces to properties, and every
 route gets a generated, type-safe URL builder:
 
 ```csharp
@@ -388,20 +384,20 @@ public sealed partial class UserPage : Component
 }
 
 // elsewhere — type-safe, refactor-proof:
-NavLink.Href(UserPage(id: 42))["View user"];
+NavLink.Href(Routes.UserPage(Id: 42))["View user"];
 ```
 
-The `Router()` in your root component matches the current path and renders the page. To navigate from
+The `Router` in your root component matches the current path and renders the page. To navigate from
 an event handler, inject the `Navigator` service through the constructor and call
-`nav.NavigateTo(HomePage())`, `nav.SetQuery("tab", "settings")`, and so on. For nested layouts
-(`[ParentRoute]` + `Outlet()`), 404 pages (`[NotFound]`), and the full routing model, see
+`nav.NavigateTo(Routes.HomePage())`, `nav.SetQuery("tab", "settings")`, and so on. For nested layouts
+(`[ParentRoute]` + `Outlet`), 404 pages (`[NotFound]`), and the full routing model, see
 [routing](routing.md).
 
 ## Troubleshooting
 
 The snags you're most likely to hit on a fresh project:
 
-- **The IDE flags `HomePage()`, `Counter()`, or `NavLink(...)` as undefined.** These are
+- **The IDE flags `HomePage`, `Counter`, or `Routes.HomePage()` as undefined.** These are
   *source-generated* — the chain surface for every component, the URL builder for every `[Route]`. They don't
   exist until the generator runs, which happens on build. Run `dotnet build` once, then reload the
   solution / restart the language server.

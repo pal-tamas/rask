@@ -11,7 +11,7 @@ using Rask.Core.Live;
 namespace Rask.Core;
 
 // [CollectionBuilder] makes `Component` itself a collection-expression target, so a render body
-// can be written as `Render() => [Nav(), Main()[Router()]]` (the items are built into a Fragment by
+// can be written as `Render() => [Nav, Main[Router]]` (the items are built into a Fragment by
 // RaskFragment below). The builder is self-referential (typeof(Component)) and public so collection
 // expressions in *other* assemblies bind to it even though Fragment itself is internal. The
 // required iteration type comes from the *pattern* GetEnumerator below — Component deliberately

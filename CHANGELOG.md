@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
+  is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
+  and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are
+  written as the chain entries they are everywhere in the docs, `llms.txt` and the runtime's own errors
+  ("start the app with RaskApp.Create(args).Run<App>()"). The cheatsheet and the authentication guide lead
+  with `RaskApp` (`app.Configure(c => c.Auth.Off())`) and keep the hand-wired `AddRask…` lines as the
+  alternative they are.
 - **Diagnostics speak one word for the chain and say what to do.** "Builder chain", "builder entry" and
   "required factory parameter" are gone from RASK001/002/036–044 — it is the *chain*, a *chain entry*, a
   *chain step* — and RASK028, RASK058 and the reasons behind RASK051/052/053/057/067/068/094 now end in a

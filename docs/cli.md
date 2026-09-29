@@ -283,7 +283,7 @@ you, and a `RaskApp` [applies its pending migrations when it starts](data.md#mig
 so:
 
 ```bash
-rask new Shop && cd Shop && dotnet run
+rask new Shop && cd Shop && rask dev
 ```
 
 serves the app — there is no `rask db update` step. The migration is not a convenience: the
