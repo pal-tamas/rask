@@ -30,8 +30,8 @@ public sealed class SubscriptionTests
         var page = new OrdersPage();
         Page.Render(page, services);
 
-        await dispatcher.Publish(new OrderPlaced(1));
-        await dispatcher.Publish(new OrderPlaced(2));
+        await dispatcher.Publish(new OrderPlaced(1), TestContext.Current.CancellationToken);
+        await dispatcher.Publish(new OrderPlaced(2), TestContext.Current.CancellationToken);
 
         await Eventually(() => page.Orders!.Data == new OrderPlaced(2));
         Assert.True(page.Orders!.IsLive);
@@ -47,7 +47,7 @@ public sealed class SubscriptionTests
 
         foreach (var number in new[] { 1, 2, 3 })
         {
-            await dispatcher.Publish(new OrderPlaced(number));
+            await dispatcher.Publish(new OrderPlaced(number), TestContext.Current.CancellationToken);
         }
 
         await Eventually(() => page.Orders!.Items.Count == 2 && page.Orders.Items[^1].Number == 3);
@@ -77,7 +77,7 @@ public sealed class SubscriptionTests
         Page.Render(page, services);
         await Eventually(() => page.Orders!.Data == "first");
 
-        await dispatcher.Publish(new OrderPlaced(7));
+        await dispatcher.Publish(new OrderPlaced(7), TestContext.Current.CancellationToken);
 
         await Eventually(() => page.Orders!.Data == "first+7");
         Assert.Equal(1, dispatcher.QueryCount);
@@ -147,7 +147,7 @@ public sealed class SubscriptionTests
         streams.Yield(2, new PriceTicked(222));
 
         await Eventually(() => page.Prices!.Data == new PriceTicked(222));
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.Equal(new PriceTicked(222), page.Prices!.Data);
     }
 
@@ -179,7 +179,7 @@ public sealed class SubscriptionTests
         Page.Render(page, services);
 
         await Eventually(() => page.Prices!.IsError);
-        await Task.Delay(700);
+        await Task.Delay(700, TestContext.Current.CancellationToken);
 
         Assert.IsType<UnauthorizedAccessException>(page.Prices!.Error);
         Assert.Equal(1, opened);
@@ -206,7 +206,7 @@ public sealed class SubscriptionTests
         var services = new ServiceCollection().AddRaskCqrs().AddRaskQuery().BuildServiceProvider();
         var dispatcher = services.GetRequiredService<IDispatcher>();
         Page.Render(new OrdersPage(), services);
-        await dispatcher.Publish(new OrderPlaced(9));
+        await dispatcher.Publish(new OrderPlaced(9), TestContext.Current.CancellationToken);
 
         var late = new OrdersPage();
         Page.Render(late, services);

@@ -56,13 +56,13 @@ public sealed class WebRootAssetFallbackTests : IDisposable
         await using var app = await StartAsync(webRoot, spaBundle: null);
         using var http = app.GetTestClient();
 
-        var response = await http.GetAsync($"/_rask/a/{_hash}.js");
+        var response = await http.GetAsync($"/_rask/a/{_hash}.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
         Assert.Contains("immutable", response.Headers.GetValues("Cache-Control").Single(), StringComparison.Ordinal);
         Assert.Equal($"\"{_hash}\"", response.Headers.ETag?.ToString());
-        Assert.Contains("window.Rask", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("window.Rask", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -70,17 +70,17 @@ public sealed class WebRootAssetFallbackTests : IDisposable
     {
         var webRoot = Seed("wwwroot", $"_rask/a/{_hash}.js", "window.Rask=window.Rask||{};");
         byte[] brotli = [0x42, 0x52, 0x07, 0x08];
-        await File.WriteAllBytesAsync(Path.Combine(webRoot, "_rask", "a", _hash + ".js.br"), brotli);
+        await File.WriteAllBytesAsync(Path.Combine(webRoot, "_rask", "a", _hash + ".js.br"), brotli, TestContext.Current.CancellationToken);
         await using var app = await StartAsync(webRoot, spaBundle: null);
         using var http = app.GetTestClient();
 
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/a/{_hash}.js");
         request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br"));
-        var response = await http.SendAsync(request);
+        var response = await http.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("br", response.Content.Headers.ContentEncoding);
-        Assert.Equal(brotli, await response.Content.ReadAsByteArrayAsync());
+        Assert.Equal(brotli, await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed class WebRootAssetFallbackTests : IDisposable
         await using var app = await StartAsync(Path.Combine(_root, "empty"), spaBundle: null);
         using var http = app.GetTestClient();
 
-        var response = await http.GetAsync($"/_rask/a/{_hash}.css");
+        var response = await http.GetAsync($"/_rask/a/{_hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -100,28 +100,28 @@ public sealed class WebRootAssetFallbackTests : IDisposable
         // The bundle lives outside the web root, the way a build-machine dist path or an explicit
         // distPath does, so only MapRaskSpa sharing its _rask/a subtree can make the file reachable.
         var bundle = Seed("bundle", $"_rask/a/{_hash}.css", ".app{color:teal}");
-        await File.WriteAllTextAsync(Path.Combine(bundle, "index.html"), "<!doctype html><body data-rask-root>spa</body>");
-        await File.WriteAllTextAsync(Path.Combine(bundle, "rask.wasm.js"), "export function boot() {}");
+        await File.WriteAllTextAsync(Path.Combine(bundle, "index.html"), "<!doctype html><body data-rask-root>spa</body>", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(bundle, "rask.wasm.js"), "export function boot() {}", TestContext.Current.CancellationToken);
         Directory.CreateDirectory(Path.Combine(bundle, "_framework"));
-        await File.WriteAllTextAsync(Path.Combine(bundle, "_framework", "dotnet.js"), "export default {};");
+        await File.WriteAllTextAsync(Path.Combine(bundle, "_framework", "dotnet.js"), "export default {};", TestContext.Current.CancellationToken);
 
         await using var app = await StartAsync(Path.Combine(_root, "empty"), bundle);
         using var http = app.GetTestClient();
 
-        var asset = await http.GetAsync($"/_rask/a/{_hash}.css");
+        var asset = await http.GetAsync($"/_rask/a/{_hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
-        Assert.Equal(".app{color:teal}", await asset.Content.ReadAsStringAsync());
+        Assert.Equal(".app{color:teal}", await asset.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
-        var dashboard = await http.GetAsync("/_rask");
+        var dashboard = await http.GetAsync("/_rask", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, dashboard.StatusCode);
-        Assert.Contains("dashboard-marker", await dashboard.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("dashboard-marker", await dashboard.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
 
-        var clientRoute = await http.GetAsync("/orders/42");
+        var clientRoute = await http.GetAsync("/orders/42", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, clientRoute.StatusCode);
-        Assert.Contains("data-rask-root", await clientRoute.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("data-rask-root", await clientRoute.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     private string Seed(string directory, string relative, string content)

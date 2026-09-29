@@ -18,9 +18,9 @@ public sealed class JobUserTests
 
         using (Current.UseUser(alice))
         {
-            await h.Queue.Enqueue(new WhoAmIJob("alice"));
+            await h.Queue.Enqueue(new WhoAmIJob("alice"), TestContext.Current.CancellationToken);
         }
-        await h.Queue.Enqueue(new WhoAmIJob("anon"));
+        await h.Queue.Enqueue(new WhoAmIJob("anon"), TestContext.Current.CancellationToken);
 
         // Started under somebody else, to prove the processor does not leak its own flow's user into a job
         // that recorded nobody.
@@ -41,7 +41,7 @@ public sealed class JobUserTests
         // The table as it looked before this change: everything but UserId.
         await using (var db = h.NewContext())
         {
-            await db.Database.ExecuteSqlRawAsync("ALTER TABLE Job DROP COLUMN UserId;");
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE Job DROP COLUMN UserId;", cancellationToken: TestContext.Current.CancellationToken);
 
             // A pending row, written the way the old package wrote it. An empty queue never loads a row — the
             // claim selects ids only — so it is loading one that fails, every poll, swallowed.
@@ -49,7 +49,7 @@ public sealed class JobUserTests
                 """
                 INSERT INTO Job (Type, Payload, RunAt, Attempts, CreatedAt, UpdatedAt)
                 VALUES ('x', 'null', '2020-01-01 00:00:00', 0, '2020-01-01 00:00:00', '2020-01-01 00:00:00');
-                """);
+                """, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         await h.Processor.StartAsync(CancellationToken.None);

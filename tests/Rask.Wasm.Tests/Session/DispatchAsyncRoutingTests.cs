@@ -42,6 +42,19 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
+    public async Task Dispatching_without_a_copy_still_sends_the_frame_and_hands_back_nothing()
+    {
+        var (session, _) = NewSession(diffMode: DiffMode);
+        await session.InitialRenderAsync();
+
+        var result = await session.DispatchAsync(Utf8("""{"type":"navigate","path":"/destination"}"""), copyFrame: false);
+
+        Assert.Empty(result);
+        using var doc = JsonDocument.Parse(session.LastSentFrame.ToArray());
+        Assert.Equal("/destination", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
+    }
+
+    [Fact]
     public async Task Dispatching_a_navigate_to_an_empty_path_returns_empty()
     {
         var (session, _) = NewSession(diffMode: DiffMode);

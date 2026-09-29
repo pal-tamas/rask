@@ -17,14 +17,14 @@ public sealed class MailShutdownGraceTests
             Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
         };
         await using var h = new MailHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5), sender);
-        await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"));
+        await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
-        await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         var stop = h.Processor.StopAsync(CancellationToken.None);
         sender.Release!.SetResult();
-        await stop.WaitAsync(TimeSpan.FromSeconds(10));
+        await stop.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.Single(sender.Sent);
         var mail = await h.SingleMailAsync();
@@ -44,12 +44,12 @@ public sealed class MailShutdownGraceTests
             Release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)
         };
         await using var h = new MailHarness(o => o.ShutdownGracePeriod = TimeSpan.FromMilliseconds(50), sender);
-        await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"));
+        await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
-        await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
-        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
+        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         var mail = await h.SingleMailAsync();
         Assert.Null(mail.ProcessedAt);

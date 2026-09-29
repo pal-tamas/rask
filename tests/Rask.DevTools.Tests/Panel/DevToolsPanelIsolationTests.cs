@@ -24,7 +24,7 @@ public sealed partial class DevToolsPanelIsolationTests
         using var host = Host();
         // No app route matches "/", so the page answers 404 — but its root still renders live, with its handler, its session
         // and its devtools tag, which is all this test needs from it.
-        var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+        var html = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = SessionId().Match(html).Groups[1].Value;
         var panel = WebUtility.HtmlDecode(DataPanel().Match(html).Groups[1].Value);
         Assert.False(string.IsNullOrEmpty(sessionId), "the page carries no session id:" + Environment.NewLine + html);
@@ -36,7 +36,7 @@ public sealed partial class DevToolsPanelIsolationTests
             .RecordWire(DevToolsWireDirection.Out, "wire-isolation-event", 11, Stopwatch.GetTimestamp());
 
         using var socket = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await socket.SendJsonAsync(new { type = "hello", session = sessionId });
+        await socket.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         while (await socket.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300)) is not null)
         {
         }
@@ -44,7 +44,7 @@ public sealed partial class DevToolsPanelIsolationTests
         // The panel URL the app's own page names — its own session and a valid token — so the only thing wrong is the
         // document it would render in.
         var queryAt = panel.IndexOf('?', StringComparison.Ordinal);
-        await socket.SendJsonAsync(new { type = "navigate", path = panel[..queryAt], query = panel[queryAt..] });
+        await socket.SendJsonAsync(new { type = "navigate", path = panel[..queryAt], query = panel[queryAt..] }, ct: TestContext.Current.CancellationToken);
 
         var frames = new List<string>();
         while (await socket.TryReceiveTextAsync(TimeSpan.FromSeconds(2)) is { } frame)

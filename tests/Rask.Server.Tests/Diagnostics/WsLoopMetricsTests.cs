@@ -8,7 +8,7 @@ public class WsLoopMetricsTests
     public async Task A_handler_dispatch_emits_the_dispatched_counter_and_the_duration_histogram()
     {
         using var host = RaskTestHost.Create<TestApp>();
-        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
@@ -16,12 +16,12 @@ public class WsLoopMetricsTests
         using var capture = MeterCapture.For(host.Store.Metrics!.Meter);
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId, TimeSpan.FromSeconds(5));
 
         // Awaiting the render reply guarantees the server-side dispatch (and its instrumentation)
         // has completed before we assert.
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
 
         Assert.NotNull(reply);

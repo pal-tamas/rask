@@ -16,7 +16,7 @@ public sealed class JobMetricsTests
         await using var h = new JobsHarness();
         using var collector = new MetricCollector(h.Get<JobMetrics>());
 
-        await h.Queue.Enqueue(new RecordJob("metered"));
+        await h.Queue.Enqueue(new RecordJob("metered"), TestContext.Current.CancellationToken);
         await h.RunUntilAsync(() => collector.Sum("rask.jobs.processed") >= 1);
 
         Assert.Equal(1, collector.Sum("rask.jobs.processed"));
@@ -38,7 +38,7 @@ public sealed class JobMetricsTests
         });
         using var collector = new MetricCollector(h.Get<JobMetrics>());
 
-        await h.Queue.Enqueue(new FailingJob());
+        await h.Queue.Enqueue(new FailingJob(), TestContext.Current.CancellationToken);
         await h.RunUntilAsync(() => collector.Sum("rask.jobs.deadlettered") >= 1);
 
         // Every attempt is a failure; only the attempt that exhausts MaxAttempts is a dead letter. Counting
@@ -64,7 +64,7 @@ public sealed class JobMetricsTests
         {
             var now = h.Clock.GetUtcNow().UtcDateTime;
             db.Set<Job>().Add(Job.For("Nothing.Registered.Here", "{}", now));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await h.RunUntilAsync(() => collector.Sum("rask.jobs.deadlettered") >= 1);
@@ -83,8 +83,8 @@ public sealed class JobMetricsTests
             o.MaxRetryDelay = TimeSpan.Zero;
         });
         using var collector = new MetricCollector(h.Get<JobMetrics>());
-        await h.Queue.Enqueue(new FailingJob());                          // becomes a dead letter
-        await h.Queue.Enqueue(new RecordJob("later")).In(TimeSpan.FromHours(1));   // stays pending
+        await h.Queue.Enqueue(new FailingJob(), TestContext.Current.CancellationToken);                          // becomes a dead letter
+        await h.Queue.Enqueue(new RecordJob("later"), TestContext.Current.CancellationToken).In(TimeSpan.FromHours(1));   // stays pending
 
         await h.RunUntilAsync(() =>
         {

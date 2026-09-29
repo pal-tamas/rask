@@ -37,7 +37,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
             },
             state: null);
 
-        Assert.True(entered.Wait(TimeSpan.FromSeconds(10)), "the posted continuation never ran");
+        Assert.True(entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken), "the posted continuation never ran");
 
         // The wave loop's own question, asked at the worst possible moment: mid-continuation, exactly
         // where the hook Task has completed but the render has not happened.
@@ -47,7 +47,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
         release.Set();
 
         // And it must close, or an initial render would wait out its whole budget on every hook.
-        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10));
+        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
 
         Assert.True(scope.TrySnapshotPending(out var batch), "the scope reported nothing pending");
 
-        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10));
+        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
         using var done = new ManualResetEventSlim(false);
         new LifecycleSyncContext(Probe, quiescence: null).Post(_ => done.Set(), state: null);
 
-        Assert.True(done.Wait(TimeSpan.FromSeconds(10)), "the posted continuation never ran");
+        Assert.True(done.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken), "the posted continuation never ran");
         Assert.Null(QuiescenceScope.Current);
     }
 
@@ -125,7 +125,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
         component.Resume.SetResult();
 
         Assert.True(
-            component.Entered.Wait(TimeSpan.FromSeconds(10)),
+            component.Entered.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken),
             "the hook never resumed");
 
         // Asked at the worst possible moment, exactly as the wave loop would: the hook has resumed
@@ -135,7 +135,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
 
         component.Release.Set();
 
-        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10));
+        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
             TaskScheduler.Default);
 
         component.Resume.SetResult();
-        await observed.WaitAsync(TimeSpan.FromSeconds(10));
+        await observed.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.True(
             requestedWhenTheGateOpened,

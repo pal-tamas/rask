@@ -23,10 +23,10 @@ public sealed class PathBaseEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync("/appA/");
+        var response = await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("path=/", body);
     }
 
@@ -35,7 +35,7 @@ public sealed class PathBaseEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync("/");
+        var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -45,11 +45,11 @@ public sealed class PathBaseEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync("/appA/rask/rask.js");
+        var response = await host.Http.GetAsync("/appA/rask/rask.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("WebSocket", body);
     }
 
@@ -58,7 +58,7 @@ public sealed class PathBaseEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync("/rask/rask.js");
+        var response = await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -70,7 +70,7 @@ public sealed class PathBaseEndpointTests
         ScopedAssetRegistry.TryGetCss(typeof(Widget), out var hash);
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync($"/appA/_rask/a/{hash}.css");
+        var response = await host.Http.GetAsync($"/appA/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
@@ -83,7 +83,7 @@ public sealed class PathBaseEndpointTests
         ScopedAssetRegistry.TryGetCss(typeof(Widget), out var hash);
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.css", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -98,8 +98,8 @@ public sealed class PathBaseEndpointTests
         var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync("/appA/");
-        var body = await response.Content.ReadAsStringAsync();
+        var response = await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains($"/appA/_rask/a/{hash}.css", body);
         Assert.DoesNotContain($"\"/_rask/a/{hash}.css\"", body);
@@ -112,8 +112,8 @@ public sealed class PathBaseEndpointTests
         // the existing endpoint surface.
         using var host = RaskTestHost.Create<TestApp>(pathBase: "");
 
-        var rootRes = await host.Http.GetAsync("/");
-        var runtimeRes = await host.Http.GetAsync("/rask/rask.js");
+        var rootRes = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
+        var runtimeRes = await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, rootRes.StatusCode);
         Assert.Equal(HttpStatusCode.OK, runtimeRes.StatusCode);
@@ -125,7 +125,7 @@ public sealed class PathBaseEndpointTests
         // "/appA/" must resolve to the same endpoints as "/appA".
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA/");
 
-        var response = await host.Http.GetAsync("/appA/");
+        var response = await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -138,8 +138,8 @@ public sealed class PathBaseEndpointTests
         // of the mount prefix.
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
-        var response = await host.Http.GetAsync("/appA/foo");
-        var body = await response.Content.ReadAsStringAsync();
+        var response = await host.Http.GetAsync("/appA/foo", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("path=/foo", body);
     }

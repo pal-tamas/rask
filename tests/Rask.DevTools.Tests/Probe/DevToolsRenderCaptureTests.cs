@@ -34,7 +34,7 @@ public sealed class DevToolsRenderCaptureTests
         var before = feed.CommitsSnapshot().Length;
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         var rendered = await DevToolsLivePage.WaitFor(
             () => feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders)
@@ -75,7 +75,7 @@ public sealed class DevToolsRenderCaptureTests
         var before = feed.CommitsSnapshot().Length;
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders).Any(r => r.Type == nameof(DevToolsTestApp)),
@@ -99,7 +99,7 @@ public sealed class DevToolsRenderCaptureTests
         var before = feed.InteractionsSnapshot().Length;
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.InteractionsSnapshot().Skip(before).Any(i => i is { Trigger: "click", Frames: > 0 }),

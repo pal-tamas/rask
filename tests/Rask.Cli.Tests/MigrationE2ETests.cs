@@ -24,10 +24,10 @@ namespace Rask.Cli.Tests;
 /// </remarks>
 public sealed class MigrationE2ETests
 {
-    [SkippableFact]
+    [Fact]
     public async Task A_scaffolded_app_can_add_and_apply_its_first_migration()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "E2EMigrate";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
@@ -97,10 +97,10 @@ public sealed class MigrationE2ETests
     ///         boots and migrates — with the table simply absent.
     ///     </para>
     /// </remarks>
-    [SkippableFact]
+    [Fact]
     public async Task A_model_declared_in_a_scaffolded_app_reaches_the_migration()
     {
-        Skip.IfNot(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
+        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
 
         const string name = "E2EModel";
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;

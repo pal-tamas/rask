@@ -130,7 +130,7 @@ public class RetryAndPollingTests
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (dispatcher.QueryCountFor<GetOrders>() < 3 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.True(
@@ -154,14 +154,14 @@ public class RetryAndPollingTests
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (dispatcher.QueryCountFor<GetOrders>() < 2 && DateTime.UtcNow < deadline)
         {
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         query.Dispose();
         var afterDispose = dispatcher.QueryCountFor<GetOrders>();
 
         // A polling query that outlives its component keeps a session doing work for ever.
-        await Task.Delay(120);
+        await Task.Delay(120, TestContext.Current.CancellationToken);
         Assert.Equal(afterDispose, dispatcher.QueryCountFor<GetOrders>());
     }
 
@@ -172,7 +172,7 @@ public class RetryAndPollingTests
         using var query = client.Query(new GetOrders(1), new QueryOptions { StaleTime = TimeSpan.FromHours(1) });
         await Settle(query);
 
-        await Task.Delay(80);
+        await Task.Delay(80, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, dispatcher.QueryCountFor<GetOrders>());
     }

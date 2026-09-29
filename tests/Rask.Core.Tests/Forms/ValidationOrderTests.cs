@@ -77,7 +77,7 @@ public class ValidationOrderTests
             return Array.Empty<string>();
         }));
 
-        await ctx.ValidateAsync();
+        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(
             new[] { "inline-field", "inline-form", "attr-sync", "attr-async" },
@@ -99,7 +99,7 @@ public class ValidationOrderTests
             return Array.Empty<string>();
         }));
 
-        await ctx.ValidateFieldAsync(fid);
+        await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "inline-field", "attr-sync", "attr-async" }, trace);
     }
@@ -121,7 +121,7 @@ public class ValidationOrderTests
                 return Array.Empty<string>();
             }));
 
-        await ctx.ValidateFieldAsync(fid);
+        await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "inline-field", "attr-sync", "attr-async" }, trace);
     }
@@ -189,7 +189,7 @@ public class ValidationOrderTests
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(_ => new[] { "inline-msg" }));
 
-        Assert.False(await ctx.ValidateFieldAsync(fid));
+        Assert.False(await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken));
         Assert.Equal(new[] { "inline-msg" }, ctx.GetValidationMessages(fid));
     }
 
@@ -202,7 +202,7 @@ public class ValidationOrderTests
         ctx.AddValidator(new StaticMessageValidator("sync-attr"));
         ctx.AddValidator(new StaticAsyncMessageValidator("async-attr"));
 
-        Assert.False(await ctx.ValidateFieldAsync(fid));
+        Assert.False(await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken));
         Assert.Equal(new[] { "sync-attr" }, ctx.GetValidationMessages(fid));
     }
 

@@ -11,8 +11,17 @@ namespace Rask.Core.Live;
 internal sealed class RaskDocumentDefaults(
     Func<string?, string>? kitStylesheet,
     string? appStylesheet,
-    IReadOnlyDictionary<string, string?>? htmlAttributes)
+    IReadOnlyDictionary<string, string?>? htmlAttributes,
+    Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component>? toasts = null,
+    TimeSpan? toastDuration = null)
 {
+    // How the session's toasts look when the app mounts no ToastOutlet of its own — the kit's, or Rask's own with the
+    // kit off. Null only for a host that draws none (a mounted app keeps its own document).
+    public Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component>? Toasts { get; } = toasts;
+
+    // How long a toast shows unless it says otherwise (c.Toasts.For).
+    public TimeSpan ToastDuration { get; } = toastDuration ?? TimeSpan.FromSeconds(5);
+
     // The kit sheet's href for a path base; null when the app turned the kit off.
     public Func<string?, string>? KitStylesheet { get; } = kitStylesheet;
 

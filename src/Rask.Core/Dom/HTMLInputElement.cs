@@ -21,6 +21,9 @@ namespace Rask.Core;
 /// </summary>
 public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl<T>
 {
+    // A bound control writes back and re-renders through its own handle, unlike a plain tag.
+    private protected override bool OwnsRenderHandle => true;
+
     /// <summary>
     ///     Which control this is — text, checkbox, date, file, and so on. Choosing the right one gets you
     ///     the right mobile keyboard and the browser's own validation for free.

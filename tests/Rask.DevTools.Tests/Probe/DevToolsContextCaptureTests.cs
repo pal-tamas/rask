@@ -22,7 +22,7 @@ public sealed class DevToolsContextCaptureTests
         Assert.Null(Node(feed, nameof(DevToolsContextReader))?.Reads);
 
         // The shape the client really sends for a click, so the next render is the page's own.
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         Assert.True(await DevToolsLivePage.WaitFor(
             () => Node(feed, nameof(DevToolsContextReader))?.Reads is not null,
@@ -51,7 +51,7 @@ public sealed class DevToolsContextCaptureTests
         var (_, feed, socket, handlerId) = await DevToolsLivePage.OpenAsync(host);
         var before = feed.CommitsSnapshot().Length;
 
-        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" }, ct: TestContext.Current.CancellationToken);
 
         Assert.True(await DevToolsLivePage.WaitFor(() => feed.CommitsSnapshot().Length > before, TimeSpan.FromSeconds(5)));
 

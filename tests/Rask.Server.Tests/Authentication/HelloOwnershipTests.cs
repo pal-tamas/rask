@@ -51,7 +51,7 @@ public class HelloOwnershipTests
 
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = alice;
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
         await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
         Assert.Equal(WebSocketState.Open, ws.State);
@@ -117,7 +117,7 @@ public class HelloOwnershipTests
 
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = mallory;
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = aliceSession, resume = malloryToken });
+        await ws.SendJsonAsync(new { type = "hello", session = aliceSession, resume = malloryToken }, ct: TestContext.Current.CancellationToken);
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
 

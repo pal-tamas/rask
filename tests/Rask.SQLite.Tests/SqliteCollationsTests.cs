@@ -32,7 +32,7 @@ public sealed class SqliteCollationsTests : IDisposable
             await using var provider = services.BuildServiceProvider();
             var factory = provider.GetRequiredService<ISqlite>();
 
-            await using var connection = await factory.CreateOpenAsync();
+            await using var connection = await factory.CreateOpenAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal(
                 ["2.00", "9.50", "10.00", "19.95", "100.50"],

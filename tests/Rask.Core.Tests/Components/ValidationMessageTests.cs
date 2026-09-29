@@ -136,7 +136,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ]);
 
         // Kick off validation so PendingCount > 0.
-        var task = ctx.ValidateFieldAsync(fid);
+        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("class=\"validating-indicator\"", html);
@@ -170,7 +170,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
                 .For(() => p.Name)
         ]);
 
-        var task = ctx.ValidateFieldAsync(fid);
+        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
         var validatingHtml = view.RenderAsLiveRoot();
         Assert.Contains("validating-indicator", validatingHtml);
 
@@ -202,13 +202,13 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
                 .For(() => p.Name)
         ]);
 
-        var task = ctx.ValidateFieldAsync(fid);
+        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
         view.RenderAsLiveRoot();
         gate.SetResult();
         await task;
 
         view.RenderAsLiveRoot(); // sticky window starts
-        await Task.Delay(80); // > 30ms sticky window
+        await Task.Delay(80, TestContext.Current.CancellationToken); // > 30ms sticky window
         var finalHtml = view.RenderAsLiveRoot();
         Assert.DoesNotContain("validating-indicator", finalHtml);
     }
@@ -229,7 +229,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
                 .For(() => p.Name)
         ]);
 
-        var task = ctx.ValidateFieldAsync(fid);
+        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
         view.RenderAsLiveRoot();
         gate.SetResult();
         await task;

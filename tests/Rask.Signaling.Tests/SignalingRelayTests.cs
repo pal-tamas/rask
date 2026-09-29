@@ -199,7 +199,7 @@ public class SignalingRelayTests : IDisposable
         app.UseRouting();
         // Deliberately no app.UseWebSockets().
         app.MapRaskSignaling();
-        await app.StartAsync();
+        await app.StartAsync(TestContext.Current.CancellationToken);
 
         try
         {

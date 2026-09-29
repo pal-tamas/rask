@@ -84,6 +84,24 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_long_run_of_adjacent_text_coalesces_in_order()
+    {
+        var frames = Frames(Div["Score: ", 7, " of ", 10, " pts"]);
+
+        var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
+        Assert.Equal("Score: 7 of 10 pts", text.Name);
+    }
+
+    [Fact]
+    public void A_run_still_open_when_the_frames_are_read_is_joined()
+    {
+        var frames = Frames(["a", "b", "c"]);
+
+        var text = Assert.Single(frames, f => f.Kind == RenderFrameKind.Text);
+        Assert.Equal("abc", text.Name);
+    }
+
+    [Fact]
     public void Text_separated_by_an_element_stays_distinct()
     {
         // An element between two texts breaks DOM adjacency (`<span></span>` advances the HTML), so

@@ -29,7 +29,7 @@ public sealed class FilesTests
 
         // Field by field, not instance by instance: StoredFile is an Entity<Guid> now rather than a record,
         // so Equals is reference equality and the row read back is a different object than the one saved.
-        var stored = await harness.Files.Get(file.Id);
+        var stored = await harness.Files.Get(file.Id, TestContext.Current.CancellationToken);
         Assert.NotNull(stored);
         Assert.Equal(file.Id, stored.Id);
         Assert.Equal(file.Name, stored.Name);
@@ -40,7 +40,7 @@ public sealed class FilesTests
         Assert.Equal(file.Key, stored.Key);
         Assert.Equal(file.Public, stored.Public);
         Assert.Equal(file.CreatedAt, stored.CreatedAt);
-        Assert.Equal(bytes, await File.ReadAllBytesAsync(Path.Combine(harness.Root, file.Key)));
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(Path.Combine(harness.Root, file.Key), TestContext.Current.CancellationToken));
         Assert.Empty(harness.SpoolPaths());
     }
 
@@ -50,7 +50,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         using var content = new MemoryStream(Samples.Text);
 
-        var file = await harness.Files.Save(content, "data.csv").Public();
+        var file = await harness.Files.Save(content, "data.csv", TestContext.Current.CancellationToken).Public();
 
         Assert.Equal("text/csv", file.ContentType);
         Assert.True(file.Public);
@@ -61,7 +61,7 @@ public sealed class FilesTests
     public async Task An_empty_file_is_a_file()
     {
         await using var harness = new StorageHarness();
-        var file = await harness.Files.Save(new MemoryStream(), "empty.bin");
+        var file = await harness.Files.Save(new MemoryStream(), "empty.bin", TestContext.Current.CancellationToken);
 
         Assert.Equal(0, file.Size);
         Assert.Equal("application/octet-stream", file.ContentType);
@@ -88,7 +88,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness(o => o.MaxFileSize = 100_000);
 
         var ex = await Assert.ThrowsAsync<FileRejectedException>(() =>
-            harness.Files.Save(new MemoryStream(Samples.Png(250_000)), "big.png").AsTask());
+            harness.Files.Save(new MemoryStream(Samples.Png(250_000)), "big.png", TestContext.Current.CancellationToken).AsTask());
 
         Assert.Equal(FileRejection.TooLarge, ex.Reason);
         Assert.Equal(0, await harness.CountRowsAsync());
@@ -129,15 +129,15 @@ public sealed class FilesTests
         var bytes = Samples.Png(1000);
         var file = await harness.SaveUploadAsync(harness.Upload("a.png", bytes));
 
-        await using (var stream = await harness.Files.OpenRead(file.Id))
+        await using (var stream = await harness.Files.OpenRead(file.Id, TestContext.Current.CancellationToken))
         {
             var copy = new MemoryStream();
-            await stream!.CopyToAsync(copy);
+            await stream!.CopyToAsync(copy, TestContext.Current.CancellationToken);
             Assert.Equal(bytes, copy.ToArray());
         }
 
-        Assert.Null(await harness.Files.OpenRead(Guid.NewGuid()));
-        Assert.Null(await harness.Files.Get(Guid.NewGuid()));
+        Assert.Null(await harness.Files.OpenRead(Guid.NewGuid(), TestContext.Current.CancellationToken));
+        Assert.Null(await harness.Files.Get(Guid.NewGuid(), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -146,11 +146,11 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         var file = await harness.SaveUploadAsync(harness.Upload("a.png", Samples.Png()));
 
-        Assert.True(await harness.Files.Delete(file.Id));
+        Assert.True(await harness.Files.Delete(file.Id, TestContext.Current.CancellationToken));
 
-        Assert.Null(await harness.Files.Get(file.Id));
+        Assert.Null(await harness.Files.Get(file.Id, TestContext.Current.CancellationToken));
         Assert.Empty(harness.StoredPaths());
-        Assert.False(await harness.Files.Delete(file.Id));
+        Assert.False(await harness.Files.Delete(file.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -181,13 +181,13 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         var file = await harness.SaveUploadAsync(harness.Upload("a.pdf", "%PDF-1.7\n"u8.ToArray()));
 
-        var url = await harness.Files.Share(file.Id).For(TimeSpan.FromMinutes(5));
+        var url = await harness.Files.Share(file.Id, TestContext.Current.CancellationToken).For(TimeSpan.FromMinutes(5));
 
         Assert.NotNull(url);
         Assert.StartsWith("/_rask/files/", url);
         Assert.True(harness.Runtime.Protector.TryUnprotect(url!["/_rask/files/".Length..], out var id));
         Assert.Equal(file.Id, id);
-        Assert.Null(await harness.Files.Share(Guid.NewGuid()).For(TimeSpan.FromMinutes(5)));
+        Assert.Null(await harness.Files.Share(Guid.NewGuid(), TestContext.Current.CancellationToken).For(TimeSpan.FromMinutes(5)));
     }
 
     [Theory]
@@ -199,7 +199,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            harness.Files.Share(Guid.NewGuid()).For(TimeSpan.FromSeconds(seconds)));
+            harness.Files.Share(Guid.NewGuid(), TestContext.Current.CancellationToken).For(TimeSpan.FromSeconds(seconds)));
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public sealed class StorageRegistrationTests
         await using var provider = services.BuildServiceProvider();
 
         var check = provider.GetServices<IHostedService>().OfType<StorageModelCheck<UnmappedDbContext>>().Single();
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => check.StartAsync(default));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => check.StartAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("modelBuilder.AddRaskStorage();", ex.Message);
     }
@@ -275,7 +275,7 @@ public sealed class StorageRegistrationTests
         {
             foreach (var service in harness.Services.GetServices<IHostedService>())
             {
-                await service.StartAsync(default);
+                await service.StartAsync(TestContext.Current.CancellationToken);
             }
         });
 

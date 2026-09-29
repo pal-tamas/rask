@@ -17,7 +17,7 @@ public sealed class DevToolsErrorCaptureTests
         var (_, feed, socket, handlers) = await DevToolsLivePage.OpenWithHandlersAsync(host);
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
-        await socket.SendJsonAsync(new { id = handlers[0], type = "click" });
+        await socket.SendJsonAsync(new { id = handlers[0], type = "click" }, ct: TestContext.Current.CancellationToken);
 
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.Errors.Snapshot().Any(e => e.Kind == DevToolsErrorKind.Handler), TimeSpan.FromSeconds(5)),
@@ -40,7 +40,7 @@ public sealed class DevToolsErrorCaptureTests
         using var host = DevToolsLivePage.Host<DevToolsErrorsTestApp>();
         var (_, feed, socket, handlers) = await DevToolsLivePage.OpenWithHandlersAsync(host);
 
-        await socket.SendJsonAsync(new { id = handlers[1], type = "click" });
+        await socket.SendJsonAsync(new { id = handlers[1], type = "click" }, ct: TestContext.Current.CancellationToken);
 
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.Errors.Snapshot().Any(e => e.Kind == DevToolsErrorKind.Render), TimeSpan.FromSeconds(5)),

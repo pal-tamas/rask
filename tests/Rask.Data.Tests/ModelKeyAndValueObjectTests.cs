@@ -96,11 +96,11 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         var first = Coupon.Issue("SPRING");
         var second = Coupon.Issue("SUMMER");
         database.Context.AddRange(first, second);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.True(first.Id > 0);
         Assert.NotEqual(first.Id, second.Id);
-        Assert.Equal("SUMMER", (await database.LoadAsync<Coupon>(second.Id))!.Code);
+        Assert.Equal("SUMMER", (await database.LoadAsync<Coupon>(second.Id, TestContext.Current.CancellationToken))!.Code);
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         database.Context.Add(Locker.At(new LockerCode("A-12"), "Szeged"));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("Szeged", (await database.LoadAsync<Locker>(new LockerCode("A-12")))!.Site);
+        Assert.Equal("Szeged", (await database.LoadAsync<Locker>(new LockerCode("A-12"), TestContext.Current.CancellationToken))!.Site);
     }
 
     [Fact]
@@ -134,9 +134,9 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
 
         var parcel = Parcel.Send("fragile", DeliveryAddress.Of("1 Main St", "Szeged"), ParcelWeight.Of(2.5m, "kg"));
         database.Context.Add(parcel);
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var stored = (await database.LoadAsync<Parcel>(parcel.Id))!;
+        var stored = (await database.LoadAsync<Parcel>(parcel.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("fragile", stored.Label);
         Assert.Equal("1 Main St", stored.Destination.Street);
         Assert.Equal("Szeged", stored.Destination.City);
@@ -162,12 +162,12 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var first = await Coupon.Create(new CouponModel { Code = "SPRING" });
-        var second = await Coupon.Create(new CouponModel { Code = "SUMMER" });
+        var first = await Coupon.Create(new CouponModel { Code = "SPRING" }, cancellationToken: TestContext.Current.CancellationToken);
+        var second = await Coupon.Create(new CouponModel { Code = "SUMMER" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(first.Id > 0);
         Assert.NotEqual(first.Id, second.Id);
-        Assert.Equal("SUMMER", (await database.LoadAsync<Coupon>(second.Id))!.Code);
+        Assert.Equal("SUMMER", (await database.LoadAsync<Coupon>(second.Id, TestContext.Current.CancellationToken))!.Code);
     }
 
     [Fact]
@@ -184,10 +184,10 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var created = await Locker.Create(new LockerCode("A-12"), new LockerModel { Site = "Szeged" });
+        var created = await Locker.Create(new LockerCode("A-12"), new LockerModel { Site = "Szeged" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(new LockerCode("A-12"), created.Id);
-        Assert.Equal("Szeged", (await database.LoadAsync<Locker>(new LockerCode("A-12")))!.Site);
+        Assert.Equal("Szeged", (await database.LoadAsync<Locker>(new LockerCode("A-12"), TestContext.Current.CancellationToken))!.Site);
         Assert.DoesNotContain(
             typeof(LockerModelExtensions).GetMethods(),
             m => m.Name == "Create" &&
@@ -195,9 +195,9 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
                   m.GetParameters()[0].ParameterType == typeof(Action<Locker>)));
 
         // The lambda form takes the key the same way.
-        var moved = await Locker.Create(new LockerCode("B-7"), locker => locker.MoveTo("Debrecen"));
+        var moved = await Locker.Create(new LockerCode("B-7"), locker => locker.MoveTo("Debrecen"), cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(new LockerCode("B-7"), moved.Id);
-        Assert.Equal("Debrecen", (await database.LoadAsync<Locker>(new LockerCode("B-7")))!.Site);
+        Assert.Equal("Debrecen", (await database.LoadAsync<Locker>(new LockerCode("B-7"), TestContext.Current.CancellationToken))!.Site);
     }
 
     [Fact]
@@ -205,13 +205,13 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var first = await Parcel.Create(NewParcel("first"));
-        var second = await Parcel.Create(NewParcel("second"));
+        var first = await Parcel.Create(NewParcel("first"), cancellationToken: TestContext.Current.CancellationToken);
+        var second = await Parcel.Create(NewParcel("second"), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.NotEqual(Guid.Empty, first.Id.Value);
         Assert.Equal(7, first.Id.Value.Version);
         Assert.NotEqual(first.Id, second.Id);
-        Assert.Equal("second", (await database.LoadAsync<Parcel>(second.Id))!.Label);
+        Assert.Equal("second", (await database.LoadAsync<Parcel>(second.Id, TestContext.Current.CancellationToken))!.Label);
     }
 
     [Fact]
@@ -219,9 +219,9 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var created = await Parcel.Create(NewParcel("fragile"));
+        var created = await Parcel.Create(NewParcel("fragile"), cancellationToken: TestContext.Current.CancellationToken);
 
-        var stored = (await database.LoadAsync<Parcel>(created.Id))!;
+        var stored = (await database.LoadAsync<Parcel>(created.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("1 Main St", stored.Destination.Street);
         Assert.Equal("Szeged", stored.Destination.City);
         Assert.Equal(2.5m, stored.Weight.Amount);
@@ -231,9 +231,9 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         edit.Destination!.City = "Debrecen";
         edit.Weight!.Amount = 3m;
         edit.Weight.Unit = "lb";
-        await Parcel.Update(created.Id, edit);
+        await Parcel.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken);
 
-        var updated = (await database.LoadAsync<Parcel>(created.Id))!;
+        var updated = (await database.LoadAsync<Parcel>(created.Id, TestContext.Current.CancellationToken))!;
         Assert.Equal("1 Main St", updated.Destination.Street);
         Assert.Equal("Debrecen", updated.Destination.City);
         Assert.Equal(3m, updated.Weight.Amount);

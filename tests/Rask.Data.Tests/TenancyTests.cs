@@ -111,7 +111,7 @@ public sealed class TenancyTests : IDisposable
             var ledger = Ledger.For("ACME-1");
             ledger.Add("widgets");
             database.Context.Add(ledger);
-            await database.Context.SaveChangesAsync();
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal(_acme, ledger.TenantId);
             Assert.Equal(_acme, ledger.Entries.Single().TenantId);
@@ -174,12 +174,12 @@ public sealed class TenancyTests : IDisposable
 
         using (Tenant.Use(_acme))
         {
-            var ledger = await database.Context.Set<Ledger>().SingleAsync(l => l.Id == id);
+            var ledger = await database.Context.Set<Ledger>().SingleAsync(l => l.Id == id, cancellationToken: TestContext.Current.CancellationToken);
             database.Context.Entry(ledger).Property(Columns.TenantId).CurrentValue = _globex;
 
             // The query filter already stops you LOADING another tenant's row. This catches what it cannot:
             // a row whose TenantId is reassigned in code, saved into a tenant it never belonged to.
-            await Assert.ThrowsAsync<InvalidOperationException>(() => database.Context.SaveChangesAsync());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
         }
     }
 
@@ -268,7 +268,7 @@ public sealed class TenancyTests : IDisposable
         {
             var ledger = Ledger.For("ACME-1");
             database.Context.Add(ledger);
-            await database.Context.SaveChangesAsync();
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal(_acme, ledger.TenantId);
             Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference));

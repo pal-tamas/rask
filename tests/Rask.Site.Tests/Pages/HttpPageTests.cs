@@ -47,7 +47,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
         // Loading shows initially; after the fetch faults the error banner should appear on next render.
-        await Task.Delay(120);
+        await Task.Delay(120, TestContext.Current.CancellationToken);
         var html = page.Render();
 
         Assert.Contains("alert-error", html, StringComparison.Ordinal);
@@ -148,7 +148,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         var (http, _) = FakeHttp.WithStatus(HttpStatusCode.NotFound);
 
         var page = Page.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
-        await Task.Delay(120);
+        await Task.Delay(120, TestContext.Current.CancellationToken);
         var html = page.Render();
 
         Assert.Contains("alert-error", html, StringComparison.Ordinal);
@@ -164,7 +164,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 
 #pragma warning disable RASK014 // the App is rendered directly as a root
         var result = await global::Rask.Core.Live.RaskPrerender.RenderDocumentAsync(
-            new global::Rask.Site.App(), sp, TimeSpan.FromSeconds(10));
+            new global::Rask.Site.App(), sp, TimeSpan.FromSeconds(10), cancellationToken: TestContext.Current.CancellationToken);
 #pragma warning restore RASK014
 
         Assert.False(result.TimedOut, $"did not settle ({result.Waves} waves)");

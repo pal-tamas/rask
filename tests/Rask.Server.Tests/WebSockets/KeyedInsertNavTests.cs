@@ -26,12 +26,12 @@ public class KeyedInsertNavTests
         await using var fixture = await ConnectedSession.Connect<KeyedNavApp>(LiveDiffMode.Forced);
 
         // Seed the diff baseline (first interaction ships full HTML).
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/list", query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/list", query = "" }, ct: TestContext.Current.CancellationToken);
         _ = await DrainAll(fixture.Ws);
 
         // Navigate: the RouteState.Changed handler inserts the keyed item — the keyed
         // InsertSubtree rides this navigation diff.
-        await fixture.Ws.SendJsonAsync(new { type = "navigate", path, query = "" });
+        await fixture.Ws.SendJsonAsync(new { type = "navigate", path, query = "" }, ct: TestContext.Current.CancellationToken);
         var frames = await DrainAll(fixture.Ws);
 
         var insert = FindInsertSubtree(frames);

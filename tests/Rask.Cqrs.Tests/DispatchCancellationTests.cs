@@ -38,7 +38,7 @@ public sealed class DispatchCancellationTests
         var dispatch = sp.GetRequiredService<IDispatcher>().Send(new ParkUntilCancelled(), cts.Token);
         await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => dispatch.WaitAsync(TimeSpan.FromSeconds(10)));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => dispatch.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -50,7 +50,9 @@ public sealed class DispatchCancellationTests
         using var cts = new CancellationTokenSource();
 
         using var outer = Ambient.Enter(cts.Token);
+#pragma warning disable xUnit1051 // the missing token is the point: the dispatch must keep the one in scope
         var seen = await sp.GetRequiredService<IDispatcher>().Query(new WhatCanCancelMe());
+#pragma warning restore xUnit1051
 
         Assert.Equal(cts.Token, seen);
     }

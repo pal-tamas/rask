@@ -14,9 +14,9 @@ public sealed class RaskDistributedCacheTests
     public async Task Set_then_get_round_trips_the_value()
     {
         await using var harness = new CacheHarness();
-        await harness.Distributed.SetAsync("k", Bytes("hello"), new DistributedCacheEntryOptions());
+        await harness.Distributed.SetAsync("k", Bytes("hello"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
 
-        var got = await harness.Distributed.GetAsync("k");
+        var got = await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken);
 
         Assert.NotNull(got);
         Assert.Equal("hello", Str(got));
@@ -27,7 +27,7 @@ public sealed class RaskDistributedCacheTests
     {
         await using var harness = new CacheHarness();
 
-        Assert.Null(await harness.Distributed.GetAsync("absent"));
+        Assert.Null(await harness.Distributed.GetAsync("absent", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -35,10 +35,10 @@ public sealed class RaskDistributedCacheTests
     {
         await using var harness = new CacheHarness();
 
-        await harness.Distributed.SetAsync("k", Bytes("one"), new DistributedCacheEntryOptions());
-        await harness.Distributed.SetAsync("k", Bytes("two"), new DistributedCacheEntryOptions());
+        await harness.Distributed.SetAsync("k", Bytes("one"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
+        await harness.Distributed.SetAsync("k", Bytes("two"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
 
-        Assert.Equal("two", Str((await harness.Distributed.GetAsync("k"))!));
+        Assert.Equal("two", Str((await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken))!));
         Assert.Equal(1, await harness.CountEntriesAsync());
     }
 
@@ -47,11 +47,11 @@ public sealed class RaskDistributedCacheTests
     {
         await using var harness = new CacheHarness();
         await harness.Distributed.SetAsync("k", Bytes("v"),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }, TestContext.Current.CancellationToken);
 
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
 
-        Assert.Null(await harness.Distributed.GetAsync("k"));
+        Assert.Null(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
         Assert.Equal(0, await harness.CountEntriesAsync()); // lazily evicted on the read
     }
 
@@ -60,16 +60,16 @@ public sealed class RaskDistributedCacheTests
     {
         await using var harness = new CacheHarness();
         await harness.Distributed.SetAsync("k", Bytes("v"),
-            new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
+            new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) }, TestContext.Current.CancellationToken);
 
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
-        Assert.NotNull(await harness.Distributed.GetAsync("k")); // renews to now+10
+        Assert.NotNull(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken)); // renews to now+10
 
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
-        Assert.NotNull(await harness.Distributed.GetAsync("k")); // still fresh only because the read renewed it
+        Assert.NotNull(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken)); // still fresh only because the read renewed it
 
         harness.Clock.Advance(TimeSpan.FromMinutes(11));
-        Assert.Null(await harness.Distributed.GetAsync("k")); // no read within the window → expired
+        Assert.Null(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken)); // no read within the window → expired
     }
 
     [Fact]
@@ -80,14 +80,14 @@ public sealed class RaskDistributedCacheTests
         {
             SlidingExpiration = TimeSpan.FromMinutes(10),
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15),
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Keep reading within the sliding window; the absolute cap must still expire the entry.
         harness.Clock.Advance(TimeSpan.FromMinutes(8));
-        Assert.NotNull(await harness.Distributed.GetAsync("k"));
+        Assert.NotNull(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
 
         harness.Clock.Advance(TimeSpan.FromMinutes(8)); // t16 > absolute t15
-        Assert.Null(await harness.Distributed.GetAsync("k"));
+        Assert.Null(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -95,24 +95,24 @@ public sealed class RaskDistributedCacheTests
     {
         await using var harness = new CacheHarness();
         await harness.Distributed.SetAsync("k", Bytes("v"),
-            new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
+            new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) }, TestContext.Current.CancellationToken);
 
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
-        await harness.Distributed.RefreshAsync("k"); // renews to now+10
+        await harness.Distributed.RefreshAsync("k", TestContext.Current.CancellationToken); // renews to now+10
 
         harness.Clock.Advance(TimeSpan.FromMinutes(8)); // t14 < renewed t16
-        Assert.NotNull(await harness.Distributed.GetAsync("k"));
+        Assert.NotNull(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task Remove_deletes_the_entry()
     {
         await using var harness = new CacheHarness();
-        await harness.Distributed.SetAsync("k", Bytes("v"), new DistributedCacheEntryOptions());
+        await harness.Distributed.SetAsync("k", Bytes("v"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
 
-        await harness.Distributed.RemoveAsync("k");
+        await harness.Distributed.RemoveAsync("k", TestContext.Current.CancellationToken);
 
-        Assert.Null(await harness.Distributed.GetAsync("k"));
+        Assert.Null(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
         Assert.Equal(0, await harness.CountEntriesAsync());
     }
 
@@ -120,11 +120,11 @@ public sealed class RaskDistributedCacheTests
     public async Task An_entry_with_no_expiration_survives_a_long_wait()
     {
         await using var harness = new CacheHarness();
-        await harness.Distributed.SetAsync("k", Bytes("v"), new DistributedCacheEntryOptions());
+        await harness.Distributed.SetAsync("k", Bytes("v"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
 
         harness.Clock.Advance(TimeSpan.FromDays(3650));
 
-        Assert.NotNull(await harness.Distributed.GetAsync("k"));
+        Assert.NotNull(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -134,9 +134,9 @@ public sealed class RaskDistributedCacheTests
         var cache = harness.Distributed;
 
         cache.Set("k", Bytes("sync"), new DistributedCacheEntryOptions());
-        Assert.Equal("sync", Str((await cache.GetAsync("k"))!));
+        Assert.Equal("sync", Str((await cache.GetAsync("k", TestContext.Current.CancellationToken))!));
 
-        await cache.SetAsync("k", Bytes("async"), new DistributedCacheEntryOptions());
+        await cache.SetAsync("k", Bytes("async"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
         Assert.Equal("async", Str(cache.Get("k")!));
 
         cache.Remove("k");
@@ -147,11 +147,11 @@ public sealed class RaskDistributedCacheTests
     public async Task DefaultSlidingExpiration_applies_when_no_options_are_given()
     {
         await using var harness = new CacheHarness(o => o.DefaultSlidingExpiration = TimeSpan.FromMinutes(5));
-        await harness.Distributed.SetAsync("k", Bytes("v"), new DistributedCacheEntryOptions());
+        await harness.Distributed.SetAsync("k", Bytes("v"), new DistributedCacheEntryOptions(), TestContext.Current.CancellationToken);
 
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
 
-        Assert.Null(await harness.Distributed.GetAsync("k"));
+        Assert.Null(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -159,12 +159,12 @@ public sealed class RaskDistributedCacheTests
     {
         await using var harness = new CacheHarness(o => o.DefaultSlidingExpiration = TimeSpan.FromMinutes(1));
         await harness.Distributed.SetAsync("k", Bytes("v"),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30) });
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30) }, TestContext.Current.CancellationToken);
 
         // Past the 1-minute default sliding window, but well within the explicit 30-minute absolute deadline:
         // the caller's deadline must win, so the entry is still there.
         harness.Clock.Advance(TimeSpan.FromMinutes(5));
 
-        Assert.NotNull(await harness.Distributed.GetAsync("k"));
+        Assert.NotNull(await harness.Distributed.GetAsync("k", TestContext.Current.CancellationToken));
     }
 }

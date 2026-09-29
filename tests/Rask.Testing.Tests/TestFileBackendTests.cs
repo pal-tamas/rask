@@ -102,7 +102,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         // on a real file.
         var file = new TestFileBackend().Add("big.bin", new byte[1024]);
 
-        Assert.Throws<IOException>(() => file.OpenReadStream(512));
+        Assert.Throws<IOException>(() => file.OpenReadStream(512, TestContext.Current.CancellationToken));
     }
 
     [Fact]

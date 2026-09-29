@@ -120,12 +120,12 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
         child.StateHasChanged();
         child.PauseNextRender();
         var walk = Task.Run(() => host.RenderAsLiveRoot(sp));
-        Assert.True(reading.Wait(TimeSpan.FromSeconds(10)), "the child's render never started");
+        Assert.True(reading.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken), "the child's render never started");
 
         child.Show("new");
         child.StateHasChanged();
         resume.Set();
-        await walk.WaitAsync(TimeSpan.FromSeconds(10));
+        await walk.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.Contains("new", host.RenderAsLiveRoot(sp), StringComparison.Ordinal);
     }

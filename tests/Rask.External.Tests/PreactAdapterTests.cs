@@ -39,7 +39,7 @@ public sealed class PreactAdapterTests
 {
     private const string Fixture = "PreactAdapterFixture";
 
-    [SkippableFact]
+    [Fact]
     public void The_island_mounts_with_the_props_csharp_rendered()
     {
         var doc = Run();
@@ -57,7 +57,7 @@ public sealed class PreactAdapterTests
         Assert.Equal(1, doc.GetProperty("effectsOnMount").GetInt32());
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_prop_change_reconciles_and_the_components_own_state_survives()
     {
         // The single most important behaviour in the adapter, and the one no C# test can see. Preact's
@@ -78,7 +78,7 @@ public sealed class PreactAdapterTests
         Assert.Equal(0, doc.GetProperty("cleanupsAfterUpdate").GetInt32());
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_callback_called_inside_the_component_reaches_the_host_dispatch_channel()
     {
         var doc = Run();
@@ -94,7 +94,7 @@ public sealed class PreactAdapterTests
         Assert.Equal(42, dispatched.GetProperty("args")[0].GetInt32());
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_callback_cleared_in_csharp_stops_firing()
     {
         // C# stopped passing the delegate, so the prop is simply absent from the next props JSON. The
@@ -107,7 +107,7 @@ public sealed class PreactAdapterTests
             doc.GetProperty("dispatchedAfterClear").GetInt32());
     }
 
-    [SkippableFact]
+    [Fact]
     public void Unmount_runs_the_components_cleanup_effects()
     {
         // `render(null, element)` is preact's unmount. Dropping the element instead looks identical in
@@ -121,7 +121,7 @@ public sealed class PreactAdapterTests
             "the island still had children after unmount, so preact never emptied it");
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_child_island_renders_inside_its_parent_and_keeps_its_own_state_across_a_parent_update()
     {
         // Children are rendered by Preact inside the parent's own tree, so a parent re-render reconciles them like any
@@ -139,7 +139,7 @@ public sealed class PreactAdapterTests
         Assert.Equal(1, doc.GetProperty("childRequests").GetInt32());
     }
 
-    [SkippableFact]
+    [Fact]
     public void A_child_island_csharp_removes_unmounts_with_its_cleanup_and_the_parent_stays()
     {
         var doc = Run();
@@ -152,14 +152,14 @@ public sealed class PreactAdapterTests
     /// <summary>Runs the fixture, or skips with the reason it could not.</summary>
     private static JsonElement Run()
     {
-        Skip.IfNot(
+        Assert.SkipUnless(
             File.Exists(NodeFixture.ScriptPath(Fixture)),
             $"'{NodeFixture.ScriptPath(Fixture)}' was not bundled: npm could not install preact and "
             + "happy-dom for the fixture (no npm, no network, or RaskPreactFixture=false), so the Preact "
             + "adapter was not exercised on this machine.");
 
         var doc = NodeFixture.Run(Fixture);
-        Skip.If(doc is null, "node is not on PATH, so the Preact adapter was not exercised.");
+        Assert.SkipWhen(doc is null, "node is not on PATH, so the Preact adapter was not exercised.");
 
         return doc!.Value;
     }

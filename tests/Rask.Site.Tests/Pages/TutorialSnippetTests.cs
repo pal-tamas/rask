@@ -47,8 +47,8 @@ public sealed partial class TutorialSnippetTests
             }
 
             var firstError = CSharpSyntaxTree
-                .ParseText(code, new CSharpParseOptions(LanguageVersion.Latest))
-                .GetDiagnostics()
+                .ParseText(code, new CSharpParseOptions(LanguageVersion.Latest), cancellationToken: TestContext.Current.CancellationToken)
+                .GetDiagnostics(TestContext.Current.CancellationToken)
                 .First(d => d.Severity == DiagnosticSeverity.Error);
 
             broken.Add($"{source}: {firstError.GetMessage()}");

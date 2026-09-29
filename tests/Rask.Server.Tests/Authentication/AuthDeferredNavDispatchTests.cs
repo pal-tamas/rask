@@ -19,8 +19,8 @@ public class AuthDeferredNavDispatchTests
     public async Task A_sign_in_return_url_mounts_the_destination_under_the_redeemed_identity()
     {
         using var host = CreateHost();
-        var initial = await host.Http.GetAsync("/start");
-        var initialHtml = await initial.Content.ReadAsStringAsync();
+        var initial = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+        var initialHtml = await initial.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var signInHandlerId = ExtractHandlerId(initialHtml, "sign-in");
 
@@ -29,10 +29,10 @@ public class AuthDeferredNavDispatchTests
 
         using (var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+            await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-            await ws.SendJsonAsync(new { id = signInHandlerId });
+            await ws.SendJsonAsync(new { id = signInHandlerId }, ct: TestContext.Current.CancellationToken);
             var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
             Assert.NotNull(text);
@@ -49,7 +49,7 @@ public class AuthDeferredNavDispatchTests
 
             var redeem = await host.Http.PostAsJsonAsync(
                 "/_rask/auth/redeem",
-                new { ticket, session = sessionId });
+                new { ticket, session = sessionId }, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(HttpStatusCode.OK, redeem.StatusCode);
 
@@ -68,7 +68,7 @@ public class AuthDeferredNavDispatchTests
         };
 
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(afterReconnect);

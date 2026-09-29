@@ -1,0 +1,17 @@
+<Project>
+
+  <!--
+    Gives every test its own app: on xUnit v3, one assembly-level hook (RaskTestRun.cs) opens a TestRun before each
+    test and closes it after, so a test's first `await User.Create(…)` boots the app it then visits. A project on
+    another test framework gets nothing added and boots the app at Page.Visit instead.
+  -->
+  <Target Name="RaskTestingAddTestRunHook" BeforeTargets="CoreCompile;XamlPreCompile"
+          Condition=" '$(RaskTestingTestRunHook)' != 'false' ">
+    <ItemGroup>
+      <_RaskTestingXunitV3 Include="@(ReferencePath)" Condition=" '%(Filename)' == 'xunit.v3.core' " />
+      <Compile Include="$(MSBuildThisFileDirectory)RaskTestRun.cs" Link="Rask\RaskTestRun.cs" Visible="false"
+               Condition=" '@(_RaskTestingXunitV3)' != '' " />
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -149,7 +149,7 @@ public class HotReloadPhaseTests
             RaskHotReload.RunPhases(_thisAssembly, null);
 
             // Asserting an absence needs a wait; the alternative is asserting on a race.
-            var announced = await Task.WhenAny(applied.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+            var announced = await Task.WhenAny(applied.Task, Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
             Assert.NotSame(applied.Task, announced);
         }
         finally

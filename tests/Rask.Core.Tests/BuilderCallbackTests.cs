@@ -93,6 +93,17 @@ public partial class BuilderCallbackTests : global::Rask.Core.RaskMarkup
             view.RenderAsLiveRoot());
     }
 
+    [Fact]
+    public void Element_events_emit_in_the_idl_order_whatever_order_they_were_wired_in()
+    {
+        var view = EventOrderProbe;
+
+        var html = view.RenderAsLiveRoot();
+
+        Assert.Equal(
+            "<div data-rask-on-click=\"h0\" data-rask-on-mousedown=\"h1\" data-rask-on-scroll=\"h2\"></div>", html);
+    }
+
     // The hard rule nothing may quietly break: an ELEMENT handler goes straight to the DOM,
     // where handler-owner resolution already re-renders the owner — wrapping it would allocate a
     // closure per handler per render. Same owned handler as the card test above, opposite outcome.
@@ -264,6 +275,15 @@ internal sealed partial class BuilderEventProbe : Component
 {
     protected override Component? Render() =>
         Div.OnClick(Bump).OnMouseDown(_ => Bump()).OnScroll(_ => Bump());
+
+    private void Bump() { }
+}
+
+// Wired backwards: the emit is still the IDL's order.
+internal sealed partial class EventOrderProbe : Component
+{
+    protected override Component? Render() =>
+        Div.OnScroll(_ => Bump()).OnMouseDown(_ => Bump()).OnClick(Bump);
 
     private void Bump() { }
 }

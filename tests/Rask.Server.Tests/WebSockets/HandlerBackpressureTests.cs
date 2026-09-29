@@ -18,7 +18,7 @@ public class HandlerBackpressureTests
         {
             using var host = RaskTestHost.Create<HangingApp>(
                 configureServer: o => o.MaxPendingHandlers = 4);
-            var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+            var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             var sessionId = MarkupAssert.SessionId(initialHtml);
             var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
@@ -45,7 +45,7 @@ public class HandlerBackpressureTests
                 // Draining receives lets the client observe the server's close frame.
                 if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null && ws.IsOpen)
                 {
-                    await Task.Delay(20);
+                    await Task.Delay(20, TestContext.Current.CancellationToken);
                 }
             }
 
@@ -63,7 +63,7 @@ public class HandlerBackpressureTests
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.MaxPendingHandlers = 512);
-        var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
+        var initialHtml = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 

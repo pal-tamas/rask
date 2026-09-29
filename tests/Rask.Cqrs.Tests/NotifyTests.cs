@@ -17,9 +17,9 @@ public sealed class NotifyTests
         var reports = dispatcher.Subscribe<Reported>(stop.Token).GetAsyncEnumerator(stop.Token);
         var next = reports.MoveNextAsync().AsTask();
 
-        await Notify.Send(new Reported(7));
+        await Notify.Send(new Reported(7), TestContext.Current.CancellationToken);
 
-        Assert.True(await next.WaitAsync(Wait));
+        Assert.True(await next.WaitAsync(Wait, TestContext.Current.CancellationToken));
         Assert.Equal(new Reported(7), reports.Current);
 
         await stop.CancelAsync();
@@ -32,7 +32,7 @@ public sealed class NotifyTests
         await using var services = Build(recorder);
         using var bound = Notify.UseScope(services);
 
-        await Notify.Send(new Reported(3));
+        await Notify.Send(new Reported(3), TestContext.Current.CancellationToken);
 
         Assert.Equal([3], recorder.Seen);
     }
@@ -46,7 +46,7 @@ public sealed class NotifyTests
 
         // No UseScope: this is the background-job path, where there is no scope to publish on and the facade has
         // to open one before a handler that needs scoped services can run.
-        await Notify.Send(new Reported(11));
+        await Notify.Send(new Reported(11), TestContext.Current.CancellationToken);
 
         Assert.Equal([11], recorder.Seen);
     }
@@ -57,7 +57,7 @@ public sealed class NotifyTests
         await using var services = Build();
         using var bound = Notify.UseScope(services);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => Notify.Send<Reported>(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => Notify.Send<Reported>(null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class NotifyTests
 
             // The inner binding is gone; the outer one must still stand, or a nested publish would escape to
             // whatever container happened to be configured last.
-            await Notify.Send(new Reported(1));
+            await Notify.Send(new Reported(1), TestContext.Current.CancellationToken);
         }
     }
 

@@ -32,7 +32,7 @@ public sealed partial class DevToolsWireTabTests
         feed.RecordDiff(opCount: 3, usedDiff: true);
         feed.RecordWire(DevToolsWireDirection.In, "frame", 2048, at + Stopwatch.Frequency / 100);
 
-        var html = await host.Http.GetStringAsync(panel);
+        var html = await host.Http.GetStringAsync(panel, TestContext.Current.CancellationToken);
 
         Assert.Contains("Frames sent", html, StringComparison.Ordinal);
         Assert.Contains("2 frames, newest first.", html, StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public sealed partial class DevToolsWireTabTests
         using var host = Host();
         var (_, panel) = await InspectedPage(host);
 
-        var html = await host.Http.GetStringAsync(panel);
+        var html = await host.Http.GetStringAsync(panel, TestContext.Current.CancellationToken);
 
         Assert.Contains("No traffic yet.", html, StringComparison.Ordinal);
     }
@@ -60,9 +60,9 @@ public sealed partial class DevToolsWireTabTests
     {
         using var host = Host();
         var (session, panel) = await InspectedPage(host);
-        var panelHtml = await host.Http.GetStringAsync(panel);
+        var panelHtml = await host.Http.GetStringAsync(panel, TestContext.Current.CancellationToken);
         using var socket = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await socket.SendJsonAsync(new { type = "hello", session = SessionId().Match(panelHtml).Groups[1].Value });
+        await socket.SendJsonAsync(new { type = "hello", session = SessionId().Match(panelHtml).Groups[1].Value }, ct: TestContext.Current.CancellationToken);
         while (await socket.TryReceiveTextAsync(TimeSpan.FromMilliseconds(300)) is not null)
         {
         }

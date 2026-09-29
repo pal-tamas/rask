@@ -3,4 +3,4 @@
 // one class turn validation off underneath every other class in this assembly — a flake that shows up
 // as an unrelated test finding no validation messages, which reads as a broken validator rather than a
 // broken test. The suite is small; serialising it costs nothing worth measuring.
-[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]
+[assembly: Xunit.v3.Parallelization(Mode = Xunit.Sdk.ParallelMode.None)]

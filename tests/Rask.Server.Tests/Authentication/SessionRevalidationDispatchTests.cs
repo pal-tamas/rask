@@ -30,7 +30,7 @@ public class SessionRevalidationDispatchTests
         var (ws, sessionId, handlerId) = await AttachAsync(host);
         using var socket = ws;
 
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(1, counter.Count);
@@ -39,7 +39,7 @@ public class SessionRevalidationDispatchTests
         revalidator.Ended = true;
         host.Store.Get(sessionId)!.LastUserRevalidation = 0;
 
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var afterEnd = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(1, counter.Count);
@@ -60,7 +60,7 @@ public class SessionRevalidationDispatchTests
 
         for (var i = 0; i < 5; i++)
         {
-            await ws.SendJsonAsync(new { id = handlerId });
+            await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         }
 
@@ -80,7 +80,7 @@ public class SessionRevalidationDispatchTests
         revalidator.ExtraRole = "editor";
         host.Store.Get(sessionId)!.LastUserRevalidation = 0;
 
-        await ws.SendJsonAsync(new { id = handlerId });
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.True(host.Store.Get(sessionId)!.Services.GetRequiredService<SessionUserProvider>()

@@ -37,11 +37,11 @@ public sealed class DevHostLinuxE2ETests
 
     private static bool Enabled => Environment.GetEnvironmentVariable("RASK_DEVHOST_E2E") == "1";
 
-    [SkippableFact]
+    [Fact]
     public async Task The_whole_linux_path_ends_in_a_trusted_handshake()
     {
-        Skip.IfNot(Enabled, SkipReason);
-        Skip.IfNot(OperatingSystem.IsLinux(), "The Linux dev host only applies to Linux.");
+        Assert.SkipUnless(Enabled, SkipReason);
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "The Linux dev host only applies to Linux.");
 
         var cancellationToken = CancellationToken.None;
         var console = new StringConsole();

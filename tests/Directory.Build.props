@@ -39,6 +39,19 @@
     <RaskTestTarget Condition=" '$(RaskTestTarget)' == '' ">$(RaskPrimaryNetTarget)</RaskTestTarget>
   </PropertyGroup>
 
+  <!-- xUnit v3 runs each test assembly as its own process, so every `*.Tests` project is an executable —
+       the xunit.v3 package refuses to build one that is not. Set once here rather than in 60 csproj files;
+       the fixtures, benchmarks and Rask.TestSupport under tests/ keep their own output type.
+
+       The suites run through VSTest (`dotnet test` + xunit.runner.visualstudio), because every gate filters
+       with VSTest's filter syntax. xunit.v3 also wires the project up as a Microsoft.Testing.Platform app,
+       and the .NET 10 SDK refuses to run one of those through VSTest, so that half is switched off. The
+       program the build emits still answers both; the VSTest adapter launches it as xUnit's console runner. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <OutputType>Exe</OutputType>
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+  </PropertyGroup>
+
   <!-- Bound how many tests one assembly runs at once.
 
        This is the second half of the machine's slot budget (scripts/lib/machine-lane.sh). That budget

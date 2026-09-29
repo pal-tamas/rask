@@ -45,41 +45,41 @@ public sealed class GeneratedModelOverrideTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var created = await Ticket.Create(new TicketModel { Title = "  printer jam " });
+        var created = await Ticket.Create(new TicketModel { Title = "  printer jam " }, TestContext.Current.CancellationToken);
 
         Assert.Equal("PRINTER JAM", created.Title);
-        Assert.Equal("PRINTER JAM", (await database.LoadAsync<Ticket>(created.Id))!.Title);
+        Assert.Equal("PRINTER JAM", (await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken))!.Title);
     }
 
     [Fact]
     public async Task A_delete_the_entity_declares_is_the_one_every_call_site_reaches()
     {
         await using var database = await StartDatabaseAsync();
-        var created = await Ticket.Create(new TicketModel { Title = "fax" });
+        var created = await Ticket.Create(new TicketModel { Title = "fax" }, TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Ticket.Delete(created.Id));
-        Assert.NotNull(await database.LoadAsync<Ticket>(created.Id));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Ticket.Delete(created.Id, TestContext.Current.CancellationToken));
+        Assert.NotNull(await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task A_write_the_entity_does_not_declare_is_still_the_generated_one()
     {
         await using var database = await StartDatabaseAsync();
-        var created = await Ticket.Create(new TicketModel { Title = "scanner" });
+        var created = await Ticket.Create(new TicketModel { Title = "scanner" }, TestContext.Current.CancellationToken);
 
-        await Ticket.Update(created.Id, new TicketModel { Title = created.Title, Urgent = true });
+        await Ticket.Update(created.Id, new TicketModel { Title = created.Title, Urgent = true }, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True((await database.LoadAsync<Ticket>(created.Id))!.Urgent);
+        Assert.True((await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken))!.Urgent);
     }
 
     [Fact]
     public async Task The_generated_delete_stays_reachable_through_its_extension_class()
     {
         await using var database = await StartDatabaseAsync();
-        var created = await Ticket.Create(new TicketModel { Title = "toner" });
+        var created = await Ticket.Create(new TicketModel { Title = "toner" }, TestContext.Current.CancellationToken);
 
-        await TicketModelExtensions.Delete(created.Id);
+        await TicketModelExtensions.Delete(created.Id, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Null(await database.LoadAsync<Ticket>(created.Id));
+        Assert.Null(await database.LoadAsync<Ticket>(created.Id, TestContext.Current.CancellationToken));
     }
 }

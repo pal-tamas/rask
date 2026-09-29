@@ -55,11 +55,21 @@ public sealed partial class ToastOutlet : Component
     // the render cache must not pin an earlier snapshot. Same rationale as ValidationMessage.
     protected override bool BypassRenderCache => true;
 
+    // The one the host mounts for an app that mounts none (see RootErrorBoundary): it steps aside for the app's own.
+    internal bool BuiltIn { get; init; }
+
+    private bool StepsAside => BuiltIn && _toaster is Toaster { HasAppOutlet: true };
+
     protected override Task OnMount()
     {
         _toaster = LiveRenderContext.Current?.Services?.GetService<IToaster>();
         if (_toaster is not null)
         {
+            if (!BuiltIn && _toaster is Toaster session)
+            {
+                session.AppOutletMounted();
+            }
+
             _toaster.Changed += OnToastChanged;
             // Drain anything queued before this outlet mounted — the common case, where a producer set a
             // toast on the previous page and navigated here. Mount runs before the first Render, so the
@@ -74,6 +84,10 @@ public sealed partial class ToastOutlet : Component
         if (_toaster is not null)
         {
             _toaster.Changed -= OnToastChanged;
+            if (!BuiltIn && _toaster is Toaster session)
+            {
+                session.AppOutletUnmounted();
+            }
         }
 
         lock (_gate)
@@ -90,6 +104,18 @@ public sealed partial class ToastOutlet : Component
 
     protected override Component? Render()
     {
+        // Drawn here, on the render the new toast asked for, rather than the moment it was added: by now the code that
+        // raised it has run, so its steps — Title, Action, For — are part of it.
+        if (StepsAside)
+        {
+            return null;
+        }
+
+        if (_toaster is not null)
+        {
+            Drain();
+        }
+
         ToastMessage[] snapshot;
         lock (_gate)
         {
@@ -98,36 +124,81 @@ public sealed partial class ToastOutlet : Component
                 return null;
             }
 
+            Refresh();
             snapshot = [.. _messages];
         }
 
         return Template(snapshot, Dismiss);
     }
 
+    // A step that landed after this outlet drew the toast (see Toaster.Latest): take the new version, and a new
+    // .For/.UntilDismissed() restarts or cancels its timer. Called under _gate.
+    private void Refresh()
+    {
+        if (_toaster is not Toaster session)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _messages.Count; i++)
+        {
+            var latest = session.Latest(_messages[i]);
+            if (ReferenceEquals(latest, _messages[i]))
+            {
+                continue;
+            }
+
+            if (latest.Duration != _messages[i].Duration)
+            {
+                if (_timers.Remove(latest.Id, out var old))
+                {
+                    old.Dispose();
+                }
+
+                Schedule(latest);
+            }
+
+            _messages[i] = latest;
+        }
+    }
+
+    private void Schedule(ToastMessage message)
+    {
+        // The toast's own .For(…) or .UntilDismissed(), else the outlet's default.
+        if ((message.Duration ?? AutoDismissAfter) is { } d && d > TimeSpan.Zero && d != Timeout.InfiniteTimeSpan)
+        {
+            var id = message.Id;
+            _timers[id] = new Timer(_ => Dismiss(id), null, d, Timeout.InfiniteTimeSpan);
+        }
+    }
+
     private void OnToastChanged(object? sender, EventArgs e)
     {
-        Drain();
-        StateHasChanged();
+        if (!StepsAside)
+        {
+            StateHasChanged();
+        }
     }
 
     private void Drain()
     {
+        if (StepsAside)
+        {
+            return;
+        }
+
         var incoming = _toaster!.Consume();
         if (incoming.Count == 0)
         {
             return;
         }
 
-        var delay = AutoDismissAfter;
         lock (_gate)
         {
             _messages.AddRange(incoming);
-            if (delay is { } d && d > TimeSpan.Zero)
+            foreach (var message in incoming)
             {
-                foreach (var id in incoming.Select(message => message.Id))
-                {
-                    _timers[id] = new Timer(_ => Dismiss(id), null, d, Timeout.InfiniteTimeSpan);
-                }
+                Schedule(message);
             }
         }
     }

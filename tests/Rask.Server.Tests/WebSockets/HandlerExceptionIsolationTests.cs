@@ -23,18 +23,18 @@ public class HandlerExceptionIsolationTests
     public async Task A_faulting_handler_trips_the_root_error_boundary_and_keeps_the_socket_open()
     {
         using var host = RaskTestHost.Create<ThrowingHandlerApp>(diffMode: LiveDiffMode.DisabledFull);
-        var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+        var html = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(html);
         var boom = HandlerIdFor(html, "boom");
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)); // initial render dedups → no frame
 
         // The handler throws; the root error boundary catches it and renders the fallback page.
         // The dispatch completes normally (so the lock is released) and the socket stays open —
         // no HTTP 500, no crash, no leaked lock that would hang every future dispatch.
-        await ws.SendJsonAsync(new { id = boom });
+        await ws.SendJsonAsync(new { id = boom }, ct: TestContext.Current.CancellationToken);
         var resp = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(resp);
@@ -49,7 +49,7 @@ public class HandlerExceptionIsolationTests
         try
         {
             using var host = RaskTestHost.Create<GatedCounterApp>(diffMode: LiveDiffMode.DisabledFull);
-            var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+            var html = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             var sessionId = MarkupAssert.SessionId(html);
             var hang = HandlerIdFor(html, "hang");
             var bump = HandlerIdFor(html, "bump");
@@ -57,17 +57,17 @@ public class HandlerExceptionIsolationTests
             // Socket 1: park a handler on the gate (it holds the dispatch lock and leaves
             // InHandlerScope set), then drop the socket without releasing it.
             var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+            await ws1.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             _ = await ws1.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
-            await ws1.SendJsonAsync(new { id = hang });
-            await Task.Delay(150); // let the handler reach the gate
+            await ws1.SendJsonAsync(new { id = hang }, ct: TestContext.Current.CancellationToken);
+            await Task.Delay(150, TestContext.Current.CancellationToken); // let the handler reach the gate
             await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "drop", CancellationToken.None);
             ws1.Dispose();
 
             // Socket 2: reconnect within grace. The hello must not block on the parked handler —
             // if it did, this connect+hello+queue sequence would hang here.
             using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+            await ws2.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
             _ = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
             Assert.Equal(WebSocketState.Open, ws2.State);
@@ -75,7 +75,7 @@ public class HandlerExceptionIsolationTests
             // Queue a state-changing handler behind the parked one, then release the gate. Once the
             // chain head clears, the bump must run and its render (count=1, so not deduped) must
             // reach the reconnected socket — proving the session resumed rather than wedging.
-            await ws2.SendJsonAsync(new { id = bump });
+            await ws2.SendJsonAsync(new { id = bump }, ct: TestContext.Current.CancellationToken);
             GatedCounterApp.Gate.TrySetResult();
 
             // Drain frames until the bump's render lands — the parked handler's own completion

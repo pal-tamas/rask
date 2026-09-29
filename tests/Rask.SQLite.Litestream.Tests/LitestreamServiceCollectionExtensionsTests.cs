@@ -95,6 +95,6 @@ public sealed class LitestreamServiceCollectionExtensionsTests
         using var provider = services.BuildServiceProvider();
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => provider.RestoreSqliteFromLitestreamAsync());
+            () => provider.RestoreSqliteFromLitestreamAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 }

@@ -21,7 +21,7 @@ public sealed class DataChangesTests : IDisposable
         using (Db.UseScope(Session(_recorder)))
         {
             database.Context.Add(RateCard.For("HU"));
-            await database.Context.SaveChangesAsync();
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Equal([typeof(RateCard)], Assert.Single(_recorder.Saves));
@@ -39,7 +39,7 @@ public sealed class DataChangesTests : IDisposable
             var ledger = Ledger.For("L-1");
             ledger.Add("opening balance");
             database.Context.Add(ledger);
-            await database.Context.SaveChangesAsync();
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         // A screen asks for the ledger, never for its entries on their own.
@@ -54,7 +54,7 @@ public sealed class DataChangesTests : IDisposable
 
         // A background job: no screen is waiting, and another session's cache is not its to touch.
         database.Context.Add(RateCard.For("HU"));
-        await database.Context.SaveChangesAsync();
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(_recorder.Saves);
     }
@@ -66,14 +66,14 @@ public sealed class DataChangesTests : IDisposable
 
         using (Db.UseScope(Session(_recorder)))
         {
-            await using var transaction = await database.Context.Database.BeginTransactionAsync();
+            await using var transaction = await database.Context.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
             database.Context.Add(RateCard.For("HU"));
-            await database.Context.SaveChangesAsync();
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             // Written, not committed: a refetch now could read the rows as they were and cache that.
             Assert.Empty(_recorder.Saves);
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Equal([typeof(RateCard)], Assert.Single(_recorder.Saves));
@@ -86,10 +86,10 @@ public sealed class DataChangesTests : IDisposable
 
         using (Db.UseScope(Session(_recorder)))
         {
-            await using var transaction = await database.Context.Database.BeginTransactionAsync();
+            await using var transaction = await database.Context.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
             database.Context.Add(RateCard.For("HU"));
-            await database.Context.SaveChangesAsync();
-            await transaction.RollbackAsync();
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await transaction.RollbackAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Empty(_recorder.Saves);
@@ -106,11 +106,11 @@ public sealed class DataChangesTests : IDisposable
             database.Context.Add(card);
 
             // The row is in: surfacing the observer's fault would make the caller retry a done write.
-            await database.Context.SaveChangesAsync();
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         database.Context.ChangeTracker.Clear();
-        Assert.True(await database.Context.Set<RateCard>().AnyAsync(r => r.Id == card.Id));
+        Assert.True(await database.Context.Set<RateCard>().AnyAsync(r => r.Id == card.Id, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     private static IServiceProvider Session(IDataChanges observer) => new SessionScope(observer);

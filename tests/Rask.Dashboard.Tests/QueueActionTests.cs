@@ -119,7 +119,7 @@ public sealed class QueueActionTests
 
         await using var db = h.NewContext();
 
-        Assert.Equal(done, (await db.Set<Job>().SingleAsync()).Id);
+        Assert.Equal(done, (await db.Set<Job>().SingleAsync(cancellationToken: TestContext.Current.CancellationToken)).Id);
     }
 
     [Fact]

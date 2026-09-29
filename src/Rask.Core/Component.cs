@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -47,6 +48,21 @@ public abstract partial class Component : RaskMarkup
     //   bit 2 — Element: Draggable value
     //   bit 3 — a chain assigned a callback prop (below)
     private byte _flags;
+
+    // Lifecycle bits every node can set, kept off LiveState: a plain tag reaches both — a chain step on it
+    // marks its props changed, and the after-render pass visits it — and allocating a ~260 B LiveState to
+    // hold one bool was most of what a mounted row of plain tags retained. Sits in padding beside _flags.
+    //   bit 0 — a folding chain setter changed a value since the last commit (CommitEntry reads and clears)
+    //   bit 1 — the after-render hooks have fired once (RaiseOnRendered)
+    private byte _lifecycleFlags;
+
+    private const byte FlagEntryPropsChanged = 1 << 0;
+    private const byte FlagHasRenderedOnce = 1 << 1;
+
+    private bool GetLifecycleFlag(byte mask) => (_lifecycleFlags & mask) != 0;
+
+    private void SetLifecycleFlag(byte mask, bool value) =>
+        _lifecycleFlags = value ? (byte)(_lifecycleFlags | mask) : (byte)(_lifecycleFlags & ~mask);
 
     // Which tag an element renders, as an index into the generated RaskTags table: a type several tags
     // share (h1–h6) is told apart per instance. Packed beside _flags, it sits in padding the object
@@ -102,6 +118,9 @@ public abstract partial class Component : RaskMarkup
     private LiveState? _live;
 
     private LiveState Live => _live ??= new LiveState();
+
+    // Test seam: whether this node has paid for a LiveState.
+    internal bool HasLiveStateInternal => _live is not null;
 
     // Set by the children indexer below. Factories no longer expose Children as a parameter —
     // `Div()[Span(...), "hi"]` is the canonical call shape. Elements are nullable: a `null` child
@@ -281,13 +300,21 @@ public abstract partial class Component : RaskMarkup
             // Materialised to Component?[] rather than kept lazy, for the same reason the enumerable
             // overload materialises: embedded factories must run inside the owning component's render
             // walk. The array shape also keeps ChildrenArray's serializer fast-path below.
-            var list = new List<Component?>(children.Length);
-            foreach (var child in children)
+            var flat = new ChildBuffer(children.Length);
+            try
             {
-                AddChild(list, child);
+                foreach (var child in children)
+                {
+                    AddChild(ref flat, child);
+                }
+
+                Children = flat.ToArray();
+            }
+            finally
+            {
+                flat.Dispose();
             }
 
-            Children = list.ToArray();
             return this;
         }
     }
@@ -295,7 +322,7 @@ public abstract partial class Component : RaskMarkup
     // Mirrors the implicit operators above — anything spellable as a child directly is spellable
     // inside a sequence — plus chains, plus nested sequences. Anything else is a mistake the typed
     // overloads would have caught, so it throws rather than rendering ToString() garbage.
-    private static void AddChild(List<Component?> list, object? child)
+    private static void AddChild(ref ChildBuffer flat, object? child)
     {
         // A string IS a sequence of chars, and flattening it would turn one text node into one node per
         // character; a component is a child as it stands.
@@ -303,13 +330,40 @@ public abstract partial class Component : RaskMarkup
         {
             foreach (var item in sequence)
             {
-                AddChild(list, item);
+                AddChild(ref flat, item);
             }
 
             return;
         }
 
-        list.Add(ToChild(child));
+        flat.Add(ToChild(child));
+    }
+
+    // The flattened children, collected in a pooled array and copied once to their exact size — a List plus
+    // its ToArray would allocate the list, every regrowth of it, and the copy. Rented per call, not shared:
+    // a lazy sequence runs its factories while it is flattened, and those can land back in this indexer.
+    private struct ChildBuffer(int capacity) : IDisposable
+    {
+        private Component?[] _items = ArrayPool<Component?>.Shared.Rent(Math.Max(16, capacity));
+        private int _count;
+
+        public void Add(Component? child)
+        {
+            if (_count == _items.Length)
+            {
+                var bigger = ArrayPool<Component?>.Shared.Rent(_items.Length * 2);
+                _items.AsSpan(0, _count).CopyTo(bigger);
+                ArrayPool<Component?>.Shared.Return(_items, true);
+                _items = bigger;
+            }
+
+            _items[_count++] = child;
+        }
+
+        public readonly Component?[] ToArray() => _items.AsSpan(0, _count).ToArray();
+
+        // Cleared on return: the pool would otherwise keep this render's components alive.
+        public void Dispose() => ArrayPool<Component?>.Shared.Return(_items, true);
     }
 
     // A chain IS a Component now — the Component arm used to unwrap the `Build<T>` struct through
@@ -607,15 +661,15 @@ public abstract partial class Component : RaskMarkup
     /// </summary>
     internal CancellationToken LifetimeTokenInternal => LifetimeToken;
 
-    // Hoisted into LiveState like Boundary: set only on the live-render root and on GetOrCreate'd
-    // user components (both of which already carry a LiveState); the null-guard keeps a `?? =` with a
-    // null handle, or a plain Element, from allocating one.
+    // Hoisted into LiveState like Boundary: set on the live-render root and on every GetOrCreate'd child.
+    // The guard keeps a `?? =` with a null handle — or a handle offered to a node that has no use for one
+    // (OwnsRenderHandle) — from allocating a LiveState just to hold it.
     internal IRenderHandle? RenderHandle
     {
         get => _live?.RenderHandle;
         set
         {
-            if (value is null && _live is null)
+            if (_live is null && (value is null || !OwnsRenderHandle))
             {
                 return;
             }
@@ -623,6 +677,11 @@ public abstract partial class Component : RaskMarkup
             Live.RenderHandle = value;
         }
     }
+
+    // Whether this node re-renders through a handle of its own: a component that can change its own state,
+    // run a lifecycle, or own a handler. True unless a type says otherwise — the plain tags do (Element), which
+    // is what keeps a mounted row of them from carrying a ~260 B LiveState apiece for a handle never read.
+    private protected virtual bool OwnsRenderHandle => true;
 
     internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _live?.Children ?? _emptyChildren;
 
@@ -842,13 +901,37 @@ public abstract partial class Component : RaskMarkup
     // RaskUrl.Trusted(...) to opt out. Otherwise identical to AppendAttr (incl. frame sink).
     protected static void AppendUrlAttr(StringBuilder sb, string name, string? value)
     {
+        if (value is not null && value.StartsWith(RaskUrl.TrustedPrefix, StringComparison.Ordinal))
+        {
+            AppendTrustedUrlAttr(sb, name, value);
+            return;
+        }
+
         AppendAttr(sb, name, UrlSanitizer.Sanitize(value));
+    }
+
+    // A trusted URL is written from behind its marker in place; the unmarked string is cut only for a
+    // frame writer, which keeps the value to diff against.
+    private static void AppendTrustedUrlAttr(StringBuilder sb, string name, string value)
+    {
+        var url = value.AsSpan(RaskUrl.TrustedPrefix.Length);
+        sb.Append(' ').Append(name).Append("=\"");
+        HtmlSerializer.AppendEncoded(sb, url);
+        sb.Append('"');
+
+        FrameSinkScope.Current?.Attribute(name, url.ToString());
     }
 
     // Media URL attribute (img/audio/video/source src, poster). As AppendUrlAttr but also
     // allows data:image/*, data:video/*, data:audio/* (inline media is common and inert here).
     protected static void AppendMediaUrlAttr(StringBuilder sb, string name, string? value)
     {
+        if (value is not null && value.StartsWith(RaskUrl.TrustedPrefix, StringComparison.Ordinal))
+        {
+            AppendTrustedUrlAttr(sb, name, value);
+            return;
+        }
+
         AppendAttr(sb, name, UrlSanitizer.SanitizeMedia(value));
     }
 
@@ -1005,13 +1088,13 @@ public abstract partial class Component : RaskMarkup
         // fire so newly-mounted components on the same walk get their first
         // OnRendered(firstRender:true) — they don't have a prior continuation in flight,
         // so they can't loop.
-        if (publishOnly && Live.HasRenderedOnce)
+        var firstRender = !GetLifecycleFlag(FlagHasRenderedOnce);
+        if (publishOnly && !firstRender)
         {
             return;
         }
 
-        var firstRender = !Live.HasRenderedOnce;
-        Live.HasRenderedOnce = true;
+        SetLifecycleFlag(FlagHasRenderedOnce, true);
         // Called directly rather than through a Func: this runs for every component on every render, and a
         // method-group delegate would allocate each time.
         if (firstRender)
@@ -1081,6 +1164,13 @@ public abstract partial class Component : RaskMarkup
     // lock, so a plain flag is sufficient — same threading contract as IsUnmounted.
     internal bool TryBeginDispose()
     {
+        // A plain tag that never took a LiveState has nothing to tear down, once or twice: don't allocate one to
+        // record that it was.
+        if (_live is null && !OwnsRenderHandle)
+        {
+            return true;
+        }
+
         if (Live.IsDisposed)
         {
             return false;
@@ -1123,7 +1213,7 @@ public abstract partial class Component : RaskMarkup
     // a component that never mounted has no unmount counterpart, symmetric with Mount.
     internal Task RaiseUnmount()
     {
-        if (!Live.HasInitialized)
+        if (_live is not { HasInitialized: true })
         {
             return Task.CompletedTask;
         }
@@ -1627,13 +1717,13 @@ public abstract partial class Component : RaskMarkup
     {
         // No LiveState means the child never reached GetOrCreate (nothing to notify) — the same
         // no-context case in which the factory skips NotifyParameters too.
-        if (_live is not { } state || (state.HasInitialized && !state.EntryPropsChanged))
+        var propsChanged = GetLifecycleFlag(FlagEntryPropsChanged);
+        SetLifecycleFlag(FlagEntryPropsChanged, false);
+        if (_live is not { } state || (state.HasInitialized && !propsChanged))
         {
             return;
         }
 
-        var propsChanged = state.EntryPropsChanged;
-        state.EntryPropsChanged = false;
         RaiseLifecycleBeforeRender(propsChanged);
     }
 
@@ -1661,7 +1751,7 @@ public abstract partial class Component : RaskMarkup
     ///     callbacks and raw delegate props never fold, so the generator simply does not emit
     ///     the call for them.
     /// </remarks>
-    internal void MarkEntryPropsChangedInternal() => Live.EntryPropsChanged = true;
+    internal void MarkEntryPropsChangedInternal() => SetLifecycleFlag(FlagEntryPropsChanged, true);
 
     // Phase B clean-subtree frame replay. A user component whose last render was cached as a frame
     // span (pure elements, no handlers, no nested user components — see TryCacheCleanSubtree) re-emits
@@ -1824,6 +1914,30 @@ public abstract partial class Component : RaskMarkup
         cached.Handlers = liveCtx?.CaptureHandlerRun(this);
         // Drop the Element object graph: a clean re-render now replays the frame span above.
         Live.CachedRenderResult = null;
+        _live.Children = WithoutPlainTags(_live.Children);
+        _live.PreviousChildren = WithoutPlainTags(_live.PreviousChildren);
+    }
+
+    // The position maps kept every tag the last Render() built, for that Render()'s successor to reuse — which
+    // held a cached component's whole element graph alive beside the snapshot that replaces it. A plain tag has
+    // no state to reuse, so a later dirty render simply builds fresh ones; anything with a handle of its own
+    // stays. An emptied map goes too.
+    private static Dictionary<(Type, int), Component>? WithoutPlainTags(Dictionary<(Type, int), Component>? map)
+    {
+        if (map is null)
+        {
+            return null;
+        }
+
+        foreach (var (slot, child) in map)
+        {
+            if (!child.OwnsRenderHandle)
+            {
+                map.Remove(slot);
+            }
+        }
+
+        return map.Count == 0 ? null : map;
     }
 
     // Copy the lean fields; the held snapshot drops the per-render HTML offsets and diff-only
@@ -2112,7 +2226,10 @@ public abstract partial class Component : RaskMarkup
     // subtree was cached as frames, and whether it still retains its Element object graph. A cached
     // component has the first true and the second false (the graph was released).
     internal bool IsCleanSubtreeCachedForTest => _live?.Cached is not null;
-    internal bool RetainsElementGraphForTest => _live?.CachedRenderResult is not null;
+    // The render result OR the position maps: either keeps the element graph alive.
+    internal bool RetainsElementGraphForTest =>
+        _live is { } live
+        && (live.CachedRenderResult is not null || live.Children is { Count: > 0 } || live.PreviousChildren is { Count: > 0 });
 
     // Whether a render has been REQUESTED for this component but not yet performed — the half of
     // StateHasChanged that happens synchronously, and so the only observable moment the quiescence
@@ -3170,7 +3287,6 @@ public abstract partial class Component : RaskMarkup
         // parent rebuilds its child map every render, so the walk has to register such an instance again
         // each time it meets it, or the next render reads it as removed and unmounts it while it is on screen.
         public bool AdoptedByWalk;
-        public bool HasRenderedOnce;
         public bool IsDisposed;
         public bool IsUnmounted;
         public HandlerState? HandlerState;
@@ -3197,15 +3313,9 @@ public abstract partial class Component : RaskMarkup
         // carried on its EntrySlot, because by the time its Key step runs another entry may have moved it.
         public (Type Type, int Ordinal) LastChildSlot;
 
-        // Builder surface. Two more bools rather than a wider record: LiveState is allocated per node
-        // on a mounted page, and these two land in the padding the six above already leave behind — so
-        // the deferred-commit machinery costs nothing per node (see the note on Cached).
-        //
-        // EntryPropsChanged: a folding setter wrote a different value since the last commit (the
-        // setter-chain equivalent of the factory's __propsChanged). HasEntryChildren: at least one
-        // child of THIS component came from a builder entry during the Render() now in flight, so the
-        // post-Render commit loop has work to do.
-        public bool EntryPropsChanged;
+        // Builder surface: at least one child of THIS component came from a builder entry during the
+        // Render() now in flight, so the post-Render commit loop has work to do. (Its partner, "a folding
+        // setter changed a value", is a bit on the component itself — every chained tag sets it.)
         public bool HasEntryChildren;
     }
 }

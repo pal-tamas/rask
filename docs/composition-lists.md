@@ -94,50 +94,78 @@ one **inserts a keyed detail `<tr>`** right after it. The diff reconciles that a
 
 ## Toast messages
 
-`IToaster` is Rask's take on flash messages — transient, consumed-once user messages that survive a
-client-side navigation. Inject it and queue a message; a single `ToastOutlet` shows it once.
+Toasts are built in. Say something to the person using the app from anywhere — an event handler, a save, a
+render — with nothing injected and nothing mounted:
 
 ```csharp
-public sealed partial class SavePage(IToaster toast, Navigator nav) : Component
+private async Task Save()
 {
-    private void Save()
-    {
-        // ... persist ...
-        toast.Success("Your changes were saved.");   // Info / Warning / Error / Add(level, …) too
-        nav.NavigateTo(Routes.ListPage());            // the message survives the navigation
-    }
-    // ...
+    await Product.Create(_model);
+    Toast.Success("Saved");
+    Routes.ProductsPage().Go();   // the toast shows on the page they land on
 }
 ```
 
-Why it survives the navigation: `IToaster` is registered **scoped** per session (a Server WebSocket
-session or a WASM app instance), and a client-side `NavigateTo` does not recreate the session — so a
-message queued before navigating is still in the queue when the destination mounts.
-
-Show them by mounting **one** outlet in your app layout. The headless `ToastOutlet` ships no markup —
-you own it through `Template`, which receives the messages plus a `dismiss(id)` callback:
+`Toast.Info`, `Toast.Warning` and `Toast.Error` say the rest. A toast can carry a title, a button, and its own
+time on screen:
 
 ```csharp
-ToastOutlet.Template((messages, dismiss) =>
-    Div[messages.Select(m => (Component)Div.Class("notice").Key(m.Id.ToString())[
-        m.Message,
-        Button.OnClick(() => dismiss(m.Id))["×"]])])
+Toast.Success("Your order was placed").Title("Order 42");
+Toast.Info("Order placed").Action("View order", () => Routes.OrderPage(order.Id).Go());   // pressing it dismisses the toast
+Toast.Error("Payment failed").For(30.Seconds);
+Toast.Error("Couldn't reach the server").UntilDismissed();
 ```
 
-`ToastOutlet` calls `Consume()` (which drains the queue) on mount and whenever `IToaster.Changed` fires,
-so each message is delivered to exactly one outlet and never reappears on a later render. Set
-`AutoDismissAfter` to have each message clear itself after a delay — a one-shot timer per message that
-runs the same dismiss path, so any `Template` auto-dismisses even when its element has no timer of its own.
-To draw them with the [UI kit](ui-kit.md) instead of your own markup, hand the messages to
-`Ui.Toaster`, which stacks `Ui.Toast`s in a corner of the viewport:
+<!-- demo:toast-built-in -->
+
+A toast belongs to the session, not the page, so one raised just before navigating survives the navigation
+and shows once on the destination. The host draws them — in the [UI kit](ui-kit.md)'s look, or a small look of
+Rask's own when the kit is off — stacked in a corner, each gone after five seconds unless it says otherwise.
+Where they stack and how long they stay is the app's to set, in `Program.cs` or `appsettings.json`:
 
 ```csharp
-ToastOutlet.Template((messages, dismiss) =>
-    Ui.Toaster[messages.Select(m => Ui.Toast.Key(m.Id).Message(m.Message).Title(m.Title)
-        .OnDismiss(() => dismiss(m.Id)))])
+RaskApp.Create(args)
+    .Configure(c => c.Toasts.At(Ui.Position.Top, Ui.Align.End).For(8.Seconds))
+    .Run<App>();
 ```
 
-Queue one, show once (this demo auto-dismisses after 5 s):
+```json
+{ "Rask": { "Toasts": { "Position": "Top", "Align": "End", "Duration": "00:00:08" } } }
+```
+
+### Your own look
+
+Mount a `ToastOutlet` anywhere and the built-in one steps aside — your outlet gets every toast, and draws
+them through `Template`, which receives the messages showing now and a `dismiss(id)` callback:
+
+```csharp
+protected override Component? Render() =>
+[
+    Router,
+    ToastOutlet.Template((messages, dismiss) =>
+        Div.Class("notices")[messages.Select(m => Div.Key(m.Id).Class("notice")[
+            m.Message,
+            Button.OnClick(() => dismiss(m.Id))["×"]])]),
+];
+```
+
+Each message is delivered to exactly one outlet and never reappears on a later render. `AutoDismissAfter` sets
+how long a toast stays in your outlet when it did not say (`.For`, `.UntilDismissed()`).
+
+### In a test
+
+A toast is on screen, so a test that visits the page sees it: `page.Shows("Saved")`. A test that runs no page
+records them instead:
+
+```csharp
+using var toasts = Toast.Fake();
+
+await Orders.Place(cart);
+
+toasts.Shown("Order placed").Once();
+toasts.Shown("Order placed").As(ToastLevel.Success);
+toasts.Shown("Payment failed").Never();
+```
 
 ## Drag and drop
 

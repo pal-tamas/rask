@@ -97,16 +97,16 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
 
         await using (var connection = new SqliteConnection($"Data Source={_dbPath}"))
         {
-            await connection.OpenAsync();
+            await connection.OpenAsync(TestContext.Current.CancellationToken);
             await using var insert = connection.CreateCommand();
             insert.CommandText = "INSERT INTO Rows (Amount) VALUES ('lots')";
-            await insert.ExecuteNonQueryAsync();
+            await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
         }
 
         // Order by the decimal but project the key: SQLite still runs the collation over every row,
         // including the junk one, without EF having to materialise 'lots' as a decimal.
         await using var context = NewContext();
-        var orderedIds = await context.Rows.OrderBy(r => r.Amount).Select(r => r.Id).ToListAsync();
+        var orderedIds = await context.Rows.OrderBy(r => r.Amount).Select(r => r.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Seeded in Unsorted order, so Id 1..5 are 19.95, 2.00, 100.50, 9.50, 10.00 and Id 6 is 'lots'.
         // Numbers keep their numeric order; unparseable text sorts after all of them, deterministically.
@@ -174,10 +174,10 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
         await SeedAsync();
 
         await using var connection = new SqliteConnection($"Data Source={_dbPath}");
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT sql FROM sqlite_master WHERE name = 'Rows'";
-        var ddl = (string)(await command.ExecuteScalarAsync())!;
+        var ddl = (string)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
 
         Assert.Contains("\"Amount\" TEXT NOT NULL", ddl, StringComparison.Ordinal);
         Assert.DoesNotContain("COLLATE", ddl, StringComparison.OrdinalIgnoreCase);
@@ -195,16 +195,16 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
                 .UseRaskSqliteAt($"Data Source={_dbPath}")
                 .Options))
         {
-            await context.Database.EnsureCreatedAsync();
+            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
             context.Rows.AddRange(Unsorted.Select(a => new ProbeRow { Amount = a }));
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            var ordered = await context.Rows.OrderBy(r => r.Amount).Select(r => r.Amount).ToListAsync();
+            var ordered = await context.Rows.OrderBy(r => r.Amount).Select(r => r.Amount).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(Ascending, ordered);
         }
 
         await using var connection = new SqliteConnection($"Data Source={_dbPath}");
-        await connection.OpenAsync();
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
         SqliteCollations.Apply(connection);
 
         await using (var ddl = connection.CreateCommand())
@@ -212,17 +212,17 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
             // The collation lands on the COLUMN definition; the index need not repeat it, because an
             // index over a bare column inherits that column's collating sequence.
             ddl.CommandText = "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'Rows'";
-            var tableSql = (string?)await ddl.ExecuteScalarAsync();
+            var tableSql = (string?)await ddl.ExecuteScalarAsync(TestContext.Current.CancellationToken);
             Assert.Contains($"COLLATE {SqliteCollations.DecimalOrder}", tableSql ?? "", StringComparison.Ordinal);
         }
 
         await using var plan = connection.CreateCommand();
         plan.CommandText =
             $"EXPLAIN QUERY PLAN SELECT \"Amount\" FROM \"Rows\" ORDER BY \"Amount\" COLLATE {SqliteCollations.DecimalOrder}";
-        await using var reader = await plan.ExecuteReaderAsync();
+        await using var reader = await plan.ExecuteReaderAsync(TestContext.Current.CancellationToken);
 
         var detail = new List<string>();
-        while (await reader.ReadAsync())
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
         {
             detail.Add(reader.GetString(reader.GetOrdinal("detail")));
         }

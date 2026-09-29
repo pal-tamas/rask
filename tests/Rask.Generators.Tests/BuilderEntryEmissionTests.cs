@@ -425,7 +425,7 @@ public class BuilderEntryEmissionTests
                                                       """, "Lib");
 
         using var stream = new MemoryStream();
-        var emit = library.Emit(stream);
+        var emit = library.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(emit.Success, string.Join("\n", emit.Diagnostics));
         stream.Position = 0;
 

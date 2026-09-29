@@ -132,7 +132,7 @@ public sealed class TransportAttachTests
         session.AttachTransport(new FakeTransport(), CancellationToken.None);
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(20));
-        await Task.Delay(300);
+        await Task.Delay(300, TestContext.Current.CancellationToken);
 
         Assert.Same(session, store.Peek(session.Id));
     }
@@ -150,7 +150,7 @@ public sealed class TransportAttachTests
 
         for (var i = 0; i < 50 && store.Peek(session.Id) is not null; i++)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Null(store.Peek(session.Id));
@@ -181,7 +181,7 @@ public sealed class TransportAttachTests
     {
         using var host = Infrastructure.RaskTestHost.Create<Infrastructure.TestApp>(
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
-        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
         var session = host.Store.Peek(sessionId)!;
 
         // A previous connection came and went, so the next attach owes the tab a catch-up frame — the render
@@ -206,7 +206,7 @@ public sealed class TransportAttachTests
         // And the grace period was armed, so the session goes rather than lingering for good.
         for (var i = 0; i < 50 && host.Store.Peek(sessionId) is not null; i++)
         {
-            await Task.Delay(20);
+            await Task.Delay(20, TestContext.Current.CancellationToken);
         }
 
         Assert.Null(host.Store.Peek(sessionId));

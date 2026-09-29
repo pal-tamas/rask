@@ -140,7 +140,7 @@ public class SignalingOptionsBindingTests
         builder.Services.AddRaskSignaling();
         await using var app = builder.Build();
 
-        var ex = await Assert.ThrowsAsync<OptionsValidationException>(() => app.StartAsync());
+        var ex = await Assert.ThrowsAsync<OptionsValidationException>(() => app.StartAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
     }

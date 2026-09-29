@@ -33,11 +33,11 @@ public sealed partial class DevToolsPanelAdmissionTests
         using var host = Host("Development", IPAddress.Loopback);
         var panel = await PanelUrlFromPage(host);
 
-        var response = await host.Http.GetAsync(panel);
+        var response = await host.Http.GetAsync(panel, TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
         // The Wire tab's empty state: the page found the session it was opened for.
-        Assert.Contains("No traffic yet.", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("No traffic yet.", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed partial class DevToolsPanelAdmissionTests
         using var host = Host("Development", IPAddress.Loopback);
         var panel = await PanelUrlFromPage(host);
 
-        var html = await host.Http.GetStringAsync(panel);
+        var html = await host.Http.GetStringAsync(panel, TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(DevToolsServerEndpoints.HostScriptPath, html, StringComparison.Ordinal);
     }
@@ -58,7 +58,7 @@ public sealed partial class DevToolsPanelAdmissionTests
         using var host = Host("Development", IPAddress.Loopback);
         var panel = await PanelUrlFromPage(host);
 
-        var html = await host.Http.GetStringAsync(panel);
+        var html = await host.Http.GetStringAsync(panel, TestContext.Current.CancellationToken);
 
         Assert.Contains("src=\"" + DevToolsServerEndpoints.PanelScriptPath + "\"", html, StringComparison.Ordinal);
     }
@@ -70,8 +70,8 @@ public sealed partial class DevToolsPanelAdmissionTests
         var panel = await PanelUrlFromPage(host);
         var sessionOnly = panel[..panel.IndexOf("&t=", StringComparison.Ordinal)];
 
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync(sessionOnly)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync(sessionOnly + "&t=AAAA")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync(sessionOnly, TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync(sessionOnly + "&t=AAAA", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed partial class DevToolsPanelAdmissionTests
 
         var crossed = first[..(first.IndexOf("&t=", StringComparison.Ordinal) + 3)] + tokenOfSecond;
 
-        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync(crossed)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync(crossed, TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public sealed partial class DevToolsPanelAdmissionTests
         using var host = Host("Development", IPAddress.Parse("192.168.1.20"));
         var panel = await PanelUrlFromPage(host);
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await host.Http.GetAsync(panel)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await host.Http.GetAsync(panel, TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed partial class DevToolsPanelAdmissionTests
     {
         using var host = Host("Production", IPAddress.Loopback);
 
-        var response = await host.Http.GetAsync(DevToolsServerEndpoints.Prefix + "/?inspect=x&t=y");
+        var response = await host.Http.GetAsync(DevToolsServerEndpoints.Prefix + "/?inspect=x&t=y", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

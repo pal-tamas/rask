@@ -18,8 +18,8 @@ public sealed class SessionTests
         await using var harness = await ClaimedAsync();
         var owner = (await harness.UserAsync(Owner))!;
 
-        var sessionId = await Sessions(harness).StartAsync(owner.Id, "10.0.0.1", "test-agent", persistent: true);
-        var principal = await Sessions(harness).ResumeAsync(sessionId);
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, "10.0.0.1", "test-agent", persistent: true, cancellationToken: TestContext.Current.CancellationToken);
+        var principal = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
 
         Assert.NotNull(principal);
         Assert.Equal(owner.Id.ToString(), principal.FindFirstValue(ClaimTypes.NameIdentifier));
@@ -28,7 +28,7 @@ public sealed class SessionTests
         Assert.Equal(sessionId.ToString(), principal.FindFirstValue("sid"));
 
         await using var db = harness.NewContext();
-        var row = await db.Set<Session>().SingleAsync(s => s.Id == sessionId);
+        var row = await db.Set<Session>().SingleAsync(s => s.Id == sessionId, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("10.0.0.1", row.IpAddress);
         Assert.Equal("test-agent", row.UserAgent);
         Assert.True(row.Persistent);
@@ -39,15 +39,15 @@ public sealed class SessionTests
     {
         await using var harness = await ClaimedAsync();
         var owner = (await harness.UserAsync(Owner))!;
-        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false);
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
 
-        await Sessions(harness).EndAsync(sessionId);
+        await Sessions(harness).EndAsync(sessionId, TestContext.Current.CancellationToken);
 
-        Assert.Null(await Sessions(harness).ResumeAsync(sessionId));
+        Assert.Null(await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken));
 
         // Soft-deleted, like every aggregate: the row is still there for a device list to say "signed out".
         await using var db = harness.NewContext();
-        Assert.NotNull(await db.Set<Session>().IgnoreQueryFilters().SingleAsync(s => s.Id == sessionId));
+        Assert.NotNull(await db.Set<Session>().IgnoreQueryFilters().SingleAsync(s => s.Id == sessionId, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -57,15 +57,15 @@ public sealed class SessionTests
         var owner = (await harness.UserAsync(Owner))!;
         var sessions = Sessions(harness);
 
-        var here = await sessions.StartAsync(owner.Id, null, "laptop", false);
-        var phone = await sessions.StartAsync(owner.Id, null, "phone", false);
-        var tablet = await sessions.StartAsync(owner.Id, null, "tablet", false);
+        var here = await sessions.StartAsync(owner.Id, null, "laptop", false, TestContext.Current.CancellationToken);
+        var phone = await sessions.StartAsync(owner.Id, null, "phone", false, TestContext.Current.CancellationToken);
+        var tablet = await sessions.StartAsync(owner.Id, null, "tablet", false, TestContext.Current.CancellationToken);
 
-        Assert.Equal(2, await sessions.EndAllAsync(owner.Id, except: here));
+        Assert.Equal(2, await sessions.EndAllAsync(owner.Id, except: here, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.NotNull(await sessions.ResumeAsync(here));
-        Assert.Null(await sessions.ResumeAsync(phone));
-        Assert.Null(await sessions.ResumeAsync(tablet));
+        Assert.NotNull(await sessions.ResumeAsync(here, TestContext.Current.CancellationToken));
+        Assert.Null(await sessions.ResumeAsync(phone, TestContext.Current.CancellationToken));
+        Assert.Null(await sessions.ResumeAsync(tablet, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -74,11 +74,11 @@ public sealed class SessionTests
         var clock = new MutableClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
         await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
         var owner = (await harness.UserAsync(Owner))!;
-        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false);
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
 
         clock.Advance(TimeSpan.FromHours(2));
 
-        Assert.Null(await Sessions(harness).ResumeAsync(sessionId));
+        Assert.Null(await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class SessionTests
         var clock = new MutableClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
         await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
         var owner = (await harness.UserAsync(Owner))!;
-        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false);
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
 
         // Used every 50 minutes for three hours: each use lands inside the hour the last one granted.
         for (var i = 0; i < 4; i++)
@@ -102,12 +102,12 @@ public sealed class SessionTests
     {
         await using var harness = await ClaimedAsync();
         var owner = (await harness.UserAsync(Owner))!;
-        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false);
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
 
         await using (var db = harness.NewContext())
         {
-            db.Remove(await db.Set<TestUser>().SingleAsync(u => u.Id == owner.Id));
-            await db.SaveChangesAsync();
+            db.Remove(await db.Set<TestUser>().SingleAsync(u => u.Id == owner.Id, cancellationToken: TestContext.Current.CancellationToken));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Null(await ResumeUncachedAsync(harness, sessionId));
@@ -121,8 +121,8 @@ public sealed class SessionTests
         var clock = new MutableClock(DateTimeOffset.UtcNow);
         await using var harness = await ClaimedAsync(clock: clock);
         var owner = (await harness.UserAsync(Owner))!;
-        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false);
-        await Sessions(harness).EndAsync(sessionId);
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
+        await Sessions(harness).EndAsync(sessionId, TestContext.Current.CancellationToken);
         var sweep = harness.Services.GetServices<IHostedService>().OfType<SessionSweep<AuthDbContext>>().Single();
 
         await sweep.SweepAsync(CancellationToken.None);

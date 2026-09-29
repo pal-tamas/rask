@@ -60,12 +60,12 @@ public sealed class NotFoundGuardTests
         // 200 with HTML and the caller's JSON parse fails a long way from the cause.
         using var host = await StartAsync();
 
-        var response = await host.GetTestClient().GetAsync("/api/typo");
+        var response = await host.GetTestClient().GetAsync("/api/typo", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
 
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("\"status\":404", body, StringComparison.Ordinal);
         Assert.Contains("/api/typo", body, StringComparison.Ordinal);
         Assert.DoesNotContain("DOCTYPE", body, StringComparison.Ordinal);
@@ -78,10 +78,10 @@ public sealed class NotFoundGuardTests
         // underneath it. If it did not, it would be a far worse bug than the one it fixes.
         using var host = await StartAsync(e => e.MapGet("/api/items/{id}", (int id) => Results.Json(new { id })));
 
-        var response = await host.GetTestClient().GetAsync("/api/items/7");
+        var response = await host.GetTestClient().GetAsync("/api/items/7", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("{\"id\":7}", await response.Content.ReadAsStringAsync());
+        Assert.Equal("{\"id\":7}", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class NotFoundGuardTests
         // to tell someone whose URL is simply mistyped. The guard names every verb for that reason.
         using var host = await StartAsync();
 
-        var response = await host.GetTestClient().PostAsync("/api/typo", content: null);
+        var response = await host.GetTestClient().PostAsync("/api/typo", content: null, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
@@ -105,10 +105,10 @@ public sealed class NotFoundGuardTests
         // would 404 -- so this is the test that would fail if the pattern were widened by accident.
         using var host = await StartAsync();
 
-        var response = await host.GetTestClient().GetAsync("/some/deep/page");
+        var response = await host.GetTestClient().GetAsync("/some/deep/page", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(AppMarker, await response.Content.ReadAsStringAsync());
+        Assert.Equal(AppMarker, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -116,12 +116,12 @@ public sealed class NotFoundGuardTests
     {
         using var host = await StartAsync(configure: o => o.Prefix = "/services");
 
-        var guarded = await host.GetTestClient().GetAsync("/services/typo");
-        var unguarded = await host.GetTestClient().GetAsync("/api/typo");
+        var guarded = await host.GetTestClient().GetAsync("/services/typo", TestContext.Current.CancellationToken);
+        var unguarded = await host.GetTestClient().GetAsync("/api/typo", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, guarded.StatusCode);
         Assert.Equal(HttpStatusCode.OK, unguarded.StatusCode);
-        Assert.Equal(AppMarker, await unguarded.Content.ReadAsStringAsync());
+        Assert.Equal(AppMarker, await unguarded.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -129,10 +129,10 @@ public sealed class NotFoundGuardTests
     {
         using var host = await StartAsync(configure: o => o.NotFound = false);
 
-        var response = await host.GetTestClient().GetAsync("/api/typo");
+        var response = await host.GetTestClient().GetAsync("/api/typo", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(AppMarker, await response.Content.ReadAsStringAsync());
+        Assert.Equal(AppMarker, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -160,9 +160,9 @@ public sealed class NotFoundGuardTests
                         endpoints.MapRaskApi();
                     });
                 }))
-            .StartAsync();
+            .StartAsync(cancellationToken: TestContext.Current.CancellationToken);
 
-        var response = await host.GetTestClient().GetAsync("/api/typo");
+        var response = await host.GetTestClient().GetAsync("/api/typo", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

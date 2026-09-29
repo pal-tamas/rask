@@ -74,9 +74,16 @@ public class ElementRef : IElementRef<Element>
 
     private protected virtual string TypedTo => nameof(Rask.Core.Element);
 
+    // The session whose render last put this ref's element on the page. Kept on the ref because a plain tag
+    // keeps no handle of its own; a render outside any session leaves the last one in place.
+    private IRenderHandle? _renderedIn;
+
+    internal void RenderedIn(IRenderHandle? session) => _renderedIn = session ?? _renderedIn;
+
     // The browser this ref's element lives in: its session's, else the one handling the current event.
     internal IJSRuntime Runtime =>
-        ((Element?.RenderHandle as LiveSessionBase)?.Services ?? AmbientServices.Current)?.GetService<IJSRuntime>()
+        (((_renderedIn ?? Element?.RenderHandle) as LiveSessionBase)?.Services ?? AmbientServices.Current)
+        ?.GetService<IJSRuntime>()
         ?? throw new InvalidOperationException(
             "An element ref reached for its element before the element was on a page. Call it from an event handler or "
             + "from OnRendered, once the element is live.");

@@ -35,7 +35,7 @@ public sealed class AuthEndpointTests
         using var app = new EndpointApp();
         using var client = app.Client();
 
-        var response = await client.GetAsync("/api/auth/me");
+        var response = await client.GetAsync("/api/auth/me", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
@@ -55,7 +55,7 @@ public sealed class AuthEndpointTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var me = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var me = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("owner@example.com", me.GetProperty("email").GetString());
 
         var roles = me.GetProperty("roles").EnumerateArray().Select(r => r.GetString()).ToArray();
@@ -77,7 +77,7 @@ public sealed class AuthEndpointTests
 
         // A separate request, authenticated only by the cookie the previous one set. This is the whole
         // mechanism the browser hosts rely on.
-        var response = await client.GetAsync("/api/auth/me");
+        var response = await client.GetAsync("/api/auth/me", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -93,11 +93,11 @@ public sealed class AuthEndpointTests
             Content = JsonContent.Create(new { email = "a@example.com", password = Password }),
         };
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal("MissingRequestHeader", body.GetProperty("error").GetString());
         Assert.Contains(RaskAuthDefaults.RequestHeader, body.GetProperty("message").GetString());
     }
@@ -123,7 +123,7 @@ public sealed class AuthEndpointTests
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(nameof(AuthError.InvalidCredentials), body.GetProperty("error").GetString());
     }
 
@@ -143,7 +143,7 @@ public sealed class AuthEndpointTests
         var logout = await Post(client, "/api/auth/logout", null);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 
-        var me = await client.GetAsync("/api/auth/me");
+        var me = await client.GetAsync("/api/auth/me", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, me.StatusCode);
     }
 
@@ -165,18 +165,18 @@ public sealed class AuthEndpointTests
             firstRunToken = Token,
         });
 
-        var userId = (await registered.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+        var userId = (await registered.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken)).GetProperty("id").GetString()!;
         await using (var confirming = app.NewContext())
         {
             // Only a confirmed address may add a passkey; the emailed link is not what this test is about.
-            (await confirming.Set<TestUser>().SingleAsync(u => u.Email == "owner@example.com")).ConfirmEmail(DateTime.UtcNow);
-            await confirming.SaveChangesAsync();
+            (await confirming.Set<TestUser>().SingleAsync(u => u.Email == "owner@example.com", cancellationToken: TestContext.Current.CancellationToken)).ConfirmEmail(DateTime.UtcNow);
+            await confirming.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var options = await Post(client, "/api/auth/passkeys/register-options", null);
         Assert.Equal(HttpStatusCode.OK, options.StatusCode);
 
-        var challenge = await options.Content.ReadFromJsonAsync<JsonElement>();
+        var challenge = await options.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
         var relyingPartyId = challenge.GetProperty("relyingPartyId").GetString()!;
         var origin = "https://" + relyingPartyId;
 
@@ -201,12 +201,12 @@ public sealed class AuthEndpointTests
         Assert.Equal(HttpStatusCode.NoContent, added.StatusCode);
 
         await Post(client, "/api/auth/logout", null);
-        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/auth/me", TestContext.Current.CancellationToken)).StatusCode);
 
         var loginOptions = await Post(client, "/api/auth/passkeys/login-options", null);
         Assert.Equal(HttpStatusCode.OK, loginOptions.StatusCode);
 
-        var loginChallenge = await loginOptions.Content.ReadFromJsonAsync<JsonElement>();
+        var loginChallenge = await loginOptions.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
         authenticator.SignCount = 1;
 
         var assertion = authenticator.SignIn(
@@ -230,14 +230,14 @@ public sealed class AuthEndpointTests
         Assert.Equal(HttpStatusCode.OK, signedIn.StatusCode);
         Assert.Equal(
             "owner@example.com",
-            (await signedIn.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("email").GetString());
+            (await signedIn.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken)).GetProperty("email").GetString());
 
         // The cookie the sign-in set is what the next request is accepted with, exactly as for a password.
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me", TestContext.Current.CancellationToken)).StatusCode);
 
         // And it started a session row, so the passkey sign-in shows up on the device list like any other.
         await using var db = app.NewContext();
-        Assert.True(await db.Set<Session>().AnyAsync(session => session.UserId == Guid.Parse(userId)));
+        Assert.True(await db.Set<Session>().AnyAsync(session => session.UserId == Guid.Parse(userId), cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public sealed class AuthEndpointTests
         Assert.Equal(HttpStatusCode.OK, (await Post(client, "/api/auth/passkeys/login-options", null)).StatusCode);
 
         using var bare = new HttpRequestMessage(HttpMethod.Post, "/api/auth/passkeys/login-options");
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(bare)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(bare, TestContext.Current.CancellationToken)).StatusCode);
     }
 
     private static async Task<HttpResponseMessage> Post(HttpClient client, string path, object? body)
@@ -295,7 +295,7 @@ public sealed class AuthEndpointTests
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 
         Assert.Equal(0, await ActiveSessionsAsync(app));
-        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/auth/me", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -308,14 +308,14 @@ public sealed class AuthEndpointTests
         await RegisterOwnerAsync(laptop);
         var login = await Post(phone, "/api/auth/login", new { email = "owner@example.com", password = Password });
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await phone.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await phone.GetAsync("/api/auth/me", TestContext.Current.CancellationToken)).StatusCode);
 
         var others = await Post(laptop, "/api/auth/logout-other-devices", new { });
         Assert.Equal(HttpStatusCode.NoContent, others.StatusCode);
 
         // The phone still holds its cookie, and it is no longer honoured.
-        Assert.Equal(HttpStatusCode.NoContent, (await phone.GetAsync("/api/auth/me")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await laptop.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await phone.GetAsync("/api/auth/me", TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await laptop.GetAsync("/api/auth/me", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -348,7 +348,7 @@ public sealed class AuthEndpointTests
         var response = await Post(guesser, "/api/auth/login", new { email = "owner@example.com", password = Password });
 
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(nameof(AuthError.TooManyAttempts), body.GetProperty("error").GetString());
     }
 

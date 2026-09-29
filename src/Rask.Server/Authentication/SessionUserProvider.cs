@@ -13,7 +13,7 @@ namespace Rask.Server.Authentication;
 ///     action where it happens: a principal held in a session says what the user signed in as, not what
 ///     the request in front of you is allowed to do.
 /// </remarks>
-public sealed class SessionUserProvider : IUserProvider
+public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
 {
     /// <summary>
     ///     The session's principal. An unauthenticated <see cref="ClaimsPrincipal" /> until something signs

@@ -24,12 +24,12 @@ public sealed class DevToolsServerEndpointTests
     {
         using var host = Host("Development");
 
-        var response = await host.Http.GetAsync(DevToolsServerEndpoints.HostScriptPath);
+        var response = await host.Http.GetAsync(DevToolsServerEndpoints.HostScriptPath, TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
         // A property name, so it survives Release minification.
-        Assert.Contains("__raskDevtoolsHost", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("__raskDevtoolsHost", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -37,12 +37,12 @@ public sealed class DevToolsServerEndpointTests
     {
         using var host = Host("Development");
 
-        var response = await host.Http.GetAsync(DevToolsServerEndpoints.PanelScriptPath);
+        var response = await host.Http.GetAsync(DevToolsServerEndpoints.PanelScriptPath, TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
         // The attribute the panel's rows carry, a string literal, so it survives Release minification.
-        Assert.Contains("data-rask-devtools-at", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Contains("data-rask-devtools-at", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class DevToolsServerEndpointTests
     {
         using var host = Host("Development", pathBase: "/sub");
 
-        var response = await host.Http.GetAsync("/sub" + DevToolsServerEndpoints.HostScriptPath);
+        var response = await host.Http.GetAsync("/sub" + DevToolsServerEndpoints.HostScriptPath, TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
         Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
@@ -75,7 +75,7 @@ public sealed class DevToolsServerEndpointTests
             app => app.UseAuthorization());
 
         var endpoint = HostScriptEndpoint(host, DevToolsServerEndpoints.HostScriptPath);
-        var response = await host.Http.GetAsync(DevToolsServerEndpoints.HostScriptPath);
+        var response = await host.Http.GetAsync(DevToolsServerEndpoints.HostScriptPath, TestContext.Current.CancellationToken);
 
         Assert.NotNull(endpoint?.Metadata.GetMetadata<IAllowAnonymous>());
         response.EnsureSuccessStatusCode();
@@ -92,7 +92,7 @@ public sealed class DevToolsServerEndpointTests
     {
         using var host = Host("Development");
 
-        var html = await host.Http.GetStringAsync("/");
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
         var tag = "<script src=\"" + DevToolsServerEndpoints.HostScriptPath + "\" data-panel=\"";
         var at = html.IndexOf(tag, StringComparison.Ordinal);
 
@@ -107,7 +107,7 @@ public sealed class DevToolsServerEndpointTests
     {
         using var host = Host("Production");
 
-        var html = await host.Http.GetStringAsync("/");
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         // The page itself must still be live, or the absence below would prove nothing.
         Assert.Contains("data-rask-root=", html, StringComparison.Ordinal);

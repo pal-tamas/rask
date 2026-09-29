@@ -21,9 +21,9 @@ public sealed class UseRaskFullTextSearchTests : IDisposable
         db.Articles.AddRange(
             new Article { Id = 1, Title = "All about SQLite", Body = "Small and fast." },
             new Article { Id = 2, Title = "Kittens", Body = "Nothing to do with storage." });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(["All about SQLite"], await db.Articles.Search("sqlite").Select(a => a.Title).ToListAsync());
+        Assert.Equal(["All about SQLite"], await db.Articles.Search("sqlite").Select(a => a.Title).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -56,9 +56,9 @@ public sealed class UseRaskFullTextSearchTests : IDisposable
         TestMigrations.Apply(db);
 
         db.Articles.Add(new Article { Id = 1, Title = "All about SQLite", Body = "Small." });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.Single(await db.Articles.Search("sqlite").ToListAsync());
+        Assert.Single(await db.Articles.Search("sqlite").ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     public void Dispose()

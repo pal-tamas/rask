@@ -41,7 +41,7 @@ public sealed class AdminTenantSwitchTests : IDisposable
         // tenants to choose from. That list comes from the app's OWN Tenant aggregate; Rask ships only the id.
         using (Tenant.Across())
         {
-            Assert.Equal(2, await Ledger.Count());
+            Assert.Equal(2, await Ledger.Count(TestContext.Current.CancellationToken));
         }
 
         // Then they work inside one, and see exactly what a user of that tenant sees — no more.

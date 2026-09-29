@@ -54,11 +54,11 @@ public sealed class OutboxShutdownGraceTests : IDisposable
         await EnqueueGatedAsync();
 
         await Processor.StartAsync(CancellationToken.None);
-        await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         var stop = Processor.StopAsync(CancellationToken.None);
         gate.Release.SetResult();
-        await stop.WaitAsync(TimeSpan.FromSeconds(10));
+        await stop.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.True(gate.Completed.Task.IsCompletedSuccessfully, "the handler ran to completion");
         var message = await SingleMessageAsync();
@@ -81,9 +81,9 @@ public sealed class OutboxShutdownGraceTests : IDisposable
         await EnqueueGatedAsync();
 
         await Processor.StartAsync(CancellationToken.None);
-        await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
-        await Processor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
+        await Processor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         var message = await SingleMessageAsync();
         Assert.Null(message.ProcessedAt);

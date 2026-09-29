@@ -22,9 +22,8 @@
          Microsoft.Data.Sqlite / EF Core pin (CVE-2025-6965). See Directory.Packages.props. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.v3"/>
     <!-- ProviderSmokeTests reports SKIPPED unless scripts/run-storage-providers-local.sh started real stores. -->
-    <PackageReference Include="Xunit.SkippableFact"/>
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

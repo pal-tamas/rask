@@ -22,7 +22,7 @@ public class AuthRedeemEndpointTests
 
         var resp = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
-            new { ticket = ticketId, session = "session-1" });
+            new { ticket = ticketId, session = "session-1" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.True(resp.Headers.Contains("Set-Cookie"));
@@ -37,7 +37,7 @@ public class AuthRedeemEndpointTests
 
         var resp = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
-            new { ticket = "no-such-id", session = "session-1" });
+            new { ticket = "no-such-id", session = "session-1" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Gone, resp.StatusCode);
     }
@@ -55,7 +55,7 @@ public class AuthRedeemEndpointTests
 
         var resp = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
-            new { ticket = ticketId, session = "session-2" });
+            new { ticket = ticketId, session = "session-2" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Gone, resp.StatusCode);
     }
@@ -73,13 +73,13 @@ public class AuthRedeemEndpointTests
 
         var first = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
-            new { ticket = ticketId, session = "session-1" });
+            new { ticket = ticketId, session = "session-1" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
 
         var replay = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
-            new { ticket = ticketId, session = "session-1" });
+            new { ticket = ticketId, session = "session-1" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Gone, replay.StatusCode);
     }
@@ -93,7 +93,7 @@ public class AuthRedeemEndpointTests
 
         var resp = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
-            new { ticket = ticketId, session = "session-1" });
+            new { ticket = ticketId, session = "session-1" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -103,7 +103,7 @@ public class AuthRedeemEndpointTests
     {
         using var host = CreateHost();
 
-        var resp = await host.Http.PostAsJsonAsync("/_rask/auth/redeem", new { foo = "bar" });
+        var resp = await host.Http.PostAsJsonAsync("/_rask/auth/redeem", new { foo = "bar" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
@@ -125,7 +125,7 @@ public class AuthRedeemEndpointTests
         };
         req.Headers.Add("Origin", "https://evil.example");
 
-        var resp = await host.Http.SendAsync(req);
+        var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
         // The cross-origin request was bounced before the ticket was consumed — it still redeems.
@@ -149,7 +149,7 @@ public class AuthRedeemEndpointTests
         };
         req.Headers.Add("Origin", "http://localhost");
 
-        var resp = await host.Http.SendAsync(req);
+        var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -167,7 +167,7 @@ public class AuthRedeemEndpointTests
             Content = JsonContent.Create(new { ticket = ticketId, session = "session-1" })
         };
 
-        var resp = await host.Http.SendAsync(req);
+        var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -185,7 +185,7 @@ public class AuthRedeemEndpointTests
         };
         req.Headers.Add("Referer", "http://localhost/login");
 
-        var resp = await host.Http.SendAsync(req);
+        var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }
@@ -202,7 +202,7 @@ public class AuthRedeemEndpointTests
         };
         req.Headers.Add("Referer", "https://evil.example/page");
 
-        var resp = await host.Http.SendAsync(req);
+        var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
@@ -220,7 +220,7 @@ public class AuthRedeemEndpointTests
         };
         req.Headers.TryAddWithoutValidation("Origin", "not-a-valid-origin");
 
-        var resp = await host.Http.SendAsync(req);
+        var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
@@ -239,7 +239,7 @@ public class AuthRedeemEndpointTests
         };
         req.Headers.Add("Origin", "https://localhost");
 
-        var resp = await host.Http.SendAsync(req);
+        var resp = await host.Http.SendAsync(req, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
     }

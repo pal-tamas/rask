@@ -29,7 +29,7 @@ public sealed class CacheKeyLengthErrorTests
         await WithCacheAsync(async cache =>
         {
             var error = await Assert.ThrowsAsync<ArgumentException>(() =>
-                cache.SetAsync(new string('k', 513), "stored"u8.ToArray(), FiveMinutes));
+                cache.SetAsync(new string('k', 513), "stored"u8.ToArray(), FiveMinutes, TestContext.Current.CancellationToken));
 
             Assert.StartsWith(
                 "The cache key is 513 characters long, and this database's cache table holds keys of at most 512.",
@@ -46,7 +46,7 @@ public sealed class CacheKeyLengthErrorTests
         // error, and must surface as itself.
         await WithCacheAsync(async cache =>
             await Assert.ThrowsAsync<DbUpdateException>(() =>
-                cache.SetAsync("short-key", "stored"u8.ToArray(), FiveMinutes)));
+                cache.SetAsync("short-key", "stored"u8.ToArray(), FiveMinutes, TestContext.Current.CancellationToken)));
     }
 
     private static async Task WithCacheAsync(Func<IDistributedCache, Task> test)

@@ -23,7 +23,7 @@ public class PageRenderTests
     {
         using var host = RaskTestHost.Create<PageRenderContentApp>();
 
-        var render = await RenderAsync<PageRenderContentApp>(host, Anonymous);
+        var render = await RenderAsync<PageRenderContentApp>(host, Anonymous, TestContext.Current.CancellationToken);
 
         Assert.Equal(PageRenderKind.Rendered, render.Kind);
         Assert.Equal(200, render.StatusCode);
@@ -36,7 +36,7 @@ public class PageRenderTests
     {
         using var host = RaskTestHost.Create<RedirectsOnMountApp>();
 
-        var render = await RenderAsync<RedirectsOnMountApp>(host, Anonymous);
+        var render = await RenderAsync<RedirectsOnMountApp>(host, Anonymous, TestContext.Current.CancellationToken);
 
         Assert.Equal(PageRenderKind.Redirect, render.Kind);
         Assert.Equal("/elsewhere", render.RedirectLocation);

@@ -8,24 +8,48 @@ namespace Rask.Core;
 // IDL's order; this half is the storage they share and the emit loop over them.
 public abstract partial class Element
 {
-    // One backing store for every event an element can fire. A single keyed dictionary instead of ~100
-    // named fields, kept as a DIRECT Element field (not hoisted into LiveState): a click-bearing
-    // leaf would otherwise force a whole LiveState allocation, whereas this allocates only the small dict
-    // on first handler. A plain element that wires nothing keeps `_domEvents` null and pays one extra
-    // reference field. Each event name maps to ONE slot holding the delegate.
+    // One backing store for every event an element can fire: the wired handlers only, each under its index in
+    // GlobalEventOrder and kept in that order, so the emit walks what is wired rather than probing ~100 names.
+    // A DIRECT Element field (not hoisted into LiveState): a click-bearing leaf would otherwise force a whole
+    // LiveState allocation, whereas this allocates one small array on the first handler. A plain element that
+    // wires nothing keeps `_domEvents` null and pays one extra reference field. Elements are rebuilt every
+    // render, so this array is too — which is why it is an array and not the dictionary it replaced.
     //
     // The slot used to carry an IsAsync flag beside it, because an event was TWO properties — `OnClick`
     // and `OnClickAsync` — over this one slot, and a null re-applied by the factory had to clear only its
     // own kind. One `Callback` property per event makes both the flag and that asymmetry unnecessary: a
     // write is a write, and "both wired" is no longer expressible rather than diagnosed (RASK027).
-    private Dictionary<string, Delegate>? _domEvents;
+    private DomEventSlot[]? _domEvents;
 
-    // Render-hotpath early-out: WriteAttributes asks this before iterating the ordered event list. A
+    // Wired slots fill the array from the front; a null Handler marks the end.
+    private readonly record struct DomEventSlot(int Event, Delegate? Handler);
+
+    // Render-hotpath early-out: WriteAttributes asks this before walking the wired events. A
     // plain element answers false in one null check, so the per-render cost stays at zero.
-    private protected bool HasDomEvents => _domEvents is { Count: > 0 };
+    private protected bool HasDomEvents => _domEvents is { } slots && slots[0].Handler is not null;
 
-    private protected Delegate? GetDomEvent(string name) =>
-        _domEvents is { } map && map.TryGetValue(name, out var slot) ? slot : null;
+    private Delegate? GetDomEvent(int eventIndex)
+    {
+        if (_domEvents is not { } slots)
+        {
+            return null;
+        }
+
+        foreach (var slot in slots)
+        {
+            if (slot.Handler is null || slot.Event > eventIndex)
+            {
+                return null;
+            }
+
+            if (slot.Event == eventIndex)
+            {
+                return slot.Handler;
+            }
+        }
+
+        return null;
+    }
 
     // ---- Typed views over the slot ----------------------------------------------------------------
     //
@@ -44,48 +68,78 @@ public abstract partial class Element
     // through the `as` cast, and there is no other kind left.
     //
     // An empty slot reads back as the unset `Callback` — its default — rather than as null.
-    private protected Callback Handler(string name) => new(GetDomEvent(name));
-
-    private protected Callback<TArgs> Handler<TArgs>(string name) => new(GetDomEvent(name));
+    private protected Callback<TArgs> Handler<TArgs>(int eventIndex) => new(GetDomEvent(eventIndex));
 
     // One writer, and a write is simply a write. There used to be two — a sync one that always won and an
     // async one that deferred to it — because an event was two properties over this one slot and the
     // runtime needed a tiebreaker for "both wired" (RASK027 reported the same thing at compile time).
     // With one property per event that state cannot be reached, so neither the tiebreaker nor the
     // clear-only-my-own-kind rule has anything left to arbitrate.
-    private protected void SetHandler(string name, Delegate? value)
+    private protected void SetHandler(int eventIndex, Delegate? value)
     {
-        if (value is not null)
+        var slots = _domEvents;
+        if (slots is null)
         {
-            (_domEvents ??= new Dictionary<string, Delegate>(StringComparer.Ordinal))[name] = value;
+            if (value is not null)
+            {
+                _domEvents = [new DomEventSlot(eventIndex, value), default];
+            }
+
+            return;
         }
-        else
+
+        // The slot this event holds, or where it belongs in GlobalEventOrder.
+        var at = 0;
+        while (at < slots.Length && slots[at].Handler is not null && slots[at].Event < eventIndex)
         {
-            _domEvents?.Remove(name);
+            at++;
         }
+
+        var holds = at < slots.Length && slots[at].Handler is not null && slots[at].Event == eventIndex;
+        if (value is null)
+        {
+            if (holds)
+            {
+                Array.Copy(slots, at + 1, slots, at, slots.Length - at - 1);
+                slots[^1] = default;
+            }
+
+            return;
+        }
+
+        if (holds)
+        {
+            slots[at] = new DomEventSlot(eventIndex, value);
+            return;
+        }
+
+        if (slots[^1].Handler is not null)
+        {
+            Array.Resize(ref slots, slots.Length * 2);
+            _domEvents = slots;
+        }
+
+        Array.Copy(slots, at, slots, at + 1, slots.Length - at - 1);
+        slots[at] = new DomEventSlot(eventIndex, value);
     }
 
     // Emits every wired GlobalEventHandlers hook as data-rask-on-{event}, in GlobalEventOrder, so the
     // serialized attribute sequence is deterministic. Early-outs in one null check for a plain element.
     internal void EmitDomEvents(StringBuilder sb, LiveRenderContext ctx)
     {
-        if (!HasDomEvents)
+        if (_domEvents is not { } slots)
         {
             return;
         }
 
-        foreach (var name in GlobalEventOrder)
+        foreach (var slot in slots)
         {
-            EmitDomEvent(sb, ctx, name);
-        }
-    }
+            if (slot.Handler is null)
+            {
+                return;
+            }
 
-    // Emits one event hook if a handler is wired for it.
-    private protected void EmitDomEvent(StringBuilder sb, LiveRenderContext ctx, string name)
-    {
-        if (GetDomEvent(name) is { } handler)
-        {
-            AppendAttr(sb, "data-rask-on-", name, ctx.RegisterHandler(handler));
+            AppendAttr(sb, "data-rask-on-", GlobalEventOrder[slot.Event], ctx.RegisterHandler(slot.Handler));
         }
     }
 }

@@ -18,7 +18,7 @@ public sealed class RaskSqliteInterceptorTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.OpenConnectionAsync();
+        await context.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
         var connection = (SqliteConnection)context.Database.GetDbConnection();
 
         Assert.Equal("wal", ReadPragma(connection, "journal_mode"));
@@ -36,7 +36,7 @@ public sealed class RaskSqliteInterceptorTests : IDisposable
             .Options;
 
         await using var context = new ProbeDbContext(options);
-        await context.Database.OpenConnectionAsync();
+        await context.Database.OpenConnectionAsync(cancellationToken: TestContext.Current.CancellationToken);
         var connection = (SqliteConnection)context.Database.GetDbConnection();
 
         Assert.Equal("12000", ReadPragma(connection, "busy_timeout"));

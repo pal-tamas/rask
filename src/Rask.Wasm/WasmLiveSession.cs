@@ -221,6 +221,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     private static readonly Task<byte[]> NoFrame = Task.FromResult(Array.Empty<byte>());
 
+    // What a dispatch told not to copy returns after sending a frame: nobody reads it.
+    private static readonly byte[] SentWithoutCopy = [];
+
+    // The frame last pushed to JS, read in place — for tests of the no-copy path.
+    internal ReadOnlySpan<byte> LastSentFrame => _lastSentBuffer is { } sent ? sent.WrittenSpan : default;
+
     // Push model: produce the render payload, then either return it to the caller
     // (tests) OR call JSInterop.ApplyRender from inside .NET (production). The JSExport
     // generator doesn't support Task<byte[]> as a return type — Task<string> works but
@@ -230,7 +236,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
     //
     // Not async itself: it only routes, and handing back the branch's own task keeps a frame to one
     // state machine.
-    public Task<byte[]> DispatchAsync(byte[] json)
+    public Task<byte[]> DispatchAsync(byte[] json) => DispatchAsync(json, copyFrame: true);
+
+    // copyFrame: hand the sent frame back as a copy — only the tests read it. Production (JSInterop.Dispatch)
+    // passes false, since the frame already went to JS as a view over the write buffer and a copy per event
+    // would be thrown away. The copy is taken under _lock: the drain after release may send over the buffer.
+    internal Task<byte[]> DispatchAsync(byte[] json, bool copyFrame)
     {
         if (json is null || json.Length == 0)
         {
@@ -251,13 +262,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
         if (string.Equals(type, "navigate", StringComparison.Ordinal))
         {
-            return HandleNavigateAsync(root);
+            return HandleNavigateAsync(root, copyFrame);
         }
 
         var handlerId = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
             ? idEl.GetString()
             : null;
-        return handlerId is null ? NoFrame : DispatchHandlerAsync(handlerId, root);
+        return handlerId is null ? NoFrame : DispatchHandlerAsync(handlerId, root, copyFrame);
     }
 
     // Parse straight from the UTF-8 byte payload — no UTF-16 string materialisation.
@@ -269,7 +280,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         return doc.RootElement.Clone();
     }
 
-    private async Task<byte[]> DispatchHandlerAsync(string handlerId, JsonElement root)
+    private async Task<byte[]> DispatchHandlerAsync(string handlerId, JsonElement root, bool copyFrame)
     {
         using var work = EnterWorkScope();
         await _lock.WaitAsync().ConfigureAwait(false);
@@ -305,8 +316,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
                     }
 
                     _htmlBuffers.Commit();
-                    // Return the sent frame's bytes for the test seam; ToArray once per event.
-                    return _lastSentBuffer!.WrittenSpan.ToArray();
+                    return copyFrame ? _lastSentBuffer!.WrittenSpan.ToArray() : SentWithoutCopy;
                 }
             }
             catch (Exception ex)
@@ -327,7 +337,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    private async Task<byte[]> HandleNavigateAsync(JsonElement root)
+    private async Task<byte[]> HandleNavigateAsync(JsonElement root, bool copyFrame)
     {
         var navPath = root.TryGetProperty("path", out var p) && p.ValueKind == JsonValueKind.String
             ? p.GetString()
@@ -367,7 +377,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
                 }
 
                 _htmlBuffers.Commit();
-                return _lastSentBuffer!.WrittenSpan.ToArray();
+                return copyFrame ? _lastSentBuffer!.WrittenSpan.ToArray() : SentWithoutCopy;
             }
             catch (Exception ex)
             {

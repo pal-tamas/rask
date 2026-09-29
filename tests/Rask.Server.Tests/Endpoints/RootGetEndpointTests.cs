@@ -11,11 +11,11 @@ public class RootGetEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/some-path");
+        var response = await host.Http.GetAsync("/some-path", TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
         Assert.Equal("text/html; charset=utf-8", response.Content.Headers.ContentType?.ToString());
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Contains("data-rask-root=\"", body);
     }
 
@@ -26,7 +26,7 @@ public class RootGetEndpointTests
 
         Assert.Equal(0, host.Store.Count);
 
-        var response = await host.Http.GetAsync("/foo");
+        var response = await host.Http.GetAsync("/foo", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 
         Assert.Equal(1, host.Store.Count);
@@ -39,7 +39,7 @@ public class RootGetEndpointTests
         // upload / download endpoints, so it must never be cached by a shared proxy or bfcache.
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/some-path");
+        var response = await host.Http.GetAsync("/some-path", TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
         var cacheControl = response.Headers.CacheControl;
@@ -54,8 +54,8 @@ public class RootGetEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/widgets/42");
-        var body = await response.Content.ReadAsStringAsync();
+        var response = await host.Http.GetAsync("/widgets/42", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("path=/widgets/42", body);
     }
@@ -65,9 +65,9 @@ public class RootGetEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/q?x=1&y=two");
+        var response = await host.Http.GetAsync("/q?x=1&y=two", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         var sessionId = MarkupAssert.SessionId(body);
 
         var ls = host.Store.Get(sessionId);

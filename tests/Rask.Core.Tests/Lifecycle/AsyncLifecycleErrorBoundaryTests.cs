@@ -95,7 +95,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             _ = boundary.ToHtml();
             child.RaiseLifecycleBeforeRender(true);
             await child.Fault.Task;
-            await handle.Requested.Task.WaitAsync(Budget);
+            await handle.Requested.Task.WaitAsync(Budget, TestContext.Current.CancellationToken);
         }
 
         Assert.True(handle.RequestRenderCount >= 1,

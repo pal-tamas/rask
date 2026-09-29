@@ -16,8 +16,8 @@ public sealed class StoragePageTests
     {
         await using var h = new DashboardHarness(Batteries.Storage);
         var files = h.Get<IFiles>();
-        await files.Save(new MemoryStream(new byte[100]), "a.bin");
-        await files.Save(new MemoryStream(new byte[50]), "b.bin").Public();
+        await files.Save(new MemoryStream(new byte[100]), "a.bin", TestContext.Current.CancellationToken);
+        await files.Save(new MemoryStream(new byte[50]), "b.bin", TestContext.Current.CancellationToken).Public();
 
         var stats = await h.Get<IStoragePanelReader>().StatsAsync(CancellationToken.None);
 
@@ -47,11 +47,11 @@ public sealed class StoragePageTests
     {
         await using var h = new DashboardHarness(Batteries.Storage);
         var files = h.Get<IFiles>();
-        await files.Save(new MemoryStream("one"u8.ToArray()), "invoice-1.txt");
+        await files.Save(new MemoryStream("one"u8.ToArray()), "invoice-1.txt", TestContext.Current.CancellationToken);
         h.Clock.Advance(TimeSpan.FromMinutes(1));
-        await files.Save(new MemoryStream("two"u8.ToArray()), "photo.txt");
+        await files.Save(new MemoryStream("two"u8.ToArray()), "photo.txt", TestContext.Current.CancellationToken);
         h.Clock.Advance(TimeSpan.FromMinutes(1));
-        await files.Save(new MemoryStream("three"u8.ToArray()), "invoice-2.txt");
+        await files.Save(new MemoryStream("three"u8.ToArray()), "invoice-2.txt", TestContext.Current.CancellationToken);
 
         var reader = h.Get<IStoragePanelReader>();
         var (all, total) = await reader.PageAsync(null, 0, 10, CancellationToken.None);
@@ -86,7 +86,7 @@ public sealed class StoragePageTests
     {
         // A file name is text a stranger typed. The console shows it, so it has to arrive as text.
         await using var h = new DashboardHarness(Batteries.Storage);
-        await h.Get<IFiles>().Save(new MemoryStream("x"u8.ToArray()), "report <img src=x onerror=alert(1)>.txt");
+        await h.Get<IFiles>().Save(new MemoryStream("x"u8.ToArray()), "report <img src=x onerror=alert(1)>.txt", TestContext.Current.CancellationToken);
 
         var page = Page.Render(ActivatorUtilities.CreateInstance<StoragePage>(h.Services), h.Services);
         var html = await page.WaitForAsync("report");
