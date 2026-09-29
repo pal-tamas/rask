@@ -14,7 +14,7 @@ namespace Rask.Cqrs;
 ///     public sealed class WatchOrderPolicy : IWatchPolicy&lt;WatchOrder&gt;
 ///     {
 ///         public async Task&lt;bool&gt; CanWatchAsync(WatchOrder watch, CancellationToken ct) =&gt;
-///             (await Order.Where(o =&gt; o.Id == watch.OrderId).FirstOrDefaultAsync())?.CustomerId == Current.UserId;
+///             (await Order.Where(o =&gt; o.Id == watch.OrderId).First())?.CustomerId == Current.UserId;
 ///     }
 ///     </code>
 ///     <para>

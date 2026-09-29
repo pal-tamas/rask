@@ -268,10 +268,10 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     /// <summary>
-    /// The migration warning has moved out of here, and that is the point: <c>rask new</c> creates and
-    /// applies the first migration itself, so by the time this text is printed the tables already exist.
-    /// The command prints the manual pair only when it could not run them — pinned in
-    /// <c>NewCommandTests.Skipping_the_restore_says_the_migration_still_has_to_happen</c>.
+    /// The migration warning has moved out of here, and that is the point: <c>rask new</c> creates the first
+    /// migration itself and the app applies it when it starts, so there is nothing to do before the first run.
+    /// The command prints the manual step only when it could not create it — pinned in
+    /// <c>NewCommandTests.Skipping_the_restore_says_the_first_migration_still_has_to_be_added</c>.
     /// </summary>
     [Fact]
     public void The_next_steps_no_longer_tell_you_to_migrate_before_the_first_run()

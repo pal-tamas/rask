@@ -216,6 +216,6 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
 - **Scoped CSS parity** — sibling `{Component}.css`, descendant-combinator scoping,
   hot reload.
 - **`IJSRuntime`** — the same interop surface (`InvokeAsync`, `InvokeVoidAsync`).
-  Rask adds element refs (`ElementRef.New()` + a `Ref:` parameter on every element)
+  Rask adds element refs (`new ElementRef<HTMLInputElement>()` + a `.Ref(…)` step on every element, carrying MDN's members: `await _name.Focus()`)
   and a sibling `{Component}.ts` convention bundled and dispatched as
   `window.Rask["{TypeName}"]`.

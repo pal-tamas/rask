@@ -29,7 +29,7 @@ public sealed partial class UiToast : Component
     public required string Message { get; set; }
 
     /// <summary>A stronger first line above the message — what happened, with the message saying more.</summary>
-    public string? Heading { get; set; }
+    public new string? Title { get; set; }
 
     /// <summary><see cref="Ui.Tone.Error" /> when the action failed. Anything else reads as done.</summary>
     public Ui.Tone? Tone { get; set; }
@@ -104,7 +104,7 @@ public sealed partial class UiToast : Component
             Ui.Icon
                 .Name(Tone == Ui.Tone.Error ? Ui.IconName.Warning : Ui.IconName.Check)
                 .Class($"size-5 shrink-0 {(Tone == Ui.Tone.Error ? "text-warning" : "text-success")}"),
-            Heading is { Length: > 0 } heading
+            Title is { Length: > 0 } heading
                 ? Div.Class("flex min-w-0 grow flex-col gap-0.5")[
                     Span.Class("font-medium")[heading],
                     Span.Class("break-words opacity-80")[Message]

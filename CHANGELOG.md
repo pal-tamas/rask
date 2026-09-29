@@ -30,6 +30,18 @@ them until tagged releases begin.
   column `[Required]` ("The Price field is required."), and `Create(model)` / `Update(id, model)` check the
   model's attributes on the server before writing, throwing `ValidationException` with nothing written.
 
+- **The kit says `Title`, and a control's own text goes in its indexer.** `Heading` is `Title` on every kit
+  component that had it — `Ui.Card`, `Ui.Header`, `Ui.Empty`, `Ui.Toast`, `Ui.MenuGroup`, `Ui.MenuRadioGroup`,
+  `Ui.MenuSub`, `Ui.NavGroup`, `Ui.FileInput` (and `HeadingLevel` is `TitleLevel`); inside such a component the
+  `<title>` tag is `Markup.Title`. `Ui.Link`, `Ui.Checkbox`, `Ui.Toggle` and `Ui.Step` drop `.Text(…)`: write
+  `Ui.Link.Href(Routes.HomePage())["Home"]` and `Ui.Checkbox.Bind(() => _agree)["I agree"]`.
+- **A RaskApp applies its pending migrations when it starts.** Before any battery's worker runs and before the
+  server listens — so `/health` is never Healthy over an un-migrated database, and a fresh clone or deploy works
+  with `dotnet run` alone. `rask new` now only adds the `Init` migration (no `rask db update`), and after a model
+  change `rask db add <Name>` is the whole step. An app with no migrations starts with a warning naming
+  `rask db add Init`; a model changed since its last migration fails the start naming `rask db add <Name>`. Opt
+  out, e.g. when a release pipeline migrates: `app.Configure(c => c.MigrateOnStart = false)` or
+  `Rask__Database__MigrateOnStart=false`.
 - **A scoped gate in a fresh worktree no longer aborts with "Could not find testhost".** Its build ran Restore
   and Build in one MSBuild call, so Build reused the pre-restore evaluation and a never-restored test project
   came out without `Microsoft.NET.Test.Sdk`'s targets (22 files instead of 81). Restore now gets its own
@@ -125,6 +137,21 @@ them until tagged releases begin.
     render in MDN's IDL order.
   - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
     stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
+- **BREAKING: element refs carry the element's MDN members, generated from MDN.** Type a ref to the element's
+  MDN interface and call its DOM members from C#, with no `IJSRuntime` and no `Async` suffix:
+  ```csharp
+  private readonly ElementRef<HTMLDialogElement> _dialog = new();   // Dialog.Ref(_dialog)[…]
+  await _dialog.ShowModal();  var open = await _dialog.Open;  await _dialog.Focus();
+  ```
+  - An operation is a method and an attribute an awaitable read; a write (`SetCurrentTime(12)`, `SetScrollTop(0)`)
+    exists only where the render does not own the value, and nothing rewrites the tree, attributes or content.
+  - `IElementRef<out T>` is covariant, so a dialog ref has `HTMLElement`'s and `Element`'s members too; an untyped
+    `ElementRef.New()` has `Element`'s (`GetBoundingClientRect()`, `ScrollIntoView(…)`). MDN's dictionaries are
+    records and its enums are enums (`ScrollIntoViewOptions`, `ScrollBehavior.Smooth`, `DOMRect`).
+  - `ElementRefInterop` is gone: `_input.FocusAsync(js)` → `_input.Focus()`, `BlurAsync(js)` → `Blur()`,
+    `ScrollIntoViewAsync(js)` → `ScrollIntoView(new ScrollIntoViewOptions { Behavior = ScrollBehavior.Smooth,
+    Block = ScrollLogicalPosition.Nearest })` (it used to default to that), each on a ref typed to the element.
+  - A typed ref put on an element of another type throws there, naming both.
 - **BREAKING: the SVG elements are generated from MDN as well.** The 40 hand-written SVG types are gone; every
   SVG element MDN lists as shipping in two engines is generated from the same snapshot. The chain is unchanged
   (`Svg`, `Circle`, `SvgPath`, `SvgText`, `SvgA`, `SvgTitle`…). What changes:

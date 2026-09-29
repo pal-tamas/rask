@@ -44,13 +44,13 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         {
             return Ui.Card[
                 Ui.Empty
-                    .Heading("No batteries registered")
+                    .Title("No batteries registered")
                     .Detail("Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.")
             ];
         }
 
         return [
-            Ui.Header.Heading("Overview").Caption(StateLine()),
+            Ui.Header.Title("Overview").Caption(StateLine()),
             DashboardError.Message(LoadError),
             FailureBanner(),
             Ui.Grid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
@@ -109,7 +109,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
             .Key(panel.Slug)
             .Href(Routes.QueuePage(panel.Slug))
             .Icon(panel.Icon)
-            .Heading(panel.Title)
+            .Title(panel.Title)
             .Action(Ui.StatusDot
                 .Label(failing ? $"{counts.Failed} failed" : "healthy")
                 .Tone(failing ? Ui.Tone.Error : Ui.Tone.Success))[

@@ -90,7 +90,7 @@ public sealed partial class UiKitLayoutDemo : Component
                             .Icon(Ui.IconName.Book),
                         Ui.NavItem.Key("actions").Label("Actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))
                             .Icon(Ui.IconName.Sparkles).Badge("5").BadgeTone(Ui.Tone.Primary),
-                        Ui.NavGroup.Key("more").Heading("More").Expandable(true)[
+                        Ui.NavGroup.Key("more").Title("More").Expandable(true)[
                             Ui.NavItem.Key("feedback").Label("Feedback")
                                 .Href(PageMeta.LinkTo(Routes.UiKitFeedbackPage())),
                             Ui.NavItem.Key("navigation").Label("Navigation")

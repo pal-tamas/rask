@@ -166,7 +166,7 @@ public sealed class User : Authenticatable
 when the app [has tenants](#accounts-and-tenants)),
 `EmailConfirmedAt`, `PasswordChangedAt`, `Roles`, and the password hash — which is `internal`, so nothing that
 serializes a `User`'s public properties can ever carry it. Add the columns your app needs, then
-`rask db add AddUserColumns && rask db update`.
+`rask db add AddUserColumns` — the app applies it when it starts.
 
 **It is an [aggregate](data.md) like any other.** `Authenticatable` derives from `Aggregate<Guid>`, so a `User`
 has the reads, the writes, a generated `UserModel` for a profile form (never with the credentials on it), a

@@ -3,7 +3,7 @@
 > **Goal:** go from an empty app to a working, database-backed **Products** catalog — list, create, edit,
 > delete — persisted in SQLite.
 > **You'll write:** a vertical slice under `Features/Products/` — an aggregate and its pages — then run
-> `rask db add` / `rask db update`.
+> `rask db add`.
 
 This chapter sets the pattern every later feature repeats — **aggregate → pages → migrate**. Do it once here
 and the rest of the tutorial is variations on it.
@@ -118,7 +118,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
 
         return
         [
-            Ui.Header.Heading("New product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Header.Title("New product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             Ui.Card[
                 save.IsError ? Ui.Alert.Tone(Ui.Tone.Error)["Something went wrong — please try again."] : null,
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
@@ -129,7 +129,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock).Text("In stock"),
+                    Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
                     Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save"]
                 ]
             ]
@@ -200,7 +200,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
         if (product.Data is not { } loaded)
         {
             return Ui.Alert.Tone(Ui.Tone.Warning)[
-                "Product not found. ", Ui.Link.Href(Routes.ProductsPage()).Text("Back to the list"), "."
+                "Product not found. ", Ui.Link.Href(Routes.ProductsPage())["Back to the list"], "."
             ];
         }
 
@@ -213,7 +213,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
 
         return
         [
-            Ui.Header.Heading("Edit product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Header.Title("Edit product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             Ui.Card[
                 save.Error switch
                 {
@@ -231,7 +231,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock).Text("In stock"),
+                    Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
                     Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save changes"]
                 ]
             ]
@@ -327,7 +327,7 @@ public sealed partial class ProductsPage : Component
 
         return
         [
-        Ui.Header.Heading(count.Data is { } n ? $"Products ({n})" : "Products")
+        Ui.Header.Title(count.Data is { } n ? $"Products ({n})" : "Products")
             .Actions(Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]),
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(true),
@@ -392,17 +392,16 @@ several aggregates changed in one transaction: `IDbContextFactory<RaskAppDbConte
 ## 7. Create the table
 
 The code is ready, but `app.db` has no table for `Product` yet. EF Core **migrations** generate the schema
-from your aggregates. `rask new` already created and applied the first one — the batteries' tables — and
-`rask db` wraps the EF tooling for every one after it:
+from your aggregates. `rask new` already created the first one — the batteries' tables — and `rask db` wraps
+the EF tooling for every one after it:
 
 ```bash
 rask db add AddProduct        # generate a migration for what changed in the model
-rask db update                # apply it — adds the Product table to app.db
 ```
 
-`rask db add` writes into the `Migrations/` folder you commit alongside your code; `rask db update` runs it
-against `app.db`. Every time you change an aggregate later, it's the same pair: `rask db add <Name>` then
-`rask db update`.
+`rask db add` writes into the `Migrations/` folder you commit alongside your code. There is no second
+command: the app applies its pending migrations when it starts, before it serves a page. Every time you change
+an aggregate later, it's the same: `rask db add <Name>`, then (re)start the app.
 
 ## 8. Run it
 
@@ -419,13 +418,14 @@ it's on disk in `app.db`.
 - `Features/Products/` holds the aggregate and four components — no configuration class, no hand-written form
   model, and no context to edit.
 - The app builds with no warnings.
-- After `rask db update`, `/products` renders.
+- After `rask db add AddProduct` and a start, `/products` renders.
 - Creating a product then restarting the app still shows it (it's persisted, not in-memory).
 - Open the same product's edit page in two tabs and save both: the second shows "Someone else changed
   this product" instead of overwriting the first.
 
 > **Troubleshooting.** `rask db` can't find the project → make sure you `cd`'d into `Shop` first.
-> `/products` fails with `no such table` → you skipped `rask db update`. The build can't find
+> `/products` fails with `no such table` → you skipped `rask db add AddProduct`, or the app was already running
+> when you added it — restart it so it applies the migration. The build can't find
 > `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
 > catches up. For a route, the generator also needs the `[Route]` attribute on the page.
 

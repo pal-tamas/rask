@@ -920,8 +920,18 @@ public abstract partial class SharedSmokeTests
         await Expect(elDemo.Locator(".sample-result-body input"))
             .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
         await elDemo.Locator("button:has-text('Measure the box')").ClickAsync();
-        await Expect(elDemo.Locator(".sample-result-body p"))
+        await Expect(elDemo.Locator(".sample-result-body > div > p").Last)
             .ToContainTextAsync("Box width:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+
+        // A ref typed to HTMLDialogElement calls MDN's showModal() and reads open back from the live element.
+        await elDemo.Locator("button:has-text('Open the dialog')").ClickAsync();
+        var refDialog = elDemo.Locator(".sample-result-body dialog");
+        await Expect(elDemo.Locator(".sample-result-body > div > p").Last)
+            .ToContainTextAsync("Dialog open: True", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        Assert.True(await refDialog.EvaluateAsync<bool>("d => d.matches(':modal')"), "showModal() did not open a modal");
+        await refDialog.Locator("button:has-text('Close')").ClickAsync();
+        await Expect(elDemo.Locator(".sample-result-body > div > p").Last)
+            .ToContainTextAsync("Dialog open: False", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         // Scoped JS namespace is present (the measure invoked window.Rask.ElementRefDemo.width).
         Assert.True(
             await Page.EvaluateAsync<bool>("() => typeof window.Rask === 'object' && window.Rask !== null"),

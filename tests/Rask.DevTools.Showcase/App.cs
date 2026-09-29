@@ -39,7 +39,7 @@ public sealed partial class TaskBoard : Component
 
     protected override Component? Render() =>
         Context.Provide(new Release(Heading ?? "Tasks"))[
-            Ui.Card.Heading(Heading ?? "Tasks")[
+            Ui.Card.Title(Heading ?? "Tasks")[
                 Ui.List[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
                 Ui.Button.Tone(Ui.Tone.Primary).OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
             ]
@@ -80,7 +80,7 @@ public sealed partial class DeployCard : Component
     public string? ApiToken { get; set; }
 
     protected override Component? Render() =>
-        Ui.Card.Heading("Deploy")[
+        Ui.Card.Title("Deploy")[
             P[$"Target: {Environment} ({Region})"],
             P[ApiToken is null ? "No token configured." : "Token configured."],
             Ui.Button.Title("Throws, so the devtools have an error to show").OnClick(Deploy)["Deploy"]

@@ -12,6 +12,9 @@ internal static class RaskDatabase
 {
     internal const string ProviderKey = "Rask:Database:Provider";
 
+    /// <summary>Whether the app applies its pending migrations when it starts — see <c>RaskAppOptions.MigrateOnStart</c>.</summary>
+    internal const string MigrateOnStartKey = "Rask:Database:MigrateOnStart";
+
     /// <summary>
     /// The provider <paramref name="configuration"/> names — SQLite when it names none, so an app that never set the
     /// key keeps the database it always had.

@@ -67,14 +67,14 @@ public sealed partial class StoragePage(
         {
             return Ui.Card[
                 Ui.Empty
-                    .Heading("Storage isn't registered")
+                    .Title("Storage isn't registered")
                     .Detail("Call AddRaskStorage<TContext>() and modelBuilder.AddRaskStorage() to see stored files here.")
             ];
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Heading("Storage").Caption(
+            Ui.Header.Title("Storage").Caption(
                 $"new files go to {_stats.ActiveProvider} · orphans swept every {DashboardParts.Duration(_stats.SweepInterval)}"),
             DashboardError.Message(LoadError),
             DiskNotice(),
@@ -142,7 +142,7 @@ public sealed partial class StoragePage(
                 .Value(Search)
                 .OnSearch(SearchAsync))
             .Empty(Ui.Empty
-                .Heading(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
+                .Title(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
                 .Detail("Files appear here as soon as the app saves one."))[c => [
                 c.Field(r => r.Name).Title("Name"),
                 c.Field(r => r.Public).Title("Access").Value(r => r.Public ? "public" : "private"),

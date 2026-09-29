@@ -19,7 +19,7 @@ namespace Rask;
 public sealed partial class UiMenuSub : Component
 {
     /// <summary>The row's words.</summary>
-    public required string Heading { get; set; }
+    public new required string Title { get; set; }
 
     public Ui.IconName? Icon { get; set; }
 
@@ -41,7 +41,7 @@ public sealed partial class UiMenuSub : Component
                 Details[
                     Summary[
                         Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
-                        Heading
+                        Title
                     ],
                     Ul[Children ?? []]
                 ]
@@ -49,7 +49,7 @@ public sealed partial class UiMenuSub : Component
         }
 
         var scope = level.Scope;
-        var ordinal = scope.Register(level.Parent, Heading, Disabled == true, isSub: true);
+        var ordinal = scope.Register(level.Parent, Title, Disabled == true, isSub: true);
         var open = scope.IsOpen(ordinal);
         var subMenuId = scope.ItemId(ordinal) + "-sub";
 
@@ -82,12 +82,12 @@ public sealed partial class UiMenuSub : Component
         }
 
         return li[
-            trigger[global::Rask.UiMenuItem.Row(Icon, Heading, kbd: null, Ui.IconName.ChevronRight, indicator: null)],
+            trigger[global::Rask.UiMenuItem.Row(Icon, Title, kbd: null, Ui.IconName.ChevronRight, indicator: null)],
             Ul
                 .Id(subMenuId)
                 .Role("menu")
                 .Class("menu ui-menu-flyout w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-sm")
-                .Aria("label", Heading)[
+                .Aria("label", Title)[
                 Context.Provide(new UiMenuLevel(scope, ordinal))[Children ?? []]
             ]
         ];

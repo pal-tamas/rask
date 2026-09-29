@@ -139,7 +139,7 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
         // a 4.5rem rail — which is why this asserts on all four at once rather than one at a time.
         Assert.Contains("ui-rail-hide", Ui.NavItem.Label("Overview").Href("/").ToHtml(), StringComparison.Ordinal);
         Assert.Contains("ui-rail-hide", Ui.Brand.Label("Rask").Href("/").ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("ui-rail-hide", Ui.NavGroup.Heading("Data")[Li].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.NavGroup.Title("Data")[Li].ToHtml(), StringComparison.Ordinal);
         Assert.Contains("ui-rail-hide", Ui.Profile.Name("Ada Lovelace").ToHtml(), StringComparison.Ordinal);
     }
 }

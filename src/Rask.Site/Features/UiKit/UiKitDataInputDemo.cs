@@ -250,10 +250,10 @@ public sealed partial class UiKitDataInputDemo : Component
             "The words are part of the hit target: on a phone a 16px box on its own is the difference "
             + "between a control and a dare.",
             Div.Data(Testid("ui-choices")).Class("flex flex-wrap items-center gap-4")[
-                Ui.Checkbox.Value(_remember).Key("remember").Text("Remember me").Tone(Ui.Tone.Primary)
-                    .OnChange(v => { _remember = v; }),
-                Ui.Toggle.Value(_alerts).Key("alerts").Text("Email alerts").Tone(Ui.Tone.Success)
-                    .OnChange(v => { _alerts = v; }),
+                Ui.Checkbox.Value(_remember).Key("remember").Tone(Ui.Tone.Primary)
+                    .OnChange(v => { _remember = v; })["Remember me"],
+                Ui.Toggle.Value(_alerts).Key("alerts").Tone(Ui.Tone.Success)
+                    .OnChange(v => { _alerts = v; })["Email alerts"],
                 // A radio binds its OWN checked state, so it only ever reports true — choosing one
                 // fires nothing on the option it deselected. The group's value belongs to the group.
                 Ui.Radio.Value(_shipping is "standard").Key("std").Text("Standard").Group("shipping")
@@ -367,7 +367,7 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-dropzone")).Class("max-w-md space-y-2")[
                 Ui.FileInput.Value("").Key("receipts").Label("Receipts").Id("demo-receipts")
                     .Dropzone(true)
-                    .Heading("Drop receipts here, or click to choose")
+                    .Title("Drop receipts here, or click to choose")
                     .Text("PDF or JPG, several at once")
                     .Accept(".pdf,.jpg,.jpeg")
                     .Multiple(true)
@@ -396,7 +396,7 @@ public sealed partial class UiKitDataInputDemo : Component
                         Ui.Input.Bind(() => _signup.Seats).Label("Seats")
                     ],
                     Div.Class("mt-3 flex flex-wrap items-center gap-4")[
-                        Ui.Checkbox.Bind(() => _signup.Agreed).Text("I agree to the terms"),
+                        Ui.Checkbox.Bind(() => _signup.Agreed)["I agree to the terms"],
                         Ui.Rating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Max(5)
                     ]
                 ],

@@ -208,7 +208,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // left a browser test that clicks a checkbox or picks a file nothing to select on.
         Assert.Contains(
             "id=\"agree\"",
-            Ui.Checkbox.Value(false).Text("Agree").Id("agree").ToHtml(),
+            Ui.Checkbox.Value(false).Id("agree")["Agree"].ToHtml(),
             StringComparison.Ordinal);
 
         Assert.Contains(

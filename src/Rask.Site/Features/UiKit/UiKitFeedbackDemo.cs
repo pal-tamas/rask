@@ -133,7 +133,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                         Ui.Toast
                             .Key(t.Id)
                             .Message(t.Message)
-                            .Heading(t.Heading)
+                            .Title(t.Heading)
                             .Tone(t.Tone)
                             .Duration(6.Seconds)
                             .Action(t.Heading is null

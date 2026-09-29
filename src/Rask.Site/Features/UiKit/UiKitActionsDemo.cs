@@ -91,8 +91,7 @@ public sealed partial class UiKitActionsDemo : Component
             Div.Data(Testid("ui-button-route")).Class("flex flex-wrap items-center gap-3")[
                 Ui.Button.Key("to-navigation").Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                     .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation components"],
-                Ui.Link.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))
-                    .Text("Data display components"),
+                Ui.Link.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))["Data display components"],
                 Ui.Button.Key("to-github").Variant(Ui.Variant.Ghost)
                     .Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]
             ]);
@@ -116,8 +115,8 @@ public sealed partial class UiKitActionsDemo : Component
                     MenuAction("delete", "Delete", null, Ui.Tone.Error)
                 ],
                 Ui.Dropdown.Key("rich").Trigger("View").Icon(Ui.IconName.Sparkles).Align(Ui.Align.End)[
-                    Ui.MenuGroup.Key("sort-group").Heading("Arrange")[
-                        Ui.MenuSub.Key("sort").Heading("Sort by")[
+                    Ui.MenuGroup.Key("sort-group").Title("Arrange")[
+                        Ui.MenuSub.Key("sort").Title("Sort by")[
                             Ui.MenuRadioGroup.Value(_sort)
                                 .Options([("name", "Name"), ("date", "Date modified"), ("size", "Size")])
                                 .OnChange(sort => { _sort = sort; _lastAction = "sorted by " + sort; })
@@ -162,7 +161,7 @@ public sealed partial class UiKitActionsDemo : Component
             + "shortcut is a runtime hook that clicks the field, so it opens the same dialog a click does.",
             Div.Data(Testid("ui-command")).Class("max-w-sm")[
                 Ui.Command.Label("Search commands").Shortcut("mod+k")[
-                    Ui.MenuGroup.Heading("Invoices")[
+                    Ui.MenuGroup.Title("Invoices")[
                         Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus)
                             .OnClick(() => { _lastAction = "started a new invoice"; }),
                         Ui.MenuItem.Text("Export all").Icon(Ui.IconName.Download).Disabled(true)

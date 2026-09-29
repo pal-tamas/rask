@@ -137,17 +137,17 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_nav_group_is_a_heading_or_a_disclosure()
     {
-        var plain = Ui.NavGroup.Heading("Settings")[Ui.NavItem.Label("Profile").Href("/profile")].ToHtml();
+        var plain = Ui.NavGroup.Title("Settings")[Ui.NavItem.Label("Profile").Href("/profile")].ToHtml();
         Assert.Contains("menu-title", plain);
         Assert.DoesNotContain("<details", plain);
 
-        var folding = Ui.NavGroup.Heading("Settings").Expandable(true)[Ui.NavItem.Label("Profile").Href("/profile")].ToHtml();
+        var folding = Ui.NavGroup.Title("Settings").Expandable(true)[Ui.NavItem.Label("Profile").Href("/profile")].ToHtml();
         Assert.Contains("<details open>", folding);
         Assert.Contains("<summary>", folding);
 
         Assert.Contains(
             "<details>",
-            Ui.NavGroup.Heading("Settings").Expandable(true).Expanded(false)[Ui.NavItem.Label("P").Href("/p")].ToHtml());
+            Ui.NavGroup.Title("Settings").Expandable(true).Expanded(false)[Ui.NavItem.Label("P").Href("/p")].ToHtml());
     }
 
     // ---- type -----------------------------------------------------------------------------------
@@ -178,9 +178,9 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_page_header_and_a_card_take_a_heading_level()
     {
-        Assert.Contains("<h1", Ui.Header.Heading("Orders").ToHtml());
-        Assert.Contains("<h2", Ui.Header.Heading("Orders").HeadingLevel(2).ToHtml());
-        Assert.Contains("<h2", Ui.Card.Heading("Total").ToHtml());
-        Assert.Contains("<h3", Ui.Card.Heading("Total").HeadingLevel(3).ToHtml());
+        Assert.Contains("<h1", Ui.Header.Title("Orders").ToHtml());
+        Assert.Contains("<h2", Ui.Header.Title("Orders").TitleLevel(2).ToHtml());
+        Assert.Contains("<h2", Ui.Card.Title("Total").ToHtml());
+        Assert.Contains("<h3", Ui.Card.Title("Total").TitleLevel(3).ToHtml());
     }
 }

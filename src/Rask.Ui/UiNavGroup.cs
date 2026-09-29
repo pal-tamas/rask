@@ -17,7 +17,7 @@ namespace Rask;
 public sealed partial class UiNavGroup : Component
 {
     /// <summary>The group's title.</summary>
-    public required string Heading { get; set; }
+    public new required string Title { get; set; }
 
     public Ui.IconName? Icon { get; set; }
 
@@ -40,7 +40,7 @@ public sealed partial class UiNavGroup : Component
             Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null!,
             // ui-rail-hide: the heading goes when a collapsable sidebar is narrowed to its rail; an icon, if the
             // group has one, is what is left to say which group this is.
-            Span.Class("ui-rail-hide")[Heading]
+            Span.Class("ui-rail-hide")[Title]
         ];
 
         if (Expandable != true)

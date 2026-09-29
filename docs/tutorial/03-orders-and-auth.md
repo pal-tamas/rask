@@ -70,10 +70,10 @@ A new table means a new migration:
 
 ```bash
 rask db add AddOrder
-rask db update
 ```
 
-Run `rask dev` and browse to `/orders` — a second working CRUD feature, in the same `app.db`.
+Run `rask dev` (restart it if it is still running — the app applies pending migrations as it starts) and browse
+to `/orders` — a second working CRUD feature, in the same `app.db`.
 
 ## 2. Require a login to edit the catalog
 
@@ -106,7 +106,7 @@ Route gating stops direct navigation, but you also don't want to *show* buttons 
 login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`):
 
 ```csharp
-Ui.Header.Heading("Products").Actions(
+Ui.Header.Title("Products").Actions(
     Authorize[                             // only rendered for signed-in users
         Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]
     ])

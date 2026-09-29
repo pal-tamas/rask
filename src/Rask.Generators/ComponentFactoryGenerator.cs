@@ -2745,7 +2745,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // declares `T? Value`, where `?` over an unconstrained T is a nullability annotation, so
             // `IFormControl<bool>` has a plain non-nullable `bool Value` and RASK001's rule reads it as
             // required. Left in the required set it is unsatisfiable in BOUND mode, which withdraws
-            // Value on purpose: `Ui.Checkbox.Bind(() => m.Agreed).Text("…")` would sit forever in a
+            // Value on purpose: `Ui.Checkbox.Bind(() => m.Agreed)["…"]` would sit forever in a
             // pending state waiting for a step its own mode does not offer, and the only symptom is
             // that the chain has no ToHtml. Controlled mode loses nothing — opening on `Value(…)` is
             // how the value arrives there, and it is still the only way in.

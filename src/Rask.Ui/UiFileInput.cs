@@ -51,7 +51,7 @@ public sealed partial class UiFileInput : UiFormField<string>
 
     /// <summary>
     ///     Draws a large area to drop files on, or click, in place of the compact box. The words in it come
-    ///     from <see cref="Heading" /> and <see cref="Text" />.
+    ///     from <see cref="Title" /> and <see cref="Text" />.
     /// </summary>
     public bool? Dropzone { get; set; }
 
@@ -59,7 +59,7 @@ public sealed partial class UiFileInput : UiFormField<string>
     ///     The line the drop area leads with. Defaults to <see cref="UiFormField{T}.Label" />, which is also the input's
     ///     accessible name — so a heading that says what to drop keeps both halves of the message.
     /// </summary>
-    public string? Heading { get; set; }
+    public new string? Title { get; set; }
 
     /// <summary>
     ///     The smaller line under the heading — what is accepted and how much. Linked to the input as its
@@ -125,7 +125,7 @@ public sealed partial class UiFileInput : UiFormField<string>
                       + "data-[dragging]:bg-primary/5",
                 Class))[
             Ui.Icon.Name(Ui.IconName.Upload).Class("mb-1 size-8 text-ui-muted"),
-            P.Class("text-sm font-medium")[Heading ?? Label ?? AccessibleLabel, BadgeFor()],
+            P.Class("text-sm font-medium")[Title ?? Label ?? AccessibleLabel, BadgeFor()],
             Text is null
                 ? null
                 : P.Id(TextId).Class("text-xs text-ui-muted")[Text],

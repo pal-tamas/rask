@@ -31,9 +31,8 @@ rask new MyApp --framework net11.0
 # Scaffold a browser-WASM PWA instead
 rask new MyApp --template wasm
 
-# Create and apply its EF Core migration
-rask db add InitialCreate
-rask db update
+# Add an EF Core migration after changing the model (the app applies it when it starts)
+rask db add AddProducts
 
 # Run it with hot reload (dotnet watch)
 rask dev

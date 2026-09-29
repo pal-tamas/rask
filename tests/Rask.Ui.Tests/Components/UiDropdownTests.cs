@@ -150,7 +150,7 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     public void A_submenu_is_a_menu_item_that_owns_a_nested_menu()
     {
         var html = Ui.Dropdown.Trigger("Actions")[
-            Ui.MenuSub.Key("sort").Heading("Sort by")[
+            Ui.MenuSub.Key("sort").Title("Sort by")[
                 Ui.MenuItem.Key("name").Text("Name")
             ]
         ].ToHtml();
@@ -165,7 +165,7 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_submenu_in_a_plain_menu_is_a_disclosure()
     {
-        var html = Ui.Menu[Ui.MenuSub.Key("more").Heading("More")[Ui.MenuItem.Key("a").Text("A").Href("/a")]].ToHtml();
+        var html = Ui.Menu[Ui.MenuSub.Key("more").Title("More")[Ui.MenuItem.Key("a").Text("A").Href("/a")]].ToHtml();
 
         Assert.Contains("<details>", html);
         Assert.Contains("<summary>", html);
@@ -178,7 +178,7 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
         var html = Ui.Dropdown.Trigger("View")[
             Ui.MenuCheckbox.Value(true).Key("archived").Text("Show archived"),
             Ui.MenuSeparator.Key("sep"),
-            Ui.MenuRadioGroup.Value("date").Key("sort").Options([("name", "Name"), ("date", "Date")]).Heading("Sort")
+            Ui.MenuRadioGroup.Value("date").Key("sort").Options([("name", "Name"), ("date", "Date")]).Title("Sort")
         ].ToHtml();
 
         Assert.Contains("role=\"menuitemcheckbox\"", html);

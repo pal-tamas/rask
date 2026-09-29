@@ -203,6 +203,17 @@ for (const n of [...eventInterfaces]) {
   }
 }
 for (const n of eventInterfaces) wanted.add(n);
+// …and the value objects an element member hands back that serialize themselves (getBoundingClientRect's DOMRect,
+// by its toJSON), with their ancestors: a typed ref returns them as records.
+const toJson = name => { for (let n = name; n; n = interfaces.get(n)?.inheritance) if (interfaces.get(n)?.members.some(m => m.type === "operation" && m.name === "toJSON")) return true; return false; };
+for (const e of elements) {
+  for (let n = e.interface; n; n = interfaces.get(n)?.inheritance) {
+    for (const m of interfaces.get(n)?.members ?? []) {
+      const held = m.idlType ? typeOf(m.idlType).replace(/^Promise<(.*)>$/, "$1").replace(/\?$/, "") : "";
+      if (interfaces.has(held) && toJson(held)) for (let i = held; i; i = interfaces.get(i)?.inheritance) wanted.add(i);
+    }
+  }
+}
 
 function membersOf(name) {
   const def = interfaces.get(name), api = bcd.api[name] ?? {};

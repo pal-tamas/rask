@@ -25,7 +25,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         return Ui.Dropdown.Trigger("Actions")[
             Ui.MenuItem.Key("edit").Text("Edit").OnClick(() => log?.Add("edit")),
             Ui.MenuItem.Key("dup").Text("Duplicate").Disabled(true),
-            Ui.MenuSub.Key("sort").Heading("Sort by")[
+            Ui.MenuSub.Key("sort").Title("Sort by")[
                 Ui.MenuRadioGroup.Bind(() => view.Sort).Key("sort-group").Options([("name", "Name"), ("date", "Date")])
             ],
             Ui.MenuSeparator.Key("sep"),

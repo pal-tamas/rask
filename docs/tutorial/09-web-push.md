@@ -108,8 +108,7 @@ public Guid? CustomerId { get; private set; }
 user, or `null` for a visitor. A new column is a new migration:
 
 ```bash
-rask db add AddOrderCustomer
-rask db update
+rask db add AddOrderCustomer   # applied the next time the app starts
 ```
 
 ## 5. Send from the outbox handler

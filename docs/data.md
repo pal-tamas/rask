@@ -1630,6 +1630,44 @@ each, the tokenizers and the costs: **[Full-text search](full-text-search.md)**.
 A filter on a value inside a JSON column gets an index the same way — `HasJsonIndex(o => o.Meta.Status)`, on
 SQLite: see [Rask.SQLite](sqlite.md#indexing-a-value-inside-a-json-column).
 
+## Migrations apply themselves on start
+
+Change the model, add a migration, start the app:
+
+```bash
+rask db add AddProducts     # writes Migrations/…_AddProducts.cs — commit it with the code
+dotnet run                  # applies it, then starts
+```
+
+A `RaskApp` applies its pending migrations when it starts — to `RaskAppDbContext`, or to your own context if you
+registered one — before any battery's worker runs and before the web server listens, so `/health` never answers
+Healthy over a database that isn't migrated yet. A fresh clone or a fresh deploy needs `dotnet run` and nothing else.
+A `rask dev` session that is already running picks the new migration up the next time it restarts.
+
+What it refuses to guess:
+
+- **No migrations at all** — the app starts, leaves the database alone and logs *"RaskAppDbContext has no migrations
+  yet, so the database was left as it is. Create the first one with `rask db add Init`…"*. It never creates the schema
+  with `EnsureCreated`, which no later migration could evolve. (`rask new` adds `Init` for you.)
+- **A model changed since the last migration** — the start fails: *"The RaskAppDbContext model has changed since its
+  last migration, so the database cannot be brought up to date. Add a migration for the change with
+  `rask db add <Name>` and start the app again…"*. Silently running on an un-migrated model is the bug this prevents.
+- **A migration that fails** stops the start with EF's error and the migration's name, rather than serving on half a
+  schema.
+
+Two instances starting together are safe: EF Core takes a migration lock on PostgreSQL and SQL Server, and a SQLite app
+is one process.
+
+When something else applies migrations — a release pipeline running `rask db update` or an idempotent SQL script —
+turn it off:
+
+```csharp
+app.Configure(c => c.MigrateOnStart = false);
+```
+
+or set `Rask:Database:MigrateOnStart` to `false` (`Rask__Database__MigrateOnStart=false` in the environment). The code
+line wins over the setting. A host wired by hand (`AddRask()` + `MapRask<TApp>()`) never migrates on start.
+
 ## Choosing the database
 
 An app picks its database in configuration, not in code. `Rask:Database:Provider` names it — `sqlite` (the

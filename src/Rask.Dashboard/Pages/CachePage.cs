@@ -68,14 +68,14 @@ public sealed partial class CachePage(
         {
             return Ui.Card[
                 Ui.Empty
-                    .Heading("Cache isn't registered")
+                    .Title("Cache isn't registered")
                     .Detail("Call AddRaskCache<TContext>() and modelBuilder.AddRaskCache() to see cache entries here.")
             ];
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Heading("Cache").Actions(FlushButton()),
+            Ui.Header.Title("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
             Ui.MetricRow.Columns(3)[
@@ -126,7 +126,7 @@ public sealed partial class CachePage(
                 .Value(Search)
                 .OnSearch(SearchAsync))
             .Empty(Ui.Empty
-                .Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
+                .Title(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
                 .Detail("Entries appear here as soon as something is cached."))[c => [
                 c.Field(r => r.Key).Title("Key").Mono(true),
                 c.Field(r => r.Bytes).Title("Size").Value(r => DashboardParts.Bytes(r.Bytes)),

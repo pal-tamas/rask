@@ -30,7 +30,12 @@ Dockerfile below (override with `--dockerfile`).
   is waited on until its container is running **and answers an HTTP health check** (`GET /health` by
   default), then Caddy is reloaded to point at it before the old one is removed. A container that fails
   to start — or that starts but fails its probe (bad config, a failed migration) — is removed and the
-  previous version keeps serving. Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
+  previous version keeps serving.
+- **Migrations apply themselves.** The new container applies the app's pending migrations as it starts,
+  before it listens — so the health check cannot pass over an un-migrated database, and there is no
+  separate migrate step to run. One that fails stops the container, and the old one keeps serving. When a
+  pipeline applies migrations instead, pass `--env Rask__Database__MigrateOnStart=false`. See
+  [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start). Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
   different path with `--health-path <path>`, or skip the probe with `--no-health-check`.
   HTTP requests are zero-downtime; **live sessions re-establish**, because a session is a component tree
   and a DI scope inside *that* container and cannot hand over to the next one. The retiring container

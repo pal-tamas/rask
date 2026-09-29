@@ -17,7 +17,7 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void A_page_heading_leaves_the_spacing_to_the_column_it_sits_in() =>
-        Assert.DoesNotContain("mb-", Ui.Header.Heading("Jobs").ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("mb-", Ui.Header.Title("Jobs").ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void Two_figures_across_stay_two_across_at_every_width()
@@ -49,7 +49,7 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_empty_state_gives_the_answer_before_the_reason()
     {
-        var html = Ui.Empty.Heading("No queue called jobs").Detail("That battery is not registered.").ToHtml();
+        var html = Ui.Empty.Title("No queue called jobs").Detail("That battery is not registered.").ToHtml();
 
         Assert.True(
             html.IndexOf("No queue called jobs", StringComparison.Ordinal)
@@ -58,11 +58,11 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void An_empty_state_needs_no_detail() =>
-        Assert.DoesNotContain("max-w-prose", Ui.Empty.Heading("Nothing stored").ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("max-w-prose", Ui.Empty.Title("Nothing stored").ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void An_empty_state_draws_no_border_of_its_own() =>
-        Assert.DoesNotContain("border", Ui.Empty.Heading("Nothing stored").ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("border", Ui.Empty.Title("Nothing stored").ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_mono_badge_wraps_a_long_token_instead_of_widening_its_row()

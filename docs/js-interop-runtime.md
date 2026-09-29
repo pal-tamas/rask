@@ -150,39 +150,64 @@ Runnable demos: the **Browser APIs** section of the showcase at
 
 ## Element refs
 
-Every element exposes a `Ref:` parameter. Mint a ref with `ElementRef.New()` and store it
-in a **field** (so its id is stable across renders), then hand it to JS — it serializes as
-`{"__raskRef__":"id"}` and both clients revive it to the live DOM element before your
-function runs:
+A ref is a handle on one rendered element. **Type it to the element's MDN interface and it carries that
+interface's DOM members, generated from MDN** — the same data the elements and their events come from:
 
 ```csharp
-public sealed partial class FocusDemo : Component
-{
-    private readonly IJSRuntime _js;
-    private readonly ElementRef _input = ElementRef.New();
-    private readonly ElementRef _box = ElementRef.New();
+using Rask.Core.Components;   // the MDN element types
 
-    public FocusDemo(IJSRuntime js) => _js = js;
+public sealed partial class RefDemo : Component
+{
+    private readonly ElementRef<HTMLDialogElement> _dialog = new();   // a field: the id is stable across renders
+    private readonly ElementRef<HTMLInputElement> _name = new();
+    private readonly ElementRef<HTMLVideoElement> _video = new();
 
     protected override Component? Render() =>
         Div[
-            Input.Of<string>().Type(InputType.Text).Ref(_input),
-            Div.Ref(_box)["measure me"],
-            Button.OnClick(Focus)["Focus"],
-            Button.OnClick(Measure)["Measure"]
+            Input.Of<string>().Ref(_name),
+            Video.Src("/intro.mp4").Ref(_video),
+            Button.OnClick(Open)["Open"],
+            Dialog.Ref(_dialog)[Button.OnClick(async () => await _dialog.Close())["Close"]]
         ];
 
-    // Built-in helpers: ElementRefInterop.{FocusAsync, BlurAsync, ScrollIntoViewAsync}.
-    private async Task Focus() => await _input.FocusAsync(_js);
-
-    // Hand the ref to your own scoped TS — Width is generated from FocusDemo.ts's `export function width`,
-    // and the ref resolves to the element before it runs.
-    private async Task Measure() => await Width(_box);
+    private async Task Open()
+    {
+        await _dialog.ShowModal();                     // MDN's showModal()
+        var open = await _dialog.Open;                 // MDN's open, read from the live element
+        await _name.Focus();                           // HTMLElement's focus(), which a dialog ref has too
+        var box = await _name.GetBoundingClientRect(); // a DOMRect record
+        await _video.SetCurrentTime(12);               // a write, where the render does not own the value
+        await _video.Play();
+    }
 }
 ```
 
-Focus a built-in element, then hand a ref to a sibling `.ts` that measures it — the ref revives to the
-live DOM node before the function runs:
+- **An operation is a method, an attribute an awaitable read**, named as MDN names them, with no `Async`
+  suffix and no `IJSRuntime` to inject: the ref finds its element's session itself. Each member's doc comment
+  gives its browser support and links to MDN.
+- **Bases come with it.** `IElementRef<out T>` is covariant, so an `ElementRef<HTMLDialogElement>` has
+  `HTMLElement`'s `Focus()` and `Element`'s `ScrollIntoView(…)`, `GetBoundingClientRect()` and `ScrollTop`.
+  An untyped `ElementRef.New()` carries `Element`'s.
+- **Options are MDN's dictionaries, as records; IDL enums are enums:**
+  `ScrollIntoView(new ScrollIntoViewOptions { Behavior = ScrollBehavior.Smooth, Block = ScrollLogicalPosition.Nearest })`.
+- **The render stays in charge.** There is no setter for what the render writes — `Open`, `Id`, a control's
+  `Value` — and nothing that rewrites the tree, the attributes or the content (`innerHTML`, `append`,
+  `setAttribute`). Drive those from state; keep the ref for what only the live node knows or does.
+- **Only members whose values cross the wire are there.** A member that takes or returns a live object (a
+  `Node`, a `MediaStream`) is left out; a ref still hands the element to your own TypeScript for those.
+- **A typed ref on the wrong element throws** where it is put: an `ElementRef<HTMLVideoElement>` on a `Div`.
+- **A member a browser only allows during a click** (`RequestFullscreen()`, an input's `ShowPicker()`) works on
+  WASM, where the handler runs in the click. On the Server host the call reaches the browser after the click
+  has ended, so the browser refuses it and the call throws a `JSException`.
+
+A ref still serializes as `{"__raskRef__":"id"}`, and both clients revive it to the live DOM element, so it
+passes to `IJSRuntime` or to your scoped TypeScript as the element itself:
+
+```csharp
+var width = await Width(_box);   // RefDemo.ts's `export function width(el: HTMLElement | null)`
+```
+
+Focus an input, measure a box, and open a dialog from C#, then measure the box again in a sibling `.ts`:
 
 <!-- demo:js-interop-elementref -->
 
