@@ -46,105 +46,32 @@ internal static partial class ProjectGenerator
         // --pwa) have to be applied to the set the template's conditions are actually evaluated against.
         var batteries = (requested with { Cqrs = true }).Normalized();
 
-        return new ScaffoldResult(
-            TemplateMaterializer.Files(
-                targetDirectory, "wasm-hosted", name, batteries, version, dotnet ?? DotnetTarget.Default,
-                islands,
-                // Two debug targets rather than one: the host under the C# debugger, the browser half in
-                // the browser's.
-                vsCode: VsCodeSetup.WasmHost),
-            WasmHostedNextSteps(name, batteries))
+        var files = TemplateMaterializer.Files(
+            targetDirectory, "wasm-hosted", name, batteries, version, dotnet ?? DotnetTarget.Default,
+            islands,
+            // Two debug targets rather than one: the host under the C# debugger, the browser half in
+            // the browser's.
+            vsCode: VsCodeSetup.WasmHost);
+
+        files = WithProgramCs(files, targetDirectory, ConfiguredProgramCs("", WasmHostedOffSwitches(batteries), "app.Serve();"));
+
+        // The same two the server template names: Rask.Server carries every battery, the endpoint half of remote
+        // dispatch and the host that serves Client/'s bundle; Rask.DevTools is named directly because its build/
+        // hooks are what keep it out of a Release publish. Client/'s own packages are RaskClientPackageReference
+        // items, which never reach this process.
+        return new ScaffoldResult(files, WasmHostedNextSteps(name, batteries))
         {
-            Packages = WasmHostedPackages(batteries),
+            Packages = ["Rask.Server", "Rask.DevTools"],
         };
     }
 
-    /// <summary>The host's package list — the server's, plus the two this lane adds.</summary>
-    /// <remarks>
-    ///     Appended to <see cref="BatteryPackages" /> rather than listed afresh, so the batteries' packages
-    ///     are decided in one place. The order matches the csproj, which emits these last, so
-    ///     <c>rask new</c>'s summary reads as the file does.
-    /// </remarks>
-    private static List<string> WasmHostedPackages(ServerBatteries batteries)
-    {
-        var packages = BatteryPackages(batteries);
-
-        // Serves the browser app in Client/: its build output in Development, its published bundle
-        // otherwise.
-        packages.Add("Rask.Spa.Hosting");
-
-        // The endpoint half. Its counterpart, Rask.Cqrs.Client, is declared as a browser-only reference
-        // so it never reaches this process.
-        packages.Add("Rask.Cqrs.Server");
-
-        return packages;
-    }
-
-    // The wasm-hosted host's package list, one per battery, in the order its csproj emits them.
-    private static List<string> BatteryPackages(ServerBatteries batteries)
-    {
-        // No Rask.Tailwind here: the Tailwind build ships INSIDE Rask.Server (RaskTailwindBuildPack),
-        // so a scaffolded csproj naming it would be a second copy of the same targets, imported twice.
-        //
-        // Rask.Ui IS named, and directly rather than through the meta-package, because a package's
-        // build/ hooks are imported for a DIRECT reference only — and those hooks are what put daisyUI's
-        // plugin next to Styles/app.css and the kit's sheet in wwwroot. It also brings the ~110 Ui*
-        // components, which is a bonus here rather than the reason: the starter page writes daisyUI's
-        // own class names, so it needs the plugin whether or not it ever names a component.
-        //
-        // Rask.DevTools is named directly for the same build/-hooks reason: its targets are what keep the
-        // devtools out of a Release publish, and an app that does not reference the `Rask` meta-package —
-        // which is every scaffolded one — would otherwise never get them.
-        var packages = new List<string> { "Rask.Server", "Rask.Ui", "Rask.DevTools" };
-
-        if (batteries.Cqrs)
-        {
-            packages.Add("Rask.Cqrs");
-
-            // Not a flag of its own. A dispatcher without a cache means every render refetches, and the
-            // first thing anyone building a page over IDispatcher needs is the thing that stops that —
-            // so it arrives wired rather than as something to discover in the docs later.
-            packages.Add("Rask.Query");
-        }
-
-        if (batteries.Data)
-        {
-            packages.Add("Rask.Data");
-            packages.Add("Rask.SQLite.EntityFrameworkCore");
-
-            // Continuous backup. Referenced whenever there's a database: the wiring in Program.cs stays
-            // inert until Rask:Litestream:ReplicaUrl is set, so this costs an unused reference and buys a
-            // one-env-var path from "single copy on one disk" to "the box is disposable".
-            packages.Add("Rask.SQLite.Litestream");
-
-            // Accounts. Paired with the database rather than with a flag, because AppDbContextCs maps
-            // the account tables whenever there is a context — the two have to move together or the
-            // generated `using Rask.Auth;` does not compile.
-            packages.Add("Rask.Auth");
-        }
-
-        packages.AddRange(OnePackageBatteries(batteries));
-        return packages;
-    }
-
-    // The batteries that are exactly one package each, in csproj order.
-    private static IEnumerable<string> OnePackageBatteries(ServerBatteries batteries)
-    {
-        (bool On, string Package)[] each =
-        [
-            (batteries.Outbox, "Rask.Outbox"),
-            (batteries.Jobs, "Rask.Jobs"),
-            (batteries.Mail, "Rask.Mail"),
-            (batteries.Cache, "Rask.Cache"),
-            (batteries.Storage, "Rask.Storage"),
-            (batteries.AnySqliteOps, "Rask.SQLite.Snapshots"),
-            (batteries.Logs, "Rask.Logging"),
-            (batteries.Push, "Rask.WebPush"),
-            (batteries.Ops, "Rask.Dashboard"),
-        ];
-
-        return each.Where(battery => battery.On).Select(battery => battery.Package);
-    }
+    /// <summary>
+    ///     <see cref="OffSwitches" />, less the PWA: here it is the browser app's (<c>host.UsePwa</c> in
+    ///     <c>Client/Program.cs</c>), and <c>Serve()</c> wires no server-side manifest or worker to turn off. A
+    ///     PWA-less app still has no push, so that switch stays.
+    /// </summary>
+    private static List<string> WasmHostedOffSwitches(ServerBatteries batteries) =>
+        [.. OffSwitches(batteries).Select(battery => string.Equals(battery, "Pwa", StringComparison.Ordinal) ? "Push" : battery)];
 
     private static string WasmHostedNextSteps(string name, ServerBatteries batteries)
     {

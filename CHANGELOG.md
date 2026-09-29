@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A wasm-hosted server is `RaskApp.Create(args).Serve()`.** `Serve()` is `Run<App>()` without a
+  server-rendered root: every battery, the CQRS endpoints the browser app dispatches to, the operator console
+  at `/_rask`, and the bundle `Client/` builds into — served by `MapRaskSpa()`, last, as the fallback for
+  every other path. The template's 350-line hand-wired `Program.cs`, its `AppDbContext` and its in-memory push
+  endpoints are gone (`RaskAppDbContext` and the Push battery's `/_rask/push` replace them), a battery it does
+  without is one `app.Configure(c => c.Jobs.Off())` line, and its csproj references `Rask.Server` and
+  `Rask.DevTools` like the server template's — `Rask.Server` now carries `Rask.Cqrs.Server` and
+  `Rask.Spa.Hosting`. The PWA is the browser app's (`host.UsePwa`), so `Serve()` maps no server-side worker.
+  The hand-wired `MapRaskSpa()` host stays documented in `docs/spa.md`. The CQRS wire codec (and RASK053)
+  runs only in a project that builds a browser client from `Client/` — `RaskCqrsCodec` follows `RaskClient` — so a
+  server-rendered app's messages, which never leave the process, can take any shape.
 - **The kit says `Title`, and a control's own text goes in its indexer.** `Heading` is `Title` on every kit
   component that had it — `Ui.Card`, `Ui.Header`, `Ui.Empty`, `Ui.Toast`, `Ui.MenuGroup`, `Ui.MenuRadioGroup`,
   `Ui.MenuSub`, `Ui.NavGroup`, `Ui.FileInput` (and `HeadingLevel` is `TitleLevel`); inside such a component the
