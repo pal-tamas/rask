@@ -507,6 +507,9 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A CQRS message nested two types deep crosses the wire.** The codec generator looked one level into a
+  container type, so `Orders.Returns.Refund` silently got no contract. It now walks every depth, like
+  the island, Blazor and validator generators — all four share one walker.
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
