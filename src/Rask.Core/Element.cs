@@ -156,9 +156,10 @@ public abstract partial class Element : Component
     // (Blazor @ref parity, available on every element).
     /// <summary>
     ///     A stable handle on the rendered DOM node, for the cases that genuinely need one — focusing an
-    ///     input, measuring a box, handing the element to a JS library. Create it once in a field with
-    ///     <c>ElementRef.New()</c>, set it here, and pass it to <c>IJSRuntime</c>; it survives re-renders,
-    ///     and the client resolves it through the <c>data-rask-ref</c> attribute this emits.
+    ///     input, measuring a box, handing the element to a JS library. Create it once in a field
+    ///     (<c>new ElementRef&lt;HTMLInputElement&gt;()</c>, whose MDN members you then call: <c>Focus()</c>), set it
+    ///     here, and it survives re-renders; the client resolves it through the <c>data-rask-ref</c> attribute this
+    ///     emits. A typed ref on an element of another type throws.
     ///     <para>
     ///         It is a way *out* of the render model, so it is not the tool for changing what is on screen:
     ///         anything you write to the DOM by hand is invisible to the diff and is overwritten by the next
@@ -168,7 +169,11 @@ public abstract partial class Element : Component
     public ElementRef? Ref
     {
         get => ElementRefInternal;
-        set => ElementRefInternal = value;
+        set
+        {
+            value?.AttachTo(this);
+            ElementRefInternal = value;
+        }
     }
 
     // Native HTML5 drag-and-drop attribute, available on every element. `Draggable` emits

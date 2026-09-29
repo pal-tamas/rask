@@ -2503,7 +2503,12 @@ input .input .mb-2 .validator
 div .flex .flex-wrap .gap-2 .items-center .mb-3
 button .btn .btn-primary
 button .btn .btn-outline
+button .btn .btn-outline
+button .btn .btn-outline
 div .bg-ui-well .border .p-3 .rounded
+dialog .p-4 .rounded-box
+p .mb-3
+button .btn
 
 === js-interop-jsruntime ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm

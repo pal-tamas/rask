@@ -4660,6 +4660,446 @@
     }
    ]
   },
+  "DOMPoint": {
+   "parent": "DOMPointReadOnly",
+   "abstract": true,
+   "support": {
+    "chrome": "61",
+    "firefox": "31",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPoint",
+   "spec": "https://drafts.csswg.org/geometry/#DOMPoint",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "x",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPoint/x",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-x"
+    },
+    {
+     "kind": "attribute",
+     "name": "y",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPoint/y",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-y"
+    },
+    {
+     "kind": "attribute",
+     "name": "z",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPoint/z",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-z"
+    },
+    {
+     "kind": "attribute",
+     "name": "w",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPoint/w",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-w"
+    }
+   ]
+  },
+  "DOMPointReadOnly": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "61",
+    "firefox": "31",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly",
+   "spec": "https://drafts.csswg.org/geometry/#dompointreadonly",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "x",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/x",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-x"
+    },
+    {
+     "kind": "attribute",
+     "name": "y",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/y",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-y"
+    },
+    {
+     "kind": "attribute",
+     "name": "z",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/z",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-z"
+    },
+    {
+     "kind": "attribute",
+     "name": "w",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/w",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-w"
+    },
+    {
+     "kind": "operation",
+     "name": "matrixTransform",
+     "returns": "DOMPoint",
+     "args": [
+      {
+       "name": "matrix",
+       "type": "DOMMatrixInit",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "61",
+      "firefox": "69",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/matrixTransform",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-matrixtransform"
+    },
+    {
+     "kind": "operation",
+     "name": "toJSON",
+     "returns": "object",
+     "args": [],
+     "support": {
+      "chrome": "61",
+      "firefox": "62",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMPointReadOnly/toJSON",
+     "spec": "https://drafts.csswg.org/geometry/#dom-dompointreadonly-tojson"
+    }
+   ]
+  },
+  "DOMQuad": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "61",
+    "firefox": "31",
+    "safari": "11"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DOMQuad",
+   "spec": "https://drafts.csswg.org/geometry/#domquad",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "p1",
+     "type": "DOMPoint",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMQuad/p1",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domquad-p1"
+    },
+    {
+     "kind": "attribute",
+     "name": "p2",
+     "type": "DOMPoint",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMQuad/p2",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domquad-p2"
+    },
+    {
+     "kind": "attribute",
+     "name": "p3",
+     "type": "DOMPoint",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMQuad/p3",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domquad-p3"
+    },
+    {
+     "kind": "attribute",
+     "name": "p4",
+     "type": "DOMPoint",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMQuad/p4",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domquad-p4"
+    },
+    {
+     "kind": "operation",
+     "name": "getBounds",
+     "returns": "DOMRect",
+     "args": [],
+     "support": {
+      "chrome": "61",
+      "firefox": "62",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMQuad/getBounds",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domquad-getbounds"
+    },
+    {
+     "kind": "operation",
+     "name": "toJSON",
+     "returns": "object",
+     "args": [],
+     "support": {
+      "chrome": "61",
+      "firefox": "62",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMQuad/toJSON",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domquad-tojson"
+    }
+   ]
+  },
+  "DOMRect": {
+   "parent": "DOMRectReadOnly",
+   "abstract": true,
+   "support": {
+    "chrome": "61",
+    "firefox": "27",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRect",
+   "spec": "https://drafts.csswg.org/geometry/#domrect",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "x",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRect/x",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrect-x"
+    },
+    {
+     "kind": "attribute",
+     "name": "y",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRect/y",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrect-y"
+    },
+    {
+     "kind": "attribute",
+     "name": "width",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRect/width",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrect-width"
+    },
+    {
+     "kind": "attribute",
+     "name": "height",
+     "type": "unrestricted double",
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRect/height",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrect-height"
+    }
+   ]
+  },
+  "DOMRectReadOnly": {
+   "parent": null,
+   "abstract": true,
+   "support": {
+    "chrome": "61",
+    "firefox": "31",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly",
+   "spec": "https://drafts.csswg.org/geometry/#domrectreadonly",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "x",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/x",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-x"
+    },
+    {
+     "kind": "attribute",
+     "name": "y",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "61",
+      "firefox": "31",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/y",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-y"
+    },
+    {
+     "kind": "attribute",
+     "name": "width",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/width",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-width"
+    },
+    {
+     "kind": "attribute",
+     "name": "height",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/height",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-height"
+    },
+    {
+     "kind": "attribute",
+     "name": "top",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/top",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-top"
+    },
+    {
+     "kind": "attribute",
+     "name": "right",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/right",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-right"
+    },
+    {
+     "kind": "attribute",
+     "name": "bottom",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/bottom",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-bottom"
+    },
+    {
+     "kind": "attribute",
+     "name": "left",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "2",
+      "firefox": "3",
+      "safari": "4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/left",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-left"
+    },
+    {
+     "kind": "operation",
+     "name": "toJSON",
+     "returns": "object",
+     "args": [],
+     "support": {
+      "chrome": "61",
+      "firefox": "62",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DOMRectReadOnly/toJSON",
+     "spec": "https://drafts.csswg.org/geometry/#dom-domrectreadonly-tojson"
+    }
+   ]
+  },
   "DataTransfer": {
    "parent": null,
    "abstract": true,
@@ -30249,6 +30689,55 @@
     {
      "name": "m42",
      "type": "unrestricted double"
+    }
+   ]
+  },
+  "DOMMatrixInit": {
+   "parent": "DOMMatrix2DInit",
+   "members": [
+    {
+     "name": "m13",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m14",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m23",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m24",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m31",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m32",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m33",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m34",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m43",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "m44",
+     "type": "unrestricted double"
+    },
+    {
+     "name": "is2D",
+     "type": "boolean"
     }
    ]
   },

@@ -138,7 +138,7 @@ dotnet run --project src/Rask.Site
   (unset = no-op, never a required step), taking either handler shape (sync or async) at the
   call site — a plain `Func<…>` still types a template or a selector. It is a STRUCT, which is what keeps
   the setter reachable now the component is the receiver (above). Auto-wrapped to re-render the owning parent.
-  **Refs**: `ElementRef.New()` in a field, pass to `IJSRuntime`. **Context**: `Context.Provide<T>` /
+  **Refs**: `ElementRef<HTMLDialogElement>` in a field carries MDN's members (`await _d.ShowModal()`, generated); untyped `ElementRef.New()` passes to `IJSRuntime`. **Context**: `Context.Provide<T>` /
   `Context.Get<T>`/`Required`/`Has`. Construct components via the **chain**, never `new` outside Core (RASK014).
 
 ## Subsystems → read `docs/`

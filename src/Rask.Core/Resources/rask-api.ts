@@ -14,17 +14,25 @@
 // modules a TypeScript front end can import directly. See ./browser/globals.ts.
 import "./browser/globals.js";
 
-// Element-ref helpers, invoked from C# via ElementRef.FocusAsync/Blur/ScrollIntoView.
-// The JSON reviver resolves an ElementRef arg to the live DOM element, so each receives it.
+// A typed ElementRef's DOM members (generated from MDN into ElementRefMembers): one operation, read or write on the
+// element, by the member's MDN name, which only the generated C# supplies. The JSON reviver has already resolved the
+// ref to the live element. A call on an element no longer on the page does nothing, as focusing a closed dialog's
+// input would; a read or write there is an error the caller hears about.
+type RaskElementMembers = Record<string, unknown>;
+const raskMember = (el: Element | null, name: string, verb: string): RaskElementMembers => {
+    if (!el) throw new Error(`Rask: an element ref's ${verb} of ${name} found no element on the page`);
+    return el as unknown as RaskElementMembers;
+};
 window.__raskEl = window.__raskEl || {
-    focus: (el: HTMLElement | null) => {
-        if (el) el.focus();
+    call: (el: Element | null, name: string, ...args: unknown[]) => {
+        if (!el) return undefined;
+        const fn = (el as unknown as RaskElementMembers)[name];
+        if (typeof fn !== "function") throw new Error(`Rask: <${el.localName}> has no ${name}()`);
+        return (fn as (...a: unknown[]) => unknown).apply(el, args);
     },
-    blur: (el: HTMLElement | null) => {
-        if (el) el.blur();
-    },
-    scrollIntoView: (el: Element | null, opts?: ScrollIntoViewOptions) => {
-        if (el) el.scrollIntoView(opts || {behavior: "smooth", block: "nearest"});
+    get: (el: Element | null, name: string) => raskMember(el, name, "read")[name],
+    set: (el: Element | null, name: string, value: unknown) => {
+        raskMember(el, name, "write")[name] = value;
     }
 };
 

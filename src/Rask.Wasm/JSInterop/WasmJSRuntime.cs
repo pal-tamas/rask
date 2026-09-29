@@ -51,6 +51,7 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
         JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.Browser.RaskBrowserJsonContext.Default);
         JsonSerializerOptions.TypeInfoResolverChain.Add(Browser.RaskWasmBrowserJsonContext.Default);
         JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.ScopedAssets.ScopedScriptJsonContext.Default);
+        JsonSerializerOptions.TypeInfoResolverChain.Add(Rask.Core.RaskDomJsonContext.Default);
 
         // The reflection resolver (RequiresDynamicCode) is only added when the runtime can generate
         // code — i.e. the Mono interpreter. Under a full interp-free AOT publish this branch is

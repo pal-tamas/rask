@@ -4,8 +4,12 @@ using System.Text.Json.Serialization;
 namespace Rask.Core;
 
 /// <summary>JSON shape for <see cref="ElementRef" />: <c>{"__raskRef__":"id"}</c>, matched by the client reviver.</summary>
+// A typed ElementRef<T> takes it too (declared on it as well: the attribute is read off the runtime type only), and
+// writes the same marker, so the client revives either to the element.
 internal sealed class ElementRefJsonConverter : JsonConverter<ElementRef>
 {
+    public override bool CanConvert(Type typeToConvert) => typeof(ElementRef).IsAssignableFrom(typeToConvert);
+
     public override ElementRef Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         string? id = null;
