@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Rask.Core.Live;
 
@@ -14,6 +15,15 @@ public abstract partial class Element : Component
     protected override string? TagName => RaskTags.Names[TagId];
 
     protected override bool SelfClosing => RaskTags.Void[TagId];
+
+    // A tag this assembly generates from MDN is sealed and has no behaviour of its own — its handlers belong to
+    // the component that rendered it — so it takes no render handle. The few Core elements that DO change their
+    // own state (NavLink, and the bound form, input, select, textarea) say so; an element declared anywhere
+    // else, the kit's included, keeps the default. Asked by type, not TagId: a type several tags share (td/th)
+    // is stamped with its tag only after the handle is offered.
+    private protected override bool OwnsRenderHandle => GetType().Assembly != CoreAssembly;
+
+    private static readonly System.Reflection.Assembly CoreAssembly = typeof(Element).Assembly;
 
     // An element's children are walked at serialization time (RenderChildren), never embedded in its
     // cached render result, so they never invalidate it.
@@ -459,6 +469,22 @@ public abstract partial class Element : Component
         }
     }
 
+    // data-rask-key for the element's own Key. The documented keys — int, long, Guid — format into the builder
+    // in place, as KeyString spells them (invariant digits, Guid "D") and never needing encoding; the string
+    // is built only for a frame writer, which keeps the value to diff against.
+    private void AppendOwnKey(StringBuilder sb)
+    {
+        if (Key is int or long or Guid && FrameSinkScope.Current is null)
+        {
+            Span<char> buffer = stackalloc char[36]; // a Guid "D" is 36; long.MinValue is 20
+            _ = ((ISpanFormattable)Key).TryFormat(buffer, out var written, default, CultureInfo.InvariantCulture);
+            sb.Append(" data-rask-key=\"").Append(buffer[..written]).Append('"');
+            return;
+        }
+
+        AppendAttr(sb, "data-", "rask-key", KeyString);
+    }
+
     private void WriteDataGroup(StringBuilder sb)
     {
         // Effective keyed-list identity: this element's own Key, else a key forwarded from a
@@ -466,18 +492,22 @@ public abstract partial class Element : Component
         // adopts it). Emitted in the data-* group below so FrameDiffer.ExtractRaskKey finds it
         // among the leading attribute frames, same as a Data["rask-key"] entry.
         var forwarded = KeyForwardScope.Consume();
-        var key = KeyString ?? forwarded;
+        var hasKey = Key is not null || forwarded is not null;
 
         if (Data is not null)
         {
             // A literal Data["rask-key"] is superseded by an effective Key to avoid a duplicate
             // attribute — Key is the canonical API; Data stays for back-compat.
-            AppendPrefixedAttrs(sb, "data-", Data, key is not null ? "rask-key" : null);
+            AppendPrefixedAttrs(sb, "data-", Data, hasKey ? "rask-key" : null);
         }
 
-        if (key is not null)
+        if (Key is not null)
         {
-            AppendAttr(sb, "data-", "rask-key", key);
+            AppendOwnKey(sb);
+        }
+        else if (forwarded is not null)
+        {
+            AppendAttr(sb, "data-", "rask-key", forwarded);
         }
 
         // Element ref handle (JS interop): a data-* attribute, emitted alongside rask-key so it
@@ -485,6 +515,7 @@ public abstract partial class Element : Component
         if (Ref is { } elementRef)
         {
             AppendAttr(sb, "data-", "rask-ref", elementRef.Id);
+            elementRef.RenderedIn(LiveRenderContext.CurrentSync?.Handle);
         }
 
         // Drag-and-drop: a universal attribute (draggable) plus the data-rask-on-drag* handler

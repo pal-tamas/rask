@@ -10,6 +10,20 @@ namespace Rask.Server.Tests.WebSockets;
 // bar until the client's hard-timeout backstop. These tests pin that protocol.
 public class PendingAckTests
 {
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(42L)]
+    [InlineData(long.MaxValue)]
+    [InlineData(long.MinValue)]
+    public void An_ack_is_written_as_the_json_the_client_parses(long seq)
+    {
+        Span<byte> buffer = stackalloc byte[64];
+
+        var written = RaskEndpointExtensions.WriteHandlerAck(buffer, seq);
+
+        Assert.Equal($$"""{"type":"ack","seq":{{seq}}}""", System.Text.Encoding.UTF8.GetString(buffer[..written]));
+    }
+
     [Fact]
     public async Task A_deduped_handler_with_a_seq_emits_an_ack_without_a_render_frame()
     {

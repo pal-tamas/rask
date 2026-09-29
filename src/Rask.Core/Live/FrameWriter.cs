@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.InteropServices;
 
 namespace Rask.Core.Live;
 
@@ -11,7 +12,11 @@ namespace Rask.Core.Live;
 /// </summary>
 public sealed class FrameWriter : IDisposable
 {
+    // The pieces of the text run still open on frame _runFrame (-1: none). Every write and every read of
+    // the frames ends the run first, so nothing ever sees a half-joined text.
+    private readonly List<string> _runParts = [];
     private RenderFrame[] _buffer;
+    private int _runFrame = -1;
 
     /// <summary>
     ///     The default starts small and lets <c>Reserve</c>'s doubling find the page's real size.
@@ -35,10 +40,21 @@ public sealed class FrameWriter : IDisposable
     ///     View over the emitted frames. Stable for the duration of one render
     ///     — invalidated by the next <c>Open*</c>/<c>Reset</c> call that triggers a resize.
     /// </summary>
-    public ReadOnlySpan<RenderFrame> WrittenSpan => _buffer.AsSpan(0, Count);
+    public ReadOnlySpan<RenderFrame> WrittenSpan
+    {
+        get
+        {
+            EndTextRun();
+            return _buffer.AsSpan(0, Count);
+        }
+    }
 
     /// <summary>Reset the writer for the next render. Re-uses the underlying buffer.</summary>
-    public void Reset() => Count = 0;
+    public void Reset()
+    {
+        DropTextRun();
+        Count = 0;
+    }
 
     /// <summary>
     ///     Open a regular HTML element. Returns the frame index so the caller
@@ -63,6 +79,7 @@ public sealed class FrameWriter : IDisposable
 
     public void CloseElement(int openIndex, int htmlEnd)
     {
+        EndTextRun();
         _buffer[openIndex].SubtreeLength = Count - openIndex;
         _buffer[openIndex].HtmlEnd = htmlEnd;
     }
@@ -116,7 +133,15 @@ public sealed class FrameWriter : IDisposable
             ref var prev = ref _buffer[Count - 1];
             if (prev.Kind == RenderFrameKind.Text && prev.HtmlEnd == htmlStart)
             {
-                prev.Name = (prev.Name ?? string.Empty) + (value ?? string.Empty);
+                // Joined once when the run ends (EndTextRun), not re-concatenated per piece — a run of n
+                // pieces would otherwise build n-1 ever-longer strings.
+                if (_runFrame != Count - 1)
+                {
+                    _runFrame = Count - 1;
+                    _runParts.Add(prev.Name ?? string.Empty);
+                }
+
+                _runParts.Add(value ?? string.Empty);
                 prev.HtmlEnd = htmlEnd;
                 return;
             }
@@ -176,12 +201,31 @@ public sealed class FrameWriter : IDisposable
             ArrayPool<RenderFrame>.Shared.Return(_buffer, true);
         }
 
+        DropTextRun();
         _buffer = [];
         Count = 0;
     }
 
+    private void EndTextRun()
+    {
+        if (_runFrame < 0)
+        {
+            return;
+        }
+
+        _buffer[_runFrame].Name = string.Concat(CollectionsMarshal.AsSpan(_runParts));
+        DropTextRun();
+    }
+
+    private void DropTextRun()
+    {
+        _runFrame = -1;
+        _runParts.Clear();
+    }
+
     private int Reserve()
     {
+        EndTextRun();
         if (Count == _buffer.Length)
         {
             // Math.Max keeps the doubling honest from a zero-length buffer, which is what a disposed

@@ -49,6 +49,32 @@ them until tagged releases begin.
   `[Fact]` + `Assert.SkipUnless(…)`. Test calls that take a token pass `TestContext.Current.CancellationToken`
   (xUnit1051), except where the missing token is what the test proves. `xunit.runner.json` keeps the same
   parallelism, and assemblies that ran serially use `[assembly: Parallelization(Mode = ParallelMode.None)]`.
+- **A live session holds about half the memory.** Every plain tag on a mounted page (`Tr`, `Td`, `Button`, …)
+  carried a ~260 B live-state object it never used — a render handle offered to every child, and two lifecycle
+  flags. A tag generated from MDN has no state, lifecycle or handler of its own, so it now takes none of that;
+  `NavLink` and the bound `Input`/`Select`/`TextArea`/`Form` keep theirs, as does any element declared outside
+  Rask. And a component whose subtree is cached as a frame snapshot no longer keeps the tags its last render
+  built alongside it; a later change builds fresh ones. Per session (`session-footprint`, unconnected /
+  connected): a 200-row table 1.20 MB → 0.50 MB / 1.63 MB → 0.86 MB, a 1000-row one 6.26 MB → 2.80 MB /
+  8.13 MB → 4.23 MB — 892 → 2,127 sessions per GiB on the 200-row page. Rendering allocates less too:
+  `LiveRenderRoundTrip.RenderOnce` 97 KB → 65 KB, `SelectRender` ~6.8 KB → ~4.0 KB.
+
+- **Rendering allocates less.** Text or an attribute that needs encoding — an accented letter, an apostrophe,
+  `&`, a style's `;` — is encoded through a stack buffer instead of a new string per value per render
+  (`RenderEncodedText` 197.5 KB → 113.1 KB, −43%); a `RaskUrl.Trusted` href/src is written without cutting its
+  marker off (`RenderTrustedUrls` −32%); a server render's `int`/`long`/`Guid` `Key` is formatted in place
+  (ints under 300 were already free); a full-HTML live frame is encoded from the pooled page buffer, not a
+  page-sized string; a handler ack is formatted straight to UTF-8; and a WASM event no longer copies the frame
+  it just sent. Adjacent text children (`Div["Score: ", n, " of ", total]`) are joined once per live render
+  rather than piece by piece (`RenderTextRunsFramed` −58%); a children list mixing literals with a projection
+  no longer builds a `List` and copies it (`BuildMixedChildren` −13%); and an element's event handlers live in a
+  small array in emit order instead of a dictionary probed for ~100 event names. A connected socket no longer
+  holds a 16 KB reassembly buffer it only needs for a message split over frames (made on the first one, and let
+  go after one past 64 KB instead of staying up to `MaxInboundFrameBytes`), and its receive buffer is pooled;
+  the send timeout reuses one token source per connection instead of a linked source and timer per send
+  (`SendOutOfBand` 144 B → 0 B). `Context.Provide` no longer writes an `AsyncLocal` per provider per render, so context answers
+  only inside the render walk — where `Context.Get` is documented to be called: a task started in `Render()`
+  that reads context later sees none, so read the value in `Render()` and pass it in.
 - **Diagnostics speak one word for the chain and say what to do.** "Builder chain", "builder entry" and
   "required factory parameter" are gone from RASK001/002/036–044 — it is the *chain*, a *chain entry*, a
   *chain step* — and RASK028, RASK058 and the reasons behind RASK051/052/053/057/067/068/094 now end in a

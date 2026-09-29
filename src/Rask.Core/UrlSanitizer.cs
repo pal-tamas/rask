@@ -3,7 +3,7 @@ namespace Rask.Core;
 /// <summary>
 ///     Neutralizes dangerous URL schemes (<c>javascript:</c>, <c>vbscript:</c>, and — outside
 ///     media attributes — <c>data:</c>) before they reach <c>href</c>/<c>src</c>/<c>action</c>/etc.
-///     Output encoding alone (<see cref="HtmlSerializer.AppendEncoded" />) does not stop these:
+///     Output encoding alone (<see cref="HtmlSerializer.AppendEncoded(System.Text.StringBuilder, string)" />) does not stop these:
 ///     <c>&lt;a href="javascript:..."&gt;</c> executes on click. Detection mirrors the WHATWG URL
 ///     parser's leniencies (leading C0/space stripped, embedded tab/newline/control removed,
 ///     scheme compared case-insensitively) so obfuscation like <c>java&#9;script:</c> is caught.

@@ -98,6 +98,17 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
             Div["Showing ", new[] { "a", "b" }.Select(s => CatalogBadge.Key(s).Label(s)), " of ", 2].ToHtml());
 
     [Fact]
+    public void A_mixed_list_longer_than_its_first_buffer_keeps_every_child_in_order()
+    {
+        var numbers = Enumerable.Range(0, 40).ToArray();
+
+        var html = Div["[", numbers.Select(n => Span.Key(n)[n]), "]"].ToHtml();
+
+        var expected = "<div>[" + string.Concat(numbers.Select(n => $"<span data-rask-key=\"{n}\">{n}</span>")) + "]</div>";
+        Assert.Equal(expected, html);
+    }
+
+    [Fact]
     public void Several_sequences_side_by_side_without_Concat()
     {
         IEnumerable<Component?> head = [Span["h"]];

@@ -197,6 +197,9 @@ Read APIs (call inside `Render()`):
 | `Context.Required<T>()` | nearest value, or throws |
 | `Context.Has<T>()` | `true` if a provider exists |
 
+Context answers only while `Render()` runs. A task you start there that reads it later finds no provider,
+so read the value in `Render()` and hand it to the task.
+
 **Nearest provider wins**, matched by optional `Name:` plus `IsAssignableFrom` — so you
 can **provide a concrete type and consume by an interface**. A provider supplying `null`
 still resolves (it is a real provider of `null`).

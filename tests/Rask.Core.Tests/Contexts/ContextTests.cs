@@ -214,6 +214,42 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
         public string Hello() => "hi";
     }
 
+    [Fact]
+    public void A_provider_is_gone_once_the_render_walk_ends()
+    {
+        var sp = RenderHarness.EmptyServices();
+        var root = new StubComponent(() => Context.Provide<Theme>(new Theme("light"))[new ThemeConsumer()]);
+
+        root.RenderAsLiveRoot(sp);
+
+        Assert.Null(Context.Get<Theme>());
+    }
+
+    [Fact]
+    public async Task A_task_started_during_the_walk_does_not_see_the_provider()
+    {
+        var sp = RenderHarness.EmptyServices();
+        var reader = new BackgroundThemeReader();
+        var root = new StubComponent(() => Context.Provide<Theme>(new Theme("light"))[reader]);
+
+        root.RenderAsLiveRoot(sp);
+        var seen = await reader.Read!;
+
+        Assert.Null(seen);
+    }
+
+    // Context answers inside Render only: a value a background task needs is read in Render and passed in.
+    private sealed class BackgroundThemeReader : Component
+    {
+        public Task<Theme?>? Read;
+
+        protected override Component? Render()
+        {
+            Read = Task.Run(() => Context.Get<Theme>());
+            return Span["x"];
+        }
+    }
+
     private sealed class ThemeConsumer : Component
     {
         public string? LastSeen;
