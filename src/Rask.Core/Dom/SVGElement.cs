@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Rask.Core.Components;
+namespace Rask.Core;
 
 // What MDN's SVGElement (generated) keeps inline: the presentation attributes nearly every icon and chart sets.
 // The generated rest of SVG's globals live on a side object an element allocates only when it names one; these

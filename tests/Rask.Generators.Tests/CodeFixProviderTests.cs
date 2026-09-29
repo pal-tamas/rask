@@ -173,7 +173,7 @@ public class CodeFixProviderTests
         // An element type is named after its DOM interface, and its entry after its tag.
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
-            Caller("var x = new Rask.Core.Components.HTMLDivElement();"));
+            Caller("var x = new Rask.Core.HTMLDivElement();"));
 
         Assert.Contains("var x = Div;", fixhed);
     }
@@ -184,7 +184,7 @@ public class CodeFixProviderTests
         // HTMLElement is em, section, nav and thirty more: there is no one entry to rewrite it to.
         var offered = await CodeFixHarness.IsAnalyzerFixOfferedAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
-            Caller("var x = new Rask.Core.Components.HTMLElement();"));
+            Caller("var x = new Rask.Core.HTMLElement();"));
 
         Assert.False(offered);
     }

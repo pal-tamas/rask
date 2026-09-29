@@ -46,7 +46,6 @@ internal static class DomRefEmitter
         var sb = new StringBuilder();
         DomValueTypes.Header(sb);
         sb.AppendLine("using System.Threading.Tasks;");
-        sb.AppendLine("using Rask.Core.Components;");
         sb.AppendLine();
         sb.AppendLine("namespace Rask.Core;");
         sb.AppendLine();

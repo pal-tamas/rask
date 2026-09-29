@@ -137,6 +137,10 @@ them until tagged releases begin.
     render in MDN's IDL order.
   - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
     stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
+- **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
+  names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
+  `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,
+  `NavLink`, `ErrorBoundary`…) stay in `Rask.Core.Components`.
 - **BREAKING: element refs carry the element's MDN members, generated from MDN.** Type a ref to the element's
   MDN interface and call its DOM members from C#, with no `IJSRuntime` and no `Async` suffix:
   ```csharp

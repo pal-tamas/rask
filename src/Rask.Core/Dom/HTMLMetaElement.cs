@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Rask.Core.Components;
+namespace Rask.Core;
 
 // What MDN's HTMLMetaElement (generated) cannot carry: Open Graph's `property`, which comes from RDFa, not
 // HTML, so neither the spec nor MDN lists it — and a page's link previews depend on it.

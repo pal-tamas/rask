@@ -55,7 +55,7 @@ public sealed class GroupedEntryTests
             """);
 
         Assert.Empty(Errors(compilation));
-        AssertBinds(compilation, "Button[\"plain\"]", "Rask.Core.Components.HTMLButtonElement");
+        AssertBinds(compilation, "Button[\"plain\"]", "Rask.Core.HTMLButtonElement");
     }
 
     [Fact]
