@@ -52,7 +52,7 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         description: "The root component renders into <body>: Rask emits the doctype, <html>, <head> and <body> around "
                      + "whatever it returns. Building them again nests a second document inside the body, which the "
                      + "parser unwraps — the page keeps rendering and quietly loses the nested tags' attributes. Return "
-                     + "the body content (typically Router()); put head contributions in a HeadAssets override, the "
+                     + "the body content (typically Router); put head contributions in a HeadAssets override, the "
                      + "document language in HtmlLang, its writing direction in HtmlDir, the body class in "
                      + "BodyClass, and anything else in a "
                      + "Shell(head, body) override. Do not add the runtime <script> — it is appended to <body> "

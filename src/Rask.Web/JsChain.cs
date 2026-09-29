@@ -24,11 +24,11 @@ namespace Rask.Web;
 /// </remarks>
 internal sealed class JsChain
 {
-    private const char StepRoot = '\0';
-    private const char StepRead = 'g';
-    private const char StepCall = 'c';
-    private const char StepWrite = 's';
-    private const char StepNew = 'n';
+    internal const char StepRoot = '\0';
+    internal const char StepRead = 'g';
+    internal const char StepCall = 'c';
+    internal const char StepWrite = 's';
+    internal const char StepNew = 'n';
 
     // What JSInterop's InvokeAsync<T> asks of a result type, so the trimmer keeps it deserializable.
     private const DynamicallyAccessedMemberTypes Json =
@@ -39,11 +39,14 @@ internal sealed class JsChain
     private readonly string? _name;
     private readonly object?[]? _args;
 
-    // Set on a root only: a kept object and the runtime it lives in.
+    // Set on a root only: a kept object and the runtime it lives in, or, kept from a fake, the path it stands for.
     private readonly IJSObjectReference? _handle;
     private readonly IJSRuntime? _runtime;
+    private readonly IReadOnlyList<Step>? _faked;
 
-    private JsChain(JsChain? parent, char kind, string? name, object?[]? args, IJSObjectReference? handle = null, IJSRuntime? runtime = null)
+    private JsChain(
+        JsChain? parent, char kind, string? name, object?[]? args, IJSObjectReference? handle = null, IJSRuntime? runtime = null,
+        IReadOnlyList<Step>? faked = null)
     {
         _parent = parent;
         _kind = kind;
@@ -51,12 +54,21 @@ internal sealed class JsChain
         _args = args;
         _handle = handle;
         _runtime = runtime;
+        _faked = faked;
+    }
+
+    // One step of a path, as a fake matches it: `matchMedia("(min-width: 900px)")` is not `matchMedia("print")`.
+    internal readonly record struct Step(char Kind, string Name, object?[]? Args)
+    {
+        public bool Matches(Step other) =>
+            Kind == other.Kind && string.Equals(Name, other.Name, StringComparison.Ordinal)
+            && (Args ?? []).SequenceEqual(other.Args ?? []);
     }
 
     internal static JsChain Window { get; } = new(null, StepRoot, null, null);
 
     // A chain that is an object the browser holds for us rather than a path to one.
-    internal bool IsKept => _kind == StepRoot && _handle is not null;
+    internal bool IsKept => _kind == StepRoot && (_handle is not null || _faked is not null);
 
     internal JsChain Get(string name) => new(this, StepRead, name, null);
 
@@ -87,6 +99,11 @@ internal sealed class JsChain
     // Runs the chain and keeps what it ends at, a handle to an object the browser holds until it is disposed of.
     internal async ValueTask<JsChain> Keep()
     {
+        if (Faked(out _, out _))
+        {
+            return new JsChain(null, StepRoot, null, null, faked: Path());
+        }
+
         var runtime = Runtime;
         var handle = await runtime.InvokeAsync<IJSObjectReference>("__raskWeb.run", Arguments()).ConfigureAwait(false);
         return new JsChain(null, StepRoot, null, null, handle, runtime);
@@ -96,7 +113,7 @@ internal sealed class JsChain
 
     // Whether the browser has what the chain ends at.
     internal ValueTask<bool> Exists() =>
-        _kind == StepRoot ? ValueTask.FromResult(true) : Runtime.InvokeAsync<bool>("__raskWeb.has", Arguments());
+        _kind == StepRoot || Faked(out _, out _) ? ValueTask.FromResult(true) : Runtime.InvokeAsync<bool>("__raskWeb.has", Arguments());
 
     internal ValueTask Release() => _handle?.DisposeAsync() ?? default;
 
@@ -106,6 +123,13 @@ internal sealed class JsChain
     internal async ValueTask<IAsyncDisposable> Listen<TEvent>(
         string type, string fields, Delegate handler, Func<JsonElement, TEvent> read, Func<TEvent, Task> invoke)
     {
+        if (Faked(out var fake, out _))
+        {
+            var listener = new WebFakes.Listener(type, Owner(handler), e => invoke((TEvent)e));
+            fake.Listeners.Add(listener);
+            return new FakeListening(fake, listener);
+        }
+
         var callback = ScopedScript.Handler(Owner(handler), args => invoke(read(First(args))));
         var runtime = Runtime;
         var (steps, extras) = Serialize();
@@ -171,11 +195,46 @@ internal sealed class JsChain
 
     private async ValueTask<T> Run<[DynamicallyAccessedMembers(Json)] T>()
     {
+        if (Faked(out var fake, out var rest))
+        {
+            return fake.Answer<T>(rest);
+        }
+
         var result = await Runtime.InvokeAsync<JsonElement>("__raskWeb.run", Arguments()).ConfigureAwait(false);
         return Value<T>(result);
     }
 
-    private ValueTask Run() => Runtime.InvokeVoidAsync("__raskWeb.run", Arguments());
+    private ValueTask Run()
+    {
+        if (Faked(out var fake, out var rest))
+        {
+            fake.Answer<object>(rest);
+            return default;
+        }
+
+        return Runtime.InvokeVoidAsync("__raskWeb.run", Arguments());
+    }
+
+    // The fake standing in for where this chain goes, if a test set one up.
+    private bool Faked(out WebFakes.Entry fake, out IReadOnlyList<Step> rest)
+    {
+        fake = null!;
+        rest = [];
+        return WebFakes.Any && WebFakes.Find(Path(), out fake, out rest);
+    }
+
+    // The whole path from the window, a fake-kept object's included.
+    internal IReadOnlyList<Step> Path()
+    {
+        var steps = new List<Step>();
+        for (var c = this; c._kind != StepRoot; c = c._parent!)
+        {
+            steps.Add(new Step(c._kind, c._name!, c._args));
+        }
+
+        steps.Reverse();
+        return Start._faked is { } kept ? [.. kept, .. steps] : steps;
+    }
 
     // [root, steps, …the arguments the steps name by position].
     private object?[] Arguments()
@@ -285,6 +344,16 @@ internal sealed class JsChain
     private static JsonTypeInfo<T> TypeInfo<[DynamicallyAccessedMembers(Json)] T>() =>
         (JsonTypeInfo<T>)(RaskWebJsonContext.Default.GetTypeInfo(typeof(T))
                           ?? throw new NotSupportedException($"{typeof(T)} has no JSON metadata in Rask.Web."));
+
+    // A subscription to a fake: disposing of it stops the fake's Raise reaching the handler.
+    private sealed class FakeListening(WebFakes.Entry fake, WebFakes.Listener listener) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            fake.Listeners.Remove(listener);
+            return default;
+        }
+    }
 
     // A subscription: disposing of it removes the listener in the browser and drops the handler here.
     private sealed class Listening(IJSRuntime runtime, int id, ScopedScript.ScriptCallback callback) : IAsyncDisposable

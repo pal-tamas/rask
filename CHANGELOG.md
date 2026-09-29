@@ -15,6 +15,13 @@ them until tagged releases begin.
   gates hold every change to it. Large types are split in two steps: partial files by responsibility, then an
   internal type where the seam is worth testing alone.
 
+- **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
+  is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
+  and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are
+  written as the chain entries they are everywhere in the docs, `llms.txt` and the runtime's own errors
+  ("start the app with RaskApp.Create(args).Run<App>()"). The cheatsheet and the authentication guide lead
+  with `RaskApp` (`app.Configure(c => c.Auth.Off())`) and keep the hand-wired `AddRask…` lines as the
+  alternative they are.
 - **Toasts are built in.** `Toast.Success("Saved")` — or `Info`, `Warning`, `Error` — shows a toast from anywhere,
   with nothing injected and nothing mounted: the host draws it in the UI kit's look, or a small look of Rask's own
   with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:
@@ -255,6 +262,9 @@ them until tagged releases begin.
   - An object's events are `On{Event}` subscriptions (`await Window.MatchMedia(q).OnChange(e => _wide = e.Matches)`,
     `await Window.OnOnline(() => …)`), their payload MDN's event type, and a method's callback is a C# handler
     (`await Navigator.Geolocation.GetCurrentPosition(p => …)`); either runs in its component's order and re-renders it.
+  - Any web object is faked in a test with `Fake()` — `using var clipboard = Navigator.Clipboard.Fake();`,
+    `clipboard.Returns(c => c.ReadText(), "pasted")`, `clipboard.Calls`, `Raise("change", e)` — for the test's own flow;
+    nothing reaches a browser.
   - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
     members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref

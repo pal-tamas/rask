@@ -222,7 +222,10 @@ internal static class WebEmitter
         sb.AppendLine();
         sb.AppendLine("    /// <summary>Whether this browser has it.</summary>");
         sb.AppendLine("    public static ValueTask<bool> IsSupported => Instance.IsSupported;");
-        var seen = new HashSet<string>(StringComparer.Ordinal) { "IsSupported" };
+        sb.AppendLine();
+        sb.AppendLine("    /// <summary>A test's stand-in for it, for the rest of the test's flow, until disposed of.</summary>");
+        sb.Append("    public static global::Rask.Web.WebFake<").Append(TypesNs).Append(type).AppendLine("> Fake() => Instance.Fake();");
+        var seen = new HashSet<string>(StringComparer.Ordinal) { "IsSupported", "Fake" };
         for (var t = type; t is not null; t = Base(model.Interfaces, model.ProxyNames, t))
         {
             foreach (var m in model.Members[t].Where(m => seen.Add(m.Signature)))
