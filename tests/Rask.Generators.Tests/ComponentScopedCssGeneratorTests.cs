@@ -66,6 +66,44 @@ public class ComponentScopedCssGeneratorTests
     }
 
     [Fact]
+    public void An_orphan_CSS_file_is_reported_at_the_file_itself()
+    {
+        const string source = """
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component? Render() => this;
+                              }
+                              """;
+
+        var run = Run(
+            new[] { ("/proj/Counter.cs", source) },
+            new[] { ("/proj/Conter.css", ".typo { color: red; }") });
+
+        var orphans = run.Diagnostics.Where(d => d.Id == "RASK015").ToList();
+        Assert.NotEmpty(orphans);
+        Assert.All(orphans, d => Assert.Equal("/proj/Conter.css", d.Location.GetLineSpan().Path));
+    }
+
+    [Fact]
+    public void An_empty_orphan_CSS_file_is_still_reported_as_RASK015()
+    {
+        const string source = """
+                              namespace Foo;
+                              public sealed class Counter : Rask.Core.Component
+                              {
+                                  protected override Rask.Core.Component? Render() => this;
+                              }
+                              """;
+
+        var run = Run(
+            new[] { ("/proj/Counter.cs", source) },
+            new[] { ("/proj/Conter.css", "") });
+
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK015");
+    }
+
+    [Fact]
     public void Quotes_in_the_CSS_content_are_escaped()
     {
         const string source = """
