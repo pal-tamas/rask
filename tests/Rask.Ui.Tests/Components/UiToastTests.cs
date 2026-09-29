@@ -69,7 +69,7 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_heading_puts_the_message_on_a_second_line()
     {
-        var html = Ui.Toast.Message("Three files were skipped.").Heading("Upload finished").ToHtml();
+        var html = Ui.Toast.Message("Three files were skipped.").Title("Upload finished").ToHtml();
 
         Assert.Contains("Upload finished", html, StringComparison.Ordinal);
         Assert.Contains("Three files were skipped.", html, StringComparison.Ordinal);

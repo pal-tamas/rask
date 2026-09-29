@@ -9,8 +9,6 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiStep : Component
 {
-    public new required string Text { get; set; }
-
     public Ui.Tone? Tone { get; set; }
 
     public string? Class { get; set; }
@@ -20,5 +18,5 @@ public sealed partial class UiStep : Component
         Li.Class(UiClass.Compose(
             "step",
             Tone is { } tone ? UiClassNames.StepTone(tone) : "",
-            Class))[Text];
+            Class))[Children ?? []];
 }

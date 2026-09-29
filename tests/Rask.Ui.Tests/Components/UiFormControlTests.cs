@@ -51,13 +51,13 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     [InlineData(Ui.Tone.Primary, "checkbox-primary")]
     [InlineData(Ui.Tone.Success, "checkbox-success")]
     public void A_checkbox_takes_a_tone(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Checkbox.Value(false).Text("Remember me").Tone(tone).ToHtml());
+        Assert.Contains(expected, Ui.Checkbox.Value(false).Tone(tone)["Remember me"].ToHtml());
 
     [Theory]
     [InlineData(Ui.Tone.Primary, "toggle-primary")]
     [InlineData(Ui.Tone.Warning, "toggle-warning")]
     public void A_toggle_takes_a_tone(Ui.Tone tone, string expected) =>
-        Assert.Contains(expected, Ui.Toggle.Value(false).Text("Email alerts").Tone(tone).ToHtml());
+        Assert.Contains(expected, Ui.Toggle.Value(false).Tone(tone)["Email alerts"].ToHtml());
 
     [Theory]
     [InlineData(Ui.Tone.Accent, "radio-accent")]
@@ -86,8 +86,8 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         // reach the markup as `checked`.
         var html = kind switch
         {
-            "checkbox" => Ui.Checkbox.Value(true).Text("Remember").ToHtml(),
-            "toggle" => Ui.Toggle.Value(true).Text("Alerts").ToHtml(),
+            "checkbox" => Ui.Checkbox.Value(true)["Remember"].ToHtml(),
+            "toggle" => Ui.Toggle.Value(true)["Alerts"].ToHtml(),
             _ => Ui.Radio.Value(true).Text("Standard").Group("shipping").ToHtml(),
         };
 
@@ -102,8 +102,8 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     {
         var html = kind switch
         {
-            "checkbox" => Ui.Checkbox.Value(false).Text("Remember").ToHtml(),
-            "toggle" => Ui.Toggle.Value(false).Text("Alerts").ToHtml(),
+            "checkbox" => Ui.Checkbox.Value(false)["Remember"].ToHtml(),
+            "toggle" => Ui.Toggle.Value(false)["Alerts"].ToHtml(),
             _ => Ui.Radio.Value(false).Text("Standard").Group("shipping").ToHtml(),
         };
 
@@ -168,7 +168,7 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     {
         // On a phone a 16px box on its own is the difference between a control and a dare, so the label
         // has to be part of what you can press.
-        var html = Ui.Checkbox.Value(false).Text("Remember me").ToHtml();
+        var html = Ui.Checkbox.Value(false)["Remember me"].ToHtml();
 
         Assert.StartsWith("<label", html, StringComparison.Ordinal);
         Assert.Contains("Remember me", html);

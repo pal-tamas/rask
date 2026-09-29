@@ -118,7 +118,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
 
         return
         [
-            Ui.Header.Heading("New product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Header.Title("New product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             Ui.Card[
                 save.IsError ? Ui.Alert.Tone(Ui.Tone.Error)["Something went wrong — please try again."] : null,
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
@@ -129,7 +129,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock).Text("In stock"),
+                    Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
                     Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save"]
                 ]
             ]
@@ -200,7 +200,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
         if (product.Data is not { } loaded)
         {
             return Ui.Alert.Tone(Ui.Tone.Warning)[
-                "Product not found. ", Ui.Link.Href(Routes.ProductsPage()).Text("Back to the list"), "."
+                "Product not found. ", Ui.Link.Href(Routes.ProductsPage())["Back to the list"], "."
             ];
         }
 
@@ -213,7 +213,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
 
         return
         [
-            Ui.Header.Heading("Edit product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Header.Title("Edit product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             Ui.Card[
                 save.Error switch
                 {
@@ -231,7 +231,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
-                    Ui.Checkbox.Bind(() => _model.InStock).Text("In stock"),
+                    Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
                     Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save changes"]
                 ]
             ]
@@ -327,7 +327,7 @@ public sealed partial class ProductsPage : Component
 
         return
         [
-        Ui.Header.Heading(count.Data is { } n ? $"Products ({n})" : "Products")
+        Ui.Header.Title(count.Data is { } n ? $"Products ({n})" : "Products")
             .Actions(Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]),
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(true),

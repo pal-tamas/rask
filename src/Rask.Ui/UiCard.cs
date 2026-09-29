@@ -13,14 +13,15 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiCard : Component
 {
-    // Not `Title`: that name is the <title> tag's builder entry, inherited from Component.
-    public string? Heading { get; set; }
+    /// <summary>The card's title, drawn as a heading.</summary>
+    /// <remarks>Hides the inherited <c>Title</c> tag entry inside this component; <c>Markup.Title</c> still reaches the tag.</remarks>
+    public new string? Title { get; set; }
 
     /// <summary>
     ///     The heading's level in the page's outline, 1 to 6. <c>&lt;h2&gt;</c> unless this says otherwise — a card
     ///     usually sits under the page's own heading, and one nested under a section heading is a level deeper.
     /// </summary>
-    public int? HeadingLevel { get; set; }
+    public int? TitleLevel { get; set; }
 
     public Component? Action { get; set; }
 
@@ -48,7 +49,7 @@ public sealed partial class UiCard : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        Component? heading = Heading is null ? null : global::Rask.UiHeading.Element(HeadingLevel ?? 2)(UiStyles.Heading)[Heading];
+        Component? heading = Title is null ? null : global::Rask.UiHeading.Element(TitleLevel ?? 2)(UiStyles.Heading)[Title];
         Component? title = Icon is { } icon
             ? Div.Class("flex min-w-0 items-center gap-2")[
                 Ui.Icon.Name(icon).Class("size-5 shrink-0 opacity-60"),

@@ -35,7 +35,7 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_heading_renders_in_the_header()
     {
-        var html = Ui.Card.Heading("Orders")[Span["body"]].ToHtml();
+        var html = Ui.Card.Title("Orders")[Span["body"]].ToHtml();
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
         Assert.Contains("Orders", html, StringComparison.Ordinal);
@@ -46,7 +46,7 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     {
         // Every demo result on the site sits in a Ui.Card. Spacing the body would restyle all of them at once,
         // so the card leaves its children's rhythm to them; only the header carries a margin.
-        var html = Ui.Card.Heading("Orders")[Span["one"], Span["two"]].ToHtml();
+        var html = Ui.Card.Title("Orders")[Span["one"], Span["two"]].ToHtml();
 
         Assert.DoesNotContain("space-y-", html, StringComparison.Ordinal);
         Assert.Contains("mb-4 flex", html, StringComparison.Ordinal);
@@ -55,7 +55,7 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_icon_sits_before_the_heading()
     {
-        var html = Ui.Card.Heading("Jobs").Icon(Ui.IconName.Gear)[Span["body"]].ToHtml();
+        var html = Ui.Card.Title("Jobs").Icon(Ui.IconName.Gear)[Span["body"]].ToHtml();
 
         var icon = html.IndexOf("size-5 shrink-0 opacity-60", StringComparison.Ordinal);
         Assert.True(icon >= 0, "the icon was not rendered");
@@ -67,7 +67,7 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     {
         // One link, not a link beside a card: the whole panel is the target, so it is one tab stop and one
         // announcement, and "open in new tab" works anywhere on it.
-        var html = Ui.Card.Href("/_rask/queues/jobs").Heading("Jobs")[Span["body"]].ToHtml();
+        var html = Ui.Card.Href("/_rask/queues/jobs").Title("Jobs")[Span["body"]].ToHtml();
 
         Assert.StartsWith("<a ", html, StringComparison.Ordinal);
         Assert.EndsWith("</a>", html, StringComparison.Ordinal);
@@ -77,5 +77,5 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void A_card_without_an_href_is_not_a_link() =>
-        Assert.DoesNotContain("<a ", Ui.Card.Heading("Jobs")[Span["body"]].ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("<a ", Ui.Card.Title("Jobs")[Span["body"]].ToHtml(), StringComparison.Ordinal);
 }

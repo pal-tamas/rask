@@ -100,7 +100,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             + "keyboard, so nothing may depend on the tilt.",
             Div.Data(Testid("ui-hover-3d")).Class("max-w-xs")[
                 Ui.Hover3d[
-                    Ui.Card.Heading("Tilt me")[P["The content is complete without the effect."]]
+                    Ui.Card.Title("Tilt me")[P["The content is complete without the effect."]]
                 ]
             ]);
 
@@ -129,7 +129,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         .Key("queue")
                         .Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))
                         .Icon(Ui.IconName.Gear)
-                        .Heading("Jobs")
+                        .Title("Jobs")
                         .Action(Ui.StatusDot.Label("2 failed").Tone(Ui.Tone.Error))[
                         Ui.MetricRow.Columns(2)[
                             Ui.Metric.Key("outstanding").Label("Outstanding").Value("12"),
@@ -139,14 +139,14 @@ public sealed partial class UiKitDataDisplayDemo : Component
                     ],
                     Ui.Card
                         .Key("detail")
-                        .Heading("A failed job")
+                        .Title("A failed job")
                         .Action(Ui.Badge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"])[
                         Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
                             .Label("Last error")
                             .Tone(Ui.Tone.Error)
                     ],
                     Ui.Card.Key("empty")[
-                        Ui.Empty.Heading("Nothing stored matches")
+                        Ui.Empty.Title("Nothing stored matches")
                             .Detail("Retention drops entries by age and by count.")
                     ]
                 ]

@@ -106,7 +106,7 @@ Route gating stops direct navigation, but you also don't want to *show* buttons 
 login page. Wrap them in the `Authorize` component (from `Rask.Core.Components`):
 
 ```csharp
-Ui.Header.Heading("Products").Actions(
+Ui.Header.Title("Products").Actions(
     Authorize[                             // only rendered for signed-in users
         Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]
     ])

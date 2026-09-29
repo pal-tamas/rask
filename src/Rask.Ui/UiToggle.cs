@@ -19,12 +19,6 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiToggle : Component, IFormControl<bool>
 {
-    /// <summary>
-    ///     The words beside the control, daisyUI's <c>label-text</c>. Not <c>Label</c>: this renders a
-    ///     &lt;label&gt; element and a property of that name would shadow its chain entry.
-    /// </summary>
-    public new required string Text { get; set; }
-
     public Ui.Tone? Tone { get; set; }
 
     public Ui.Size? Size { get; set; }
@@ -57,7 +51,7 @@ public sealed partial class UiToggle : Component, IFormControl<bool>
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Label.Class(UiClass.Compose("label cursor-pointer gap-2", Class))[Box(), Span[Text]];
+        Label.Class(UiClass.Compose("label cursor-pointer gap-2", Class))[Box(), Span[Children ?? []]];
 
     private HTMLInputElement<bool> Box()
     {

@@ -12,7 +12,7 @@ namespace Rask;
 public sealed partial class UiMenuGroup : Component
 {
     /// <summary>The words above the items. Omit it for a group that is only set apart by separators.</summary>
-    public string? Heading { get; set; }
+    public new string? Title { get; set; }
 
     public string? Class { get; set; }
 
@@ -23,9 +23,9 @@ public sealed partial class UiMenuGroup : Component
         var role = Context.Get<UiMenuLevel>() is null ? null : "presentation";
         return
         [
-            Heading is null
+            Title is null
                 ? null
-                : Li.Class(UiClass.Compose("menu-title", Class)).Role(role)[Heading],
+                : Li.Class(UiClass.Compose("menu-title", Class)).Role(role)[Title],
             .. Children ?? []
         ];
     }

@@ -20,8 +20,6 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiLink : Component
 {
-    public new required string Text { get; set; }
-
     /// <summary>
     ///     Where it goes: a generated route (<c>Routes.Orders()</c>) to stay inside the app, or a URL string to
     ///     leave it.
@@ -66,17 +64,17 @@ public sealed partial class UiLink : Component
         if (Href.PageType is not null)
         {
             // No active class: a link in running text has no "you are here" state to show.
-            return NavLink.Href(Href).ActiveClass("").Class(classes)[Text];
+            return NavLink.Href(Href).ActiveClass("").Class(classes)[Children ?? []];
         }
 
         var anchor = A.Href(Href.ToString()).Class(classes);
         if (External != true)
         {
-            return anchor[Text];
+            return anchor[Children ?? []];
         }
 
         return anchor.Target("_blank").Rel("noopener noreferrer")[
-            Text,
+            Children ?? [],
             // Ui.Icon is aria-hidden throughout, so the mark is decoration and the words below carry the meaning.
             Ui.Icon.Name(Ui.IconName.ExternalLink).Class("size-3.5 shrink-0"),
             Span.Class("sr-only")[" (opens in a new tab)"]

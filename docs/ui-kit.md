@@ -364,7 +364,7 @@ leaves the app wants.
 
 ```csharp
 Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]    // stays in the app
-Ui.Link.Href(Routes.ProductsPage()).Text("Back to the list")                   // stays in the app
+Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
 Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]     // leaves it
 ```
 
@@ -380,7 +380,7 @@ Ui.Sidebar.Id("app-nav").Collapsible(Ui.Breakpoint.Lg).Page(Main[Outlet])[
     Ui.Brand.Label("Shop").Href(Routes.HomePage()),
     Ui.NavList.AccessibleLabel("Main")[
         Ui.NavItem.Label("Orders").Href(Routes.OrdersPage()).Icon(Ui.IconName.Book).Badge("12"),
-        Ui.NavGroup.Heading("Catalogue").Expandable(true)[
+        Ui.NavGroup.Title("Catalogue").Expandable(true)[
             Ui.NavItem.Label("Products").Href(Routes.ProductsPage()),
             Ui.NavItem.Label("Categories").Href(Routes.CategoriesPage())
         ]
@@ -538,8 +538,8 @@ closing it when Tab leaves.
 
 ```csharp
 Ui.Dropdown.Trigger("View").Align(Ui.Align.End)[
-    Ui.MenuGroup.Heading("Arrange")[
-        Ui.MenuSub.Heading("Sort by")[
+    Ui.MenuGroup.Title("Arrange")[
+        Ui.MenuSub.Title("Sort by")[
             Ui.MenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")]).OnChange(s => _sort = s)
         ],
         Ui.MenuItem.Text("Refresh").Kbd("⌘R").OnClick(Refresh)
@@ -695,7 +695,7 @@ Form.Model(_order)[
 
 **Toasts: the page owns the list.** One `Ui.Toast` is one notice; `Ui.Toaster` stacks them in a corner
 (`Position` + `Align`, newest last so an arriving toast never pushes the one being read out from under the
-eye). A toast takes `Heading`, an `Action` (an Undo, a link to what was made) and `Duration`.
+eye). A toast takes `Title`, an `Action` (an Undo, a link to what was made) and `Duration`.
 
 `Duration` is the interesting one. It does **not** hide the element — it asks the runtime to *click the
 toast's own dismiss control*, which runs your `OnDismiss`, which takes the toast off your list. Hiding it
@@ -739,7 +739,7 @@ anywhere on the page with its `Shortcut`:
 
 ```csharp
 Ui.Command.Label("Search commands").Shortcut("mod+k")[
-    Ui.MenuGroup.Heading("Invoices")[
+    Ui.MenuGroup.Title("Invoices")[
         Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus).OnClick(NewInvoice)
     ],
     Ui.MenuItem.Text("Settings").Href(Routes.Settings())
@@ -872,12 +872,12 @@ would have exactly one legal argument.
 
 
 **A file drop area is the same file input.** `Ui.FileInput.Dropzone(true)` draws Flux UI's large area in place
-of the compact box, with `Heading` (the `Label` by default) and `Text` for what is accepted:
+of the compact box, with `Title` (the `Label` by default) and `Text` for what is accepted:
 
 ```csharp
 Ui.FileInput.Value("").Label("Receipts")
     .Dropzone(true)
-    .Heading("Drop receipts here, or click to choose")
+    .Title("Drop receipts here, or click to choose")
     .Text("PDF or JPG, several at once")
     .Accept(".pdf,.jpg")
     .Multiple(true)

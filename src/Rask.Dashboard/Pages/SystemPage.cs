@@ -52,7 +52,7 @@ public sealed partial class SystemPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            Ui.Header.Heading("System"),
+            Ui.Header.Title("System"),
             DashboardError.Message(LoadError),
             DatabaseCard(),
             BackupCards(now),
@@ -71,7 +71,7 @@ public sealed partial class SystemPage(
         // A leader list rather than four tiles. These are four short scalars an operator reads once to
         // confirm the deployment is configured the way they think — a headline number's worth of weight
         // each was three times the space and none of the extra meaning.
-        return Ui.Card.Heading("Database")[
+        return Ui.Card.Title("Database")[
             Ui.DetailList[
                 Ui.DetailRow
                     .Key("size")
@@ -119,8 +119,8 @@ public sealed partial class SystemPage(
         var stats = BackupStats(now).ToList();
 
         return [
-            stats.Count == 0 ? null : Ui.Card.Key("backup").Heading("Backup")[Ui.Grid[stats]],
-            Ui.Card.Key("snapshots").Heading("Snapshots")[SnapshotList(now)]
+            stats.Count == 0 ? null : Ui.Card.Key("backup").Title("Backup")[Ui.Grid[stats]],
+            Ui.Card.Key("snapshots").Title("Snapshots")[SnapshotList(now)]
         ];
     }
 
@@ -176,7 +176,7 @@ public sealed partial class SystemPage(
 
     private Component SnapshotList(DateTime now) =>
         _snapshots.Count == 0
-            ? Ui.Empty.Heading("No snapshots stored")
+            ? Ui.Empty.Title("No snapshots stored")
             : Ui.DataGrid.Data(_snapshots.Take(10).ToList()).RowKey(s => s.Name).Label("Newest snapshots")[c => [
                 c.Field(s => s.Name).Title("Snapshot").Mono(true),
                 c.Field(s => s.SizeBytes).Title("Size").Value(s => DashboardParts.Bytes(s.SizeBytes)),
@@ -191,7 +191,7 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return Ui.Card.Heading("Recurring jobs")[
+        return Ui.Card.Title("Recurring jobs")[
             Ui.DataGrid.Data(_recurring).RowKey(r => r.Name).Label("Recurring jobs")[c => [
                 c.Field(r => r.Name).Title("Name").Mono(true),
                 c.Field(r => r.Schedule).Title("Schedule"),

@@ -84,14 +84,14 @@ public sealed partial class QueuePage(
         {
             return Ui.Card[
                 Ui.Empty
-                    .Heading($"No queue called \"{Queue}\"")
+                    .Title($"No queue called \"{Queue}\"")
                     .Detail("Either that battery isn't registered, or its table isn't mapped into the DbContext.")
             ];
         }
 
         return [
             Ui.Header
-                .Heading(_panel.Title)
+                .Title(_panel.Title)
                 .Icon(_panel.Icon)
                 .Actions([.. QueueActionButtons()]),
             DashboardError.Message(LoadError),
@@ -157,7 +157,7 @@ public sealed partial class QueuePage(
             .OnPageChange(GoAsync)
             .RowTone(r => IsDead(r) ? Ui.Tone.Error : null)
             .Empty(Ui.Empty
-                .Heading($"Nothing {slice}")
+                .Title($"Nothing {slice}")
                 .Detail(Filter == QueueFilter.Failed
                     ? "No dead letters. This is the number you want at zero."
                     : "Nothing in this slice right now."))[c => [

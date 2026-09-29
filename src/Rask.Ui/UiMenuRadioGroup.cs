@@ -23,7 +23,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     public required IReadOnlyList<(T Value, string Text)> Options { get; set; }
 
     /// <summary>The words above the options.</summary>
-    public string? Heading { get; set; }
+    public new string? Title { get; set; }
 
     /// <summary>Marks options unpickable. The keyboard cursor skips them.</summary>
     public Fn<T, bool>? OptionDisabled { get; set; }
@@ -61,9 +61,9 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
 
         return
         [
-            Heading is null
+            Title is null
                 ? null
-                : Li.Class("menu-title").Role(role)[Heading],
+                : Li.Class("menu-title").Role(role)[Title],
             .. Options.Select(option => OptionRow(option, level, accessor, context, current))
         ];
     }

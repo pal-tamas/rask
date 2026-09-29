@@ -117,7 +117,7 @@ internal sealed partial class DevToolsTreeTab : Component
                         .Title(_picking ? "Click something on the page, or press Esc" : "Pick something on the page")
                         .Aria("pressed", _picking ? "true" : "false")
                         .OnClick(() => _picking = !_picking)[Ui.Icon.Name(Ui.IconName.Cursor), "Pick"],
-                    Ui.Toggle.Value(_showTags).Text("Show HTML tags").Size(Ui.Size.Sm).OnChange(v => _showTags = v)
+                    Ui.Toggle.Value(_showTags).Size(Ui.Size.Sm).OnChange(v => _showTags = v)["Show HTML tags"]
                 ]
             ],
             // Where the panel's script finds what to tell the page, and where it reports a pick back; neither is seen.
