@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    Rask.Web is generated from the same MDN snapshot as Rask.Core's elements (src/Rask.Core/Dom/mdn.snapshot.json,
+    which Rask.Core's build keeps on MDN's latest stable data). Before the compile, RaskWebEmit writes MDN's globals
+    and interfaces into obj/. Nothing it writes is committed. Imported by Rask.Web.csproj only.
+  -->
+  <PropertyGroup>
+    <RaskMdnSnapshot>$(MSBuildThisFileDirectory)..\Rask.Core\Dom\mdn.snapshot.json</RaskMdnSnapshot>
+    <RaskDomTasksAssembly>$(MSBuildThisFileDirectory)..\Rask.Dom.Tasks\bin\$(Configuration)\netstandard2.0\Rask.Dom.Tasks.dll</RaskDomTasksAssembly>
+    <RaskWebOutput>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\web\</RaskWebOutput>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Rask.Core.Dom.Build.RaskWebEmit" AssemblyFile="$(RaskDomTasksAssembly)" TaskFactory="TaskHostFactory"/>
+
+  <Target Name="_RaskWebEmit" BeforeTargets="CoreCompile" DependsOnTargets="ResolveProjectReferences;_RaskWebEmitCore">
+    <ItemGroup>
+      <Compile Include="$(RaskWebOutput)*.g.cs" Exclude="@(Compile)"/>
+      <FileWrites Include="$(RaskWebOutput)*.g.cs"/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_RaskWebEmitCore" Inputs="$(RaskMdnSnapshot);$(RaskDomTasksAssembly)" Outputs="$(RaskWebOutput).stamp">
+    <RaskWebEmit Snapshot="$(RaskMdnSnapshot)" OutputDirectory="$(RaskWebOutput)"/>
+    <Touch Files="$(RaskWebOutput).stamp" AlwaysCreate="true"/>
+  </Target>
+</Project>

@@ -62,6 +62,7 @@ call on the platform.
 
 ## On this page
 
+- [Web APIs from MDN](web-apis.md) — every web API the browser ships, generated from MDN into C# by `Rask.Web`.
 - [The sharing model](browser-apis-sharing.md) — shared vs WASM-only wrappers, declarative vs imperative, the subscription push pattern.
 - [Reference & live demos](browser-apis-reference.md) — every wrapper with a runnable demo.
 
