@@ -52,6 +52,25 @@ per await. `Window.MatchMedia(q).Matches` wants exactly that; a method you call 
 `new X(…)` is `X.Create(…)`, and the new object is kept: `await using var channel = await BroadcastChannel.Create("updates")`.
 A static member is on the class, as in JavaScript: `await URL.CanParse(link)`, `await Notification.RequestPermission()`.
 
+## Events and callbacks
+
+An object's events are `On{Event}` — MDN's event name, like the element events — and subscribing returns a
+subscription to dispose of. The handler runs in its component's order and re-renders it, and takes the event or
+nothing, sync or async:
+
+```csharp
+_watch = await Window.MatchMedia("(min-width: 900px)").OnChange(e => _wide = e.Matches);   // MediaQueryListEvent
+await using var online = await Window.OnOnline(() => _online = true);
+```
+
+The event is MDN's type — Core's `Event` where an element event uses the same one, else a type in `Rask.Web.Types`
+(`MediaQueryListEvent`, `StorageEvent`) deriving from it — holding the fields that are values. A method that takes a
+callback takes a C# handler for it, run and re-rendered the same way: `await Navigator.Geolocation.GetCurrentPosition(p => _where = p.Coords)`.
+
+A handler has to belong to a component — a lambda written in one, or a method of it — since that is the component it
+re-renders; the component unmounting drops it. Keep the subscription in a field and dispose of it in `OnUnmount` to
+stop the browser listening too.
+
 ## Asking whether the browser has it
 
 `IsSupported` asks the browser whether the object at the end of a path is there, instead of your guessing from its
@@ -71,7 +90,7 @@ Every member's doc comment carries its browser support and links to MDN and the 
 
 - **The DOM.** Nothing that returns or rewrites DOM nodes is generated: the render owns the page. Reach an element's
   own members through a [typed element ref](js-interop-runtime.md#element-refs) (`await _dialog.ShowModal()`).
-- **Events and callbacks** are not generated yet: a member that takes a callback, and subscribing to an object's
-  events. The [typed browser API wrappers](browser-apis.md) cover those today.
+- **What needs a live object as an argument** — a member that takes a `Node`, or a callback that hands one back — is
+  not generated; the [typed browser API wrappers](browser-apis.md) cover those today.
 - **`Rask.Web` is not imported for you yet.** Its globals share names with some of the wrappers' types, so a file that
   uses them says `using Rask.Web;`.
