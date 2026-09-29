@@ -122,6 +122,35 @@ public sealed class WebApiTests
     }
 
     [Fact]
+    public async Task A_constructor_is_Create_and_keeps_the_new_object()
+    {
+        var browser = new FakeBrowser();
+
+        using (browser.Enter())
+        {
+            await using var channel = await BroadcastChannel.Create("updates");
+        }
+
+        Assert.Equal("""[["n","BroadcastChannel",["updates"]]]""", browser.Steps(0));
+        Assert.True(browser.Kept.Single().Disposed);
+    }
+
+    [Fact]
+    public async Task A_static_member_is_on_the_class_and_reached_from_the_window()
+    {
+        var browser = new FakeBrowser().Answers("true");
+
+        bool parses;
+        using (browser.Enter())
+        {
+            parses = await URL.CanParse("https://rask.sh");
+        }
+
+        Assert.True(parses);
+        Assert.Equal("""[["g","URL"],["c","canParse",["https://rask.sh"]]]""", browser.Steps(0));
+    }
+
+    [Fact]
     public async Task A_web_API_called_outside_a_page_says_where_to_call_it_from()
     {
         var call = Navigator.Clipboard;

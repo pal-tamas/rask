@@ -4459,7 +4459,6 @@ Rask.Web.Types.Performance.ClearMeasures(string! measureName) -> System.Threadin
 Rask.Web.Types.Performance.ClearResourceTimings() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.Performance.EventCounts.get -> Rask.Web.Types.EventCounts!
 Rask.Web.Types.Performance.InteractionCount.get -> System.Threading.Tasks.ValueTask<long>
-Rask.Web.Types.Performance.Mark(string! markName) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMark!>
 Rask.Web.Types.Performance.Measure(string! measureName) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
 Rask.Web.Types.Performance.Measure(string! measureName, string! startOrMeasureOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
 Rask.Web.Types.Performance.Measure(string! measureName, string! startOrMeasureOptions, string! endMark) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
@@ -4472,8 +4471,6 @@ Rask.Web.Types.PerformanceEntry.Name.init -> void
 Rask.Web.Types.PerformanceEntry.PerformanceEntry() -> void
 Rask.Web.Types.PerformanceEntry.PerformanceEntry(Rask.Web.Types.PerformanceEntry! original) -> void
 Rask.Web.Types.PerformanceMark
-Rask.Web.Types.PerformanceMark.Equals(Rask.Web.Types.PerformanceMark? other) -> bool
-Rask.Web.Types.PerformanceMark.PerformanceMark() -> void
 Rask.Web.Types.PerformanceMeasure
 Rask.Web.Types.PerformanceMeasure.Equals(Rask.Web.Types.PerformanceMeasure? other) -> bool
 Rask.Web.Types.PerformanceMeasure.PerformanceMeasure() -> void
@@ -5887,17 +5884,6 @@ Rask.Web.Types.VideoColorPrimaries.Bt709 = 0 -> Rask.Web.Types.VideoColorPrimari
 Rask.Web.Types.VideoColorPrimaries.Smpte170m = 2 -> Rask.Web.Types.VideoColorPrimaries
 Rask.Web.Types.VideoColorPrimaries.Smpte432 = 4 -> Rask.Web.Types.VideoColorPrimaries
 Rask.Web.Types.VideoColorSpace
-Rask.Web.Types.VideoColorSpace.<Clone>$() -> Rask.Web.Types.VideoColorSpace!
-Rask.Web.Types.VideoColorSpace.Equals(Rask.Web.Types.VideoColorSpace? other) -> bool
-Rask.Web.Types.VideoColorSpace.FullRange.get -> bool?
-Rask.Web.Types.VideoColorSpace.FullRange.init -> void
-Rask.Web.Types.VideoColorSpace.Matrix.get -> Rask.Web.Types.VideoMatrixCoefficients?
-Rask.Web.Types.VideoColorSpace.Matrix.init -> void
-Rask.Web.Types.VideoColorSpace.Primaries.get -> Rask.Web.Types.VideoColorPrimaries?
-Rask.Web.Types.VideoColorSpace.Primaries.init -> void
-Rask.Web.Types.VideoColorSpace.Transfer.get -> Rask.Web.Types.VideoTransferCharacteristics?
-Rask.Web.Types.VideoColorSpace.Transfer.init -> void
-Rask.Web.Types.VideoColorSpace.VideoColorSpace() -> void
 Rask.Web.Types.VideoColorSpaceInit
 Rask.Web.Types.VideoColorSpaceInit.<Clone>$() -> Rask.Web.Types.VideoColorSpaceInit!
 Rask.Web.Types.VideoColorSpaceInit.Equals(Rask.Web.Types.VideoColorSpaceInit? other) -> bool
@@ -6058,7 +6044,6 @@ Rask.Web.Types.VideoFrame.Close() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.VideoFrame.CodedHeight.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.VideoFrame.CodedRect.get -> System.Threading.Tasks.ValueTask<Rask.Core.DOMRectReadOnly?>
 Rask.Web.Types.VideoFrame.CodedWidth.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.VideoFrame.ColorSpace.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoColorSpace!>
 Rask.Web.Types.VideoFrame.DisplayHeight.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.VideoFrame.DisplayWidth.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.VideoFrame.Duration.get -> System.Threading.Tasks.ValueTask<long?>
@@ -6957,10 +6942,6 @@ override Rask.Web.Types.PaymentValidationErrors.ToString() -> string!
 override Rask.Web.Types.PerformanceEntry.Equals(object? obj) -> bool
 override Rask.Web.Types.PerformanceEntry.GetHashCode() -> int
 override Rask.Web.Types.PerformanceEntry.ToString() -> string!
-override Rask.Web.Types.PerformanceMark.<Clone>$() -> Rask.Web.Types.PerformanceMark!
-override Rask.Web.Types.PerformanceMark.Equals(object? obj) -> bool
-override Rask.Web.Types.PerformanceMark.GetHashCode() -> int
-override Rask.Web.Types.PerformanceMark.ToString() -> string!
 override Rask.Web.Types.PerformanceMeasure.<Clone>$() -> Rask.Web.Types.PerformanceMeasure!
 override Rask.Web.Types.PerformanceMeasure.Equals(object? obj) -> bool
 override Rask.Web.Types.PerformanceMeasure.GetHashCode() -> int
@@ -7148,9 +7129,6 @@ override Rask.Web.Types.URLPatternResult.ToString() -> string!
 override Rask.Web.Types.ValidityStateFlags.Equals(object? obj) -> bool
 override Rask.Web.Types.ValidityStateFlags.GetHashCode() -> int
 override Rask.Web.Types.ValidityStateFlags.ToString() -> string!
-override Rask.Web.Types.VideoColorSpace.Equals(object? obj) -> bool
-override Rask.Web.Types.VideoColorSpace.GetHashCode() -> int
-override Rask.Web.Types.VideoColorSpace.ToString() -> string!
 override Rask.Web.Types.VideoColorSpaceInit.Equals(object? obj) -> bool
 override Rask.Web.Types.VideoColorSpaceInit.GetHashCode() -> int
 override Rask.Web.Types.VideoColorSpaceInit.ToString() -> string!
@@ -7237,7 +7215,6 @@ override sealed Rask.Web.Types.MediaCapabilitiesEncodingInfo.Equals(Rask.Web.Typ
 override sealed Rask.Web.Types.MediaDecodingConfiguration.Equals(Rask.Web.Types.MediaConfiguration? other) -> bool
 override sealed Rask.Web.Types.MediaEncodingConfiguration.Equals(Rask.Web.Types.MediaConfiguration? other) -> bool
 override sealed Rask.Web.Types.MultiCacheQueryOptions.Equals(Rask.Web.Types.CacheQueryOptions? other) -> bool
-override sealed Rask.Web.Types.PerformanceMark.Equals(Rask.Web.Types.PerformanceEntry? other) -> bool
 override sealed Rask.Web.Types.PerformanceMeasure.Equals(Rask.Web.Types.PerformanceEntry? other) -> bool
 override sealed Rask.Web.Types.PublicKeyCredentialRpEntity.Equals(Rask.Web.Types.PublicKeyCredentialEntity? other) -> bool
 override sealed Rask.Web.Types.PublicKeyCredentialUserEntity.Equals(Rask.Web.Types.PublicKeyCredentialEntity? other) -> bool
@@ -7741,8 +7718,6 @@ static Rask.Web.Types.PaymentValidationErrors.operator !=(Rask.Web.Types.Payment
 static Rask.Web.Types.PaymentValidationErrors.operator ==(Rask.Web.Types.PaymentValidationErrors? left, Rask.Web.Types.PaymentValidationErrors? right) -> bool
 static Rask.Web.Types.PerformanceEntry.operator !=(Rask.Web.Types.PerformanceEntry? left, Rask.Web.Types.PerformanceEntry? right) -> bool
 static Rask.Web.Types.PerformanceEntry.operator ==(Rask.Web.Types.PerformanceEntry? left, Rask.Web.Types.PerformanceEntry? right) -> bool
-static Rask.Web.Types.PerformanceMark.operator !=(Rask.Web.Types.PerformanceMark? left, Rask.Web.Types.PerformanceMark? right) -> bool
-static Rask.Web.Types.PerformanceMark.operator ==(Rask.Web.Types.PerformanceMark? left, Rask.Web.Types.PerformanceMark? right) -> bool
 static Rask.Web.Types.PerformanceMeasure.operator !=(Rask.Web.Types.PerformanceMeasure? left, Rask.Web.Types.PerformanceMeasure? right) -> bool
 static Rask.Web.Types.PerformanceMeasure.operator ==(Rask.Web.Types.PerformanceMeasure? left, Rask.Web.Types.PerformanceMeasure? right) -> bool
 static Rask.Web.Types.PerformanceObserverInit.operator !=(Rask.Web.Types.PerformanceObserverInit? left, Rask.Web.Types.PerformanceObserverInit? right) -> bool
@@ -7861,8 +7836,6 @@ static Rask.Web.Types.URLPatternResult.operator !=(Rask.Web.Types.URLPatternResu
 static Rask.Web.Types.URLPatternResult.operator ==(Rask.Web.Types.URLPatternResult? left, Rask.Web.Types.URLPatternResult? right) -> bool
 static Rask.Web.Types.ValidityStateFlags.operator !=(Rask.Web.Types.ValidityStateFlags? left, Rask.Web.Types.ValidityStateFlags? right) -> bool
 static Rask.Web.Types.ValidityStateFlags.operator ==(Rask.Web.Types.ValidityStateFlags? left, Rask.Web.Types.ValidityStateFlags? right) -> bool
-static Rask.Web.Types.VideoColorSpace.operator !=(Rask.Web.Types.VideoColorSpace? left, Rask.Web.Types.VideoColorSpace? right) -> bool
-static Rask.Web.Types.VideoColorSpace.operator ==(Rask.Web.Types.VideoColorSpace? left, Rask.Web.Types.VideoColorSpace? right) -> bool
 static Rask.Web.Types.VideoColorSpaceInit.operator !=(Rask.Web.Types.VideoColorSpaceInit? left, Rask.Web.Types.VideoColorSpaceInit? right) -> bool
 static Rask.Web.Types.VideoColorSpaceInit.operator ==(Rask.Web.Types.VideoColorSpaceInit? left, Rask.Web.Types.VideoColorSpaceInit? right) -> bool
 static Rask.Web.Types.VideoConfiguration.operator !=(Rask.Web.Types.VideoConfiguration? left, Rask.Web.Types.VideoConfiguration? right) -> bool
@@ -8195,7 +8168,6 @@ static Rask.Web.Performance.ClearResourceTimings() -> System.Threading.Tasks.Val
 static Rask.Web.Performance.EventCounts.get -> Rask.Web.Types.EventCounts!
 static Rask.Web.Performance.InteractionCount.get -> System.Threading.Tasks.ValueTask<long>
 static Rask.Web.Performance.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
-static Rask.Web.Performance.Mark(string! markName) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMark!>
 static Rask.Web.Performance.Measure(string! measureName) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
 static Rask.Web.Performance.Measure(string! measureName, string! startOrMeasureOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
 static Rask.Web.Performance.Measure(string! measureName, string! startOrMeasureOptions, string! endMark) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
@@ -8230,3 +8202,1954 @@ static Rask.Web.Window.Origin.get -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Web.Window.Performance.get -> Rask.Web.Types.Performance!
 static Rask.Web.Window.Scheduler.get -> Rask.Web.Types.Scheduler!
 static Rask.Web.Window.TrustedTypes.get -> Rask.Web.Types.TrustedTypePolicyFactory!
+Rask.Web.Types.AllAcceptedCredentialsOptions
+Rask.Web.Types.AllAcceptedCredentialsOptions.<Clone>$() -> Rask.Web.Types.AllAcceptedCredentialsOptions!
+Rask.Web.Types.AllAcceptedCredentialsOptions.AllAcceptedCredentialsOptions() -> void
+Rask.Web.Types.AllAcceptedCredentialsOptions.Equals(Rask.Web.Types.AllAcceptedCredentialsOptions? other) -> bool
+Rask.Web.Types.AllAcceptedCredentialsOptions.RpId.get -> string!
+Rask.Web.Types.AllAcceptedCredentialsOptions.RpId.init -> void
+Rask.Web.Types.AnalyserOptions
+Rask.Web.Types.AnalyserOptions.AnalyserOptions() -> void
+Rask.Web.Types.AnalyserOptions.Equals(Rask.Web.Types.AnalyserOptions? other) -> bool
+Rask.Web.Types.AnalyserOptions.FftSize.get -> int?
+Rask.Web.Types.AnalyserOptions.FftSize.init -> void
+Rask.Web.Types.AnalyserOptions.MaxDecibels.get -> double?
+Rask.Web.Types.AnalyserOptions.MaxDecibels.init -> void
+Rask.Web.Types.AnalyserOptions.MinDecibels.get -> double?
+Rask.Web.Types.AnalyserOptions.MinDecibels.init -> void
+Rask.Web.Types.AnalyserOptions.SmoothingTimeConstant.get -> double?
+Rask.Web.Types.AnalyserOptions.SmoothingTimeConstant.init -> void
+Rask.Web.Types.AudioBufferOptions
+Rask.Web.Types.AudioBufferOptions.<Clone>$() -> Rask.Web.Types.AudioBufferOptions!
+Rask.Web.Types.AudioBufferOptions.AudioBufferOptions() -> void
+Rask.Web.Types.AudioBufferOptions.Equals(Rask.Web.Types.AudioBufferOptions? other) -> bool
+Rask.Web.Types.AudioBufferOptions.Length.get -> int
+Rask.Web.Types.AudioBufferOptions.Length.init -> void
+Rask.Web.Types.AudioBufferOptions.NumberOfChannels.get -> int?
+Rask.Web.Types.AudioBufferOptions.NumberOfChannels.init -> void
+Rask.Web.Types.AudioBufferOptions.SampleRate.get -> double
+Rask.Web.Types.AudioBufferOptions.SampleRate.init -> void
+Rask.Web.Types.AudioBufferSourceOptions
+Rask.Web.Types.AudioBufferSourceOptions.<Clone>$() -> Rask.Web.Types.AudioBufferSourceOptions!
+Rask.Web.Types.AudioBufferSourceOptions.AudioBufferSourceOptions() -> void
+Rask.Web.Types.AudioBufferSourceOptions.Detune.get -> double?
+Rask.Web.Types.AudioBufferSourceOptions.Detune.init -> void
+Rask.Web.Types.AudioBufferSourceOptions.Equals(Rask.Web.Types.AudioBufferSourceOptions? other) -> bool
+Rask.Web.Types.AudioBufferSourceOptions.Loop.get -> bool?
+Rask.Web.Types.AudioBufferSourceOptions.Loop.init -> void
+Rask.Web.Types.AudioBufferSourceOptions.LoopEnd.get -> double?
+Rask.Web.Types.AudioBufferSourceOptions.LoopEnd.init -> void
+Rask.Web.Types.AudioBufferSourceOptions.LoopStart.get -> double?
+Rask.Web.Types.AudioBufferSourceOptions.LoopStart.init -> void
+Rask.Web.Types.AudioBufferSourceOptions.PlaybackRate.get -> double?
+Rask.Web.Types.AudioBufferSourceOptions.PlaybackRate.init -> void
+Rask.Web.Types.AudioContextOptions
+Rask.Web.Types.AudioContextOptions.<Clone>$() -> Rask.Web.Types.AudioContextOptions!
+Rask.Web.Types.AudioContextOptions.AudioContextOptions() -> void
+Rask.Web.Types.AudioContextOptions.Equals(Rask.Web.Types.AudioContextOptions? other) -> bool
+Rask.Web.Types.AudioContextOptions.SampleRate.get -> double?
+Rask.Web.Types.AudioContextOptions.SampleRate.init -> void
+Rask.Web.Types.AudioDataInit
+Rask.Web.Types.AudioDataInit.<Clone>$() -> Rask.Web.Types.AudioDataInit!
+Rask.Web.Types.AudioDataInit.AudioDataInit() -> void
+Rask.Web.Types.AudioDataInit.Equals(Rask.Web.Types.AudioDataInit? other) -> bool
+Rask.Web.Types.AudioDataInit.Format.get -> Rask.Web.Types.AudioSampleFormat
+Rask.Web.Types.AudioDataInit.Format.init -> void
+Rask.Web.Types.AudioDataInit.NumberOfChannels.get -> int
+Rask.Web.Types.AudioDataInit.NumberOfChannels.init -> void
+Rask.Web.Types.AudioDataInit.NumberOfFrames.get -> int
+Rask.Web.Types.AudioDataInit.NumberOfFrames.init -> void
+Rask.Web.Types.AudioDataInit.SampleRate.get -> double
+Rask.Web.Types.AudioDataInit.SampleRate.init -> void
+Rask.Web.Types.AudioDataInit.Timestamp.get -> long
+Rask.Web.Types.AudioDataInit.Timestamp.init -> void
+Rask.Web.Types.AudioDecoderSupport
+Rask.Web.Types.AudioDecoderSupport.<Clone>$() -> Rask.Web.Types.AudioDecoderSupport!
+Rask.Web.Types.AudioDecoderSupport.AudioDecoderSupport() -> void
+Rask.Web.Types.AudioDecoderSupport.Config.get -> Rask.Web.Types.AudioDecoderConfig?
+Rask.Web.Types.AudioDecoderSupport.Config.init -> void
+Rask.Web.Types.AudioDecoderSupport.Equals(Rask.Web.Types.AudioDecoderSupport? other) -> bool
+Rask.Web.Types.AudioDecoderSupport.Supported.get -> bool?
+Rask.Web.Types.AudioDecoderSupport.Supported.init -> void
+Rask.Web.Types.AudioEncoderSupport
+Rask.Web.Types.AudioEncoderSupport.<Clone>$() -> Rask.Web.Types.AudioEncoderSupport!
+Rask.Web.Types.AudioEncoderSupport.AudioEncoderSupport() -> void
+Rask.Web.Types.AudioEncoderSupport.Config.get -> Rask.Web.Types.AudioEncoderConfig?
+Rask.Web.Types.AudioEncoderSupport.Config.init -> void
+Rask.Web.Types.AudioEncoderSupport.Equals(Rask.Web.Types.AudioEncoderSupport? other) -> bool
+Rask.Web.Types.AudioEncoderSupport.Supported.get -> bool?
+Rask.Web.Types.AudioEncoderSupport.Supported.init -> void
+Rask.Web.Types.AudioNodeOptions
+Rask.Web.Types.AudioNodeOptions.AudioNodeOptions() -> void
+Rask.Web.Types.AudioNodeOptions.AudioNodeOptions(Rask.Web.Types.AudioNodeOptions! original) -> void
+Rask.Web.Types.AudioNodeOptions.ChannelCount.get -> int?
+Rask.Web.Types.AudioNodeOptions.ChannelCount.init -> void
+Rask.Web.Types.AudioNodeOptions.ChannelCountMode.get -> Rask.Web.Types.ChannelCountMode?
+Rask.Web.Types.AudioNodeOptions.ChannelCountMode.init -> void
+Rask.Web.Types.AudioNodeOptions.ChannelInterpretation.get -> Rask.Web.Types.ChannelInterpretation?
+Rask.Web.Types.AudioNodeOptions.ChannelInterpretation.init -> void
+Rask.Web.Types.AudioWorkletNodeOptions
+Rask.Web.Types.AudioWorkletNodeOptions.AudioWorkletNodeOptions() -> void
+Rask.Web.Types.AudioWorkletNodeOptions.Equals(Rask.Web.Types.AudioWorkletNodeOptions? other) -> bool
+Rask.Web.Types.AudioWorkletNodeOptions.NumberOfInputs.get -> int?
+Rask.Web.Types.AudioWorkletNodeOptions.NumberOfInputs.init -> void
+Rask.Web.Types.AudioWorkletNodeOptions.NumberOfOutputs.get -> int?
+Rask.Web.Types.AudioWorkletNodeOptions.NumberOfOutputs.init -> void
+Rask.Web.Types.AudioWorkletNodeOptions.OutputChannelCount.get -> int[]?
+Rask.Web.Types.AudioWorkletNodeOptions.OutputChannelCount.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.<Clone>$() -> Rask.Web.Types.AuthenticationExtensionsClientInputsJSON!
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.Appid.get -> string?
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.Appid.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.AppidExclude.get -> string?
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.AppidExclude.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.AuthenticationExtensionsClientInputsJSON() -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.CredProps.get -> bool?
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.CredProps.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.Equals(Rask.Web.Types.AuthenticationExtensionsClientInputsJSON? other) -> bool
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.LargeBlob.get -> Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON?
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.LargeBlob.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.RemoteClientDataJSON.get -> string?
+Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.RemoteClientDataJSON.init -> void
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.<Clone>$() -> Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON!
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.AuthenticationExtensionsLargeBlobInputsJSON() -> void
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.Equals(Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON? other) -> bool
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.Read.get -> bool?
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.Read.init -> void
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.Support.get -> string?
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.Support.init -> void
+Rask.Web.Types.BackgroundBlur
+Rask.Web.Types.BackgroundBlur.BackgroundBlur() -> void
+Rask.Web.Types.BackgroundBlur.Equals(Rask.Web.Types.BackgroundBlur? other) -> bool
+Rask.Web.Types.BiquadFilterOptions
+Rask.Web.Types.BiquadFilterOptions.BiquadFilterOptions() -> void
+Rask.Web.Types.BiquadFilterOptions.Detune.get -> double?
+Rask.Web.Types.BiquadFilterOptions.Detune.init -> void
+Rask.Web.Types.BiquadFilterOptions.Equals(Rask.Web.Types.BiquadFilterOptions? other) -> bool
+Rask.Web.Types.BiquadFilterOptions.Frequency.get -> double?
+Rask.Web.Types.BiquadFilterOptions.Frequency.init -> void
+Rask.Web.Types.BiquadFilterOptions.Gain.get -> double?
+Rask.Web.Types.BiquadFilterOptions.Gain.init -> void
+Rask.Web.Types.BiquadFilterOptions.Q.get -> double?
+Rask.Web.Types.BiquadFilterOptions.Q.init -> void
+Rask.Web.Types.BiquadFilterOptions.Type.get -> Rask.Web.Types.BiquadFilterType?
+Rask.Web.Types.BiquadFilterOptions.Type.init -> void
+Rask.Web.Types.BlobPropertyBag
+Rask.Web.Types.BlobPropertyBag.BlobPropertyBag() -> void
+Rask.Web.Types.BlobPropertyBag.BlobPropertyBag(Rask.Web.Types.BlobPropertyBag! original) -> void
+Rask.Web.Types.BlobPropertyBag.Endings.get -> Rask.Web.Types.EndingType?
+Rask.Web.Types.BlobPropertyBag.Endings.init -> void
+Rask.Web.Types.BlobPropertyBag.Type.get -> string?
+Rask.Web.Types.BlobPropertyBag.Type.init -> void
+Rask.Web.Types.CSSMatrixComponentOptions
+Rask.Web.Types.CSSMatrixComponentOptions.<Clone>$() -> Rask.Web.Types.CSSMatrixComponentOptions!
+Rask.Web.Types.CSSMatrixComponentOptions.CSSMatrixComponentOptions() -> void
+Rask.Web.Types.CSSMatrixComponentOptions.Equals(Rask.Web.Types.CSSMatrixComponentOptions? other) -> bool
+Rask.Web.Types.CSSMatrixComponentOptions.Is2D.get -> bool?
+Rask.Web.Types.CSSMatrixComponentOptions.Is2D.init -> void
+Rask.Web.Types.CSSStyleSheetInit
+Rask.Web.Types.CSSStyleSheetInit.<Clone>$() -> Rask.Web.Types.CSSStyleSheetInit!
+Rask.Web.Types.CSSStyleSheetInit.BaseURL.get -> string?
+Rask.Web.Types.CSSStyleSheetInit.BaseURL.init -> void
+Rask.Web.Types.CSSStyleSheetInit.CSSStyleSheetInit() -> void
+Rask.Web.Types.CSSStyleSheetInit.Disabled.get -> bool?
+Rask.Web.Types.CSSStyleSheetInit.Disabled.init -> void
+Rask.Web.Types.CSSStyleSheetInit.Equals(Rask.Web.Types.CSSStyleSheetInit? other) -> bool
+Rask.Web.Types.ChannelMergerOptions
+Rask.Web.Types.ChannelMergerOptions.ChannelMergerOptions() -> void
+Rask.Web.Types.ChannelMergerOptions.Equals(Rask.Web.Types.ChannelMergerOptions? other) -> bool
+Rask.Web.Types.ChannelMergerOptions.NumberOfInputs.get -> int?
+Rask.Web.Types.ChannelMergerOptions.NumberOfInputs.init -> void
+Rask.Web.Types.ChannelSplitterOptions
+Rask.Web.Types.ChannelSplitterOptions.ChannelSplitterOptions() -> void
+Rask.Web.Types.ChannelSplitterOptions.Equals(Rask.Web.Types.ChannelSplitterOptions? other) -> bool
+Rask.Web.Types.ChannelSplitterOptions.NumberOfOutputs.get -> int?
+Rask.Web.Types.ChannelSplitterOptions.NumberOfOutputs.init -> void
+Rask.Web.Types.ChapterInformationInit
+Rask.Web.Types.ChapterInformationInit.<Clone>$() -> Rask.Web.Types.ChapterInformationInit!
+Rask.Web.Types.ChapterInformationInit.Artwork.get -> Rask.Web.Types.MediaImage![]?
+Rask.Web.Types.ChapterInformationInit.Artwork.init -> void
+Rask.Web.Types.ChapterInformationInit.ChapterInformationInit() -> void
+Rask.Web.Types.ChapterInformationInit.Equals(Rask.Web.Types.ChapterInformationInit? other) -> bool
+Rask.Web.Types.ChapterInformationInit.StartTime.get -> double?
+Rask.Web.Types.ChapterInformationInit.StartTime.init -> void
+Rask.Web.Types.ChapterInformationInit.Title.get -> string?
+Rask.Web.Types.ChapterInformationInit.Title.init -> void
+Rask.Web.Types.ClipboardItemOptions
+Rask.Web.Types.ClipboardItemOptions.<Clone>$() -> Rask.Web.Types.ClipboardItemOptions!
+Rask.Web.Types.ClipboardItemOptions.ClipboardItemOptions() -> void
+Rask.Web.Types.ClipboardItemOptions.Equals(Rask.Web.Types.ClipboardItemOptions? other) -> bool
+Rask.Web.Types.ClipboardItemOptions.PresentationStyle.get -> Rask.Web.Types.PresentationStyle?
+Rask.Web.Types.ClipboardItemOptions.PresentationStyle.init -> void
+Rask.Web.Types.ConstantSourceOptions
+Rask.Web.Types.ConstantSourceOptions.<Clone>$() -> Rask.Web.Types.ConstantSourceOptions!
+Rask.Web.Types.ConstantSourceOptions.ConstantSourceOptions() -> void
+Rask.Web.Types.ConstantSourceOptions.Equals(Rask.Web.Types.ConstantSourceOptions? other) -> bool
+Rask.Web.Types.ConstantSourceOptions.Offset.get -> double?
+Rask.Web.Types.ConstantSourceOptions.Offset.init -> void
+Rask.Web.Types.ConvolverOptions
+Rask.Web.Types.ConvolverOptions.ConvolverOptions() -> void
+Rask.Web.Types.ConvolverOptions.DisableNormalization.get -> bool?
+Rask.Web.Types.ConvolverOptions.DisableNormalization.init -> void
+Rask.Web.Types.ConvolverOptions.Equals(Rask.Web.Types.ConvolverOptions? other) -> bool
+Rask.Web.Types.CurrentUserDetailsOptions
+Rask.Web.Types.CurrentUserDetailsOptions.<Clone>$() -> Rask.Web.Types.CurrentUserDetailsOptions!
+Rask.Web.Types.CurrentUserDetailsOptions.CurrentUserDetailsOptions() -> void
+Rask.Web.Types.CurrentUserDetailsOptions.DisplayName.get -> string!
+Rask.Web.Types.CurrentUserDetailsOptions.DisplayName.init -> void
+Rask.Web.Types.CurrentUserDetailsOptions.Equals(Rask.Web.Types.CurrentUserDetailsOptions? other) -> bool
+Rask.Web.Types.CurrentUserDetailsOptions.Name.get -> string!
+Rask.Web.Types.CurrentUserDetailsOptions.Name.init -> void
+Rask.Web.Types.CurrentUserDetailsOptions.RpId.get -> string!
+Rask.Web.Types.CurrentUserDetailsOptions.RpId.init -> void
+Rask.Web.Types.DOMQuadInit
+Rask.Web.Types.DOMQuadInit.<Clone>$() -> Rask.Web.Types.DOMQuadInit!
+Rask.Web.Types.DOMQuadInit.DOMQuadInit() -> void
+Rask.Web.Types.DOMQuadInit.Equals(Rask.Web.Types.DOMQuadInit? other) -> bool
+Rask.Web.Types.DOMQuadInit.P1.get -> Rask.Core.DOMPointInit?
+Rask.Web.Types.DOMQuadInit.P1.init -> void
+Rask.Web.Types.DOMQuadInit.P2.get -> Rask.Core.DOMPointInit?
+Rask.Web.Types.DOMQuadInit.P2.init -> void
+Rask.Web.Types.DOMQuadInit.P3.get -> Rask.Core.DOMPointInit?
+Rask.Web.Types.DOMQuadInit.P3.init -> void
+Rask.Web.Types.DOMQuadInit.P4.get -> Rask.Core.DOMPointInit?
+Rask.Web.Types.DOMQuadInit.P4.init -> void
+Rask.Web.Types.DelayOptions
+Rask.Web.Types.DelayOptions.DelayOptions() -> void
+Rask.Web.Types.DelayOptions.DelayTime.get -> double?
+Rask.Web.Types.DelayOptions.DelayTime.init -> void
+Rask.Web.Types.DelayOptions.Equals(Rask.Web.Types.DelayOptions? other) -> bool
+Rask.Web.Types.DelayOptions.MaxDelayTime.get -> double?
+Rask.Web.Types.DelayOptions.MaxDelayTime.init -> void
+Rask.Web.Types.DynamicsCompressorOptions
+Rask.Web.Types.DynamicsCompressorOptions.Attack.get -> double?
+Rask.Web.Types.DynamicsCompressorOptions.Attack.init -> void
+Rask.Web.Types.DynamicsCompressorOptions.DynamicsCompressorOptions() -> void
+Rask.Web.Types.DynamicsCompressorOptions.Equals(Rask.Web.Types.DynamicsCompressorOptions? other) -> bool
+Rask.Web.Types.DynamicsCompressorOptions.Knee.get -> double?
+Rask.Web.Types.DynamicsCompressorOptions.Knee.init -> void
+Rask.Web.Types.DynamicsCompressorOptions.Ratio.get -> double?
+Rask.Web.Types.DynamicsCompressorOptions.Ratio.init -> void
+Rask.Web.Types.DynamicsCompressorOptions.Release.get -> double?
+Rask.Web.Types.DynamicsCompressorOptions.Release.init -> void
+Rask.Web.Types.DynamicsCompressorOptions.Threshold.get -> double?
+Rask.Web.Types.DynamicsCompressorOptions.Threshold.init -> void
+Rask.Web.Types.EncodedAudioChunkInit
+Rask.Web.Types.EncodedAudioChunkInit.<Clone>$() -> Rask.Web.Types.EncodedAudioChunkInit!
+Rask.Web.Types.EncodedAudioChunkInit.Duration.get -> long?
+Rask.Web.Types.EncodedAudioChunkInit.Duration.init -> void
+Rask.Web.Types.EncodedAudioChunkInit.EncodedAudioChunkInit() -> void
+Rask.Web.Types.EncodedAudioChunkInit.Equals(Rask.Web.Types.EncodedAudioChunkInit? other) -> bool
+Rask.Web.Types.EncodedAudioChunkInit.Timestamp.get -> long
+Rask.Web.Types.EncodedAudioChunkInit.Timestamp.init -> void
+Rask.Web.Types.EncodedAudioChunkInit.Type.get -> Rask.Web.Types.EncodedAudioChunkType
+Rask.Web.Types.EncodedAudioChunkInit.Type.init -> void
+Rask.Web.Types.EncodedVideoChunkInit
+Rask.Web.Types.EncodedVideoChunkInit.<Clone>$() -> Rask.Web.Types.EncodedVideoChunkInit!
+Rask.Web.Types.EncodedVideoChunkInit.Duration.get -> long?
+Rask.Web.Types.EncodedVideoChunkInit.Duration.init -> void
+Rask.Web.Types.EncodedVideoChunkInit.EncodedVideoChunkInit() -> void
+Rask.Web.Types.EncodedVideoChunkInit.Equals(Rask.Web.Types.EncodedVideoChunkInit? other) -> bool
+Rask.Web.Types.EncodedVideoChunkInit.Timestamp.get -> long
+Rask.Web.Types.EncodedVideoChunkInit.Timestamp.init -> void
+Rask.Web.Types.EncodedVideoChunkInit.Type.get -> Rask.Web.Types.EncodedVideoChunkType
+Rask.Web.Types.EncodedVideoChunkInit.Type.init -> void
+Rask.Web.Types.EndingType
+Rask.Web.Types.EndingType.Native = 1 -> Rask.Web.Types.EndingType
+Rask.Web.Types.EndingType.Transparent = 0 -> Rask.Web.Types.EndingType
+Rask.Web.Types.EventSourceInit
+Rask.Web.Types.EventSourceInit.<Clone>$() -> Rask.Web.Types.EventSourceInit!
+Rask.Web.Types.EventSourceInit.Equals(Rask.Web.Types.EventSourceInit? other) -> bool
+Rask.Web.Types.EventSourceInit.EventSourceInit() -> void
+Rask.Web.Types.EventSourceInit.WithCredentials.get -> bool?
+Rask.Web.Types.EventSourceInit.WithCredentials.init -> void
+Rask.Web.Types.FilePropertyBag
+Rask.Web.Types.FilePropertyBag.Equals(Rask.Web.Types.FilePropertyBag? other) -> bool
+Rask.Web.Types.FilePropertyBag.FilePropertyBag() -> void
+Rask.Web.Types.FilePropertyBag.LastModified.get -> long?
+Rask.Web.Types.FilePropertyBag.LastModified.init -> void
+Rask.Web.Types.FontFaceDescriptors
+Rask.Web.Types.FontFaceDescriptors.<Clone>$() -> Rask.Web.Types.FontFaceDescriptors!
+Rask.Web.Types.FontFaceDescriptors.AscentOverride.get -> string?
+Rask.Web.Types.FontFaceDescriptors.AscentOverride.init -> void
+Rask.Web.Types.FontFaceDescriptors.DescentOverride.get -> string?
+Rask.Web.Types.FontFaceDescriptors.DescentOverride.init -> void
+Rask.Web.Types.FontFaceDescriptors.Display.get -> string?
+Rask.Web.Types.FontFaceDescriptors.Display.init -> void
+Rask.Web.Types.FontFaceDescriptors.Equals(Rask.Web.Types.FontFaceDescriptors? other) -> bool
+Rask.Web.Types.FontFaceDescriptors.FeatureSettings.get -> string?
+Rask.Web.Types.FontFaceDescriptors.FeatureSettings.init -> void
+Rask.Web.Types.FontFaceDescriptors.FontFaceDescriptors() -> void
+Rask.Web.Types.FontFaceDescriptors.LineGapOverride.get -> string?
+Rask.Web.Types.FontFaceDescriptors.LineGapOverride.init -> void
+Rask.Web.Types.FontFaceDescriptors.Stretch.get -> string?
+Rask.Web.Types.FontFaceDescriptors.Stretch.init -> void
+Rask.Web.Types.FontFaceDescriptors.Style.get -> string?
+Rask.Web.Types.FontFaceDescriptors.Style.init -> void
+Rask.Web.Types.FontFaceDescriptors.UnicodeRange.get -> string?
+Rask.Web.Types.FontFaceDescriptors.UnicodeRange.init -> void
+Rask.Web.Types.FontFaceDescriptors.VariationSettings.get -> string?
+Rask.Web.Types.FontFaceDescriptors.VariationSettings.init -> void
+Rask.Web.Types.FontFaceDescriptors.Weight.get -> string?
+Rask.Web.Types.FontFaceDescriptors.Weight.init -> void
+Rask.Web.Types.GPUPipelineErrorInit
+Rask.Web.Types.GPUPipelineErrorInit.<Clone>$() -> Rask.Web.Types.GPUPipelineErrorInit!
+Rask.Web.Types.GPUPipelineErrorInit.Equals(Rask.Web.Types.GPUPipelineErrorInit? other) -> bool
+Rask.Web.Types.GPUPipelineErrorInit.GPUPipelineErrorInit() -> void
+Rask.Web.Types.GPUPipelineErrorInit.Reason.get -> Rask.Web.Types.GPUPipelineErrorReason
+Rask.Web.Types.GPUPipelineErrorInit.Reason.init -> void
+Rask.Web.Types.GainOptions
+Rask.Web.Types.GainOptions.Equals(Rask.Web.Types.GainOptions? other) -> bool
+Rask.Web.Types.GainOptions.Gain.get -> double?
+Rask.Web.Types.GainOptions.Gain.init -> void
+Rask.Web.Types.GainOptions.GainOptions() -> void
+Rask.Web.Types.IIRFilterOptions
+Rask.Web.Types.IIRFilterOptions.Equals(Rask.Web.Types.IIRFilterOptions? other) -> bool
+Rask.Web.Types.IIRFilterOptions.Feedback.get -> double[]!
+Rask.Web.Types.IIRFilterOptions.Feedback.init -> void
+Rask.Web.Types.IIRFilterOptions.Feedforward.get -> double[]!
+Rask.Web.Types.IIRFilterOptions.Feedforward.init -> void
+Rask.Web.Types.IIRFilterOptions.IIRFilterOptions() -> void
+Rask.Web.Types.ImageDecoderInit
+Rask.Web.Types.ImageDecoderInit.<Clone>$() -> Rask.Web.Types.ImageDecoderInit!
+Rask.Web.Types.ImageDecoderInit.ColorSpaceConversion.get -> Rask.Web.Types.ColorSpaceConversion?
+Rask.Web.Types.ImageDecoderInit.ColorSpaceConversion.init -> void
+Rask.Web.Types.ImageDecoderInit.DesiredHeight.get -> int?
+Rask.Web.Types.ImageDecoderInit.DesiredHeight.init -> void
+Rask.Web.Types.ImageDecoderInit.DesiredWidth.get -> int?
+Rask.Web.Types.ImageDecoderInit.DesiredWidth.init -> void
+Rask.Web.Types.ImageDecoderInit.Equals(Rask.Web.Types.ImageDecoderInit? other) -> bool
+Rask.Web.Types.ImageDecoderInit.ImageDecoderInit() -> void
+Rask.Web.Types.ImageDecoderInit.PreferAnimation.get -> bool?
+Rask.Web.Types.ImageDecoderInit.PreferAnimation.init -> void
+Rask.Web.Types.ImageDecoderInit.Type.get -> string!
+Rask.Web.Types.ImageDecoderInit.Type.init -> void
+Rask.Web.Types.IntersectionObserverInit
+Rask.Web.Types.IntersectionObserverInit.<Clone>$() -> Rask.Web.Types.IntersectionObserverInit!
+Rask.Web.Types.IntersectionObserverInit.Delay.get -> int?
+Rask.Web.Types.IntersectionObserverInit.Delay.init -> void
+Rask.Web.Types.IntersectionObserverInit.Equals(Rask.Web.Types.IntersectionObserverInit? other) -> bool
+Rask.Web.Types.IntersectionObserverInit.IntersectionObserverInit() -> void
+Rask.Web.Types.IntersectionObserverInit.RootMargin.get -> string?
+Rask.Web.Types.IntersectionObserverInit.RootMargin.init -> void
+Rask.Web.Types.IntersectionObserverInit.ScrollMargin.get -> string?
+Rask.Web.Types.IntersectionObserverInit.ScrollMargin.init -> void
+Rask.Web.Types.IntersectionObserverInit.TrackVisibility.get -> bool?
+Rask.Web.Types.IntersectionObserverInit.TrackVisibility.init -> void
+Rask.Web.Types.KeyframeEffectOptions
+Rask.Web.Types.KeyframeEffectOptions.Composite.get -> Rask.Web.Types.CompositeOperation?
+Rask.Web.Types.KeyframeEffectOptions.Composite.init -> void
+Rask.Web.Types.KeyframeEffectOptions.IterationComposite.get -> Rask.Web.Types.IterationCompositeOperation?
+Rask.Web.Types.KeyframeEffectOptions.IterationComposite.init -> void
+Rask.Web.Types.KeyframeEffectOptions.KeyframeEffectOptions() -> void
+Rask.Web.Types.KeyframeEffectOptions.KeyframeEffectOptions(Rask.Web.Types.KeyframeEffectOptions! original) -> void
+Rask.Web.Types.KeyframeEffectOptions.PseudoElement.get -> string?
+Rask.Web.Types.KeyframeEffectOptions.PseudoElement.init -> void
+Rask.Web.Types.MediaEffectInfo
+Rask.Web.Types.MediaEffectInfo.Enabled.get -> bool
+Rask.Web.Types.MediaEffectInfo.Enabled.init -> void
+Rask.Web.Types.MediaEffectInfo.MediaEffectInfo() -> void
+Rask.Web.Types.MediaEffectInfo.MediaEffectInfo(Rask.Web.Types.MediaEffectInfo! original) -> void
+Rask.Web.Types.MediaImage
+Rask.Web.Types.MediaImage.<Clone>$() -> Rask.Web.Types.MediaImage!
+Rask.Web.Types.MediaImage.Equals(Rask.Web.Types.MediaImage? other) -> bool
+Rask.Web.Types.MediaImage.MediaImage() -> void
+Rask.Web.Types.MediaImage.Sizes.get -> string?
+Rask.Web.Types.MediaImage.Sizes.init -> void
+Rask.Web.Types.MediaImage.Src.get -> string!
+Rask.Web.Types.MediaImage.Src.init -> void
+Rask.Web.Types.MediaImage.Type.get -> string?
+Rask.Web.Types.MediaImage.Type.init -> void
+Rask.Web.Types.MediaMetadataInit
+Rask.Web.Types.MediaMetadataInit.<Clone>$() -> Rask.Web.Types.MediaMetadataInit!
+Rask.Web.Types.MediaMetadataInit.Album.get -> string?
+Rask.Web.Types.MediaMetadataInit.Album.init -> void
+Rask.Web.Types.MediaMetadataInit.Artist.get -> string?
+Rask.Web.Types.MediaMetadataInit.Artist.init -> void
+Rask.Web.Types.MediaMetadataInit.Artwork.get -> Rask.Web.Types.MediaImage![]?
+Rask.Web.Types.MediaMetadataInit.Artwork.init -> void
+Rask.Web.Types.MediaMetadataInit.ChapterInfo.get -> Rask.Web.Types.ChapterInformationInit![]?
+Rask.Web.Types.MediaMetadataInit.ChapterInfo.init -> void
+Rask.Web.Types.MediaMetadataInit.Equals(Rask.Web.Types.MediaMetadataInit? other) -> bool
+Rask.Web.Types.MediaMetadataInit.MediaMetadataInit() -> void
+Rask.Web.Types.MediaMetadataInit.Title.get -> string?
+Rask.Web.Types.MediaMetadataInit.Title.init -> void
+Rask.Web.Types.MediaRecorderOptions
+Rask.Web.Types.MediaRecorderOptions.<Clone>$() -> Rask.Web.Types.MediaRecorderOptions!
+Rask.Web.Types.MediaRecorderOptions.AudioBitrateMode.get -> Rask.Web.Types.BitrateMode?
+Rask.Web.Types.MediaRecorderOptions.AudioBitrateMode.init -> void
+Rask.Web.Types.MediaRecorderOptions.AudioBitsPerSecond.get -> int?
+Rask.Web.Types.MediaRecorderOptions.AudioBitsPerSecond.init -> void
+Rask.Web.Types.MediaRecorderOptions.BitsPerSecond.get -> int?
+Rask.Web.Types.MediaRecorderOptions.BitsPerSecond.init -> void
+Rask.Web.Types.MediaRecorderOptions.Equals(Rask.Web.Types.MediaRecorderOptions? other) -> bool
+Rask.Web.Types.MediaRecorderOptions.MediaRecorderOptions() -> void
+Rask.Web.Types.MediaRecorderOptions.MimeType.get -> string?
+Rask.Web.Types.MediaRecorderOptions.MimeType.init -> void
+Rask.Web.Types.MediaRecorderOptions.VideoBitsPerSecond.get -> int?
+Rask.Web.Types.MediaRecorderOptions.VideoBitsPerSecond.init -> void
+Rask.Web.Types.MediaRecorderOptions.VideoKeyFrameIntervalCount.get -> int?
+Rask.Web.Types.MediaRecorderOptions.VideoKeyFrameIntervalCount.init -> void
+Rask.Web.Types.NotificationPermission
+Rask.Web.Types.NotificationPermission.Default = 0 -> Rask.Web.Types.NotificationPermission
+Rask.Web.Types.NotificationPermission.Denied = 1 -> Rask.Web.Types.NotificationPermission
+Rask.Web.Types.NotificationPermission.Granted = 2 -> Rask.Web.Types.NotificationPermission
+Rask.Web.Types.OfflineAudioContextOptions
+Rask.Web.Types.OfflineAudioContextOptions.<Clone>$() -> Rask.Web.Types.OfflineAudioContextOptions!
+Rask.Web.Types.OfflineAudioContextOptions.Equals(Rask.Web.Types.OfflineAudioContextOptions? other) -> bool
+Rask.Web.Types.OfflineAudioContextOptions.Length.get -> int?
+Rask.Web.Types.OfflineAudioContextOptions.Length.init -> void
+Rask.Web.Types.OfflineAudioContextOptions.NumberOfChannels.get -> int?
+Rask.Web.Types.OfflineAudioContextOptions.NumberOfChannels.init -> void
+Rask.Web.Types.OfflineAudioContextOptions.OfflineAudioContextOptions() -> void
+Rask.Web.Types.OfflineAudioContextOptions.SampleRate.get -> double
+Rask.Web.Types.OfflineAudioContextOptions.SampleRate.init -> void
+Rask.Web.Types.OscillatorOptions
+Rask.Web.Types.OscillatorOptions.Detune.get -> double?
+Rask.Web.Types.OscillatorOptions.Detune.init -> void
+Rask.Web.Types.OscillatorOptions.Equals(Rask.Web.Types.OscillatorOptions? other) -> bool
+Rask.Web.Types.OscillatorOptions.Frequency.get -> double?
+Rask.Web.Types.OscillatorOptions.Frequency.init -> void
+Rask.Web.Types.OscillatorOptions.OscillatorOptions() -> void
+Rask.Web.Types.OscillatorOptions.Type.get -> Rask.Web.Types.OscillatorType?
+Rask.Web.Types.OscillatorOptions.Type.init -> void
+Rask.Web.Types.PannerOptions
+Rask.Web.Types.PannerOptions.ConeInnerAngle.get -> double?
+Rask.Web.Types.PannerOptions.ConeInnerAngle.init -> void
+Rask.Web.Types.PannerOptions.ConeOuterAngle.get -> double?
+Rask.Web.Types.PannerOptions.ConeOuterAngle.init -> void
+Rask.Web.Types.PannerOptions.ConeOuterGain.get -> double?
+Rask.Web.Types.PannerOptions.ConeOuterGain.init -> void
+Rask.Web.Types.PannerOptions.DistanceModel.get -> Rask.Web.Types.DistanceModelType?
+Rask.Web.Types.PannerOptions.DistanceModel.init -> void
+Rask.Web.Types.PannerOptions.Equals(Rask.Web.Types.PannerOptions? other) -> bool
+Rask.Web.Types.PannerOptions.MaxDistance.get -> double?
+Rask.Web.Types.PannerOptions.MaxDistance.init -> void
+Rask.Web.Types.PannerOptions.OrientationX.get -> double?
+Rask.Web.Types.PannerOptions.OrientationX.init -> void
+Rask.Web.Types.PannerOptions.OrientationY.get -> double?
+Rask.Web.Types.PannerOptions.OrientationY.init -> void
+Rask.Web.Types.PannerOptions.OrientationZ.get -> double?
+Rask.Web.Types.PannerOptions.OrientationZ.init -> void
+Rask.Web.Types.PannerOptions.PannerOptions() -> void
+Rask.Web.Types.PannerOptions.PanningModel.get -> Rask.Web.Types.PanningModelType?
+Rask.Web.Types.PannerOptions.PanningModel.init -> void
+Rask.Web.Types.PannerOptions.PositionX.get -> double?
+Rask.Web.Types.PannerOptions.PositionX.init -> void
+Rask.Web.Types.PannerOptions.PositionY.get -> double?
+Rask.Web.Types.PannerOptions.PositionY.init -> void
+Rask.Web.Types.PannerOptions.PositionZ.get -> double?
+Rask.Web.Types.PannerOptions.PositionZ.init -> void
+Rask.Web.Types.PannerOptions.RefDistance.get -> double?
+Rask.Web.Types.PannerOptions.RefDistance.init -> void
+Rask.Web.Types.PannerOptions.RolloffFactor.get -> double?
+Rask.Web.Types.PannerOptions.RolloffFactor.init -> void
+Rask.Web.Types.PaymentDetailsBase
+Rask.Web.Types.PaymentDetailsBase.DisplayItems.get -> Rask.Web.Types.PaymentItem![]?
+Rask.Web.Types.PaymentDetailsBase.DisplayItems.init -> void
+Rask.Web.Types.PaymentDetailsBase.Modifiers.get -> Rask.Web.Types.PaymentDetailsModifier![]?
+Rask.Web.Types.PaymentDetailsBase.Modifiers.init -> void
+Rask.Web.Types.PaymentDetailsBase.PaymentDetailsBase() -> void
+Rask.Web.Types.PaymentDetailsBase.PaymentDetailsBase(Rask.Web.Types.PaymentDetailsBase! original) -> void
+Rask.Web.Types.PaymentDetailsBase.ShippingOptions.get -> Rask.Web.Types.PaymentShippingOption![]?
+Rask.Web.Types.PaymentDetailsBase.ShippingOptions.init -> void
+Rask.Web.Types.PaymentDetailsInit
+Rask.Web.Types.PaymentDetailsInit.Equals(Rask.Web.Types.PaymentDetailsInit? other) -> bool
+Rask.Web.Types.PaymentDetailsInit.Id.get -> string?
+Rask.Web.Types.PaymentDetailsInit.Id.init -> void
+Rask.Web.Types.PaymentDetailsInit.PaymentDetailsInit() -> void
+Rask.Web.Types.PaymentDetailsInit.Total.get -> Rask.Web.Types.PaymentItem!
+Rask.Web.Types.PaymentDetailsInit.Total.init -> void
+Rask.Web.Types.PaymentDetailsModifier
+Rask.Web.Types.PaymentDetailsModifier.<Clone>$() -> Rask.Web.Types.PaymentDetailsModifier!
+Rask.Web.Types.PaymentDetailsModifier.AdditionalDisplayItems.get -> Rask.Web.Types.PaymentItem![]?
+Rask.Web.Types.PaymentDetailsModifier.AdditionalDisplayItems.init -> void
+Rask.Web.Types.PaymentDetailsModifier.Equals(Rask.Web.Types.PaymentDetailsModifier? other) -> bool
+Rask.Web.Types.PaymentDetailsModifier.PaymentDetailsModifier() -> void
+Rask.Web.Types.PaymentDetailsModifier.SupportedMethods.get -> string!
+Rask.Web.Types.PaymentDetailsModifier.SupportedMethods.init -> void
+Rask.Web.Types.PaymentDetailsModifier.Total.get -> Rask.Web.Types.PaymentItem?
+Rask.Web.Types.PaymentDetailsModifier.Total.init -> void
+Rask.Web.Types.PaymentItem
+Rask.Web.Types.PaymentItem.<Clone>$() -> Rask.Web.Types.PaymentItem!
+Rask.Web.Types.PaymentItem.Amount.get -> Rask.Web.Types.PaymentCurrencyAmount!
+Rask.Web.Types.PaymentItem.Amount.init -> void
+Rask.Web.Types.PaymentItem.Equals(Rask.Web.Types.PaymentItem? other) -> bool
+Rask.Web.Types.PaymentItem.Label.get -> string!
+Rask.Web.Types.PaymentItem.Label.init -> void
+Rask.Web.Types.PaymentItem.PaymentItem() -> void
+Rask.Web.Types.PaymentItem.Pending.get -> bool?
+Rask.Web.Types.PaymentItem.Pending.init -> void
+Rask.Web.Types.PaymentMethodData
+Rask.Web.Types.PaymentMethodData.<Clone>$() -> Rask.Web.Types.PaymentMethodData!
+Rask.Web.Types.PaymentMethodData.Equals(Rask.Web.Types.PaymentMethodData? other) -> bool
+Rask.Web.Types.PaymentMethodData.PaymentMethodData() -> void
+Rask.Web.Types.PaymentMethodData.SupportedMethods.get -> string!
+Rask.Web.Types.PaymentMethodData.SupportedMethods.init -> void
+Rask.Web.Types.PaymentOptions
+Rask.Web.Types.PaymentOptions.<Clone>$() -> Rask.Web.Types.PaymentOptions!
+Rask.Web.Types.PaymentOptions.Equals(Rask.Web.Types.PaymentOptions? other) -> bool
+Rask.Web.Types.PaymentOptions.PaymentOptions() -> void
+Rask.Web.Types.PaymentOptions.RequestBillingAddress.get -> bool?
+Rask.Web.Types.PaymentOptions.RequestBillingAddress.init -> void
+Rask.Web.Types.PaymentOptions.RequestPayerEmail.get -> bool?
+Rask.Web.Types.PaymentOptions.RequestPayerEmail.init -> void
+Rask.Web.Types.PaymentOptions.RequestPayerName.get -> bool?
+Rask.Web.Types.PaymentOptions.RequestPayerName.init -> void
+Rask.Web.Types.PaymentOptions.RequestPayerPhone.get -> bool?
+Rask.Web.Types.PaymentOptions.RequestPayerPhone.init -> void
+Rask.Web.Types.PaymentOptions.RequestShipping.get -> bool?
+Rask.Web.Types.PaymentOptions.RequestShipping.init -> void
+Rask.Web.Types.PaymentOptions.ShippingType.get -> Rask.Web.Types.PaymentShippingType?
+Rask.Web.Types.PaymentOptions.ShippingType.init -> void
+Rask.Web.Types.PaymentShippingOption
+Rask.Web.Types.PaymentShippingOption.<Clone>$() -> Rask.Web.Types.PaymentShippingOption!
+Rask.Web.Types.PaymentShippingOption.Amount.get -> Rask.Web.Types.PaymentCurrencyAmount!
+Rask.Web.Types.PaymentShippingOption.Amount.init -> void
+Rask.Web.Types.PaymentShippingOption.Equals(Rask.Web.Types.PaymentShippingOption? other) -> bool
+Rask.Web.Types.PaymentShippingOption.Id.get -> string!
+Rask.Web.Types.PaymentShippingOption.Id.init -> void
+Rask.Web.Types.PaymentShippingOption.Label.get -> string!
+Rask.Web.Types.PaymentShippingOption.Label.init -> void
+Rask.Web.Types.PaymentShippingOption.PaymentShippingOption() -> void
+Rask.Web.Types.PaymentShippingOption.Selected.get -> bool?
+Rask.Web.Types.PaymentShippingOption.Selected.init -> void
+Rask.Web.Types.PaymentShippingType
+Rask.Web.Types.PaymentShippingType.Delivery = 1 -> Rask.Web.Types.PaymentShippingType
+Rask.Web.Types.PaymentShippingType.Pickup = 2 -> Rask.Web.Types.PaymentShippingType
+Rask.Web.Types.PaymentShippingType.Shipping = 0 -> Rask.Web.Types.PaymentShippingType
+Rask.Web.Types.PeriodicWaveOptions
+Rask.Web.Types.PeriodicWaveOptions.Equals(Rask.Web.Types.PeriodicWaveOptions? other) -> bool
+Rask.Web.Types.PeriodicWaveOptions.Imag.get -> double[]?
+Rask.Web.Types.PeriodicWaveOptions.Imag.init -> void
+Rask.Web.Types.PeriodicWaveOptions.PeriodicWaveOptions() -> void
+Rask.Web.Types.PeriodicWaveOptions.Real.get -> double[]?
+Rask.Web.Types.PeriodicWaveOptions.Real.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.<Clone>$() -> Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON!
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Attestation.get -> string?
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Attestation.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.AttestationFormats.get -> string![]?
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.AttestationFormats.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.AuthenticatorSelection.get -> Rask.Web.Types.AuthenticatorSelectionCriteria?
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.AuthenticatorSelection.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Equals(Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON? other) -> bool
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.ExcludeCredentials.get -> Rask.Web.Types.PublicKeyCredentialDescriptorJSON![]?
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.ExcludeCredentials.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Extensions.get -> Rask.Web.Types.AuthenticationExtensionsClientInputsJSON?
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Extensions.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Hints.get -> string![]?
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Hints.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.PubKeyCredParams.get -> Rask.Web.Types.PublicKeyCredentialParameters![]!
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.PubKeyCredParams.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.PublicKeyCredentialCreationOptionsJSON() -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Rp.get -> Rask.Web.Types.PublicKeyCredentialRpEntity!
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Rp.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Timeout.get -> int?
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Timeout.init -> void
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.User.get -> Rask.Web.Types.PublicKeyCredentialUserEntityJSON!
+Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.User.init -> void
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON.<Clone>$() -> Rask.Web.Types.PublicKeyCredentialDescriptorJSON!
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON.Equals(Rask.Web.Types.PublicKeyCredentialDescriptorJSON? other) -> bool
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON.PublicKeyCredentialDescriptorJSON() -> void
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON.Transports.get -> string![]?
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON.Transports.init -> void
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON.Type.get -> string!
+Rask.Web.Types.PublicKeyCredentialDescriptorJSON.Type.init -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.<Clone>$() -> Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON!
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.AllowCredentials.get -> Rask.Web.Types.PublicKeyCredentialDescriptorJSON![]?
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.AllowCredentials.init -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Equals(Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON? other) -> bool
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Extensions.get -> Rask.Web.Types.AuthenticationExtensionsClientInputsJSON?
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Extensions.init -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Hints.get -> string![]?
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Hints.init -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.PublicKeyCredentialRequestOptionsJSON() -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.RpId.get -> string?
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.RpId.init -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Timeout.get -> int?
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Timeout.init -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.UserVerification.get -> string?
+Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.UserVerification.init -> void
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON.<Clone>$() -> Rask.Web.Types.PublicKeyCredentialUserEntityJSON!
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON.DisplayName.get -> string!
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON.DisplayName.init -> void
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON.Equals(Rask.Web.Types.PublicKeyCredentialUserEntityJSON? other) -> bool
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON.Name.get -> string!
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON.Name.init -> void
+Rask.Web.Types.PublicKeyCredentialUserEntityJSON.PublicKeyCredentialUserEntityJSON() -> void
+Rask.Web.Types.RTCEncodedAudioFrameOptions
+Rask.Web.Types.RTCEncodedAudioFrameOptions.<Clone>$() -> Rask.Web.Types.RTCEncodedAudioFrameOptions!
+Rask.Web.Types.RTCEncodedAudioFrameOptions.Equals(Rask.Web.Types.RTCEncodedAudioFrameOptions? other) -> bool
+Rask.Web.Types.RTCEncodedAudioFrameOptions.Metadata.get -> Rask.Web.Types.RTCEncodedAudioFrameMetadata?
+Rask.Web.Types.RTCEncodedAudioFrameOptions.Metadata.init -> void
+Rask.Web.Types.RTCEncodedAudioFrameOptions.RTCEncodedAudioFrameOptions() -> void
+Rask.Web.Types.RTCEncodedVideoFrameOptions
+Rask.Web.Types.RTCEncodedVideoFrameOptions.<Clone>$() -> Rask.Web.Types.RTCEncodedVideoFrameOptions!
+Rask.Web.Types.RTCEncodedVideoFrameOptions.Equals(Rask.Web.Types.RTCEncodedVideoFrameOptions? other) -> bool
+Rask.Web.Types.RTCEncodedVideoFrameOptions.Metadata.get -> Rask.Web.Types.RTCEncodedVideoFrameMetadata?
+Rask.Web.Types.RTCEncodedVideoFrameOptions.Metadata.init -> void
+Rask.Web.Types.RTCEncodedVideoFrameOptions.RTCEncodedVideoFrameOptions() -> void
+Rask.Web.Types.RTCErrorInit
+Rask.Web.Types.RTCErrorInit.<Clone>$() -> Rask.Web.Types.RTCErrorInit!
+Rask.Web.Types.RTCErrorInit.Equals(Rask.Web.Types.RTCErrorInit? other) -> bool
+Rask.Web.Types.RTCErrorInit.ErrorDetail.get -> Rask.Web.Types.RTCErrorDetailType
+Rask.Web.Types.RTCErrorInit.ErrorDetail.init -> void
+Rask.Web.Types.RTCErrorInit.HttpRequestStatusCode.get -> int?
+Rask.Web.Types.RTCErrorInit.HttpRequestStatusCode.init -> void
+Rask.Web.Types.RTCErrorInit.RTCErrorInit() -> void
+Rask.Web.Types.RTCErrorInit.ReceivedAlert.get -> int?
+Rask.Web.Types.RTCErrorInit.ReceivedAlert.init -> void
+Rask.Web.Types.RTCErrorInit.SctpCauseCode.get -> int?
+Rask.Web.Types.RTCErrorInit.SctpCauseCode.init -> void
+Rask.Web.Types.RTCErrorInit.SdpLineNumber.get -> int?
+Rask.Web.Types.RTCErrorInit.SdpLineNumber.init -> void
+Rask.Web.Types.RTCErrorInit.SentAlert.get -> int?
+Rask.Web.Types.RTCErrorInit.SentAlert.init -> void
+Rask.Web.Types.RTCRtpCapabilities
+Rask.Web.Types.RTCRtpCapabilities.<Clone>$() -> Rask.Web.Types.RTCRtpCapabilities!
+Rask.Web.Types.RTCRtpCapabilities.Codecs.get -> Rask.Web.Types.RTCRtpCodec![]!
+Rask.Web.Types.RTCRtpCapabilities.Codecs.init -> void
+Rask.Web.Types.RTCRtpCapabilities.Equals(Rask.Web.Types.RTCRtpCapabilities? other) -> bool
+Rask.Web.Types.RTCRtpCapabilities.HeaderExtensions.get -> Rask.Web.Types.RTCRtpHeaderExtensionCapability![]!
+Rask.Web.Types.RTCRtpCapabilities.HeaderExtensions.init -> void
+Rask.Web.Types.RTCRtpCapabilities.RTCRtpCapabilities() -> void
+Rask.Web.Types.RTCRtpHeaderExtensionCapability
+Rask.Web.Types.RTCRtpHeaderExtensionCapability.<Clone>$() -> Rask.Web.Types.RTCRtpHeaderExtensionCapability!
+Rask.Web.Types.RTCRtpHeaderExtensionCapability.Equals(Rask.Web.Types.RTCRtpHeaderExtensionCapability? other) -> bool
+Rask.Web.Types.RTCRtpHeaderExtensionCapability.RTCRtpHeaderExtensionCapability() -> void
+Rask.Web.Types.RTCRtpHeaderExtensionCapability.Uri.get -> string!
+Rask.Web.Types.RTCRtpHeaderExtensionCapability.Uri.init -> void
+Rask.Web.Types.ReadableStreamType
+Rask.Web.Types.ReadableStreamType.Bytes = 0 -> Rask.Web.Types.ReadableStreamType
+Rask.Web.Types.ReportingObserverOptions
+Rask.Web.Types.ReportingObserverOptions.<Clone>$() -> Rask.Web.Types.ReportingObserverOptions!
+Rask.Web.Types.ReportingObserverOptions.Buffered.get -> bool?
+Rask.Web.Types.ReportingObserverOptions.Buffered.init -> void
+Rask.Web.Types.ReportingObserverOptions.Equals(Rask.Web.Types.ReportingObserverOptions? other) -> bool
+Rask.Web.Types.ReportingObserverOptions.ReportingObserverOptions() -> void
+Rask.Web.Types.ReportingObserverOptions.Types.get -> string![]?
+Rask.Web.Types.ReportingObserverOptions.Types.init -> void
+Rask.Web.Types.ResponseInit
+Rask.Web.Types.ResponseInit.<Clone>$() -> Rask.Web.Types.ResponseInit!
+Rask.Web.Types.ResponseInit.Equals(Rask.Web.Types.ResponseInit? other) -> bool
+Rask.Web.Types.ResponseInit.ResponseInit() -> void
+Rask.Web.Types.ResponseInit.Status.get -> int?
+Rask.Web.Types.ResponseInit.Status.init -> void
+Rask.Web.Types.SameSiteCookiesType
+Rask.Web.Types.SameSiteCookiesType.All = 0 -> Rask.Web.Types.SameSiteCookiesType
+Rask.Web.Types.SameSiteCookiesType.None = 1 -> Rask.Web.Types.SameSiteCookiesType
+Rask.Web.Types.SanitizerPresets
+Rask.Web.Types.SanitizerPresets.Default = 0 -> Rask.Web.Types.SanitizerPresets
+Rask.Web.Types.ScrollTimelineOptions
+Rask.Web.Types.ScrollTimelineOptions.<Clone>$() -> Rask.Web.Types.ScrollTimelineOptions!
+Rask.Web.Types.ScrollTimelineOptions.Axis.get -> Rask.Web.Types.ScrollAxis?
+Rask.Web.Types.ScrollTimelineOptions.Axis.init -> void
+Rask.Web.Types.ScrollTimelineOptions.Equals(Rask.Web.Types.ScrollTimelineOptions? other) -> bool
+Rask.Web.Types.ScrollTimelineOptions.ScrollTimelineOptions() -> void
+Rask.Web.Types.Segment
+Rask.Web.Types.Segment.<Clone>$() -> Rask.Web.Types.Segment!
+Rask.Web.Types.Segment.BoundingBox.get -> Rask.Web.Types.DOMRectInit?
+Rask.Web.Types.Segment.BoundingBox.init -> void
+Rask.Web.Types.Segment.CenterPoint.get -> Rask.Web.Types.Point2D?
+Rask.Web.Types.Segment.CenterPoint.init -> void
+Rask.Web.Types.Segment.Equals(Rask.Web.Types.Segment? other) -> bool
+Rask.Web.Types.Segment.Id.get -> int
+Rask.Web.Types.Segment.Id.init -> void
+Rask.Web.Types.Segment.PartOf.get -> int?
+Rask.Web.Types.Segment.PartOf.init -> void
+Rask.Web.Types.Segment.Probability.get -> double
+Rask.Web.Types.Segment.Probability.init -> void
+Rask.Web.Types.Segment.Segment() -> void
+Rask.Web.Types.Segment.Type.get -> Rask.Web.Types.SegmentType
+Rask.Web.Types.Segment.Type.init -> void
+Rask.Web.Types.SegmentType
+Rask.Web.Types.SegmentType.Eye = 3 -> Rask.Web.Types.SegmentType
+Rask.Web.Types.SegmentType.HumanFace = 0 -> Rask.Web.Types.SegmentType
+Rask.Web.Types.SegmentType.LeftEye = 1 -> Rask.Web.Types.SegmentType
+Rask.Web.Types.SegmentType.Mouth = 4 -> Rask.Web.Types.SegmentType
+Rask.Web.Types.SegmentType.RightEye = 2 -> Rask.Web.Types.SegmentType
+Rask.Web.Types.SharedWorkerOptions
+Rask.Web.Types.SharedWorkerOptions.Equals(Rask.Web.Types.SharedWorkerOptions? other) -> bool
+Rask.Web.Types.SharedWorkerOptions.ExtendedLifetime.get -> bool?
+Rask.Web.Types.SharedWorkerOptions.ExtendedLifetime.init -> void
+Rask.Web.Types.SharedWorkerOptions.SameSiteCookies.get -> Rask.Web.Types.SameSiteCookiesType?
+Rask.Web.Types.SharedWorkerOptions.SameSiteCookies.init -> void
+Rask.Web.Types.SharedWorkerOptions.SharedWorkerOptions() -> void
+Rask.Web.Types.StaticRangeInit
+Rask.Web.Types.StaticRangeInit.<Clone>$() -> Rask.Web.Types.StaticRangeInit!
+Rask.Web.Types.StaticRangeInit.EndOffset.get -> int
+Rask.Web.Types.StaticRangeInit.EndOffset.init -> void
+Rask.Web.Types.StaticRangeInit.Equals(Rask.Web.Types.StaticRangeInit? other) -> bool
+Rask.Web.Types.StaticRangeInit.StartOffset.get -> int
+Rask.Web.Types.StaticRangeInit.StartOffset.init -> void
+Rask.Web.Types.StaticRangeInit.StaticRangeInit() -> void
+Rask.Web.Types.StereoPannerOptions
+Rask.Web.Types.StereoPannerOptions.Equals(Rask.Web.Types.StereoPannerOptions? other) -> bool
+Rask.Web.Types.StereoPannerOptions.Pan.get -> double?
+Rask.Web.Types.StereoPannerOptions.Pan.init -> void
+Rask.Web.Types.StereoPannerOptions.StereoPannerOptions() -> void
+Rask.Web.Types.TaskControllerInit
+Rask.Web.Types.TaskControllerInit.<Clone>$() -> Rask.Web.Types.TaskControllerInit!
+Rask.Web.Types.TaskControllerInit.Equals(Rask.Web.Types.TaskControllerInit? other) -> bool
+Rask.Web.Types.TaskControllerInit.Priority.get -> Rask.Web.Types.TaskPriority?
+Rask.Web.Types.TaskControllerInit.Priority.init -> void
+Rask.Web.Types.TaskControllerInit.TaskControllerInit() -> void
+Rask.Web.Types.TouchInit
+Rask.Web.Types.TouchInit.<Clone>$() -> Rask.Web.Types.TouchInit!
+Rask.Web.Types.TouchInit.AltitudeAngle.get -> double?
+Rask.Web.Types.TouchInit.AltitudeAngle.init -> void
+Rask.Web.Types.TouchInit.AzimuthAngle.get -> double?
+Rask.Web.Types.TouchInit.AzimuthAngle.init -> void
+Rask.Web.Types.TouchInit.ClientX.get -> double?
+Rask.Web.Types.TouchInit.ClientX.init -> void
+Rask.Web.Types.TouchInit.ClientY.get -> double?
+Rask.Web.Types.TouchInit.ClientY.init -> void
+Rask.Web.Types.TouchInit.Equals(Rask.Web.Types.TouchInit? other) -> bool
+Rask.Web.Types.TouchInit.Force.get -> double?
+Rask.Web.Types.TouchInit.Force.init -> void
+Rask.Web.Types.TouchInit.Identifier.get -> int
+Rask.Web.Types.TouchInit.Identifier.init -> void
+Rask.Web.Types.TouchInit.PageX.get -> double?
+Rask.Web.Types.TouchInit.PageX.init -> void
+Rask.Web.Types.TouchInit.PageY.get -> double?
+Rask.Web.Types.TouchInit.PageY.init -> void
+Rask.Web.Types.TouchInit.RadiusX.get -> double?
+Rask.Web.Types.TouchInit.RadiusX.init -> void
+Rask.Web.Types.TouchInit.RadiusY.get -> double?
+Rask.Web.Types.TouchInit.RadiusY.init -> void
+Rask.Web.Types.TouchInit.RotationAngle.get -> double?
+Rask.Web.Types.TouchInit.RotationAngle.init -> void
+Rask.Web.Types.TouchInit.ScreenX.get -> double?
+Rask.Web.Types.TouchInit.ScreenX.init -> void
+Rask.Web.Types.TouchInit.ScreenY.get -> double?
+Rask.Web.Types.TouchInit.ScreenY.init -> void
+Rask.Web.Types.TouchInit.TouchInit() -> void
+Rask.Web.Types.TouchInit.TouchType.get -> Rask.Web.Types.TouchType?
+Rask.Web.Types.TouchInit.TouchType.init -> void
+Rask.Web.Types.TouchType
+Rask.Web.Types.TouchType.Direct = 0 -> Rask.Web.Types.TouchType
+Rask.Web.Types.TouchType.Stylus = 1 -> Rask.Web.Types.TouchType
+Rask.Web.Types.URLPatternOptions
+Rask.Web.Types.URLPatternOptions.<Clone>$() -> Rask.Web.Types.URLPatternOptions!
+Rask.Web.Types.URLPatternOptions.Equals(Rask.Web.Types.URLPatternOptions? other) -> bool
+Rask.Web.Types.URLPatternOptions.IgnoreCase.get -> bool?
+Rask.Web.Types.URLPatternOptions.IgnoreCase.init -> void
+Rask.Web.Types.URLPatternOptions.URLPatternOptions() -> void
+Rask.Web.Types.UnknownCredentialOptions
+Rask.Web.Types.UnknownCredentialOptions.<Clone>$() -> Rask.Web.Types.UnknownCredentialOptions!
+Rask.Web.Types.UnknownCredentialOptions.Equals(Rask.Web.Types.UnknownCredentialOptions? other) -> bool
+Rask.Web.Types.UnknownCredentialOptions.RpId.get -> string!
+Rask.Web.Types.UnknownCredentialOptions.RpId.init -> void
+Rask.Web.Types.UnknownCredentialOptions.UnknownCredentialOptions() -> void
+Rask.Web.Types.VideoDecoderSupport
+Rask.Web.Types.VideoDecoderSupport.<Clone>$() -> Rask.Web.Types.VideoDecoderSupport!
+Rask.Web.Types.VideoDecoderSupport.Config.get -> Rask.Web.Types.VideoDecoderConfig?
+Rask.Web.Types.VideoDecoderSupport.Config.init -> void
+Rask.Web.Types.VideoDecoderSupport.Equals(Rask.Web.Types.VideoDecoderSupport? other) -> bool
+Rask.Web.Types.VideoDecoderSupport.Supported.get -> bool?
+Rask.Web.Types.VideoDecoderSupport.Supported.init -> void
+Rask.Web.Types.VideoDecoderSupport.VideoDecoderSupport() -> void
+Rask.Web.Types.VideoEncoderSupport
+Rask.Web.Types.VideoEncoderSupport.<Clone>$() -> Rask.Web.Types.VideoEncoderSupport!
+Rask.Web.Types.VideoEncoderSupport.Config.get -> Rask.Web.Types.VideoEncoderConfig?
+Rask.Web.Types.VideoEncoderSupport.Config.init -> void
+Rask.Web.Types.VideoEncoderSupport.Equals(Rask.Web.Types.VideoEncoderSupport? other) -> bool
+Rask.Web.Types.VideoEncoderSupport.Supported.get -> bool?
+Rask.Web.Types.VideoEncoderSupport.Supported.init -> void
+Rask.Web.Types.VideoEncoderSupport.VideoEncoderSupport() -> void
+Rask.Web.Types.VideoFrameBufferInit
+Rask.Web.Types.VideoFrameBufferInit.<Clone>$() -> Rask.Web.Types.VideoFrameBufferInit!
+Rask.Web.Types.VideoFrameBufferInit.CodedHeight.get -> int
+Rask.Web.Types.VideoFrameBufferInit.CodedHeight.init -> void
+Rask.Web.Types.VideoFrameBufferInit.CodedWidth.get -> int
+Rask.Web.Types.VideoFrameBufferInit.CodedWidth.init -> void
+Rask.Web.Types.VideoFrameBufferInit.ColorSpace.get -> Rask.Web.Types.VideoColorSpaceInit?
+Rask.Web.Types.VideoFrameBufferInit.ColorSpace.init -> void
+Rask.Web.Types.VideoFrameBufferInit.DisplayHeight.get -> int?
+Rask.Web.Types.VideoFrameBufferInit.DisplayHeight.init -> void
+Rask.Web.Types.VideoFrameBufferInit.DisplayWidth.get -> int?
+Rask.Web.Types.VideoFrameBufferInit.DisplayWidth.init -> void
+Rask.Web.Types.VideoFrameBufferInit.Duration.get -> long?
+Rask.Web.Types.VideoFrameBufferInit.Duration.init -> void
+Rask.Web.Types.VideoFrameBufferInit.Equals(Rask.Web.Types.VideoFrameBufferInit? other) -> bool
+Rask.Web.Types.VideoFrameBufferInit.Flip.get -> bool?
+Rask.Web.Types.VideoFrameBufferInit.Flip.init -> void
+Rask.Web.Types.VideoFrameBufferInit.Format.get -> Rask.Web.Types.VideoPixelFormat
+Rask.Web.Types.VideoFrameBufferInit.Format.init -> void
+Rask.Web.Types.VideoFrameBufferInit.Layout.get -> Rask.Web.Types.PlaneLayout![]?
+Rask.Web.Types.VideoFrameBufferInit.Layout.init -> void
+Rask.Web.Types.VideoFrameBufferInit.Metadata.get -> Rask.Web.Types.VideoFrameMetadata?
+Rask.Web.Types.VideoFrameBufferInit.Metadata.init -> void
+Rask.Web.Types.VideoFrameBufferInit.Rotation.get -> double?
+Rask.Web.Types.VideoFrameBufferInit.Rotation.init -> void
+Rask.Web.Types.VideoFrameBufferInit.Timestamp.get -> long
+Rask.Web.Types.VideoFrameBufferInit.Timestamp.init -> void
+Rask.Web.Types.VideoFrameBufferInit.VideoFrameBufferInit() -> void
+Rask.Web.Types.VideoFrameBufferInit.VisibleRect.get -> Rask.Web.Types.DOMRectInit?
+Rask.Web.Types.VideoFrameBufferInit.VisibleRect.init -> void
+Rask.Web.Types.VideoFrameInit
+Rask.Web.Types.VideoFrameInit.<Clone>$() -> Rask.Web.Types.VideoFrameInit!
+Rask.Web.Types.VideoFrameInit.Alpha.get -> Rask.Web.Types.AlphaOption?
+Rask.Web.Types.VideoFrameInit.Alpha.init -> void
+Rask.Web.Types.VideoFrameInit.DisplayHeight.get -> int?
+Rask.Web.Types.VideoFrameInit.DisplayHeight.init -> void
+Rask.Web.Types.VideoFrameInit.DisplayWidth.get -> int?
+Rask.Web.Types.VideoFrameInit.DisplayWidth.init -> void
+Rask.Web.Types.VideoFrameInit.Duration.get -> long?
+Rask.Web.Types.VideoFrameInit.Duration.init -> void
+Rask.Web.Types.VideoFrameInit.Equals(Rask.Web.Types.VideoFrameInit? other) -> bool
+Rask.Web.Types.VideoFrameInit.Flip.get -> bool?
+Rask.Web.Types.VideoFrameInit.Flip.init -> void
+Rask.Web.Types.VideoFrameInit.Metadata.get -> Rask.Web.Types.VideoFrameMetadata?
+Rask.Web.Types.VideoFrameInit.Metadata.init -> void
+Rask.Web.Types.VideoFrameInit.Rotation.get -> double?
+Rask.Web.Types.VideoFrameInit.Rotation.init -> void
+Rask.Web.Types.VideoFrameInit.Timestamp.get -> long?
+Rask.Web.Types.VideoFrameInit.Timestamp.init -> void
+Rask.Web.Types.VideoFrameInit.VideoFrameInit() -> void
+Rask.Web.Types.VideoFrameInit.VisibleRect.get -> Rask.Web.Types.DOMRectInit?
+Rask.Web.Types.VideoFrameInit.VisibleRect.init -> void
+Rask.Web.Types.VideoFrameMetadata
+Rask.Web.Types.VideoFrameMetadata.<Clone>$() -> Rask.Web.Types.VideoFrameMetadata!
+Rask.Web.Types.VideoFrameMetadata.BackgroundBlur.get -> Rask.Web.Types.BackgroundBlur?
+Rask.Web.Types.VideoFrameMetadata.BackgroundBlur.init -> void
+Rask.Web.Types.VideoFrameMetadata.Equals(Rask.Web.Types.VideoFrameMetadata? other) -> bool
+Rask.Web.Types.VideoFrameMetadata.Segments.get -> Rask.Web.Types.Segment![]?
+Rask.Web.Types.VideoFrameMetadata.Segments.init -> void
+Rask.Web.Types.VideoFrameMetadata.VideoFrameMetadata() -> void
+Rask.Web.Types.ViewTimelineOptions
+Rask.Web.Types.ViewTimelineOptions.<Clone>$() -> Rask.Web.Types.ViewTimelineOptions!
+Rask.Web.Types.ViewTimelineOptions.Axis.get -> Rask.Web.Types.ScrollAxis?
+Rask.Web.Types.ViewTimelineOptions.Axis.init -> void
+Rask.Web.Types.ViewTimelineOptions.Equals(Rask.Web.Types.ViewTimelineOptions? other) -> bool
+Rask.Web.Types.ViewTimelineOptions.ViewTimelineOptions() -> void
+Rask.Web.Types.WaveShaperOptions
+Rask.Web.Types.WaveShaperOptions.Curve.get -> double[]?
+Rask.Web.Types.WaveShaperOptions.Curve.init -> void
+Rask.Web.Types.WaveShaperOptions.Equals(Rask.Web.Types.WaveShaperOptions? other) -> bool
+Rask.Web.Types.WaveShaperOptions.Oversample.get -> Rask.Web.Types.OverSampleType?
+Rask.Web.Types.WaveShaperOptions.Oversample.init -> void
+Rask.Web.Types.WaveShaperOptions.WaveShaperOptions() -> void
+Rask.Web.Types.WebTransportErrorOptions
+Rask.Web.Types.WebTransportErrorOptions.<Clone>$() -> Rask.Web.Types.WebTransportErrorOptions!
+Rask.Web.Types.WebTransportErrorOptions.Equals(Rask.Web.Types.WebTransportErrorOptions? other) -> bool
+Rask.Web.Types.WebTransportErrorOptions.Source.get -> Rask.Web.Types.WebTransportErrorSource?
+Rask.Web.Types.WebTransportErrorOptions.Source.init -> void
+Rask.Web.Types.WebTransportErrorOptions.StreamErrorCode.get -> int?
+Rask.Web.Types.WebTransportErrorOptions.StreamErrorCode.init -> void
+Rask.Web.Types.WebTransportErrorOptions.WebTransportErrorOptions() -> void
+Rask.Web.Types.WebTransportHash
+Rask.Web.Types.WebTransportHash.<Clone>$() -> Rask.Web.Types.WebTransportHash!
+Rask.Web.Types.WebTransportHash.Algorithm.get -> string!
+Rask.Web.Types.WebTransportHash.Algorithm.init -> void
+Rask.Web.Types.WebTransportHash.Equals(Rask.Web.Types.WebTransportHash? other) -> bool
+Rask.Web.Types.WebTransportHash.WebTransportHash() -> void
+Rask.Web.Types.WebTransportOptions
+Rask.Web.Types.WebTransportOptions.<Clone>$() -> Rask.Web.Types.WebTransportOptions!
+Rask.Web.Types.WebTransportOptions.AllowPooling.get -> bool?
+Rask.Web.Types.WebTransportOptions.AllowPooling.init -> void
+Rask.Web.Types.WebTransportOptions.AnticipatedConcurrentIncomingBidirectionalStreams.get -> int?
+Rask.Web.Types.WebTransportOptions.AnticipatedConcurrentIncomingBidirectionalStreams.init -> void
+Rask.Web.Types.WebTransportOptions.AnticipatedConcurrentIncomingUnidirectionalStreams.get -> int?
+Rask.Web.Types.WebTransportOptions.AnticipatedConcurrentIncomingUnidirectionalStreams.init -> void
+Rask.Web.Types.WebTransportOptions.CongestionControl.get -> Rask.Web.Types.WebTransportCongestionControl?
+Rask.Web.Types.WebTransportOptions.CongestionControl.init -> void
+Rask.Web.Types.WebTransportOptions.DatagramsReadableType.get -> Rask.Web.Types.ReadableStreamType?
+Rask.Web.Types.WebTransportOptions.DatagramsReadableType.init -> void
+Rask.Web.Types.WebTransportOptions.Equals(Rask.Web.Types.WebTransportOptions? other) -> bool
+Rask.Web.Types.WebTransportOptions.Protocols.get -> string![]?
+Rask.Web.Types.WebTransportOptions.Protocols.init -> void
+Rask.Web.Types.WebTransportOptions.RequireUnreliable.get -> bool?
+Rask.Web.Types.WebTransportOptions.RequireUnreliable.init -> void
+Rask.Web.Types.WebTransportOptions.ServerCertificateHashes.get -> Rask.Web.Types.WebTransportHash![]?
+Rask.Web.Types.WebTransportOptions.ServerCertificateHashes.init -> void
+Rask.Web.Types.WebTransportOptions.WebTransportOptions() -> void
+Rask.Web.Types.WorkerOptions
+Rask.Web.Types.WorkerOptions.Credentials.get -> Rask.Web.Types.RequestCredentials?
+Rask.Web.Types.WorkerOptions.Credentials.init -> void
+Rask.Web.Types.WorkerOptions.Name.get -> string?
+Rask.Web.Types.WorkerOptions.Name.init -> void
+Rask.Web.Types.WorkerOptions.Type.get -> Rask.Web.Types.WorkerType?
+Rask.Web.Types.WorkerOptions.Type.init -> void
+Rask.Web.Types.WorkerOptions.WorkerOptions() -> void
+Rask.Web.Types.WorkerOptions.WorkerOptions(Rask.Web.Types.WorkerOptions! original) -> void
+override Rask.Web.Types.AllAcceptedCredentialsOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AllAcceptedCredentialsOptions.GetHashCode() -> int
+override Rask.Web.Types.AllAcceptedCredentialsOptions.ToString() -> string!
+override Rask.Web.Types.AnalyserOptions.<Clone>$() -> Rask.Web.Types.AnalyserOptions!
+override Rask.Web.Types.AnalyserOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AnalyserOptions.GetHashCode() -> int
+override Rask.Web.Types.AnalyserOptions.ToString() -> string!
+override Rask.Web.Types.AudioBufferOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioBufferOptions.GetHashCode() -> int
+override Rask.Web.Types.AudioBufferOptions.ToString() -> string!
+override Rask.Web.Types.AudioBufferSourceOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioBufferSourceOptions.GetHashCode() -> int
+override Rask.Web.Types.AudioBufferSourceOptions.ToString() -> string!
+override Rask.Web.Types.AudioContextOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioContextOptions.GetHashCode() -> int
+override Rask.Web.Types.AudioContextOptions.ToString() -> string!
+override Rask.Web.Types.AudioDataInit.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioDataInit.GetHashCode() -> int
+override Rask.Web.Types.AudioDataInit.ToString() -> string!
+override Rask.Web.Types.AudioDecoderSupport.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioDecoderSupport.GetHashCode() -> int
+override Rask.Web.Types.AudioDecoderSupport.ToString() -> string!
+override Rask.Web.Types.AudioEncoderSupport.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioEncoderSupport.GetHashCode() -> int
+override Rask.Web.Types.AudioEncoderSupport.ToString() -> string!
+override Rask.Web.Types.AudioNodeOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioNodeOptions.GetHashCode() -> int
+override Rask.Web.Types.AudioNodeOptions.ToString() -> string!
+override Rask.Web.Types.AudioWorkletNodeOptions.<Clone>$() -> Rask.Web.Types.AudioWorkletNodeOptions!
+override Rask.Web.Types.AudioWorkletNodeOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AudioWorkletNodeOptions.GetHashCode() -> int
+override Rask.Web.Types.AudioWorkletNodeOptions.ToString() -> string!
+override Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.Equals(object? obj) -> bool
+override Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.GetHashCode() -> int
+override Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.ToString() -> string!
+override Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.Equals(object? obj) -> bool
+override Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.GetHashCode() -> int
+override Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.ToString() -> string!
+override Rask.Web.Types.BackgroundBlur.<Clone>$() -> Rask.Web.Types.BackgroundBlur!
+override Rask.Web.Types.BackgroundBlur.Equals(object? obj) -> bool
+override Rask.Web.Types.BackgroundBlur.GetHashCode() -> int
+override Rask.Web.Types.BackgroundBlur.ToString() -> string!
+override Rask.Web.Types.BiquadFilterOptions.<Clone>$() -> Rask.Web.Types.BiquadFilterOptions!
+override Rask.Web.Types.BiquadFilterOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.BiquadFilterOptions.GetHashCode() -> int
+override Rask.Web.Types.BiquadFilterOptions.ToString() -> string!
+override Rask.Web.Types.BlobPropertyBag.Equals(object? obj) -> bool
+override Rask.Web.Types.BlobPropertyBag.GetHashCode() -> int
+override Rask.Web.Types.BlobPropertyBag.ToString() -> string!
+override Rask.Web.Types.CSSMatrixComponentOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.CSSMatrixComponentOptions.GetHashCode() -> int
+override Rask.Web.Types.CSSMatrixComponentOptions.ToString() -> string!
+override Rask.Web.Types.CSSStyleSheetInit.Equals(object? obj) -> bool
+override Rask.Web.Types.CSSStyleSheetInit.GetHashCode() -> int
+override Rask.Web.Types.CSSStyleSheetInit.ToString() -> string!
+override Rask.Web.Types.ChannelMergerOptions.<Clone>$() -> Rask.Web.Types.ChannelMergerOptions!
+override Rask.Web.Types.ChannelMergerOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ChannelMergerOptions.GetHashCode() -> int
+override Rask.Web.Types.ChannelMergerOptions.ToString() -> string!
+override Rask.Web.Types.ChannelSplitterOptions.<Clone>$() -> Rask.Web.Types.ChannelSplitterOptions!
+override Rask.Web.Types.ChannelSplitterOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ChannelSplitterOptions.GetHashCode() -> int
+override Rask.Web.Types.ChannelSplitterOptions.ToString() -> string!
+override Rask.Web.Types.ChapterInformationInit.Equals(object? obj) -> bool
+override Rask.Web.Types.ChapterInformationInit.GetHashCode() -> int
+override Rask.Web.Types.ChapterInformationInit.ToString() -> string!
+override Rask.Web.Types.ClipboardItemOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ClipboardItemOptions.GetHashCode() -> int
+override Rask.Web.Types.ClipboardItemOptions.ToString() -> string!
+override Rask.Web.Types.ConstantSourceOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ConstantSourceOptions.GetHashCode() -> int
+override Rask.Web.Types.ConstantSourceOptions.ToString() -> string!
+override Rask.Web.Types.ConvolverOptions.<Clone>$() -> Rask.Web.Types.ConvolverOptions!
+override Rask.Web.Types.ConvolverOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ConvolverOptions.GetHashCode() -> int
+override Rask.Web.Types.ConvolverOptions.ToString() -> string!
+override Rask.Web.Types.CurrentUserDetailsOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.CurrentUserDetailsOptions.GetHashCode() -> int
+override Rask.Web.Types.CurrentUserDetailsOptions.ToString() -> string!
+override Rask.Web.Types.DOMQuadInit.Equals(object? obj) -> bool
+override Rask.Web.Types.DOMQuadInit.GetHashCode() -> int
+override Rask.Web.Types.DOMQuadInit.ToString() -> string!
+override Rask.Web.Types.DelayOptions.<Clone>$() -> Rask.Web.Types.DelayOptions!
+override Rask.Web.Types.DelayOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.DelayOptions.GetHashCode() -> int
+override Rask.Web.Types.DelayOptions.ToString() -> string!
+override Rask.Web.Types.DynamicsCompressorOptions.<Clone>$() -> Rask.Web.Types.DynamicsCompressorOptions!
+override Rask.Web.Types.DynamicsCompressorOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.DynamicsCompressorOptions.GetHashCode() -> int
+override Rask.Web.Types.DynamicsCompressorOptions.ToString() -> string!
+override Rask.Web.Types.EncodedAudioChunkInit.Equals(object? obj) -> bool
+override Rask.Web.Types.EncodedAudioChunkInit.GetHashCode() -> int
+override Rask.Web.Types.EncodedAudioChunkInit.ToString() -> string!
+override Rask.Web.Types.EncodedVideoChunkInit.Equals(object? obj) -> bool
+override Rask.Web.Types.EncodedVideoChunkInit.GetHashCode() -> int
+override Rask.Web.Types.EncodedVideoChunkInit.ToString() -> string!
+override Rask.Web.Types.EventSourceInit.Equals(object? obj) -> bool
+override Rask.Web.Types.EventSourceInit.GetHashCode() -> int
+override Rask.Web.Types.EventSourceInit.ToString() -> string!
+override Rask.Web.Types.FilePropertyBag.<Clone>$() -> Rask.Web.Types.FilePropertyBag!
+override Rask.Web.Types.FilePropertyBag.Equals(object? obj) -> bool
+override Rask.Web.Types.FilePropertyBag.GetHashCode() -> int
+override Rask.Web.Types.FilePropertyBag.ToString() -> string!
+override Rask.Web.Types.FontFaceDescriptors.Equals(object? obj) -> bool
+override Rask.Web.Types.FontFaceDescriptors.GetHashCode() -> int
+override Rask.Web.Types.FontFaceDescriptors.ToString() -> string!
+override Rask.Web.Types.GPUPipelineErrorInit.Equals(object? obj) -> bool
+override Rask.Web.Types.GPUPipelineErrorInit.GetHashCode() -> int
+override Rask.Web.Types.GPUPipelineErrorInit.ToString() -> string!
+override Rask.Web.Types.GainOptions.<Clone>$() -> Rask.Web.Types.GainOptions!
+override Rask.Web.Types.GainOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.GainOptions.GetHashCode() -> int
+override Rask.Web.Types.GainOptions.ToString() -> string!
+override Rask.Web.Types.IIRFilterOptions.<Clone>$() -> Rask.Web.Types.IIRFilterOptions!
+override Rask.Web.Types.IIRFilterOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.IIRFilterOptions.GetHashCode() -> int
+override Rask.Web.Types.IIRFilterOptions.ToString() -> string!
+override Rask.Web.Types.ImageDecoderInit.Equals(object? obj) -> bool
+override Rask.Web.Types.ImageDecoderInit.GetHashCode() -> int
+override Rask.Web.Types.ImageDecoderInit.ToString() -> string!
+override Rask.Web.Types.IntersectionObserverInit.Equals(object? obj) -> bool
+override Rask.Web.Types.IntersectionObserverInit.GetHashCode() -> int
+override Rask.Web.Types.IntersectionObserverInit.ToString() -> string!
+override Rask.Web.Types.KeyframeEffectOptions.<Clone>$() -> Rask.Web.Types.KeyframeEffectOptions!
+override Rask.Web.Types.KeyframeEffectOptions.EqualityContract.get -> System.Type!
+override Rask.Web.Types.KeyframeEffectOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.KeyframeEffectOptions.GetHashCode() -> int
+override Rask.Web.Types.KeyframeEffectOptions.PrintMembers(System.Text.StringBuilder! builder) -> bool
+override Rask.Web.Types.KeyframeEffectOptions.ToString() -> string!
+override Rask.Web.Types.MediaEffectInfo.Equals(object? obj) -> bool
+override Rask.Web.Types.MediaEffectInfo.GetHashCode() -> int
+override Rask.Web.Types.MediaEffectInfo.ToString() -> string!
+override Rask.Web.Types.MediaImage.Equals(object? obj) -> bool
+override Rask.Web.Types.MediaImage.GetHashCode() -> int
+override Rask.Web.Types.MediaImage.ToString() -> string!
+override Rask.Web.Types.MediaMetadataInit.Equals(object? obj) -> bool
+override Rask.Web.Types.MediaMetadataInit.GetHashCode() -> int
+override Rask.Web.Types.MediaMetadataInit.ToString() -> string!
+override Rask.Web.Types.MediaRecorderOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.MediaRecorderOptions.GetHashCode() -> int
+override Rask.Web.Types.MediaRecorderOptions.ToString() -> string!
+override Rask.Web.Types.OfflineAudioContextOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.OfflineAudioContextOptions.GetHashCode() -> int
+override Rask.Web.Types.OfflineAudioContextOptions.ToString() -> string!
+override Rask.Web.Types.OscillatorOptions.<Clone>$() -> Rask.Web.Types.OscillatorOptions!
+override Rask.Web.Types.OscillatorOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.OscillatorOptions.GetHashCode() -> int
+override Rask.Web.Types.OscillatorOptions.ToString() -> string!
+override Rask.Web.Types.PannerOptions.<Clone>$() -> Rask.Web.Types.PannerOptions!
+override Rask.Web.Types.PannerOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.PannerOptions.GetHashCode() -> int
+override Rask.Web.Types.PannerOptions.ToString() -> string!
+override Rask.Web.Types.PaymentDetailsBase.Equals(object? obj) -> bool
+override Rask.Web.Types.PaymentDetailsBase.GetHashCode() -> int
+override Rask.Web.Types.PaymentDetailsBase.ToString() -> string!
+override Rask.Web.Types.PaymentDetailsInit.<Clone>$() -> Rask.Web.Types.PaymentDetailsInit!
+override Rask.Web.Types.PaymentDetailsInit.Equals(object? obj) -> bool
+override Rask.Web.Types.PaymentDetailsInit.GetHashCode() -> int
+override Rask.Web.Types.PaymentDetailsInit.ToString() -> string!
+override Rask.Web.Types.PaymentDetailsModifier.Equals(object? obj) -> bool
+override Rask.Web.Types.PaymentDetailsModifier.GetHashCode() -> int
+override Rask.Web.Types.PaymentDetailsModifier.ToString() -> string!
+override Rask.Web.Types.PaymentItem.Equals(object? obj) -> bool
+override Rask.Web.Types.PaymentItem.GetHashCode() -> int
+override Rask.Web.Types.PaymentItem.ToString() -> string!
+override Rask.Web.Types.PaymentMethodData.Equals(object? obj) -> bool
+override Rask.Web.Types.PaymentMethodData.GetHashCode() -> int
+override Rask.Web.Types.PaymentMethodData.ToString() -> string!
+override Rask.Web.Types.PaymentOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.PaymentOptions.GetHashCode() -> int
+override Rask.Web.Types.PaymentOptions.ToString() -> string!
+override Rask.Web.Types.PaymentShippingOption.Equals(object? obj) -> bool
+override Rask.Web.Types.PaymentShippingOption.GetHashCode() -> int
+override Rask.Web.Types.PaymentShippingOption.ToString() -> string!
+override Rask.Web.Types.PeriodicWaveOptions.<Clone>$() -> Rask.Web.Types.PeriodicWaveOptions!
+override Rask.Web.Types.PeriodicWaveOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.PeriodicWaveOptions.GetHashCode() -> int
+override Rask.Web.Types.PeriodicWaveOptions.ToString() -> string!
+override Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.Equals(object? obj) -> bool
+override Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.GetHashCode() -> int
+override Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.ToString() -> string!
+override Rask.Web.Types.PublicKeyCredentialDescriptorJSON.Equals(object? obj) -> bool
+override Rask.Web.Types.PublicKeyCredentialDescriptorJSON.GetHashCode() -> int
+override Rask.Web.Types.PublicKeyCredentialDescriptorJSON.ToString() -> string!
+override Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.Equals(object? obj) -> bool
+override Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.GetHashCode() -> int
+override Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.ToString() -> string!
+override Rask.Web.Types.PublicKeyCredentialUserEntityJSON.Equals(object? obj) -> bool
+override Rask.Web.Types.PublicKeyCredentialUserEntityJSON.GetHashCode() -> int
+override Rask.Web.Types.PublicKeyCredentialUserEntityJSON.ToString() -> string!
+override Rask.Web.Types.RTCEncodedAudioFrameOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCEncodedAudioFrameOptions.GetHashCode() -> int
+override Rask.Web.Types.RTCEncodedAudioFrameOptions.ToString() -> string!
+override Rask.Web.Types.RTCEncodedVideoFrameOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCEncodedVideoFrameOptions.GetHashCode() -> int
+override Rask.Web.Types.RTCEncodedVideoFrameOptions.ToString() -> string!
+override Rask.Web.Types.RTCErrorInit.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCErrorInit.GetHashCode() -> int
+override Rask.Web.Types.RTCErrorInit.ToString() -> string!
+override Rask.Web.Types.RTCRtpCapabilities.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCRtpCapabilities.GetHashCode() -> int
+override Rask.Web.Types.RTCRtpCapabilities.ToString() -> string!
+override Rask.Web.Types.RTCRtpHeaderExtensionCapability.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCRtpHeaderExtensionCapability.GetHashCode() -> int
+override Rask.Web.Types.RTCRtpHeaderExtensionCapability.ToString() -> string!
+override Rask.Web.Types.ReportingObserverOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ReportingObserverOptions.GetHashCode() -> int
+override Rask.Web.Types.ReportingObserverOptions.ToString() -> string!
+override Rask.Web.Types.ResponseInit.Equals(object? obj) -> bool
+override Rask.Web.Types.ResponseInit.GetHashCode() -> int
+override Rask.Web.Types.ResponseInit.ToString() -> string!
+override Rask.Web.Types.ScrollTimelineOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ScrollTimelineOptions.GetHashCode() -> int
+override Rask.Web.Types.ScrollTimelineOptions.ToString() -> string!
+override Rask.Web.Types.Segment.Equals(object? obj) -> bool
+override Rask.Web.Types.Segment.GetHashCode() -> int
+override Rask.Web.Types.Segment.ToString() -> string!
+override Rask.Web.Types.SharedWorkerOptions.<Clone>$() -> Rask.Web.Types.SharedWorkerOptions!
+override Rask.Web.Types.SharedWorkerOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.SharedWorkerOptions.GetHashCode() -> int
+override Rask.Web.Types.SharedWorkerOptions.ToString() -> string!
+override Rask.Web.Types.StaticRangeInit.Equals(object? obj) -> bool
+override Rask.Web.Types.StaticRangeInit.GetHashCode() -> int
+override Rask.Web.Types.StaticRangeInit.ToString() -> string!
+override Rask.Web.Types.StereoPannerOptions.<Clone>$() -> Rask.Web.Types.StereoPannerOptions!
+override Rask.Web.Types.StereoPannerOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.StereoPannerOptions.GetHashCode() -> int
+override Rask.Web.Types.StereoPannerOptions.ToString() -> string!
+override Rask.Web.Types.TaskControllerInit.Equals(object? obj) -> bool
+override Rask.Web.Types.TaskControllerInit.GetHashCode() -> int
+override Rask.Web.Types.TaskControllerInit.ToString() -> string!
+override Rask.Web.Types.TouchInit.Equals(object? obj) -> bool
+override Rask.Web.Types.TouchInit.GetHashCode() -> int
+override Rask.Web.Types.TouchInit.ToString() -> string!
+override Rask.Web.Types.URLPatternOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.URLPatternOptions.GetHashCode() -> int
+override Rask.Web.Types.URLPatternOptions.ToString() -> string!
+override Rask.Web.Types.UnknownCredentialOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.UnknownCredentialOptions.GetHashCode() -> int
+override Rask.Web.Types.UnknownCredentialOptions.ToString() -> string!
+override Rask.Web.Types.VideoDecoderSupport.Equals(object? obj) -> bool
+override Rask.Web.Types.VideoDecoderSupport.GetHashCode() -> int
+override Rask.Web.Types.VideoDecoderSupport.ToString() -> string!
+override Rask.Web.Types.VideoEncoderSupport.Equals(object? obj) -> bool
+override Rask.Web.Types.VideoEncoderSupport.GetHashCode() -> int
+override Rask.Web.Types.VideoEncoderSupport.ToString() -> string!
+override Rask.Web.Types.VideoFrameBufferInit.Equals(object? obj) -> bool
+override Rask.Web.Types.VideoFrameBufferInit.GetHashCode() -> int
+override Rask.Web.Types.VideoFrameBufferInit.ToString() -> string!
+override Rask.Web.Types.VideoFrameInit.Equals(object? obj) -> bool
+override Rask.Web.Types.VideoFrameInit.GetHashCode() -> int
+override Rask.Web.Types.VideoFrameInit.ToString() -> string!
+override Rask.Web.Types.VideoFrameMetadata.Equals(object? obj) -> bool
+override Rask.Web.Types.VideoFrameMetadata.GetHashCode() -> int
+override Rask.Web.Types.VideoFrameMetadata.ToString() -> string!
+override Rask.Web.Types.ViewTimelineOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ViewTimelineOptions.GetHashCode() -> int
+override Rask.Web.Types.ViewTimelineOptions.ToString() -> string!
+override Rask.Web.Types.WaveShaperOptions.<Clone>$() -> Rask.Web.Types.WaveShaperOptions!
+override Rask.Web.Types.WaveShaperOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.WaveShaperOptions.GetHashCode() -> int
+override Rask.Web.Types.WaveShaperOptions.ToString() -> string!
+override Rask.Web.Types.WebTransportErrorOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.WebTransportErrorOptions.GetHashCode() -> int
+override Rask.Web.Types.WebTransportErrorOptions.ToString() -> string!
+override Rask.Web.Types.WebTransportHash.Equals(object? obj) -> bool
+override Rask.Web.Types.WebTransportHash.GetHashCode() -> int
+override Rask.Web.Types.WebTransportHash.ToString() -> string!
+override Rask.Web.Types.WebTransportOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.WebTransportOptions.GetHashCode() -> int
+override Rask.Web.Types.WebTransportOptions.ToString() -> string!
+override Rask.Web.Types.WorkerOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.WorkerOptions.GetHashCode() -> int
+override Rask.Web.Types.WorkerOptions.ToString() -> string!
+override sealed Rask.Web.Types.AnalyserOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.AudioWorkletNodeOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.BackgroundBlur.Equals(Rask.Web.Types.MediaEffectInfo? other) -> bool
+override sealed Rask.Web.Types.BiquadFilterOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.ChannelMergerOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.ChannelSplitterOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.ConvolverOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.DelayOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.DynamicsCompressorOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.FilePropertyBag.Equals(Rask.Web.Types.BlobPropertyBag? other) -> bool
+override sealed Rask.Web.Types.GainOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.IIRFilterOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.KeyframeEffectOptions.Equals(Rask.Web.Types.EffectTiming? other) -> bool
+override sealed Rask.Web.Types.OscillatorOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.PannerOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.PaymentDetailsInit.Equals(Rask.Web.Types.PaymentDetailsBase? other) -> bool
+override sealed Rask.Web.Types.PeriodicWaveOptions.Equals(Rask.Web.Types.PeriodicWaveConstraints? other) -> bool
+override sealed Rask.Web.Types.SharedWorkerOptions.Equals(Rask.Web.Types.WorkerOptions? other) -> bool
+override sealed Rask.Web.Types.StereoPannerOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+override sealed Rask.Web.Types.WaveShaperOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+static Rask.Web.Types.AllAcceptedCredentialsOptions.operator !=(Rask.Web.Types.AllAcceptedCredentialsOptions? left, Rask.Web.Types.AllAcceptedCredentialsOptions? right) -> bool
+static Rask.Web.Types.AllAcceptedCredentialsOptions.operator ==(Rask.Web.Types.AllAcceptedCredentialsOptions? left, Rask.Web.Types.AllAcceptedCredentialsOptions? right) -> bool
+static Rask.Web.Types.AnalyserOptions.operator !=(Rask.Web.Types.AnalyserOptions? left, Rask.Web.Types.AnalyserOptions? right) -> bool
+static Rask.Web.Types.AnalyserOptions.operator ==(Rask.Web.Types.AnalyserOptions? left, Rask.Web.Types.AnalyserOptions? right) -> bool
+static Rask.Web.Types.AudioBufferOptions.operator !=(Rask.Web.Types.AudioBufferOptions? left, Rask.Web.Types.AudioBufferOptions? right) -> bool
+static Rask.Web.Types.AudioBufferOptions.operator ==(Rask.Web.Types.AudioBufferOptions? left, Rask.Web.Types.AudioBufferOptions? right) -> bool
+static Rask.Web.Types.AudioBufferSourceOptions.operator !=(Rask.Web.Types.AudioBufferSourceOptions? left, Rask.Web.Types.AudioBufferSourceOptions? right) -> bool
+static Rask.Web.Types.AudioBufferSourceOptions.operator ==(Rask.Web.Types.AudioBufferSourceOptions? left, Rask.Web.Types.AudioBufferSourceOptions? right) -> bool
+static Rask.Web.Types.AudioContextOptions.operator !=(Rask.Web.Types.AudioContextOptions? left, Rask.Web.Types.AudioContextOptions? right) -> bool
+static Rask.Web.Types.AudioContextOptions.operator ==(Rask.Web.Types.AudioContextOptions? left, Rask.Web.Types.AudioContextOptions? right) -> bool
+static Rask.Web.Types.AudioDataInit.operator !=(Rask.Web.Types.AudioDataInit? left, Rask.Web.Types.AudioDataInit? right) -> bool
+static Rask.Web.Types.AudioDataInit.operator ==(Rask.Web.Types.AudioDataInit? left, Rask.Web.Types.AudioDataInit? right) -> bool
+static Rask.Web.Types.AudioDecoderSupport.operator !=(Rask.Web.Types.AudioDecoderSupport? left, Rask.Web.Types.AudioDecoderSupport? right) -> bool
+static Rask.Web.Types.AudioDecoderSupport.operator ==(Rask.Web.Types.AudioDecoderSupport? left, Rask.Web.Types.AudioDecoderSupport? right) -> bool
+static Rask.Web.Types.AudioEncoderSupport.operator !=(Rask.Web.Types.AudioEncoderSupport? left, Rask.Web.Types.AudioEncoderSupport? right) -> bool
+static Rask.Web.Types.AudioEncoderSupport.operator ==(Rask.Web.Types.AudioEncoderSupport? left, Rask.Web.Types.AudioEncoderSupport? right) -> bool
+static Rask.Web.Types.AudioNodeOptions.operator !=(Rask.Web.Types.AudioNodeOptions? left, Rask.Web.Types.AudioNodeOptions? right) -> bool
+static Rask.Web.Types.AudioNodeOptions.operator ==(Rask.Web.Types.AudioNodeOptions? left, Rask.Web.Types.AudioNodeOptions? right) -> bool
+static Rask.Web.Types.AudioWorkletNodeOptions.operator !=(Rask.Web.Types.AudioWorkletNodeOptions? left, Rask.Web.Types.AudioWorkletNodeOptions? right) -> bool
+static Rask.Web.Types.AudioWorkletNodeOptions.operator ==(Rask.Web.Types.AudioWorkletNodeOptions? left, Rask.Web.Types.AudioWorkletNodeOptions? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.operator !=(Rask.Web.Types.AuthenticationExtensionsClientInputsJSON? left, Rask.Web.Types.AuthenticationExtensionsClientInputsJSON? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsClientInputsJSON.operator ==(Rask.Web.Types.AuthenticationExtensionsClientInputsJSON? left, Rask.Web.Types.AuthenticationExtensionsClientInputsJSON? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.operator !=(Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON? left, Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON.operator ==(Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON? left, Rask.Web.Types.AuthenticationExtensionsLargeBlobInputsJSON? right) -> bool
+static Rask.Web.Types.BackgroundBlur.operator !=(Rask.Web.Types.BackgroundBlur? left, Rask.Web.Types.BackgroundBlur? right) -> bool
+static Rask.Web.Types.BackgroundBlur.operator ==(Rask.Web.Types.BackgroundBlur? left, Rask.Web.Types.BackgroundBlur? right) -> bool
+static Rask.Web.Types.BiquadFilterOptions.operator !=(Rask.Web.Types.BiquadFilterOptions? left, Rask.Web.Types.BiquadFilterOptions? right) -> bool
+static Rask.Web.Types.BiquadFilterOptions.operator ==(Rask.Web.Types.BiquadFilterOptions? left, Rask.Web.Types.BiquadFilterOptions? right) -> bool
+static Rask.Web.Types.BlobPropertyBag.operator !=(Rask.Web.Types.BlobPropertyBag? left, Rask.Web.Types.BlobPropertyBag? right) -> bool
+static Rask.Web.Types.BlobPropertyBag.operator ==(Rask.Web.Types.BlobPropertyBag? left, Rask.Web.Types.BlobPropertyBag? right) -> bool
+static Rask.Web.Types.CSSMatrixComponentOptions.operator !=(Rask.Web.Types.CSSMatrixComponentOptions? left, Rask.Web.Types.CSSMatrixComponentOptions? right) -> bool
+static Rask.Web.Types.CSSMatrixComponentOptions.operator ==(Rask.Web.Types.CSSMatrixComponentOptions? left, Rask.Web.Types.CSSMatrixComponentOptions? right) -> bool
+static Rask.Web.Types.CSSStyleSheetInit.operator !=(Rask.Web.Types.CSSStyleSheetInit? left, Rask.Web.Types.CSSStyleSheetInit? right) -> bool
+static Rask.Web.Types.CSSStyleSheetInit.operator ==(Rask.Web.Types.CSSStyleSheetInit? left, Rask.Web.Types.CSSStyleSheetInit? right) -> bool
+static Rask.Web.Types.ChannelMergerOptions.operator !=(Rask.Web.Types.ChannelMergerOptions? left, Rask.Web.Types.ChannelMergerOptions? right) -> bool
+static Rask.Web.Types.ChannelMergerOptions.operator ==(Rask.Web.Types.ChannelMergerOptions? left, Rask.Web.Types.ChannelMergerOptions? right) -> bool
+static Rask.Web.Types.ChannelSplitterOptions.operator !=(Rask.Web.Types.ChannelSplitterOptions? left, Rask.Web.Types.ChannelSplitterOptions? right) -> bool
+static Rask.Web.Types.ChannelSplitterOptions.operator ==(Rask.Web.Types.ChannelSplitterOptions? left, Rask.Web.Types.ChannelSplitterOptions? right) -> bool
+static Rask.Web.Types.ChapterInformationInit.operator !=(Rask.Web.Types.ChapterInformationInit? left, Rask.Web.Types.ChapterInformationInit? right) -> bool
+static Rask.Web.Types.ChapterInformationInit.operator ==(Rask.Web.Types.ChapterInformationInit? left, Rask.Web.Types.ChapterInformationInit? right) -> bool
+static Rask.Web.Types.ClipboardItemOptions.operator !=(Rask.Web.Types.ClipboardItemOptions? left, Rask.Web.Types.ClipboardItemOptions? right) -> bool
+static Rask.Web.Types.ClipboardItemOptions.operator ==(Rask.Web.Types.ClipboardItemOptions? left, Rask.Web.Types.ClipboardItemOptions? right) -> bool
+static Rask.Web.Types.ConstantSourceOptions.operator !=(Rask.Web.Types.ConstantSourceOptions? left, Rask.Web.Types.ConstantSourceOptions? right) -> bool
+static Rask.Web.Types.ConstantSourceOptions.operator ==(Rask.Web.Types.ConstantSourceOptions? left, Rask.Web.Types.ConstantSourceOptions? right) -> bool
+static Rask.Web.Types.ConvolverOptions.operator !=(Rask.Web.Types.ConvolverOptions? left, Rask.Web.Types.ConvolverOptions? right) -> bool
+static Rask.Web.Types.ConvolverOptions.operator ==(Rask.Web.Types.ConvolverOptions? left, Rask.Web.Types.ConvolverOptions? right) -> bool
+static Rask.Web.Types.CurrentUserDetailsOptions.operator !=(Rask.Web.Types.CurrentUserDetailsOptions? left, Rask.Web.Types.CurrentUserDetailsOptions? right) -> bool
+static Rask.Web.Types.CurrentUserDetailsOptions.operator ==(Rask.Web.Types.CurrentUserDetailsOptions? left, Rask.Web.Types.CurrentUserDetailsOptions? right) -> bool
+static Rask.Web.Types.DOMQuadInit.operator !=(Rask.Web.Types.DOMQuadInit? left, Rask.Web.Types.DOMQuadInit? right) -> bool
+static Rask.Web.Types.DOMQuadInit.operator ==(Rask.Web.Types.DOMQuadInit? left, Rask.Web.Types.DOMQuadInit? right) -> bool
+static Rask.Web.Types.DelayOptions.operator !=(Rask.Web.Types.DelayOptions? left, Rask.Web.Types.DelayOptions? right) -> bool
+static Rask.Web.Types.DelayOptions.operator ==(Rask.Web.Types.DelayOptions? left, Rask.Web.Types.DelayOptions? right) -> bool
+static Rask.Web.Types.DynamicsCompressorOptions.operator !=(Rask.Web.Types.DynamicsCompressorOptions? left, Rask.Web.Types.DynamicsCompressorOptions? right) -> bool
+static Rask.Web.Types.DynamicsCompressorOptions.operator ==(Rask.Web.Types.DynamicsCompressorOptions? left, Rask.Web.Types.DynamicsCompressorOptions? right) -> bool
+static Rask.Web.Types.EncodedAudioChunkInit.operator !=(Rask.Web.Types.EncodedAudioChunkInit? left, Rask.Web.Types.EncodedAudioChunkInit? right) -> bool
+static Rask.Web.Types.EncodedAudioChunkInit.operator ==(Rask.Web.Types.EncodedAudioChunkInit? left, Rask.Web.Types.EncodedAudioChunkInit? right) -> bool
+static Rask.Web.Types.EncodedVideoChunkInit.operator !=(Rask.Web.Types.EncodedVideoChunkInit? left, Rask.Web.Types.EncodedVideoChunkInit? right) -> bool
+static Rask.Web.Types.EncodedVideoChunkInit.operator ==(Rask.Web.Types.EncodedVideoChunkInit? left, Rask.Web.Types.EncodedVideoChunkInit? right) -> bool
+static Rask.Web.Types.EventSourceInit.operator !=(Rask.Web.Types.EventSourceInit? left, Rask.Web.Types.EventSourceInit? right) -> bool
+static Rask.Web.Types.EventSourceInit.operator ==(Rask.Web.Types.EventSourceInit? left, Rask.Web.Types.EventSourceInit? right) -> bool
+static Rask.Web.Types.FilePropertyBag.operator !=(Rask.Web.Types.FilePropertyBag? left, Rask.Web.Types.FilePropertyBag? right) -> bool
+static Rask.Web.Types.FilePropertyBag.operator ==(Rask.Web.Types.FilePropertyBag? left, Rask.Web.Types.FilePropertyBag? right) -> bool
+static Rask.Web.Types.FontFaceDescriptors.operator !=(Rask.Web.Types.FontFaceDescriptors? left, Rask.Web.Types.FontFaceDescriptors? right) -> bool
+static Rask.Web.Types.FontFaceDescriptors.operator ==(Rask.Web.Types.FontFaceDescriptors? left, Rask.Web.Types.FontFaceDescriptors? right) -> bool
+static Rask.Web.Types.GPUPipelineErrorInit.operator !=(Rask.Web.Types.GPUPipelineErrorInit? left, Rask.Web.Types.GPUPipelineErrorInit? right) -> bool
+static Rask.Web.Types.GPUPipelineErrorInit.operator ==(Rask.Web.Types.GPUPipelineErrorInit? left, Rask.Web.Types.GPUPipelineErrorInit? right) -> bool
+static Rask.Web.Types.GainOptions.operator !=(Rask.Web.Types.GainOptions? left, Rask.Web.Types.GainOptions? right) -> bool
+static Rask.Web.Types.GainOptions.operator ==(Rask.Web.Types.GainOptions? left, Rask.Web.Types.GainOptions? right) -> bool
+static Rask.Web.Types.IIRFilterOptions.operator !=(Rask.Web.Types.IIRFilterOptions? left, Rask.Web.Types.IIRFilterOptions? right) -> bool
+static Rask.Web.Types.IIRFilterOptions.operator ==(Rask.Web.Types.IIRFilterOptions? left, Rask.Web.Types.IIRFilterOptions? right) -> bool
+static Rask.Web.Types.ImageDecoderInit.operator !=(Rask.Web.Types.ImageDecoderInit? left, Rask.Web.Types.ImageDecoderInit? right) -> bool
+static Rask.Web.Types.ImageDecoderInit.operator ==(Rask.Web.Types.ImageDecoderInit? left, Rask.Web.Types.ImageDecoderInit? right) -> bool
+static Rask.Web.Types.IntersectionObserverInit.operator !=(Rask.Web.Types.IntersectionObserverInit? left, Rask.Web.Types.IntersectionObserverInit? right) -> bool
+static Rask.Web.Types.IntersectionObserverInit.operator ==(Rask.Web.Types.IntersectionObserverInit? left, Rask.Web.Types.IntersectionObserverInit? right) -> bool
+static Rask.Web.Types.KeyframeEffectOptions.operator !=(Rask.Web.Types.KeyframeEffectOptions? left, Rask.Web.Types.KeyframeEffectOptions? right) -> bool
+static Rask.Web.Types.KeyframeEffectOptions.operator ==(Rask.Web.Types.KeyframeEffectOptions? left, Rask.Web.Types.KeyframeEffectOptions? right) -> bool
+static Rask.Web.Types.MediaEffectInfo.operator !=(Rask.Web.Types.MediaEffectInfo? left, Rask.Web.Types.MediaEffectInfo? right) -> bool
+static Rask.Web.Types.MediaEffectInfo.operator ==(Rask.Web.Types.MediaEffectInfo? left, Rask.Web.Types.MediaEffectInfo? right) -> bool
+static Rask.Web.Types.MediaImage.operator !=(Rask.Web.Types.MediaImage? left, Rask.Web.Types.MediaImage? right) -> bool
+static Rask.Web.Types.MediaImage.operator ==(Rask.Web.Types.MediaImage? left, Rask.Web.Types.MediaImage? right) -> bool
+static Rask.Web.Types.MediaMetadataInit.operator !=(Rask.Web.Types.MediaMetadataInit? left, Rask.Web.Types.MediaMetadataInit? right) -> bool
+static Rask.Web.Types.MediaMetadataInit.operator ==(Rask.Web.Types.MediaMetadataInit? left, Rask.Web.Types.MediaMetadataInit? right) -> bool
+static Rask.Web.Types.MediaRecorderOptions.operator !=(Rask.Web.Types.MediaRecorderOptions? left, Rask.Web.Types.MediaRecorderOptions? right) -> bool
+static Rask.Web.Types.MediaRecorderOptions.operator ==(Rask.Web.Types.MediaRecorderOptions? left, Rask.Web.Types.MediaRecorderOptions? right) -> bool
+static Rask.Web.Types.OfflineAudioContextOptions.operator !=(Rask.Web.Types.OfflineAudioContextOptions? left, Rask.Web.Types.OfflineAudioContextOptions? right) -> bool
+static Rask.Web.Types.OfflineAudioContextOptions.operator ==(Rask.Web.Types.OfflineAudioContextOptions? left, Rask.Web.Types.OfflineAudioContextOptions? right) -> bool
+static Rask.Web.Types.OscillatorOptions.operator !=(Rask.Web.Types.OscillatorOptions? left, Rask.Web.Types.OscillatorOptions? right) -> bool
+static Rask.Web.Types.OscillatorOptions.operator ==(Rask.Web.Types.OscillatorOptions? left, Rask.Web.Types.OscillatorOptions? right) -> bool
+static Rask.Web.Types.PannerOptions.operator !=(Rask.Web.Types.PannerOptions? left, Rask.Web.Types.PannerOptions? right) -> bool
+static Rask.Web.Types.PannerOptions.operator ==(Rask.Web.Types.PannerOptions? left, Rask.Web.Types.PannerOptions? right) -> bool
+static Rask.Web.Types.PaymentDetailsBase.operator !=(Rask.Web.Types.PaymentDetailsBase? left, Rask.Web.Types.PaymentDetailsBase? right) -> bool
+static Rask.Web.Types.PaymentDetailsBase.operator ==(Rask.Web.Types.PaymentDetailsBase? left, Rask.Web.Types.PaymentDetailsBase? right) -> bool
+static Rask.Web.Types.PaymentDetailsInit.operator !=(Rask.Web.Types.PaymentDetailsInit? left, Rask.Web.Types.PaymentDetailsInit? right) -> bool
+static Rask.Web.Types.PaymentDetailsInit.operator ==(Rask.Web.Types.PaymentDetailsInit? left, Rask.Web.Types.PaymentDetailsInit? right) -> bool
+static Rask.Web.Types.PaymentDetailsModifier.operator !=(Rask.Web.Types.PaymentDetailsModifier? left, Rask.Web.Types.PaymentDetailsModifier? right) -> bool
+static Rask.Web.Types.PaymentDetailsModifier.operator ==(Rask.Web.Types.PaymentDetailsModifier? left, Rask.Web.Types.PaymentDetailsModifier? right) -> bool
+static Rask.Web.Types.PaymentItem.operator !=(Rask.Web.Types.PaymentItem? left, Rask.Web.Types.PaymentItem? right) -> bool
+static Rask.Web.Types.PaymentItem.operator ==(Rask.Web.Types.PaymentItem? left, Rask.Web.Types.PaymentItem? right) -> bool
+static Rask.Web.Types.PaymentMethodData.operator !=(Rask.Web.Types.PaymentMethodData? left, Rask.Web.Types.PaymentMethodData? right) -> bool
+static Rask.Web.Types.PaymentMethodData.operator ==(Rask.Web.Types.PaymentMethodData? left, Rask.Web.Types.PaymentMethodData? right) -> bool
+static Rask.Web.Types.PaymentOptions.operator !=(Rask.Web.Types.PaymentOptions? left, Rask.Web.Types.PaymentOptions? right) -> bool
+static Rask.Web.Types.PaymentOptions.operator ==(Rask.Web.Types.PaymentOptions? left, Rask.Web.Types.PaymentOptions? right) -> bool
+static Rask.Web.Types.PaymentShippingOption.operator !=(Rask.Web.Types.PaymentShippingOption? left, Rask.Web.Types.PaymentShippingOption? right) -> bool
+static Rask.Web.Types.PaymentShippingOption.operator ==(Rask.Web.Types.PaymentShippingOption? left, Rask.Web.Types.PaymentShippingOption? right) -> bool
+static Rask.Web.Types.PeriodicWaveOptions.operator !=(Rask.Web.Types.PeriodicWaveOptions? left, Rask.Web.Types.PeriodicWaveOptions? right) -> bool
+static Rask.Web.Types.PeriodicWaveOptions.operator ==(Rask.Web.Types.PeriodicWaveOptions? left, Rask.Web.Types.PeriodicWaveOptions? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.operator !=(Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON? left, Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON.operator ==(Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON? left, Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialDescriptorJSON.operator !=(Rask.Web.Types.PublicKeyCredentialDescriptorJSON? left, Rask.Web.Types.PublicKeyCredentialDescriptorJSON? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialDescriptorJSON.operator ==(Rask.Web.Types.PublicKeyCredentialDescriptorJSON? left, Rask.Web.Types.PublicKeyCredentialDescriptorJSON? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.operator !=(Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON? left, Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON.operator ==(Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON? left, Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialUserEntityJSON.operator !=(Rask.Web.Types.PublicKeyCredentialUserEntityJSON? left, Rask.Web.Types.PublicKeyCredentialUserEntityJSON? right) -> bool
+static Rask.Web.Types.PublicKeyCredentialUserEntityJSON.operator ==(Rask.Web.Types.PublicKeyCredentialUserEntityJSON? left, Rask.Web.Types.PublicKeyCredentialUserEntityJSON? right) -> bool
+static Rask.Web.Types.RTCEncodedAudioFrameOptions.operator !=(Rask.Web.Types.RTCEncodedAudioFrameOptions? left, Rask.Web.Types.RTCEncodedAudioFrameOptions? right) -> bool
+static Rask.Web.Types.RTCEncodedAudioFrameOptions.operator ==(Rask.Web.Types.RTCEncodedAudioFrameOptions? left, Rask.Web.Types.RTCEncodedAudioFrameOptions? right) -> bool
+static Rask.Web.Types.RTCEncodedVideoFrameOptions.operator !=(Rask.Web.Types.RTCEncodedVideoFrameOptions? left, Rask.Web.Types.RTCEncodedVideoFrameOptions? right) -> bool
+static Rask.Web.Types.RTCEncodedVideoFrameOptions.operator ==(Rask.Web.Types.RTCEncodedVideoFrameOptions? left, Rask.Web.Types.RTCEncodedVideoFrameOptions? right) -> bool
+static Rask.Web.Types.RTCErrorInit.operator !=(Rask.Web.Types.RTCErrorInit? left, Rask.Web.Types.RTCErrorInit? right) -> bool
+static Rask.Web.Types.RTCErrorInit.operator ==(Rask.Web.Types.RTCErrorInit? left, Rask.Web.Types.RTCErrorInit? right) -> bool
+static Rask.Web.Types.RTCRtpCapabilities.operator !=(Rask.Web.Types.RTCRtpCapabilities? left, Rask.Web.Types.RTCRtpCapabilities? right) -> bool
+static Rask.Web.Types.RTCRtpCapabilities.operator ==(Rask.Web.Types.RTCRtpCapabilities? left, Rask.Web.Types.RTCRtpCapabilities? right) -> bool
+static Rask.Web.Types.RTCRtpHeaderExtensionCapability.operator !=(Rask.Web.Types.RTCRtpHeaderExtensionCapability? left, Rask.Web.Types.RTCRtpHeaderExtensionCapability? right) -> bool
+static Rask.Web.Types.RTCRtpHeaderExtensionCapability.operator ==(Rask.Web.Types.RTCRtpHeaderExtensionCapability? left, Rask.Web.Types.RTCRtpHeaderExtensionCapability? right) -> bool
+static Rask.Web.Types.ReportingObserverOptions.operator !=(Rask.Web.Types.ReportingObserverOptions? left, Rask.Web.Types.ReportingObserverOptions? right) -> bool
+static Rask.Web.Types.ReportingObserverOptions.operator ==(Rask.Web.Types.ReportingObserverOptions? left, Rask.Web.Types.ReportingObserverOptions? right) -> bool
+static Rask.Web.Types.ResponseInit.operator !=(Rask.Web.Types.ResponseInit? left, Rask.Web.Types.ResponseInit? right) -> bool
+static Rask.Web.Types.ResponseInit.operator ==(Rask.Web.Types.ResponseInit? left, Rask.Web.Types.ResponseInit? right) -> bool
+static Rask.Web.Types.ScrollTimelineOptions.operator !=(Rask.Web.Types.ScrollTimelineOptions? left, Rask.Web.Types.ScrollTimelineOptions? right) -> bool
+static Rask.Web.Types.ScrollTimelineOptions.operator ==(Rask.Web.Types.ScrollTimelineOptions? left, Rask.Web.Types.ScrollTimelineOptions? right) -> bool
+static Rask.Web.Types.Segment.operator !=(Rask.Web.Types.Segment? left, Rask.Web.Types.Segment? right) -> bool
+static Rask.Web.Types.Segment.operator ==(Rask.Web.Types.Segment? left, Rask.Web.Types.Segment? right) -> bool
+static Rask.Web.Types.SharedWorkerOptions.operator !=(Rask.Web.Types.SharedWorkerOptions? left, Rask.Web.Types.SharedWorkerOptions? right) -> bool
+static Rask.Web.Types.SharedWorkerOptions.operator ==(Rask.Web.Types.SharedWorkerOptions? left, Rask.Web.Types.SharedWorkerOptions? right) -> bool
+static Rask.Web.Types.StaticRangeInit.operator !=(Rask.Web.Types.StaticRangeInit? left, Rask.Web.Types.StaticRangeInit? right) -> bool
+static Rask.Web.Types.StaticRangeInit.operator ==(Rask.Web.Types.StaticRangeInit? left, Rask.Web.Types.StaticRangeInit? right) -> bool
+static Rask.Web.Types.StereoPannerOptions.operator !=(Rask.Web.Types.StereoPannerOptions? left, Rask.Web.Types.StereoPannerOptions? right) -> bool
+static Rask.Web.Types.StereoPannerOptions.operator ==(Rask.Web.Types.StereoPannerOptions? left, Rask.Web.Types.StereoPannerOptions? right) -> bool
+static Rask.Web.Types.TaskControllerInit.operator !=(Rask.Web.Types.TaskControllerInit? left, Rask.Web.Types.TaskControllerInit? right) -> bool
+static Rask.Web.Types.TaskControllerInit.operator ==(Rask.Web.Types.TaskControllerInit? left, Rask.Web.Types.TaskControllerInit? right) -> bool
+static Rask.Web.Types.TouchInit.operator !=(Rask.Web.Types.TouchInit? left, Rask.Web.Types.TouchInit? right) -> bool
+static Rask.Web.Types.TouchInit.operator ==(Rask.Web.Types.TouchInit? left, Rask.Web.Types.TouchInit? right) -> bool
+static Rask.Web.Types.URLPatternOptions.operator !=(Rask.Web.Types.URLPatternOptions? left, Rask.Web.Types.URLPatternOptions? right) -> bool
+static Rask.Web.Types.URLPatternOptions.operator ==(Rask.Web.Types.URLPatternOptions? left, Rask.Web.Types.URLPatternOptions? right) -> bool
+static Rask.Web.Types.UnknownCredentialOptions.operator !=(Rask.Web.Types.UnknownCredentialOptions? left, Rask.Web.Types.UnknownCredentialOptions? right) -> bool
+static Rask.Web.Types.UnknownCredentialOptions.operator ==(Rask.Web.Types.UnknownCredentialOptions? left, Rask.Web.Types.UnknownCredentialOptions? right) -> bool
+static Rask.Web.Types.VideoDecoderSupport.operator !=(Rask.Web.Types.VideoDecoderSupport? left, Rask.Web.Types.VideoDecoderSupport? right) -> bool
+static Rask.Web.Types.VideoDecoderSupport.operator ==(Rask.Web.Types.VideoDecoderSupport? left, Rask.Web.Types.VideoDecoderSupport? right) -> bool
+static Rask.Web.Types.VideoEncoderSupport.operator !=(Rask.Web.Types.VideoEncoderSupport? left, Rask.Web.Types.VideoEncoderSupport? right) -> bool
+static Rask.Web.Types.VideoEncoderSupport.operator ==(Rask.Web.Types.VideoEncoderSupport? left, Rask.Web.Types.VideoEncoderSupport? right) -> bool
+static Rask.Web.Types.VideoFrameBufferInit.operator !=(Rask.Web.Types.VideoFrameBufferInit? left, Rask.Web.Types.VideoFrameBufferInit? right) -> bool
+static Rask.Web.Types.VideoFrameBufferInit.operator ==(Rask.Web.Types.VideoFrameBufferInit? left, Rask.Web.Types.VideoFrameBufferInit? right) -> bool
+static Rask.Web.Types.VideoFrameInit.operator !=(Rask.Web.Types.VideoFrameInit? left, Rask.Web.Types.VideoFrameInit? right) -> bool
+static Rask.Web.Types.VideoFrameInit.operator ==(Rask.Web.Types.VideoFrameInit? left, Rask.Web.Types.VideoFrameInit? right) -> bool
+static Rask.Web.Types.VideoFrameMetadata.operator !=(Rask.Web.Types.VideoFrameMetadata? left, Rask.Web.Types.VideoFrameMetadata? right) -> bool
+static Rask.Web.Types.VideoFrameMetadata.operator ==(Rask.Web.Types.VideoFrameMetadata? left, Rask.Web.Types.VideoFrameMetadata? right) -> bool
+static Rask.Web.Types.ViewTimelineOptions.operator !=(Rask.Web.Types.ViewTimelineOptions? left, Rask.Web.Types.ViewTimelineOptions? right) -> bool
+static Rask.Web.Types.ViewTimelineOptions.operator ==(Rask.Web.Types.ViewTimelineOptions? left, Rask.Web.Types.ViewTimelineOptions? right) -> bool
+static Rask.Web.Types.WaveShaperOptions.operator !=(Rask.Web.Types.WaveShaperOptions? left, Rask.Web.Types.WaveShaperOptions? right) -> bool
+static Rask.Web.Types.WaveShaperOptions.operator ==(Rask.Web.Types.WaveShaperOptions? left, Rask.Web.Types.WaveShaperOptions? right) -> bool
+static Rask.Web.Types.WebTransportErrorOptions.operator !=(Rask.Web.Types.WebTransportErrorOptions? left, Rask.Web.Types.WebTransportErrorOptions? right) -> bool
+static Rask.Web.Types.WebTransportErrorOptions.operator ==(Rask.Web.Types.WebTransportErrorOptions? left, Rask.Web.Types.WebTransportErrorOptions? right) -> bool
+static Rask.Web.Types.WebTransportHash.operator !=(Rask.Web.Types.WebTransportHash? left, Rask.Web.Types.WebTransportHash? right) -> bool
+static Rask.Web.Types.WebTransportHash.operator ==(Rask.Web.Types.WebTransportHash? left, Rask.Web.Types.WebTransportHash? right) -> bool
+static Rask.Web.Types.WebTransportOptions.operator !=(Rask.Web.Types.WebTransportOptions? left, Rask.Web.Types.WebTransportOptions? right) -> bool
+static Rask.Web.Types.WebTransportOptions.operator ==(Rask.Web.Types.WebTransportOptions? left, Rask.Web.Types.WebTransportOptions? right) -> bool
+static Rask.Web.Types.WorkerOptions.operator !=(Rask.Web.Types.WorkerOptions? left, Rask.Web.Types.WorkerOptions? right) -> bool
+static Rask.Web.Types.WorkerOptions.operator ==(Rask.Web.Types.WorkerOptions? left, Rask.Web.Types.WorkerOptions? right) -> bool
+virtual Rask.Web.Types.AudioNodeOptions.<Clone>$() -> Rask.Web.Types.AudioNodeOptions!
+virtual Rask.Web.Types.AudioNodeOptions.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.AudioNodeOptions.Equals(Rask.Web.Types.AudioNodeOptions? other) -> bool
+virtual Rask.Web.Types.AudioNodeOptions.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Rask.Web.Types.BlobPropertyBag.<Clone>$() -> Rask.Web.Types.BlobPropertyBag!
+virtual Rask.Web.Types.BlobPropertyBag.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.BlobPropertyBag.Equals(Rask.Web.Types.BlobPropertyBag? other) -> bool
+virtual Rask.Web.Types.BlobPropertyBag.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Rask.Web.Types.KeyframeEffectOptions.Equals(Rask.Web.Types.KeyframeEffectOptions? other) -> bool
+virtual Rask.Web.Types.MediaEffectInfo.<Clone>$() -> Rask.Web.Types.MediaEffectInfo!
+virtual Rask.Web.Types.MediaEffectInfo.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.MediaEffectInfo.Equals(Rask.Web.Types.MediaEffectInfo? other) -> bool
+virtual Rask.Web.Types.MediaEffectInfo.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Rask.Web.Types.PaymentDetailsBase.<Clone>$() -> Rask.Web.Types.PaymentDetailsBase!
+virtual Rask.Web.Types.PaymentDetailsBase.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.PaymentDetailsBase.Equals(Rask.Web.Types.PaymentDetailsBase? other) -> bool
+virtual Rask.Web.Types.PaymentDetailsBase.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Rask.Web.Types.WorkerOptions.<Clone>$() -> Rask.Web.Types.WorkerOptions!
+virtual Rask.Web.Types.WorkerOptions.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.WorkerOptions.Equals(Rask.Web.Types.WorkerOptions? other) -> bool
+virtual Rask.Web.Types.WorkerOptions.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Web.Types.AbortController
+Rask.Web.Types.AbortController.Abort() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AbortController.Signal.get -> Rask.Web.Types.AbortSignal!
+Rask.Web.Types.AbortSignal
+Rask.Web.Types.AbortSignal.Aborted.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.AbortSignal.ThrowIfAborted() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AddEventListenerOptions
+Rask.Web.Types.AddEventListenerOptions.AddEventListenerOptions() -> void
+Rask.Web.Types.AddEventListenerOptions.Equals(Rask.Web.Types.AddEventListenerOptions? other) -> bool
+Rask.Web.Types.AddEventListenerOptions.Once.get -> bool?
+Rask.Web.Types.AddEventListenerOptions.Once.init -> void
+Rask.Web.Types.AddEventListenerOptions.Passive.get -> bool?
+Rask.Web.Types.AddEventListenerOptions.Passive.init -> void
+Rask.Web.Types.Blob.Stream() -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.ByteLengthQueuingStrategy
+Rask.Web.Types.ByteLengthQueuingStrategy.HighWaterMark.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.CompressionFormat
+Rask.Web.Types.CompressionFormat.Brotli = 0 -> Rask.Web.Types.CompressionFormat
+Rask.Web.Types.CompressionFormat.Deflate = 1 -> Rask.Web.Types.CompressionFormat
+Rask.Web.Types.CompressionFormat.DeflateRaw = 2 -> Rask.Web.Types.CompressionFormat
+Rask.Web.Types.CompressionFormat.Gzip = 3 -> Rask.Web.Types.CompressionFormat
+Rask.Web.Types.CompressionStream
+Rask.Web.Types.CompressionStream.Readable.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.CompressionStream.Writable.get -> Rask.Web.Types.WritableStream!
+Rask.Web.Types.CountQueuingStrategy
+Rask.Web.Types.CountQueuingStrategy.HighWaterMark.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.DOMException
+Rask.Web.Types.DOMException.Message.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.DOMException.Name.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.DecompressionStream
+Rask.Web.Types.DecompressionStream.Readable.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.DecompressionStream.Writable.get -> Rask.Web.Types.WritableStream!
+Rask.Web.Types.DigitalCredential
+Rask.Web.Types.EventListenerOptions
+Rask.Web.Types.EventListenerOptions.Capture.get -> bool?
+Rask.Web.Types.EventListenerOptions.Capture.init -> void
+Rask.Web.Types.EventListenerOptions.EventListenerOptions() -> void
+Rask.Web.Types.EventListenerOptions.EventListenerOptions(Rask.Web.Types.EventListenerOptions! original) -> void
+Rask.Web.Types.EventTarget
+Rask.Web.Types.FileReader.Error.get -> Rask.Web.Types.DOMException!
+Rask.Web.Types.IDBRequest.Error.get -> Rask.Web.Types.DOMException!
+Rask.Web.Types.IDBTransaction.Error.get -> Rask.Web.Types.DOMException!
+Rask.Web.Types.Origin
+Rask.Web.Types.Origin.Opaque.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Performance.Mark(string! markName) -> Rask.Web.Types.PerformanceMark!
+Rask.Web.Types.QueuingStrategy
+Rask.Web.Types.QueuingStrategy.<Clone>$() -> Rask.Web.Types.QueuingStrategy!
+Rask.Web.Types.QueuingStrategy.Equals(Rask.Web.Types.QueuingStrategy? other) -> bool
+Rask.Web.Types.QueuingStrategy.HighWaterMark.get -> double?
+Rask.Web.Types.QueuingStrategy.HighWaterMark.init -> void
+Rask.Web.Types.QueuingStrategy.QueuingStrategy() -> void
+Rask.Web.Types.QueuingStrategyInit
+Rask.Web.Types.QueuingStrategyInit.<Clone>$() -> Rask.Web.Types.QueuingStrategyInit!
+Rask.Web.Types.QueuingStrategyInit.Equals(Rask.Web.Types.QueuingStrategyInit? other) -> bool
+Rask.Web.Types.QueuingStrategyInit.HighWaterMark.get -> double
+Rask.Web.Types.QueuingStrategyInit.HighWaterMark.init -> void
+Rask.Web.Types.QueuingStrategyInit.QueuingStrategyInit() -> void
+Rask.Web.Types.RTCIceCandidate
+Rask.Web.Types.RTCIceCandidate.Address.get -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.RTCIceCandidate.Candidate.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.RTCIceCandidate.Component.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceComponent?>
+Rask.Web.Types.RTCIceCandidate.Foundation.get -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.RTCIceCandidate.Port.get -> System.Threading.Tasks.ValueTask<int?>
+Rask.Web.Types.RTCIceCandidate.Priority.get -> System.Threading.Tasks.ValueTask<int?>
+Rask.Web.Types.RTCIceCandidate.Protocol.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceProtocol?>
+Rask.Web.Types.RTCIceCandidate.RelatedAddress.get -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.RTCIceCandidate.RelatedPort.get -> System.Threading.Tasks.ValueTask<int?>
+Rask.Web.Types.RTCIceCandidate.SdpMLineIndex.get -> System.Threading.Tasks.ValueTask<int?>
+Rask.Web.Types.RTCIceCandidate.SdpMid.get -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.RTCIceCandidate.TcpType.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceTcpCandidateType?>
+Rask.Web.Types.RTCIceCandidate.ToJSON() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidateInit!>
+Rask.Web.Types.RTCIceCandidate.Type.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidateType?>
+Rask.Web.Types.RTCIceCandidate.UsernameFragment.get -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.RTCIceCandidateType
+Rask.Web.Types.RTCIceCandidateType.Host = 0 -> Rask.Web.Types.RTCIceCandidateType
+Rask.Web.Types.RTCIceCandidateType.Prflx = 2 -> Rask.Web.Types.RTCIceCandidateType
+Rask.Web.Types.RTCIceCandidateType.Relay = 3 -> Rask.Web.Types.RTCIceCandidateType
+Rask.Web.Types.RTCIceCandidateType.Srflx = 1 -> Rask.Web.Types.RTCIceCandidateType
+Rask.Web.Types.RTCIceComponent
+Rask.Web.Types.RTCIceComponent.Rtcp = 1 -> Rask.Web.Types.RTCIceComponent
+Rask.Web.Types.RTCIceComponent.Rtp = 0 -> Rask.Web.Types.RTCIceComponent
+Rask.Web.Types.RTCIceProtocol
+Rask.Web.Types.RTCIceProtocol.Tcp = 1 -> Rask.Web.Types.RTCIceProtocol
+Rask.Web.Types.RTCIceProtocol.Udp = 0 -> Rask.Web.Types.RTCIceProtocol
+Rask.Web.Types.RTCIceServerTransportProtocol
+Rask.Web.Types.RTCIceServerTransportProtocol.Tcp = 1 -> Rask.Web.Types.RTCIceServerTransportProtocol
+Rask.Web.Types.RTCIceServerTransportProtocol.Tls = 2 -> Rask.Web.Types.RTCIceServerTransportProtocol
+Rask.Web.Types.RTCIceServerTransportProtocol.Udp = 0 -> Rask.Web.Types.RTCIceServerTransportProtocol
+Rask.Web.Types.RTCIceTcpCandidateType
+Rask.Web.Types.RTCIceTcpCandidateType.Active = 0 -> Rask.Web.Types.RTCIceTcpCandidateType
+Rask.Web.Types.RTCIceTcpCandidateType.Passive = 1 -> Rask.Web.Types.RTCIceTcpCandidateType
+Rask.Web.Types.RTCIceTcpCandidateType.So = 2 -> Rask.Web.Types.RTCIceTcpCandidateType
+Rask.Web.Types.RTCLocalIceCandidateInit
+Rask.Web.Types.RTCLocalIceCandidateInit.Equals(Rask.Web.Types.RTCLocalIceCandidateInit? other) -> bool
+Rask.Web.Types.RTCLocalIceCandidateInit.RTCLocalIceCandidateInit() -> void
+Rask.Web.Types.RTCLocalIceCandidateInit.RelayProtocol.get -> Rask.Web.Types.RTCIceServerTransportProtocol?
+Rask.Web.Types.RTCLocalIceCandidateInit.RelayProtocol.init -> void
+Rask.Web.Types.RTCLocalIceCandidateInit.Url.get -> string?
+Rask.Web.Types.RTCLocalIceCandidateInit.Url.init -> void
+Rask.Web.Types.ReadableByteStreamController
+Rask.Web.Types.ReadableByteStreamController.ByobRequest.get -> Rask.Web.Types.ReadableStreamBYOBRequest!
+Rask.Web.Types.ReadableByteStreamController.Close() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableByteStreamController.DesiredSize.get -> System.Threading.Tasks.ValueTask<double?>
+Rask.Web.Types.ReadableByteStreamController.Error() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStream
+Rask.Web.Types.ReadableStream.Cancel() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStream.Locked.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.ReadableStreamBYOBReader
+Rask.Web.Types.ReadableStreamBYOBReader.Cancel() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamBYOBReader.Closed.get -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamBYOBReader.ReleaseLock() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamBYOBReaderReadOptions
+Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.<Clone>$() -> Rask.Web.Types.ReadableStreamBYOBReaderReadOptions!
+Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.Equals(Rask.Web.Types.ReadableStreamBYOBReaderReadOptions? other) -> bool
+Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.Min.get -> long?
+Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.Min.init -> void
+Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.ReadableStreamBYOBReaderReadOptions() -> void
+Rask.Web.Types.ReadableStreamBYOBRequest
+Rask.Web.Types.ReadableStreamBYOBRequest.Respond(long bytesWritten) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultController
+Rask.Web.Types.ReadableStreamDefaultController.Close() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultController.DesiredSize.get -> System.Threading.Tasks.ValueTask<double?>
+Rask.Web.Types.ReadableStreamDefaultController.Enqueue() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultController.Error() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultReader
+Rask.Web.Types.ReadableStreamDefaultReader.Cancel() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultReader.Closed.get -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultReader.Read() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult!>
+Rask.Web.Types.ReadableStreamDefaultReader.ReleaseLock() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamGetReaderOptions
+Rask.Web.Types.ReadableStreamGetReaderOptions.<Clone>$() -> Rask.Web.Types.ReadableStreamGetReaderOptions!
+Rask.Web.Types.ReadableStreamGetReaderOptions.Equals(Rask.Web.Types.ReadableStreamGetReaderOptions? other) -> bool
+Rask.Web.Types.ReadableStreamGetReaderOptions.Mode.get -> Rask.Web.Types.ReadableStreamReaderMode?
+Rask.Web.Types.ReadableStreamGetReaderOptions.Mode.init -> void
+Rask.Web.Types.ReadableStreamGetReaderOptions.ReadableStreamGetReaderOptions() -> void
+Rask.Web.Types.ReadableStreamReadResult
+Rask.Web.Types.ReadableStreamReadResult.<Clone>$() -> Rask.Web.Types.ReadableStreamReadResult!
+Rask.Web.Types.ReadableStreamReadResult.Done.get -> bool?
+Rask.Web.Types.ReadableStreamReadResult.Done.init -> void
+Rask.Web.Types.ReadableStreamReadResult.Equals(Rask.Web.Types.ReadableStreamReadResult? other) -> bool
+Rask.Web.Types.ReadableStreamReadResult.ReadableStreamReadResult() -> void
+Rask.Web.Types.ReadableStreamReaderMode
+Rask.Web.Types.ReadableStreamReaderMode.Byob = 0 -> Rask.Web.Types.ReadableStreamReaderMode
+Rask.Web.Types.Request.Body.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.Request.Signal.get -> Rask.Web.Types.AbortSignal!
+Rask.Web.Types.Response.Body.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.SerialPort.Readable.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.SerialPort.Writable.get -> Rask.Web.Types.WritableStream!
+Rask.Web.Types.StreamPipeOptions
+Rask.Web.Types.StreamPipeOptions.<Clone>$() -> Rask.Web.Types.StreamPipeOptions!
+Rask.Web.Types.StreamPipeOptions.Equals(Rask.Web.Types.StreamPipeOptions? other) -> bool
+Rask.Web.Types.StreamPipeOptions.PreventAbort.get -> bool?
+Rask.Web.Types.StreamPipeOptions.PreventAbort.init -> void
+Rask.Web.Types.StreamPipeOptions.PreventCancel.get -> bool?
+Rask.Web.Types.StreamPipeOptions.PreventCancel.init -> void
+Rask.Web.Types.StreamPipeOptions.PreventClose.get -> bool?
+Rask.Web.Types.StreamPipeOptions.PreventClose.init -> void
+Rask.Web.Types.StreamPipeOptions.StreamPipeOptions() -> void
+Rask.Web.Types.TextDecodeOptions
+Rask.Web.Types.TextDecodeOptions.<Clone>$() -> Rask.Web.Types.TextDecodeOptions!
+Rask.Web.Types.TextDecodeOptions.Equals(Rask.Web.Types.TextDecodeOptions? other) -> bool
+Rask.Web.Types.TextDecodeOptions.Stream.get -> bool?
+Rask.Web.Types.TextDecodeOptions.Stream.init -> void
+Rask.Web.Types.TextDecodeOptions.TextDecodeOptions() -> void
+Rask.Web.Types.TextDecoder
+Rask.Web.Types.TextDecoder.Decode() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.TextDecoder.Encoding.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.TextDecoder.Fatal.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.TextDecoder.IgnoreBOM.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.TextDecoderOptions
+Rask.Web.Types.TextDecoderOptions.<Clone>$() -> Rask.Web.Types.TextDecoderOptions!
+Rask.Web.Types.TextDecoderOptions.Equals(Rask.Web.Types.TextDecoderOptions? other) -> bool
+Rask.Web.Types.TextDecoderOptions.Fatal.get -> bool?
+Rask.Web.Types.TextDecoderOptions.Fatal.init -> void
+Rask.Web.Types.TextDecoderOptions.IgnoreBOM.get -> bool?
+Rask.Web.Types.TextDecoderOptions.IgnoreBOM.init -> void
+Rask.Web.Types.TextDecoderOptions.TextDecoderOptions() -> void
+Rask.Web.Types.TextDecoderStream
+Rask.Web.Types.TextDecoderStream.Encoding.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.TextDecoderStream.Fatal.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.TextDecoderStream.IgnoreBOM.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.TextDecoderStream.Readable.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.TextDecoderStream.Writable.get -> Rask.Web.Types.WritableStream!
+Rask.Web.Types.TextEncoder
+Rask.Web.Types.TextEncoder.Encoding.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.TextEncoderStream
+Rask.Web.Types.TextEncoderStream.Encoding.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.TextEncoderStream.Readable.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.TextEncoderStream.Writable.get -> Rask.Web.Types.WritableStream!
+Rask.Web.Types.Touch.Target.get -> Rask.Web.Types.EventTarget!
+Rask.Web.Types.TransformStream
+Rask.Web.Types.TransformStream.Readable.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.TransformStream.Writable.get -> Rask.Web.Types.WritableStream!
+Rask.Web.Types.TransformStreamDefaultController
+Rask.Web.Types.TransformStreamDefaultController.DesiredSize.get -> System.Threading.Tasks.ValueTask<double?>
+Rask.Web.Types.TransformStreamDefaultController.Enqueue() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.TransformStreamDefaultController.Error() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.TransformStreamDefaultController.Terminate() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL
+Rask.Web.Types.URL.Hash.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Host.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Hostname.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Href.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Origin.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Password.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Pathname.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Port.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Protocol.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Search.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.SearchParams.get -> Rask.Web.Types.URLSearchParams!
+Rask.Web.Types.URL.SetHash(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetHost(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetHostname(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetHref(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetPassword(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetPathname(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetPort(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetProtocol(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetSearch(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.SetUsername(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URL.ToJSON() -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URL.Username.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.URLSearchParams
+Rask.Web.Types.URLSearchParams.Append(string! name, string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URLSearchParams.Delete(string! name) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URLSearchParams.Delete(string! name, string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URLSearchParams.Get(string! name) -> System.Threading.Tasks.ValueTask<string?>
+Rask.Web.Types.URLSearchParams.GetAll(string! name) -> System.Threading.Tasks.ValueTask<string![]!>
+Rask.Web.Types.URLSearchParams.Has(string! name) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.URLSearchParams.Has(string! name, string! value) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.URLSearchParams.Set(string! name, string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.URLSearchParams.Size.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.URLSearchParams.Sort() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.VideoColorSpace.FullRange.get -> System.Threading.Tasks.ValueTask<bool?>
+Rask.Web.Types.VideoColorSpace.Matrix.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoMatrixCoefficients?>
+Rask.Web.Types.VideoColorSpace.Primaries.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoColorPrimaries?>
+Rask.Web.Types.VideoColorSpace.ToJSON() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoColorSpaceInit!>
+Rask.Web.Types.VideoColorSpace.Transfer.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoTransferCharacteristics?>
+Rask.Web.Types.VideoFrame.ColorSpace.get -> Rask.Web.Types.VideoColorSpace!
+Rask.Web.Types.WebTransport.IncomingBidirectionalStreams.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.WebTransport.IncomingUnidirectionalStreams.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.WebTransportDatagramDuplexStream.Readable.get -> Rask.Web.Types.ReadableStream!
+Rask.Web.Types.WritableStream
+Rask.Web.Types.WritableStream.Abort() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStream.Close() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStream.GetWriter() -> Rask.Web.Types.WritableStreamDefaultWriter!
+Rask.Web.Types.WritableStream.Locked.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WritableStreamDefaultController
+Rask.Web.Types.WritableStreamDefaultController.Error() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultController.Signal.get -> Rask.Web.Types.AbortSignal!
+Rask.Web.Types.WritableStreamDefaultWriter
+Rask.Web.Types.WritableStreamDefaultWriter.Abort() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultWriter.Close() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultWriter.Closed.get -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultWriter.DesiredSize.get -> System.Threading.Tasks.ValueTask<double?>
+Rask.Web.Types.WritableStreamDefaultWriter.Ready.get -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultWriter.ReleaseLock() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultWriter.Write() -> System.Threading.Tasks.ValueTask
+override Rask.Web.Types.AddEventListenerOptions.<Clone>$() -> Rask.Web.Types.AddEventListenerOptions!
+override Rask.Web.Types.AddEventListenerOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.AddEventListenerOptions.GetHashCode() -> int
+override Rask.Web.Types.AddEventListenerOptions.ToString() -> string!
+override Rask.Web.Types.EventListenerOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.EventListenerOptions.GetHashCode() -> int
+override Rask.Web.Types.EventListenerOptions.ToString() -> string!
+override Rask.Web.Types.QueuingStrategy.Equals(object? obj) -> bool
+override Rask.Web.Types.QueuingStrategy.GetHashCode() -> int
+override Rask.Web.Types.QueuingStrategy.ToString() -> string!
+override Rask.Web.Types.QueuingStrategyInit.Equals(object? obj) -> bool
+override Rask.Web.Types.QueuingStrategyInit.GetHashCode() -> int
+override Rask.Web.Types.QueuingStrategyInit.ToString() -> string!
+override Rask.Web.Types.RTCLocalIceCandidateInit.<Clone>$() -> Rask.Web.Types.RTCLocalIceCandidateInit!
+override Rask.Web.Types.RTCLocalIceCandidateInit.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCLocalIceCandidateInit.GetHashCode() -> int
+override Rask.Web.Types.RTCLocalIceCandidateInit.ToString() -> string!
+override Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.GetHashCode() -> int
+override Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.ToString() -> string!
+override Rask.Web.Types.ReadableStreamGetReaderOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.ReadableStreamGetReaderOptions.GetHashCode() -> int
+override Rask.Web.Types.ReadableStreamGetReaderOptions.ToString() -> string!
+override Rask.Web.Types.ReadableStreamReadResult.Equals(object? obj) -> bool
+override Rask.Web.Types.ReadableStreamReadResult.GetHashCode() -> int
+override Rask.Web.Types.ReadableStreamReadResult.ToString() -> string!
+override Rask.Web.Types.StreamPipeOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.StreamPipeOptions.GetHashCode() -> int
+override Rask.Web.Types.StreamPipeOptions.ToString() -> string!
+override Rask.Web.Types.TextDecodeOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.TextDecodeOptions.GetHashCode() -> int
+override Rask.Web.Types.TextDecodeOptions.ToString() -> string!
+override Rask.Web.Types.TextDecoderOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.TextDecoderOptions.GetHashCode() -> int
+override Rask.Web.Types.TextDecoderOptions.ToString() -> string!
+override sealed Rask.Web.Types.AddEventListenerOptions.Equals(Rask.Web.Types.EventListenerOptions? other) -> bool
+override sealed Rask.Web.Types.RTCLocalIceCandidateInit.Equals(Rask.Web.Types.RTCIceCandidateInit? other) -> bool
+static Rask.Web.Performance.Mark(string! markName) -> Rask.Web.Types.PerformanceMark!
+static Rask.Web.Types.AddEventListenerOptions.operator !=(Rask.Web.Types.AddEventListenerOptions? left, Rask.Web.Types.AddEventListenerOptions? right) -> bool
+static Rask.Web.Types.AddEventListenerOptions.operator ==(Rask.Web.Types.AddEventListenerOptions? left, Rask.Web.Types.AddEventListenerOptions? right) -> bool
+static Rask.Web.Types.EventListenerOptions.operator !=(Rask.Web.Types.EventListenerOptions? left, Rask.Web.Types.EventListenerOptions? right) -> bool
+static Rask.Web.Types.EventListenerOptions.operator ==(Rask.Web.Types.EventListenerOptions? left, Rask.Web.Types.EventListenerOptions? right) -> bool
+static Rask.Web.Types.QueuingStrategy.operator !=(Rask.Web.Types.QueuingStrategy? left, Rask.Web.Types.QueuingStrategy? right) -> bool
+static Rask.Web.Types.QueuingStrategy.operator ==(Rask.Web.Types.QueuingStrategy? left, Rask.Web.Types.QueuingStrategy? right) -> bool
+static Rask.Web.Types.QueuingStrategyInit.operator !=(Rask.Web.Types.QueuingStrategyInit? left, Rask.Web.Types.QueuingStrategyInit? right) -> bool
+static Rask.Web.Types.QueuingStrategyInit.operator ==(Rask.Web.Types.QueuingStrategyInit? left, Rask.Web.Types.QueuingStrategyInit? right) -> bool
+static Rask.Web.Types.RTCLocalIceCandidateInit.operator !=(Rask.Web.Types.RTCLocalIceCandidateInit? left, Rask.Web.Types.RTCLocalIceCandidateInit? right) -> bool
+static Rask.Web.Types.RTCLocalIceCandidateInit.operator ==(Rask.Web.Types.RTCLocalIceCandidateInit? left, Rask.Web.Types.RTCLocalIceCandidateInit? right) -> bool
+static Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.operator !=(Rask.Web.Types.ReadableStreamBYOBReaderReadOptions? left, Rask.Web.Types.ReadableStreamBYOBReaderReadOptions? right) -> bool
+static Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.operator ==(Rask.Web.Types.ReadableStreamBYOBReaderReadOptions? left, Rask.Web.Types.ReadableStreamBYOBReaderReadOptions? right) -> bool
+static Rask.Web.Types.ReadableStreamGetReaderOptions.operator !=(Rask.Web.Types.ReadableStreamGetReaderOptions? left, Rask.Web.Types.ReadableStreamGetReaderOptions? right) -> bool
+static Rask.Web.Types.ReadableStreamGetReaderOptions.operator ==(Rask.Web.Types.ReadableStreamGetReaderOptions? left, Rask.Web.Types.ReadableStreamGetReaderOptions? right) -> bool
+static Rask.Web.Types.ReadableStreamReadResult.operator !=(Rask.Web.Types.ReadableStreamReadResult? left, Rask.Web.Types.ReadableStreamReadResult? right) -> bool
+static Rask.Web.Types.ReadableStreamReadResult.operator ==(Rask.Web.Types.ReadableStreamReadResult? left, Rask.Web.Types.ReadableStreamReadResult? right) -> bool
+static Rask.Web.Types.StreamPipeOptions.operator !=(Rask.Web.Types.StreamPipeOptions? left, Rask.Web.Types.StreamPipeOptions? right) -> bool
+static Rask.Web.Types.StreamPipeOptions.operator ==(Rask.Web.Types.StreamPipeOptions? left, Rask.Web.Types.StreamPipeOptions? right) -> bool
+static Rask.Web.Types.TextDecodeOptions.operator !=(Rask.Web.Types.TextDecodeOptions? left, Rask.Web.Types.TextDecodeOptions? right) -> bool
+static Rask.Web.Types.TextDecodeOptions.operator ==(Rask.Web.Types.TextDecodeOptions? left, Rask.Web.Types.TextDecodeOptions? right) -> bool
+static Rask.Web.Types.TextDecoderOptions.operator !=(Rask.Web.Types.TextDecoderOptions? left, Rask.Web.Types.TextDecoderOptions? right) -> bool
+static Rask.Web.Types.TextDecoderOptions.operator ==(Rask.Web.Types.TextDecoderOptions? left, Rask.Web.Types.TextDecoderOptions? right) -> bool
+virtual Rask.Web.Types.EventListenerOptions.<Clone>$() -> Rask.Web.Types.EventListenerOptions!
+virtual Rask.Web.Types.EventListenerOptions.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.EventListenerOptions.Equals(Rask.Web.Types.EventListenerOptions? other) -> bool
+virtual Rask.Web.Types.EventListenerOptions.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Web.AbortController
+Rask.Web.AbortSignal
+Rask.Web.Animation
+Rask.Web.AudioBuffer
+Rask.Web.AudioContext
+Rask.Web.AudioData
+Rask.Web.AudioDecoder
+Rask.Web.AudioEncoder
+Rask.Web.Blob
+Rask.Web.BroadcastChannel
+Rask.Web.ByteLengthQueuingStrategy
+Rask.Web.CSSKeywordValue
+Rask.Web.CSSStyleSheet
+Rask.Web.CSSStyleValue
+Rask.Web.CSSUnitValue
+Rask.Web.CSSVariableReferenceValue
+Rask.Web.ClipboardItem
+Rask.Web.CloseWatcher
+Rask.Web.CompressionStream
+Rask.Web.CountQueuingStrategy
+Rask.Web.Credential
+Rask.Web.CustomElementRegistry
+Rask.Web.DOMException
+Rask.Web.DOMMatrix
+Rask.Web.DOMMatrixReadOnly
+Rask.Web.DOMParser
+Rask.Web.DOMQuad
+Rask.Web.DataTransfer
+Rask.Web.DecompressionStream
+Rask.Web.DigitalCredential
+Rask.Web.DocumentTimeline
+Rask.Web.EncodedAudioChunk
+Rask.Web.EncodedVideoChunk
+Rask.Web.EventSource
+Rask.Web.EventTarget
+Rask.Web.FileReader
+Rask.Web.FontFace
+Rask.Web.FormData
+Rask.Web.GPUInternalError
+Rask.Web.GPUOutOfMemoryError
+Rask.Web.GPUPipelineError
+Rask.Web.GPUValidationError
+Rask.Web.Headers
+Rask.Web.ImageData
+Rask.Web.ImageDecoder
+Rask.Web.MediaMetadata
+Rask.Web.MediaRecorder
+Rask.Web.MediaSource
+Rask.Web.MediaStream
+Rask.Web.MessageChannel
+Rask.Web.Notification
+Rask.Web.OfflineAudioContext
+Rask.Web.OffscreenCanvas
+Rask.Web.Origin
+Rask.Web.OverconstrainedError
+Rask.Web.Path2D
+Rask.Web.PaymentRequest
+Rask.Web.PerformanceMark
+Rask.Web.PerformanceObserver
+Rask.Web.PublicKeyCredential
+Rask.Web.PushManager
+Rask.Web.RTCError
+Rask.Web.RTCIceCandidate
+Rask.Web.RTCPeerConnection
+Rask.Web.RTCRtpReceiver
+Rask.Web.RTCRtpSender
+Rask.Web.Range
+Rask.Web.ReadableStream
+Rask.Web.Response
+Rask.Web.Sanitizer
+Rask.Web.ScrollTimeline
+Rask.Web.SharedWorker
+Rask.Web.SpeechSynthesisUtterance
+Rask.Web.StaticRange
+Rask.Web.TaskController
+Rask.Web.TextDecoder
+Rask.Web.TextDecoderStream
+Rask.Web.TextEncoder
+Rask.Web.TextEncoderStream
+Rask.Web.Touch
+Rask.Web.TransformStream
+Rask.Web.URL
+Rask.Web.URLPattern
+Rask.Web.URLSearchParams
+Rask.Web.VTTCue
+Rask.Web.VTTRegion
+Rask.Web.VideoColorSpace
+Rask.Web.VideoDecoder
+Rask.Web.VideoEncoder
+Rask.Web.ViewTimeline
+Rask.Web.WebSocket
+Rask.Web.WebTransport
+Rask.Web.WebTransportError
+Rask.Web.Worker
+Rask.Web.WritableStream
+Rask.Web.XMLHttpRequest
+Rask.Web.XMLSerializer
+Rask.Web.XPathEvaluator
+static Rask.Web.AbortController.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AbortController!>
+static Rask.Web.AbortSignal.Abort() -> Rask.Web.Types.AbortSignal!
+static Rask.Web.AbortSignal.Timeout(long milliseconds) -> Rask.Web.Types.AbortSignal!
+static Rask.Web.Animation.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation!>
+static Rask.Web.AudioBuffer.Create(Rask.Web.Types.AudioBufferOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioBuffer!>
+static Rask.Web.AudioContext.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioContext!>
+static Rask.Web.AudioContext.Create(Rask.Web.Types.AudioContextOptions! contextOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioContext!>
+static Rask.Web.AudioData.Create(Rask.Web.Types.AudioDataInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioData!>
+static Rask.Web.AudioDecoder.IsConfigSupported(Rask.Web.Types.AudioDecoderConfig! config) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioDecoderSupport!>
+static Rask.Web.AudioEncoder.IsConfigSupported(Rask.Web.Types.AudioEncoderConfig! config) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioEncoderSupport!>
+static Rask.Web.Blob.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Blob!>
+static Rask.Web.BroadcastChannel.Create(string! name) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BroadcastChannel!>
+static Rask.Web.ByteLengthQueuingStrategy.Create(Rask.Web.Types.QueuingStrategyInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ByteLengthQueuingStrategy!>
+static Rask.Web.CSSKeywordValue.Create(string! value) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSKeywordValue!>
+static Rask.Web.CSSStyleSheet.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSStyleSheet!>
+static Rask.Web.CSSStyleSheet.Create(Rask.Web.Types.CSSStyleSheetInit! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSStyleSheet!>
+static Rask.Web.CSSStyleValue.Parse(string! property, string! cssText) -> Rask.Web.Types.CSSStyleValue!
+static Rask.Web.CSSUnitValue.Create(double value, string! unit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSUnitValue!>
+static Rask.Web.CSSVariableReferenceValue.Create(string! variable) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSVariableReferenceValue!>
+static Rask.Web.ClipboardItem.Supports(string! type) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CloseWatcher.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CloseWatcher!>
+static Rask.Web.CompressionStream.Create(Rask.Web.Types.CompressionFormat format) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CompressionStream!>
+static Rask.Web.CountQueuingStrategy.Create(Rask.Web.Types.QueuingStrategyInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CountQueuingStrategy!>
+static Rask.Web.Credential.IsConditionalMediationAvailable() -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CustomElementRegistry.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CustomElementRegistry!>
+static Rask.Web.DOMException.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException!>
+static Rask.Web.DOMException.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException!>
+static Rask.Web.DOMException.Create(string! message, string! name) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException!>
+static Rask.Web.DOMMatrix.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrix!>
+static Rask.Web.DOMMatrix.Create(double[]! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrix!>
+static Rask.Web.DOMMatrix.Create(string! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrix!>
+static Rask.Web.DOMMatrixReadOnly.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrixReadOnly!>
+static Rask.Web.DOMMatrixReadOnly.Create(double[]! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrixReadOnly!>
+static Rask.Web.DOMMatrixReadOnly.Create(string! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrixReadOnly!>
+static Rask.Web.DOMMatrixReadOnly.FromMatrix() -> Rask.Web.Types.DOMMatrixReadOnly!
+static Rask.Web.DOMMatrixReadOnly.FromMatrix(Rask.Web.Types.DOMMatrixInit! other) -> Rask.Web.Types.DOMMatrixReadOnly!
+static Rask.Web.DOMParser.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMParser!>
+static Rask.Web.DOMQuad.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMQuad!>
+static Rask.Web.DOMQuad.Create(Rask.Core.DOMPointInit! p1) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMQuad!>
+static Rask.Web.DOMQuad.Create(Rask.Core.DOMPointInit! p1, Rask.Core.DOMPointInit! p2) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMQuad!>
+static Rask.Web.DOMQuad.Create(Rask.Core.DOMPointInit! p1, Rask.Core.DOMPointInit! p2, Rask.Core.DOMPointInit! p3) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMQuad!>
+static Rask.Web.DOMQuad.Create(Rask.Core.DOMPointInit! p1, Rask.Core.DOMPointInit! p2, Rask.Core.DOMPointInit! p3, Rask.Core.DOMPointInit! p4) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMQuad!>
+static Rask.Web.DOMQuad.FromQuad() -> Rask.Web.Types.DOMQuad!
+static Rask.Web.DOMQuad.FromQuad(Rask.Web.Types.DOMQuadInit! other) -> Rask.Web.Types.DOMQuad!
+static Rask.Web.DOMQuad.FromRect() -> Rask.Web.Types.DOMQuad!
+static Rask.Web.DOMQuad.FromRect(Rask.Web.Types.DOMRectInit! other) -> Rask.Web.Types.DOMQuad!
+static Rask.Web.DataTransfer.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DataTransfer!>
+static Rask.Web.DecompressionStream.Create(Rask.Web.Types.CompressionFormat format) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DecompressionStream!>
+static Rask.Web.DigitalCredential.UserAgentAllowsProtocol(string! protocol) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Document.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Document!>
+static Rask.Web.Document.ParseHTML(string! html) -> Rask.Web.Types.Document!
+static Rask.Web.Document.ParseHTMLUnsafe(string! html) -> Rask.Web.Types.Document!
+static Rask.Web.DocumentTimeline.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DocumentTimeline!>
+static Rask.Web.EncodedAudioChunk.Create(Rask.Web.Types.EncodedAudioChunkInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.EncodedAudioChunk!>
+static Rask.Web.EncodedVideoChunk.Create(Rask.Web.Types.EncodedVideoChunkInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.EncodedVideoChunk!>
+static Rask.Web.EventSource.Create(string! url) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.EventSource!>
+static Rask.Web.EventSource.Create(string! url, Rask.Web.Types.EventSourceInit! eventSourceInitDict) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.EventSource!>
+static Rask.Web.EventTarget.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.EventTarget!>
+static Rask.Web.FileReader.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileReader!>
+static Rask.Web.FontFace.Create(string! family, string! source) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFace!>
+static Rask.Web.FontFace.Create(string! family, string! source, Rask.Web.Types.FontFaceDescriptors! descriptors) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFace!>
+static Rask.Web.FormData.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FormData!>
+static Rask.Web.GPUInternalError.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUInternalError!>
+static Rask.Web.GPUOutOfMemoryError.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUOutOfMemoryError!>
+static Rask.Web.GPUPipelineError.Create(string! message, Rask.Web.Types.GPUPipelineErrorInit! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUPipelineError!>
+static Rask.Web.GPUValidationError.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUValidationError!>
+static Rask.Web.Headers.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Headers!>
+static Rask.Web.ImageData.Create(int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageData!>
+static Rask.Web.ImageData.Create(int sw, int sh, Rask.Web.Types.ImageDataSettings! settings) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageData!>
+static Rask.Web.ImageDecoder.Create(Rask.Web.Types.ImageDecoderInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageDecoder!>
+static Rask.Web.ImageDecoder.IsTypeSupported(string! type) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaMetadata.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaMetadata!>
+static Rask.Web.MediaMetadata.Create(Rask.Web.Types.MediaMetadataInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaMetadata!>
+static Rask.Web.MediaRecorder.IsTypeSupported(string! type) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaSource.CanConstructInDedicatedWorker.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaSource.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaSource!>
+static Rask.Web.MediaSource.IsTypeSupported(string! type) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaStream.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
+static Rask.Web.MessageChannel.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MessageChannel!>
+static Rask.Web.Notification.Create(string! title) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Notification!>
+static Rask.Web.Notification.Create(string! title, Rask.Web.Types.NotificationOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Notification!>
+static Rask.Web.Notification.MaxActions.get -> System.Threading.Tasks.ValueTask<int>
+static Rask.Web.Notification.Permission.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
+static Rask.Web.Notification.RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
+static Rask.Web.OfflineAudioContext.Create(Rask.Web.Types.OfflineAudioContextOptions! contextOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.OfflineAudioContext!>
+static Rask.Web.OfflineAudioContext.Create(int numberOfChannels, int length, double sampleRate) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.OfflineAudioContext!>
+static Rask.Web.OffscreenCanvas.Create(long width, long height) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.OffscreenCanvas!>
+static Rask.Web.Origin.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Origin!>
+static Rask.Web.OverconstrainedError.Create(string! constraint) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.OverconstrainedError!>
+static Rask.Web.OverconstrainedError.Create(string! constraint, string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.OverconstrainedError!>
+static Rask.Web.Path2D.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Path2D!>
+static Rask.Web.Path2D.Create(string! path) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Path2D!>
+static Rask.Web.PaymentRequest.Create(Rask.Web.Types.PaymentMethodData![]! methodData, Rask.Web.Types.PaymentDetailsInit! details) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PaymentRequest!>
+static Rask.Web.PaymentRequest.Create(Rask.Web.Types.PaymentMethodData![]! methodData, Rask.Web.Types.PaymentDetailsInit! details, Rask.Web.Types.PaymentOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PaymentRequest!>
+static Rask.Web.PerformanceMark.Create(string! markName) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMark!>
+static Rask.Web.PerformanceObserver.SupportedEntryTypes.get -> System.Threading.Tasks.ValueTask<string![]!>
+static Rask.Web.PublicKeyCredential.IsUserVerifyingPlatformAuthenticatorAvailable() -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PublicKeyCredential.ParseCreationOptionsFromJSON(Rask.Web.Types.PublicKeyCredentialCreationOptionsJSON! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PublicKeyCredentialCreationOptions!>
+static Rask.Web.PublicKeyCredential.ParseRequestOptionsFromJSON(Rask.Web.Types.PublicKeyCredentialRequestOptionsJSON! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PublicKeyCredentialRequestOptions!>
+static Rask.Web.PublicKeyCredential.SignalAllAcceptedCredentials(Rask.Web.Types.AllAcceptedCredentialsOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.PublicKeyCredential.SignalCurrentUserDetails(Rask.Web.Types.CurrentUserDetailsOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.PublicKeyCredential.SignalUnknownCredential(Rask.Web.Types.UnknownCredentialOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.PushManager.SupportedContentEncodings.get -> System.Threading.Tasks.ValueTask<string![]!>
+static Rask.Web.RTCError.Create(Rask.Web.Types.RTCErrorInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCError!>
+static Rask.Web.RTCError.Create(Rask.Web.Types.RTCErrorInit! init, string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCError!>
+static Rask.Web.RTCIceCandidate.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidate!>
+static Rask.Web.RTCIceCandidate.Create(Rask.Web.Types.RTCLocalIceCandidateInit! candidateInitDict) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidate!>
+static Rask.Web.RTCPeerConnection.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCPeerConnection!>
+static Rask.Web.RTCPeerConnection.Create(Rask.Web.Types.RTCConfiguration! configuration) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCPeerConnection!>
+static Rask.Web.RTCRtpReceiver.GetCapabilities(string! kind) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpCapabilities?>
+static Rask.Web.RTCRtpSender.GetCapabilities(string! kind) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpCapabilities?>
+static Rask.Web.Range.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Range!>
+static Rask.Web.ReadableStream.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStream!>
+static Rask.Web.Response.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Error() -> Rask.Web.Types.Response!
+static Rask.Web.Response.Redirect(string! url) -> Rask.Web.Types.Response!
+static Rask.Web.Response.Redirect(string! url, int status) -> Rask.Web.Types.Response!
+static Rask.Web.Sanitizer.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Sanitizer!>
+static Rask.Web.Sanitizer.Create(Rask.Web.Types.SanitizerConfig! configuration) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Sanitizer!>
+static Rask.Web.Sanitizer.Create(Rask.Web.Types.SanitizerPresets configuration) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Sanitizer!>
+static Rask.Web.ScrollTimeline.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ScrollTimeline!>
+static Rask.Web.ScrollTimeline.Create(Rask.Web.Types.ScrollTimelineOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ScrollTimeline!>
+static Rask.Web.SharedWorker.Create(string! scriptURL) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SharedWorker!>
+static Rask.Web.SharedWorker.Create(string! scriptURL, Rask.Web.Types.SharedWorkerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SharedWorker!>
+static Rask.Web.SharedWorker.Create(string! scriptURL, string! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SharedWorker!>
+static Rask.Web.SpeechSynthesisUtterance.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SpeechSynthesisUtterance!>
+static Rask.Web.SpeechSynthesisUtterance.Create(string! text) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SpeechSynthesisUtterance!>
+static Rask.Web.StaticRange.Create(Rask.Web.Types.StaticRangeInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.StaticRange!>
+static Rask.Web.TaskController.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TaskController!>
+static Rask.Web.TaskController.Create(Rask.Web.Types.TaskControllerInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TaskController!>
+static Rask.Web.TextDecoder.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextDecoder!>
+static Rask.Web.TextDecoder.Create(string! label) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextDecoder!>
+static Rask.Web.TextDecoder.Create(string! label, Rask.Web.Types.TextDecoderOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextDecoder!>
+static Rask.Web.TextDecoderStream.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextDecoderStream!>
+static Rask.Web.TextDecoderStream.Create(string! label) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextDecoderStream!>
+static Rask.Web.TextDecoderStream.Create(string! label, Rask.Web.Types.TextDecoderOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextDecoderStream!>
+static Rask.Web.TextEncoder.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextEncoder!>
+static Rask.Web.TextEncoderStream.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TextEncoderStream!>
+static Rask.Web.Touch.Create(Rask.Web.Types.TouchInit! touchInitDict) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Touch!>
+static Rask.Web.TransformStream.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.TransformStream!>
+static Rask.Web.URL.CanParse(string! url) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.URL.CanParse(string! url, string! base) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.URL.Create(string! url) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.URL!>
+static Rask.Web.URL.Create(string! url, string! base) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.URL!>
+static Rask.Web.URL.Parse(string! url) -> Rask.Web.Types.URL!
+static Rask.Web.URL.Parse(string! url, string! base) -> Rask.Web.Types.URL!
+static Rask.Web.URL.RevokeObjectURL(string! url) -> System.Threading.Tasks.ValueTask
+static Rask.Web.URLPattern.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.URLPattern!>
+static Rask.Web.URLSearchParams.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.URLSearchParams!>
+static Rask.Web.URLSearchParams.Create(string! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.URLSearchParams!>
+static Rask.Web.VTTCue.Create(double startTime, double endTime, string! text) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VTTCue!>
+static Rask.Web.VTTRegion.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VTTRegion!>
+static Rask.Web.VideoColorSpace.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoColorSpace!>
+static Rask.Web.VideoColorSpace.Create(Rask.Web.Types.VideoColorSpaceInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoColorSpace!>
+static Rask.Web.VideoDecoder.IsConfigSupported(Rask.Web.Types.VideoDecoderConfig! config) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoDecoderSupport!>
+static Rask.Web.VideoEncoder.IsConfigSupported(Rask.Web.Types.VideoEncoderConfig! config) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoEncoderSupport!>
+static Rask.Web.ViewTimeline.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ViewTimeline!>
+static Rask.Web.ViewTimeline.Create(Rask.Web.Types.ViewTimelineOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ViewTimeline!>
+static Rask.Web.WebSocket.Create(string! url) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebSocket!>
+static Rask.Web.WebSocket.Create(string! url, string! protocols) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebSocket!>
+static Rask.Web.WebSocket.Create(string! url, string![]! protocols) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebSocket!>
+static Rask.Web.WebTransport.Create(string! url) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebTransport!>
+static Rask.Web.WebTransport.Create(string! url, Rask.Web.Types.WebTransportOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebTransport!>
+static Rask.Web.WebTransportError.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebTransportError!>
+static Rask.Web.WebTransportError.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebTransportError!>
+static Rask.Web.WebTransportError.Create(string! message, Rask.Web.Types.WebTransportErrorOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebTransportError!>
+static Rask.Web.Worker.Create(string! scriptURL) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Worker!>
+static Rask.Web.Worker.Create(string! scriptURL, Rask.Web.Types.WorkerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Worker!>
+static Rask.Web.WritableStream.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WritableStream!>
+static Rask.Web.XMLHttpRequest.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XMLHttpRequest!>
+static Rask.Web.XMLSerializer.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XMLSerializer!>
+static Rask.Web.XPathEvaluator.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XPathEvaluator!>

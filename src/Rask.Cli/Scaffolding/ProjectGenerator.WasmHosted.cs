@@ -67,8 +67,9 @@ internal static partial class ProjectGenerator
 
     /// <summary>
     ///     <see cref="OffSwitches" />, less the PWA: here it is the browser app's (<c>host.UsePwa</c> in
-    ///     <c>Client/Program.cs</c>), and <c>Serve()</c> wires no server-side manifest or worker to turn off. A
-    ///     PWA-less app still has no push, so that switch stays.
+    ///     <c>Client/Program.cs</c>, or a TypeScript client's own manifest and worker), and <c>Serve()</c> wires no
+    ///     server-side manifest or worker to turn off. A PWA-less app still has no push, so that switch stays.
+    ///     Every <c>Serve()</c> template's — the SPA ones' too.
     /// </summary>
     private static List<string> WasmHostedOffSwitches(ServerBatteries batteries) =>
         [.. OffSwitches(batteries).Select(battery => string.Equals(battery, "Pwa", StringComparison.Ordinal) ? "Push" : battery)];

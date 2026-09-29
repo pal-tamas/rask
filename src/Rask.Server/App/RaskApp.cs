@@ -185,12 +185,13 @@ public sealed partial class RaskApp
     }
 
     /// <summary>
-    /// Builds the pipeline and runs the app as the server of a WebAssembly client: every battery, the endpoints the
-    /// browser app calls, and the app itself — the bundle <c>Client/</c> builds into — instead of a root component.
+    /// Builds the pipeline and runs the app as the server of a browser app: every battery, the endpoints the browser
+    /// app calls, and the app itself — the bundle a WebAssembly <c>Client/</c> or a TypeScript <c>client/</c> builds
+    /// into — instead of a root component.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The whole <c>Program.cs</c> of a wasm-hosted app:
+    /// The whole <c>Program.cs</c> of a wasm-hosted app, and of a React, Vue or other TypeScript front end's host:
     /// </para>
     /// <example>
     /// <code>
@@ -201,8 +202,9 @@ public sealed partial class RaskApp
     /// Everything <see cref="Run{TApp}"/> does except render pages. The browser app owns every path nothing else
     /// claims — <c>MapRaskSpa</c>'s fallback, mapped last — so a refresh or a deep link on a client-side route
     /// still lands on it. The operator console keeps <c>/_rask</c>, remote dispatch its own prefix when the CQRS
-    /// battery is on, and the storage and push routes theirs. The PWA battery is the browser app's here
-    /// (<c>host.UsePwa</c> in <c>Client/Program.cs</c>): the server serves no manifest or worker of its own,
+    /// battery is on, the accounts API <c>/api/auth</c> when the auth battery is, and the storage and push routes
+    /// theirs. The PWA battery is the browser app's here (<c>host.UsePwa</c> in <c>Client/Program.cs</c>, or the
+    /// front end's own manifest and worker): the server serves no manifest or worker of its own,
     /// because a route for <c>rask-sw.js</c> would answer before the bundle's own file.
     /// </para>
     /// </remarks>
@@ -211,7 +213,7 @@ public sealed partial class RaskApp
     /// <summary>The awaitable <see cref="Serve"/>.</summary>
     public Task ServeAsync() => BuildServe().RunAsync();
 
-    /// <summary>What <see cref="Serve"/> runs: the WebAssembly client's server, built and not yet started.</summary>
+    /// <summary>What <see cref="Serve"/> runs: the browser app's server, built and not yet started.</summary>
     internal WebApplication BuildServe()
     {
         // The browser app's, not this host's — see Serve.
@@ -396,6 +398,14 @@ public sealed partial class RaskApp
         if (_options.Cqrs.Enabled)
         {
             app.MapRaskCqrs();
+        }
+
+        // Register, sign in, sign out and /me as JSON under /api/auth: the browser app has no server-rendered sign-in
+        // page to post to, so these are its accounts. Only when the battery found a user type to wire.
+        if (_options.Auth.Enabled
+            && app.Services.GetService<IServiceProviderIsService>()?.IsService(typeof(AuthOptions)) == true)
+        {
+            app.MapRaskAuth();
         }
 
         // The operator console and the devtools under their own prefixes, with no catch-all of the host's own.

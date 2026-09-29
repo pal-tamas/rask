@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 using Rask.Cli.Templates;
 
@@ -133,19 +134,47 @@ public sealed class SpaTemplateTests
     }
 
     [Fact]
-    public void The_api_is_mapped_before_the_spa_fallback()
+    public void The_host_is_served_by_RaskApp()
     {
         var program = Content(Generate(), "/Program.cs");
 
-        // MapRaskSpa ends the pipeline with a fallback to index.html. An endpoint mapped after it is
-        // shadowed by that fallback rather than reached — and the symptom is an API call answered with
-        // HTML, which the browser reports as a JSON parse error.
-        var map = program.IndexOf("app.MapRaskCqrs();", StringComparison.Ordinal);
-        var spa = program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal);
+        // The pipeline's order — every endpoint ahead of MapRaskSpa's fallback to index.html — is Serve()'s now,
+        // pinned by RaskAppServeTests, so the scaffold writes no Map call that could land after it.
+        Assert.Contains("RaskApp.Create(args);", program, StringComparison.Ordinal);
+        Assert.EndsWith("app.Serve();\n", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("MapRaskSpa", program, StringComparison.Ordinal);
+    }
 
-        Assert.True(map >= 0, "the CQRS endpoints are never mapped.");
-        Assert.True(spa >= 0, "the SPA is never served.");
-        Assert.True(map < spa, "MapRaskCqrs must come before MapRaskSpa or the fallback shadows it.");
+    [Fact]
+    public void A_bare_rask_new_keeps_the_committed_Program_with_every_battery_on()
+    {
+        Assert.True(TemplateCatalog.TryGet("react", out var template));
+
+        var program = Content(
+            ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, NewCommand.ToBatteries(template, []), "1.2.3"),
+            "/Program.cs");
+
+        Assert.DoesNotContain(".Off();", program, StringComparison.Ordinal);
+        Assert.Contains("using Shop.Features.Hello;", program, StringComparison.Ordinal);
+        Assert.Contains("app.Services.AddSingleton<VisitCounter>();", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_battery_turned_off_is_a_line_ahead_of_the_apps_own_services()
+    {
+        Assert.True(TemplateCatalog.TryGet("react", out var template));
+
+        var program = Content(
+            ProjectGenerator.GenerateSpa(
+                Root, "Shop", SpaFramework.React, NewCommand.ToBatteries(template, ["pwa"]), "1.2.3"),
+            "/Program.cs");
+
+        // The PWA is the client's own manifest and worker, so what the host turns off without it is push.
+        Assert.Contains("app.Configure(c => c.Push.Off());", program, StringComparison.Ordinal);
+        Assert.True(
+            program.IndexOf("c.Push.Off()", StringComparison.Ordinal)
+            < program.IndexOf("AddSingleton<VisitCounter>", StringComparison.Ordinal));
+        Assert.Contains("using Shop.Features.Hello;", program, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -163,11 +192,11 @@ public sealed class SpaTemplateTests
     [Fact]
     public void Cqrs_is_on_whether_or_not_it_was_asked_for()
     {
+        var program = Content(Generate(), "/Program.cs");
+
         // The wire IS this template — a client that cannot dispatch has nothing to be.
-        Assert.Contains(
-            "AddRaskCqrsServer",
-            Content(Generate(), "/Program.cs"),
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("Cqrs.Off()", program, StringComparison.Ordinal);
+        Assert.Contains("c.Data.Off();", program, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -188,18 +217,14 @@ public sealed class SpaTemplateTests
     }
 
     [Fact]
-    public void A_database_lands_in_the_host_and_is_reachable_from_its_Program()
+    public void A_database_is_the_apps_own_with_no_context_to_write()
     {
         var result = Generate(new ServerBatteries { Data = true });
 
-        Assert.True(Has(result, "/Features/Shared/AppDbContext.cs"));
-
-        // The context is declared in the .Server namespace, so Program.cs has to import it — and the
-        // failure when it does not is a compile error nothing but a real build catches.
-        Assert.Contains(
-            "using Shop.Features.Shared;",
-            Content(result, "/Program.cs"),
-            StringComparison.Ordinal);
+        // RaskApp brings the context; the app declares only its user, which is what switches accounts on.
+        Assert.False(Has(result, "/Features/Shared/AppDbContext.cs"));
+        Assert.True(Has(result, "/Features/Shared/User.cs"));
+        Assert.DoesNotContain("c.Data.Off()", Content(result, "/Program.cs"), StringComparison.Ordinal);
     }
 
     public static IEnumerable<object[]> Frameworks() =>
@@ -388,9 +413,9 @@ public sealed class SpaTemplateTests
         // build output that .gitignore excludes, which is where this used to be scaffolded: hand-owned,
         // regenerated by nothing, and gone after a fresh clone.
         var client = Content(result, "/client/src/push.ts");
-        Assert.Contains("/_push/key", client, StringComparison.Ordinal);
-        Assert.Contains("/_push/subscribe", client, StringComparison.Ordinal);
-        Assert.Contains("/_push/unsubscribe", client, StringComparison.Ordinal);
+        Assert.Contains("/_rask/push/key", client, StringComparison.Ordinal);
+        Assert.Contains("/_rask/push/subscribe", client, StringComparison.Ordinal);
+        Assert.Contains("/_rask/push/unsubscribe", client, StringComparison.Ordinal);
 
         // The flattening that makes this work at all now comes from the shared browser layer, which is
         // refreshed from the package on every build and is the same code Rask's own clients run. The
@@ -399,18 +424,10 @@ public sealed class SpaTemplateTests
         // encrypt for a subscription that looked like it registered.
         Assert.Contains("from './rask/browser/webPush'", client, StringComparison.Ordinal);
 
-        var store = Content(result, "/Features/Push/PushSubscriptions.cs");
-        // Re-namespaced into the .Server project, which is the half with the endpoints on it.
-        Assert.Contains("namespace Shop.Features.Push;", store, StringComparison.Ordinal);
-        Assert.Contains("MapPushSubscriptions", store, StringComparison.Ordinal);
-
-        // Mapped before MapRaskSpa, which ends the pipeline with a fallback to index.html — an endpoint
-        // added after it would answer HTML instead of JSON.
-        var program = Content(result, "/Program.cs");
-        Assert.InRange(
-            program.IndexOf("app.MapPushSubscriptions();", StringComparison.Ordinal),
-            0,
-            program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal));
+        // The host half is the Push battery's own /_rask/push endpoints, which Serve() maps: no store of the
+        // template's own, and nothing in Program.cs switching the battery off.
+        Assert.False(Has(result, "/Features/Push/PushSubscriptions.cs"));
+        Assert.DoesNotContain("Push.Off()", Content(result, "/Program.cs"), StringComparison.Ordinal);
     }
 
     [Fact]

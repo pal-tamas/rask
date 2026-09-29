@@ -60,6 +60,16 @@ them until tagged releases begin.
   The hand-wired `MapRaskSpa()` host stays documented in `docs/spa.md`. The CQRS wire codec (and RASK053)
   runs only in a project that builds a browser client from `Client/` — `RaskCqrsCodec` follows `RaskClient` — so a
   server-rendered app's messages, which never leave the process, can take any shape.
+- **The SPA templates' servers are `RaskApp.Create(args).Serve()` too.** `react`, `preact`, `vue`, `angular`,
+  `solid`, `svelte` and `lit` drop their 250-line hand-wired `Program.cs` for
+  `var app = RaskApp.Create(args); app.Services.AddSingleton<VisitCounter>(); app.Serve();`, their `AppDbContext`
+  and their in-memory push store; the csproj references `Rask.Server` and `Rask.Spa.Hosting` in place of a
+  package per battery, and a battery left out is an `app.Configure(c => c.Jobs.Off())` line. `Serve()` now also
+  maps the accounts API at `/api/auth` whenever the auth battery is wired, so a browser app's sign-in answers
+  without a line of its own, and the operator console (`--no-ops`) is on these templates too. The client's push
+  calls moved from `/_push/*` to the Push battery's `/_rask/push/{key,subscribe,unsubscribe}`, subscriptions now
+  live in the app's database, and health is `/health` rather than `/healthz`. `Rask.Server.targets` turns the
+  CQRS codec, and with it the generated TypeScript contracts, on for a project with a `client/package.json`.
 - **BREAKING: a Data read is awaited, and its terminals drop `Async`.** A query runs when you await it; the rest
   read as words. A read handed no token is cancelled with the work it belongs to (the request, the job, the
   component, the query-cache fetch).
@@ -203,7 +213,9 @@ them until tagged releases begin.
   - An awaited object, or one a promise resolves to, is kept as a handle to dispose of; `Set{Name}` writes;
     `IsSupported` asks the browser. Each member's doc comment carries its browser support and MDN links.
   - Works on both hosts: over the page's socket on the server, in-process in WebAssembly. Nothing that returns or
-    rewrites DOM nodes is generated. Events, constructors and callbacks are not generated yet.
+    rewrites DOM nodes is generated. Events and callbacks are not generated yet.
+  - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
+    members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

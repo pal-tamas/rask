@@ -41,6 +41,7 @@ public sealed partial class WebApiDemo : Component
     private async Task Keep()
     {
         await using var query = await Window.MatchMedia("(min-width: 1px)");
-        _kept = $"Kept the MediaQueryList for {await query.Media}: matches {await query.Matches}";
+        await using var url = await URL.Create("/docs/guides/web-apis", await Location.Origin);   // new URL(path, base)
+        _kept = $"Kept the MediaQueryList for {await query.Media}: matches {await query.Matches}; a URL for {await url.Pathname}";
     }
 }

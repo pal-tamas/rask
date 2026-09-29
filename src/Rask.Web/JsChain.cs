@@ -24,6 +24,7 @@ internal sealed class JsChain
     private const char StepRead = 'g';
     private const char StepCall = 'c';
     private const char StepWrite = 's';
+    private const char StepNew = 'n';
 
     private readonly JsChain? _parent;
     private readonly char _kind;
@@ -55,6 +56,11 @@ internal sealed class JsChain
     internal JsChain Invoke(string name) => new(this, StepCall, name, null);
 
     internal JsChain Invoke(string name, object?[] args) => new(this, StepCall, name, args);
+
+    // `new window[name](…args)`: a constructor, which only ever makes a new object, so it is always kept.
+    internal JsChain New(string name) => new(this, StepNew, name, null);
+
+    internal JsChain New(string name, object?[] args) => new(this, StepNew, name, args);
 
     internal ValueTask<T> Read<[DynamicallyAccessedMembers(Json)] T>(string name) => Get(name).Run<T>();
 

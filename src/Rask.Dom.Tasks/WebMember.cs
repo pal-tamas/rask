@@ -12,6 +12,8 @@ namespace Rask.Core.Dom.Build;
 //   an attribute holding a value       → an awaitable read, and Set{Name} where it is writable
 //   an operation returning a value     → a method that runs the chain (Promise<T> awaited)
 //   an operation returning an object   → a proxy over the call; kept (a handle) when the object comes by Promise
+//   a static member                    → the same, on the class, from window.{Interface}
+//   a constructor                      → static Create(…), the new object kept
 internal sealed class WebMember
 {
     private const string TypesNs = "global::Rask.Web.Types.";
@@ -23,7 +25,12 @@ internal sealed class WebMember
     private readonly string _arguments;
     private readonly string _body;
 
-    private WebMember(JsonNode data, string summary, string returns, string name, string? parameters, string arguments, string body)
+    // "" for an instance member, "static " or "static new " (hiding a base's Create of the same parameters).
+    private readonly string _modifiers;
+
+    private WebMember(
+        JsonNode data, string summary, string returns, string name, string? parameters, string arguments, string body, string modifiers = "",
+        string parameterTypes = "")
     {
         _data = data;
         _summary = summary;
@@ -32,12 +39,62 @@ internal sealed class WebMember
         _parameters = parameters;
         _arguments = arguments;
         _body = body;
+        _modifiers = modifiers;
+        ParameterTypes = parameterTypes;
     }
 
     public string Name { get; }
 
+    // The parameter types alone: how a derived Create is told apart from, or hides, a base's.
+    public string ParameterTypes { get; }
+
     // Name and parameter types: what makes two members the same overload.
     public string Signature => Name + "(" + (_parameters ?? "") + ")";
+
+    // The static members: the class's own, reached from window.{Interface} (URL.CanParse, Notification.Permission).
+    public static List<WebMember> StaticsOf(string iface, JsonNode data, DomValueTypes types, HashSet<string> proxies, HashSet<string> taken)
+    {
+        var root = $"global::Rask.Web.JsChain.Window.Get(\"{iface}\")";
+        var statics = new JsonNode(JsonKind.Object, 0, 0);
+        statics.Members.Add(new KeyValuePair<string, JsonNode>("members", data["statics"] ?? new JsonNode(JsonKind.Array, 0, 0)));
+        return Of(iface, statics, types, proxies, taken, new HashSet<string>(StringComparer.Ordinal))
+            .Select(m => m.AsStatic(root)).ToList();
+    }
+
+    // `new X(…)` as X.Create(…): the new object, kept in the browser. `hidden` holds the parameter types of a base's
+    // Create this one hides (EventTarget has a constructor too).
+    public static List<WebMember> ConstructorsOf(string iface, JsonNode data, DomValueTypes types, HashSet<string> hidden)
+    {
+        var result = new List<WebMember>();
+        var proxy = TypesNs + iface;
+        var signatures = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var ctor in data["constructors"]?.Items ?? new List<JsonNode>())
+        {
+            var args = ctor["args"]?.Items ?? new List<JsonNode>();
+            if (args.Any(x => x["variadic"]?.AsBoolean() == true))
+            {
+                continue;
+            }
+
+            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => DomRefEmitter.Expand(prefix, types))
+                .Where(p => signatures.Add(string.Join(",", p.Select(x => x.Type))));
+            foreach (var parameters in distinct)
+            {
+                var typesOnly = string.Join(",", parameters.Select(p => p.Type));
+                var names = string.Join(", ", parameters.Select(p => p.Name));
+                var array = parameters.Count == 0 ? "" : ", new object?[] { " + names + " }";
+                result.Add(new WebMember(ctor, $"MDN's <c>new {iface}()</c>: the new object, kept in the browser until you dispose of it.",
+                    $"ValueTask<{proxy}>", "Create", string.Join(", ", parameters.Select(p => p.Type + " " + p.Name)), names,
+                    $"global::Rask.Web.JsChain.Window.New(\"{iface}\"{array}).Keep(static c => new {proxy}(c))",
+                    hidden.Contains(typesOnly) ? "static new " : "static ", typesOnly));
+            }
+        }
+
+        return result;
+    }
+
+    private WebMember AsStatic(string root) =>
+        new(_data, _summary, _returns, Name, _parameters, _arguments, _body.Replace("Chain.", root + "."), "static ", ParameterTypes);
 
     public static List<WebMember> Of(
         string iface, JsonNode data, DomValueTypes types, HashSet<string> proxies, HashSet<string> taken, HashSet<string> denied)
@@ -143,15 +200,29 @@ internal sealed class WebMember
             return null;
         }
 
+        var typesOnly = string.Join(",", parameters.Select(p => p.Type));
         return string.Equals(value, "void", StringComparison.Ordinal)
-            ? new WebMember(m, summary, "ValueTask", method, declared, names, $"Chain.Call(\"{idl}\"{args})")
-            : new WebMember(m, summary, $"ValueTask<{value}>", method, declared, names, $"Chain.Call<{value}>(\"{idl}\"{args})");
+            ? new WebMember(m, summary, "ValueTask", method, declared, names, $"Chain.Call(\"{idl}\"{args})", parameterTypes: typesOnly)
+            : new WebMember(m, summary, $"ValueTask<{value}>", method, declared, names, $"Chain.Call<{value}>(\"{idl}\"{args})", parameterTypes: typesOnly);
     }
 
     public void WriteInstance(StringBuilder sb)
     {
         DomEmitter.Doc(sb, "    ", _summary, _data);
-        sb.Append("    public ").Append(_returns).Append(' ').Append(Name);
+        sb.Append("    public ").Append(_modifiers).Append(_returns).Append(' ').Append(Name);
+        if (_parameters is not null)
+        {
+            sb.Append('(').Append(_parameters).Append(')');
+        }
+
+        sb.Append(" => ").Append(_body).AppendLine(";");
+    }
+
+    // A static or constructor on its class in Rask.Web: no base to hide there, so plainly static.
+    public void WriteFacade(StringBuilder sb)
+    {
+        DomEmitter.Doc(sb, "    ", _summary, _data);
+        sb.Append("    public static ").Append(_returns).Append(' ').Append(Name);
         if (_parameters is not null)
         {
             sb.Append('(').Append(_parameters).Append(')');

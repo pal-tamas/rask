@@ -30,7 +30,7 @@ export function pushSupported(): boolean {
 export async function subscribeToPush(): Promise<PushSubscriptionInfo | null> {
   if (!isSupported()) return null
 
-  const response = await fetch('/_push/key')
+  const response = await fetch('/_rask/push/key')
   if (!response.ok) return null
   const { publicKey } = (await response.json()) as { publicKey: string }
 
@@ -41,7 +41,7 @@ export async function subscribeToPush(): Promise<PushSubscriptionInfo | null> {
   if ((await requestPermission()) !== 'granted') return null
 
   const info = await subscribe(publicKey)
-  await fetch('/_push/subscribe', {
+  await fetch('/_rask/push/subscribe', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(info),
@@ -59,7 +59,7 @@ export async function unsubscribeFromPush(): Promise<void> {
 
   // The host is told BEFORE the browser drops it: unsubscribe() invalidates the endpoint, and a
   // failure after that point would leave the host sending to a subscription that can never work.
-  await fetch('/_push/unsubscribe', {
+  await fetch('/_rask/push/unsubscribe', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(info),

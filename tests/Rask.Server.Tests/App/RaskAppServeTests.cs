@@ -121,6 +121,31 @@ public sealed class RaskAppServeTests
     }
 
     [Fact]
+    public async Task The_browser_apps_sign_in_reaches_the_accounts_api()
+    {
+        var app = NewServedApp();
+
+        var (status, body) = await AskAsync(app, "/api/auth/me");
+
+        // A browser app has no server-rendered sign-in page, so these JSON endpoints are its accounts. Whatever /me
+        // says about an anonymous caller, it is the endpoint answering — not the browser app's page, and not the 404
+        // the API battery gives a path under /api that nothing claims.
+        Assert.NotEqual(HttpStatusCode.ServiceUnavailable, status);
+        Assert.NotEqual(HttpStatusCode.NotFound, status);
+        Assert.DoesNotContain(SpaUnavailable, body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Turning_auth_off_leaves_the_accounts_api_unmapped()
+    {
+        var app = NewServedApp(c => c.Auth.Off());
+
+        var (status, _) = await AskAsync(app, "/api/auth/me");
+
+        Assert.Equal(HttpStatusCode.NotFound, status);
+    }
+
+    [Fact]
     public async Task The_service_worker_is_left_to_the_browser_app()
     {
         var app = NewServedApp();

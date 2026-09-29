@@ -375,6 +375,8 @@ function findReflecting(iface, attr) {
 // ---- The web platform: every interface a window exposes that ships, and its ancestors ------------
 // Rask.Web generates MDN's globals (Navigator, Window, Document) and every interface they reach from these.
 function exposedToWindow(def) {
+  // [Exposed=*] parses as rhs { type: "*", value: null }: everywhere, the window included.
+  if (ext(def, "Exposed")?.rhs?.type === "*") return true;
   const exposed = extValue(ext(def, "Exposed"));
   return exposed === "*" || exposed === "Window" || (Array.isArray(exposed) && exposed.includes("Window"));
 }
