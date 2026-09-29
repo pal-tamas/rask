@@ -37,10 +37,10 @@ window.__raskEl = window.__raskEl || {
 };
 
 // Rask.Web's generated globals and MDN interfaces (`Navigator.Clipboard.WriteText("hi")`): a chain of property reads
-// ("g"), method calls ("c") and one write ("s") from the window, or from an object a chain kept (an IJSObjectReference,
+// ("g"), method calls ("c"), constructors ("n") and one write ("s") from the window, or from an object a chain kept (an IJSObjectReference,
 // revived to the object), run in one round trip. The steps arrive as JSON Rask.Web wrote with its own metadata; their
 // names come from its generated code, so only MDN's members are ever reached.
-type RaskWebStep = [kind: "g" | "c" | "s", name: string, args?: unknown[]];
+type RaskWebStep = [kind: "g" | "c" | "n" | "s", name: string, args?: unknown[]];
 const raskWebUnsafe = new Set(["__proto__", "prototype", "constructor"]);
 const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
     let target = (root ?? window) as Record<string, unknown> | null | undefined;
@@ -53,6 +53,10 @@ const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
             const fn = target[name];
             if (typeof fn !== "function") throw new Error(`Rask: ${name} is not a function here`);
             target = (fn as (...a: unknown[]) => unknown).apply(target, args ?? []) as Record<string, unknown>;
+        } else if (kind === "n") {
+            const ctor = target[name];
+            if (typeof ctor !== "function") throw new Error(`Rask: ${name} is not a constructor here`);
+            target = new (ctor as new (...a: unknown[]) => Record<string, unknown>)(...(args ?? []));
         } else {
             target[name] = args?.[0];
             return undefined;

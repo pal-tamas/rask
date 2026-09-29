@@ -201,7 +201,9 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
             }
         }
 
-        return json && !(_onlyData && more);
+        // …nor may it be a class with behaviour of its own: URL has URL.canParse and new URL(…).
+        var behaviour = _interfaces[name]?["constructors"] is not null || _interfaces[name]?["statics"] is not null;
+        return json && !(_onlyData && (more || behaviour));
     }
 
     // typeof(string?) is not C#: a reference type is registered bare, a value type both ways.

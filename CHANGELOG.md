@@ -173,7 +173,9 @@ them until tagged releases begin.
   - An awaited object, or one a promise resolves to, is kept as a handle to dispose of; `Set{Name}` writes;
     `IsSupported` asks the browser. Each member's doc comment carries its browser support and MDN links.
   - Works on both hosts: over the page's socket on the server, in-process in WebAssembly. Nothing that returns or
-    rewrites DOM nodes is generated. Events, constructors and callbacks are not generated yet.
+    rewrites DOM nodes is generated. Events and callbacks are not generated yet.
+  - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
+    members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

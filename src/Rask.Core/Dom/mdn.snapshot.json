@@ -3,10 +3,10 @@
  "sources": {
   "@mdn/browser-compat-data": "8.1.3",
   "@webref/elements": "2.9.0",
-  "@webref/events": "1.27.0",
-  "@webref/idl": "3.85.0",
+  "@webref/events": "1.26.0",
+  "@webref/idl": "3.84.0",
   "webidl2": "24.5.0",
-  "webref/dfns": "18f7da684a3fcc79d015b616a93545ab4a91dd23"
+  "webref/dfns": "89e7d68c6612fbedb740c1632d36e482ca39e999"
  },
  "engines": [
   "chrome",
@@ -4427,6 +4427,8 @@
  ],
  "web": [
   "ANGLE_instanced_arrays",
+  "AbortController",
+  "AbortSignal",
   "AbstractRange",
   "AnalyserNode",
   "Animation",
@@ -4459,6 +4461,7 @@
   "Blob",
   "BlobEvent",
   "BroadcastChannel",
+  "ByteLengthQueuingStrategy",
   "CDATASection",
   "CSSAnimation",
   "CSSConditionRule",
@@ -4537,18 +4540,22 @@
   "CommandEvent",
   "Comment",
   "CompositionEvent",
+  "CompressionStream",
   "ConstantSourceNode",
   "ContentVisibilityAutoStateChangeEvent",
   "ConvolverNode",
   "CookieChangeEvent",
   "CookieStore",
   "CookieStoreManager",
+  "CountQueuingStrategy",
   "Credential",
   "CredentialsContainer",
   "Crypto",
   "CryptoKey",
   "CustomElementRegistry",
+  "CustomEvent",
   "CustomStateSet",
+  "DOMException",
   "DOMImplementation",
   "DOMMatrix",
   "DOMMatrixReadOnly",
@@ -4565,6 +4572,7 @@
   "DataTransfer",
   "DataTransferItem",
   "DataTransferItemList",
+  "DecompressionStream",
   "DelayNode",
   "DeviceMotionEvent",
   "DeviceMotionEventAcceleration",
@@ -4594,8 +4602,11 @@
   "ElementInternals",
   "EncodedAudioChunk",
   "EncodedVideoChunk",
+  "ErrorEvent",
+  "Event",
   "EventCounts",
   "EventSource",
+  "EventTarget",
   "File",
   "FileList",
   "FileReader",
@@ -4832,6 +4843,7 @@
   "OfflineAudioContext",
   "OffscreenCanvas",
   "OffscreenCanvasRenderingContext2D",
+  "Origin",
   "OscillatorNode",
   "OverconstrainedError",
   "PageRevealEvent",
@@ -4863,6 +4875,7 @@
   "PopStateEvent",
   "ProcessingInstruction",
   "ProgressEvent",
+  "PromiseRejectionEvent",
   "PublicKeyCredential",
   "PushManager",
   "PushSubscription",
@@ -4892,6 +4905,12 @@
   "RTCTrackEvent",
   "RadioNodeList",
   "Range",
+  "ReadableByteStreamController",
+  "ReadableStream",
+  "ReadableStreamBYOBReader",
+  "ReadableStreamBYOBRequest",
+  "ReadableStreamDefaultController",
+  "ReadableStreamDefaultReader",
   "RemotePlayback",
   "ReportingObserver",
   "Request",
@@ -5034,6 +5053,10 @@
   "TaskPriorityChangeEvent",
   "TaskSignal",
   "Text",
+  "TextDecoder",
+  "TextDecoderStream",
+  "TextEncoder",
+  "TextEncoderStream",
   "TextMetrics",
   "TextTrack",
   "TextTrackCue",
@@ -5045,6 +5068,8 @@
   "TouchEvent",
   "TouchList",
   "TrackEvent",
+  "TransformStream",
+  "TransformStreamDefaultController",
   "TransitionEvent",
   "TreeWalker",
   "TrustedHTML",
@@ -5053,7 +5078,9 @@
   "TrustedTypePolicy",
   "TrustedTypePolicyFactory",
   "UIEvent",
+  "URL",
   "URLPattern",
+  "URLSearchParams",
   "UserActivation",
   "VTTCue",
   "VTTRegion",
@@ -5115,6 +5142,9 @@
   "Window",
   "Worker",
   "Worklet",
+  "WritableStream",
+  "WritableStreamDefaultController",
+  "WritableStreamDefaultWriter",
   "XMLDocument",
   "XMLHttpRequest",
   "XMLHttpRequestEventTarget",
@@ -5128,6 +5158,7 @@
   "AbortController": {
    "parent": null,
    "abstract": true,
+   "exposed": true,
    "support": {
     "chrome": "66",
     "firefox": "57",
@@ -5185,6 +5216,7 @@
   "AbortSignal": {
    "parent": "EventTarget",
    "abstract": true,
+   "exposed": true,
    "support": {
     "chrome": "66",
     "firefox": "57",
@@ -8950,6 +8982,63 @@
     "messageerror"
    ]
   },
+  "ByteLengthQueuingStrategy": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "52",
+    "firefox": "65",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy",
+   "spec": "https://streams.spec.whatwg.org/#blqs-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "highWaterMark",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy/highWaterMark",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-blqs-high-water-mark①"
+    },
+    {
+     "kind": "attribute",
+     "name": "size",
+     "type": "Function",
+     "readonly": true,
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy/size",
+     "spec": "https://streams.spec.whatwg.org/#blqs-size"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "init",
+       "type": "QueuingStrategyInit"
+      }
+     ],
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ByteLengthQueuingStrategy/ByteLengthQueuingStrategy",
+     "spec": "https://streams.spec.whatwg.org/#blqs-constructor"
+    }
+   ]
+  },
   "Cache": {
    "parent": null,
    "abstract": true,
@@ -11940,6 +12029,65 @@
     }
    ]
   },
+  "CompressionStream": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "80",
+    "firefox": "113",
+    "safari": "16.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/CompressionStream",
+   "spec": "https://compression.spec.whatwg.org/#compression-stream",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "readable",
+     "type": "ReadableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "80",
+      "firefox": "113",
+      "safari": "16.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CompressionStream/readable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-readable"
+    },
+    {
+     "kind": "attribute",
+     "name": "writable",
+     "type": "WritableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "80",
+      "firefox": "113",
+      "safari": "16.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CompressionStream/writable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-writable"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "format",
+       "type": "CompressionFormat"
+      }
+     ],
+     "support": {
+      "chrome": "80",
+      "firefox": "113",
+      "safari": "16.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CompressionStream/CompressionStream",
+     "spec": "https://compression.spec.whatwg.org/#dom-compressionstream-compressionstream"
+    }
+   ]
+  },
   "ConstantSourceNode": {
    "parent": "AudioScheduledSourceNode",
    "abstract": true,
@@ -12343,6 +12491,63 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CookieStoreManager/unsubscribe",
      "spec": "https://cookiestore.spec.whatwg.org/#dom-cookiestoremanager-unsubscribe"
+    }
+   ]
+  },
+  "CountQueuingStrategy": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "52",
+    "firefox": "65",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy",
+   "spec": "https://streams.spec.whatwg.org/#cqs-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "highWaterMark",
+     "type": "unrestricted double",
+     "readonly": true,
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy/highWaterMark",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-cqs-high-water-mark①"
+    },
+    {
+     "kind": "attribute",
+     "name": "size",
+     "type": "Function",
+     "readonly": true,
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy/size",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-cqs-size②"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "init",
+       "type": "QueuingStrategyInit"
+      }
+     ],
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CountQueuingStrategy/CountQueuingStrategy",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-cqs-constructor①"
     }
    ]
   },
@@ -16806,6 +17011,55 @@
     }
    ]
   },
+  "CustomEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "5",
+    "firefox": "6",
+    "safari": "5"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/CustomEvent",
+   "spec": "https://dom.spec.whatwg.org/#interface-customevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "detail",
+     "type": "any",
+     "readonly": true,
+     "support": {
+      "chrome": "5",
+      "firefox": "6",
+      "safari": "5"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CustomEvent/detail",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-customevent-detail②"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "type",
+       "type": "DOMString"
+      },
+      {
+       "name": "eventInitDict",
+       "type": "CustomEventInit",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "15",
+      "firefox": "11",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/CustomEvent/CustomEvent",
+     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-customevent-customevent"
+    }
+   ]
+  },
   "CustomStateSet": {
    "parent": null,
    "abstract": true,
@@ -17162,6 +17416,65 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/DataTransferItemList/clear",
      "spec": "https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransferitemlist-clear-dev"
+    }
+   ]
+  },
+  "DecompressionStream": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "80",
+    "firefox": "113",
+    "safari": "16.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/DecompressionStream",
+   "spec": "https://compression.spec.whatwg.org/#decompression-stream",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "readable",
+     "type": "ReadableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "80",
+      "firefox": "113",
+      "safari": "16.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DecompressionStream/readable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-readable"
+    },
+    {
+     "kind": "attribute",
+     "name": "writable",
+     "type": "WritableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "80",
+      "firefox": "113",
+      "safari": "16.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DecompressionStream/writable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-writable"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "format",
+       "type": "CompressionFormat"
+      }
+     ],
+     "support": {
+      "chrome": "80",
+      "firefox": "113",
+      "safari": "16.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/DecompressionStream/DecompressionStream",
+     "spec": "https://compression.spec.whatwg.org/#dom-decompressionstream-decompressionstream"
     }
    ]
   },
@@ -19590,6 +19903,7 @@
   "DOMException": {
    "parent": null,
    "abstract": true,
+   "exposed": true,
    "support": {
     "chrome": "1",
     "firefox": "1",
@@ -25671,9 +25985,111 @@
     }
    ]
   },
+  "ErrorEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "10",
+    "firefox": "27",
+    "safari": "6"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ErrorEvent",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#errorevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "message",
+     "type": "DOMString",
+     "readonly": true,
+     "support": {
+      "chrome": "10",
+      "firefox": "27",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ErrorEvent/message",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#dom-errorevent-message"
+    },
+    {
+     "kind": "attribute",
+     "name": "filename",
+     "type": "USVString",
+     "readonly": true,
+     "support": {
+      "chrome": "10",
+      "firefox": "27",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ErrorEvent/filename",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#dom-errorevent-filename"
+    },
+    {
+     "kind": "attribute",
+     "name": "lineno",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "10",
+      "firefox": "27",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ErrorEvent/lineno",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#dom-errorevent-lineno"
+    },
+    {
+     "kind": "attribute",
+     "name": "colno",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "30",
+      "firefox": "31",
+      "safari": "8"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ErrorEvent/colno",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#dom-errorevent-colno"
+    },
+    {
+     "kind": "attribute",
+     "name": "error",
+     "type": "any",
+     "readonly": true,
+     "support": {
+      "chrome": "30",
+      "firefox": "31",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ErrorEvent/error",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#dom-errorevent-error"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "type",
+       "type": "DOMString"
+      },
+      {
+       "name": "eventInitDict",
+       "type": "ErrorEventInit",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "16",
+      "firefox": "27",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ErrorEvent/ErrorEvent",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#errorevent"
+    }
+   ]
+  },
   "Event": {
    "parent": null,
    "abstract": true,
+   "exposed": true,
    "support": {
     "chrome": "1",
     "firefox": "1",
@@ -25997,6 +26413,7 @@
   "EventTarget": {
    "parent": null,
    "abstract": true,
+   "exposed": true,
    "support": {
     "chrome": "1",
     "firefox": "1",
@@ -55207,6 +55624,89 @@
     }
    ]
   },
+  "Origin": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "145",
+    "safari": "26.5"
+   },
+   "spec": "https://html.spec.whatwg.org/multipage/browsers.html#the-origin-interface",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "opaque",
+     "type": "boolean",
+     "readonly": true,
+     "support": {
+      "chrome": "145",
+      "safari": "26.5"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/browsers.html#dom-origin-opaque"
+    },
+    {
+     "kind": "operation",
+     "name": "isSameOrigin",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "other",
+       "type": "Origin"
+      }
+     ],
+     "support": {
+      "chrome": "145",
+      "safari": "26.5"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/browsers.html#dom-origin-issameorigin"
+    },
+    {
+     "kind": "operation",
+     "name": "isSameSite",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "other",
+       "type": "Origin"
+      }
+     ],
+     "support": {
+      "chrome": "145",
+      "safari": "26.5"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/browsers.html#dom-origin-issamesite"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [],
+     "support": {
+      "chrome": "145",
+      "safari": "26.5"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/browsers.html#dom-origin-constructor"
+    }
+   ],
+   "statics": [
+    {
+     "kind": "operation",
+     "name": "from",
+     "returns": "Origin",
+     "args": [
+      {
+       "name": "value",
+       "type": "any"
+      }
+     ],
+     "support": {
+      "chrome": "145",
+      "safari": "26.5"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/browsers.html#dom-origin-from"
+    }
+   ]
+  },
   "OscillatorNode": {
    "parent": "AudioScheduledSourceNode",
    "abstract": true,
@@ -58344,6 +58844,67 @@
     }
    ]
   },
+  "PromiseRejectionEvent": {
+   "parent": "Event",
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "49",
+    "firefox": "69",
+    "safari": "11"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/PromiseRejectionEvent",
+   "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#promiserejectionevent",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "promise",
+     "type": "object",
+     "readonly": true,
+     "support": {
+      "chrome": "49",
+      "firefox": "69",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PromiseRejectionEvent/promise",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#dom-promiserejectionevent-promise"
+    },
+    {
+     "kind": "attribute",
+     "name": "reason",
+     "type": "any",
+     "readonly": true,
+     "support": {
+      "chrome": "49",
+      "firefox": "69",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PromiseRejectionEvent/reason",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#dom-promiserejectionevent-reason"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "type",
+       "type": "DOMString"
+      },
+      {
+       "name": "eventInitDict",
+       "type": "PromiseRejectionEventInit"
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "69",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/PromiseRejectionEvent/PromiseRejectionEvent",
+     "spec": "https://html.spec.whatwg.org/multipage/webappapis.html#promiserejectionevent"
+    }
+   ]
+  },
   "PublicKeyCredential": {
    "parent": "Credential",
    "abstract": true,
@@ -59219,9 +59780,100 @@
     }
    ]
   },
+  "ReadableByteStreamController": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "89",
+    "firefox": "102",
+    "safari": "26.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController",
+   "spec": "https://streams.spec.whatwg.org/#rbs-controller-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "byobRequest",
+     "type": "ReadableStreamBYOBRequest?",
+     "readonly": true,
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/byobRequest",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rbs-controller-byob-request②"
+    },
+    {
+     "kind": "attribute",
+     "name": "desiredSize",
+     "type": "unrestricted double?",
+     "readonly": true,
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/desiredSize",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rbs-controller-desired-size②"
+    },
+    {
+     "kind": "operation",
+     "name": "close",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/close",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rbs-controller-close①"
+    },
+    {
+     "kind": "operation",
+     "name": "enqueue",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "chunk",
+       "type": "ArrayBufferView"
+      }
+     ],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/enqueue",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rbs-controller-enqueue①"
+    },
+    {
+     "kind": "operation",
+     "name": "error",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "e",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/error",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rbs-controller-error①"
+    }
+   ]
+  },
   "ReadableStream": {
    "parent": null,
    "abstract": true,
+   "exposed": true,
    "support": {
     "chrome": "43",
     "firefox": "65",
@@ -59381,6 +60033,339 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStream/from_static",
      "spec": "https://streams.spec.whatwg.org/#rs-from"
+    }
+   ]
+  },
+  "ReadableStreamBYOBReader": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "89",
+    "firefox": "102",
+    "safari": "26.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader",
+   "spec": "https://streams.spec.whatwg.org/#byob-reader-class",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "read",
+     "returns": "Promise<ReadableStreamReadResult>",
+     "args": [
+      {
+       "name": "view",
+       "type": "ArrayBufferView"
+      },
+      {
+       "name": "options",
+       "type": "ReadableStreamBYOBReaderReadOptions",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/read",
+     "spec": "https://streams.spec.whatwg.org/#byob-reader-read"
+    },
+    {
+     "kind": "operation",
+     "name": "releaseLock",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/releaseLock",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-byob-reader-release-lock②"
+    },
+    {
+     "kind": "attribute",
+     "name": "closed",
+     "type": "Promise<undefined>",
+     "readonly": true,
+     "mixin": "ReadableStreamGenericReader",
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/closed",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-generic-reader-closed②"
+    },
+    {
+     "kind": "operation",
+     "name": "cancel",
+     "returns": "Promise<undefined>",
+     "args": [
+      {
+       "name": "reason",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "mixin": "ReadableStreamGenericReader",
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/cancel",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-generic-reader-cancel②"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "stream",
+       "type": "ReadableStream"
+      }
+     ],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/ReadableStreamBYOBReader",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-byob-reader-constructor①"
+    }
+   ]
+  },
+  "ReadableStreamBYOBRequest": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "89",
+    "firefox": "102",
+    "safari": "26.4"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest",
+   "spec": "https://streams.spec.whatwg.org/#rs-byob-request-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "view",
+     "type": "Uint8Array?",
+     "readonly": true,
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/view",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rs-byob-request-view①"
+    },
+    {
+     "kind": "operation",
+     "name": "respond",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "bytesWritten",
+       "type": "unsigned long long"
+      }
+     ],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respond",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rs-byob-request-respond①"
+    },
+    {
+     "kind": "operation",
+     "name": "respondWithNewView",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "view",
+       "type": "ArrayBufferView"
+      }
+     ],
+     "support": {
+      "chrome": "89",
+      "firefox": "102",
+      "safari": "26.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respondWithNewView",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rs-byob-request-respond-with-new-view①"
+    }
+   ]
+  },
+  "ReadableStreamDefaultController": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "52",
+    "firefox": "65",
+    "safari": "10"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController",
+   "spec": "https://streams.spec.whatwg.org/#rs-default-controller-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "desiredSize",
+     "type": "unrestricted double?",
+     "readonly": true,
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/desiredSize",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rs-default-controller-desired-size②"
+    },
+    {
+     "kind": "operation",
+     "name": "close",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/close",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rs-default-controller-close①"
+    },
+    {
+     "kind": "operation",
+     "name": "enqueue",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "chunk",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/enqueue",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-rs-default-controller-enqueue①"
+    },
+    {
+     "kind": "operation",
+     "name": "error",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "e",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "52",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/error",
+     "spec": "https://streams.spec.whatwg.org/#rs-default-controller-error"
+    }
+   ]
+  },
+  "ReadableStreamDefaultReader": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "43",
+    "firefox": "65",
+    "safari": "10"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader",
+   "spec": "https://streams.spec.whatwg.org/#default-reader-class",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "read",
+     "returns": "Promise<ReadableStreamReadResult>",
+     "args": [],
+     "support": {
+      "chrome": "43",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/read",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-reader-read①"
+    },
+    {
+     "kind": "operation",
+     "name": "releaseLock",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "43",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/releaseLock",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-reader-release-lock②"
+    },
+    {
+     "kind": "attribute",
+     "name": "closed",
+     "type": "Promise<undefined>",
+     "readonly": true,
+     "mixin": "ReadableStreamGenericReader",
+     "support": {
+      "chrome": "43",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/closed",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-generic-reader-closed②"
+    },
+    {
+     "kind": "operation",
+     "name": "cancel",
+     "returns": "Promise<undefined>",
+     "args": [
+      {
+       "name": "reason",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "mixin": "ReadableStreamGenericReader",
+     "support": {
+      "chrome": "43",
+      "firefox": "65",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/cancel",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-generic-reader-cancel②"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "stream",
+       "type": "ReadableStream"
+      }
+     ],
+     "support": {
+      "chrome": "78",
+      "firefox": "100",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultReader/ReadableStreamDefaultReader",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-reader-constructor①"
     }
    ]
   },
@@ -78881,6 +79866,365 @@
     }
    ]
   },
+  "TextDecoder": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "38",
+    "firefox": "19",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoder",
+   "spec": "https://encoding.spec.whatwg.org/#interface-textdecoder",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "decode",
+     "returns": "USVString",
+     "args": [
+      {
+       "name": "input",
+       "type": "AllowSharedBufferSource",
+       "optional": true
+      },
+      {
+       "name": "options",
+       "type": "TextDecodeOptions",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "38",
+      "firefox": "19",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoder/decode",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textdecoder-decode①"
+    },
+    {
+     "kind": "attribute",
+     "name": "encoding",
+     "type": "DOMString",
+     "readonly": true,
+     "mixin": "TextDecoderCommon",
+     "support": {
+      "chrome": "38",
+      "firefox": "19",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoder/encoding",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textdecoder-encoding①"
+    },
+    {
+     "kind": "attribute",
+     "name": "fatal",
+     "type": "boolean",
+     "readonly": true,
+     "mixin": "TextDecoderCommon",
+     "support": {
+      "chrome": "38",
+      "firefox": "36",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoder/fatal",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textdecoder-fatal①"
+    },
+    {
+     "kind": "attribute",
+     "name": "ignoreBOM",
+     "type": "boolean",
+     "readonly": true,
+     "mixin": "TextDecoderCommon",
+     "support": {
+      "chrome": "38",
+      "firefox": "63",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoder/ignoreBOM",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textdecoder-ignorebom①"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "label",
+       "type": "DOMString",
+       "optional": true
+      },
+      {
+       "name": "options",
+       "type": "TextDecoderOptions",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "38",
+      "firefox": "19",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoder/TextDecoder",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textdecoder①"
+    }
+   ]
+  },
+  "TextDecoderStream": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "71",
+    "firefox": "105",
+    "safari": "14.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoderStream",
+   "spec": "https://encoding.spec.whatwg.org/#interface-textdecoderstream",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "encoding",
+     "type": "DOMString",
+     "readonly": true,
+     "mixin": "TextDecoderCommon",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoderStream/encoding",
+     "spec": "https://encoding.spec.whatwg.org/#dom-textdecoder-encoding"
+    },
+    {
+     "kind": "attribute",
+     "name": "fatal",
+     "type": "boolean",
+     "readonly": true,
+     "mixin": "TextDecoderCommon",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoderStream/fatal",
+     "spec": "https://encoding.spec.whatwg.org/#dom-textdecoder-fatal"
+    },
+    {
+     "kind": "attribute",
+     "name": "ignoreBOM",
+     "type": "boolean",
+     "readonly": true,
+     "mixin": "TextDecoderCommon",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoderStream/ignoreBOM",
+     "spec": "https://encoding.spec.whatwg.org/#textdecoder-ignore-bom-flag"
+    },
+    {
+     "kind": "attribute",
+     "name": "readable",
+     "type": "ReadableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoderStream/readable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-readable"
+    },
+    {
+     "kind": "attribute",
+     "name": "writable",
+     "type": "WritableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoderStream/writable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-writable"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "label",
+       "type": "DOMString",
+       "optional": true
+      },
+      {
+       "name": "options",
+       "type": "TextDecoderOptions",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextDecoderStream/TextDecoderStream",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textdecoderstream①"
+    }
+   ]
+  },
+  "TextEncoder": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "38",
+    "firefox": "18",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoder",
+   "spec": "https://encoding.spec.whatwg.org/#interface-textencoder",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "encode",
+     "returns": "Uint8Array",
+     "args": [
+      {
+       "name": "input",
+       "type": "USVString",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "38",
+      "firefox": "18",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoder/encode",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textencoder-encode①"
+    },
+    {
+     "kind": "operation",
+     "name": "encodeInto",
+     "returns": "TextEncoderEncodeIntoResult",
+     "args": [
+      {
+       "name": "source",
+       "type": "USVString"
+      },
+      {
+       "name": "destination",
+       "type": "Uint8Array"
+      }
+     ],
+     "support": {
+      "chrome": "74",
+      "firefox": "66",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoder/encodeInto",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textencoder-encodeinto①"
+    },
+    {
+     "kind": "attribute",
+     "name": "encoding",
+     "type": "DOMString",
+     "readonly": true,
+     "mixin": "TextEncoderCommon",
+     "support": {
+      "chrome": "38",
+      "firefox": "18",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoder/encoding",
+     "spec": "https://encoding.spec.whatwg.org/#dom-textencoder-encoding"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [],
+     "support": {
+      "chrome": "38",
+      "firefox": "18",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoder/TextEncoder",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textencoder①"
+    }
+   ]
+  },
+  "TextEncoderStream": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "71",
+    "firefox": "105",
+    "safari": "14.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoderStream",
+   "spec": "https://encoding.spec.whatwg.org/#interface-textencoderstream",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "encoding",
+     "type": "DOMString",
+     "readonly": true,
+     "mixin": "TextEncoderCommon",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoderStream/encoding",
+     "spec": "https://encoding.spec.whatwg.org/#dom-textencoder-encoding"
+    },
+    {
+     "kind": "attribute",
+     "name": "readable",
+     "type": "ReadableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoderStream/readable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-readable"
+    },
+    {
+     "kind": "attribute",
+     "name": "writable",
+     "type": "WritableStream",
+     "readonly": true,
+     "mixin": "GenericTransformStream",
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoderStream/writable",
+     "spec": "https://streams.spec.whatwg.org/#dom-generictransformstream-writable"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [],
+     "support": {
+      "chrome": "71",
+      "firefox": "105",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TextEncoderStream/TextEncoderStream",
+     "spec": "https://encoding.spec.whatwg.org/#ref-for-dom-textencoderstream①"
+    }
+   ]
+  },
   "TextMetrics": {
    "parent": null,
    "abstract": true,
@@ -79924,6 +81268,152 @@
     }
    ]
   },
+  "TransformStream": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "67",
+    "firefox": "102",
+    "safari": "14.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStream",
+   "spec": "https://streams.spec.whatwg.org/#ts-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "readable",
+     "type": "ReadableStream",
+     "readonly": true,
+     "support": {
+      "chrome": "67",
+      "firefox": "102",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStream/readable",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-ts-readable②"
+    },
+    {
+     "kind": "attribute",
+     "name": "writable",
+     "type": "WritableStream",
+     "readonly": true,
+     "support": {
+      "chrome": "67",
+      "firefox": "102",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStream/writable",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-ts-writable②"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "transformer",
+       "type": "object",
+       "optional": true
+      },
+      {
+       "name": "writableStrategy",
+       "type": "QueuingStrategy",
+       "optional": true
+      },
+      {
+       "name": "readableStrategy",
+       "type": "QueuingStrategy",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "67",
+      "firefox": "102",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStream/TransformStream",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-ts-constructor④"
+    }
+   ]
+  },
+  "TransformStreamDefaultController": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "67",
+    "firefox": "102",
+    "safari": "14.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController",
+   "spec": "https://streams.spec.whatwg.org/#ts-default-controller-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "desiredSize",
+     "type": "unrestricted double?",
+     "readonly": true,
+     "support": {
+      "chrome": "67",
+      "firefox": "102",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/desiredSize",
+     "spec": "https://streams.spec.whatwg.org/#ts-default-controller-desired-size"
+    },
+    {
+     "kind": "operation",
+     "name": "enqueue",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "chunk",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "67",
+      "firefox": "102",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/enqueue",
+     "spec": "https://streams.spec.whatwg.org/#ts-default-controller-enqueue"
+    },
+    {
+     "kind": "operation",
+     "name": "error",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "reason",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "67",
+      "firefox": "102",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/error",
+     "spec": "https://streams.spec.whatwg.org/#ts-default-controller-error"
+    },
+    {
+     "kind": "operation",
+     "name": "terminate",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "67",
+      "firefox": "102",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/terminate",
+     "spec": "https://streams.spec.whatwg.org/#ts-default-controller-terminate"
+    }
+   ]
+  },
   "TransitionEvent": {
    "parent": "Event",
    "abstract": true,
@@ -80596,6 +82086,285 @@
     }
    ]
   },
+  "URL": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "32",
+    "firefox": "19",
+    "safari": "7"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/URL",
+   "spec": "https://url.spec.whatwg.org/#url",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "href",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/href",
+     "spec": "https://url.spec.whatwg.org/#dom-url-href"
+    },
+    {
+     "kind": "attribute",
+     "name": "origin",
+     "type": "USVString",
+     "readonly": true,
+     "support": {
+      "chrome": "32",
+      "firefox": "26",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/origin",
+     "spec": "https://url.spec.whatwg.org/#dom-url-origin"
+    },
+    {
+     "kind": "attribute",
+     "name": "protocol",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/protocol",
+     "spec": "https://url.spec.whatwg.org/#dom-url-protocol"
+    },
+    {
+     "kind": "attribute",
+     "name": "username",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "26",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/username",
+     "spec": "https://url.spec.whatwg.org/#dom-url-username"
+    },
+    {
+     "kind": "attribute",
+     "name": "password",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "26",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/password",
+     "spec": "https://url.spec.whatwg.org/#dom-url-password"
+    },
+    {
+     "kind": "attribute",
+     "name": "host",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "7"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/host",
+     "spec": "https://url.spec.whatwg.org/#dom-url-host"
+    },
+    {
+     "kind": "attribute",
+     "name": "hostname",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/hostname",
+     "spec": "https://url.spec.whatwg.org/#dom-url-hostname"
+    },
+    {
+     "kind": "attribute",
+     "name": "port",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/port",
+     "spec": "https://url.spec.whatwg.org/#dom-url-port"
+    },
+    {
+     "kind": "attribute",
+     "name": "pathname",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/pathname",
+     "spec": "https://url.spec.whatwg.org/#dom-url-pathname"
+    },
+    {
+     "kind": "attribute",
+     "name": "search",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "10"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/search",
+     "spec": "https://url.spec.whatwg.org/#dom-url-search"
+    },
+    {
+     "kind": "attribute",
+     "name": "searchParams",
+     "type": "URLSearchParams",
+     "readonly": true,
+     "support": {
+      "chrome": "51",
+      "firefox": "29",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/searchParams",
+     "spec": "https://url.spec.whatwg.org/#dom-url-searchparams"
+    },
+    {
+     "kind": "attribute",
+     "name": "hash",
+     "type": "USVString",
+     "support": {
+      "chrome": "32",
+      "firefox": "22",
+      "safari": "7"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/hash",
+     "spec": "https://url.spec.whatwg.org/#dom-url-hash"
+    },
+    {
+     "kind": "operation",
+     "name": "toJSON",
+     "returns": "USVString",
+     "args": [],
+     "support": {
+      "chrome": "71",
+      "firefox": "54",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/toJSON",
+     "spec": "https://url.spec.whatwg.org/#dom-url-tojson"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "url",
+       "type": "USVString"
+      },
+      {
+       "name": "base",
+       "type": "USVString",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "19",
+      "firefox": "26",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/URL",
+     "spec": "https://url.spec.whatwg.org/#dom-url-url"
+    }
+   ],
+   "statics": [
+    {
+     "kind": "operation",
+     "name": "createObjectURL",
+     "returns": "DOMString",
+     "args": [
+      {
+       "name": "obj",
+       "type": "(Blob or MediaSource)"
+      }
+     ],
+     "support": {
+      "chrome": "19",
+      "firefox": "19",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/createObjectURL_static",
+     "spec": "https://w3c.github.io/FileAPI/#dfn-createObjectURL"
+    },
+    {
+     "kind": "operation",
+     "name": "revokeObjectURL",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "url",
+       "type": "DOMString"
+      }
+     ],
+     "support": {
+      "chrome": "19",
+      "firefox": "19",
+      "safari": "6"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/revokeObjectURL_static",
+     "spec": "https://w3c.github.io/FileAPI/#dfn-revokeObjectURL"
+    },
+    {
+     "kind": "operation",
+     "name": "parse",
+     "returns": "URL?",
+     "args": [
+      {
+       "name": "url",
+       "type": "USVString"
+      },
+      {
+       "name": "base",
+       "type": "USVString",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "126",
+      "firefox": "126",
+      "safari": "18"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/parse_static",
+     "spec": "https://url.spec.whatwg.org/#dom-url-parse"
+    },
+    {
+     "kind": "operation",
+     "name": "canParse",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "url",
+       "type": "USVString"
+      },
+      {
+       "name": "base",
+       "type": "USVString",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "120",
+      "firefox": "115",
+      "safari": "17"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URL/canParse_static",
+     "spec": "https://url.spec.whatwg.org/#dom-url-canparse"
+    }
+   ]
+  },
   "URLPattern": {
    "parent": null,
    "abstract": true,
@@ -80819,6 +82588,190 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/URLPattern/URLPattern",
      "spec": "https://urlpattern.spec.whatwg.org/#dom-urlpattern-urlpattern"
+    }
+   ]
+  },
+  "URLSearchParams": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "49",
+    "firefox": "29",
+    "safari": "10.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams",
+   "spec": "https://url.spec.whatwg.org/#urlsearchparams",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "size",
+     "type": "unsigned long",
+     "readonly": true,
+     "support": {
+      "chrome": "113",
+      "firefox": "112",
+      "safari": "17"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/size",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-size"
+    },
+    {
+     "kind": "operation",
+     "name": "append",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      },
+      {
+       "name": "value",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "29",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/append",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-append"
+    },
+    {
+     "kind": "operation",
+     "name": "delete",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      },
+      {
+       "name": "value",
+       "type": "USVString",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "29",
+      "safari": "14"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/delete",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-delete"
+    },
+    {
+     "kind": "operation",
+     "name": "get",
+     "returns": "USVString?",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "29",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/get",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-get"
+    },
+    {
+     "kind": "operation",
+     "name": "getAll",
+     "returns": "sequence<USVString>",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "29",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/getAll",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-getall"
+    },
+    {
+     "kind": "operation",
+     "name": "has",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      },
+      {
+       "name": "value",
+       "type": "USVString",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "29",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/has",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-has"
+    },
+    {
+     "kind": "operation",
+     "name": "set",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "name",
+       "type": "USVString"
+      },
+      {
+       "name": "value",
+       "type": "USVString"
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "29",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/set",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-set"
+    },
+    {
+     "kind": "operation",
+     "name": "sort",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "61",
+      "firefox": "54",
+      "safari": "11"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/sort",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-sort"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "init",
+       "type": "(sequence<sequence<USVString>> or record<USVString, USVString> or USVString)",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "49",
+      "firefox": "29",
+      "safari": "10.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/URLSearchParams/URLSearchParams",
+     "spec": "https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams"
     }
    ]
   },
@@ -81790,7 +83743,8 @@
      "args": [
       {
        "name": "options",
-       "type": "ViewTimelineOptions"
+       "type": "ViewTimelineOptions",
+       "optional": true
       }
      ],
      "support": {
@@ -95830,6 +97784,7 @@
   "WritableStream": {
    "parent": null,
    "abstract": true,
+   "exposed": true,
    "support": {
     "chrome": "59",
     "firefox": "100",
@@ -95918,6 +97873,186 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStream/WritableStream",
      "spec": "https://streams.spec.whatwg.org/#ref-for-ws-constructor④"
+    }
+   ]
+  },
+  "WritableStreamDefaultController": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "59",
+    "firefox": "100",
+    "safari": "14.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultController",
+   "spec": "https://streams.spec.whatwg.org/#ws-default-controller-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "signal",
+     "type": "AbortSignal",
+     "readonly": true,
+     "support": {
+      "chrome": "98",
+      "firefox": "100",
+      "safari": "16.4"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultController/signal",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-ws-default-controller-signal①"
+    },
+    {
+     "kind": "operation",
+     "name": "error",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "e",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultController/error",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-ws-default-controller-error①"
+    }
+   ]
+  },
+  "WritableStreamDefaultWriter": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "59",
+    "firefox": "100",
+    "safari": "14.1"
+   },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter",
+   "spec": "https://streams.spec.whatwg.org/#default-writer-class",
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "closed",
+     "type": "Promise<undefined>",
+     "readonly": true,
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/closed",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-closed②"
+    },
+    {
+     "kind": "attribute",
+     "name": "desiredSize",
+     "type": "unrestricted double?",
+     "readonly": true,
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/desiredSize",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-desired-size⑥"
+    },
+    {
+     "kind": "attribute",
+     "name": "ready",
+     "type": "Promise<undefined>",
+     "readonly": true,
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/ready",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-ready⑨"
+    },
+    {
+     "kind": "operation",
+     "name": "abort",
+     "returns": "Promise<undefined>",
+     "args": [
+      {
+       "name": "reason",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/abort",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-abort④"
+    },
+    {
+     "kind": "operation",
+     "name": "close",
+     "returns": "Promise<undefined>",
+     "args": [],
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/close",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-close⑦"
+    },
+    {
+     "kind": "operation",
+     "name": "releaseLock",
+     "returns": "undefined",
+     "args": [],
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/releaseLock",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-release-lock②"
+    },
+    {
+     "kind": "operation",
+     "name": "write",
+     "returns": "Promise<undefined>",
+     "args": [
+      {
+       "name": "chunk",
+       "type": "any",
+       "optional": true
+      }
+     ],
+     "support": {
+      "chrome": "59",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/write",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-write①②"
+    }
+   ],
+   "constructors": [
+    {
+     "args": [
+      {
+       "name": "stream",
+       "type": "WritableStream"
+      }
+     ],
+     "support": {
+      "chrome": "78",
+      "firefox": "100",
+      "safari": "14.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/WritableStreamDefaultWriter",
+     "spec": "https://streams.spec.whatwg.org/#ref-for-default-writer-constructor①"
     }
    ]
   },
@@ -96784,6 +98919,12 @@
    "replace",
    "add",
    "accumulate"
+  ],
+  "CompressionFormat": [
+   "brotli",
+   "deflate",
+   "deflate-raw",
+   "gzip"
   ],
   "CredentialMediationRequirement": [
    "silent",
@@ -99432,6 +101573,15 @@
     }
    ]
   },
+  "CustomEventInit": {
+   "parent": "EventInit",
+   "members": [
+    {
+     "name": "detail",
+     "type": "any"
+    }
+   ]
+  },
   "DelayOptions": {
    "parent": "AudioNodeOptions",
    "members": [
@@ -99961,6 +102111,31 @@
     {
      "name": "transfer",
      "type": "sequence<ArrayBuffer>"
+    }
+   ]
+  },
+  "ErrorEventInit": {
+   "parent": "EventInit",
+   "members": [
+    {
+     "name": "message",
+     "type": "DOMString"
+    },
+    {
+     "name": "filename",
+     "type": "USVString"
+    },
+    {
+     "name": "lineno",
+     "type": "unsigned long"
+    },
+    {
+     "name": "colno",
+     "type": "unsigned long"
+    },
+    {
+     "name": "error",
+     "type": "any"
     }
    ]
   },
@@ -104223,6 +106398,20 @@
     }
    ]
   },
+  "PromiseRejectionEventInit": {
+   "parent": "EventInit",
+   "members": [
+    {
+     "name": "promise",
+     "type": "object",
+     "required": true
+    },
+    {
+     "name": "reason",
+     "type": "any"
+    }
+   ]
+  },
   "PublicKeyCredentialCreationOptions": {
    "members": [
     {
@@ -104535,11 +106724,40 @@
     }
    ]
   },
+  "QueuingStrategyInit": {
+   "members": [
+    {
+     "name": "highWaterMark",
+     "type": "unrestricted double",
+     "required": true
+    }
+   ]
+  },
+  "ReadableStreamBYOBReaderReadOptions": {
+   "members": [
+    {
+     "name": "min",
+     "type": "unsigned long long"
+    }
+   ]
+  },
   "ReadableStreamGetReaderOptions": {
    "members": [
     {
      "name": "mode",
      "type": "ReadableStreamReaderMode"
+    }
+   ]
+  },
+  "ReadableStreamReadResult": {
+   "members": [
+    {
+     "name": "value",
+     "type": "any"
+    },
+    {
+     "name": "done",
+     "type": "boolean"
     }
    ]
   },
@@ -105935,6 +108153,38 @@
     }
    ]
   },
+  "TextDecodeOptions": {
+   "members": [
+    {
+     "name": "stream",
+     "type": "boolean"
+    }
+   ]
+  },
+  "TextDecoderOptions": {
+   "members": [
+    {
+     "name": "fatal",
+     "type": "boolean"
+    },
+    {
+     "name": "ignoreBOM",
+     "type": "boolean"
+    }
+   ]
+  },
+  "TextEncoderEncodeIntoResult": {
+   "members": [
+    {
+     "name": "read",
+     "type": "unsigned long long"
+    },
+    {
+     "name": "written",
+     "type": "unsigned long long"
+    }
+   ]
+  },
   "TimelineRangeOffset": {
    "members": [
     {
@@ -106694,8 +108944,7 @@
    "members": [
     {
      "name": "subject",
-     "type": "Element",
-     "required": true
+     "type": "Element"
     },
     {
      "name": "axis",
