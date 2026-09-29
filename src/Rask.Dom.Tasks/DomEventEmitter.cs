@@ -413,8 +413,9 @@ namespace Rask.Core.Dom.Build
             cs.Append("    internal static readonly string[] GlobalEventOrder = [");
             cs.Append(string.Join(", ", events.Select(e => "\"" + e["type"]!.AsString() + "\"")));
             cs.AppendLine("];");
-            foreach (var e in events)
+            for (var index = 0; index < events.Count; index++)
             {
+                var e = events[index];
                 var type = e["type"]!.AsString()!;
                 var arg = e["interface"]?.AsString() ?? "Event";
                 cs.AppendLine();
@@ -422,8 +423,8 @@ namespace Rask.Core.Dom.Build
                     .Append("</c>. A handler may take it, or nothing: <c>e =&gt; …</c> or <c>() =&gt; …</c>.</summary>").AppendLine();
                 Remarks(cs, "    ", e);
                 cs.Append("    public Callback<").Append(arg).Append("> ").Append(HandlerName(type))
-                    .Append(" { get => Handler<").Append(arg).Append(">(\"").Append(type).Append("\"); set => SetHandler(\"").Append(type)
-                    .AppendLine("\", value.Handler); }");
+                    .Append(" { get => Handler<").Append(arg).Append(">(").Append(index).Append("); set => SetHandler(").Append(index)
+                    .AppendLine(", value.Handler); }");
             }
 
             cs.AppendLine("}");

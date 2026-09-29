@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -281,13 +282,21 @@ public abstract partial class Component : RaskMarkup
             // Materialised to Component?[] rather than kept lazy, for the same reason the enumerable
             // overload materialises: embedded factories must run inside the owning component's render
             // walk. The array shape also keeps ChildrenArray's serializer fast-path below.
-            var list = new List<Component?>(children.Length);
-            foreach (var child in children)
+            var flat = new ChildBuffer(children.Length);
+            try
             {
-                AddChild(list, child);
+                foreach (var child in children)
+                {
+                    AddChild(ref flat, child);
+                }
+
+                Children = flat.ToArray();
+            }
+            finally
+            {
+                flat.Dispose();
             }
 
-            Children = list.ToArray();
             return this;
         }
     }
@@ -295,7 +304,7 @@ public abstract partial class Component : RaskMarkup
     // Mirrors the implicit operators above — anything spellable as a child directly is spellable
     // inside a sequence — plus chains, plus nested sequences. Anything else is a mistake the typed
     // overloads would have caught, so it throws rather than rendering ToString() garbage.
-    private static void AddChild(List<Component?> list, object? child)
+    private static void AddChild(ref ChildBuffer flat, object? child)
     {
         // A string IS a sequence of chars, and flattening it would turn one text node into one node per
         // character; a component is a child as it stands.
@@ -303,13 +312,40 @@ public abstract partial class Component : RaskMarkup
         {
             foreach (var item in sequence)
             {
-                AddChild(list, item);
+                AddChild(ref flat, item);
             }
 
             return;
         }
 
-        list.Add(ToChild(child));
+        flat.Add(ToChild(child));
+    }
+
+    // The flattened children, collected in a pooled array and copied once to their exact size — a List plus
+    // its ToArray would allocate the list, every regrowth of it, and the copy. Rented per call, not shared:
+    // a lazy sequence runs its factories while it is flattened, and those can land back in this indexer.
+    private struct ChildBuffer(int capacity) : IDisposable
+    {
+        private Component?[] _items = ArrayPool<Component?>.Shared.Rent(Math.Max(16, capacity));
+        private int _count;
+
+        public void Add(Component? child)
+        {
+            if (_count == _items.Length)
+            {
+                var bigger = ArrayPool<Component?>.Shared.Rent(_items.Length * 2);
+                _items.AsSpan(0, _count).CopyTo(bigger);
+                ArrayPool<Component?>.Shared.Return(_items, true);
+                _items = bigger;
+            }
+
+            _items[_count++] = child;
+        }
+
+        public readonly Component?[] ToArray() => _items.AsSpan(0, _count).ToArray();
+
+        // Cleared on return: the pool would otherwise keep this render's components alive.
+        public void Dispose() => ArrayPool<Component?>.Shared.Return(_items, true);
     }
 
     // A chain IS a Component now — the Component arm used to unwrap the `Build<T>` struct through

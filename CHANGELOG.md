@@ -15,7 +15,10 @@ them until tagged releases begin.
   marker off (`RenderTrustedUrls` −32%); a server render's `int`/`long`/`Guid` `Key` is formatted in place
   (ints under 300 were already free); a full-HTML live frame is encoded from the pooled page buffer, not a
   page-sized string; a handler ack is formatted straight to UTF-8; and a WASM event no longer copies the frame
-  it just sent. `Context.Provide` no longer writes an `AsyncLocal` per provider per render, so context answers
+  it just sent. Adjacent text children (`Div["Score: ", n, " of ", total]`) are joined once per live render
+  rather than piece by piece (`RenderTextRunsFramed` −58%); a children list mixing literals with a projection
+  no longer builds a `List` and copies it (`BuildMixedChildren` −13%); and an element's event handlers live in a
+  small array in emit order instead of a dictionary probed for ~100 event names. `Context.Provide` no longer writes an `AsyncLocal` per provider per render, so context answers
   only inside the render walk — where `Context.Get` is documented to be called: a task started in `Render()`
   that reads context later sees none, so read the value in `Render()` and pass it in.
 
