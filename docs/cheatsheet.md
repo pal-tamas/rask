@@ -14,7 +14,7 @@ rask info                             # what rask sees: project, packages, versi
 
 # database (wraps dotnet-ef; installs it on first use)
 rask db add InitialCreate             # generate a migration from the current model
-rask db update                        # apply it — creates app.db
+rask db update                        # apply it now — the app also does this when it starts
 rask db list                          # which migrations exist, and which are applied
 rask db remove                        # undo the last migration
 rask db drop --yes                  # delete the database, no prompt
@@ -54,7 +54,7 @@ A vertical slice under `Features/<Plural>/` is one aggregate and the components 
 
 Nothing else is written: the build generates `ProductModel`, the queries off the type (`Product.Where(…)`,
 rows of `ProductRead`), `Product.Find(id)` + `product.Save()`, and the writes, `RaskDbContext` maps the aggregate, and a write refreshes every query keyed
-`QueryKey.For<Product>(…)` by itself. Then `rask db add AddProducts && rask db update`.
+`QueryKey.For<Product>(…)` by itself. Then `rask db add AddProducts` — the app applies it when it starts.
 [Chapter 2](tutorial/02-first-feature.md) writes all of it out.
 
 ## Wiring one-liners
@@ -92,7 +92,7 @@ app.MapRaskStorage();   // file storage's public/temporary link routes — after
 builder.Services.AddRaskSqliteLitestream();   // off-box backup; reads Rask:Litestream
 ```
 
-After any `modelBuilder.AddRask…` line: `rask db add <Name>` → `rask db update`.
+After any `modelBuilder.AddRask…` line: `rask db add <Name>` (a `RaskApp` applies it when it starts).
 
 ## Code idioms
 

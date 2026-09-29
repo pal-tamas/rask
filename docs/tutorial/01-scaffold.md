@@ -16,8 +16,8 @@ cd Shop
 **The batteries come as standard.** That one command wires every One Person Framework pillar into the
 project: a SQLite database, background jobs, transactional email, a cache, a durable outbox, scheduled
 snapshots, continuous backup, a durable log store, the operator dashboard, an installable PWA with Web
-Push, and a production `Dockerfile`. It also creates and applies the database's **first migration**, so
-every battery's tables exist before you run anything. Each chapter from here on teaches you what one of
+Push, and a production `Dockerfile`. It also creates the database's **first migration**, and the app applies
+it when it starts, so every battery's tables exist before anything uses them. Each chapter from here on teaches you what one of
 them is *for*; none of them needs a wiring detour first.
 
 Two things you might expect to choose are not choices:

@@ -125,7 +125,12 @@ internal static class RaskBatteryWiring
         }
 
         WireBackups(builder, options, provider);
-        WireDatabase(services, options, appContext, provider);
+
+        // Code wins over configuration, as everywhere: a MigrateOnStart assignment beats Rask:Database:MigrateOnStart.
+        var migrate = options.MigrateOnStartSet
+                      ?? builder.Configuration.GetValue<bool?>(RaskDatabase.MigrateOnStartKey)
+                      ?? true;
+        WireDatabase(services, options, appContext, provider, migrate);
     }
 
     private static RaskDatabaseProvider ApplyConfiguration(WebApplicationBuilder builder, RaskAppOptions options)
@@ -294,7 +299,7 @@ internal static class RaskBatteryWiring
     }
 
     private static void WireDatabase(
-        IServiceCollection services, RaskAppOptions options, Type? appContext, RaskDatabaseProvider provider)
+        IServiceCollection services, RaskAppOptions options, Type? appContext, RaskDatabaseProvider provider, bool migrate)
     {
         // The pillars need the application's DbContext as a type argument. The app already named it, in
         // its own AddDbContextFactory call — and because this runs last, that registration is sitting in
@@ -312,7 +317,7 @@ internal static class RaskBatteryWiring
 
         if (appContext is not null)
         {
-            WireContextBatteries(services, options, appContext, provider);
+            WireContextBatteries(services, options, appContext, provider, migrate);
         }
         else
         {
@@ -331,7 +336,7 @@ internal static class RaskBatteryWiring
                 .MigrationsIn(app)
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
-            WireContextBatteries(services, options, typeof(RaskAppDbContext), provider);
+            WireContextBatteries(services, options, typeof(RaskAppDbContext), provider, migrate);
         }
     }
 
@@ -455,13 +460,14 @@ internal static class RaskBatteryWiring
         IServiceCollection services,
         RaskAppOptions options,
         Type context,
-        RaskDatabaseProvider provider) =>
+        RaskDatabaseProvider provider,
+        bool migrate) =>
         typeof(RaskBatteryWiring)
 #pragma warning disable S3011 // this class's own private generic step, closed over the app's context type
             .GetMethod(nameof(WireFor), BindingFlags.NonPublic | BindingFlags.Static)!
 #pragma warning restore S3011
             .MakeGenericMethod(context)
-            .Invoke(null, [services, options, provider]);
+            .Invoke(null, [services, options, provider, migrate]);
 
     // The same reflection point as WireContextBatteries, over the same app-rooted context type.
     [UnconditionalSuppressMessage("Trimming", "IL2060",
@@ -484,19 +490,12 @@ internal static class RaskBatteryWiring
                 static (check, contexts, configuration) => check.Verify(contexts, configuration))
             .ValidateOnStart();
 
-    private static void WireFor<TContext>(
-        IServiceCollection services,
-        RaskAppOptions options,
-        RaskDatabaseProvider provider)
+    // Unless the app wired a log store itself, which wins here as it does for every battery. Calling
+    // AddRaskLogging<TContext> anyway would register its model check for a table nothing writes, and fail the boot.
+    private static void WireLogStore<TContext>(
+        IServiceCollection services, RaskAppOptions options, RaskDatabaseProvider provider)
         where TContext : DbContext
     {
-        // Bind the model surface to this context, so `Product.Where(…)` reaches it without anything being
-        // injected. AddRaskData is idempotent,
-        // so this only adds the binding.
-        services.AddRaskData<TContext>();
-
-        // Unless the app wired a log store itself, which wins here as it does for every battery. Calling
-        // AddRaskLogging<TContext> anyway would register its model check for a table nothing writes, and fail the boot.
         if (options.Logs.Enabled && provider != RaskDatabaseProvider.Sqlite
             && !services.Any(static d => d.ServiceType == typeof(ILogs)))
         {
@@ -510,6 +509,27 @@ internal static class RaskBatteryWiring
                 options.Logs.Apply(o);
             });
         }
+    }
+
+    private static void WireFor<TContext>(
+        IServiceCollection services,
+        RaskAppOptions options,
+        RaskDatabaseProvider provider,
+        bool migrate)
+        where TContext : DbContext
+    {
+        // Bind the model surface to this context, so `Product.Where(…)` reaches it without anything being
+        // injected. AddRaskData is idempotent,
+        // so this only adds the binding.
+        services.AddRaskData<TContext>();
+
+        // The app's pending migrations, applied before any worker below starts — see MigrateOnStart.
+        if (migrate)
+        {
+            services.AddHostedService<MigrateOnStart<TContext>>();
+        }
+
+        WireLogStore<TContext>(services, options, provider);
 
         // The outbox first, so a reader meets durable delivery before the things that use it. Order is not
         // load-bearing — see OutboxDeliveryHandoverTests, which pins that both ways round work.

@@ -138,8 +138,8 @@ rask new Shop --template nuxt
 ## Ship it
 
 ```bash
-rask dev                                                  # run it — the first migration is already applied
-rask db add AddProducts && rask db update                 # after you change the model
+rask dev                                                  # run it — it applies its pending migrations as it starts
+rask db add AddProducts                                   # after you change the model
 rask deploy --host root@box --domain shop.example.com     # bare box → Docker + auto-HTTPS, zero-downtime
 ```
 

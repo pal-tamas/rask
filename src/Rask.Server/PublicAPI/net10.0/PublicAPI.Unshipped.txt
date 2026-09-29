@@ -120,6 +120,8 @@ Rask.RaskAppOptions.ErrorPath.get -> string!
 Rask.RaskAppOptions.ErrorPath.set -> void
 Rask.RaskAppOptions.HealthPath.get -> string!
 Rask.RaskAppOptions.HealthPath.set -> void
+Rask.RaskAppOptions.MigrateOnStart.get -> bool
+Rask.RaskAppOptions.MigrateOnStart.set -> void
 Rask.RaskAppOptions.Jobs.get -> Rask.Battery<Rask.Background.JobsOptions!>!
 Rask.RaskAppOptions.Live.get -> System.Action<Rask.Core.Live.RaskLiveOptions!>?
 Rask.RaskAppOptions.Live.set -> void

@@ -600,12 +600,11 @@ public sealed class NewCommandTests
     }
 
     /// <summary>
-    /// The database-backed pillars are hosted services, and one that can't find its table stops the host —
-    /// so an unmigrated app doesn't warn, it exits. <c>rask new</c> normally migrates for you; when it
-    /// can't, it has to say so.
+    /// The app applies its migrations when it starts, but only ones that exist — so when <c>rask new</c> could not
+    /// create the first one, it says so. Applying it is no longer a step: that is the app's job now.
     /// </summary>
     [Fact]
-    public async Task Skipping_the_restore_says_the_migration_still_has_to_happen()
+    public async Task Skipping_the_restore_says_the_first_migration_still_has_to_be_added()
     {
         var (console, _, _, command) = Build();
 
@@ -613,7 +612,7 @@ public sealed class NewCommandTests
 
         Assert.Equal(0, exit);
         Assert.Contains("rask db add Init", console.OutText, StringComparison.Ordinal);
-        Assert.Contains("rask db update", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask db update", console.OutText, StringComparison.Ordinal);
     }
 
     // #1106: a meta template accepted --no-cqrs, forced the mediator back on anyway, and dropped the database instead.
@@ -643,7 +642,7 @@ public sealed class NewCommandTests
         var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
 
         Assert.Equal(1, exit);
-        Assert.DoesNotContain("already applied", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("The first migration is in Migrations/", console.OutText, StringComparison.Ordinal);
     }
 
     // #1083: named before the restore, so NU1103 is not the first and only thing a reader sees.
@@ -666,14 +665,30 @@ public sealed class NewCommandTests
     }
 
     [Fact]
-    public async Task A_migration_that_ran_says_it_was_applied()
+    public async Task A_created_migration_says_the_app_applies_it_when_it_starts()
     {
         var (console, _, _, command) = Build();
 
         var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.Contains("The first migration is already applied to app.db.", console.OutText, StringComparison.Ordinal);
+        Assert.Contains(
+            "The first migration is in Migrations/; the app applies it to app.db when it starts.",
+            console.OutText,
+            StringComparison.Ordinal);
+    }
+
+    // The app migrates itself on start, so `rask new` adds the first migration and leaves applying it to the first run.
+    [Fact]
+    public async Task The_first_migration_is_added_but_not_applied_by_the_command()
+    {
+        var (_, _, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains(runner.Invocations, i => i.Arguments.Contains("ef") && i.Arguments.Contains("migrations"));
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("ef") && i.Arguments.Contains("database"));
     }
 
     /// <summary>

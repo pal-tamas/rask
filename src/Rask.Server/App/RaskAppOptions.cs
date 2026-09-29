@@ -224,6 +224,24 @@ public sealed class RaskAppOptions
     /// </remarks>
     public Func<IServiceProvider, Task>? RunBeforeDatabaseOpensAsync { get; set; }
 
+    /// <summary>
+    /// Whether the app applies its pending migrations when it starts, before any battery's worker runs and before
+    /// <see cref="HealthPath"/> answers. On by default.
+    /// </summary>
+    /// <remarks>
+    /// So a new clone or a fresh deploy works with <c>dotnet run</c> alone. Turn it off when something else applies
+    /// migrations — a release pipeline running <c>rask db update</c>. Also read from <c>Rask:Database:MigrateOnStart</c>
+    /// (<c>Rask__Database__MigrateOnStart</c> in the environment); a value set here wins over the setting.
+    /// </remarks>
+    public bool MigrateOnStart
+    {
+        get => MigrateOnStartSet ?? true;
+        set => MigrateOnStartSet = value;
+    }
+
+    /// <summary>What code said about <see cref="MigrateOnStart"/>, or null to leave it to configuration.</summary>
+    internal bool? MigrateOnStartSet { get; private set; }
+
     /// <summary>The assembly that called <see cref="RaskApp.Create"/>: the app, and where its migrations live.</summary>
     internal System.Reflection.Assembly? AppAssembly { get; set; }
 }

@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A RaskApp applies its pending migrations when it starts.** Before any battery's worker runs and before the
+  server listens — so `/health` is never Healthy over an un-migrated database, and a fresh clone or deploy works
+  with `dotnet run` alone. `rask new` now only adds the `Init` migration (no `rask db update`), and after a model
+  change `rask db add <Name>` is the whole step. An app with no migrations starts with a warning naming
+  `rask db add Init`; a model changed since its last migration fails the start naming `rask db add <Name>`. Opt
+  out, e.g. when a release pipeline migrates: `app.Configure(c => c.MigrateOnStart = false)` or
+  `Rask__Database__MigrateOnStart=false`.
 - **A scoped gate in a fresh worktree no longer aborts with "Could not find testhost".** Its build ran Restore
   and Build in one MSBuild call, so Build reused the pre-restore evaluation and a never-restored test project
   came out without `Microsoft.NET.Test.Sdk`'s targets (22 files instead of 81). Restore now gets its own

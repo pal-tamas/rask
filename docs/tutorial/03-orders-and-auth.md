@@ -70,10 +70,10 @@ A new table means a new migration:
 
 ```bash
 rask db add AddOrder
-rask db update
 ```
 
-Run `rask dev` and browse to `/orders` — a second working CRUD feature, in the same `app.db`.
+Run `rask dev` (restart it if it is still running — the app applies pending migrations as it starts) and browse
+to `/orders` — a second working CRUD feature, in the same `app.db`.
 
 ## 2. Require a login to edit the catalog
 
