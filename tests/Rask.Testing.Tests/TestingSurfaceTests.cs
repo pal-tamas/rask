@@ -46,7 +46,7 @@ public class TestingSurfaceTests
     {
         var page = Page.Render(new Toolbar());
 
-        await page.On("#save").ClickAsync();
+        await page.On("#save").Click();
 
         // The point of the whole helper: "Save" is the SECOND click handler, so HandlerIds("click")[1]
         // would work today and silently re-point at something else the moment a button is added above it.
@@ -84,7 +84,7 @@ public class TestingSurfaceTests
         var services = new ServiceCollection().AddSingleton(navigator).BuildServiceProvider();
         var page = Page.Render(new ExportPage(navigator), services);
 
-        await page.On("#export").ClickAsync();
+        await page.On("#export").Click();
 
         var file = Assert.Single(downloads.Staged);
         Assert.Equal("orders.csv", file.FileName);

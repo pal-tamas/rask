@@ -98,7 +98,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
         var page = global::Rask.Testing.Page.Render(
             Ui.RadioGroup.Bind(() => model.Plan).Options(Plans).Label("Plan"));
 
-        await page.On("#f-plan-0").ChangeAsync("true");
+        await page.On("#f-plan-0").Change("true");
 
         Assert.Equal("free", model.Plan);
     }
@@ -160,7 +160,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
                 .Options([("news", "News"), ("releases", "Releases")])
                 .Label("Topics"));
 
-        await page.On("#f-topics-0").ChangeAsync("true");
+        await page.On("#f-topics-0").Change("true");
 
         Assert.Equal(["news"], model.Topics);
     }

@@ -34,7 +34,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
         var tabs = page.HandlerIds("click");
         Assert.Equal(2, tabs.Count);
 
-        await page.InvokeAsync(tabs[1]);
+        await page.Invoke(tabs[1]);
 
         Assert.Contains("browser-WASM SPA", page.Html, StringComparison.Ordinal);
         Assert.Contains(Installer, page.Html, StringComparison.Ordinal);
@@ -61,7 +61,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("dotnet tool install", page.Html, StringComparison.Ordinal);
 
         var tabs = page.HandlerIds("click");
-        await page.InvokeAsync(tabs[1]);
+        await page.Invoke(tabs[1]);
 
         Assert.DoesNotContain("dotnet tool install", page.Html, StringComparison.Ordinal);
     }
@@ -77,7 +77,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("browser-WASM SPA", page.Html, StringComparison.Ordinal);
 
         var tabs = page.HandlerIds("click");
-        await page.InvokeAsync(tabs[1]);
+        await page.Invoke(tabs[1]);
 
         Assert.DoesNotContain("ASP.NET live-server app", page.Html, StringComparison.Ordinal);
     }

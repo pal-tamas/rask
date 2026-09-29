@@ -66,12 +66,12 @@ public partial class UiContextMenuTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(Menu());
 
-        await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
         var first = Regex.Match(page.Html, "aria-activedescendant=\"([^\"]+)\"").Groups[1].Value;
         Assert.NotEmpty(first);
         Assert.Contains("data-open", page.Html, StringComparison.Ordinal);
 
-        await page.On("[role=\"menu\"][autofocus]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\"}");
+        await page.On("[role=\"menu\"][autofocus]").Raise("keydown", "{\"key\":\"ArrowDown\"}");
         var second = Regex.Match(page.Html, "aria-activedescendant=\"([^\"]+)\"").Groups[1].Value;
 
         // "Duplicate" is disabled, so the cursor lands on "Delete" — the third row.

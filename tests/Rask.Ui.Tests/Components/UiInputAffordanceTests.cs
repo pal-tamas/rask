@@ -80,7 +80,7 @@ public partial class UiInputAffordanceTests : global::Rask.Core.RaskMarkup
         var page = global::Rask.Testing.Page.Render(
             Ui.Input.Bind(() => model.Text).Label("Search").Clearable(true));
 
-        await page.On("button[aria-label=\"Clear Search\"]").ClickAsync();
+        await page.On("button[aria-label=\"Clear Search\"]").Click();
 
         Assert.True(string.IsNullOrEmpty(model.Text));
     }

@@ -35,7 +35,7 @@ public class TestJSRuntimeTests
     {
         var (page, js) = RenderCopier();
 
-        await page.ClickAsync();
+        await page.On("button").Click();
 
         Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
         Assert.Equal(1, js.CallCount("raskApi.clipboard.write"));
@@ -47,7 +47,7 @@ public class TestJSRuntimeTests
         var (page, js) = RenderCopier();
         js.SetResponse("raskApi.clipboard.read", "from-the-clipboard");
 
-        await page.ClickAsync();
+        await page.On("button").Click();
 
         Assert.Equal("from-the-clipboard", page.Instance.Read);
     }
@@ -57,7 +57,7 @@ public class TestJSRuntimeTests
     {
         var (page, js) = RenderCopier();
 
-        await page.ClickAsync();
+        await page.On("button").Click();
 
         // An absent value reads back as null, the same as a real empty clipboard/storage slot.
         Assert.Null(page.Instance.Read);
@@ -79,7 +79,7 @@ public class TestJSRuntimeTests
     {
         var (page, js) = RenderCopier();
 
-        await page.ClickAsync();
+        await page.On("button").Click();
 
         // Order is the contract: the write must be observable as having happened before the read.
         Assert.Equal(
@@ -91,8 +91,8 @@ public class TestJSRuntimeTests
     public async Task ArgsFor_on_a_call_made_more_than_once_says_so_instead_of_throwing_an_opaque_sequence_error()
     {
         var (page, js) = RenderCopier();
-        await page.ClickAsync();
-        await page.ClickAsync();
+        await page.On("button").Click();
+        await page.On("button").Click();
 
         var ex = Assert.Throws<InvalidOperationException>(() => js.ArgsFor("raskApi.clipboard.write"));
 

@@ -82,7 +82,7 @@ public sealed class DevToolsFlashEmitterTests
         });
 #pragma warning restore RASK014
 
-        await page.On("[data-rask-devtools-flash]").RaiseAsync("keydown", "{\"key\":\"" + key + "\"}");
+        await page.On("[data-rask-devtools-flash]").Raise("keydown", "{\"key\":\"" + key + "\"}");
 
         Assert.Equal(expected, reported);
     }
@@ -100,8 +100,8 @@ public sealed class DevToolsFlashEmitterTests
         });
 #pragma warning restore RASK014
 
-        await page.On("[data-rask-devtools-flash]").RaiseAsync("keydown", "{\"key\":\"flash:maybe\"}");
-        await page.On("[data-rask-devtools-flash]").RaiseAsync("keydown", "{\"key\":\"Enter\"}");
+        await page.On("[data-rask-devtools-flash]").Raise("keydown", "{\"key\":\"flash:maybe\"}");
+        await page.On("[data-rask-devtools-flash]").Raise("keydown", "{\"key\":\"Enter\"}");
 
         Assert.Null(reported);
     }

@@ -48,13 +48,16 @@ public sealed partial class Counter : Component
 [Fact]
 public async Task Clicking_increments()
 {
-    var page = Page.Render(new Counter());     // renders + wires event handlers
+    var page = Page.Render(() => Counter);          // renders + wires event handlers
     Assert.Contains("Count: 0", page.Html);
 
-    await page.ClickAsync();                        // dispatch the click handler, then re-render
+    await page.On("button").Click();               // dispatch the button's click handler, then re-render
     Assert.Contains("Count: 1", page.Html);
 }
 ```
+
+The test class derives from `RaskMarkup`, like the one `rask new` writes, so `Counter` is reachable by name as it
+is in markup — a component is built through its chain, never with `new` (RASK014).
 
 - **`Page.Render(component, services?)`** → a `Page<T>`. Pass an `IServiceProvider` when the
   component constructor-injects framework services or your own registrations.
@@ -67,7 +70,7 @@ public async Task Clicking_increments()
   var model = new OrderModel();
   var page = Page.Render(() => Form.Model(model)[Input.Bind(() => model.Name)]);
 
-  await page.InputAsync("{\"value\":\"Ada\"}");   // the next render rebuilds the form from `model`
+  await page.On("input").Input("Ada");   // the next render rebuilds the form from `model`
   ```
 
   Returning `null` renders nothing, and drives the component it stops returning through its unmount path.
@@ -78,30 +81,40 @@ public async Task Clicking_increments()
   about a component from quietly becoming an assertion about a page.
 
   ```csharp
-  var page = Page.RenderDocument(new App(), services);
+  var page = Page.RenderDocument(App, services);
   Assert.StartsWith("<!DOCTYPE html>", page.Html);
   Assert.Contains("<html lang=\"en\">", page.Html);
   Assert.Contains(">My app</title>", page.Html);   // head tags carry a dedupe key attribute
   ```
 - **`.Html`** — the current markup. **`.Render()`** re-renders after you mutate external state it reads.
-- **`.WaitForAsync(text | predicate, timeout?)`** — re-renders until the markup contains the text (or the
-  predicate accepts it) and returns it; throws a `TimeoutException` carrying the last markup after 5
-  seconds by default. This is how you test a component that **loads asynchronously**: the component is
-  mounted by `Render`, but `OnMount` completes on a continuation, so what it loads is not in the
-  markup yet when `Render` returns.
+- **`.Shows(text)`** / **`.Shows(html => …)`** — re-renders until the page shows the text (or the markup
+  satisfies the condition), waiting up to **`.Patience`** (5 seconds by default); throws a `PageException`
+  carrying what the page does show. It is synchronous — no `await`. This is how you test a component that
+  **loads asynchronously**: the component is mounted by `Render`, but `OnMount` completes on a
+  continuation, so what it loads is not in the markup yet when `Render` returns.
 
   ```csharp
-  var page = Page.Render(new OrdersPage(store), services);
-  await page.WaitForAsync("2 orders");        // rather than a fixed delay
+  var page = Page.Render(() => OrdersPage, services);
+  page.Shows("2 orders");                     // rather than a fixed delay
+
+  page.Patience = TimeSpan.FromSeconds(10);   // a slower load
+  page.Shows(html => html.Contains("data-state=\"done\""));
   ```
 
   Both overloads of `Render` fire `OnMount` and, once it has rendered, `OnFirstRendered` and `OnRendered` — the component
   renders through the handle, so state it sets after an await reaches the markup on the next render.
-- **`.ClickAsync(json?)` / `.InputAsync(json?)` / `.ChangeAsync(json?)` / `.SubmitAsync(json?)`** — dispatch
-  the **first** element wired to that event (optionally with a JSON event payload, e.g.
-  `"{\"value\":\"hi\"}"` for an input), then re-render; returns the new `Html`.
-- **`.InvokeAsync(handlerId, json?)`** — dispatch a specific handler by id.
-- **`.TryInvokeAsync(handlerId, json?)`** — dispatch only if the id is still live; returns `false` instead of
+- **`.On(selector)`** — the events of the **one** element the selector matches (tag, `#id`, `.class`,
+  `[attr]`, `[attr="v"]`, descendant/child combinators, `:has-text("…")`; none or several throws):
+  `.Click()`, `.Input("Ada")`, `.Change("42")`, `.Submit(form?)`, `.Files(...)`, and `.Raise(domEvent, json?)`
+  for event data the verbs don't carry (`.Raise("keydown", "{\"key\":\"Enter\"}")`). Each dispatches, then
+  re-renders and returns the new `Html`.
+
+  ```csharp
+  await page.On("#name").Input("Ada");
+  await page.On("button[type=\"submit\"]").Click();
+  ```
+- **`.Invoke(handlerId, json?)`** — dispatch a specific handler by id.
+- **`.TryInvoke(handlerId, json?)`** — dispatch only if the id is still live; returns `false` instead of
   throwing. Use it to assert a handler is **gone** (a removed element, a disposed subtree).
 - **`.Instance`** — the component object you passed to `Render(component)`, so you can assert its own state
   rather than parsing it back out of the markup. It stays the same object for the handle's lifetime.
@@ -118,7 +131,7 @@ public async Task Clicking_increments()
       c.Field(r => r.Total).Sortable(true),
   ]]);
 
-  await grid.InvokeAsync(grid.HandlerIds("click")[1]);   // click the second sortable header
+  await grid.Invoke(grid.HandlerIds("click")[1]);   // click the second sortable header
   ```
 
   Re-read the list after every render, for the same reason a single id can't be cached.
@@ -133,8 +146,8 @@ var js = new TestJSRuntime();
 js.SetResponse("raskApi.clipboard.read", "hello");
 var services = new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider();
 
-var page = Page.Render(new Copier(), services);
-await page.ClickAsync();
+var page = Page.Render(() => Copier, services);
+await page.On("button").Click();
 
 Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
 ```
@@ -151,8 +164,8 @@ that host half. `TestFileBackend` is it — stage the bytes, register it, pick t
 var files = new TestFileBackend();
 var picked = files.Add("notes.txt", "hello world", "text/plain");
 
-var page = Page.Render(new UploadPage(), TestServiceProvider.With<IBrowserFileBackend>(files));
-await page.On("#picker").FilesAsync(picked);
+var page = Page.Render(() => UploadPage, TestServiceProvider.With<IBrowserFileBackend>(files));
+await page.On("#picker").Files(picked);
 
 Assert.Equal("notes.txt", page.TextOf("[data-testid=name]"));
 ```
@@ -165,12 +178,12 @@ raise the limit for a large upload fails here rather than on a real file.
 > **empty list** — the handler still fires, and a test that asserts "no crash" passes while exercising the
 > empty branch. That silence is why `Rask.Core` now reports it through `RaskDiagnostics`.
 
-`FilesAsync` takes either specific files or the whole backend (`FilesAsync(files)`) when there is one input.
+`Files` takes either specific files or the whole backend (`Files(files)`) when there is one input.
 For a file inside a submitted form, use `FormPayload`, which shapes the payload the way `FormData.Files`
 reads it:
 
 ```csharp
-await page.On("#form").SubmitAsync(files.FormPayload("attachment", files.Add("cv.pdf", "…")));
+await page.On("#form").Submit(files.FormPayload("attachment", files.Add("cv.pdf", "…")));
 ```
 
 `.Staged` lists everything added; `.Released` records what the framework handed back after the handler
@@ -203,7 +216,7 @@ var page = Page.Render(() => Form.Model(model)[
     Test.EditContextProbe(c => ctx = c)
 ]);
 
-await page.InputAsync("{\"value\":\"Ada\"}");
+await page.On("input").Input("Ada");
 Assert.True(ctx!.IsModified(new FieldIdentifier(model, nameof(model.Name))));
 ```
 
@@ -484,7 +497,7 @@ assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head
 through `Page.RenderDocument` instead, which composes the document the way a host does:
 
 ```csharp
-var html = Page.RenderDocument(new App(), TestServiceProvider.Default(routeState: routeState)).Html;
+var html = Page.RenderDocument(App, TestServiceProvider.Default(routeState: routeState)).Html;
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 

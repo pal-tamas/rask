@@ -32,7 +32,7 @@ public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMar
         Assert.Contains("Username", html, StringComparison.Ordinal);
 
         var id = HandlerIn(html, "id=\"fss-input\"", "data-rask-on-input");
-        await page.InvokeAsync(id, $"{{\"value\":\"ada\"}}");
+        await page.Invoke(id, $"{{\"value\":\"ada\"}}");
 
         // The model took it. Rendering again is what proves the write-back landed rather than the handler
         // merely existing — a handler that runs and writes nowhere looks identical in the markup.
@@ -50,11 +50,12 @@ public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMar
         var html = page.Render();
         Assert.Contains("(nothing yet)", html, StringComparison.Ordinal);
 
-        await page.InvokeAsync(HandlerIn(html, "id=\"fss-input\"", "data-rask-on-input"), "{\"value\":\"ada\"}");
-        await page.SubmitAsync("{\"form\":{\"Username\":\"ada\"}}");
+        await page.Invoke(HandlerIn(html, "id=\"fss-input\"", "data-rask-on-input"), "{\"value\":\"ada\"}");
+        await page.On("form").Submit("{\"form\":{\"Username\":\"ada\"}}");
 
-        var saved = await page.WaitForAsync("<strong>ada</strong>", TimeSpan.FromSeconds(10));
-        Assert.DoesNotContain("(nothing yet)", saved, StringComparison.Ordinal);
+        page.Patience = TimeSpan.FromSeconds(10);
+        page.Shows(html => html.Contains("<strong>ada</strong>", StringComparison.Ordinal));
+        Assert.DoesNotContain("(nothing yet)", page.Html, StringComparison.Ordinal);
     }
 
     private static string HandlerIn(string html, string anchor, string attr)

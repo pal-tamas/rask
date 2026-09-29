@@ -19,7 +19,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Picked: <strong>Rask</strong>", html);
 
         var id = HandlerIn(html, "id=\"fc-select-controlled\"", "data-rask-on-change");
-        await page.InvokeAsync(id, Value("Blazor"));
+        await page.Invoke(id, Value("Blazor"));
 
         Assert.Contains("Picked: <strong>Blazor</strong>", page.Render());
     }
@@ -31,7 +31,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-select-bound\"", "data-rask-on-change");
-        await page.InvokeAsync(id, Value("htmx"));
+        await page.Invoke(id, Value("htmx"));
 
         var html2 = page.Render();
         Assert.Contains("fc-select-bound-out", html2);
@@ -48,7 +48,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Echo: <strong>(empty)</strong>", html);
 
         var id = HandlerIn(html, "id=\"fc-input-controlled\"", "data-rask-on-change");
-        await page.InvokeAsync(id, Value("hello"));
+        await page.Invoke(id, Value("hello"));
 
         Assert.Contains("Echo: <strong>hello</strong>", page.Render());
     }
@@ -61,7 +61,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
 
         // A bound text Input streams via data-rask-on-input (per keystroke); the change handler only touches.
         var id = HandlerIn(html, "id=\"fc-input-bound\"", "data-rask-on-input");
-        await page.InvokeAsync(id, Value("world"));
+        await page.Invoke(id, Value("world"));
 
         Assert.Contains("Echo: <strong>world</strong>", page.Render());
     }
@@ -76,7 +76,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Length: <strong>0</strong>", html);
 
         var id = HandlerIn(html, "id=\"fc-textarea-controlled\"", "data-rask-on-change");
-        await page.InvokeAsync(id, Value("abcd"));
+        await page.Invoke(id, Value("abcd"));
 
         Assert.Contains("Length: <strong>4</strong>", page.Render());
     }
@@ -88,7 +88,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-textarea-bound\"", "data-rask-on-input");
-        await page.InvokeAsync(id, Value("abc"));
+        await page.Invoke(id, Value("abc"));
 
         var html2 = page.Render();
         Assert.Contains("fc-textarea-bound-out", html2);

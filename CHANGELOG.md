@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
+  its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
+
+  | Before | After |
+  | --- | --- |
+  | `await page.ClickAsync()` | `await page.Click("Save")`, or `await page.On("#save").Click()` |
+  | `await page.InputAsync("{\"value\":\"Ada\"}")` | `await page.Type("Ada").Into("Name")`, or `await page.On("#name").Input("Ada")` |
+  | `await page.On(sel).ChangeAsync(v)` / `SubmitAsync(json)` / `FilesAsync(f)` | `.Change(v)` / `.Submit(json)` / `.Files(f)` |
+  | `await page.On(sel).RaiseAsync("keydown", json)` | `await page.On(sel).Raise("keydown", json)` |
+  | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
+  | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
+  | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
 - **Toasts are built in.** `Toast.Success("Saved")` — or `Info`, `Warning`, `Error` — shows a toast from anywhere,
   with nothing injected and nothing mounted: the host draws it in the UI kit's look, or a small look of Rask's own
   with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:

@@ -20,7 +20,7 @@ namespace Rask.Testing;
 ///     <code>
 ///     var downloads = new TestDownloadSink();
 ///     var page = Page.Render(new ExportPage(new Navigator(new RouteState(), downloads)));
-///     await page.ClickAsync("#export");
+///     await page.On("#export").Click();
 ///
 ///     var file = Assert.Single(downloads.Staged);
 ///     Assert.Equal("orders.csv", file.FileName);

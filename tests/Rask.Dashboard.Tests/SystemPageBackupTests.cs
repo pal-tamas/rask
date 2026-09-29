@@ -19,7 +19,7 @@ public sealed class SystemPageBackupTests
         // Verification is opt-in, so "no reading" is the normal case — and it must not render as good news.
         await using var harness = Harness(new FakeBackupProbe(null));
 
-        var html = await RenderAsync(harness);
+        var html = Render(harness);
 
         Assert.Contains("Continuous replication", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Last verified restore", html, StringComparison.Ordinal);
@@ -31,7 +31,7 @@ public sealed class SystemPageBackupTests
         await using var harness = Harness(new FakeBackupProbe(new BackupVerificationInfo(
             "Verified", BackupVerificationLevel.Verified, Now.AddHours(-2), null)));
 
-        var html = await RenderAsync(harness);
+        var html = Render(harness);
 
         Assert.Contains("Last verified restore", html, StringComparison.Ordinal);
         Assert.Contains("restorable", html, StringComparison.Ordinal);
@@ -45,7 +45,7 @@ public sealed class SystemPageBackupTests
             new BackupVerificationInfo("Failed", BackupVerificationLevel.Broken, null, "litestream restore failed with exit code 1."),
             replicating: true));
 
-        var html = await RenderAsync(harness);
+        var html = Render(harness);
 
         Assert.Contains("running", html, StringComparison.Ordinal);         // replication looks healthy…
         Assert.Contains("Last verified restore", html, StringComparison.Ordinal);
@@ -64,7 +64,7 @@ public sealed class SystemPageBackupTests
         await using var harness = Harness(new FakeBackupProbe(new BackupVerificationInfo(
             "Inconclusive", BackupVerificationLevel.Unknown, Now.AddDays(-1), "the sentinel had not reached the replica")));
 
-        var html = await RenderAsync(harness);
+        var html = Render(harness);
 
         Assert.Contains("inconclusive", html, StringComparison.Ordinal);
         // Warning, never danger: a tile that goes red every time the check races replication is a tile
@@ -78,9 +78,12 @@ public sealed class SystemPageBackupTests
 
     // The page reads its backup state on PollingPanel's asynchronous mount, so the first render is the
     // placeholder — wait for the card rather than assert on markup that has not loaded yet.
-    private static Task<string> RenderAsync(DashboardHarness harness) =>
-        Page.Render(ActivatorUtilities.CreateInstance<SystemPage>(harness.Services), harness.Services)
-            .WaitForAsync("Backup");
+    private static string Render(DashboardHarness harness)
+    {
+        var page = Page.Render(ActivatorUtilities.CreateInstance<SystemPage>(harness.Services), harness.Services);
+        page.Shows("Backup");
+        return page.Html;
+    }
 
     private sealed class FakeBackupProbe(BackupVerificationInfo? verification, bool replicating = true)
         : IDashboardBackupProbe
