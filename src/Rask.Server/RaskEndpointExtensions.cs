@@ -1597,8 +1597,15 @@ public static partial class RaskEndpointExtensions
     private sealed class SocketReader(
         WebSocket ws, RaskServerLimits limits, RaskMetrics? metrics, CancellationToken ct) : IDisposable
     {
-        private readonly byte[] _buffer = new byte[16 * 1024];
-        private readonly ArrayBufferWriter<byte> _message = new(16 * 1024);
+        // Rented, and handed back when the socket closes: a reconnect storm reuses the arrays instead of
+        // allocating 16 KB per connection.
+        private readonly byte[] _buffer = ArrayPool<byte>.Shared.Rent(16 * 1024);
+
+        // Only a message split over several frames needs this, and a browser sends an event as one frame, so
+        // it is made on the first split message rather than paid by every socket. One that grew past
+        // KeptMessageBytes is let go after its message instead of pinning up to MaxInboundFrameBytes.
+        private const int KeptMessageBytes = 64 * 1024;
+        private ArrayBufferWriter<byte>? _message;
 
         // One connection-scoped CTS for the idle-socket timeout (null when disabled). Armed across the
         // whole inbound message — first frame and every continuation fragment — and disarmed while the
@@ -1612,7 +1619,13 @@ public static partial class RaskEndpointExtensions
         private long _rateWindowStartTick = Environment.TickCount64;
         private int _framesInWindow;
 
-        public void Dispose() => _idleCts?.Dispose();
+        // Disposed after the receive loop exits. No payload outlives its loop iteration — the JsonDocument over
+        // it is disposed there, so anything kept past it was already copied — so the buffer can go back.
+        public void Dispose()
+        {
+            _idleCts?.Dispose();
+            ArrayPool<byte>.Shared.Return(_buffer);
+        }
 
         /// <summary>
         ///     Receives one whole message: the payload, or <c>null</c> when the loop should stop — the peer
@@ -1647,6 +1660,12 @@ public static partial class RaskEndpointExtensions
             // before dispatch so a slow handler doesn't trip it. A fired timer (not a shutdown)
             // means the client went silent mid-stream — close the socket (the session survives for
             // reconnect under the grace period).
+            // The previous message has been dispatched; a split message that grew the accumulator large is let go.
+            if (_message is { Capacity: > KeptMessageBytes })
+            {
+                _message = null;
+            }
+
             _idleCts?.CancelAfter(limits.IdleSocketTimeout);
             var receiveToken = _idleCts?.Token ?? ct;
             try
@@ -1679,10 +1698,11 @@ public static partial class RaskEndpointExtensions
         [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
         private async ValueTask<ReadOnlyMemory<byte>?> ReceiveFragmentsAsync(int firstCount, CancellationToken receiveToken)
         {
-            _message.ResetWrittenCount();
+            var message = _message ??= new ArrayBufferWriter<byte>(_buffer.Length);
+            message.ResetWrittenCount();
             if (firstCount > 0)
             {
-                _message.Write(_buffer.AsSpan(0, firstCount));
+                message.Write(_buffer.AsSpan(0, firstCount));
             }
 
             WebSocketReceiveResult result;
@@ -1698,12 +1718,12 @@ public static partial class RaskEndpointExtensions
 
                 if (result.Count > 0)
                 {
-                    _message.Write(_buffer.AsSpan(0, result.Count));
+                    message.Write(_buffer.AsSpan(0, result.Count));
                 }
 
                 // Abort a socket that streams a frame past the cap rather than buffering it
                 // whole — bounds per-socket memory against a fragmented-frame DoS.
-                if (_message.WrittenCount > limits.MaxInboundFrameBytes)
+                if (message.WrittenCount > limits.MaxInboundFrameBytes)
                 {
                     metrics?.FrameRejected("size");
                     try { ws.Abort(); }
@@ -1713,7 +1733,7 @@ public static partial class RaskEndpointExtensions
                 }
             } while (!result.EndOfMessage);
 
-            return _message.WrittenMemory;
+            return message.WrittenMemory;
         }
 
         // Inbound frame-rate cap: count every completed receive over a sliding one-second

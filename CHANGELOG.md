@@ -18,7 +18,11 @@ them until tagged releases begin.
   it just sent. Adjacent text children (`Div["Score: ", n, " of ", total]`) are joined once per live render
   rather than piece by piece (`RenderTextRunsFramed` −58%); a children list mixing literals with a projection
   no longer builds a `List` and copies it (`BuildMixedChildren` −13%); and an element's event handlers live in a
-  small array in emit order instead of a dictionary probed for ~100 event names. `Context.Provide` no longer writes an `AsyncLocal` per provider per render, so context answers
+  small array in emit order instead of a dictionary probed for ~100 event names. A connected socket no longer
+  holds a 16 KB reassembly buffer it only needs for a message split over frames (made on the first one, and let
+  go after one past 64 KB instead of staying up to `MaxInboundFrameBytes`), and its receive buffer is pooled;
+  the send timeout reuses one token source per connection instead of a linked source and timer per send
+  (`SendOutOfBand` 144 B → 0 B). `Context.Provide` no longer writes an `AsyncLocal` per provider per render, so context answers
   only inside the render walk — where `Context.Get` is documented to be called: a task started in `Render()`
   that reads context later sees none, so read the value in `Render()` and pass it in.
 
