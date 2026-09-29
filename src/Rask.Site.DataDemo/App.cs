@@ -68,7 +68,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         var notes = QueryClient.Query(QueryKey.For<Note>("recent"), async ct =>
         {
             await ready.Task.ConfigureAwait(false);
-            return await Note.OrderByDescending(n => n.CreatedAt).Take(50).ToListAsync(ct).ConfigureAwait(false);
+            return await Note.OrderByDescending(n => n.CreatedAt).Take(50).ConfigureAwait(false);
         });
 
         // The search: follows the box, and pauses while it is empty (a null input fetches nothing).
@@ -79,7 +79,6 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                 return await Note.Search(text)
                     .Take(20)
                     .Select(n => new Hit(n.Id, FullText.Highlight(n.Title), FullText.Snippet(n.Body, 12)))
-                    .ToListAsync(ct)
                     .ConfigureAwait(false);
             });
 
@@ -128,7 +127,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
                 ? Ui.Loading.Text("Opening the database…")
                 : Ul.Id("notes").Class("notes-list")[rows.Select(n => Li.Key(n.Id).Class("note")[
                     Strong.Class("note-title")[n.Title],
-                    n.Body.Length > 0 ? Span.Class("note-body")[n.Body] : null
+                    n.Body is { Length: > 0 } body ? Span.Class("note-body")[body] : null
                 ])]
         ];
 

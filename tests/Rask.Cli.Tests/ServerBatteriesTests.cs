@@ -127,8 +127,10 @@ public sealed class ServerBatteriesTests
         var dropped = ProjectGenerator.GenerateWasmHosted(
             "/proj/App", "App", NewCommand.ToBatteries(hosted, ["cqrs"]), "9.9.9");
 
-        Assert.Contains("Rask.Cqrs.Server", dropped.Packages);
-        Assert.Contains("Rask.Spa.Hosting", dropped.Packages);
+        var program = dropped.Files.Single(f => f.Path.EndsWith("Program.cs", StringComparison.Ordinal)
+                                                && !f.Path.Contains("Client", StringComparison.Ordinal)).Content;
+        Assert.Contains("app.Serve();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Cqrs.Off()", program, StringComparison.Ordinal);
     }
 
     [Fact]

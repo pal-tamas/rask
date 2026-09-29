@@ -54,7 +54,7 @@ build error ([RASK087](diagnostics.md#rask087)). The read face infers the join f
 ```csharp
 public Guid CustomerId { get; private set; }            // on Order
 
-var mine = await Order.Where(o => o.Customer.Country == "HU").ToListAsync();   // navigation, inferred
+var mine = await Order.Where(o => o.Customer.Country == "HU");   // navigation, inferred
 ```
 
 **A part of the aggregate** — an order's lines — is an `Entity<TId>` kept in a private list and changed only
@@ -85,7 +85,7 @@ face — ranked, word-aware and accent-insensitive, on SQLite, in the browser an
 public static void Configure(EntityTypeBuilder<Product> builder) =>
     builder.HasFullTextSearch(p => new { p.Name, p.Description });   // then: rask db add ProductSearch && rask db update
 
-var hits = await Product.Search(query).Take(20).ToListAsync(CancellationToken);
+var hits = await Product.Search(query).Take(20);
 Ui.DataGrid.Data(Product.Search(query).AsQueryable())           // best match first, paged in SQL
 ```
 
@@ -127,7 +127,7 @@ using (Tenant.Use(tenantId)) { /* an admin working in one tenant */ }
 by the aggregate, it refreshes itself after any write to that aggregate — no invalidation to write:
 
 ```csharp
-var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.CountAsync(ct));
+var count = QueryClient.Query(QueryKey.For<Product>("count"), () => Product.Count());
 ```
 
 → Reference: [Rask.Query](query.md) · Learn it: [Tutorial Ch 2](tutorial/02-first-feature.md)

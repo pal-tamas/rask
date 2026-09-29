@@ -154,8 +154,6 @@ A ref is a handle on one rendered element. **Type it to the element's MDN interf
 interface's DOM members, generated from MDN** — the same data the elements and their events come from:
 
 ```csharp
-using Rask.Core.Components;   // the MDN element types
-
 public sealed partial class RefDemo : Component
 {
     private readonly ElementRef<HTMLDialogElement> _dialog = new();   // a field: the id is stable across renders

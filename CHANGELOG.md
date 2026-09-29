@@ -35,6 +35,47 @@ them until tagged releases begin.
   (`SendOutOfBand` 144 B → 0 B). `Context.Provide` no longer writes an `AsyncLocal` per provider per render, so context answers
   only inside the render walk — where `Context.Get` is documented to be called: a task started in `Render()`
   that reads context later sees none, so read the value in `Render()` and pass it in.
+- **A wasm-hosted server is `RaskApp.Create(args).Serve()`.** `Serve()` is `Run<App>()` without a
+  server-rendered root: every battery, the CQRS endpoints the browser app dispatches to, the operator console
+  at `/_rask`, and the bundle `Client/` builds into — served by `MapRaskSpa()`, last, as the fallback for
+  every other path. The template's 350-line hand-wired `Program.cs`, its `AppDbContext` and its in-memory push
+  endpoints are gone (`RaskAppDbContext` and the Push battery's `/_rask/push` replace them), a battery it does
+  without is one `app.Configure(c => c.Jobs.Off())` line, and its csproj references `Rask.Server` and
+  `Rask.DevTools` like the server template's — `Rask.Server` now carries `Rask.Cqrs.Server` and
+  `Rask.Spa.Hosting`. The PWA is the browser app's (`host.UsePwa`), so `Serve()` maps no server-side worker.
+  The hand-wired `MapRaskSpa()` host stays documented in `docs/spa.md`. The CQRS wire codec (and RASK053)
+  runs only in a project that builds a browser client from `Client/` — `RaskCqrsCodec` follows `RaskClient` — so a
+  server-rendered app's messages, which never leave the process, can take any shape.
+- **The SPA templates' servers are `RaskApp.Create(args).Serve()` too.** `react`, `preact`, `vue`, `angular`,
+  `solid`, `svelte` and `lit` drop their 250-line hand-wired `Program.cs` for
+  `var app = RaskApp.Create(args); app.Services.AddSingleton<VisitCounter>(); app.Serve();`, their `AppDbContext`
+  and their in-memory push store; the csproj references `Rask.Server` and `Rask.Spa.Hosting` in place of a
+  package per battery, and a battery left out is an `app.Configure(c => c.Jobs.Off())` line. `Serve()` now also
+  maps the accounts API at `/api/auth` whenever the auth battery is wired, so a browser app's sign-in answers
+  without a line of its own, and the operator console (`--no-ops`) is on these templates too. The client's push
+  calls moved from `/_push/*` to the Push battery's `/_rask/push/{key,subscribe,unsubscribe}`, subscriptions now
+  live in the app's database, and health is `/health` rather than `/healthz`. `Rask.Server.targets` turns the
+  CQRS codec, and with it the generated TypeScript contracts, on for a project with a `client/package.json`.
+- **BREAKING: a Data read is awaited, and its terminals drop `Async`.** A query runs when you await it; the rest
+  read as words. A read handed no token is cancelled with the work it belongs to (the request, the job, the
+  component, the query-cache fetch).
+
+  | Before | After |
+  | --- | --- |
+  | `await Product.ToListAsync()` | `await Product.All` |
+  | `await Product.Where(p => p.InStock).ToListAsync(ct)` | `await Product.Where(p => p.InStock)` |
+  | `.FirstOrDefaultAsync(…)` / `.SingleOrDefaultAsync(…)` | `.First(…)` / `.Single(…)` — still `null` when nothing matches |
+  | `.CountAsync()` / `.LongCountAsync()` / `.AnyAsync()` | `.Count()` / `.LongCount()` / `.Any()` |
+  | `.ToArrayAsync()` | `(await query).ToArray()` |
+  | `Product.QueryAsync((q, ct) => …)` | `Product.Query((q, ct) => …)` |
+  | `QueryClient.Query(key, ct => Person.Where(…).ToListAsync(ct))` | `QueryClient.Query(key, Person.Where(…))` |
+  | `QueryClient.Query(key, ct => Product.CountAsync(ct))` | `QueryClient.Query(key, () => Product.Count())` |
+
+  The same names apply to the battery tables' read faces (`Job`, `QueuedMail`, `StoredFile`, `Session`, …).
+- **A form can no longer empty a field its row cannot hold empty.** A cleared `Price` on a non-nullable column
+  used to save 0 on create and silently keep the old value on update. The form model now marks every such
+  column `[Required]` ("The Price field is required."), and `Create(model)` / `Update(id, model)` check the
+  model's attributes on the server before writing, throwing `ValidationException` with nothing written.
 
 - **The kit says `Title`, and a control's own text goes in its indexer.** `Heading` is `Title` on every kit
   component that had it — `Ui.Card`, `Ui.Header`, `Ui.Empty`, `Ui.Toast`, `Ui.MenuGroup`, `Ui.MenuRadioGroup`,
@@ -143,6 +184,28 @@ them until tagged releases begin.
     render in MDN's IDL order.
   - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
     stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
+- **New: `Rask.Web`, every web API the browser ships, generated from MDN.** MDN's globals and interfaces in C#, from
+  the same snapshot as the elements, beside the typed wrappers (which stay for now):
+  ```csharp
+  using Rask.Web;
+  await Navigator.Clipboard.WriteText("hi");
+  var dark = await Window.MatchMedia("(prefers-color-scheme: dark)").Matches;
+  await using var wide = await Window.MatchMedia("(min-width: 800px)");   // kept: a disposable handle
+  ```
+  - A chain is a path, run in the browser in one round trip when awaited; nothing crosses before that.
+  - The window's own globals by name — `Window`, `Navigator`, `Document`, `Location`, `History`, `Screen`,
+    `LocalStorage`, `SessionStorage`, `Performance`, `Crypto`, `IndexedDB`, `Caches`, `CookieStore`, … — and every
+    interface they reach as a type in `Rask.Web.Types`; MDN's dictionaries and enums as records and enums.
+  - An awaited object, or one a promise resolves to, is kept as a handle to dispose of; `Set{Name}` writes;
+    `IsSupported` asks the browser. Each member's doc comment carries its browser support and MDN links.
+  - Works on both hosts: over the page's socket on the server, in-process in WebAssembly. Nothing that returns or
+    rewrites DOM nodes is generated. Events and callbacks are not generated yet.
+  - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
+    members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
+- **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
+  names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
+  `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,
+  `NavLink`, `ErrorBoundary`…) stay in `Rask.Core.Components`.
 - **BREAKING: element refs carry the element's MDN members, generated from MDN.** Type a ref to the element's
   MDN interface and call its DOM members from C#, with no `IJSRuntime` and no `Async` suffix:
   ```csharp

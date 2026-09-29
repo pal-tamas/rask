@@ -1,10 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
-namespace Rask.Core.Components;
+namespace Rask.Core;
 
 // The typed layer over MDN's HTMLFormElement (generated, abstract, every plain attribute): a <form>
 // bound to a model. Generic over TModel, which is what types everything downstream: the

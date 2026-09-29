@@ -26,13 +26,8 @@ internal static partial class ProjectGenerator
             targetDirectory, "server", name, batteries, version, dotnet ?? DotnetTarget.Default, islands,
             vsCode: VsCodeSetup.Host);
 
-        // The committed Program.cs is the default app — every battery on, one line. A battery turned off is a
-        // line in it rather than a missing package, so the file is written here when there is one to say.
-        var program = Path.Combine(targetDirectory, "Program.cs");
-        if (ServerProgramCs(name, batteries) is { } text)
-        {
-            files = [.. files.Select(f => string.Equals(f.Path, program, StringComparison.Ordinal) ? f with { Content = text } : f)];
-        }
+        files = WithProgramCs(
+            files, targetDirectory, ConfiguredProgramCs($"using {name}.Features.Shared;\n\n", OffSwitches(batteries), "app.Run<App>();"));
 
         return new ScaffoldResult(files, ServerNextSteps(name, batteries))
         {
@@ -90,10 +85,23 @@ internal static partial class ProjectGenerator
         }
     }
 
-    // Null when every battery is on: the committed one-liner is then the file.
-    private static string? ServerProgramCs(string name, ServerBatteries batteries)
+    // The committed Program.cs is the default app — every battery on, one line. A battery turned off is a line in it
+    // rather than a missing package, so the file is rewritten when there is one to say; text is null otherwise.
+    private static IReadOnlyList<ScaffoldFile> WithProgramCs(IReadOnlyList<ScaffoldFile> files, string targetDirectory, string? text)
     {
-        var off = OffSwitches(batteries);
+        if (text is null)
+        {
+            return files;
+        }
+
+        var program = Path.Combine(targetDirectory, "Program.cs");
+        return [.. files.Select(f => string.Equals(f.Path, program, StringComparison.Ordinal) ? f with { Content = text } : f)];
+    }
+
+    // Null when every battery is on: the committed file is then the file. `prefix` is what precedes the app
+    // (a using, or nothing), `services` what the app registers of its own, and `run` the line that starts it.
+    private static string? ConfiguredProgramCs(string prefix, List<string> off, string run, string services = "")
+    {
         if (off.Count == 0)
         {
             return null;
@@ -104,14 +112,12 @@ internal static partial class ProjectGenerator
             : "app.Configure(c =>\n{\n" + string.Concat(off.Select(b => $"    c.{b}.Off();\n")) + "});";
 
         return $$"""
-            using {{name}}.Features.Shared;
-
-            var app = RaskApp.Create(args);
+            {{prefix}}var app = RaskApp.Create(args);
 
             // Every other battery is on, and every setting lives in appsettings.json under "Rask" (docs/configuration.md).
             {{configure}}
 
-            app.Run<App>();
+            {{services}}{{run}}
 
             """;
     }

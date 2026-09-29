@@ -14,8 +14,7 @@ namespace Rask.Data;
 /// <example>
 /// <code>
 /// var hits = await Post.Search(query)
-///     .Select(p =&gt; new { p.Id, Title = FullText.Highlight(p.Title), Excerpt = FullText.Snippet(p.Body) })
-///     .ToListAsync();
+///     .Select(p =&gt; new { p.Id, Title = FullText.Highlight(p.Title), Excerpt = FullText.Snippet(p.Body) });
 /// </code>
 /// </example>
 public static class FullText

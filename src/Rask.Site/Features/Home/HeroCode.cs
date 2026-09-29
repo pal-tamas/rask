@@ -59,7 +59,7 @@ public sealed partial class HeroCode : Component
 
     // A window-chrome dot. The colour is an inline style because these three are macOS's traffic lights,
     // not palette entries — putting them in the theme would invite something else to use them.
-    private static Rask.Core.Components.HTMLSpanElement Dot(string color) =>
+    private static Rask.Core.HTMLSpanElement Dot(string color) =>
         Span.Class("size-2.5 shrink-0 rounded-full").Style($"background:{color}");
 
     // ---- highlighting ----
@@ -111,7 +111,7 @@ public sealed partial class HeroCode : Component
                 {
                     // Cached, and refetched after any Product write.
                     var count = QueryClient.Query(QueryKey.For<Product>(),
-                        ct => Product.CountAsync(ct));
+                        () => Product.Count());
 
                     return
                     [

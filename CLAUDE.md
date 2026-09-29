@@ -41,7 +41,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 
 ## Projects
 - `src/Rask.Core` — **the `Rask` package** (assembly stays `Rask.Core`): rendering, live context, routing, scoped
-  CSS/TypeScript, lifecycle, AND the whole HTML/SVG element family (HTML generated from MDN by `src/Rask.Dom.Tasks`) in `Rask.Core.Components`;
+  CSS/TypeScript, lifecycle, AND the whole HTML/SVG element family (generated from MDN by `src/Rask.Dom.Tasks`, MDN-named types in `Rask.Core`);
   ships the analyzers and the build hooks (`build/Rask.props|targets`, twinned into `buildTransitive/`). Both hosts
   depend on it `PrivateAssets="none"`; a component library references it alone. The tags live HERE so their entries
   land on `RaskMarkup` and reach every component by INHERITANCE — a referenced library's must be injected per host (~8.7k members).
@@ -53,6 +53,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
   There is NO meta-package any more: `Rask` = shared core, `Rask.Server`/`Rask.Wasm` = host + batteries.
 - `src/Rask.Spa.Hosting` — `MapRaskSpa()`: serves a built SPA, a TypeScript bundle OR a Rask WASM app (WASM is a SPA, never a render mode). `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
+- `src/Rask.Web` — every web API from MDN (generated at build from the Core snapshot by `src/Rask.Dom.Tasks`'s WebEmitter): globals in `Rask.Web`, MDN interfaces in `Rask.Web.Types`, each chain one `__raskWeb.run` round trip, kept objects as `IJSObjectReference` handles. Opt-in (`using Rask.Web;`) until the wrappers go.
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
 - `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from
   `BlazorComponent<T>` (T from an RCL/MudBlazor/Radzen — the Razor SDK compiles `.razor` untouched). Rendered

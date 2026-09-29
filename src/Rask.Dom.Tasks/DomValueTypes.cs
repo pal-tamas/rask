@@ -6,11 +6,16 @@ using Rask.Generators.Json;
 
 namespace Rask.Core.Dom.Build;
 
-// IDL types to C# for a typed ref's members: what crosses the wire as JSON, and the enums and records (IDL enums,
-// dictionaries, and value objects that serialize themselves by toJSON, like DOMRect) that has to declare for it.
-internal sealed class DomValueTypes(JsonNode root)
+// IDL types to C#: what crosses the wire as JSON, and the enums and records (IDL enums, dictionaries, and value objects
+// that are only data, like DOMRect) an assembly has to declare for it. Core declares what element refs use; Rask.Web runs
+// the element refs' pass first, marks those as Core's (MarkExternal), and declares only the rest, under `prefix`.
+internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 {
+    private const string CorePrefix = "global::Rask.Core.";
+
     private static readonly string[] Or = { " or " };
+
+    private static readonly char[] Space = { ' ' };
 
     private readonly JsonNode _interfaces = root["interfaces"]!;
     private readonly JsonNode _enums = root["enums"]!;
@@ -20,6 +25,28 @@ internal sealed class DomValueTypes(JsonNode root)
     private readonly Dictionary<string, string?> _recordParents = new(StringComparer.Ordinal);
     private readonly SortedSet<string> _serializable = new(StringComparer.Ordinal);
     private readonly HashSet<string> _visiting = new(StringComparer.Ordinal);
+
+    // The types another assembly (Core) declares: named, never declared again.
+    private readonly HashSet<string> _external = new(StringComparer.Ordinal);
+
+    // Everything mapped so far is Core's: Rask.Web calls this after running the element refs' pass.
+    public void MarkExternal()
+    {
+        _external.UnionWith(_usedEnums);
+        _external.UnionWith(_records.Keys);
+        _serializable.Clear();
+        _onlyData = true;
+    }
+
+    // Core has no live objects, so there anything that serializes itself is a value; where live objects exist (Rask.Web),
+    // only one that is nothing but data is.
+    private bool _onlyData;
+
+    // Whether an IDL name crosses as a value (an enum, a dictionary, data that serializes itself) rather than a live object.
+    public bool IsValue(string name) =>
+        _external.Contains(name) || _enums[name] is not null || _dictionaries[name] is not null || (_interfaces[name] is not null && ToJson(name));
+
+    private string Qualify(string name) => _external.Contains(name) ? CorePrefix + name : prefix + name;
 
     public static void Header(StringBuilder sb)
     {
@@ -81,7 +108,7 @@ internal sealed class DomValueTypes(JsonNode root)
         }
 
         var named = Named(bare);
-        return named is null ? null : named + suffix;
+        return named is null ? null : Qualify(named) + suffix;
     }
 
     private static string? Primitive(string idl) => idl switch
@@ -127,7 +154,6 @@ internal sealed class DomValueTypes(JsonNode root)
 
         _records[name] = fields;
         _recordParents[name] = parentType;
-        _serializable.Add(name);
         return name;
     }
 
@@ -159,19 +185,25 @@ internal sealed class DomValueTypes(JsonNode root)
         return fields;
     }
 
-    private bool ToJson(string name)
+    // A value object serializes itself (toJSON). Where live objects exist it must also do nothing else: DOMRect is data,
+    // PushSubscription, which can unsubscribe, is a live object.
+    internal bool ToJson(string name)
     {
+        var json = false;
+        var more = false;
         for (var n = name; n is not null && _interfaces[n] is { } i; n = i["parent"]?.AsString())
         {
-            var members = i["members"]?.Items ?? new List<JsonNode>();
-            if (members.Any(m => string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal)
-                                 && string.Equals(m["name"]?.AsString(), "toJSON", StringComparison.Ordinal)))
+            foreach (var m in (i["members"]?.Items ?? new List<JsonNode>()).Where(m => string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal)))
             {
-                return true;
+                var isToJson = string.Equals(m["name"]?.AsString(), "toJSON", StringComparison.Ordinal);
+                json |= isToJson;
+                more |= !isToJson;
             }
         }
 
-        return false;
+        // …nor may it be a class with behaviour of its own: URL has URL.canParse and new URL(…).
+        var behaviour = _interfaces[name]?["constructors"] is not null || _interfaces[name]?["statics"] is not null;
+        return json && !(_onlyData && (more || behaviour));
     }
 
     // typeof(string?) is not C#: a reference type is registered bare, a value type both ways.
@@ -179,37 +211,38 @@ internal sealed class DomValueTypes(JsonNode root)
     {
         var bare = type.TrimEnd('?');
         _serializable.Add(bare);
-        if (bare is "bool" or "int" or "long" or "double" || _usedEnums.Contains(bare))
+        var name = bare.Substring(bare.LastIndexOf('.') + 1);
+        if (bare is "bool" or "int" or "long" or "double" || _usedEnums.Contains(name))
         {
             _serializable.Add(bare + "?");
         }
     }
 
-    public string Declarations()
+    // This assembly's enums and records, in `ns`, and a JSON context `context` for every type its members send or read.
+    public string Declarations(string ns, string context)
     {
         var sb = new StringBuilder();
         Header(sb);
         sb.AppendLine("using System.Text.Json.Serialization;");
         sb.AppendLine();
-        sb.AppendLine("namespace Rask.Core;");
+        sb.Append("namespace ").Append(ns).AppendLine(";");
         sb.AppendLine();
-        foreach (var name in _usedEnums)
+        foreach (var name in _usedEnums.Where(n => !_external.Contains(n)))
         {
             Enum(sb, name);
         }
 
-        foreach (var record in _records)
+        foreach (var record in _records.Where(r => !_external.Contains(r.Key)))
         {
             Record(sb, record.Key, record.Value);
         }
 
-        // Trim-safe metadata for every type a generated member sends or reads, chained into the WASM runtime.
         foreach (var t in _serializable)
         {
             sb.Append("[JsonSerializable(typeof(").Append(t).AppendLine("))]");
         }
 
-        sb.AppendLine("internal sealed partial class RaskDomJsonContext : JsonSerializerContext;");
+        sb.Append("internal sealed partial class ").Append(context).AppendLine(" : JsonSerializerContext;");
         return sb.ToString();
     }
 
@@ -223,7 +256,7 @@ internal sealed class DomValueTypes(JsonNode root)
         {
             sb.Append("    /// <summary>The value <c>\"").Append(v).AppendLine("\"</c>.</summary>");
             sb.Append("    [JsonStringEnumMemberName(\"").Append(v).AppendLine("\")]");
-            sb.Append("    ").Append(v.Length == 0 ? "Empty" : string.Concat(v.Split('-').Select(DomRefEmitter.Pascal))).AppendLine(",");
+            sb.Append("    ").Append(EnumMember(v)).AppendLine(",");
             sb.AppendLine();
         }
 
@@ -231,14 +264,34 @@ internal sealed class DomValueTypes(JsonNode root)
         sb.AppendLine();
     }
 
+    // "smooth" → Smooth, "2d-array" → _2dArray (an identifier cannot start with a digit), "" → Empty.
+    private static string EnumMember(string value)
+    {
+        if (value.Length == 0)
+        {
+            return "Empty";
+        }
+
+        var words = new StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            words.Append(char.IsLetterOrDigit(c) ? c : ' ');
+        }
+
+        var name = string.Concat(words.ToString().Split(Space, StringSplitOptions.RemoveEmptyEntries).Select(DomRefEmitter.Pascal));
+        return char.IsDigit(name[0]) ? "_" + name : name;
+    }
+
     private void Record(StringBuilder sb, string name, List<(string Name, string Type, string Json, bool Required)> fields)
     {
-        var isBase = _recordParents.ContainsValue(name);
+        // Open to any dictionary MDN derives from it, which Rask.Web may declare beside it.
+        var isBase = _dictionaries.Members.Any(d => string.Equals(d.Value["parent"]?.AsString(), name, StringComparison.Ordinal))
+                     || _interfaces.Members.Any(i => string.Equals(i.Value["parent"]?.AsString(), name, StringComparison.Ordinal));
         sb.Append("/// <summary>MDN's <c>").Append(name).AppendLine("</c>, as it crosses to and from the browser.</summary>");
         sb.Append("public ").Append(isBase ? "" : "sealed ").Append("record ").Append(name);
         if (_recordParents[name] is { } parent)
         {
-            sb.Append(" : ").Append(parent);
+            sb.Append(" : ").Append(Qualify(parent));
         }
 
         sb.AppendLine();

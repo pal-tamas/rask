@@ -49,10 +49,8 @@ public sealed class FeedCoverageTests
         {
             "wasm" => ProjectGenerator.GenerateWasm(
                 Root, "App", pwa: false, docker: false, Version, batteries),
-            // Bare batteries here, as every case in this theory has: the generator forces CQRS on, so
-            // this still reaches Rask.Cqrs.Server and Rask.Spa.Hosting — the two packages that left the
-            // server template's list with the --wasm flag (#1103) and would otherwise be covered by
-            // nothing.
+            // Bare batteries here, as every case in this theory has. The host's list is the server
+            // template's now — Rask.Server carries the endpoint half and the bundle host as dependencies.
             "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
             _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
         };
@@ -111,8 +109,8 @@ public sealed class FeedCoverageTests
             ProjectGenerator.GenerateWasm(Root, "App", pwa: true, docker: true, Version, batteries),
             "the wasm template with its test project");
 
-        // wasm-hosted supports the same batteries AND adds two packages of its own, so the combination
-        // that pulls in the most is this one rather than the server's.
+        // wasm-hosted supports the same batteries; its host's packages are the server's, and its client's are
+        // RaskClientPackageReference items, which never reach this list.
         AssertFeedCovers(
             ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
             "the wasm-hosted template with every battery");

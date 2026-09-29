@@ -55,9 +55,21 @@ public sealed class WasmRemoteDispatchTests
         Assert.DoesNotContain("Features/Shared/ErrorPage.cs", files.Keys);
 
         var program = files["Program.cs"];
-        Assert.Contains("app.MapRaskSpa();", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("MapRask<App>", program, StringComparison.Ordinal);
-        Assert.Contains("using Rask.Spa.Hosting;", program, StringComparison.Ordinal);
+        Assert.Contains("app.Serve();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("Run<App>", program, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void With_every_battery_on_the_server_is_one_line()
+    {
+        var files = Hosted([.. NewCommand.BatteryFlags]);
+
+        var program = files["Program.cs"];
+
+        // The committed file, untouched: nothing turned off means nothing for Program.cs to say.
+        Assert.Contains("RaskApp.Create(args).Serve();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Off();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("builder.", program, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -110,8 +122,8 @@ public sealed class WasmRemoteDispatchTests
 
         Assert.Contains("AddRaskCqrsClient", files["Client/Program.cs"], StringComparison.Ordinal);
         Assert.Contains("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
-        Assert.Contains("AddRaskCqrsServer", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("Rask.Cqrs.Server", files["App.csproj"], StringComparison.Ordinal);
+        Assert.Contains(".Serve();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Cqrs.Off()", files["Program.cs"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -130,41 +142,35 @@ public sealed class WasmRemoteDispatchTests
             csproj,
             StringComparison.Ordinal);
 
-        // The endpoint half is an ordinary reference, because the server is what answers.
+        // The endpoint half arrives with the host package, because the server is what answers.
         Assert.Contains(
-            $"""<PackageReference Include="Rask.Cqrs.Server" Version="{Version}"/>""",
+            $"""<PackageReference Include="Rask.Server" Version="{Version}"/>""",
             csproj,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Cqrs.Server", csproj, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_endpoints_are_mapped_before_the_fallback_that_would_answer_them()
+    public void A_battery_left_out_is_a_line_in_Program_cs()
     {
-        var program = Hosted()["Program.cs"];
+        // Where the endpoints and the console are mapped is RaskApp.Serve's business now (RaskAppServeTests);
+        // what the scaffold still decides is which batteries this app does without.
+        var program = Hosted("data")["Program.cs"];
 
-        var map = program.IndexOf("app.MapRaskCqrs();", StringComparison.Ordinal);
-        var spa = program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal);
-
-        Assert.Contains("using Rask.Cqrs.Server;", program, StringComparison.Ordinal);
-        Assert.True(map >= 0, "the CQRS endpoints are never mapped.");
-        Assert.True(spa >= 0, "the browser app is never served.");
-        Assert.True(map < spa, "MapRaskCqrs reads above MapRaskSpa, whose fallback answers every other route.");
+        Assert.Contains("c.Ops.Off();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Data.Off();", program, StringComparison.Ordinal);
+        Assert.Contains("app.Serve();", program, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_dashboard_is_the_one_server_rendered_part()
+    public void The_pwa_is_the_browser_apps_so_the_server_never_switches_it()
     {
-        var program = Hosted("data", "ops")["Program.cs"];
+        // Serve wires no server-side PWA — Client/Program.cs's UsePwa is the app's — so an app without one
+        // says so by leaving push out, which is the part the server does run.
+        var program = Hosted("data")["Program.cs"];
 
-        Assert.Contains("builder.Services.AddRaskServer();", program, StringComparison.Ordinal);
-        Assert.Contains(
-            """app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}");""",
-            program,
-            StringComparison.Ordinal);
-        Assert.True(
-            program.IndexOf("MapRaskServer<RaskDashboardShell>", StringComparison.Ordinal)
-            < program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal),
-            "the dashboard must be mounted above the browser app's fallback.");
+        Assert.DoesNotContain("c.Pwa.Off();", program, StringComparison.Ordinal);
+        Assert.Contains("c.Push.Off();", program, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -176,7 +182,7 @@ public sealed class WasmRemoteDispatchTests
         // server. It is a setting, so it lives in appsettings.json beside the note on when to turn it back on.
         var files = Hosted();
 
-        Assert.Contains("builder.Services.AddRaskCqrsServer();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("c.Data.Off();", files["Program.cs"], StringComparison.Ordinal);
         Assert.Contains("\"RequireAuthenticatedUser\": false", files["appsettings.json"], StringComparison.Ordinal);
     }
 
@@ -188,7 +194,7 @@ public sealed class WasmRemoteDispatchTests
         // A database means accounts, so there is something to authenticate — and the scaffold must not
         // hand the app a loosening it never asked for, in either file. A message reachable by anyone is a
         // decision worth making per app.
-        Assert.Contains("builder.Services.AddRaskCqrsServer();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Data.Off();", files["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("RequireAuthenticatedUser", files["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("RequireAuthenticatedUser", files["appsettings.json"], StringComparison.Ordinal);
     }

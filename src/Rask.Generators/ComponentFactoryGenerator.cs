@@ -5529,17 +5529,29 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var ns = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
 
         // Rask.Core itself (Component base, Text/Raw) and the Live runtime are excluded —
-        // they are not user-facing tag wrappers. Rask.Core.Components is intentionally NOT
-        // excluded: that is where the HTML tag wrappers live, and the generator now emits
-        // their factories the same way it does for user components.
+        // they are not user-facing tag wrappers. Except MDN's element types, which live in
+        // Rask.Core beside MDN's event types: everything there that derives from Element.
         if (string.Equals(ns, "Rask.Core", StringComparison.Ordinal))
         {
-            return true;
+            return !DerivesFromElement(symbol);
         }
 
         if (string.Equals(ns, "Rask.Core.Live", StringComparison.Ordinal) || ns.StartsWith("Rask.Core.Live.", StringComparison.Ordinal))
         {
             return true;
+        }
+
+        return false;
+    }
+
+    private static bool DerivesFromElement(INamedTypeSymbol symbol)
+    {
+        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
+        {
+            if (string.Equals(t.ToDisplayString(), "Rask.Core.Element", StringComparison.Ordinal))
+            {
+                return true;
+            }
         }
 
         return false;

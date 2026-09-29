@@ -39,14 +39,15 @@ internal static class DomRefEmitter
     // What an untyped ElementRef carries, ahead of every element interface.
     private static readonly string[] Untyped = { "Element" };
 
-    public static void Emit(JsonNode root, IReadOnlyList<string> dom, IReadOnlyDictionary<string, HashSet<string>> rendered, List<KeyValuePair<string, string>> files)
+    public static void Emit(
+        JsonNode root, IReadOnlyList<string> dom, IReadOnlyDictionary<string, HashSet<string>> rendered, List<KeyValuePair<string, string>> files,
+        DomValueTypes? shared = null)
     {
-        var types = new DomValueTypes(root);
+        var types = shared ?? new DomValueTypes(root);
         var interfaces = root["interfaces"]!;
         var sb = new StringBuilder();
         DomValueTypes.Header(sb);
         sb.AppendLine("using System.Threading.Tasks;");
-        sb.AppendLine("using Rask.Core.Components;");
         sb.AppendLine();
         sb.AppendLine("namespace Rask.Core;");
         sb.AppendLine();
@@ -79,7 +80,7 @@ internal static class DomRefEmitter
 
         sb.AppendLine("}");
         files.Add(new KeyValuePair<string, string>("ElementRefMembers.g.cs", sb.ToString()));
-        files.Add(new KeyValuePair<string, string>("DomValues.g.cs", types.Declarations()));
+        files.Add(new KeyValuePair<string, string>("DomValues.g.cs", types.Declarations("Rask.Core", "RaskDomJsonContext")));
     }
 
     private static string Members(JsonNode iface, DomValueTypes types, HashSet<string> rendered, HashSet<string> taken)
@@ -172,7 +173,7 @@ internal static class DomRefEmitter
     }
 
     // The whole argument list, then the list cut before each optional argument from the end.
-    private static IEnumerable<List<JsonNode>> Prefixes(List<JsonNode> args)
+    internal static IEnumerable<List<JsonNode>> Prefixes(List<JsonNode> args)
     {
         yield return args;
         for (var count = args.Count - 1; count >= 0 && args[count]["optional"]?.AsBoolean() == true; count--)
@@ -182,7 +183,7 @@ internal static class DomRefEmitter
     }
 
     // Every combination of the arguments' types that crosses the wire; none if one argument has no such type.
-    private static IEnumerable<List<(string Type, string Name)>> Expand(List<JsonNode> args, DomValueTypes types)
+    internal static IEnumerable<List<(string Type, string Name)>> Expand(List<JsonNode> args, DomValueTypes types)
     {
         IEnumerable<List<(string Type, string Name)>> combos = new[] { new List<(string Type, string Name)>() };
         foreach (var a in args)
@@ -221,7 +222,7 @@ internal static class DomRefEmitter
         sb.AppendLine();
     }
 
-    private static string Identifier(string name) => CSharpKeywords.Contains(name) ? "@" + name : name;
+    internal static string Identifier(string name) => CSharpKeywords.Contains(name) ? "@" + name : name;
 
     internal static string Pascal(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s.Substring(1);
 }

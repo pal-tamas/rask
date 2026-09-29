@@ -3,7 +3,7 @@ using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
-namespace Rask.Core.Components;
+namespace Rask.Core;
 
 // The typed layer over MDN's HTMLTextAreaElement (generated, abstract, every plain attribute). The bound value
 // type T is usually string; non-string T round-trips through FormatValue (T→string) and the binding parser

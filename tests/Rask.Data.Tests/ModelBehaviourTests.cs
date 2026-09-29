@@ -189,11 +189,11 @@ public sealed class ModelBehaviourTests : IDisposable
 
         Assert.True(await first.TryCancelAsync(database.Context, Now));
         Assert.True(await second.TryCancelAsync(database.Context, Now));
-        Assert.Equal(0, await Order.CountAsync(o => o.Status == OrderStatus.Cancelled));
+        Assert.Equal(0, await Order.Count(o => o.Status == OrderStatus.Cancelled));
 
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal(2, await Order.CountAsync(o => o.Status == OrderStatus.Cancelled));
+        Assert.Equal(2, await Order.Count(o => o.Status == OrderStatus.Cancelled));
     }
 
     [Fact]
@@ -222,8 +222,8 @@ public sealed class ModelBehaviourTests : IDisposable
         await database.Context.SaveChangesAsync();
 
         // The interceptors are wired by the fixture, so the conventions behave as they do in production.
-        Assert.Equal(0, await Order.CountAsync());
-        Assert.Single(await Order.IgnoreQueryFilters().Where(o => o.Id == order.Id).ToListAsync());
+        Assert.Equal(0, await Order.Count());
+        Assert.Single(await Order.IgnoreQueryFilters().Where(o => o.Id == order.Id));
     }
 
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>

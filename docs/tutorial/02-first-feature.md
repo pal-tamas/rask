@@ -323,7 +323,7 @@ public sealed partial class ProductsPage : Component
     {
         // Cached for this session, and refetched by itself after any Product write — a create, an edit, a
         // delete — because its key is about Product.
-        var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.CountAsync(ct));
+        var count = QueryClient.Query(QueryKey.For<Product>("count"), () => Product.Count());
 
         return
         [

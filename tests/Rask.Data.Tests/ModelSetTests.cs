@@ -57,11 +57,11 @@ public sealed class ModelSetTests : IDisposable
     {
         await SeedAsync("alpha", "beta", "gamma");
 
-        var all = await Widget.ToListAsync();
-        var ordered = await Widget.OrderBy(w => w.Name).ToListAsync();
-        var filtered = await Widget.Where(w => w.Name != "beta").OrderByDescending(w => w.Name).ToListAsync();
-        var page = await Widget.OrderBy(w => w.Name).Skip(1).Take(1).ToListAsync();
-        var names = await Widget.OrderBy(w => w.Name).Select(w => w.Name).ToListAsync();
+        var all = await Widget.All;
+        var ordered = await Widget.OrderBy(w => w.Name);
+        var filtered = await Widget.Where(w => w.Name != "beta").OrderByDescending(w => w.Name);
+        var page = await Widget.OrderBy(w => w.Name).Skip(1).Take(1);
+        var names = await Widget.OrderBy(w => w.Name).Select(w => w.Name);
 
         Assert.Equal(3, all.Count);
         Assert.Equal(["alpha", "beta", "gamma"], ordered.Select(w => w.Name));
@@ -75,15 +75,28 @@ public sealed class ModelSetTests : IDisposable
     {
         await SeedAsync("alpha", "beta");
 
-        Assert.Equal(2, await Widget.CountAsync());
-        Assert.Equal(1, await Widget.CountAsync(w => w.Name == "alpha"));
-        Assert.Equal(2L, await Widget.LongCountAsync());
-        Assert.True(await Widget.AnyAsync());
-        Assert.True(await Widget.AnyAsync(w => w.Name == "beta"));
-        Assert.False(await Widget.AnyAsync(w => w.Name == "nope"));
-        Assert.Equal(2, (await Widget.ToArrayAsync()).Length);
-        Assert.NotNull(await Widget.SingleOrDefaultAsync(w => w.Name == "alpha"));
-        Assert.Null(await Widget.FirstOrDefaultAsync(w => w.Name == "nope"));
+        Assert.Equal(2, await Widget.Count());
+        Assert.Equal(1, await Widget.Count(w => w.Name == "alpha"));
+        Assert.Equal(2L, await Widget.LongCount());
+        Assert.True(await Widget.Any());
+        Assert.True(await Widget.Any(w => w.Name == "beta"));
+        Assert.False(await Widget.Any(w => w.Name == "nope"));
+        Assert.Equal(2, (await Widget.All).Count);
+        Assert.NotNull(await Widget.Single(w => w.Name == "alpha"));
+        Assert.Null(await Widget.First(w => w.Name == "nope"));
+    }
+
+    [Fact]
+    public async Task A_read_given_no_token_is_cancelled_with_the_work_it_belongs_to()
+    {
+        await SeedAsync("alpha");
+        using var stopped = new CancellationTokenSource();
+        await stopped.CancelAsync();
+
+        using var work = Ambient.Enter(stopped.Token);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Widget.All);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Widget.Count());
     }
 
     [Fact]
@@ -92,12 +105,12 @@ public sealed class ModelSetTests : IDisposable
         // Every terminal opens its own context, so a half-built query kept in a field is not pinned to
         // what the database held when it was built.
         var live = Widget.Where(w => w.Name != "hidden");
-        Assert.Equal(0, await live.CountAsync());
+        Assert.Equal(0, await live.Count());
 
         await SeedAsync("alpha", "hidden");
 
-        Assert.Equal(1, await live.CountAsync());
-        Assert.Equal(["alpha"], (await live.OrderBy(w => w.Name).ToListAsync()).Select(w => w.Name));
+        Assert.Equal(1, await live.Count());
+        Assert.Equal(["alpha"], (await live.OrderBy(w => w.Name)).Select(w => w.Name));
     }
 
     [Fact]
@@ -121,10 +134,10 @@ public sealed class ModelSetTests : IDisposable
         }
 
         // Gone from ordinary queries — the global filter ApplyRaskConventions added.
-        Assert.Equal(0, await Widget.CountAsync());
+        Assert.Equal(0, await Widget.Count());
 
         // Still there, stamped, behind IgnoreQueryFilters.
-        var deleted = await Widget.IgnoreQueryFilters().ToListAsync();
+        var deleted = await Widget.IgnoreQueryFilters();
         Assert.Single(deleted);
         Assert.NotNull(deleted[0].DeletedAt);
     }
@@ -163,15 +176,15 @@ public sealed class ModelSetTests : IDisposable
         }
 
         Assert.Contains(_recorder.Events, e => e is WidgetRenamed renamed && renamed.Id == widget.Id);
-        Assert.Equal(1, await Widget.CountAsync(w => w.Name == "after"));
+        Assert.Equal(1, await Widget.Count(w => w.Name == "after"));
     }
 
     [Fact]
-    public async Task QueryAsync_is_a_real_escape_hatch_to_the_live_queryable()
+    public async Task Query_is_a_real_escape_hatch_to_the_live_queryable()
     {
         await SeedAsync("alpha", "beta", "gamma");
 
-        var initials = await Widget.QueryAsync((q, ct) => q
+        var initials = await Widget.Query((q, ct) => q
             .GroupBy(w => w.Name.Substring(0, 1))
             .Select(g => new { Initial = g.Key, Count = g.Count() })
             .OrderBy(x => x.Initial)
@@ -188,7 +201,7 @@ public sealed class ModelSetTests : IDisposable
 
         Assert.False(Db.IsConfigured);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.CountAsync());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Count());
         Assert.Contains("Db.Configure", error.Message, StringComparison.Ordinal);
 
         // A queryable composed before startup (a page field, say) fails the same way when it runs, not

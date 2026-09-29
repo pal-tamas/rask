@@ -36,6 +36,49 @@ window.__raskEl = window.__raskEl || {
     }
 };
 
+// Rask.Web's generated globals and MDN interfaces (`Navigator.Clipboard.WriteText("hi")`): a chain of property reads
+// ("g"), method calls ("c"), constructors ("n") and one write ("s") from the window, or from an object a chain kept (an IJSObjectReference,
+// revived to the object), run in one round trip. The steps arrive as JSON Rask.Web wrote with its own metadata; their
+// names come from its generated code, so only MDN's members are ever reached.
+type RaskWebStep = [kind: "g" | "c" | "n" | "s", name: string, args?: unknown[]];
+const raskWebUnsafe = new Set(["__proto__", "prototype", "constructor"]);
+const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
+    let target = (root ?? window) as Record<string, unknown> | null | undefined;
+    for (const [kind, name, args] of steps) {
+        if (raskWebUnsafe.has(name)) throw new Error(`Rask: ${name} is not a web API member`);
+        if (target == null) throw new Error(`Rask: there is no object to read ${name} from`);
+        if (kind === "g") {
+            target = target[name] as Record<string, unknown> | null | undefined;
+        } else if (kind === "c") {
+            const fn = target[name];
+            if (typeof fn !== "function") throw new Error(`Rask: ${name} is not a function here`);
+            target = (fn as (...a: unknown[]) => unknown).apply(target, args ?? []) as Record<string, unknown>;
+        } else if (kind === "n") {
+            const ctor = target[name];
+            if (typeof ctor !== "function") throw new Error(`Rask: ${name} is not a constructor here`);
+            target = new (ctor as new (...a: unknown[]) => Record<string, unknown>)(...(args ?? []));
+        } else {
+            target[name] = args?.[0];
+            return undefined;
+        }
+    }
+    return target;
+};
+window.__raskWeb = window.__raskWeb || {
+    run: (root: unknown, steps: string) => raskWebWalk(root, JSON.parse(steps) as RaskWebStep[]),
+    // Whether the browser has what the chain ends at: the object before it exists and holds a member of that name.
+    has: (root: unknown, steps: string) => {
+        const parsed = JSON.parse(steps) as RaskWebStep[];
+        const last = parsed.pop();
+        try {
+            const owner = raskWebWalk(root, parsed);
+            return last === undefined || (owner != null && last[1] in Object(owner));
+        } catch {
+            return false;
+        }
+    }
+};
+
 // Gesture-bridge DOM helpers — moved here from rask-wasm-api.js so they ship to the Server client too.
 // They drive activation-gated browser APIs that must run inside a click gesture; the declarative
 // FullscreenTrigger / EyeDropperTrigger components (and the data-rask-gesture click handler in

@@ -282,22 +282,41 @@ public sealed class GeneratedInputModelTests : IDisposable
     }
 
     [Fact]
-    public async Task A_null_clears_a_nullable_property_and_leaves_a_non_nullable_one()
+    public async Task A_null_clears_a_nullable_property()
     {
         await using var database = await StartDatabaseAsync();
         var model = NewModel();
         model.Note = "net 30";
         var created = await Invoice.Create(model);
+        var edit = EditOf(created);
+        edit.Note = null;
 
-        // The form emptied Note, and never set Balance or Total at all.
-        var edit = new InvoiceModel(blank: true) { Title = "April", Note = null, Version = created.Version };
         await Invoice.Update(created.Id, edit);
 
         var stored = (await database.LoadAsync<Invoice>(created.Id))!;
-        Assert.Equal("April", stored.Title);
         Assert.Null(stored.Note);
         Assert.Equal(120.5m, stored.Balance);
-        Assert.Equal(new InvoiceTotal(99m, "HUF"), stored.Total);
+    }
+
+    [Fact]
+    public async Task A_cleared_field_the_row_cannot_hold_empty_is_refused_and_nothing_is_written()
+    {
+        await using var database = await StartDatabaseAsync();
+        var created = await Invoice.Create(NewModel());
+        var edit = EditOf(created);
+        edit.Title = "April";
+        edit.Balance = null;
+        var fresh = NewModel();
+        fresh.Balance = null;
+
+        var update = await Assert.ThrowsAsync<ValidationException>(() => Invoice.Update(created.Id, edit));
+        var create = await Assert.ThrowsAsync<ValidationException>(() => Invoice.Create(fresh));
+
+        Assert.Contains("Balance", update.Message, StringComparison.Ordinal);
+        Assert.Contains("Balance", create.Message, StringComparison.Ordinal);
+        Assert.False(IsValid(edit, out _));
+        Assert.Equal("March", (await database.LoadAsync<Invoice>(created.Id))!.Title);
+        Assert.Equal(1, await Invoice.Count());
     }
 
     [Fact]

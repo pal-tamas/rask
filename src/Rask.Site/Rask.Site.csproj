@@ -119,6 +119,7 @@
          out of scope, which arrives as ~1,900 errors that all look like missing usings. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Web\Rask.Web.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"

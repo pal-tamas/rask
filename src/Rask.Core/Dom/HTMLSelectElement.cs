@@ -3,7 +3,7 @@ using System.Text;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
-namespace Rask.Core.Components;
+namespace Rask.Core;
 
 // The typed layer over MDN's HTMLSelectElement (generated, abstract, every plain attribute). Binding is
 // resolved at render time (WriteAttributes); the matching <option> is pre-marked selected just before the

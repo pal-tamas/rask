@@ -61,13 +61,27 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             options.GlobalOptions.TryGetValue("build_property.RaskEmitTypeScript", out var value)
             && value.Equals("true", System.StringComparison.OrdinalIgnoreCase));
 
+        // Off only when the build says so: Rask.Server sets it from whether the project builds a browser client
+        // (Client/), because it references the server transport for Serve() and a server-rendered app — whose
+        // messages never leave the process — should neither pay for the codec nor meet RASK053. A project that
+        // does not come through Rask.Server never sets it, and keeps the codec as before.
+        var codecOff = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+            options.GlobalOptions.TryGetValue("build_property.RaskCqrsCodec", out var value)
+            && value.Equals("false", System.StringComparison.OrdinalIgnoreCase));
+
         // Deliberately driven straight off the compilation rather than through a cached model: the
         // discovery walk reaches into referenced assemblies, and the symbols it produces must not be
         // held across an incremental-pipeline boundary. Everything is done inside the output callback,
         // so nothing outlives the compilation it came from.
         context.RegisterSourceOutput(
-            context.CompilationProvider.Combine(typeScript),
-            static (spc, pair) => Execute(spc, pair.Left, pair.Right));
+            context.CompilationProvider.Combine(typeScript).Combine(codecOff),
+            static (spc, pair) =>
+            {
+                if (!pair.Right)
+                {
+                    Execute(spc, pair.Left.Left, pair.Left.Right);
+                }
+            });
     }
 
     private static void Execute(SourceProductionContext spc, Compilation compilation, bool emitTypeScript)

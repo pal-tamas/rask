@@ -35,25 +35,25 @@ public sealed class AdminTenantSwitchTests : IDisposable
         await SaveAsync(database, _globex, "GLOBEX-1");
 
         // An admin carries no tenant, so this is where they start: nothing chosen yet.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Ledger.ToListAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await Ledger.All);
 
         // Across() is the one place an admin reads every tenant at once — in a real app, to show the list of
         // tenants to choose from. That list comes from the app's OWN Tenant aggregate; Rask ships only the id.
         using (Tenant.Across())
         {
-            Assert.Equal(2, await Ledger.CountAsync());
+            Assert.Equal(2, await Ledger.Count());
         }
 
         // Then they work inside one, and see exactly what a user of that tenant sees — no more.
         using (Tenant.Use(_acme))
         {
-            Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["ACME-1"], await Ledger.Select(l => l.Reference));
         }
 
         // Switching is just choosing again.
         using (Tenant.Use(_globex))
         {
-            Assert.Equal(["GLOBEX-1"], await Ledger.Select(l => l.Reference).ToListAsync());
+            Assert.Equal(["GLOBEX-1"], await Ledger.Select(l => l.Reference));
         }
     }
 
@@ -65,11 +65,11 @@ public sealed class AdminTenantSwitchTests : IDisposable
 
         using (Tenant.Use(_acme))
         {
-            Assert.Single(await Ledger.ToListAsync());
+            Assert.Single(await Ledger.All);
         }
 
         // Fails closed on the way out too: the scope ends, and the next read has nothing to go on again.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Ledger.ToListAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await Ledger.All);
     }
 
     private async Task SaveAsync(TestDatabase database, Guid tenant, string reference)

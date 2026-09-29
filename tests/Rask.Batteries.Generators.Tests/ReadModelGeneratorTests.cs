@@ -143,17 +143,20 @@ public class ReadModelGeneratorTests
     [Fact]
     public void Every_opening_operator_of_ModelQuery_is_on_the_entity()
     {
-        // ThenBy continues an order, so it only exists once a query does.
+        // ThenBy continues an order, so it only exists once a query does; awaiting runs a query, so the entity
+        // opens one with All rather than being awaitable itself.
         var operators = typeof(Rask.Data.ModelQuery<>)
             .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance |
                         System.Reflection.BindingFlags.DeclaredOnly)
             .Select(m => m.Name)
             .Where(name => !name.StartsWith("ThenBy", StringComparison.Ordinal))
+            .Where(name => name is not ("GetAwaiter" or "ConfigureAwait"))
             .Distinct();
 
         var source = Run(Shop).GeneratedSource("Shop_OrderRead");
 
         Assert.All(operators, name => Assert.Matches($@"public static [^\n]* {name}(<\w+>)?\(", source));
+        Assert.Contains("public static global::Rask.Data.ModelQuery<global::Shop.OrderRead> All =>", source, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -74,7 +74,7 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
 
         var after = page.Render();
         Assert.Contains(">QueryClient</span>.Query(", after, StringComparison.Ordinal);
-        Assert.Contains("</span>.CountAsync(ct)", after, StringComparison.Ordinal);
+        Assert.Contains("</span>.Count()", after, StringComparison.Ordinal);
         Assert.DoesNotContain(".Read.", after, StringComparison.Ordinal);
         Assert.DoesNotContain(">Aggregate</span>", after, StringComparison.Ordinal);
     }

@@ -23,16 +23,18 @@ public sealed class JsLaneAuthWiringTests
     private const string Root = "/proj/App";
 
     [Fact]
-    public void Every_spa_template_maps_the_auth_endpoints()
+    public void Every_spa_template_is_served_with_its_accounts_on()
     {
         foreach (var framework in SpaFramework.All)
         {
             var program = Program(ProjectGenerator.GenerateSpa(
                 Root, "App", framework, new ServerBatteries { Data = true }, "1.2.3"));
 
-            Assert.Contains("app.MapRaskAuth();", program, StringComparison.Ordinal);
-            Assert.Contains("app.UseAuthentication();", program, StringComparison.Ordinal);
-            Assert.Contains("app.UseAuthorization();", program, StringComparison.Ordinal);
+            // Serve() maps /api/auth, with the authentication middleware ahead of it, whenever the auth battery
+            // is on — RaskAppServeTests pins that. What the scaffold owes is not switching it off.
+            Assert.Contains("app.Serve();", program, StringComparison.Ordinal);
+            Assert.DoesNotContain("Auth.Off()", program, StringComparison.Ordinal);
+            Assert.DoesNotContain("Data.Off()", program, StringComparison.Ordinal);
         }
     }
 
@@ -51,17 +53,9 @@ public sealed class JsLaneAuthWiringTests
     [Fact]
     public void Auth_is_mapped_before_the_fallback_that_would_swallow_it()
     {
-        // MapRaskSpa ends the pipeline with a fallback to index.html and MapRaskMeta forwards everything
-        // else to the node process, so an endpoint added after either answers HTML instead of JSON —
-        // which reads as a front-end bug rather than a wiring one.
-        var spa = Program(ProjectGenerator.GenerateSpa(
-            Root, "App", SpaFramework.React, new ServerBatteries { Data = true }, "1.2.3"));
-
-        Assert.True(
-            spa.IndexOf("app.MapRaskAuth();", StringComparison.Ordinal)
-            < spa.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal),
-            "MapRaskAuth must come before MapRaskSpa's fallback.");
-
+        // MapRaskMeta forwards everything else to the node process, so an endpoint added after it answers
+        // HTML instead of JSON — which reads as a front-end bug rather than a wiring one. (The SPA templates'
+        // order is Serve()'s, pinned by RaskAppServeTests.)
         var meta = Program(ProjectGenerator.GenerateMeta(
             Root, "App", MetaTemplate.Nuxt, new ServerBatteries { Data = true }, "1.2.3"));
 
@@ -74,16 +68,8 @@ public sealed class JsLaneAuthWiringTests
     [Fact]
     public void Storage_is_mapped_before_the_fallback_that_would_swallow_it()
     {
-        // The same pipeline, the same failure mode: a public file URL answered with index.html, or with a page
-        // the node process rendered, where the browser expected the file.
-        var spa = Program(ProjectGenerator.GenerateSpa(
-            Root, "App", SpaFramework.React, new ServerBatteries { Data = true, Storage = true }, "1.2.3"));
-        var spaStorage = spa.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal);
-
-        Assert.True(
-            spaStorage >= 0 && spaStorage < spa.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal),
-            "MapRaskStorage must come before MapRaskSpa's fallback.");
-
+        // The same pipeline, the same failure mode: a public file URL answered with a page the node process
+        // rendered, where the browser expected the file.
         var meta = Program(ProjectGenerator.GenerateMeta(
             Root, "App", MetaTemplate.Nuxt, new ServerBatteries { Data = true, Storage = true }, "1.2.3"));
         var metaStorage = meta.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal);
@@ -102,7 +88,8 @@ public sealed class JsLaneAuthWiringTests
         var program = Program(ProjectGenerator.GenerateSpa(
             Root, "App", SpaFramework.React, new ServerBatteries { Data = false }, "1.2.3"));
 
-        Assert.DoesNotContain("app.MapRaskAuth();", program, StringComparison.Ordinal);
+        // Turning the database off takes the accounts with it, and Serve() maps /api/auth only for a wired battery.
+        Assert.Contains("c.Data.Off();", program, StringComparison.Ordinal);
     }
 
     [Fact]

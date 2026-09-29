@@ -40,7 +40,7 @@ in finds the user, and the user says which tenant they belong to. It travels on 
 with nothing passed to it:
 
 ```csharp
-var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();
+var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20);
 ```
 
 A restored session carries the claim too, so a reconnect comes back in the same tenant. The same holds for
@@ -79,7 +79,7 @@ using (Tenant.Use(acmeId))          // work as this tenant
 
 using (Tenant.Across())             // deliberately span tenants — an admin tool, a migration
 {
-    var total = await Invoice.CountAsync();
+    var total = await Invoice.Count();
 }
 ```
 
@@ -99,7 +99,7 @@ private async Task LoadAsync()
 {
     using (Tenant.Use(_tenant))
     {
-        _invoices = await Invoice.OrderByDescending(i => i.CreatedAt).ToListAsync();
+        _invoices = await Invoice.OrderByDescending(i => i.CreatedAt);
     }
 }
 ```
@@ -109,7 +109,7 @@ A report over every tenant is `Tenant.Across()` — one greppable thing a review
 ## A read with no tenant throws
 
 ```csharp
-await Invoice.ToListAsync();   // InvalidOperationException, when nothing says which tenant
+await Invoice.All;   // InvalidOperationException, when nothing says which tenant
 ```
 
 Deliberately, and it is the decision most worth understanding. Returning *nothing* would be safe against
@@ -119,7 +119,7 @@ Returning *everything* would be the leak itself. So it refuses, and says how to 
 ## `IgnoreQueryFilters()` does not cross tenants
 
 ```csharp
-await Invoice.IgnoreQueryFilters().ToListAsync();   // includes soft-deleted; SAME tenant
+await Invoice.IgnoreQueryFilters();   // includes soft-deleted; SAME tenant
 ```
 
 It means "include soft-deleted rows" and leaves the tenant filter exactly where it is, so an existing call

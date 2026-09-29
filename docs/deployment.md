@@ -405,7 +405,7 @@ same port and TLS story as the server app above.
 
 **If you are starting today, you want the `wasm-hosted` template instead**
 ([single-page apps](spa.md#a-rask-webassembly-app)): one project whose browser app lives in `Client/`, and
-`dotnet publish` emits its bundle into the server's `wwwroot`, where `MapRaskSpa()` serves it. That path
+`dotnet publish` emits its bundle into the server's `wwwroot`, where `RaskApp.Create(args).Serve()` serves it. That path
 *is* scaffolded, Dockerfile included.
 
 ## Standalone WASM SPA (`--template wasm`)

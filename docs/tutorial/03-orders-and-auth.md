@@ -35,7 +35,7 @@ error). You lose nothing by it: because `Product` is an aggregate with a `Guid` 
 and puts the join on the read face for you, named after the property:
 
 ```csharp
-await Order.Where(o => o.Product.Name == "Anvil").ToListAsync();   // declared nothing
+await Order.Where(o => o.Product.Name == "Anvil");   // declared nothing
 ```
 
 Then the same four
