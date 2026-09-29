@@ -202,9 +202,9 @@ mistake, the rule notes the ID.
 
 ## JavaScript interop & refs
 
-- **Mint element refs with `ElementRef.New()` stored in a field.** A field keeps the ref id stable
-  across renders (a local resets each render). Pass it via `Ref:`, then hand it to JS or a built-in
-  helper (`_input.FocusAsync(_js)`). See [JS interop → element refs](js-interop-runtime.md#element-refs).
+- **Type an element ref to its MDN interface, in a field.** `new ElementRef<HTMLDialogElement>()` keeps its id
+  stable across renders (a local resets each render) and carries the element's MDN members:
+  `await _dialog.ShowModal()`, `await _name.Focus()`. See [JS interop → element refs](js-interop-runtime.md#element-refs).
 - **Inject `IJSRuntime` through the constructor and call from a hook or handler** — interop is only
   live once the session is up (after `OnMount`, or inside handlers). One scoped `{Component}.css` /
   `{Component}.ts` sits next to `{Component}.cs` and is auto-included and isolated; orphan or

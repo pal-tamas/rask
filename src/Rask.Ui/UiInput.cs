@@ -124,8 +124,9 @@ public sealed partial class UiInput<T> : UiFormField<T>
     ///     A handle to the rendered element, for the code that has to reach it — focus, scroll, measure.
     /// </summary>
     /// <remarks>
-    ///     Hold it in a field (<c>ElementRef.New()</c>) and pass it to <c>IJSRuntime</c>. Without this a
-    ///     call site that needed to focus its own field had to render a raw element and a class string.
+    ///     Hold it in a field (<c>new ElementRef&lt;HTMLInputElement&gt;()</c>) and call the input's DOM members on
+    ///     it: <c>await _name.Focus()</c>. Without this a call site that needed to focus its own field had to
+    ///     render a raw element and a class string.
     /// </remarks>
     public ElementRef? Ref { get; set; }
 

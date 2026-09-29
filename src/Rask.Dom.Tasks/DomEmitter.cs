@@ -160,6 +160,13 @@ internal static class DomEmitter
             }
         }
 
+        // What a typed ref may not write: every property a type renders, and what Element itself renders.
+        var element = new HashSet<string>(ReservedMembers, StringComparer.Ordinal) { "ClassName" };
+        element.UnionWith(props.Where(p => string.Equals(rootOf[p.Key], p.Key, StringComparison.Ordinal)).SelectMany(p => p.Value));
+        var rendered = props.ToDictionary(p => p.Key, p => new HashSet<string>(p.Value.Concat(element), StringComparer.Ordinal), StringComparer.Ordinal);
+        rendered["Element"] = element;
+        DomRefEmitter.Emit(root, dom, rendered, files);
+
         files.Add(new KeyValuePair<string, string>("GlobalAttrs.g.cs", GlobalFields(
             globals.TryGetValue(HtmlRoot, out var html) ? html : new(), globals.TryGetValue(SvgRoot, out var svg) ? svg : new())));
         DomEventEmitter.Emit(root, files);
@@ -597,7 +604,7 @@ internal static class DomEmitter
     }
 
     // Written from data: what the member is, its support line, and links. Never MDN's prose (CC-BY-SA).
-    private static void Doc(StringBuilder sb, string indent, string summary, JsonNode data)
+    internal static void Doc(StringBuilder sb, string indent, string summary, JsonNode data)
     {
         sb.Append(indent).Append("/// <summary>").Append(summary).AppendLine("</summary>");
         var remarks = new List<string>();

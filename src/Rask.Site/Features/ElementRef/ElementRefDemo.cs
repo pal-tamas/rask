@@ -1,18 +1,16 @@
-using Microsoft.JSInterop;
+using Rask.Core.Components;
 
 namespace Rask.Site.Features;
 
-// Demonstrates element refs end to end: a built-in (FocusAsync) and a hand-off to user scoped
-// JS (ElementRefDemo.js receives the resolved DOM element to measure it). The refs are fields so
-// their ids stay stable across renders.
+// Element refs end to end: a ref typed to the element's MDN interface carries that interface's DOM members, generated
+// from MDN (Focus, GetBoundingClientRect), and any ref still hands the element to scoped TypeScript. The refs are
+// fields so their ids stay stable across renders.
 public sealed partial class ElementRefDemo : Component
 {
-    private readonly ElementRef _box = ElementRef.New();
-    private readonly ElementRef _input = ElementRef.New();
-    private readonly IJSRuntime _js;
+    private readonly ElementRef<HTMLInputElement> _input = new();
+    private readonly ElementRef<HTMLElement> _box = new();
+    private readonly ElementRef<HTMLDialogElement> _dialog = new();
     private string _measured = "";
-
-    public ElementRefDemo(IJSRuntime js) => _js = js;
 
     protected override Component? Render() =>
         Div[
@@ -22,24 +20,50 @@ public sealed partial class ElementRefDemo : Component
                 .Ref(_input).Class("mb-2"),
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
                 Ui.Button.Tone(Ui.Tone.Primary).OnClick(FocusInput)["Focus the input"],
-                Ui.Button.Variant(Ui.Variant.Outline).OnClick(MeasureBox)["Measure the box"]
+                Ui.Button.Variant(Ui.Variant.Outline).OnClick(MeasureBox)["Measure the box"],
+                Ui.Button.Variant(Ui.Variant.Outline).OnClick(MeasureInJs)["Measure it in TypeScript"],
+                Ui.Button.Variant(Ui.Variant.Outline).OnClick(OpenDialog)["Open the dialog"]
             ],
             Div.Ref(_box).Class("border rounded p-3 bg-ui-well")[
-                "A box carrying an ElementRef — its width is read by passing the ref to JS."
+                "A box carrying an ElementRef — measured from C# through MDN's getBoundingClientRect, or in TypeScript."
+            ],
+            Dialog.Ref(_dialog).Class("rounded-box p-4")[
+                P.Class("mb-3")["Opened with MDN's showModal(), from C#."],
+                Ui.Button.OnClick(CloseDialog)["Close"]
             ],
             _measured.Length > 0
                 ? P.Class("text-sm text-ui-muted mt-2 mb-0")[_measured]
                 : null
         ];
 
-    // Built-in helper: passes the ref to __raskEl.focus, which receives the resolved element.
-    private async Task FocusInput() => await _input.FocusAsync(_js);
+    // MDN's HTMLDialogElement.showModal(), then its open attribute read back from the live element.
+    private async Task OpenDialog()
+    {
+        await _dialog.ShowModal();
+        _measured = $"Dialog open: {await _dialog.Open}";
+    }
+
+    private async Task CloseDialog()
+    {
+        await _dialog.Close();
+        _measured = $"Dialog open: {await _dialog.Open}";
+    }
+
+    // MDN's HTMLElement.focus(), on the live input.
+    private async Task FocusInput() => await _input.Focus();
+
+    // MDN's Element.getBoundingClientRect(), returned as a DOMRect record.
+    private async Task MeasureBox()
+    {
+        var rect = await _box.GetBoundingClientRect();
+        _measured = $"Box width: {rect.Width:F0}px (MDN's getBoundingClientRect, from C#)";
+    }
 
     // User scoped TS: Width is generated from ElementRefDemo.ts's `export function width`, and the ref
     // resolves to the element before the script sees it.
-    private async Task MeasureBox()
+    private async Task MeasureInJs()
     {
         var width = await Width(_box);
-        _measured = $"Box width: {width:F0}px (measured in JS from the passed element)";
+        _measured = $"Box width: {width:F0}px (measured in TypeScript from the passed element)";
     }
 }
