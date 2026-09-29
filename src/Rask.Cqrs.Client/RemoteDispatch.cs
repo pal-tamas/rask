@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Rask.Client.Shared;
 using Rask.Wire;
 
 namespace Rask.Cqrs.Client;
@@ -677,17 +678,14 @@ internal sealed class RemoteDispatch(
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
-        string? type = null;
-        string? title = null;
-        string? detail = null;
-        Dictionary<string, string[]>? errors = null;
+        var problem = new ProblemDocument(null, null, null, null);
 
         if (response.Content.Headers.ContentType?.MediaType is "application/problem+json" or "application/json")
         {
             try
             {
                 var payload = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-                ReadProblem(payload, ref type, ref title, ref detail, ref errors);
+                problem = ProblemDocument.Read(payload);
             }
             catch (JsonException)
             {
@@ -696,99 +694,14 @@ internal sealed class RemoteDispatch(
         }
 
         return new RemoteDispatchException(
-            $"'{contract.Name}' failed on the server: {(int)response.StatusCode} {title ?? response.ReasonPhrase}.")
+            $"'{contract.Name}' failed on the server: {(int)response.StatusCode} {problem.Title ?? response.ReasonPhrase}.")
         {
             MessageName = contract.Name,
             StatusCode = (int)response.StatusCode,
-            ProblemType = type,
-            Detail = detail,
-            Errors = errors,
+            ProblemType = problem.Type,
+            Detail = problem.Detail,
+            Errors = problem.Errors,
         };
-    }
-
-    // Hand-read rather than deserialized: this package does no reflection anywhere, and a problem
-    // document is three strings and, for a rejected request, the field errors.
-    //
-    // Note that `errors` had to be added here explicitly. The default arm below skips unknown members,
-    // so a server that started sending field errors would have had them silently dropped — the caller
-    // would see a 400 with nothing to show the user, and nothing anywhere would say why.
-    private static void ReadProblem(
-        byte[] payload,
-        ref string? type,
-        ref string? title,
-        ref string? detail,
-        ref Dictionary<string, string[]>? errors)
-    {
-        var reader = new Utf8JsonReader(payload);
-        if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
-        {
-            return;
-        }
-
-        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-        {
-            var name = reader.GetString();
-            reader.Read();
-            switch (name)
-            {
-                case "type":
-                    type = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
-                    break;
-                case "title":
-                    title = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
-                    break;
-                case "detail":
-                    detail = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
-                    break;
-                case "errors":
-                    errors = ReadErrors(ref reader);
-                    break;
-                default:
-                    reader.Skip();
-                    break;
-            }
-        }
-    }
-
-    private static Dictionary<string, string[]>? ReadErrors(ref Utf8JsonReader reader)
-    {
-        if (reader.TokenType != JsonTokenType.StartObject)
-        {
-            reader.Skip();
-            return null;
-        }
-
-        var result = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-        {
-            var field = reader.GetString() ?? string.Empty;
-            reader.Read();
-            if (reader.TokenType != JsonTokenType.StartArray)
-            {
-                reader.Skip();
-                continue;
-            }
-
-            var messages = new List<string>();
-            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
-            {
-                if (reader.TokenType == JsonTokenType.String && reader.GetString() is { } message)
-                {
-                    messages.Add(message);
-                    continue;
-                }
-
-                // A nested array or object inside the messages list is not ours, but skipping the VALUE
-                // rather than the token is what keeps the reader aligned: without it the loop ends on
-                // the INNER array's EndArray and the outer loop then reads property names off value
-                // tokens, throwing out of the parse path instead of yielding a plain failure.
-                reader.Skip();
-            }
-
-            result[field] = messages.ToArray();
-        }
-
-        return result.Count == 0 ? null : result;
     }
 
     // Keeps the response alive for as long as the body is being read. Disposing an HttpResponseMessage

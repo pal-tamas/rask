@@ -513,6 +513,9 @@ them until tagged releases begin.
 - **An orphan scoped-CSS file is reported at the file.** RASK015 and RASK016 carried no location, so the error had
   nothing to click; they now point at the `.css`, as scoped TypeScript's RASK017/018 already did. An empty orphan
   `.css` is reported too, rather than skipped before it was paired.
+- **A remote dispatch failure reads the whole problem document.** When a server's problem document held an object
+  or array where Rask.Cqrs.Client expected a string, the reader lost its place: `detail` and the field `errors`
+  after it went missing, or the read threw. It now shares Rask.Api.Client's reader, which steps over such values.
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
