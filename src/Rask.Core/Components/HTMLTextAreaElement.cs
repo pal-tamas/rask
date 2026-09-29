@@ -15,6 +15,9 @@ namespace Rask.Core.Components;
 /// </summary>
 public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormControl<T>
 {
+    // A bound control writes back and re-renders through its own handle, unlike a plain tag.
+    private protected override bool OwnsRenderHandle => true;
+
     /// <summary>The name submitted with the form. A bound textarea defaults it to the bound member's name.</summary>
     public string? Name { get; set; }
 

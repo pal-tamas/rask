@@ -32,6 +32,9 @@ namespace Rask.Core.Components;
 public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
     : HTMLFormElement
 {
+    // Its submitting state is its own and re-renders it (StateHasChanged), unlike a plain tag.
+    private protected override bool OwnsRenderHandle => true;
+
     private EditContext? _context;
 
     private Func<FormSubmit, IEnumerable<Component?>>? _childrenFactory;

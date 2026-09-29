@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A live session holds ~25% less memory.** Every plain tag on a mounted page (`Tr`, `Td`, `Button`, …) carried a
+  ~260 B live-state object it never used — a render handle offered to every child, and two lifecycle flags. A tag
+  generated from MDN has no state, lifecycle or handler of its own, so it now takes none of that; `NavLink` and the
+  bound `Input`/`Select`/`TextArea`/`Form` keep theirs, as does any element declared outside Rask. Per session
+  (`session-footprint`, unconnected / connected): a 200-row table 1.20 MB → 0.88 MB / 1.63 MB → 1.31 MB, a
+  1000-row one 6.26 MB → 4.66 MB / 8.13 MB → 6.55 MB — 892 → 1,215 sessions per GiB on the 200-row page.
+
 - **Rendering allocates less.** Text or an attribute that needs encoding — an accented letter, an apostrophe,
   `&`, a style's `;` — is encoded through a stack buffer instead of a new string per value per render
   (`RenderEncodedText` 197.5 KB → 113.1 KB, −43%); a `RaskUrl.Trusted` href/src is written without cutting its

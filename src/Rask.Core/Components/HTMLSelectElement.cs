@@ -16,6 +16,9 @@ namespace Rask.Core.Components;
 /// </summary>
 public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormControl<T>
 {
+    // A bound control writes back and re-renders through its own handle, unlike a plain tag.
+    private protected override bool OwnsRenderHandle => true;
+
     // Set in WriteAttributes (bound/controlled); a plain select leaves _bound false and skips marking.
     private bool _bound;
     private string _selectedValue = "";

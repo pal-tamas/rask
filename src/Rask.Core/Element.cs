@@ -16,6 +16,15 @@ public abstract partial class Element : Component
 
     protected override bool SelfClosing => RaskTags.Void[TagId];
 
+    // A tag this assembly generates from MDN is sealed and has no behaviour of its own — its handlers belong to
+    // the component that rendered it — so it takes no render handle. The few Core elements that DO change their
+    // own state (NavLink, and the bound form, input, select, textarea) say so; an element declared anywhere
+    // else, the kit's included, keeps the default. Asked by type, not TagId: a type several tags share (td/th)
+    // is stamped with its tag only after the handle is offered.
+    private protected override bool OwnsRenderHandle => GetType().Assembly != CoreAssembly;
+
+    private static readonly System.Reflection.Assembly CoreAssembly = typeof(Element).Assembly;
+
     // An element's children are walked at serialization time (RenderChildren), never embedded in its
     // cached render result, so they never invalidate it.
     private protected override bool BakesChildrenIntoRender => false;
@@ -506,6 +515,7 @@ public abstract partial class Element : Component
         if (Ref is { } elementRef)
         {
             AppendAttr(sb, "data-", "rask-ref", elementRef.Id);
+            elementRef.RenderedIn(LiveRenderContext.CurrentSync?.Handle);
         }
 
         // Drag-and-drop: a universal attribute (draggable) plus the data-rask-on-drag* handler

@@ -49,6 +49,21 @@ public abstract partial class Component : RaskMarkup
     //   bit 3 — a chain assigned a callback prop (below)
     private byte _flags;
 
+    // Lifecycle bits every node can set, kept off LiveState: a plain tag reaches both — a chain step on it
+    // marks its props changed, and the after-render pass visits it — and allocating a ~260 B LiveState to
+    // hold one bool was most of what a mounted row of plain tags retained. Sits in padding beside _flags.
+    //   bit 0 — a folding chain setter changed a value since the last commit (CommitEntry reads and clears)
+    //   bit 1 — the after-render hooks have fired once (RaiseOnRendered)
+    private byte _lifecycleFlags;
+
+    private const byte FlagEntryPropsChanged = 1 << 0;
+    private const byte FlagHasRenderedOnce = 1 << 1;
+
+    private bool GetLifecycleFlag(byte mask) => (_lifecycleFlags & mask) != 0;
+
+    private void SetLifecycleFlag(byte mask, bool value) =>
+        _lifecycleFlags = value ? (byte)(_lifecycleFlags | mask) : (byte)(_lifecycleFlags & ~mask);
+
     // Which tag an element renders, as an index into the generated RaskTags table: a type several tags
     // share (h1–h6) is told apart per instance. Packed beside _flags, it sits in padding the object
     // already has. Zero for everything that is not a [Tag] element.
@@ -103,6 +118,9 @@ public abstract partial class Component : RaskMarkup
     private LiveState? _live;
 
     private LiveState Live => _live ??= new LiveState();
+
+    // Test seam: whether this node has paid for a LiveState.
+    internal bool HasLiveStateInternal => _live is not null;
 
     // Set by the children indexer below. Factories no longer expose Children as a parameter —
     // `Div()[Span(...), "hi"]` is the canonical call shape. Elements are nullable: a `null` child
@@ -643,15 +661,15 @@ public abstract partial class Component : RaskMarkup
     /// </summary>
     internal CancellationToken LifetimeTokenInternal => LifetimeToken;
 
-    // Hoisted into LiveState like Boundary: set only on the live-render root and on GetOrCreate'd
-    // user components (both of which already carry a LiveState); the null-guard keeps a `?? =` with a
-    // null handle, or a plain Element, from allocating one.
+    // Hoisted into LiveState like Boundary: set on the live-render root and on every GetOrCreate'd child.
+    // The guard keeps a `?? =` with a null handle — or a handle offered to a node that has no use for one
+    // (OwnsRenderHandle) — from allocating a LiveState just to hold it.
     internal IRenderHandle? RenderHandle
     {
         get => _live?.RenderHandle;
         set
         {
-            if (value is null && _live is null)
+            if (_live is null && (value is null || !OwnsRenderHandle))
             {
                 return;
             }
@@ -659,6 +677,11 @@ public abstract partial class Component : RaskMarkup
             Live.RenderHandle = value;
         }
     }
+
+    // Whether this node re-renders through a handle of its own: a component that can change its own state,
+    // run a lifecycle, or own a handler. True unless a type says otherwise — the plain tags do (Element), which
+    // is what keeps a mounted row of them from carrying a ~260 B LiveState apiece for a handle never read.
+    private protected virtual bool OwnsRenderHandle => true;
 
     internal IReadOnlyDictionary<(Type, int), Component> PersistedChildren => _live?.Children ?? _emptyChildren;
 
@@ -1065,13 +1088,13 @@ public abstract partial class Component : RaskMarkup
         // fire so newly-mounted components on the same walk get their first
         // OnRendered(firstRender:true) — they don't have a prior continuation in flight,
         // so they can't loop.
-        if (publishOnly && Live.HasRenderedOnce)
+        var firstRender = !GetLifecycleFlag(FlagHasRenderedOnce);
+        if (publishOnly && !firstRender)
         {
             return;
         }
 
-        var firstRender = !Live.HasRenderedOnce;
-        Live.HasRenderedOnce = true;
+        SetLifecycleFlag(FlagHasRenderedOnce, true);
         // Called directly rather than through a Func: this runs for every component on every render, and a
         // method-group delegate would allocate each time.
         if (firstRender)
@@ -1687,13 +1710,13 @@ public abstract partial class Component : RaskMarkup
     {
         // No LiveState means the child never reached GetOrCreate (nothing to notify) — the same
         // no-context case in which the factory skips NotifyParameters too.
-        if (_live is not { } state || (state.HasInitialized && !state.EntryPropsChanged))
+        var propsChanged = GetLifecycleFlag(FlagEntryPropsChanged);
+        SetLifecycleFlag(FlagEntryPropsChanged, false);
+        if (_live is not { } state || (state.HasInitialized && !propsChanged))
         {
             return;
         }
 
-        var propsChanged = state.EntryPropsChanged;
-        state.EntryPropsChanged = false;
         RaiseLifecycleBeforeRender(propsChanged);
     }
 
@@ -1721,7 +1744,7 @@ public abstract partial class Component : RaskMarkup
     ///     callbacks and raw delegate props never fold, so the generator simply does not emit
     ///     the call for them.
     /// </remarks>
-    internal void MarkEntryPropsChangedInternal() => Live.EntryPropsChanged = true;
+    internal void MarkEntryPropsChangedInternal() => SetLifecycleFlag(FlagEntryPropsChanged, true);
 
     // Phase B clean-subtree frame replay. A user component whose last render was cached as a frame
     // span (pure elements, no handlers, no nested user components — see TryCacheCleanSubtree) re-emits
@@ -3230,7 +3253,6 @@ public abstract partial class Component : RaskMarkup
         // parent rebuilds its child map every render, so the walk has to register such an instance again
         // each time it meets it, or the next render reads it as removed and unmounts it while it is on screen.
         public bool AdoptedByWalk;
-        public bool HasRenderedOnce;
         public bool IsDisposed;
         public bool IsUnmounted;
         public HandlerState? HandlerState;
@@ -3257,15 +3279,9 @@ public abstract partial class Component : RaskMarkup
         // carried on its EntrySlot, because by the time its Key step runs another entry may have moved it.
         public (Type Type, int Ordinal) LastChildSlot;
 
-        // Builder surface. Two more bools rather than a wider record: LiveState is allocated per node
-        // on a mounted page, and these two land in the padding the six above already leave behind — so
-        // the deferred-commit machinery costs nothing per node (see the note on Cached).
-        //
-        // EntryPropsChanged: a folding setter wrote a different value since the last commit (the
-        // setter-chain equivalent of the factory's __propsChanged). HasEntryChildren: at least one
-        // child of THIS component came from a builder entry during the Render() now in flight, so the
-        // post-Render commit loop has work to do.
-        public bool EntryPropsChanged;
+        // Builder surface: at least one child of THIS component came from a builder entry during the
+        // Render() now in flight, so the post-Render commit loop has work to do. (Its partner, "a folding
+        // setter changed a value", is a bit on the component itself — every chained tag sets it.)
         public bool HasEntryChildren;
     }
 }
