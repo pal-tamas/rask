@@ -20,6 +20,16 @@ them until tagged releases begin.
   The hand-wired `MapRaskSpa()` host stays documented in `docs/spa.md`. The CQRS wire codec (and RASK053)
   runs only in a project that builds a browser client from `Client/` — `RaskCqrsCodec` follows `RaskClient` — so a
   server-rendered app's messages, which never leave the process, can take any shape.
+- **The SPA templates' servers are `RaskApp.Create(args).Serve()` too.** `react`, `preact`, `vue`, `angular`,
+  `solid`, `svelte` and `lit` drop their 250-line hand-wired `Program.cs` for
+  `var app = RaskApp.Create(args); app.Services.AddSingleton<VisitCounter>(); app.Serve();`, their `AppDbContext`
+  and their in-memory push store; the csproj references `Rask.Server` and `Rask.Spa.Hosting` in place of a
+  package per battery, and a battery left out is an `app.Configure(c => c.Jobs.Off())` line. `Serve()` now also
+  maps the accounts API at `/api/auth` whenever the auth battery is wired, so a browser app's sign-in answers
+  without a line of its own, and the operator console (`--no-ops`) is on these templates too. The client's push
+  calls moved from `/_push/*` to the Push battery's `/_rask/push/{key,subscribe,unsubscribe}`, subscriptions now
+  live in the app's database, and health is `/health` rather than `/healthz`. `Rask.Server.targets` turns the
+  CQRS codec, and with it the generated TypeScript contracts, on for a project with a `client/package.json`.
 - **BREAKING: a Data read is awaited, and its terminals drop `Async`.** A query runs when you await it; the rest
   read as words. A read handed no token is cancelled with the work it belongs to (the request, the job, the
   component, the query-cache fetch).

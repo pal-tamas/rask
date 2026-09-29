@@ -29,12 +29,10 @@ internal static class TemplateCatalog
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///     <c>ops</c> is deliberately NOT here. It needs <c>Rask.Core</c>, which is <c>IsPackable=false</c>
-    ///     and travels inside the host packages that render components, so <c>Rask.Spa.Hosting</c> and
-    ///     <c>Rask.Meta.Hosting</c> ship no copy and an app that reaches for it aborts before <c>Main</c>
-    ///     (#1069). The operator dashboard is also Rask components carrying <c>[Route]</c>, reachable only
-    ///     through <c>MapRask&lt;TApp&gt;()</c>, which only the server template calls. It is listed on the
-    ///     server template alone rather than accepted and then disregarded.
+    ///     <c>ops</c> is deliberately NOT here. The operator console is Rask components, so it needs a host
+    ///     built on <c>Rask.Server</c> to mount it — <c>Run&lt;App&gt;()</c> or <c>Serve()</c>. The meta
+    ///     templates front a Node server through <c>Rask.Meta.Hosting</c>, which ships no <c>Rask.Core</c> (#1069),
+    ///     so it is listed on the templates that can mount it rather than accepted and then disregarded.
     ///     </para>
     ///     <para>
     ///     <c>storage</c> is here now that <c>Rask.Storage</c> references no <c>Rask.Core</c> (#1086). Before
@@ -68,10 +66,8 @@ internal static class TemplateCatalog
         // C#. It lives in Client/ (capital, because it IS a C# project; the JS lanes use lowercase
         // client/), the host serves it with MapRaskSpa, and the two halves talk over remote CQRS.
         //
-        // "ops" is here and is NOT on the SPA lane, which is not an inconsistency: this host still
-        // references Rask.Server, so Rask.Dashboard's components have the Rask.Core they need and
-        // MapRask<TApp>() to mount them. Rask.Spa.Hosting alone ships no Core, which is what rules ops out
-        // for the TypeScript templates (#1069).
+        // "ops" is here, as on the TypeScript templates below: the host is RaskApp's Serve(), which mounts the
+        // console. Only the meta lane, which carries no Rask.Core (#1069), goes without.
         //
         // ShipsLocalization stays false for the same reason as wasm above: the browser half is where a
         // culture would have to resolve, and that means ICU on the wire.
@@ -123,8 +119,9 @@ internal static class TemplateCatalog
             $"Rask {framework.DisplayName} front end + ASP.NET host",
             // "pwa" and "push": the PWA half is the client's own manifest, service worker and
             // subscription call, none of which need a login. Accounts have no flag — the battery is on
-            // regardless; only a sign-in page in the framework's own idiom is left unscaffolded.
-            new HashSet<string>([.. DatabaseFlags, "docker", "pwa", "push"], StringComparer.Ordinal)));
+            // regardless; only a sign-in page in the framework's own idiom is left unscaffolded. "ops": the
+            // host is RaskApp's Serve(), which mounts the operator console at /_rask.
+            new HashSet<string>([.. DatabaseFlags, "docker", "ops", "pwa", "push"], StringComparer.Ordinal)));
 
     /// <summary>One template per meta framework, all sharing the same flag set.</summary>
     /// <remarks>

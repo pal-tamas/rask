@@ -35,13 +35,27 @@ internal static partial class ProjectGenerator
         // replacing them would have meant carrying a copy of a file we did not own. We own it now —
         // it is committed under src/Rask.Templates/ — so the scaffold needs no network, no Node, and
         // no editing of files it did not write.
-        return new ScaffoldResult(
-            TemplateMaterializer.Files(
-                targetDirectory, framework.Key, name, batteries, version, dotnet ?? DotnetTarget.Default,
-                vsCode: VsCodeSetup.Host),
-            SpaNextSteps(name, framework, batteries.Docker))
+        var files = TemplateMaterializer.Files(
+            targetDirectory, framework.Key, name, batteries, version, dotnet ?? DotnetTarget.Default,
+            vsCode: VsCodeSetup.Host);
+
+        // The same Serve() as wasm-hosted, and the same off-switches: the PWA is the client's own manifest and
+        // worker, so a PWA-less app is one without push.
+        files = WithProgramCs(
+            files,
+            targetDirectory,
+            ConfiguredProgramCs(
+                $"using {name}.Features.Hello;\n\n",
+                WasmHostedOffSwitches(batteries),
+                "app.Serve();",
+                "// The starter's greeting counts visits in memory, so it answers before the app has a table of its own.\n"
+                + "app.Services.AddSingleton<VisitCounter>();\n\n"));
+
+        // Rask.Server carries every battery and the host; Rask.Spa.Hosting is named directly because its build
+        // steps — the client's install and build, the generated TypeScript — reach only a project that references it.
+        return new ScaffoldResult(files, SpaNextSteps(name, framework, batteries.Docker))
         {
-            Packages = ["Rask.Cqrs", "Rask.Cqrs.Server", "Rask.Spa.Hosting"],
+            Packages = ["Rask.Server", "Rask.Spa.Hosting"],
             RestoreTarget = $"{name}.slnx",
         };
     }

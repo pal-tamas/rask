@@ -6,13 +6,6 @@
     "Dockerfile": [
       "docker"
     ],
-    "Features/Push/PushSubscriptions.cs": [
-      "push",
-      "pwa"
-    ],
-    "Features/Shared/AppDbContext.cs": [
-      "data"
-    ],
     "Features/Shared/User.cs": [
       "data"
     ],

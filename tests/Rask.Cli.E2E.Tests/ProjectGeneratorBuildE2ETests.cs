@@ -316,9 +316,8 @@ public sealed class ProjectGeneratorBuildE2ETests
     [SkippableTheory]
     [InlineData(false, false)]
     [InlineData(true, false)]
-    // --push reaches the host half: the Rask.WebPush reference, the VAPID block, a re-namespaced
-    // PushSubscriptions.cs and app.MapPushSubscriptions(). All four are C#, and a namespace rewritten
-    // into the wrong project is a compile error nothing else in the suite would see.
+    // --push reaches the host half: the VAPID block and the Push battery Serve() maps at /_rask/push, with the
+    // app's own services beside the off-switches the generator writes into Program.cs — C# a real compile checks.
     [InlineData(false, true)]
     public async Task Generated_react_solution_builds(bool data, bool push)
     {

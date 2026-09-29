@@ -229,8 +229,10 @@ What it buys, besides determinism: every front-end dependency is now a committed
 lockfile, which is a thing this repository can review and Dependabot can bump. Three templates were
 installing an older Tailwind than the C# host downloads, and nobody could see it.
 
-They emit two projects rather than three: the client's half of every contract is generated TypeScript,
-so there is nothing for a `.Shared` to hold. Always the `-ts` half of each pair: Rask supports
+They emit one project with the client in `client/`: the client's half of every contract is generated
+TypeScript, so there is nothing for a `.Shared` to hold. The host's `Program.cs` is `RaskApp.Create(args)`,
+the starter's own service, and `app.Serve()` — the same call as `wasm-hosted` — and it references `Rask.Server`
+and `Rask.Spa.Hosting`. Always the `-ts` half of each pair: Rask supports
 **TypeScript** SPA clients, and a client with no TypeScript configuration is refused at build time
 with `RASKSPA004`. Each client lints and formats itself — `npm run lint`, `npm run format` — under the
 same ESLint flat config and Prettier settings, whichever template it came from.
@@ -348,7 +350,7 @@ default list: the default set *is* the column.
 | --- | :-: | :-: | :-: | :-: | :-: |
 | database, CQRS | ✅ | — | ✅¹ | ✅¹ | ✅¹ |
 | jobs, mail, cache, storage, outbox, snapshots, logs | ✅ | — | ✅ | ✅ | ✅ |
-| ops *(the operator dashboard)* | ✅ | — | ✅ | —⁴ | —⁴ |
+| ops *(the operator dashboard)* | ✅ | — | ✅ | ✅ | —⁴ |
 | PWA | ✅ | ✅ | ✅ | ✅ | — |
 | Web Push | ✅ | — | ✅ | ✅ | — |
 | Docker | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -359,10 +361,10 @@ default list: the default set *is* the column.
 C#. On a template whose whole client already is a front end, `--islands` is refused rather than
 ignored — add a component to the client you already have.
 
-⁴ The operator dashboard is Rask components reached through `MapRask<TApp>()`, and it needs `Rask.Core`.
-The `server` and `wasm-hosted` hosts both reference `Rask.Server`, which carries Core, so both can mount
-it — a `wasm-hosted` host serves a browser app *and* server-renders the dashboard at `/_rask`. The
-front-end and meta hosts ship no Core, so `ops` is refused there rather than accepted and disregarded.
+⁴ The operator dashboard is Rask components, so it needs a host built on `Rask.Server` to mount it. The
+`server`, `wasm-hosted` and front-end hosts all are — the latter two are `RaskApp.Create(args).Serve()`, which
+serves the browser app *and* server-renders the dashboard at `/_rask`. The meta hosts front a Node server
+through `Rask.Meta.Hosting` and ship no Core, so `ops` is refused there rather than accepted and disregarded.
 
 ### `--islands` — a React, Vue, Svelte, Solid, Lit, Angular, Preact or Blazor component
 
