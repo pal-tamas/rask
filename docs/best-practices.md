@@ -60,14 +60,14 @@ mistake, the rule notes the ID.
   is an XSS hole. See [getting started → your first component](getting-started.md#4-your-first-component).
 - **Leave the page shell to the framework.** The `TApp` root renders into `<body>`; Rask emits the
   doctype, `<html>`, `<head>` and `<body>` around it (the runtime `<script>` is appended to `<body>`,
-  `<head>` is filled from each component's `Head` override). Rendering the shell yourself is
+  `<head>` is filled from each component's `HeadAssets` override). Rendering the shell yourself is
   **RASK021** — a second document nested inside the body, which the HTML parser silently unwraps. Set
   `<html lang>` with the `HtmlLang` override and `<body class>` with `BodyClass`; for anything else,
   override `Shell(head, body)` and place both parameters.
-- **Contribute to `<head>` via the `Head` override, not `Head()` children.** `Head()` is a managed
-  slot; passing it children is **RASK019**. Override `protected override Component? Head` instead;
+- **Contribute to `<head>` via the `HeadAssets` override, not `Head[…]` children.** `Head` is a managed
+  slot; passing it children is **RASK019**. Override `protected override Component? HeadAssets` instead;
   `<title>`/`<base>` are singletons where the last contributor wins. See
-  [getting started §7](getting-started.md#7-the-document-and-the-head-override).
+  [getting started §7](getting-started.md#7-the-document-and-the-headassets-override).
 - **Don't fight the attribute order.** Universal attributes always render
   `id, class, style, data-*, role, tabindex, aria-*`, then tag-specific. Tests assert it and it's
   stable across releases — match it when asserting on HTML.
@@ -108,7 +108,7 @@ mistake, the rule notes the ID.
   Reading a context value latches the consumer out of the render cache, so it stays reactive even
   through a render-cached intermediate — that's the point. Provide a concrete type and consume by an
   interface if you like. See [composition → context](composition-callbacks-context.md#context-provide--consume).
-- **Always pair a manual subscription with its teardown.** If a component *above* the `Router()` (a
+- **Always pair a manual subscription with its teardown.** If a component *above* the `Router` (a
   sidebar, breadcrumb) needs to react to navigation or a store, subscribe in `OnMount` and
   unsubscribe in `OnUnmount` — otherwise the publisher keeps a strong reference to the unmounted
   component:
@@ -179,7 +179,7 @@ mistake, the rule notes the ID.
   [lifecycle → gotchas](lifecycle.md#gotcha-a-faulted-async-hook-takes-the-page-not-the-component).
 - **Never `StateHasChanged()` in unmount** — the component is already leaving the tree, so it's a
   no-op by design. Use `OnUnmount` to tear down subscriptions, nothing more. Compose nested layouts
-  with `[ParentRoute]` + `Outlet()`.
+  with `[ParentRoute]` + `Outlet`.
 
 ## Data access & side effects
 
@@ -279,7 +279,7 @@ mistake, the rule notes the ID.
 | List items with no `.Key(…)` (**RASK022**) — focus/input lost on reorder | Chain a stable, unique `.Key(…)` (entity id) |
 | `new Counter()` outside Core (**RASK014**) | Name it and chain: `Counter`, `Counter.Value(3)` |
 | Service as a settable property → required step (**RASK002**) | Inject via the constructor |
-| `Head()[Title()[...]]` (**RASK019**) | Override `protected override Component? Head` |
+| `Head[Title[...]]` (**RASK019**) | Override `protected override Component? HeadAssets` |
 | Root renders `Doctype`/`Html`/`Head`/`Body` (**RASK021**) | Return the body's content; `Head`/`HtmlLang`/`BodyClass`/`Shell` |
 | User input through `Raw(...)` (XSS) | Use a plain string / `Text` (encodes by default) |
 | `StateHasChanged()` inside an awaited handler/hook | Redundant — the `await` re-renders for you |

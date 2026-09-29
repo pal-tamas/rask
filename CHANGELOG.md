@@ -21,6 +21,13 @@ them until tagged releases begin.
   | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
   | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
   | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
+- **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
+  is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
+  and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are
+  written as the chain entries they are everywhere in the docs, `llms.txt` and the runtime's own errors
+  ("start the app with RaskApp.Create(args).Run<App>()"). The cheatsheet and the authentication guide lead
+  with `RaskApp` (`app.Configure(c => c.Auth.Off())`) and keep the hand-wired `AddRask…` lines as the
+  alternative they are.
 - **Toasts are built in.** `Toast.Success("Saved")` — or `Info`, `Warning`, `Error` — shows a toast from anywhere,
   with nothing injected and nothing mounted: the host draws it in the UI kit's look, or a small look of Rask's own
   with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:

@@ -111,7 +111,7 @@ public sealed class Router : Component
 
         var ctx = LiveRenderContext.Current
                   ?? throw new InvalidOperationException(
-                      "Router() must render under a Rask live root. Call this through MapRask<TApp>.");
+                      "Router must render under a Rask live root — start the app with RaskApp.Create(args).Run<App>(), or MapRask<TApp>() on a hand-wired host.");
 
         // A fresh RouteRenderState per frame even on a memoised match: its Cursor is per-frame walk
         // state, and the Query is read now rather than when the path last changed — `?page=2` moves

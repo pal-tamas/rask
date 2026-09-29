@@ -2,7 +2,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Site.Features;
 
-// A layout is a routed component that renders Outlet() where its children should appear.
+// A layout is a routed component that renders Outlet where its children should appear.
 // Component pages declare [ParentRoute(typeof(RoutingLayoutDemo))] and their templates are
 // joined onto the parent's, so /routing-demo/nested/profile matches this layout, then the
 // child below renders inside the Outlet. Unique route strings keep this demo from colliding

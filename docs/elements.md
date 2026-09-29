@@ -37,7 +37,7 @@ and its paragraph, a layout's header/main/footer:
 
 `Doctype()` emits exactly `<!DOCTYPE html>` — special-cased, with no attributes, children, or wrapper.
 An app's pages don't need it (Rask emits the doctype and the rest of the document around the root
-component — see [the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override));
+component — see [the document and the `HeadAssets` override](getting-started.md#7-the-document-and-the-headassets-override));
 reach for it when you build a document by hand, for `ToHtml()` or an email body:
 
 <!-- demo:primitives-doctype -->
