@@ -331,7 +331,7 @@ internal static class DomEmitter
         sb.AppendLine("#nullable enable");
         sb.AppendLine("using System.Text;");
         sb.AppendLine();
-        sb.AppendLine("namespace Rask.Core.Components;");
+        sb.AppendLine("namespace Rask.Core;");
         sb.AppendLine();
         Doc(sb, "", TypeSummary(name, type.TagNodes), type.Iface);
         if (!typed)

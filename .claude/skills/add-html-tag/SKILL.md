@@ -23,7 +23,7 @@ A local build does this by itself at most once a day. If MDN still lacks it, it 
 Chrome/Firefox/Safari (desktop or mobile), or MDN marks it deprecated — then Rask does not offer it either.
 
 ## 2. Behaviour MDN cannot know → a hand partial
-Add `src/Rask.Core/Components/HTML{Name}Element.cs` (or `SVG{Name}Element.cs`) as a `partial` of the generated type:
+Add `src/Rask.Core/Dom/HTML{Name}Element.cs` (or `SVG{Name}Element.cs`), in namespace `Rask.Core`, as a `partial` of the generated type:
 - A member it declares is **not generated** (the emitter reads the partials). Write the attributes it owns in
   `partial void WriteOwnedAttributes(StringBuilder sb)` (after the generated ones) or
   `WriteOwnedAttributesFirst` (before them). Examples: `HTMLMetaElement.cs` (Open Graph's `property`),
