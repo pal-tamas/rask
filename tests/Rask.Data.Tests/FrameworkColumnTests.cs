@@ -47,7 +47,7 @@ public sealed class FrameworkColumnTests : IDisposable
 
         // Gone means gone: not hidden by a filter, actually absent from the table.
         Assert.Null(await database.LoadAsync<Receipt>(gone.Id));
-        Assert.Equal(0, await Receipt.IgnoreQueryFilters().CountAsync(r => r.Id == gone.Id));
+        Assert.Equal(0, await Receipt.IgnoreQueryFilters().Count(r => r.Id == gone.Id));
         Assert.NotNull(await database.LoadAsync<Receipt>(kept.Id));
     }
 
@@ -124,8 +124,8 @@ public sealed class FrameworkColumnTests : IDisposable
         database.Context.Remove(memo);
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal(0, await Memo.CountAsync());
-        var deleted = Assert.Single(await Memo.IgnoreQueryFilters().ToListAsync());
+        Assert.Equal(0, await Memo.Count());
+        var deleted = Assert.Single(await Memo.IgnoreQueryFilters());
         Assert.NotNull(deleted.DeletedAt);
     }
 

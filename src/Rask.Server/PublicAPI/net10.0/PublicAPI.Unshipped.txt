@@ -102,6 +102,8 @@ Rask.RaskApp.Environment.get -> Microsoft.AspNetCore.Hosting.IWebHostEnvironment
 Rask.RaskApp.MapEndpoints(System.Action<Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!>! map) -> Rask.RaskApp!
 Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
 Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
+Rask.RaskApp.Serve() -> void
+Rask.RaskApp.ServeAsync() -> System.Threading.Tasks.Task!
 Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.RaskAppDbContext
 Rask.RaskAppDbContext.RaskAppDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<Rask.RaskAppDbContext!>! options) -> void
@@ -148,3 +150,13 @@ static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase(this Microsof
 static Rask.RaskDatabaseDbContextOptionsExtensions.UseRaskDatabase<TContext>(this Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>! optionsBuilder, System.IServiceProvider! services) -> Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TContext!>!
 Rask.Server.Authentication.SessionUserProvider.Changed -> System.EventHandler?
 Rask.RaskAppOptions.Ui.get -> Rask.Battery!
+Rask.Data.QueryClientReads
+Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!)
+static Rask.Data.QueryClientReads.Query<TEntity, TResult>(Rask.Querying.QueryKey key, Rask.Data.Projection<TEntity!, TResult>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TResult>!>!
+static Rask.Data.QueryClientReads.Query<TEntity>(Rask.Querying.QueryKey key, Rask.Data.ModelQuery<TEntity!>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
+static Rask.Data.QueryClientReads.Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, System.Func<TInput>! input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
+static Rask.Data.QueryClientReads.Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, TInput input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
+static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TEntity, TResult>(Rask.Querying.QueryKey key, Rask.Data.Projection<TEntity!, TResult>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TResult>!>!
+static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TEntity>(Rask.Querying.QueryKey key, Rask.Data.ModelQuery<TEntity!>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
+static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, System.Func<TInput>! input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
+static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, TInput input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!

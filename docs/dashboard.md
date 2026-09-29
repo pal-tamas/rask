@@ -39,7 +39,9 @@ app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, se
 app.MapRaskSpa();                                           // the app, everywhere else
 ```
 
-`rask new --ops` writes all of it on a server app, including the database the panels read.
+`rask new --ops` writes all of it on a server app, including the database the panels read. A wasm-hosted
+app gets it from `RaskApp.Create(args).Serve()`, which mounts the dashboard under `/_rask` and maps the
+browser app's fallback after it; the lines above are the same thing by hand.
 
 Two details are worth knowing if you assemble this by hand. The SPA's fallback is the lowest precedence
 there is, so mounting the dashboard above it claims the dashboard's routes without taking any of the

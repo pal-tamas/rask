@@ -430,8 +430,28 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             member.Write is { } kind
                 ? WriteOf(property, kind, "__" + kind + index.ToString(CultureInfo.InvariantCulture) + "_" + property.Name, byRef: false)
                 : null,
-            new EquatableArray<string>(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)));
+            new EquatableArray<string>(ImpliedRequired(member, valueObject, property, static a => "[" + a + "]")
+                .Concat(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute))),
+            new EquatableArray<string>(ImpliedRequired(member, valueObject, property, static a => "new " + a)
+                .Concat(property.GetAttributes().Where(IsValidation).Select(RenderConstruction))));
     }
+
+    // A column the aggregate declares non-nullable cannot be emptied: the form model's value is nullable only so a
+    // form can start blank, so a null there is a field the user cleared — an error, never a silent 0 on create or a
+    // silently kept old value on update.
+    private const string RequiredAttributeFqn = "global::System.ComponentModel.DataAnnotations.RequiredAttribute";
+
+    private static IEnumerable<string> ImpliedRequired(
+        ModelMember member,
+        ValueObjectShape? valueObject,
+        IPropertySymbol property,
+        Func<string, string> render) =>
+        member.Role == ModelMemberRole.Value && member.Write is not null && !member.Nullable &&
+        valueObject is null or { SingleValue: true } &&
+        !property.GetAttributes().Any(static a =>
+            string.Equals(a.AttributeClass?.ToDisplayString(), "System.ComponentModel.DataAnnotations.RequiredAttribute", StringComparison.Ordinal))
+            ? [render(RequiredAttributeFqn + "()")]
+            : [];
 
     private static Write WriteOf(IPropertySymbol property, ModelWriteKind kind, string accessorName, bool byRef)
     {
@@ -552,8 +572,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     }
 
     // ---- emit helpers ---------------------------------------------------------------------------
-    // Every property of a model is nullable: a null means "not given" — an update leaves that value as it is, a create
-    // keeps the aggregate's default. A one-value value object is carried as its value; any other as its nested model.
+    // Every property of a model is nullable so a form can start blank; a column that cannot be empty is [Required]
+    // on the model (ImpliedRequired), so a null there never reaches a write. A one-value value object is carried as its value; any other as its nested model.
     private static string ModelTypeOf(ITypeSymbol type, ValueObjectShape? valueObject) =>
         valueObject switch
         {
@@ -599,6 +619,21 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         return false;
     }
 
+    // What the server can run: [Display], [UIHint] and the other DataAnnotations that describe a field are copied
+    // to the form but validate nothing.
+    private static bool IsValidation(AttributeData attribute)
+    {
+        for (var current = attribute.AttributeClass?.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current.ToDisplayString() is ValidationAttribute)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static string RenderAttribute(AttributeData attribute)
     {
         var arguments = attribute.ConstructorArguments.Select(Argument)
@@ -606,6 +641,15 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
         return "[" + attribute.AttributeClass!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) +
                "(" + string.Join(", ", arguments) + ")]";
+    }
+
+    // The same attribute as an object the server validates with — named arguments become an initializer.
+    private static string RenderConstruction(AttributeData attribute)
+    {
+        var named = attribute.NamedArguments.Select(static n => n.Key + " = " + Argument(n.Value)).ToList();
+        return "new " + attribute.AttributeClass!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) +
+               "(" + string.Join(", ", attribute.ConstructorArguments.Select(Argument)) + ")" +
+               (named.Count == 0 ? "" : " { " + string.Join(", ", named) + " }");
     }
 
     // TypedConstant.ToCSharpString renders an array as a bare `{ a, b }`, which is not an expression and so not
@@ -752,6 +796,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         Keep(s, formModel, toModelMark);
 
         var plumbingMark = s.Length;
+        AppendValidate(s, entity);
         AppendApply(s, entity);
         AppendFill(s, entity);
         AppendToModelByName(s, entity);
@@ -838,7 +883,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine("/// It carries no id: the id is passed beside it, so a posted form cannot point a write at another row.");
         }
 
-        s.AppendLine("/// Every property is nullable: a null clears a property the aggregate declares nullable, and leaves the others as they are.");
+        s.AppendLine("/// Every property is nullable so a field can be empty; one whose column cannot be is required, and a null clears the rest.");
         s.AppendLine("/// </remarks>");
     }
 
@@ -1021,6 +1066,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             .AppendLine(" cancellationToken = default)");
         s.AppendLine("        {");
         s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
+        s.AppendLine("            __Validate(model);");
         AppendNewEntity(s, entity, withId: false);
         s.AppendLine("            __Apply(entity, model);");
         s.AppendLine("            apply?.Invoke(entity);");
@@ -1067,6 +1113,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
         s.AppendLine("        {");
         s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
+        s.AppendLine("            __Validate(model);");
         AppendNewEntity(s, entity, withId: true);
         s.AppendLine("            __Apply(entity, model);");
         s.AppendLine("            apply?.Invoke(entity);");
@@ -1122,6 +1169,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
         s.AppendLine("        {");
         s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
+        s.AppendLine("            __Validate(model);");
         s.Append("            return ").Append(WritesFqn).Append(".Update<").Append(entityType)
             .Append(">(id!, ").Append(version)
             .AppendLine(", entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);");
@@ -1287,8 +1335,45 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
     // ---- plumbing ----
     // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
-    // emptied that field — and leaves a non-nullable one as it is, since it can only mean the form never set it. A
+    // emptied that field; a non-nullable scalar cannot be null here, since __Validate has refused the model first. A
     // nested value-object model merges what it gives over the value object the aggregate holds.
+    // The server's own check of what a form posted: the attributes the form validates with, run directly — no
+    // reflection, so a trimmed app keeps every one — before anything is written.
+    private static void AppendValidate(StringBuilder s, Entity entity)
+    {
+        var modelType = FormModelType(entity);
+        s.Append("    internal static void __Validate(").Append(modelType).AppendLine(" model)");
+        s.AppendLine("    {");
+        s.AppendLine("        global::System.Collections.Generic.List<string>? errors = null;");
+        foreach (var member in entity.Members.Where(static m => m.Role == ModelMemberRole.Value && m.Write is not null))
+        {
+            foreach (var check in member.Checks)
+            {
+                s.Append("        __Check(").Append(check).Append(", model.").Append(member.Name).Append(", \"")
+                    .Append(member.Name).AppendLine("\", model, ref errors);");
+            }
+        }
+
+        s.AppendLine("        if (errors is not null)");
+        s.AppendLine("        {");
+        s.AppendLine("            throw new global::System.ComponentModel.DataAnnotations.ValidationException(string.Join(\" \", errors));");
+        s.AppendLine("        }");
+        s.AppendLine("    }");
+        s.AppendLine();
+        s.Append("    private static void __Check(global::System.ComponentModel.DataAnnotations.ValidationAttribute check, ")
+            .Append("object? value, string name, ").Append(modelType)
+            .AppendLine(" model, ref global::System.Collections.Generic.List<string>? errors)");
+        s.AppendLine("    {");
+        s.AppendLine("        // The trim-safe context: it names the model without reflecting over it.");
+        s.AppendLine("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, name, null, null) { MemberName = name };");
+        s.AppendLine("        if (check.GetValidationResult(value, context) is { ErrorMessage: { } error })");
+        s.AppendLine("        {");
+        s.AppendLine("            (errors ??= []).Add(error);");
+        s.AppendLine("        }");
+        s.AppendLine("    }");
+        s.AppendLine();
+    }
+
     private static void AppendApply(StringBuilder s, Entity entity)
     {
         var entityType = entity.FullyQualifiedName;
@@ -1921,7 +2006,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         bool Nullable,
         ValueObjectShape? ValueObject,
         Write? Write,
-        EquatableArray<string> Attributes);
+        EquatableArray<string> Attributes,
+        EquatableArray<string> Checks);
 
     private sealed record Write(
         ModelWriteKind Kind,

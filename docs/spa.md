@@ -325,7 +325,22 @@ and an `assets` folder in a Rask app's `wwwroot` holds files you wrote. A prefix
 Runtime files are served with `application/wasm` and `application/octet-stream`, and
 `AddRaskSpaHost()` compresses both.
 
-Reference the client project and the host's build does the rest:
+**`rask new --template wasm-hosted` is all of this in one line.** Its browser app lives in `Client/`, inside
+the server's own project, and the server's whole `Program.cs` is:
+
+```csharp
+RaskApp.Create(args).Serve();
+```
+
+`Serve()` is `Run<App>()` without a server-rendered root: every battery, the endpoints the browser app
+dispatches to (`MapRaskCqrs`), the operator console at `/_rask`, and `MapRaskSpa()` last, answering every
+other path. A battery the app does without is still one line —
+`var app = RaskApp.Create(args); app.Configure(c => c.Jobs.Off()); app.Serve();`. The PWA belongs to the
+browser app (`host.UsePwa` in `Client/Program.cs`), so the server maps no manifest or service worker of its
+own: a route for `rask-sw.js` would answer before the bundle's file.
+
+By hand — a host that is not a `RaskApp`, or a client in a project of its own — reference the client
+project and the host's build does the rest:
 
 ```xml
 <ProjectReference Include="..\Shop.Client\Shop.Client.csproj"
@@ -353,7 +368,7 @@ published for one.
 trimming turns hot reload off in the browser, so a dev session turns `RaskSpaBuild` off: the client's
 publish is skipped, and the host serves what its ordinary build wrote, with hot reload.
 
-**The operator dashboard can sit beside it.** Mount it above the app —
+**The operator dashboard can sit beside it.** `Serve()` mounts it; by hand, mount it above the app —
 `app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}")` — and both halves share `/_rask/a/{hash}`
 safely: the dashboard's endpoint answers a hash its own process never registered from the web root,
 where `MapRaskSpa` places the bundle's scoped assets.

@@ -8,7 +8,7 @@
 
     <PackageId>Rask.Server</PackageId>
     <Title>Rask — ASP.NET server host, batteries included</Title>
-    <Description>The ASP.NET host for Rask, a full-stack .NET web framework, with every battery: database (SQLite, PostgreSQL or SQL Server, picked by Rask:Database:Provider), mediator and query cache, accounts, background jobs, transactional email, cache, file storage, outbox, operator dashboard, durable logs, Web Push, SQLite snapshots and continuous backup. Renders Rask components with live updates over a WebSocket. RaskApp.Create(args).Run&lt;App&gt;() is the whole Program.cs; app.Configure(c => c.Jobs.Off()) is how an app does without one. Depends on Rask, the shared core.</Description>
+    <Description>The ASP.NET host for Rask, a full-stack .NET web framework, with every battery: database (SQLite, PostgreSQL or SQL Server, picked by Rask:Database:Provider), mediator and query cache, accounts, background jobs, transactional email, cache, file storage, outbox, operator dashboard, durable logs, Web Push, SQLite snapshots and continuous backup. Renders Rask components with live updates over a WebSocket. RaskApp.Create(args).Run&lt;App&gt;() is the whole Program.cs, and RaskApp.Create(args).Serve() the whole server of a WebAssembly client; app.Configure(c => c.Jobs.Off()) is how an app does without one. Depends on Rask, the shared core.</Description>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -72,6 +72,10 @@
     <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.SQLite.Litestream\Rask.SQLite.Litestream.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- What RaskApp.Serve() needs to host a WebAssembly client instead of rendering pages: the endpoint half of
+         remote dispatch the browser app calls, and the host that serves the bundle Client/ builds into. -->
+    <ProjectReference Include="..\Rask.Cqrs.Server\Rask.Cqrs.Server.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Spa.Hosting\Rask.Spa.Hosting.csproj" PrivateAssets="none" ExcludeAssets="build"/>
   </ItemGroup>
 
   <!--
@@ -114,6 +118,7 @@
     <!-- One file, two hosts: Rask.Data's browser build registers it from AddRaskData; the server build does not
          reference Rask.Query, so the server host compiles the same file in and registers it itself (RaskBatteryWiring). -->
     <Compile Include="..\Rask.Data\Browser\QueryDataChanges.cs" Link="App\QueryDataChanges.cs"/>
+    <Compile Include="..\Rask.Data\Browser\QueryClientReads.cs" Link="App\QueryClientReads.cs"/>
     <!-- An app VS Code's F5 launched starts its islands' Vite dev server itself (Dev/IslandDevServer). -->
     <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\Dev\IslandDevPointer.cs" Link="Shared\Dev\IslandDevPointer.cs"/>

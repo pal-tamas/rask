@@ -36,6 +36,38 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
+    public void A_column_that_cannot_be_null_is_required_on_the_form_and_checked_before_a_write()
+    {
+        var run = Run("""
+            using System;
+            using System.ComponentModel.DataAnnotations;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Product : Aggregate<Guid>
+            {
+                private Product() { }
+                [Range(0, 1000)] public decimal Price { get; private set; }
+                [Display(Name = "Remarks")] public string? Notes { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ProductModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain("__Check(new global::System.ComponentModel.DataAnnotations.DisplayAttribute", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "[global::System.ComponentModel.DataAnnotations.RequiredAttribute()]\n    [global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000)]\n    public decimal? Price",
+            source.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("RequiredAttribute()]\n    [global::System.ComponentModel.DataAnnotations.DisplayAttribute(Name = \"Remarks\")]\n    public string? Notes", source.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains(
+            "__Check(new global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000), model.Price, \"Price\", model, ref errors);",
+            source,
+            StringComparison.Ordinal);
+        Assert.Equal(3, source.Split("__Validate(model);").Length - 1);
+    }
+
+    [Fact]
     public void An_entity_gets_a_model_and_the_writes_that_take_it()
     {
         var run = Run("""

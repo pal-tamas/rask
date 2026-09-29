@@ -140,9 +140,9 @@ public sealed class GeneratedModelWriteTests : IDisposable
         _clock.UtcNow = Start.AddHours(1);
         await GeneratedModelWrites.Delete<Widget>(widget.Id, version: 0);
 
-        Assert.Equal(0, await Widget.CountAsync());
+        Assert.Equal(0, await Widget.Count());
 
-        var stored = await Widget.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == widget.Id);
+        var stored = await Widget.IgnoreQueryFilters().First(w => w.Id == widget.Id);
         Assert.NotNull(stored);
         Assert.Equal(Start.AddHours(1).UtcDateTime, stored.DeletedAt);
         Assert.Equal(1, stored.Version);
@@ -158,7 +158,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             GeneratedModelWrites.Delete<Widget>(widget.Id, version: 0));
 
-        Assert.Equal(1, await Widget.CountAsync());
+        Assert.Equal(1, await Widget.Count());
     }
 
     [Fact]

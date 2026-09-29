@@ -172,6 +172,9 @@ places say which half a file belongs to:
 | `Shared/**` | both — **message records go here** |
 | everything else | the server only — **handlers go here** |
 
+The server's `Program.cs` is `RaskApp.Create(args).Serve();` — it registers `AddRaskCqrsServer()` and maps
+`MapRaskCqrs()` ahead of the browser app's fallback, so neither line is yours to write.
+
 So a message record is shared by construction, and its handler — with the connection string, table name or
 pricing rule it touches — never reaches a download anybody can read. The build generates the browser app's
 project into `obj/` from `Client/` and `Shared/`; `Client/Program.cs` is what switches that on, and

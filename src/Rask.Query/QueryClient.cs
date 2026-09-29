@@ -182,6 +182,28 @@ public static class QueryClient
         return created;
     }
 
+    /// <summary>
+    ///     The query that caches what <paramref name="fetch" /> returns under <paramref name="key" /> —
+    ///     <c>QueryClient.Query("count", () =&gt; Product.Count())</c>. The fetch is cancelled with the query,
+    ///     with no token to pass.
+    /// </summary>
+    /// <typeparam name="TResult">What the function returns.</typeparam>
+    /// <param name="key">A name unique to this data within the session; a string converts to one.</param>
+    /// <param name="fetch">Runs when the entry is missing or stale.</param>
+    /// <param name="options">Freshness and lifetime; TanStack's defaults when omitted.</param>
+    /// <param name="callerFile">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
+    /// <param name="callerLine">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
+    public static Query<TResult> Query<TResult>(
+        QueryKey key,
+        Func<Task<TResult>> fetch,
+        QueryOptions? options = null,
+        [CallerFilePath] string callerFile = "",
+        [CallerLineNumber] int callerLine = 0)
+    {
+        ArgumentNullException.ThrowIfNull(fetch);
+        return Query(key, _ => fetch(), options, callerFile, callerLine);
+    }
+
     // ---- queries in a field or the constructor: from a lambda ------------------------------------------
 
     /// <inheritdoc cref="IQueryClient.Query{TResult}(Func{IQuery{TResult}}, QueryOptions?)" />
