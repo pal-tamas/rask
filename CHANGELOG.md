@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **One design standard for the whole codebase: SOLID and Clean Code.** The
+  [code analysis guide](docs/code-analysis.md#design) now states it — one responsibility per type and per file,
+  extension through the existing seams, small well-named methods, no copied helper — and the review and ship
+  gates hold every change to it. Large types are split in two steps: partial files by responsibility, then an
+  internal type where the seam is worth testing alone.
+
 - **Toasts are built in.** `Toast.Success("Saved")` — or `Info`, `Warning`, `Error` — shows a toast from anywhere,
   with nothing injected and nothing mounted: the host draws it in the UI kit's look, or a small look of Rask's own
   with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:
