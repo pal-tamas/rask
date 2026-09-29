@@ -122,16 +122,16 @@ OwnerId = Current.RequiredUserId,                   // Current.UserId is null wh
 using (Tenant.Use(tenantId)) { /* … */ }           // work as one tenant; Tenant.Across() spans them
 
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
-var one = await Product.Where(p => p.Id == id).FirstOrDefaultAsync(CancellationToken);
+var one = await Product.Where(p => p.Id == id).First(CancellationToken);
 var agg = await Product.Find(id, cancellationToken: CancellationToken);   // Product? — whole, untracked
 agg!.Rename("Anvil");
 await agg.Save(cancellationToken: CancellationToken);                     // only what changed; stale Version throws
 
 // Ranked full-text search — builder.HasFullTextSearch(p => new { p.Name, p.Description }) in static Configure, then:
-var hits = await Product.Search(query).Take(20).ToListAsync(CancellationToken);
+var hits = await Product.Search(query).Take(20);
 
 // Read and write it — no context injected; or send a command whose handler does the save:
-var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
+var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name);
 var product  = await Product.Create(model, cancellationToken: CancellationToken);               // ProductModel from a form
 var edit     = product.ToModel();                                                               // fills an edit form
 await Product.Update(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);        // + values not from the form
@@ -140,7 +140,7 @@ await dispatcher.Send(new EditProduct { Id = id, Name = name, Version = version 
 Ui.DataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
 // Cache a query for the session, from Render — refetched by itself after any Product write (Rask.Query):
-var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.CountAsync(ct));
+var count = QueryClient.Query(QueryKey.For<Product>("count"), () => Product.Count());
 count.IsLoading ? Ui.Loading.Text("Loading…") : Text($"{count.Data} products")
 var save = QueryClient.Command();                    // pending/error state for a write; save.IsPending disables Save
 

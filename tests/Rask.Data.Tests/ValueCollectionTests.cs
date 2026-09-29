@@ -195,7 +195,7 @@ public sealed class ValueCollectionTests : IDisposable
         database.Context.Add(journey);
         await database.Context.SaveChangesAsync();
 
-        var read = await Journey.Where(j => j.Id == journey.Id).SingleOrDefaultAsync();
+        var read = await Journey.Where(j => j.Id == journey.Id).Single();
 
         Assert.NotNull(read);
         Assert.Equal(["urgent"], read.Tags);

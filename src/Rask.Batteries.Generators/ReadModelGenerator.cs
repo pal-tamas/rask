@@ -67,32 +67,22 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             "Select(selector)"),
         ("The rows as an <see cref=\"global::System.Linq.IQueryable{T}\" />, for a grid or LINQ of your own.",
             "global::System.Linq.IQueryable<{R}> AsQueryable()", "AsQueryable()"),
-        ("Every row.", "global::System.Threading.Tasks.Task<global::System.Collections.Generic.List<{R}>> ToListAsync(" + Token + ")",
-            "ToListAsync(cancellationToken)"),
-        ("Every row.", "global::System.Threading.Tasks.Task<{R}[]> ToArrayAsync(" + Token + ")", "ToArrayAsync(cancellationToken)"),
-        ("The first row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> FirstOrDefaultAsync(" + Token + ")",
-            "FirstOrDefaultAsync(cancellationToken)"),
-        ("The first matching row, or <c>null</c>.",
-            "global::System.Threading.Tasks.Task<{R}?> FirstOrDefaultAsync(" + Predicate + ", " + Token + ")",
-            "FirstOrDefaultAsync(predicate, cancellationToken)"),
-        ("The only row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> SingleOrDefaultAsync(" + Token + ")",
-            "SingleOrDefaultAsync(cancellationToken)"),
-        ("The only matching row, or <c>null</c>.",
-            "global::System.Threading.Tasks.Task<{R}?> SingleOrDefaultAsync(" + Predicate + ", " + Token + ")",
-            "SingleOrDefaultAsync(predicate, cancellationToken)"),
-        ("How many rows there are.", "global::System.Threading.Tasks.Task<int> CountAsync(" + Token + ")", "CountAsync(cancellationToken)"),
-        ("How many rows match.", "global::System.Threading.Tasks.Task<int> CountAsync(" + Predicate + ", " + Token + ")",
-            "CountAsync(predicate, cancellationToken)"),
-        ("How many rows there are.", "global::System.Threading.Tasks.Task<long> LongCountAsync(" + Token + ")",
-            "LongCountAsync(cancellationToken)"),
-        ("Whether there is any row.", "global::System.Threading.Tasks.Task<bool> AnyAsync(" + Token + ")", "AnyAsync(cancellationToken)"),
-        ("Whether any row matches.", "global::System.Threading.Tasks.Task<bool> AnyAsync(" + Predicate + ", " + Token + ")",
-            "AnyAsync(predicate, cancellationToken)"),
+        ("The first row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> First(" + Token + ")", "First(cancellationToken)"),
+        ("The first matching row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> First(" + Predicate + ", " + Token + ")",
+            "First(predicate, cancellationToken)"),
+        ("The only row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> Single(" + Token + ")", "Single(cancellationToken)"),
+        ("The only matching row, or <c>null</c>.", "global::System.Threading.Tasks.Task<{R}?> Single(" + Predicate + ", " + Token + ")",
+            "Single(predicate, cancellationToken)"),
+        ("How many rows there are.", "global::System.Threading.Tasks.Task<int> Count(" + Token + ")", "Count(cancellationToken)"),
+        ("How many rows match.", "global::System.Threading.Tasks.Task<int> Count(" + Predicate + ", " + Token + ")", "Count(predicate, cancellationToken)"),
+        ("How many rows there are.", "global::System.Threading.Tasks.Task<long> LongCount(" + Token + ")", "LongCount(cancellationToken)"),
+        ("Whether there is any row.", "global::System.Threading.Tasks.Task<bool> Any(" + Token + ")", "Any(cancellationToken)"),
+        ("Whether any row matches.", "global::System.Threading.Tasks.Task<bool> Any(" + Predicate + ", " + Token + ")", "Any(predicate, cancellationToken)"),
         ("Streams every row.", "global::System.Collections.Generic.IAsyncEnumerable<{R}> AsAsyncEnumerable(" + Token + ")",
             "AsAsyncEnumerable(cancellationToken)"),
         ("Runs <paramref name=\"query\" /> over the rows, in a context opened and disposed around it.",
-            "global::System.Threading.Tasks.Task<TResult> QueryAsync<TResult>(global::System.Func<global::System.Linq.IQueryable<{R}>, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task<TResult>> query, " + Token + ")",
-            "QueryAsync(query, cancellationToken)"),
+            "global::System.Threading.Tasks.Task<TResult> Query<TResult>(global::System.Func<global::System.Linq.IQueryable<{R}>, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task<TResult>> query, " + Token + ")",
+            "Query(query, cancellationToken)"),
     ];
 
     private static readonly DiagnosticDescriptor Rask089 = new(
@@ -329,7 +319,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
     {
         s.Append("/// <summary>Queries <see cref=\"").Append(shape.SourceTypeName)
             .Append("\" /> through its read face, <see cref=\"").Append(shape.FullyQualifiedName).AppendLine("\" />.</summary>");
-        // Every terminal ends in a defaulted CancellationToken, so CountAsync() beside CountAsync(predicate) trips
+        // Every terminal ends in a defaulted CancellationToken, so Count() beside Count(predicate) trips
         // RS0026 by construction; .editorconfig turns it off for the same reason, but its [*.cs] never matches a
         // generated tree.
         s.AppendLine("#pragma warning disable RS0026");
@@ -341,6 +331,10 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         var read = shape.FullyQualifiedName;
         var query = Query + "<" + read + ">";
         var open = "global::Rask.Data.GeneratedReadQuery.Of<" + read + ">()";
+
+        s.AppendLine("        /// <summary>Every row, as a query that has not run yet: <c>await Product.All</c>.</summary>");
+        s.Append("        public static ").Append(query).Append(" All => ").Append(open).AppendLine(";");
+        s.AppendLine();
 
         foreach (var (summary, signature, call) in Forwarders)
         {

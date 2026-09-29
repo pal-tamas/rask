@@ -76,7 +76,7 @@ public sealed class AggregateChildrenTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await OpenBasketAsync(database);
 
-        var orders = await Basket.Where(o => o.Customer == "ada").ToListAsync();
+        var orders = await Basket.Where(o => o.Customer == "ada");
 
         Assert.Single(orders);
         Assert.Empty(orders[0].Lines);

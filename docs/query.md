@@ -76,11 +76,11 @@ running when the value changes caches under its own key, never the new one:
 ```csharp
 // in Render
 var hits = QueryClient.Query(QueryKey.For<Person>(), _search,
-    (s, ct) => Person.Where(p => p.Name.Contains(s)).ToListAsync(ct));
+    s => Person.Where(p => p.Name.Contains(s)));
 
 // in a property: the same, with a lambda for the value
 Query<List<PersonRead>> Hits => field ??= QueryClient.Query(QueryKey.For<Person>(), () => _search,
-    (s, ct) => Person.Where(p => p.Name.Contains(s)).ToListAsync(ct));
+    s => Person.Where(p => p.Name.Contains(s)));
 ```
 
 The key is `[..prefix, value]`. An unchanged value is compared before any key is built, so a value type —
@@ -146,7 +146,7 @@ with the type, so no string has to match between the query and whatever makes it
 
 ```csharp
 var people = QueryClient.Query(QueryKey.For<Person>("active"),
-                       ct => Person.Where(p => p.Active).ToListAsync(ct));
+                       Person.Where(p => p.Active));
 ```
 
 `QueryKey.For<Person>("active")` is `[typeof(Person), "active"]`, so `Invalidate<Person>()`,
@@ -275,7 +275,7 @@ In a Rask app a Rask.Data write needs no invalidation at all. Once a save commit
 types it wrote refetches on the screen of the session that made it:
 
 ```csharp
-var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Where(p => p.Active).ToListAsync(ct));
+var people = QueryClient.Query(QueryKey.For<Person>("active"), Person.Where(p => p.Active));
 
 .OnClick(() => Person.Create(model))        // the list above refetches — nothing else to write
 ```
@@ -336,7 +336,7 @@ so a Rask.Data read face is live the moment the model opts in:
 
 ```csharp
 var people = QueryClient.Query(QueryKey.For<Person>("active"),
-                       ct => Person.Where(p => p.Active).ToListAsync(ct));
+                       Person.Where(p => p.Active));
 ```
 
 **Why a message query has to say it.** `new GetOrders(Page)` is keyed by `GetOrders`, not by `Order` — a write cannot

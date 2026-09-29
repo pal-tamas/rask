@@ -29,7 +29,7 @@ namespace Rask.Data;
 ///             <description>
 ///                 <b>Show one, or many, or joined</b> — <c>Product.Where(p =&gt; p.Active)</c>. Untracked,
 ///                 opens its own context, and by-id is just the narrowest case:
-///                 <c>Product.Where(p =&gt; p.Id == id).FirstOrDefaultAsync()</c>.
+///                 <c>Product.Where(p =&gt; p.Id == id).First()</c>.
 ///             </description>
 ///         </item>
 ///         <item>

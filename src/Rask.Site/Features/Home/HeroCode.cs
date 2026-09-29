@@ -111,7 +111,7 @@ public sealed partial class HeroCode : Component
                 {
                     // Cached, and refetched after any Product write.
                     var count = QueryClient.Query(QueryKey.For<Product>(),
-                        ct => Product.CountAsync(ct));
+                        () => Product.Count());
 
                     return
                     [

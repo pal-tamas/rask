@@ -43,7 +43,7 @@ public sealed class ModelFindTests : IDisposable
         await database.Context.SaveChangesAsync();
 
         Assert.Null(await database.LoadAsync<Widget>(doomed.Id));
-        Assert.NotNull(await Widget.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == doomed.Id));
+        Assert.NotNull(await Widget.IgnoreQueryFilters().First(w => w.Id == doomed.Id));
     }
 
     [Fact]

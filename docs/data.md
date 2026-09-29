@@ -54,8 +54,8 @@ a `db.Products` accessor on any `DbContext`, a read face — `ProductRead`, quer
 `Product.Find(id)` + `product.Save()` for changing one. That is everything a screen needs:
 
 ```csharp
-var cheap = await Product.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name).ToListAsync();
-var anvil = await Product.Where(p => p.Id == id).FirstOrDefaultAsync();
+var cheap = await Product.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name);
+var anvil = await Product.Where(p => p.Id == id).First();
 var grid  = Product.OrderBy(p => p.Name).AsQueryable();   // for Ui.DataGrid, sorted and paged in SQL
 ```
 
@@ -103,7 +103,7 @@ framework writes them:
 | `DeletedAt` | `Aggregate<TId>` | **Only when the aggregate asks.** A delete removes the row unless it declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carries). |
 
 ```csharp
-var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
+var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10);
 ```
 
 `Aggregate<TId>` also carries the domain-events buffer: `Raise(…)` inside a method, and the events are
@@ -168,12 +168,11 @@ when you want them — listing a thousand orders should not drag in every line e
 ```csharp
 await Order.Update(id, o => o.Add("anvil", 1));                      // loaded whole, changed, saved
 
-var open = await Order.Where(o => o.Reference.StartsWith("2026")).ToListAsync();   // Lines EMPTY
-var withLines = await Order.QueryAsync((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
+var open = await Order.Where(o => o.Reference.StartsWith("2026"));   // Lines EMPTY
+var withLines = await Order.Query((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
 
 // …and a child is queryable on its own, because the read side has no borders:
-var heavy = await OrderLine.Where(l => l.Quantity > 10 && l.Order.Reference.StartsWith("2026"))
-                               .ToListAsync();
+var heavy = await OrderLine.Where(l => l.Quantity > 10 && l.Order.Reference.StartsWith("2026"));
 ```
 
 **A change to any part is a change to the whole.** A line's quantity moving stamps the order's `UpdatedAt` and
@@ -251,8 +250,8 @@ public sealed record Stop(string City, int Day);
 the read face, and both are **queryable in SQL**:
 
 ```csharp
-await Trip.Where(t => t.Tags.Contains("urgent")).ToListAsync();
-await Trip.Where(t => t.Stops.Any(s => s.City == "Vienna" && s.Day >= 2)).ToListAsync();
+await Trip.Where(t => t.Tags.Contains("urgent"));
+await Trip.Where(t => t.Stops.Any(s => s.City == "Vienna" && s.Day >= 2));
 ```
 
 **Values are replaced wholesale, not reconciled.** A child has an id, so a form post updates the rows it names
@@ -296,16 +295,16 @@ A query is called on `Product`, but its rows are the generated **read face**, `P
 navigations, no behaviour:
 
 ```csharp
-await Product.ToListAsync();
-await Product.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync();
-await Product.Where(p => p.PriceAmount > 10).OrderByDescending(p => p.PriceAmount).Skip(20).Take(20).ToListAsync();
-await Product.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();   // reads one column
-await Product.IgnoreQueryFilters().ToListAsync();                       // soft-deleted rows too
-await Product.Where(p => p.Id == id).FirstOrDefaultAsync();             // by id
-await Product.FirstOrDefaultAsync(p => p.Name == "Anvil");
-await Product.CountAsync(p => p.Active);
-await Product.AnyAsync();
-await Product.Search("red anvil").Take(20).ToListAsync();               // full-text, best match first
+await Product.All;
+await Product.Where(p => p.Active).OrderBy(p => p.Name);
+await Product.Where(p => p.PriceAmount > 10).OrderByDescending(p => p.PriceAmount).Skip(20).Take(20);
+await Product.OrderBy(p => p.Name).Select(p => p.Name);   // reads one column
+await Product.IgnoreQueryFilters();                       // soft-deleted rows too
+await Product.Where(p => p.Id == id).First();             // by id
+await Product.First(p => p.Name == "Anvil");
+await Product.Count(p => p.Active);
+await Product.Any();
+await Product.Search("red anvil").Take(20);               // full-text, best match first
 await foreach (var p in Product.AsAsyncEnumerable()) { }
 ```
 
@@ -359,8 +358,7 @@ await Order
              && o.TotalAmount > 100
              && o.Lines.Any(l => l.Product.Sku == "ANVIL"))
     .OrderByDescending(o => o.ShippedAt)
-    .Select(o => new { o.Reference, Customer = o.Customer.Name, o.TotalAmount })
-    .ToListAsync();
+    .Select(o => new { o.Reference, Customer = o.Customer.Name, o.TotalAmount });
 ```
 
 Four aggregates in one statement, from a write model that holds nothing but ids.
@@ -370,7 +368,7 @@ Four aggregates in one statement, from a write model that holds nothing but ids.
 To *show* one, it is the narrowest query; to *change* one, `Find` it:
 
 ```csharp
-ProductRead? row = await Product.Where(p => p.Id == id).FirstOrDefaultAsync();
+ProductRead? row = await Product.Where(p => p.Id == id).First();
 Product? product = await Product.Find(id);   // whole, children loaded — see "Find, change, Save"
 ```
 
@@ -383,7 +381,7 @@ statement anywhere, including a component's `OnMount`:
 
 ```csharp
 protected override async Task OnMount() =>
-    _products = await Product.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync(CancellationToken);
+    _products = await Product.Where(p => p.Active).OrderBy(p => p.Name);
 ```
 
 That is the shape a live page needs, not a default to tune. A Rask page lives as long as the browser
@@ -401,7 +399,7 @@ For a shape this does not wrap — a group-by, a join, an aggregate — `QueryAs
 `IQueryable` inside a managed context:
 
 ```csharp
-var byMonth = await Product.QueryAsync((q, ct) =>
+var byMonth = await Product.Query((q, ct) =>
     q.GroupBy(p => p.CreatedAt.Month)
      .Select(g => new { Month = g.Key, Total = g.Sum(p => p.PriceAmount) })
      .ToListAsync(ct));
@@ -580,12 +578,16 @@ A form edits something mutable and an aggregate is not, so every aggregate gets 
 it**: `ProductModel` for `Product`. Forms always bind the model, never the aggregate. It is a plain class with a
 settable copy of every mapped property, and:
 
-- **every property is nullable**, because a form field can be empty whatever the column is;
+- **every property is nullable**, because a form field can be empty whatever the column is — and a column that
+  cannot be empty (`decimal Price`, `string Name`) is `[Required]` on the model, so clearing it is a validation
+  error ("The Price field is required.") rather than a silent 0;
 - **`new ProductModel()` holds the aggregate's defaults**: it is filled from an empty `Product`, so a create form
   starts from the same values a `Product` would;
 - **`product.ToModel()`** copies a row into a model for an edit form, `Version` included;
 - **the aggregate's validation attributes are copied onto it**, so `Form.Model(…)` checks input by the aggregate's
-  own rules as the user types, and EF Core reads the same attributes for the column.
+  own rules as the user types, and EF Core reads the same attributes for the column;
+- **`Product.Create(model)` and `Product.Update(id, model)` check them again on the server** before writing, and
+  throw `ValidationException` with nothing written — a posted form cannot skip the rules.
 
 A create page starts from a new one:
 
@@ -781,7 +783,7 @@ public sealed class Passkey : Aggregate<Guid>
 await Passkey.Create(p => p.Rename("laptop"));            // behaviour — takes no model
 await Passkey.Update(id, p => p.Rename("desktop"));       // behaviour
 await Passkey.Delete(id);                                 // never took a model (gone under Deletes = Deletion.None)
-await Passkey.Where(p => p.UserId == me).ToListAsync();   // the read face is not negotiable
+await Passkey.Where(p => p.UserId == me);   // the read face is not negotiable
 ```
 
 The read face stays because querying works through read models: an aggregate that could switch its own off
@@ -942,7 +944,7 @@ job row records `UserId` and the runner re-enters it. Anywhere else (a hosted se
 database on every read would be the wrong thing to hide. Load it when you need it:
 
 ```csharp
-var me = await User.FirstOrDefaultAsync(u => u.Id == Current.UserId);
+var me = await User.First(u => u.Id == Current.UserId);
 ```
 
 Inside a component, inject `IUserProvider` as before — it also raises `Changed` so the UI re-renders on sign-in.
@@ -958,7 +960,7 @@ public sealed class Invoice : Aggregate<Guid>
     public const Tenancy Scope = Tenancy.PerTenant;
 }
 
-var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();   // this tenant's
+var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20);   // this tenant's
 ```
 
 That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
@@ -1189,7 +1191,7 @@ Assert.Equal(12.50m, (await database.LoadAsync<Product>(anvil.Id))!.Price);
 database.Context.AddRange(Order.Place("B-2"), Order.Place("B-3"));
 await database.Context.SaveChangesAsync();
 
-Assert.Equal(2, await Order.CountAsync());
+Assert.Equal(2, await Order.Count());
 ```
 
 `TestDatabase.StartAsync` maps every entity the build found — so no fixture has to list entities — creates the
@@ -1608,7 +1610,7 @@ modelBuilder.Entity<Product>().HasFullTextSearch(p => new { p.Name, p.Descriptio
 Then search from the read face, a context, or a grid:
 
 ```csharp
-await Product.Search(query).Where(p => p.Active).Take(20).ToListAsync();
+await Product.Search(query).Where(p => p.Active).Take(20);
 await db.Set<Product>().Search(query).CountAsync();
 Ui.DataGrid.Data(Product.Search(query).AsQueryable())
 ```

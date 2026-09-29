@@ -48,7 +48,7 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
-        var order = await Order.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(Current.Cancellation);
+        var order = await Order.Where(o => o.Id == job.OrderId).First(Current.Cancellation);
         // … process the order …
     }
 }

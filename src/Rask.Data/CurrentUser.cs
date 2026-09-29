@@ -29,7 +29,7 @@ namespace Rask.Data;
 ///     <para>
 ///         The user is an id, not the app's <c>User</c> row: loading the row is a query, and a property that
 ///         silently queried the database on every read would be the wrong thing to hide. Load it when you
-///         need it — <c>await User.FirstOrDefaultAsync(u => u.Id == Current.UserId)</c>.
+///         need it — <c>await User.First(u => u.Id == Current.UserId)</c>.
 ///     </para>
 /// </remarks>
 // Rask.Wire declares Current — every app has it, and it carries Current.Cancellation. The data layer adds who the

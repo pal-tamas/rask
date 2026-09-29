@@ -135,7 +135,7 @@ public sealed class AggregateSaveTests : IDisposable
         found.Rename("hammer");
         await Assert.ThrowsAsync<KeyNotFoundException>(() => found.Save());
 
-        Assert.Single(await Widget.IgnoreQueryFilters().ToListAsync());
+        Assert.Single(await Widget.IgnoreQueryFilters());
     }
 
     [Fact]

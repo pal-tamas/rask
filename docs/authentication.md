@@ -176,7 +176,7 @@ and a deleted account has to free its address for the person to sign up again, s
 
 ```csharp
 var me = users.Current.UserId() is { } id
-    ? await User.Where(u => u.Id == id).FirstOrDefaultAsync(CancellationToken)
+    ? await User.Where(u => u.Id == id).First(CancellationToken)
     : null;
 await User.Update(id, u => u.Rename(name));
 await User.Update(id, u => u.GrantRole("editor"));
@@ -207,7 +207,7 @@ the rows of sessions that ended or expired more than a day ago, once an hour and
 
 ```csharp
 var devices = await Session.Where(s => s.UserId == me)
-                                .OrderByDescending(s => s.LastSeenAt).ToListAsync();
+                                .OrderByDescending(s => s.LastSeenAt);
 
 await auth.SignOutOtherDevicesAsync();   // every session but this one
 await auth.SignOutEverywhereAsync();     // this one too
@@ -260,7 +260,7 @@ await auth.AddPasskeyAsync("MacBook");                          // signed in; ru
 await auth.SignInWithPasskeyAsync(remember: true, returnUrl);   // discoverable — nothing is typed
 await auth.RemovePasskeyAsync(passkeyId);
 
-var keys = await Passkey.Where(p => p.UserId == me).ToListAsync();   // list them like sessions
+var keys = await Passkey.Where(p => p.UserId == me);   // list them like sessions
 ```
 
 **Call these from a click handler.** Browsers only show the passkey dialog for a real gesture. A dismissed dialog

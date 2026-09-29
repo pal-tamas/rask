@@ -12,7 +12,7 @@ namespace Rask.Data;
 ///     </para>
 ///     <example>
 ///         <code>
-/// var newest = await Product.All.QueryAsync((q, ct) =&gt; q
+/// var newest = await Product.Query((q, ct) =&gt; q
 ///     .OrderByDescending(p =&gt; EF.Property&lt;DateTime&gt;(p, Columns.CreatedAt))
 ///     .Take(10)
 ///     .ToListAsync(ct));

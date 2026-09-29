@@ -12,7 +12,7 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **Value objects with no marker**: any record, struct or class an entity holds that is not an entity maps as an
   EF **complex type**, columns on the owner's row. **Strongly-typed ids** get a generated value converter with
   nothing declared; mapping rules live in a plain `public static void Configure(EntityTypeBuilder<T>)` on the type.
-- **Queries off the type, rows from a generated read face**: `Product.Where(...)`, `Product.CountAsync()`,
+- **Queries off the type, rows from a generated read face**: `Product.Where(...)`, `Product.Count()`,
   `Product.Search(text)`, `Product.AsQueryable()` return `ProductRead` rows — primitives plus the joins its ids
   imply. C# 14 static extension members, so an aggregate that compiles today has them.
   **Every read is untracked and opens and disposes its own context**, which is what makes them safe on a
@@ -63,7 +63,7 @@ public sealed class Product : Aggregate<Guid>
 public sealed record Money(decimal Amount, string Currency);
 
 // read: no context in scope, nothing left open, nothing tracked
-var products = await Product.OrderBy(p => p.Name).ToListAsync();
+var products = await Product.OrderBy(p => p.Name);
 
 // write: off the type too; the form model carries the values, the id is yours
 var product = await Product.Create(model);
@@ -144,8 +144,8 @@ Declare which text is searchable, and search it from LINQ — ranked, word-aware
 ```csharp
 modelBuilder.Entity<Post>().HasFullTextSearch(p => new { p.Title, p.Body });
 
-var hits = await Post.Search(query).Where(p => p.Published).Take(20).ToListAsync();
-var marked = await Post.Search(query).Select(p => FullText.Snippet(p.Body)).ToListAsync();
+var hits = await Post.Search(query).Where(p => p.Published).Take(20);
+var marked = await Post.Search(query).Select(p => FullText.Snippet(p.Body));
 ```
 
 `Search(text)` works on a read face, on a `ModelQuery` and on any EF Core `IQueryable`; it returns best
