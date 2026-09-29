@@ -25,7 +25,7 @@ public sealed class WebApiTests(PlaywrightFixture playwright) : IClassFixture<Pl
 
         await page.Locator("#go").ClickAsync();
 
-        await Expect(page.Locator("#out")).ToHaveTextAsync("stored=from the server; wide=True; kept=True; name=set by Rask.Web", new() { Timeout = 15_000 });
+        await Expect(page.Locator("#out")).ToHaveTextAsync("stored=from the server; wide=True; kept=True; name=set by Rask.Web; host=rask.sh", new() { Timeout = 15_000 });
         Assert.Equal("from the server", await page.EvaluateAsync<string>("() => localStorage.getItem('rask-web-e2e')"));
     }
 }
@@ -49,7 +49,8 @@ public sealed partial class WebApiPage : Component
             var kept = await query.Matches;
             await Window.SetName("set by Rask.Web");
             var name = await Window.Name;
-            _out = $"stored={stored}; wide={wide}; kept={kept}; name={name}";
+            await using var url = await URL.Create("https://rask.sh/docs");
+            _out = $"stored={stored}; wide={wide}; kept={kept}; name={name}; host={await url.Host}";
         })["go"]
     ];
 }

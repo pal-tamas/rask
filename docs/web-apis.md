@@ -42,6 +42,16 @@ var matches = await wide.Matches;
 A method whose promise resolves to an object (`Navigator.MediaDevices.GetUserMedia(…)`) keeps that object the same
 way.
 
+A method that returns an object at once is a step of the path like any other, so it runs when the path does — once
+per await. `Window.MatchMedia(q).Matches` wants exactly that; a method you call for what it does, like
+`Performance.Mark("start")`, wants awaiting on its own, which runs it once and keeps what it returns:
+`await using var mark = await Performance.Mark("start");`.
+
+## Constructors and static members
+
+`new X(…)` is `X.Create(…)`, and the new object is kept: `await using var channel = await BroadcastChannel.Create("updates")`.
+A static member is on the class, as in JavaScript: `await URL.CanParse(link)`, `await Notification.RequestPermission()`.
+
 ## Asking whether the browser has it
 
 `IsSupported` asks the browser whether the object at the end of a path is there, instead of your guessing from its
@@ -61,7 +71,7 @@ Every member's doc comment carries its browser support and links to MDN and the 
 
 - **The DOM.** Nothing that returns or rewrites DOM nodes is generated: the render owns the page. Reach an element's
   own members through a [typed element ref](js-interop-runtime.md#element-refs) (`await _dialog.ShowModal()`).
-- **Events, constructors and callbacks** are not generated yet: a member that takes a callback, `new X(…)`, and
-  subscribing to an object's events. The [typed browser API wrappers](browser-apis.md) cover those today.
+- **Events and callbacks** are not generated yet: a member that takes a callback, and subscribing to an object's
+  events. The [typed browser API wrappers](browser-apis.md) cover those today.
 - **`Rask.Web` is not imported for you yet.** Its globals share names with some of the wrappers' types, so a file that
   uses them says `using Rask.Web;`.

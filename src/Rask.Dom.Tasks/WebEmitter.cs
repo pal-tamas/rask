@@ -38,15 +38,24 @@ internal static class WebEmitter
         var interfaces = root["interfaces"]!;
         var proxies = Proxies(root, types);
         var members = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
+        var extras = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
         foreach (var name in proxies.OrderBy(n => Depth(interfaces, n)).ThenBy(n => n, StringComparer.Ordinal))
         {
             var taken = new HashSet<string>(Reserved, StringComparer.Ordinal) { name };
+            var creates = new HashSet<string>(StringComparer.Ordinal);
             for (var b = Base(interfaces, proxies, name); b is not null; b = Base(interfaces, proxies, b))
             {
                 taken.UnionWith(members[b].Select(m => m.Name));
+                taken.UnionWith(extras[b].Where(m => !string.Equals(m.Name, "Create", StringComparison.Ordinal)).Select(m => m.Name));
+                creates.UnionWith(extras[b].Where(m => string.Equals(m.Name, "Create", StringComparison.Ordinal)).Select(m => m.ParameterTypes));
             }
 
             members[name] = WebMember.Of(name, interfaces[name]!, types, proxies, taken, Denied);
+            extras[name] = WebMember.StaticsOf(name, interfaces[name]!, types, proxies, taken);
+            if (!taken.Contains("Create"))
+            {
+                extras[name].AddRange(WebMember.ConstructorsOf(name, interfaces[name]!, types, creates));
+            }
         }
 
         var files = new List<KeyValuePair<string, string>>();
@@ -56,7 +65,7 @@ internal static class WebEmitter
             files.Add(new KeyValuePair<string, string>(name + ".g.cs", Proxy(name, interfaces[name]!, Base(interfaces, proxies, name), hasChildren, members[name])));
         }
 
-        files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(interfaces, proxies, members)));
+        files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(new Model(interfaces, proxies, members, extras))));
         files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext")));
         return files;
     }
@@ -145,9 +154,23 @@ internal static class WebEmitter
         return sb.ToString();
     }
 
-    // Window's members as statics on `Window`, and each object window holds (navigator, localStorage) as a global of
-    // its own, named for the property: Navigator, LocalStorage.
-    private static string Globals(JsonNode interfaces, HashSet<string> proxies, Dictionary<string, List<WebMember>> members)
+    // What the globals are written from: every proxy, its instance members, and its statics and constructors.
+    private sealed class Model(JsonNode interfaces, HashSet<string> proxies, Dictionary<string, List<WebMember>> members, Dictionary<string, List<WebMember>> extras)
+    {
+        public JsonNode Interfaces { get; } = interfaces;
+
+        public HashSet<string> ProxyNames { get; } = proxies;
+
+        public Dictionary<string, List<WebMember>> Members { get; } = members;
+
+        public Dictionary<string, List<WebMember>> Extras { get; } = extras;
+    }
+
+    // Everything in Rask.Web, the namespace a file imports: Window's members as statics on `Window`, each object window
+    // holds (navigator, localStorage) as a global named for the property, and each interface's statics and
+    // constructors on a class of its name — URL.CanParse(…), BroadcastChannel.Create(…) — merged into the global where
+    // one has that name (Document).
+    private static string Globals(Model model)
     {
         var sb = new StringBuilder();
         DomValueTypes.Header(sb);
@@ -155,31 +178,41 @@ internal static class WebEmitter
         sb.AppendLine();
         sb.AppendLine("namespace Rask.Web;");
         sb.AppendLine();
-        if (proxies.Contains("Window"))
+        var written = new HashSet<string>(StringComparer.Ordinal);
+        if (model.ProxyNames.Contains("Window"))
         {
-            Global(sb, "Window", "window", "Window", "global::Rask.Web.JsChain.Window", interfaces, proxies, members);
+            Global(sb, model, "Window", "window", "Window", "global::Rask.Web.JsChain.Window");
+            written.Add("Window");
         }
 
-        foreach (var a in interfaces["Window"]?["members"]?.Items ?? new List<JsonNode>())
+        foreach (var a in model.Interfaces["Window"]?["members"]?.Items ?? new List<JsonNode>())
         {
             var type = a["type"]?.AsString()?.TrimEnd('?');
             var name = DomRefEmitter.Pascal(a["name"]!.AsString()!);
-            if (string.Equals(a["kind"]?.AsString(), "attribute", StringComparison.Ordinal) && type is not null && proxies.Contains(type)
-                && !string.Equals(name, "Window", StringComparison.Ordinal))
+            if (string.Equals(a["kind"]?.AsString(), "attribute", StringComparison.Ordinal) && type is not null && model.ProxyNames.Contains(type)
+                && written.Add(name))
             {
                 var idl = a["name"]!.AsString()!;
-                Global(sb, name, idl, type, $"global::Rask.Web.JsChain.Window.Get(\"{idl}\")", interfaces, proxies, members);
+                Global(sb, model, name, idl, type, $"global::Rask.Web.JsChain.Window.Get(\"{idl}\")");
             }
+        }
+
+        foreach (var name in model.Extras.Keys.Where(n => model.Extras[n].Count > 0 && !written.Contains(n)).OrderBy(n => n, StringComparer.Ordinal))
+        {
+            DomEmitter.Doc(sb, "", $"MDN's <c>{name}</c> class: its constructors, as Create, and its static members.", model.Interfaces[name]!);
+            sb.Append("public static class ").AppendLine(name);
+            sb.AppendLine("{");
+            Facade(sb, model.Extras[name], new HashSet<string>(StringComparer.Ordinal));
+            sb.AppendLine("}");
+            sb.AppendLine();
         }
 
         return sb.ToString();
     }
 
-    private static void Global(
-        StringBuilder sb, string name, string idl, string type, string chain, JsonNode interfaces, HashSet<string> proxies,
-        Dictionary<string, List<WebMember>> members)
+    private static void Global(StringBuilder sb, Model model, string name, string idl, string type, string chain)
     {
-        DomEmitter.Doc(sb, "", $"The browser's <c>{idl}</c> (MDN's <c>{type}</c>): its members, run in one round trip each.", interfaces[type]!);
+        DomEmitter.Doc(sb, "", $"The browser's <c>{idl}</c> (MDN's <c>{type}</c>): its members, run in one round trip each.", model.Interfaces[type]!);
         sb.Append("public static class ").AppendLine(name);
         sb.AppendLine("{");
         sb.Append("    private static ").Append(TypesNs).Append(type).Append(" Instance => new(").Append(chain).AppendLine(");");
@@ -187,16 +220,32 @@ internal static class WebEmitter
         sb.AppendLine("    /// <summary>Whether this browser has it.</summary>");
         sb.AppendLine("    public static ValueTask<bool> IsSupported => Instance.IsSupported;");
         var seen = new HashSet<string>(StringComparer.Ordinal) { "IsSupported" };
-        for (var t = type; t is not null; t = Base(interfaces, proxies, t))
+        for (var t = type; t is not null; t = Base(model.Interfaces, model.ProxyNames, t))
         {
-            foreach (var m in members[t].Where(m => seen.Add(m.Signature)))
+            foreach (var m in model.Members[t].Where(m => seen.Add(m.Signature)))
             {
                 sb.AppendLine();
                 m.WriteStatic(sb);
             }
         }
 
+        // The interface of the global's name brings its statics and constructors (Document.Create()).
+        if (model.Extras.TryGetValue(name, out var extras))
+        {
+            Facade(sb, extras, new HashSet<string>(seen.Select(x => x.Split('(')[0]), StringComparer.Ordinal));
+        }
+
         sb.AppendLine("}");
         sb.AppendLine();
+    }
+
+    // Statics and constructors, less any whose name a delegated member of the same class already holds.
+    private static void Facade(StringBuilder sb, List<WebMember> extras, HashSet<string> taken)
+    {
+        foreach (var m in extras.Where(m => !taken.Contains(m.Name)))
+        {
+            sb.AppendLine();
+            m.WriteFacade(sb);
+        }
     }
 }

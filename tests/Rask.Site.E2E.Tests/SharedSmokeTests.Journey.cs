@@ -1421,7 +1421,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#web-store-out")).ToHaveTextAsync("localStorage says: stored by Rask.Web",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
         await Page.Locator("#web-keep").ClickAsync();
-        await Expect(Page.Locator("#web-keep-out")).ToHaveTextAsync("Kept the MediaQueryList for (min-width: 1px): matches True",
+        await Expect(Page.Locator("#web-keep-out")).ToHaveTextAsync("Kept the MediaQueryList for (min-width: 1px): matches True; a URL for /docs/guides/web-apis",
             new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
 
         // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
