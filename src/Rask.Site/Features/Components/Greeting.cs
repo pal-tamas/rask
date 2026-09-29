@@ -1,9 +1,9 @@
 namespace Rask.Site.Features;
 
 // A component is a class that subclasses Component and overrides Render.
-// The Rask source generator emits a Generated.Greeting(...) factory whose
-// parameters are derived from the public settable properties:
-//   • Name  — non-nullable, no initializer → required factory parameter.
+// The Rask source generator turns each public settable property into a
+// chain step — Greeting.Name("Ada").Title("Dr."):
+//   • Name  — non-nullable, no initializer → required step.
 //   • Title — nullable                     → optional, defaults to null.
 public sealed partial class Greeting : Component
 {

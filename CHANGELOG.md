@@ -49,6 +49,12 @@ them until tagged releases begin.
   `[Fact]` + `Assert.SkipUnless(…)`. Test calls that take a token pass `TestContext.Current.CancellationToken`
   (xUnit1051), except where the missing token is what the test proves. `xunit.runner.json` keeps the same
   parallelism, and assemblies that ran serially use `[assembly: Parallelization(Mode = ParallelMode.None)]`.
+- **Diagnostics speak one word for the chain and say what to do.** "Builder chain", "builder entry" and
+  "required factory parameter" are gone from RASK001/002/036–044 — it is the *chain*, a *chain entry*, a
+  *chain step* — and RASK028, RASK058 and the reasons behind RASK051/052/053/057/067/068/094 now end in a
+  fix (`— add a parameter named 'id'`, `— use a record class`, `— rename it`). RASK002 no longer claims a
+  DI-only constructor breaks `required` (it never fired for that), and RASK043 no longer points at the
+  removed factory.
 - **A wasm-hosted server is `RaskApp.Create(args).Serve()`.** `Serve()` is `Run<App>()` without a
   server-rendered root: every battery, the CQRS endpoints the browser app dispatches to, the operator console
   at `/_rask`, and the bundle `Client/` builds into — served by `MapRaskSpa()`, last, as the fallback for

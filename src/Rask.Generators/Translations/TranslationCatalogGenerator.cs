@@ -225,7 +225,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         {
             Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath, 1, 1,
                 name, neutralName,
-                $"no translation for '{key}' — the '{neutral}' text is used at runtime");
+                $"no translation for '{key}' — the '{neutral}' text is used at runtime; add it here to translate it");
         }
 
         foreach (var key in catalog.Order)
@@ -244,7 +244,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                 Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
                     catalog.Entries[key].Line, catalog.Entries[key].Column, name,
                     $"'{key}' is {(catalog.Entries[key].IsPlural ? "a plural set here but a single string" : "a single string here but a plural set")} "
-                    + "in the neutral catalog — they generate different members, so they cannot differ");
+                    + "in the neutral catalog — they generate different members, so give it the neutral catalog's shape");
                 return false;
             }
 
@@ -276,7 +276,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             Report(spc, TranslationDiagnostics.Disagrees, catalog.FilePath,
                 entry.Line, entry.Column, name, neutralName,
                 $"'{key}' has no '{category}' form, which {catalog.CultureTag} distinguishes "
-                + "— the 'other' form is used instead");
+                + "— the 'other' form is used instead; add it to translate that count");
         }
 
         return true;
@@ -307,7 +307,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                 entry.Line, entry.Column, name,
                 $"'{key}' uses placeholders {{{string.Join(", ", message.Placeholders.Select(static p => p.Name))}}} "
                 + $"but the neutral catalog uses {{{string.Join(", ", neutralMessage.Placeholders.Select(static p => p.Name))}}} "
-                + "— a mismatched set throws FormatException at runtime");
+                + "— a mismatched set throws FormatException at runtime, so use the neutral catalog's placeholders");
             return false;
         }
 
@@ -386,7 +386,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                 {
                     Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath,
                         catalog.Entries[key].Line, catalog.Entries[key].Column, name,
-                        $"'{key}' is a plural set, but the framework's own strings are plain text");
+                        $"'{key}' is a plural set, but the framework's own strings are plain text — give it a single string");
                     return false;
                 }
 
@@ -558,7 +558,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             // would demand dead text and leave the form the language really uses optional.
             Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
                 $"'{entry.Path}' has no '{residual}' form, which is what {catalog.CultureTag} falls back to "
-                + "for any count the other forms do not match");
+                + $"for any count the other forms do not match — add the '{residual}' form");
             return false;
         }
 
@@ -568,7 +568,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
             {
                 Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
                     $"'{entry.Path}' has a form called '{form}', which is not a CLDR plural category "
-                    + $"({string.Join(", ", PluralRules.AllCategories)})");
+                    + $"— use one of {string.Join(", ", PluralRules.AllCategories)}");
                 return false;
             }
 
@@ -577,7 +577,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
                 // Text the language can never select: a real mistake, and invisible at runtime.
                 Report(spc, TranslationDiagnostics.Malformed, catalog.FilePath, entry.Line, entry.Column, name,
                     $"'{entry.Path}' has a '{form}' form, but {catalog.CultureTag} does not distinguish it "
-                    + $"— it uses {string.Join("/", categories)}, so that text could never be shown");
+                    + $"— it uses {string.Join("/", categories)}, so that text could never be shown; remove it");
                 return false;
             }
         }

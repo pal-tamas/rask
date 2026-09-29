@@ -26,8 +26,8 @@ public sealed class DuplicateChainCallAnalyzer : DiagnosticAnalyzer
 {
     private static readonly DiagnosticDescriptor Rask044 = new(
         "RASK044",
-        "Builder chain sets the same property twice",
-        "This chain calls '{0}' more than once. The last call wins and the earlier one has no effect — remove whichever is stale.",
+        "Chain sets the same property twice",
+        "This chain calls '{0}' more than once, and only the last call counts — remove whichever is stale",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,

@@ -29,22 +29,21 @@ public sealed class RequiredBuilderPropertyAnalyzer : DiagnosticAnalyzer
 {
     private static readonly DiagnosticDescriptor Rask038 = new(
         "RASK038",
-        "Builder chain does not set a required property",
-        "Component '{0}' requires {1}, and this builder chain never sets {2}. Add {3} to the chain — or give the property a nullable type or a member initializer if it really is optional.",
+        "Chain does not set a required property",
+        "Component '{0}' requires {1}, and this chain never sets {2} — add {3} to the chain, or give the property a nullable type or an initializer if it is optional",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "A non-nullable property with no member initializer is required (the same rule RASK001 "
-                     + "describes for the generated factory, where the language enforces it as a missing "
-                     + "argument). On the builder surface it is set by a setter in the chain, so an omitted "
+        description: "A non-nullable property with no member initializer is required (RASK001). "
+                     + "It is set by a step in the chain, so an omitted "
                      + "one compiles and leaves the component holding null. The check covers properties "
                      + "declared in this compilation, plus any property marked with the 'required' modifier.",
         helpLinkUri: DiagnosticHelp.Link("RASK038"));
 
     private static readonly DiagnosticDescriptor Rask039 = new(
         "RASK039",
-        "Builder chain is split across statements, so its required properties cannot be checked",
-        "The builder chain for '{0}' is stored rather than used here, so Rask cannot tell whether {1} ({2}) is ever set. Keep the chain in a single expression — or set the property before storing it.",
+        "Chain is split across statements, so its required properties cannot be checked",
+        "The chain for '{0}' is stored rather than used here, so Rask cannot tell whether {1} ({2}) is ever set — keep the chain in a single expression, or set the property before storing it",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,

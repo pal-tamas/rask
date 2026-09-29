@@ -21,7 +21,7 @@ namespace Rask.Core.Live;
 ///     </para>
 ///     <para>
 ///         Inject it through the constructor, not a settable property — a non-nullable settable property
-///         becomes a required factory parameter (RASK002).
+///         becomes a required chain step (RASK001).
 ///     </para>
 ///     <para>
 ///         Keep it small. The bag is capped (16 KB by default across all keys); a session that exceeds

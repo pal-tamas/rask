@@ -33,23 +33,20 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor Rask043 = new(
         "RASK043",
-        "A component name is used in a type that has no builder entries",
-        "'{0}' is not a builder entry here, so this does not compile (CS0119 when it names a type, CS0103 when nothing does). '{0}' is a builder entry only inside a component or a markup host — entries are members of the enclosing type — and '{1}' is neither. Derive '{1}' from 'Rask.Core.RaskMarkup', or mark it '[Rask.Core.RaskMarkup]' when its base is already taken or it is a 'static class'.",
+        "A component name is used in a type that has no chain entries",
+        "'{0}' is not a chain entry here, so this does not compile (CS0119 when it names a type, CS0103 when nothing does): entries are members of a component or a markup host, and '{1}' is neither — derive '{1}' from 'Rask.Core.RaskMarkup', or mark it '[Rask.Core.RaskMarkup]' when its base is taken or it is a 'static class'",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "The builder surface is reachable only from inside a type that HAS the entries: entries "
-                     + "are inherited members, because a static-imported property loses to a same-named type in "
-                     + "scope (CS0119) while a member of the enclosing type wins. A component is one such type; "
-                     + "so is anything deriving from 'Rask.Core.RaskMarkup', which is Component's own base and "
-                     + "carries the framework entries and nothing else — that is the answer for a test class, a "
-                     + "fixture or a factory of demo components. A type that cannot spend its base slot — one whose "
+        description: "Chain entries are reachable only from inside a type that HAS them: entries are inherited "
+                     + "members, because a static-imported property loses to a same-named type in scope (CS0119) "
+                     + "while a member of the enclosing type wins. A component is one such type; so is anything "
+                     + "deriving from 'Rask.Core.RaskMarkup', which is Component's own base and carries the "
+                     + "framework entries and nothing else — that is the answer for a test class, a fixture or a "
+                     + "helper that builds demo components. A type that cannot spend its base slot — one whose "
                      + "base belongs to someone else, or a 'static class' — says the same thing with the "
-                     + "'[RaskMarkup]' attribute instead. Code that is neither reaches components through "
-                     + "the generated factory instead. A factory is a METHOD, so C#'s invocable-member rule lets "
-                     + "it share its component's name; that is why it works in these positions where an entry "
-                     + "cannot. Without the import, the name binds to the type and the compiler reports CS0119, "
-                     + "CS0120 or CS0021 — none of which mentions the missing 'using static'.",
+                     + "'[RaskMarkup]' attribute instead. Anywhere else the name binds to the type, and the "
+                     + "compiler reports CS0119, CS0120 or CS0021 — none of which says what is missing.",
         helpLinkUri: DiagnosticHelp.Link("RASK043"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =

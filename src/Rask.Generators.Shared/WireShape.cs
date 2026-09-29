@@ -73,7 +73,7 @@ internal static class WireShape
 
         if (type is not INamedTypeSymbol named2)
         {
-            return Unsupported(type, "it is not a type a codec can be generated for", compilation);
+            return Unsupported(type, "it is not a type a codec can be generated for — use a class, record, primitive, enum or collection of them", compilation);
         }
 
         // Before anything reads the type's own members: to this compilation a generated model is either
@@ -132,7 +132,7 @@ internal static class WireShape
                 : Unsupported(
                     type,
                     "an IRaskFile is only allowed as a direct property of the message — nested inside a "
-                    + "collection or another object there is no part of the multipart body that could carry it",
+                    + "collection or another object there is no part of the multipart body that could carry it — make it a direct property of the message",
                     compilation);
         }
 
@@ -156,7 +156,7 @@ internal static class WireShape
     {
         if (array.Rank != 1)
         {
-            return Unsupported(array, "only single-dimensional arrays have a JSON encoding", compilation);
+            return Unsupported(array, "only single-dimensional arrays have a JSON encoding — use a jagged array or a list of lists", compilation);
         }
 
         var element = Classify(array.ElementType, false, stack, compilation);
@@ -208,7 +208,7 @@ internal static class WireShape
             return Unsupported(
                 type,
                 "a dictionary travels as a JSON object, whose keys are strings — key type "
-                + $"'{type.TypeArguments[0].ToDisplayString()}' has no key encoding",
+                + $"'{type.TypeArguments[0].ToDisplayString()}' has no key encoding — key it by string",
                 compilation);
         }
 
@@ -306,7 +306,7 @@ internal static class WireShape
         // Nothing wrong with a record struct in principle; it just has not been exercised, and quietly emitting
         // an untested shape is worse than saying so.
         return type.IsRecord && type.TypeKind == TypeKind.Struct
-            ? "record structs are not supported as contract members yet"
+            ? "record structs are not supported as contract members yet — use a record class"
             : null;
     }
 

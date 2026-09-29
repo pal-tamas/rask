@@ -38,35 +38,35 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask001 = new(
         "RASK001",
-        "Property is treated as a required factory parameter",
-        "Property '{0}.{1}' is treated as a required factory parameter; consider also marking it 'required' for language-level enforcement",
+        "Property is a required chain step",
+        "'{0}.{1}' is a required chain step because it is non-nullable with no initializer — mark it 'required' so the language enforces it too, or make it nullable if it is optional",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Hidden,
         true,
-        description: "The generated factory emits a non-nullable property with no initializer as a REQUIRED parameter, "
-                     + "so callers must pass it. Marking the property 'required' gets you the same guarantee from the "
-                     + "language, at the declaration, instead of only from the generated signature. Declare it nullable "
-                     + "instead if the value really is optional.",
+        description: "A non-nullable property with no initializer is a REQUIRED chain step: the chain must take "
+                     + "it before anything else (RASK095 reports one that is skipped). Marking the property "
+                     + "'required' gets you the same guarantee from the language, at the declaration. Declare it "
+                     + "nullable instead if the value really is optional.",
         helpLinkUri: DiagnosticHelp.Link("RASK001"));
 
     private static readonly DiagnosticDescriptor Rask002 = new(
         "RASK002",
-        "'required' property cannot be honored by the generated factory",
-        "Property '{0}.{1}' is marked 'required', but the generated factory for '{0}' cannot set it: '{0}' has a dependency-injected constructor and the property is either excluded from the factory parameters (it has a member initializer) or only reachable via ActivatorUtilities.CreateInstance (no parameterless constructor). Adding a parameterless constructor does not help while the DI constructor remains — the factory then builds '{0}' with 'new {0}()' and the DI constructor never runs, leaving injected services null. Remove 'required', move the value to a constructor parameter (with no initializer), or drop the DI constructor.",
+        "'required' property cannot be honored by the chain",
+        "'{0}.{1}' is 'required' but has an initializer, so it is not a chain step, and '{0}' has a parameterless constructor, so its chain entry builds it with 'new {0}()' — which fails with CS9035 and never runs the DI constructor. Remove the initializer so the property becomes a chain step, or remove 'required'.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         description: "Fires in exactly one shape: the component has both a DI constructor AND a parameterless one, and "
-                     + "the required property carries a member initializer. The factory then builds it with 'new C() { … "
-                     + "}', but an initializer-carrying property is excluded from the factory parameters — so nothing "
+                     + "the required property carries a member initializer. The chain entry then builds it with 'new C()', "
+                     + "but an initializer-carrying property is not a chain step — so nothing "
                      + "assigns it and the consumer's build fails with CS9035. A DI constructor with no parameterless "
                      + "sibling is fine and does not trip this.",
         helpLinkUri: DiagnosticHelp.Link("RASK002"));
 
     private static readonly DiagnosticDescriptor Rask036 = new(
         "RASK036",
-        "A builder-entry host must be partial",
-        "{0}, so {1} cannot be injected into it; writing one of their names unqualified inside it will not compile. Add the 'partial' modifier where it is missing.",
+        "A chain-entry host must be partial",
+        "{0}, so {1} cannot be injected into it; writing one of their names unqualified inside it will not compile — add the 'partial' modifier where it is missing",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -83,8 +83,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask040 = new(
         "RASK040",
-        "Two components share a simple name, so neither can have a builder entry",
-        "Components '{1}' share the simple name '{0}', so neither receives a builder entry: an entry is a single member of 'Rask.Core.Component' (or of each consuming component) named after its type, and one name can only stand for one type. Neither is reachable from a chain until you rename one of them.",
+        "Two components share a simple name, so neither can have a chain entry",
+        "Components '{1}' share the simple name '{0}', so neither gets a chain entry: an entry is one member named after its type, and one name can only stand for one type — rename one of them",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -97,13 +97,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask041 = new(
         "RASK041",
-        "The builder surface's shared pending-bit budget is exhausted",
+        "The chain surface's shared pending-bit budget is exhausted",
         "The shared Element/Component surface has {0} folding properties but only {1} pending bits; '{2}' and every later one (ordinal name order) fall back to the eager reset, which reports the property changed on every render and defeats the render cache for it. Raise 'BuilderRuntime.OwnPendingBit' (and the generator's copy of it) together, or make the property non-folding.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         description: "A folding setter clears its own PENDING bit as it writes, and whatever is still pending when "
-                     + "the parent's Render() returns is reset to what the factory would have left. The shared "
+                     + "the parent's Render() returns is reset to what a fresh component would hold. The shared "
                      + "Element/Component surface owns the low bits, up to BuilderRuntime.OwnPendingBit, so a "
                      + "component compiled against one Rask.Core cannot collide with a shared property added in "
                      + "a later one. The bits are handed "
@@ -613,7 +613,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         StringBuilder sb, string kind, string receiver, List<SharedSetter> props, Dictionary<string, int> bits, bool elementOwned)
     {
         sb.Append("    /// <summary>Puts <c>").Append(kind)
-            .AppendLine("</c>'s non-folding props back where the factory would leave them.</summary>");
+            .AppendLine("</c>'s non-folding props back where a fresh component holds them.</summary>");
         sb.Append("    public static void Reset").Append(kind)
             .AppendLine("Eager(global::Rask.Core.Component __c0)");
         sb.AppendLine("    {");
@@ -2095,7 +2095,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         EmitGeneratedFileHeader(shared);
         shared.AppendLine();
         shared.AppendLine("/// <summary>");
-        shared.AppendLine("///     Rask.Core's builder entries, one per framework component, in the form a");
+        shared.AppendLine("///     Rask.Core's chain entries, one per framework component, in the form a");
         shared.AppendLine("///     REFERENCING assembly can name. Almost every host reaches these by inheriting");
         shared.AppendLine("///     'Rask.Core.RaskMarkup' instead; this is for the hosts that cannot inherit.");
         shared.AppendLine("/// </summary>");
@@ -3870,8 +3870,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // loses the entire surface — including the base the generated partial would have given it.
     private static string Rask036Loses(Delivery delivery) =>
         delivery == Delivery.Inherited
-            ? "the builder entries for this project's and its referenced libraries' components"
-            : "the builder surface — the framework tags as well as this project's and its referenced "
+            ? "the chain entries for this project's and its referenced libraries' components"
+            : "every chain entry — the framework tags as well as this project's and its referenced "
               + "libraries' components";
 
     // Rask.Core's entries, minus every name this compilation already spends on one of its own or a
@@ -3910,7 +3910,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         EmitGeneratedFileHeader(sb);
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
-        sb.AppendLine("///     This assembly's builder entries, one per component. Every component's own entry");
+        sb.AppendLine("///     This assembly's chain entries, one per component. Every component's own entry");
         sb.AppendLine("///     member — here and in any assembly that references this one — forwards to these, so");
         sb.AppendLine("///     the per-component injection stays one line. Global namespace, like the setters:");
         sb.AppendLine("///     a referencing assembly must be able to name it with no `using`.");

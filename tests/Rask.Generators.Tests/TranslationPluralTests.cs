@@ -196,7 +196,7 @@ public class TranslationPluralTests
                 """{ "C": { "$plural": "n", "one": "{n} elem", "other": "{n} elem" } }"""));
 
         var error = Assert.Single(run.RunResult.Diagnostics, d => d.Id == "RASK051");
-        Assert.Contains("cannot differ", error.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("give it the neutral catalog's shape", error.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]

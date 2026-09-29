@@ -79,7 +79,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask058 = new(
         "RASK058",
         "External component name collision",
-        "'{0}' and '{1}' share the simple name '{2}', which is the key the browser resolves a module by",
+        "'{0}' and '{1}' share the simple name '{2}', which is the key the browser resolves a module by — rename one, or give it an explicit module by overriding Module",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
