@@ -95,7 +95,11 @@ const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map
 function merge(map, def) {
   const cur = map.get(def.name);
   if (!cur) map.set(def.name, { name: def.name, inheritance: def.inheritance ?? null, members: [...def.members], extAttrs: def.extAttrs ?? [] });
-  else { cur.members.push(...def.members); if (!def.partial && def.inheritance) cur.inheritance = def.inheritance; }
+  else {
+    cur.members.push(...def.members);
+    if (!def.partial && def.inheritance) cur.inheritance = def.inheritance;
+    if (!def.partial && def.extAttrs?.length) cur.extAttrs = def.extAttrs;
+  }
 }
 for (const ast of Object.values(await idlPkg.parseAll())) {
   for (const def of ast) {
@@ -221,7 +225,8 @@ function membersOf(name) {
   for (const m of def.members) {
     if (!m.name || m.special === "static") continue;
     if (m.type !== "attribute" && m.type !== "operation") continue;
-    const compat = api[m.name]?.__compat;
+    // BCD files the window's own globals (fetch, performance, crypto: WindowOrWorkerGlobalScope's) at the top of api.
+    const compat = api[m.name]?.__compat ?? (name === "Window" ? bcd.api[m.name]?.__compat : undefined);
     if (!ships(compat)) continue;
     const type = m.type === "attribute" ? typeOf(m.idlType) : undefined;
     if (type === "EventHandler" || type === "EventHandler?") continue; // events are Rask's own surface
@@ -246,9 +251,10 @@ function membersOf(name) {
 }
 
 const interfaceOut = {};
-for (const name of [...wanted].sort()) {
+for (const name of [...wanted].sort()) if (interfaces.get(name)) interfaceOut[name] = describe(name);
+
+function describe(name) {
   const def = interfaces.get(name);
-  if (!def) continue;
   const compat = bcd.api[name]?.__compat;
   const tags = elements.filter(e => e.interface === name);
   const { members } = membersOf(name);
@@ -287,8 +293,36 @@ for (const name of [...wanted].sort()) {
   };
   attributes.sort((a, b) => order(a) - order(b) || a.attr.localeCompare(b.attr));
   for (const a of attributes) if (a.tags.length === tags.length) delete a.tags; // on every tag of the interface
-  interfaceOut[name] = { parent: def.inheritance, abstract: tags.length === 0 || undefined, namespace: ns,
-    ...meta(compat), attributes: attributes.length ? attributes : undefined, members };
+  const { constructors, statics, events } = extrasOf(name);
+  return { parent: def.inheritance, abstract: tags.length === 0 || undefined, namespace: ns, exposed: exposedToWindow(def) || undefined,
+    ...meta(compat), attributes: attributes.length ? attributes : undefined, members,
+    constructors: constructors.length ? constructors : undefined, statics: statics.length ? statics : undefined,
+    events: events.length ? events : undefined };
+}
+
+// What `new X(…)`, `X.staticMember` and `x.onfoo` offer, apart from the instance members the elements' code reads:
+// a constructor per argument list, the static members that ship, and the events an EventHandler attribute names.
+function extrasOf(name) {
+  const def = interfaces.get(name), api = bcd.api[name] ?? {};
+  const constructors = [], statics = [], events = [];
+  const args = m => m.arguments.map(a => ({ name: a.name, type: typeOf(a.idlType), optional: a.optional || undefined, variadic: a.variadic || undefined }));
+  for (const m of def.members) {
+    if (m.type === "constructor") {
+      if (ships(api[name]?.__compat)) constructors.push({ args: args(m), ...meta(api[name]?.__compat) });
+    } else if (m.special === "static" && m.name && ships((api[m.name + "_static"] ?? api[m.name])?.__compat)) {
+      // BCD files a static member as name_static, beside any instance member of the same name.
+      const compat = (api[m.name + "_static"] ?? api[m.name]).__compat;
+      const prior = statics.find(x => x.kind === "operation" && x.name === m.name);
+      if (prior) { (prior.overloads ??= []).push(args(m)); continue; }
+      statics.push(m.type === "attribute"
+        ? { kind: "attribute", name: m.name, type: typeOf(m.idlType), readonly: m.readonly || undefined, ...meta(compat) }
+        : { kind: "operation", name: m.name, returns: typeOf(m.idlType), args: args(m), ...meta(compat) });
+    } else if (m.type === "attribute" && m.name?.startsWith("on") && typeOf(m.idlType).startsWith("EventHandler")) {
+      const type = m.name.slice(2);
+      if (ships(api[`${type}_event`]?.__compat)) events.push(type);
+    }
+  }
+  return { constructors, statics, events };
 }
 
 // The content attributes an interface's own IDL reflects: [Reflect], or a writable, plainly typed attribute
@@ -338,6 +372,19 @@ function findReflecting(iface, attr) {
   return undefined;
 }
 
+// ---- The web platform: every interface a window exposes that ships, and its ancestors ------------
+// Rask.Web generates MDN's globals (Navigator, Window, Document) and every interface they reach from these.
+function exposedToWindow(def) {
+  const exposed = extValue(ext(def, "Exposed"));
+  return exposed === "*" || exposed === "Window" || (Array.isArray(exposed) && exposed.includes("Window"));
+}
+const web = [];
+for (const [name, def] of interfaces) {
+  if (!exposedToWindow(def) || !ships(bcd.api[name]?.__compat)) continue;
+  web.push(name);
+  for (let n = name; n && !interfaceOut[n]; n = interfaces.get(n)?.inheritance) interfaceOut[n] = describe(n);
+}
+
 // ---- Enums and dictionaries the members reach (for typed refs) -----------------------------------
 const reachedEnums = {}, reachedDicts = {};
 function reach(type) {
@@ -351,7 +398,12 @@ function reach(type) {
     }
   }
 }
-for (const i of Object.values(interfaceOut)) for (const m of i.members) { reach(m.type ?? m.returns); for (const a of m.args ?? []) reach(a.type); }
+for (const i of Object.values(interfaceOut)) {
+  for (const m of [...i.members, ...(i.statics ?? []), ...(i.constructors ?? [])]) {
+    if (m.type ?? m.returns) reach(m.type ?? m.returns);
+    for (const a of m.args ?? []) reach(a.type);
+  }
+}
 const sortObj = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
 
 const snapshot = {
@@ -366,7 +418,8 @@ const snapshot = {
     return { attr, property: idl?.name, type: idl?.type, url: idl?.url, reflect: idl?.reflect, on: idl?.on, ...meta(compat) };
   })])),
   events,
-  interfaces: interfaceOut,
+  web: web.sort(),
+  interfaces: sortObj(interfaceOut),
   enums: sortObj(reachedEnums),
   dictionaries: sortObj(reachedDicts),
 };

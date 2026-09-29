@@ -124,7 +124,8 @@ internal static class DomEmitter
         return result;
     }
 
-    public static IReadOnlyList<KeyValuePair<string, string>> Emit(string snapshotJson, Partials partials)
+    // `types` is Rask.Web's, which runs Core's pass to learn which value types Core declares; Core passes none.
+    public static IReadOnlyList<KeyValuePair<string, string>> Emit(string snapshotJson, Partials partials, DomValueTypes? types = null)
     {
         var root = Parse(snapshotJson);
         var interfaces = Get(root, "interfaces");
@@ -165,7 +166,7 @@ internal static class DomEmitter
         element.UnionWith(props.Where(p => string.Equals(rootOf[p.Key], p.Key, StringComparison.Ordinal)).SelectMany(p => p.Value));
         var rendered = props.ToDictionary(p => p.Key, p => new HashSet<string>(p.Value.Concat(element), StringComparer.Ordinal), StringComparer.Ordinal);
         rendered["Element"] = element;
-        DomRefEmitter.Emit(root, dom, rendered, files);
+        DomRefEmitter.Emit(root, dom, rendered, files, types);
 
         files.Add(new KeyValuePair<string, string>("GlobalAttrs.g.cs", GlobalFields(
             globals.TryGetValue(HtmlRoot, out var html) ? html : new(), globals.TryGetValue(SvgRoot, out var svg) ? svg : new())));

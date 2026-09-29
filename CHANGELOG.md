@@ -158,6 +158,22 @@ them until tagged releases begin.
     render in MDN's IDL order.
   - **Dispatch got cheaper:** a click reaching its handler allocates 312 B, down from 424 B, and refusing a
     stale frame takes 35 ns, down from 333 ns (`HandlerDispatchBenchmarks`, `HandlerFrameShapeBenchmarks`).
+- **New: `Rask.Web`, every web API the browser ships, generated from MDN.** MDN's globals and interfaces in C#, from
+  the same snapshot as the elements, beside the typed wrappers (which stay for now):
+  ```csharp
+  using Rask.Web;
+  await Navigator.Clipboard.WriteText("hi");
+  var dark = await Window.MatchMedia("(prefers-color-scheme: dark)").Matches;
+  await using var wide = await Window.MatchMedia("(min-width: 800px)");   // kept: a disposable handle
+  ```
+  - A chain is a path, run in the browser in one round trip when awaited; nothing crosses before that.
+  - The window's own globals by name — `Window`, `Navigator`, `Document`, `Location`, `History`, `Screen`,
+    `LocalStorage`, `SessionStorage`, `Performance`, `Crypto`, `IndexedDB`, `Caches`, `CookieStore`, … — and every
+    interface they reach as a type in `Rask.Web.Types`; MDN's dictionaries and enums as records and enums.
+  - An awaited object, or one a promise resolves to, is kept as a handle to dispose of; `Set{Name}` writes;
+    `IsSupported` asks the browser. Each member's doc comment carries its browser support and MDN links.
+  - Works on both hosts: over the page's socket on the server, in-process in WebAssembly. Nothing that returns or
+    rewrites DOM nodes is generated. Events, constructors and callbacks are not generated yet.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

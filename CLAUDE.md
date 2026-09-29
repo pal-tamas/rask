@@ -53,6 +53,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
   There is NO meta-package any more: `Rask` = shared core, `Rask.Server`/`Rask.Wasm` = host + batteries.
 - `src/Rask.Spa.Hosting` — `MapRaskSpa()`: serves a built SPA, a TypeScript bundle OR a Rask WASM app (WASM is a SPA, never a render mode). `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
+- `src/Rask.Web` — every web API from MDN (generated at build from the Core snapshot by `src/Rask.Dom.Tasks`'s WebEmitter): globals in `Rask.Web`, MDN interfaces in `Rask.Web.Types`, each chain one `__raskWeb.run` round trip, kept objects as `IJSObjectReference` handles. Opt-in (`using Rask.Web;`) until the wrappers go.
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
 - `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from
   `BlazorComponent<T>` (T from an RCL/MudBlazor/Radzen — the Razor SDK compiles `.razor` untouched). Rendered
