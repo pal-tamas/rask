@@ -9,6 +9,10 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A live update renders the page straight into the session's buffer.** No pooled builder to regrow and no copy
+  out of one: a 1,500-row page allocates 336 B per live render instead of 267.59 KB (`RenderPageXLargeInto`). A
+  connected 1,000-row session's footprint reads 12.7 KB (0.3%) higher, which is large-object-heap fragmentation
+  only — with fragmentation subtracted the two are identical (#1141).
 - **Toasts are built in.** `Toast.Success("Saved")` — or `Info`, `Warning`, `Error` — shows a toast from anywhere,
   with nothing injected and nothing mounted: the host draws it in the UI kit's look, or a small look of Rask's own
   with the kit off. A toast can carry more, and the app sets where they stack and how long they stay:
