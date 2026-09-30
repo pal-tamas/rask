@@ -516,6 +516,10 @@ them until tagged releases begin.
 - **A remote dispatch failure reads the whole problem document.** When a server's problem document held an object
   or array where Rask.Cqrs.Client expected a string, the reader lost its place: `detail` and the field `errors`
   after it went missing, or the read threw. It now shares Rask.Api.Client's reader, which steps over such values.
+- **A server dispatch stops at its render budget.** A dispatch renders at most three times and warns that the rest
+  were dropped; on the server they were not — the dispatch's drain rendered the next one anyway, so a component that
+  kept asking for renders kept getting them. The server now drops them as the WASM runtime already did, and both
+  share one drain.
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
