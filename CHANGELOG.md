@@ -534,6 +534,9 @@ them until tagged releases begin.
 - **The shutdown drain keeps to one budget.** `ShutdownDrainTimeout` is measured once, from `ApplicationStopping`.
   A drain that ran late used to start a second budget of its own, waiting on sockets the first had already
   aborted and stretching shutdown to twice the setting (#1138).
+- **A sign-up racing the first one is no longer refused for want of the first-run token.** Registration read "not
+  yet claimed" and then compared the token, so a racer that lost the admin slot in between found the token already
+  spent and got `FirstRunTokenRequired`. The token is now compared first (#1143).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
