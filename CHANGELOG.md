@@ -511,6 +511,9 @@ them until tagged releases begin.
   They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
   with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time
   build now compiles with a cached tsgo and still never downloads one (#1139).
+- **The shutdown drain keeps to one budget.** `ShutdownDrainTimeout` is measured once, from `ApplicationStopping`.
+  A drain that ran late used to start a second budget of its own, waiting on sockets the first had already
+  aborted and stretching shutdown to twice the setting (#1138).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
