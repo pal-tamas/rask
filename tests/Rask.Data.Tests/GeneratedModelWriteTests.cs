@@ -35,6 +35,21 @@ public sealed class GeneratedModelWriteTests : IDisposable
         Assert.Equal(0, stored.Version);
     }
 
+    [Fact]
+    public async Task A_write_without_a_token_is_cancelled_with_the_work_it_runs_in()
+    {
+        await using var database = await StartDatabaseAsync();
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        using var work = Ambient.Enter(cancelled.Token);
+
+#pragma warning disable xUnit1051 // the point: a write given no token falls back to the ambient one
+        var write = GeneratedModelWrites.Create(Widget.Create("anvil"));
+#pragma warning restore xUnit1051
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => write);
+    }
+
     // ---- update -----------------------------------------------------------------------------------
 
     [Fact]

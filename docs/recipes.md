@@ -142,7 +142,7 @@ Two gates, use both: `[Authorize]` at the route (redirects anonymous deep-links 
 public sealed partial class CreateProduct : Component { … }
 
 Authorize[ NewProductButton() ]              // rendered only for signed-in users
-Authorize.Roles(["admin"])[ DeleteProductButton(product.Id) ]
+Authorize.Role("admin")[ DeleteProductButton(product.Id) ]
 ```
 
 The login page itself is already there: `/login`, `/register` and `/logout` are built in, and you

@@ -502,11 +502,11 @@ the current user (`IUserProvider`):
 
 ```csharp
 // Shorthand: children are the "authorized" branch (static content, no principal needed).
-Authorize.Roles(["admin"])[ AdminPanel() ]
+Authorize.Role("admin")[ AdminPanel() ]
 
 // Full three-slot form. `Authorized` is a delegate handed the current principal (Blazor's
 // @context.User), so a greeting reads the name with no injected IUserProvider and no subscription.
-Authorize.Roles(["admin", "editor"])// ANY-of; omit for "any authenticated user"
+Authorize.Roles("admin", "editor")// ANY-of; omit for "any authenticated user"
 .Authorized(user => Div.Class("panel")[ $"Welcome, {user.Identity!.Name}" ]).NotAuthorized(A.Href("/login")[ "Please sign in" ]).Authorizing(Spinner())                     // shown while the principal/policy resolves
 ```
 

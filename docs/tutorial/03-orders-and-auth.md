@@ -116,7 +116,7 @@ For role-specific bits — say a "Delete" button only admins should see — pass
 actions column that is:
 
 ```csharp
-Authorize.Roles(["admin"])[
+Authorize.Role("admin")[
     DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
 ]
 ```

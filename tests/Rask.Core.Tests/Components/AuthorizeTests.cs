@@ -79,7 +79,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     public void Role_match_renders_authorized()
     {
         var html = Render(User("root", "admin"),
-            () => Authorize.Roles(["admin"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
+            () => Authorize.Role("admin").Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("AUTHED", html);
     }
@@ -88,7 +88,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     public void Role_miss_renders_not_authorized()
     {
         var html = Render(User("alice", "user"),
-            () => Authorize.Roles(["admin"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
+            () => Authorize.Role("admin").Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("DENIED", html);
         Assert.DoesNotContain("AUTHED", html);
@@ -98,7 +98,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     public void Any_of_roles_matches_on_either()
     {
         var html = Render(User("alice", "editor"),
-            () => Authorize.Roles(["admin", "editor"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
+            () => Authorize.Roles("admin", "editor").Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
 
         Assert.Contains("AUTHED", html);
     }

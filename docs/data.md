@@ -606,7 +606,7 @@ public sealed partial class NewProductPage : Component
 
     private async Task CreateAsync(ProductModel product)
     {
-        await Product.Create(product, cancellationToken: CancellationToken);
+        await Product.Create(product);
         Routes.ProductsPage().Go();
     }
 }
@@ -624,7 +624,7 @@ public sealed partial class EditProductPage : Component
     private string? _conflict;
 
     protected override async Task OnMount() =>
-        _product = await Product.Model(Id, cancellationToken: CancellationToken);
+        _product = await Product.Model(Id);
 
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
@@ -640,7 +640,7 @@ public sealed partial class EditProductPage : Component
     {
         try
         {
-            await Product.Update(Id, edit, cancellationToken: CancellationToken);        // Version checked
+            await Product.Update(Id, edit);        // Version checked
             Routes.ProductsPage().Go();
         }
         catch (DbUpdateConcurrencyException)

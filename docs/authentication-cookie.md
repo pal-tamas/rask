@@ -98,7 +98,7 @@ public sealed partial class SecurePage : Component
     protected override Component? Render() =>
         Authorize.Authorizing(P["Signing you in…"]).NotAuthorized(P["Please sign in."]).Authorized(user => Div[      // ← receives the current principal, re-runs on sign-in/out
                 H1[$"Hello, {user.Identity!.Name}"],
-                Authorize.Roles(["admin"]).NotAuthorized(P["You have standard access."])[
+                Authorize.Role("admin").NotAuthorized(P["You have standard access."])[
                     Div.Class("rounded-lg px-4 py-3 text-sm bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200")["🔑 Admin tools"]]
             ]);
 }

@@ -22,7 +22,7 @@ public sealed partial class AuthorizeDemo : Component
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             // The Authorized delegates greet the signed-in user by name straight off the principal.
             Authorize
-                .Roles(["admin"])
+                .Role("admin")
                 .Authorized(user => Ui.Alert.Warning.Soft.Class("py-2 mb-0")[$"🔑 Admin-only content — welcome, {user.Identity!.Name}."])
                 .NotAuthorized(Authorize
                     .Authorized(user => Ui.Alert.Success.Soft.Class("py-2 mb-0")[$"✅ Signed in as {user.Identity!.Name} — standard access."])

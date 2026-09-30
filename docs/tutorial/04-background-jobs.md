@@ -94,7 +94,7 @@ public sealed partial class CreateOrder(Navigator navigator) : Component
     {
         try
         {
-            var order = await Order.Create(model, cancellationToken: CancellationToken);
+            var order = await Order.Create(model);
             await Jobs.Enqueue(new SendOrderReceipt(order.Id));   // ← enqueue
             navigator.NavigateTo(Routes.OrdersPage());
         }

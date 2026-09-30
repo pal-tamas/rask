@@ -13890,3 +13890,9 @@ static RaskBuilderSettersRask_Core.Spellcheck<T>(this T! __b) -> T!
 static RaskBuilderSettersRask_Core.Translate<T>(this T! __b) -> T!
 static RaskBuilderSettersRask_Core.Video(this Rask.Core.Components.MediaCaptureTrigger! __b) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.Webkitdirectory<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
+Rask.AuthorizeSteps
+Rask.AuthorizeSteps.extension(Rask.Core.Components.Authorize!)
+Rask.AuthorizeSteps.extension(Rask.Core.Components.Authorize!).Role(string! role) -> Rask.Core.Components.Authorize!
+Rask.AuthorizeSteps.extension(Rask.Core.Components.Authorize!).Roles(string! role, params string![]! more) -> Rask.Core.Components.Authorize!
+static Rask.AuthorizeSteps.Role(this Rask.Core.Components.Authorize! gate, string! role) -> Rask.Core.Components.Authorize!
+static Rask.AuthorizeSteps.Roles(this Rask.Core.Components.Authorize! gate, string! role, params string![]! more) -> Rask.Core.Components.Authorize!

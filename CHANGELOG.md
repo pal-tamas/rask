@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A write takes no token, and a role gate takes a word.** `Product.Create`, `Update`, `Delete`, `Save`, `Find` and
+  `Model` fall back to the work they run in (`Current.Cancellation`) when given no token, as reads already did, and
+  `Authorize` takes one role or several without a collection expression:
+
+  ```csharp
+  // before
+  await Product.Create(model, cancellationToken: CancellationToken);
+  Authorize.Roles(["admin"])[adminPanel]
+  Authorize.Roles(["admin", "editor"])[tools]
+
+  // after
+  await Product.Create(model);
+  Authorize.Role("admin")[adminPanel]
+  Authorize.Roles("admin", "editor")[tools]
+  ```
+
 - **One word per setting, in code and in configuration.** A battery's section is named like its switch, so the
   appsettings key follows from the line in `Program.cs`. `rask deploy --env` takes that same colon spelling, a
   schedule goes straight on the jobs battery, and the live runtime and server limits are tuned like every battery —

@@ -85,7 +85,7 @@ public sealed partial class PlaceOrder : Component
         try
         {
             var order = Order.Place(ProductId, Price, DateTime.UtcNow);
-            await Order.Create(order, cancellationToken: CancellationToken);        // the order AND its OrderPlaced, one transaction
+            await Order.Create(order);        // the order AND its OrderPlaced, one transaction
         }
         finally
         {

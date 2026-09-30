@@ -20,6 +20,10 @@ namespace Rask.Data;
 ///         the write only STAGES its change and returns: the caller saves, which is what makes several writes
 ///         on one context a single transaction with no explicit transaction to start.
 ///     </para>
+///     <para>
+///         An unset token is the work in progress's (<c>Current.Cancellation</c>), as it is for a read, so
+///         <c>await Product.Create(model)</c> is cancelled with the request, job or dispatch it runs in.
+///     </para>
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class GeneratedModelWrites
@@ -30,7 +34,7 @@ public static class GeneratedModelWrites
     ///     The context to insert through, or <c>null</c> to open one. A given context is only STAGED — the
     ///     caller saves it, and it is not disposed.
     /// </param>
-    /// <param name="cancellationToken">Cancels the save.</param>
+    /// <param name="cancellationToken">Cancels the save; unset, the work this call belongs to does.</param>
     /// <returns>
     ///     The inserted entity. Its store-generated key is filled in only once the row is saved, so with
     ///     <paramref name="db" /> given an integer key is still 0 until the caller saves; a Guid key was
@@ -42,6 +46,7 @@ public static class GeneratedModelWrites
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
+        cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(entity);
 
         return InContextAsync(db, context =>
@@ -60,7 +65,7 @@ public static class GeneratedModelWrites
     ///     The context to save through, or <c>null</c> to open one. A given context is only STAGED — the
     ///     caller saves it, and it is not disposed.
     /// </param>
-    /// <param name="cancellationToken">Cancels the load and the save.</param>
+    /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <returns>The saved aggregate, its version and times refreshed.</returns>
     /// <exception cref="KeyNotFoundException">Its row has been soft-deleted since it was read.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Its row was saved by someone else since it was read.</exception>
@@ -70,6 +75,7 @@ public static class GeneratedModelWrites
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
+        cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(entity);
 
         if (db is not null)
@@ -98,7 +104,7 @@ public static class GeneratedModelWrites
     ///     The context to load and change through, or <c>null</c> to open one. A given context is only STAGED
     ///     — the caller saves it, and it is not disposed; a row it already tracks is the one updated.
     /// </param>
-    /// <param name="cancellationToken">Cancels the load and the save.</param>
+    /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <returns>The updated entity.</returns>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
@@ -110,6 +116,7 @@ public static class GeneratedModelWrites
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
+        cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(apply);
 
@@ -137,7 +144,7 @@ public static class GeneratedModelWrites
     ///     The context to load and delete through, or <c>null</c> to open one. A given context is only STAGED
     ///     — the caller saves it, and it is not disposed.
     /// </param>
-    /// <param name="cancellationToken">Cancels the load and the save.</param>
+    /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
     /// <exception cref="InvalidOperationException">The aggregate declares <see cref="Deletion.None" />.</exception>
@@ -148,6 +155,7 @@ public static class GeneratedModelWrites
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
+        cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(key);
 
         // The generated Product.Delete is not emitted for such an aggregate; this closes the direct call.
@@ -175,7 +183,7 @@ public static class GeneratedModelWrites
     /// </summary>
     /// <param name="key">The primary key of the row to load.</param>
     /// <param name="db">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>
-    /// <param name="cancellationToken">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load; unset, the work this call belongs to does.</param>
     /// <returns>The aggregate and its children, or <c>null</c> when no row has that key.</returns>
     /// <remarks>
     ///     Not a read-face query: the form model keeps value objects nested and its children as child MODELS,
@@ -188,6 +196,7 @@ public static class GeneratedModelWrites
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
+        cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(key);
 
         if (db is not null)
@@ -206,7 +215,7 @@ public static class GeneratedModelWrites
     /// </summary>
     /// <param name="key">The primary key of the row to load.</param>
     /// <param name="db">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>
-    /// <param name="cancellationToken">Cancels the load.</param>
+    /// <param name="cancellationToken">Cancels the load; unset, the work this call belongs to does.</param>
     /// <returns>The aggregate and its children, or <c>null</c> when no row has that key or it is soft-deleted.</returns>
     public static async Task<TEntity?> Find<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
@@ -214,6 +223,7 @@ public static class GeneratedModelWrites
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
+        cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(key);
 
         if (db is not null)

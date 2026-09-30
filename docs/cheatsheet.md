@@ -121,7 +121,7 @@ Routes.UpdateProduct(Id: id).Go();                     // edit page → Update<E
 // Gate on auth — route-level attribute, or a component that renders only when signed in:
 [Authorize]                                            // redirects anonymous deep-links to /login
 Authorize[ NewProductButton() ]                      // shown only to signed-in users
-Authorize.Roles(["admin"])[ DeleteProductButton(id) ]
+Authorize.Role("admin")[ DeleteProductButton(id) ]
 
 // Declare an aggregate: private setters, no constructor, a static factory; value objects need no marker (Rask.Data):
 public sealed class Product : Aggregate<Guid> { public string Name { get; private set; } = ""; }
@@ -137,19 +137,19 @@ using (Tenant.Use(tenantId)) { /* … */ }           // work as one tenant; Tena
 
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
 var one = await Product.Where(p => p.Id == id).First(CancellationToken);
-var agg = await Product.Find(id, cancellationToken: CancellationToken);   // Product? — whole, untracked
+var agg = await Product.Find(id);   // Product? — whole, untracked
 agg!.Rename("Anvil");
-await agg.Save(cancellationToken: CancellationToken);                     // only what changed; stale Version throws
+await agg.Save();                     // only what changed; stale Version throws
 
 // Ranked full-text search — builder.HasFullTextSearch(p => new { p.Name, p.Description }) in static Configure, then:
 var hits = await Product.Search(query).Take(20);
 
 // Read and write it — no context injected; or send a command whose handler does the save:
 var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name);
-var product  = await Product.Create(model, cancellationToken: CancellationToken);               // ProductModel from a form
+var product  = await Product.Create(model);               // ProductModel from a form
 var edit     = product.ToModel();                                                               // fills an edit form
-await Product.Update(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);        // + values not from the form
-await Product.Delete(id, db: db, cancellationToken: CancellationToken);                        // join a context you hold
+await Product.Update(id, edit, p => p.Touch(now));        // + values not from the form
+await Product.Delete(id, db: db);                        // join a context you hold
 await dispatcher.Send(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
 Ui.DataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 

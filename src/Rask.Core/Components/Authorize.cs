@@ -16,7 +16,7 @@ namespace Rask.Core.Components;
 ///             <see cref="Authorized" /> — the user passes the gate; the delegate receives the
 ///             current <see cref="ClaimsPrincipal" /> (Blazor's <c>@context.User</c>), so a greeting
 ///             can read <c>user.Identity!.Name</c> with no manual subscription. Falls back to the
-///             children indexer when null, so <c>Authorize(Roles: "admin")[ adminPanel ]</c> renders
+///             children indexer when null, so <c>Authorize.Role("admin")[adminPanel]</c> renders
 ///             static content.
 ///         </item>
 ///         <item><see cref="NotAuthorized" /> — the user is denied (default: renders nothing).</item>
@@ -60,7 +60,7 @@ public sealed class Authorize : Component
 
     /// <summary>
     ///     Roles the gate accepts; it passes when the user is in <b>any</b> of them. Null/empty means
-    ///     "any authenticated user". Pass a collection expression: <c>Authorize(Roles: ["admin", "editor"])</c>.
+    ///     "any authenticated user". Written <c>Authorize.Role("admin")</c> or <c>Authorize.Roles("admin", "editor")</c>.
     /// </summary>
     public string[]? Roles { get; set; }
 
@@ -76,7 +76,7 @@ public sealed class Authorize : Component
     ///     so authorized markup can read the signed-in user (e.g. a name) with no manual
     ///     <see cref="IUserProvider.Changed" /> subscription — it re-runs whenever the gate re-renders.
     ///     When null, the children indexer supplies static authorized content instead:
-    ///     <c>Authorize(Roles: "admin")[ adminPanel ]</c>.
+    ///     <c>Authorize.Role("admin")[adminPanel]</c>.
     /// </summary>
     public Fn<ClaimsPrincipal, Component>? Authorized { get; set; }
 
