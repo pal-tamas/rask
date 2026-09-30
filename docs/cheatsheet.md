@@ -25,7 +25,7 @@ rask db restore backups/shop.db       # put a copy back (--remote for the deploy
 rask deploy --host root@box --domain shop.example.com   # bare box → live HTTPS
 rask deploy                           # redeploy (host/domain remembered), zero-downtime
 rask deploy --github-actions          # write .github/workflows/deploy.yml
-rask deploy status                    # what's running, and on which color
+rask deploy status                    # what's running, and what a rollback restores
 rask deploy logs -f                  # tail the deployed app (--follow)
 rask deploy rollback                  # put the previous image back
 
@@ -116,7 +116,7 @@ var view = await dispatcher.Query(new GetProducts(), CancellationToken);   // ID
 
 // Type-safe URL for a routed page — never a string path:
 NavLink.Href(Routes.ProductsPage())["Catalog"];       // list page → <Plural>Page
-nav.NavigateTo(Routes.UpdateProduct(Id: id));          // edit page → Update<Entity>; Navigator, event-handler only
+Routes.UpdateProduct(Id: id).Go();                     // edit page → Update<Entity>; from an event handler
 
 // Gate on auth — route-level attribute, or a component that renders only when signed in:
 [Authorize]                                            // redirects anonymous deep-links to /login

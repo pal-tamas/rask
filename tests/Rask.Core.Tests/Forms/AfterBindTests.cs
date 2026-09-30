@@ -22,8 +22,8 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => m.Name).AfterBind(v => observed.Add(v))
         ]);
 
-        await page.InputAsync("{\"value\":\"A\"}");
-        await page.InputAsync("{\"value\":\"Ad\"}");
+        await page.On("input").Input("A");
+        await page.On("input").Input("Ad");
 
         Assert.Equal(new[] { "A", "Ad" }, observed);
         Assert.Equal("Ad", m.Name);
@@ -39,7 +39,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => m.Age).AfterBind(v => captured = v)
         ]);
 
-        await page.ChangeAsync("{\"value\":\"42\"}");
+        await page.On("input").Change("42");
 
         Assert.Equal(42, captured);
         Assert.Equal(42, m.Age);
@@ -55,7 +55,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => m.Age).AfterBind(_ => fired = true)
         ]);
 
-        await page.ChangeAsync("{\"value\":\"not-a-number\"}");
+        await page.On("input").Change("not-a-number");
 
         Assert.False(fired);
         Assert.Equal(7, m.Age); // unchanged — TrySetTyped rejected it
@@ -87,7 +87,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
 
         // Held un-awaited: the gate below keeps the async handler mid-flight.
-        var pending = page.InvokeAsync(changeId!, "{\"value\":\"42\"}");
+        var pending = page.Invoke(changeId!, "{\"value\":\"42\"}");
 
         // Spin until the async handler reaches the gate. The dispatcher does an extra
         // Task.Yield inside InvokeWithRenderingAsync, so a single Task.Yield here may not
@@ -128,7 +128,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Test.EditContextProbe(c => captured = c)
         ]);
 
-        await page.ChangeAsync("{\"value\":\"9\"}");
+        await page.On("input").Change("9");
 
         Assert.Equal(new[] { "afterBind", "validate" }, order);
     }
@@ -152,7 +152,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                 })
         ]);
 
-        await page.InputAsync("{\"value\":\"x\"}");
+        await page.On("input").Input("x");
 
         Assert.Equal(new[] { "async" }, order);
     }
@@ -170,7 +170,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             ]
         ]);
 
-        await page.ChangeAsync("{\"value\":\"Blue\"}");
+        await page.On("select").Change("Blue");
 
         Assert.Equal(Color.Blue, captured);
         Assert.Equal(Color.Blue, m.Favorite);
@@ -194,7 +194,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             ]
         ]);
 
-        await page.ChangeAsync("{\"value\":\"US\"}");
+        await page.On("select").Change("US");
 
         Assert.NotNull(cities);
         Assert.Equal(new[] { "NYC", "LA" }, cities!);
@@ -211,7 +211,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Textarea.Bind(() => m.Name).AfterBind(v => captured = v)
         ]);
 
-        await page.InputAsync("{\"value\":\"hello\"}");
+        await page.On("textarea").Input("hello");
 
         Assert.Equal("hello", captured);
         Assert.Equal("hello", m.Name);
@@ -230,7 +230,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
 
         // Checking the box: the client reports the post-toggle checked state ("true").
         // BoolSetHandler sets the model to it and AfterBind sees the new value.
-        await page.InvokeAsync(changeId!, "{\"value\":\"true\"}");
+        await page.Invoke(changeId!, "{\"value\":\"true\"}");
 
         Assert.True(captured);
         Assert.True(m.Enabled);
@@ -250,8 +250,8 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => m.Name).AfterBind(_ => fires++)
         ]);
 
-        await page.InputAsync("{\"value\":\"x\"}");
-        await page.InputAsync("{\"value\":\"x\"}");
+        await page.On("input").Input("x");
+        await page.On("input").Input("x");
 
         Assert.Equal(2, fires);
     }

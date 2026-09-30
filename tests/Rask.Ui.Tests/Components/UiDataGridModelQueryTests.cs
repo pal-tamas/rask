@@ -80,7 +80,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
             c.Field(g => g.Stock).Title("Stock"),
         ]]);
 
-        await page.On("thead button:has-text(\"Gizmo\")").ClickAsync();
+        await page.On("thead button:has-text(\"Gizmo\")").Click();
         Assert.Equal(["Anvil", "Bolt"], Names(page.Html));
 
         // Written between two renders of the same grid. The next render has to see it — a queryable
@@ -91,7 +91,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        await page.On(".join button:has-text(\"2\")").ClickAsync();
+        await page.On(".join button:has-text(\"2\")").Click();
         Assert.Equal(["Bolt", "Cog"], Names(page.Html));
         Assert.Contains("5 rows", page.Html, StringComparison.Ordinal);
     }

@@ -15,10 +15,10 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Outline
                         .Id("perm-geo")
                         .OnClick(QueryGeo)["Query geolocation"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Outline
                         .Id("perm-clip")
                         .OnClick(QueryClipboard)["Query clipboard-read"]
                 ],

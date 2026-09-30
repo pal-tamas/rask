@@ -23,10 +23,10 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
         ];
 
     private static Task TypeAsync(Page page, string text) =>
-        page.On("[role=\"combobox\"]").InputAsync(text);
+        page.On("[role=\"combobox\"]").Input(text);
 
     private static Task KeyAsync(Page page, string key) =>
-        page.On("[role=\"combobox\"]").RaiseAsync("keydown", $"{{\"key\":\"{key}\"}}");
+        page.On("[role=\"combobox\"]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
 
     private static string Highlighted(string html)
     {

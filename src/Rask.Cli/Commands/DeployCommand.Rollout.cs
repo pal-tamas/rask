@@ -122,7 +122,7 @@ internal sealed partial class DeployCommand
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
         if (await Run(BuildBuildArguments(host, slug, plan.Dockerfile, plan.ContextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.WriteErrorLine("Docker build failed.", ConsoleStyle.Error);
+            Console.WriteErrorLine("Docker build failed — its output is above. Run `docker build .` locally to reproduce it, then deploy again.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -222,7 +222,7 @@ internal sealed partial class DeployCommand
         if (await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false) is null)
         {
             Console.WriteErrorLine($"{reason} There is no previous image to fall back to.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync($"{slug}:{PreviousTag} is written by the deploy that replaces it, so the first deploy of an app has no predecessor.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("This is the app's first deploy, so there is no earlier version to go back to. Fix the problem above and deploy again.").ConfigureAwait(false);
             return 1;
         }
 

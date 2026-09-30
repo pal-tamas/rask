@@ -15,7 +15,7 @@ public sealed partial class UserGateDemo : Component
 
     private Component? AdminPanel() =>
         _auth.Current.IsInRole("admin")
-            ? Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft).Class("py-2")["🔑 Admin-only panel"]
+            ? Ui.Alert.Warning.Soft.Class("py-2")["🔑 Admin-only panel"]
             : null;
 
     protected override Component? Render() =>
@@ -25,12 +25,12 @@ public sealed partial class UserGateDemo : Component
                     P["Signed in as ", Strong[_auth.Current.Identity.Name ?? "?"]],
                     // Role-gated: only an admin sees this panel.
                     AdminPanel(),
-                    Ui.Button.Variant(Ui.Variant.Outline).OnClick(_auth.SignOut)["Sign out"]]
+                    Ui.Button.Outline.OnClick(_auth.SignOut)["Sign out"]]
                 : [
                     P.Class("text-ui-muted")["You are signed out."],
                     Div.Class("flex gap-2 flex-wrap items-center")[
-                        Ui.Button.Tone(Ui.Tone.Primary).OnClick(() => _auth.SignIn("alice", "user"))["Sign in as user"],
-                        Ui.Button.Tone(Ui.Tone.Warning)
+                        Ui.Button.Primary.OnClick(() => _auth.SignIn("alice", "user"))["Sign in as user"],
+                        Ui.Button.Warning
                             .OnClick(() => _auth.SignIn("rootadmin", "admin"))["Sign in as admin"]
                     ]]
         ];

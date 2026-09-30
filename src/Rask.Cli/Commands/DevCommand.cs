@@ -77,7 +77,7 @@ internal sealed partial class DevCommand(
             .Flag("open", description: "Open the app in your browser once it is listening (implied on a .test name).")
             .Flag("no-open", description: "Never open a browser.")
             .Flag("no-hot-reload", description: "Restart on change instead of applying edits live (still watches).")
-            .Flag("no-restart", description: "Ask before restarting on an edit hot reload can't apply.")
+            .Flag("no-restart", description: "Don't restart by itself on an edit hot reload can't apply — ask first.")
             .Flag("once", description: "Run once without watching (plain 'dotnet run').")
             .Flag("no-banner", description: "Suppress the startup banner.")
             .Flag("no-host", description: "Serve on localhost instead of this project's https://<name>.test address.")

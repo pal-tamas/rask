@@ -11,7 +11,7 @@ namespace Rask.Testing;
 // would not notice. A lookup that finds nothing, or more than one thing, fails naming what it did find.
 public partial class Page
 {
-    /// <summary>How long <see cref="Shows" /> and <see cref="DoesNotShow" /> wait for async work to land. Default 5 s.</summary>
+    /// <summary>How long <see cref="Shows(string)" /> and <see cref="DoesNotShow" /> wait for async work to land. Default 5 s.</summary>
     public TimeSpan Patience { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>Types <paramref name="text" /> into a field: <c>await page.Type("Tea").Into("Name");</c></summary>
@@ -56,6 +56,18 @@ public partial class Page
         Await(root => VisibleText(root).Contains(text, StringComparison.Ordinal), () =>
             $"Expected the page to show \"{text}\" within {Seconds(Patience)}. It shows:\n  {VisibleText(Root)}");
         return new Showing(this, text);
+    }
+
+    /// <summary>
+    ///     Checks that the page's markup satisfies <paramref name="condition" />, re-rendering for up to
+    ///     <see cref="Patience" /> while async work lands: <c>page.Shows(html =&gt; html.Contains("data-state=\"done\""))</c>.
+    /// </summary>
+    /// <exception cref="PageException">The condition never held; the message carries the last markup.</exception>
+    public void Shows(Func<string, bool> condition)
+    {
+        ArgumentNullException.ThrowIfNull(condition);
+        Await(_ => condition(Html), () =>
+            $"Expected the page's markup to satisfy the condition within {Seconds(Patience)}. It is:\n  {Html}");
     }
 
     /// <summary>Checks that the page does not show <paramref name="text" />, waiting for it to go if it is still there.</summary>
@@ -119,7 +131,7 @@ public partial class Page
         public TaskAwaiter GetAwaiter() => _page.Press(_text, _region).GetAwaiter();
     }
 
-    /// <summary>What <see cref="Shows" /> saw, to narrow to a region.</summary>
+    /// <summary>What <see cref="Shows(string)" /> saw, to narrow to a region.</summary>
     public readonly struct Showing(Page page, string text)
     {
         /// <summary>Checks that the text is inside the region named <paramref name="region" />.</summary>
@@ -259,7 +271,7 @@ public partial class Page
         if (IsSubmit(target) && Ancestors(target).FirstOrDefault(n => string.Equals(n.Tag, "form", StringComparison.Ordinal)) is { } form
             && form.Attribute("data-rask-on-submit") is { } submit)
         {
-            await InvokeAsync(submit, FormPayload(form)).ConfigureAwait(false);
+            await Invoke(submit, FormPayload(form)).ConfigureAwait(false);
             return;
         }
 
@@ -284,7 +296,7 @@ public partial class Page
             return false;
         }
 
-        await InvokeAsync(id, payload).ConfigureAwait(false);
+        await Invoke(id, payload).ConfigureAwait(false);
         return true;
     }
 

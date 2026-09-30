@@ -46,7 +46,7 @@ public sealed class DevToolsErrorsTabTests
 #pragma warning restore RASK014
 
     private static Task<string> Click(Page page, string text) =>
-        page.InvokeAsync(
+        page.Invoke(
             page.FindAll("button").First(b => b.TextContent.Trim() == text).Attributes["data-rask-on-click"],
             "{\"type\":\"click\"}");
 
@@ -151,7 +151,7 @@ public sealed class DevToolsErrorsTabTests
         string? selected = null;
         var strip = Tabs(DevToolsTabIds.Wire, page, app, id => selected = id);
 
-        await strip.On("[data-rask-devtools-errors]").RaiseAsync("keydown", "{\"key\":\"errors:show\"}");
+        await strip.On("[data-rask-devtools-errors]").Raise("keydown", "{\"key\":\"errors:show\"}");
 
         Assert.Equal(DevToolsTabIds.Errors, selected);
     }

@@ -18,11 +18,11 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("locks-hold").OnClick(Hold)["Hold exclusive for 2s"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Id("locks-hold").OnClick(Hold)["Hold exclusive for 2s"],
+                    Ui.Button.Primary.Outline
                         .Id("locks-try")
                         .OnClick(TryHold)["Try (no wait)"],
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("locks-query")
                         .OnClick(Query)["Query held locks"]
                 ],

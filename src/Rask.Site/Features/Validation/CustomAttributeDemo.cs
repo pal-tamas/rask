@@ -34,11 +34,11 @@ public sealed partial class CustomAttributeDemo : Component
                 Validation.Message.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
-                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.ShieldOk), "Create account"]
+                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.ShieldOk), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }

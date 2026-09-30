@@ -111,7 +111,7 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
         var page = global::Rask.Testing.Page.Render(
             Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsable(true).OnCollapse(v => heard = v)[Div]);
 
-        await page.On("#nav-rail").ChangeAsync("true");
+        await page.On("#nav-rail").Change("true");
 
         Assert.True(heard);
     }

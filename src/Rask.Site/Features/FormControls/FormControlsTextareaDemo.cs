@@ -1,4 +1,3 @@
-using System.Globalization;
 
 namespace Rask.Site.Features;
 
@@ -20,7 +19,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                     .Hint("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-textarea-controlled").Class("mb-2"),
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
-                    "Length: ", Strong[_controlled.Length.ToString(CultureInfo.InvariantCulture)]
+                    "Length: ", Strong[_controlled.Length]
                 ]
             ],
             Div.Class("col-span-12 md:col-span-6")[
@@ -30,7 +29,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                         .Id("fc-textarea-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-bound-out")[
-                    "Length: ", Strong[_model.Bio.Length.ToString(CultureInfo.InvariantCulture)]
+                    "Length: ", Strong[_model.Bio.Length]
                 ]
             ]
         ];

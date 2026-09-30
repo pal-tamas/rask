@@ -78,7 +78,7 @@ public sealed partial class MasterDetailDemo : Component
                 ],
                 Td.Class("font-semibold")[order.Customer],
                 Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
-                Td[Ui.Badge.Tone(StatusTone(order.Status)).Variant(Ui.Variant.Soft)[order.Status]],
+                Td[Ui.Badge.Tone(StatusTone(order.Status)).Soft[order.Status]],
                 Td.Class("text-ui-muted")[order.Items.Count],
                 Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)

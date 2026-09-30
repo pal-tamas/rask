@@ -593,7 +593,7 @@ A create page starts from a new one:
 
 ```csharp
 [Route("/products/new")]
-public sealed partial class NewProductPage(Navigator nav) : Component
+public sealed partial class NewProductPage : Component
 {
     private readonly ProductModel _product = new();
 
@@ -601,13 +601,13 @@ public sealed partial class NewProductPage(Navigator nav) : Component
         Form.Model(_product).OnSubmit(CreateAsync)[submitting => [
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
-            Ui.Button.Type(Ui.ButtonType.Submit).Disabled(submitting)["Create"],
+            Ui.Button.Submit.Disabled(submitting)["Create"],
         ]];
 
     private async Task CreateAsync(ProductModel product)
     {
         await Product.Create(product, cancellationToken: CancellationToken);
-        nav.NavigateTo(Routes.ProductsPage());
+        Routes.ProductsPage().Go();
     }
 }
 ```
@@ -616,7 +616,7 @@ An edit page fills one from the row it read, and hands it back with the route's 
 
 ```csharp
 [Route("/products/{id:guid}/edit")]
-public sealed partial class EditProductPage(Navigator nav) : Component
+public sealed partial class EditProductPage : Component
 {
     [RouteParam] public Guid Id { get; set; }
 
@@ -629,11 +629,11 @@ public sealed partial class EditProductPage(Navigator nav) : Component
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
         Form.Model(_product).OnSubmit(SaveAsync)[
-            _conflict is null ? null : Ui.Alert.Tone(Ui.Tone.Warning)[_conflict],
+            _conflict is null ? null : Ui.Alert.Warning[_conflict],
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
             Ui.Textarea.Bind(() => _product.Notes).Label("Notes"),
-            Ui.Button.Type(Ui.ButtonType.Submit)["Save"],
+            Ui.Button.Submit["Save"],
         ];
 
     private async Task SaveAsync(ProductModel edit)
@@ -641,7 +641,7 @@ public sealed partial class EditProductPage(Navigator nav) : Component
         try
         {
             await Product.Update(Id, edit, cancellationToken: CancellationToken);        // Version checked
-            nav.NavigateTo(Routes.ProductsPage());
+            Routes.ProductsPage().Go();
         }
         catch (DbUpdateConcurrencyException)
         {

@@ -99,7 +99,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task WaitForAsync_sees_the_result_of_an_asynchronous_mount()
+    public void Shows_sees_the_result_of_an_asynchronous_mount()
     {
         var loader = new SlowLoader();
         var page = Page.Render(loader);
@@ -107,10 +107,10 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         Assert.Contains("placeholder", page.Html);
 
         loader.Gate.SetResult();
-        var html = await page.WaitForAsync("loaded");
+        page.Shows("loaded");
 
-        Assert.Contains("loaded", html);
-        Assert.DoesNotContain("placeholder", html);
+        Assert.Contains("loaded", page.Html);
+        Assert.DoesNotContain("placeholder", page.Html);
     }
 
     private sealed class Stuck : Component
@@ -119,16 +119,17 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task WaitForAsync_reports_the_last_markup_when_it_gives_up()
+    public void Shows_reports_what_the_page_shows_when_it_gives_up()
     {
         // A wait that fails should show what the component actually rendered — "it timed out" alone sends
         // you back to add the print statement the failure could have carried.
         var page = Page.Render(new Stuck());
 
-        var timeout = await Assert.ThrowsAsync<TimeoutException>(() =>
-            page.WaitForAsync("never appears", TimeSpan.FromMilliseconds(50)));
+        page.Patience = TimeSpan.FromMilliseconds(50);
 
-        Assert.Contains("stuck", timeout.Message);
+        var failure = Assert.Throws<PageException>(() => page.Shows("never appears"));
+
+        Assert.Contains("stuck", failure.Message);
     }
 
     private sealed class SignalsAfterItsFirstRender : Component

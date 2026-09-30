@@ -9,6 +9,34 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
+  its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
+
+  | Before | After |
+  | --- | --- |
+  | `await page.ClickAsync()` | `await page.Click("Save")`, or `await page.On("#save").Click()` |
+  | `await page.InputAsync("{\"value\":\"Ada\"}")` | `await page.Type("Ada").Into("Name")`, or `await page.On("#name").Input("Ada")` |
+  | `await page.On(sel).ChangeAsync(v)` / `SubmitAsync(json)` / `FilesAsync(f)` | `.Change(v)` / `.Submit(json)` / `.Files(f)` |
+  | `await page.On(sel).RaiseAsync("keydown", json)` | `await page.On(sel).Raise("keydown", json)` |
+  | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
+  | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
+  | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
+- **The docs, samples and scaffold say only true things, in the short words.** Kit calls use the short forms
+  that already existed — `Ui.Button.Primary.Submit`, `Ui.Alert.Error`, `.Ghost.Sm` — instead of
+  `Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)` (518 sites across the docs, `llms.txt`, the
+  site and the templates). Navigation is `Routes.ProductsPage().Go()` with nothing injected, a control with no
+  value yet is `Ui.Input.Of<string>()`, `Context.Provide(_theme)` infers its type, numbers go straight into
+  markup (`Code[_clicks]`), and a sequence of children needs no `(Component)` cast. Events are `Callback<T>`
+  props everywhere the docs used to say "a plain delegate". Fixed: `docs/routing.md` no longer calls
+  `[Route]` singular, `docs/forms.md` no longer says bound mode "does not offer" steps that compile,
+  `llms.txt`/`docs/cli.md` no longer place the sign-in pages in `Rask.Auth` (they are scaffolded into
+  `Features/Auth/`), and the scaffolded home page no longer tells you to run `rask db add Init` — `rask new`
+  already did, and the WASM template has no database at all.
+- **Runtime errors end in a fix, like the diagnostics.** A `Bind(() => …)` that walks through null, a
+  component with services in its constructor created outside an app, an open generic with scoped styles or
+  a script, `AuthSignIn` outside a handler, a hand-built or re-read upload, a synchronous read of a browser
+  file, a failed `docker build` and a rollback on a first deploy each say what to do next. `rask dev
+  --no-restart` and `rask deploy status`/`--health-path` describe what they do without deployment jargon.
 - **A live update renders the page straight into the session's buffer.** No pooled builder to regrow and no copy
   out of one: a 1,500-row page allocates 336 B per live render instead of 267.59 KB (`RenderPageXLargeInto`). A
   connected 1,000-row session's footprint reads 12.7 KB (0.3%) higher, which is large-object-heap fragmentation
@@ -553,6 +581,12 @@ them until tagged releases begin.
 - **The shutdown drain keeps to one budget.** `ShutdownDrainTimeout` is measured once, from `ApplicationStopping`.
   A drain that ran late used to start a second budget of its own, waiting on sockets the first had already
   aborted and stretching shutdown to twice the setting (#1138).
+- **A sign-up racing the first one is no longer refused for want of the first-run token.** Registration read "not
+  yet claimed" and then compared the token, so a racer that lost the admin slot in between found the token already
+  spent and got `FirstRunTokenRequired`. The token is now compared first (#1143).
+- **Every meta template builds again.** Analog, Next.js, Nuxt, SolidStart, SvelteKit and TanStack Start failed on
+  RASK015/017: Rask's scoped CSS/TypeScript globs reached into `client/` and took `globals.css` or `next.config.ts`
+  for a component's assets. A meta host now keeps its front end out of them, as a SPA host already did (#1147).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted

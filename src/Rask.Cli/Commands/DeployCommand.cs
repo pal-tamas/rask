@@ -110,7 +110,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
-            .Verb("status", "Show what is running, and on which color.")
+            .Verb("status", "Show what is running on the host, and what a rollback would restore.")
             .Verb("logs", "Print the deployed app's logs.")
             .Verb("rollback", "Put the previous image back.")
             // No short name: '-h' is reserved for --help across the whole CLI, and a command that claimed
@@ -124,7 +124,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             .Option("dockerfile", valueHint: "path", description: "Dockerfile to build (default: ./Dockerfile).")
             .Option("env-file", valueHint: "path", description: "File of KEY=VALUE lines to pass to the container.")
             .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")
-            .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before the blue-green swap (default: /health).")
+            .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before traffic moves to the new version (default: /health).")
             .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
             .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy on push, and print the secrets to add.")
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")

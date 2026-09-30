@@ -31,7 +31,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         global::Rask.Core.Component select)
     {
         var page = global::Rask.Testing.Page.Render(select);
-        await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
         return page;
     }
 
@@ -90,7 +90,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         var page = await OpenedAsync(
             Ui.Select.Value(default(string)).Options(Countries).Label("Country").Searchable(true));
 
-        await page.On("#" + SearchId(page.Html)).InputAsync("ire");
+        await page.On("#" + SearchId(page.Html)).Input("ire");
 
         Assert.Contains("Ireland", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("Hungary", page.Html, StringComparison.Ordinal);
@@ -104,7 +104,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         var page = await OpenedAsync(
             Ui.Select.Value(default(string)).Options(Countries).Label("Country").Searchable(true));
 
-        await page.On("#" + SearchId(page.Html)).InputAsync("oster");
+        await page.On("#" + SearchId(page.Html)).Input("oster");
 
         // Non-ASCII is encoded on the way out, so this is the text as it reaches the browser.
         Assert.Contains("&#xD6;sterreich", page.Html, StringComparison.Ordinal);
@@ -120,7 +120,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
             Ui.Select.Value(default(string)).Options(Countries).Label("Country")
                 .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase)));
 
-        await page.On("#" + SearchId(page.Html)).InputAsync("gb");
+        await page.On("#" + SearchId(page.Html)).Input("gb");
 
         Assert.Contains("United Kingdom", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("Hungary", page.Html, StringComparison.Ordinal);
@@ -132,7 +132,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         var page = await OpenedAsync(
             Ui.Select.Value("hu").Options(Countries).Label("Country").Searchable(true));
 
-        await page.On("#" + SearchId(page.Html)).InputAsync("zzz");
+        await page.On("#" + SearchId(page.Html)).Input("zzz");
 
         Assert.Contains("No results found", page.Html, StringComparison.Ordinal);
     }
@@ -144,7 +144,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
             Ui.Select.Value("hu").Options(Countries).Label("Country").Searchable(true)
                 .EmptyText("No country by that name"));
 
-        await page.On("#" + SearchId(page.Html)).InputAsync("zzz");
+        await page.On("#" + SearchId(page.Html)).Input("zzz");
 
         Assert.Contains("No country by that name", page.Html, StringComparison.Ordinal);
     }
@@ -158,7 +158,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         var page = await OpenedAsync(
             Ui.Select.Value(default(string)).Options(Countries).Label("Country").OnSearch(s => typed.Add(s)));
 
-        await page.On("#" + SearchId(page.Html)).InputAsync("ire");
+        await page.On("#" + SearchId(page.Html)).Input("ire");
 
         Assert.Equal(["ire"], typed);
         Assert.Contains("Hungary", page.Html, StringComparison.Ordinal);
@@ -208,7 +208,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         var page = global::Rask.Testing.Page.Render(
             Ui.Select.Bind(() => model.Country).Options(countries).Label("Country").Clearable(true));
 
-        await page.On("button[aria-label=\"Clear Country\"]").ClickAsync();
+        await page.On("button[aria-label=\"Clear Country\"]").Click();
 
         Assert.Null(model.Country);
     }

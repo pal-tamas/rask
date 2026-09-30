@@ -60,7 +60,7 @@ public sealed class DevToolsTreeTabPickTests
         var page = Render();
         Assert.Null(AnchorsOf(page));
 
-        await page.On("[aria-pressed=\"false\"]").ClickAsync();
+        await page.On("[aria-pressed=\"false\"]").Click();
 
         var anchors = AnchorsOf(page);
         Assert.NotNull(anchors);
@@ -68,7 +68,7 @@ public sealed class DevToolsTreeTabPickTests
         Assert.Equal("[[\"2\",\"|0|1\",\"Card\"],[\"3\",\"0|0|1\",\"Row\"],[\"99\",\"0.0.0.0.0.0.0.0.0|0|1\",\"Deepest\"]]", anchors);
         Assert.Single(page.FindAll("[aria-pressed=\"true\"]"));
 
-        await page.On("[aria-pressed=\"true\"]").ClickAsync();
+        await page.On("[aria-pressed=\"true\"]").Click();
 
         Assert.Null(AnchorsOf(page));
     }
@@ -77,11 +77,11 @@ public sealed class DevToolsTreeTabPickTests
     public async Task A_pick_opens_the_way_to_the_node_selects_it_and_ends_the_pick()
     {
         var page = Render();
-        await page.On("[aria-pressed=\"false\"]").ClickAsync();
+        await page.On("[aria-pressed=\"false\"]").Click();
         // Too deep to be open on its own: no row says it (the anchors do, which is what a pick matches against).
         Assert.DoesNotContain(page.FindAll("[role=\"treeitem\"]"), n => n.TextContent.Contains("Deepest", StringComparison.Ordinal));
 
-        await page.On("[data-rask-devtools-picked]").RaiseAsync("keydown", "{\"key\":\"pick:99\"}");
+        await page.On("[data-rask-devtools-picked]").Raise("keydown", "{\"key\":\"pick:99\"}");
 
         var selected = Assert.Single(page.FindAll("[aria-selected=\"true\"]"));
         Assert.Contains("Deepest", selected.TextContent, StringComparison.Ordinal);
@@ -117,9 +117,9 @@ public sealed class DevToolsTreeTabPickTests
         var page = Page.Render(new DevToolsTreeTab { Feed = feed });
 #pragma warning restore RASK014
 
-        await page.On("input[type=\"checkbox\"]").ChangeAsync("true");
-        await page.On("[aria-pressed=\"false\"]").ClickAsync();
-        await page.On("[data-rask-devtools-picked]").RaiseAsync("keydown", "{\"key\":\"pick:" + button.Id + "\"}");
+        await page.On("input[type=\"checkbox\"]").Change("true");
+        await page.On("[aria-pressed=\"false\"]").Click();
+        await page.On("[data-rask-devtools-picked]").Raise("keydown", "{\"key\":\"pick:" + button.Id + "\"}");
 
         var selected = Assert.Single(page.FindAll("[aria-selected=\"true\"]"));
         Assert.Contains("<button>", selected.TextContent, StringComparison.Ordinal);
@@ -129,9 +129,9 @@ public sealed class DevToolsTreeTabPickTests
     public async Task A_cancelled_pick_ends_the_pick_and_selects_nothing()
     {
         var page = Render();
-        await page.On("[aria-pressed=\"false\"]").ClickAsync();
+        await page.On("[aria-pressed=\"false\"]").Click();
 
-        await page.On("[data-rask-devtools-picked]").RaiseAsync("keydown", "{\"key\":\"pick:cancel\"}");
+        await page.On("[data-rask-devtools-picked]").Raise("keydown", "{\"key\":\"pick:cancel\"}");
 
         Assert.Null(AnchorsOf(page));
         Assert.Empty(page.FindAll("[aria-selected=\"true\"]"));

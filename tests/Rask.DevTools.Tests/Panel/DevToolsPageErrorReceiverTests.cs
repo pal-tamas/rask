@@ -26,7 +26,7 @@ public sealed class DevToolsPageErrorReceiverTests
 #pragma warning restore RASK014
 
     private static Task Report(Page page, string json) =>
-        page.On("[data-rask-devtools-page-errors]").RaiseAsync(
+        page.On("[data-rask-devtools-page-errors]").Raise(
             "keydown", System.Text.Json.JsonSerializer.Serialize(new { key = DevToolsPageErrorReceiver.KeyPrefix + json }));
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class DevToolsPageErrorReceiverTests
 
         await Report(page, "{not json");
         await Report(page, """{"kind":"page","message":"no title"}""");
-        await page.On("[data-rask-devtools-page-errors]").RaiseAsync("keydown", """{"key":"Enter"}""");
+        await page.On("[data-rask-devtools-page-errors]").Raise("keydown", """{"key":"Enter"}""");
         await Report(page, $$"""{"kind":"page","title":"Error","message":"{{new string('m', 5000)}}"}""");
 
         var error = Assert.Single(feed.Errors.Snapshot());

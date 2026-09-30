@@ -23,11 +23,11 @@ public sealed partial class FloatingLabelsDemo : Component
             Ui.Select.Bind(() => _model.Plan).Options(Plans).Label("Plan").Placeholder("— choose —").Id("ff-Plan"),
             Ui.Textarea.Bind(() => _model.Bio).Label("Short bio").Id("ff-Bio"),
             Div.Class("mt-1")[
-                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.UserPlus), "Create account"]
+                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.UserPlus), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
