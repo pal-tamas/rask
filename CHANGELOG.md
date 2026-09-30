@@ -33,6 +33,11 @@ them until tagged releases begin.
   `NewArgumentChecks` as their own types; `rask dev` builds its `dotnet watch` command line in
   `DotnetWatchInvocation`. Nothing any of the three does has changed.
 
+- **The WebAssembly prerender is split by what each part does.** `WasmPrerender` keeps its public surface and
+  the page loop; repairing the publish output's compressed siblings and endpoint manifest is
+  `PublishedAssetRepair`, writing `sitemap.xml` and `robots.txt` is `SitemapWriter`, and reading a page's own
+  last-modified date, canonical URL and noindex is `PrerenderedPageMetadata`. The published site is unchanged.
+
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
   and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are

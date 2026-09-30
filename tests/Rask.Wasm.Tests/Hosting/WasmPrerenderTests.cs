@@ -254,7 +254,7 @@ public class WasmPrerenderTests : IDisposable
     [InlineData("/about/", true, "/about/")]
     [InlineData("/about/", false, "/about")]
     public void A_sitemap_url_takes_the_shape_the_host_serves(string path, bool trailingSlash, string expected) =>
-        Assert.Equal(expected, WasmPrerender.SiteUrlPath(path, trailingSlash));
+        Assert.Equal(expected, SitemapWriter.SiteUrlPath(path, trailingSlash));
 
     [Fact]
     public async Task A_host_that_strips_the_slash_gets_urls_without_one()
@@ -379,7 +379,7 @@ public class WasmPrerenderTests : IDisposable
     // A trailing slash is not a different page: a static host serves both from the same file.
     [InlineData("<head><link href=\"https://x.test/list/\" rel=\"canonical\"></head>", "/list", true)]
     public void A_sitemap_lists_only_the_urls_that_claim_to_be_a_page(string html, string path, bool listed) =>
-        Assert.Equal(listed, WasmPrerender.ListedInSitemap(html, path));
+        Assert.Equal(listed, PrerenderedPageMetadata.ListedInSitemap(html, path));
 
     [Fact]
     public void A_canonical_is_read_from_its_own_tag_and_not_a_neighbours()
@@ -391,7 +391,7 @@ public class WasmPrerenderTests : IDisposable
             "<head><link rel=\"canonical\" href=\"https://x.test/page\">"
             + "<link rel=\"stylesheet\" href=\"/a.css\"></head>";
 
-        Assert.Equal("https://x.test/page", WasmPrerender.CanonicalTarget(Head));
+        Assert.Equal("https://x.test/page", PrerenderedPageMetadata.CanonicalTarget(Head));
     }
 
     [Theory]
@@ -417,7 +417,7 @@ public class WasmPrerenderTests : IDisposable
     [InlineData("<head><meta property=\"og:updated_time\" content=\"2026-09-10\"></head>", null)]
     [InlineData("<head><title>x</title></head>", null)]
     public void A_lastmod_is_read_off_the_pages_own_modified_time(string html, string? expected) =>
-        Assert.Equal(expected, WasmPrerender.LastModifiedOf(html));
+        Assert.Equal(expected, PrerenderedPageMetadata.LastModifiedOf(html));
 
     [Fact]
     public void A_modified_time_is_read_from_its_own_tag_and_not_a_neighbours()
@@ -427,7 +427,7 @@ public class WasmPrerenderTests : IDisposable
         const string Head =
             "<head><meta property=\"article:modified_time\"><meta name=\"x\" content=\"2020-01-01\"></head>";
 
-        Assert.Null(WasmPrerender.LastModifiedOf(Head));
+        Assert.Null(PrerenderedPageMetadata.LastModifiedOf(Head));
     }
 
     [Fact]
@@ -473,9 +473,9 @@ public class WasmPrerenderTests : IDisposable
         // The negative control for IsNoIndex. A reader that matched too loosely — on the word "noindex"
         // anywhere in the document, say — would drop every page that DOCUMENTS the tag, which on this
         // repo's own site is a guide.
-        Assert.False(WasmPrerender.IsNoIndex("<head><title>Using noindex</title></head>"));
-        Assert.False(WasmPrerender.IsNoIndex("<head><meta name=\"robots\" content=\"index, follow\"></head>"));
-        Assert.True(WasmPrerender.IsNoIndex("<head><meta name=\"robots\" content=\"noindex\"></head>"));
+        Assert.False(PrerenderedPageMetadata.IsNoIndex("<head><title>Using noindex</title></head>"));
+        Assert.False(PrerenderedPageMetadata.IsNoIndex("<head><meta name=\"robots\" content=\"index, follow\"></head>"));
+        Assert.True(PrerenderedPageMetadata.IsNoIndex("<head><meta name=\"robots\" content=\"noindex\"></head>"));
     }
 
     [Fact]
