@@ -32,6 +32,28 @@ internal static class ProjectLocator
         return $"Couldn't find a .csproj at or above '{startDirectory}'.";
     }
 
+    /// <summary>
+    /// The one <c>.csproj</c> a <c>--project</c> value names — a project file, or a directory holding exactly one —
+    /// or <c>null</c> when it can't be pinned down, as <see cref="Locate"/> treats ambiguity.
+    /// </summary>
+    public static string? ResolveCsproj(IFileSystem fileSystem, string projectPathOrDirectory)
+    {
+        if (projectPathOrDirectory.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            return fileSystem.FileExists(projectPathOrDirectory) ? projectPathOrDirectory : null;
+        }
+
+        try
+        {
+            var projects = fileSystem.ListFiles(projectPathOrDirectory, "*.csproj");
+            return projects.Count == 1 ? projects[0] : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     public static ProjectContext? Locate(IFileSystem fileSystem, string startDirectory)
     {
         var directory = Path.GetFullPath(startDirectory);

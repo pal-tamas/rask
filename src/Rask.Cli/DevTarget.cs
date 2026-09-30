@@ -72,7 +72,7 @@ internal sealed partial record DevTarget(
     public static DevTarget? Detect(IFileSystem fileSystem, string workingDirectory, string? explicitProject)
     {
         var csproj = explicitProject is { Length: > 0 }
-            ? ResolveCsproj(fileSystem, explicitProject)
+            ? ProjectLocator.ResolveCsproj(fileSystem, explicitProject)
             : LocateCsproj(fileSystem, workingDirectory);
 
         if (csproj is null)
@@ -324,17 +324,6 @@ internal sealed partial record DevTarget(
         var client = Path.Combine(projectDirectory, appDirectory);
 
         return fileSystem.FileExists(Path.Combine(client, "package.json")) ? client : null;
-    }
-
-    private static string? ResolveCsproj(IFileSystem fileSystem, string projectPathOrDirectory)
-    {
-        if (projectPathOrDirectory.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-        {
-            return fileSystem.FileExists(projectPathOrDirectory) ? projectPathOrDirectory : null;
-        }
-
-        var projects = SafeListFiles(fileSystem, projectPathOrDirectory, "*.csproj");
-        return projects.Count == 1 ? projects[0] : null;
     }
 
     private static string? LocateCsproj(IFileSystem fileSystem, string workingDirectory)
