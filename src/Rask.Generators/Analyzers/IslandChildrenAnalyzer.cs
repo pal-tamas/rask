@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.Analyzers;
 
@@ -35,9 +36,7 @@ public sealed class IslandChildrenAnalyzer : DiagnosticAnalyzer
 {
     // By metadata name: the generator cannot reference either island package.
     private const string BlazorBase = "Rask.Blazor.BlazorComponent`1";
-    private const string ExternalBase = "Rask.External.ExternalComponent";
     private const string RefusalTypeName = "Rask.External.NotAChildOfThisIsland";
-    private const string ComponentType = "Rask.Core.Component";
 
     // What a message calls each runtime, by the base class that declares it.
     private static readonly (string Base, string Runtime)[] Runtimes =
@@ -77,9 +76,9 @@ public sealed class IslandChildrenAnalyzer : DiagnosticAnalyzer
             var compilation = start.Compilation;
             var islands = new Islands(
                 compilation.GetTypeByMetadataName(BlazorBase),
-                compilation.GetTypeByMetadataName(ExternalBase),
+                compilation.GetTypeByMetadataName(ExternalComponentFullName),
                 compilation.GetTypeByMetadataName(RefusalTypeName),
-                compilation.GetTypeByMetadataName(ComponentType),
+                compilation.GetTypeByMetadataName(ComponentFullName),
                 ReadRuntimeBases(compilation));
 
             // Neither island package is referenced, so no island can exist here and the check is skipped rather

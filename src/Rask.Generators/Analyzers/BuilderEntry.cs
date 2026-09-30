@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.Analyzers;
 
@@ -21,8 +22,6 @@ namespace Rask.Generators.Analyzers;
 /// </summary>
 internal static class BuilderEntry
 {
-    public const string ComponentFullName = "Rask.Core.Component";
-
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
 
     private const string HtmlFullName = "Rask.Markup";
@@ -221,7 +220,7 @@ internal static class BuilderEntry
             || !property.IsStatic
             || !(NamesEntryOf(name.Identifier.ValueText, produced)
                  || IsGroupedEntry(property, produced))
-            || model.Compilation.GetTypeByMetadataName(ComponentMetadataName) is not { } component
+            || model.Compilation.GetTypeByMetadataName(ComponentFullName) is not { } component
             || !DerivesFromComponent(produced, component))
         {
             return false;
@@ -361,9 +360,6 @@ internal static class BuilderEntry
 
         return false;
     }
-
-    /// <summary>The metadata name of <c>Component</c>, for a one-off <c>GetTypeByMetadataName</c>.</summary>
-    public const string ComponentMetadataName = "Rask.Core.Component";
 
     public static bool DerivesFromComponent(ITypeSymbol? type, INamedTypeSymbol component)
     {

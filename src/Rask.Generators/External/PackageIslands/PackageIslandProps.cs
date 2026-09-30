@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Rask.Generators.Shared;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.External.PackageIslands;
 
@@ -318,19 +319,6 @@ internal static class PackageIslandProps
 
     private static bool HasSkipFactory(ISymbol symbol) =>
         symbol.GetAttributes().Any(static a => string.Equals(a.AttributeClass?.ToDisplayString(), SkipFactoryName, StringComparison.Ordinal));
-
-    internal static bool IsExternallyVisible(INamedTypeSymbol type)
-    {
-        for (ISymbol? s = type; s is INamedTypeSymbol t; s = t.ContainingType)
-        {
-            if (t.DeclaredAccessibility != Accessibility.Public)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     /// <summary>One resolution: carries the name tables so every generated name is unique and stable.</summary>
     private sealed class Resolver
