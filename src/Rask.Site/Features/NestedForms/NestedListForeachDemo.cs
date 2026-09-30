@@ -32,8 +32,8 @@ public sealed partial class NestedListForeachDemo : Component
                     Ui.Button
                         .AccessibleLabel("Remove item")
                         .Square(true)
-                        .Tone(Ui.Tone.Error)
-                        .Variant(Ui.Variant.Outline)
+                        .Error
+                        .Outline
                         .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
                 ]
             ]);
@@ -47,16 +47,16 @@ public sealed partial class NestedListForeachDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("nf-list-add")
                         .OnClick(() =>
                             _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[Ui.Icon.Name(Ui.IconName.Plus), "Add row"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-list-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Submit"]
+                    Ui.Button.Primary.Submit.Id("nf-list-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
+                : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
         ];
     }
 }

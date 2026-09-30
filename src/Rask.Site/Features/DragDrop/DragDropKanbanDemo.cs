@@ -1,4 +1,3 @@
-using System.Globalization;
 using Rask.Core.DragAndDrop;
 
 namespace Rask.Site.Features;
@@ -52,7 +51,7 @@ public sealed partial class DragDropKanbanDemo : Component
             Div.Class("dd-column h-full")[
                 Div.Class("dd-column-header flex justify-between items-center")[
                     Span.Class("font-semibold")[_columnLabels[zone]],
-                    Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[cards.Count.ToString(CultureInfo.InvariantCulture)]
+                    Ui.Badge.Neutral.Soft[cards.Count]
                 ],
                 Div
                     .Class(bodyCls)

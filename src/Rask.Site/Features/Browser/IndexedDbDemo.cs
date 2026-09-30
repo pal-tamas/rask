@@ -34,10 +34,10 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
                             .OnInput(v => _value = v)]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("idb-set").OnClick(Set)["Set"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("idb-get").OnClick(Get)["Get"],
-                    Ui.Button.Variant(Ui.Variant.Outline).Id("idb-keys").OnClick(Keys)["List keys"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("idb-clear").OnClick(Clear)["Clear"]
+                    Ui.Button.Primary.Id("idb-set").OnClick(Set)["Set"],
+                    Ui.Button.Primary.Outline.Id("idb-get").OnClick(Get)["Get"],
+                    Ui.Button.Outline.Id("idb-keys").OnClick(Keys)["List keys"],
+                    Ui.Button.Error.Outline.Id("idb-clear").OnClick(Clear)["Clear"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],

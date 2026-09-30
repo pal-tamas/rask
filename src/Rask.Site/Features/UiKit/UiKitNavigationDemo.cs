@@ -58,7 +58,7 @@ public sealed partial class UiKitNavigationDemo : Component
                     Ui.Tab.Key("open").Label("Open").Href("#open").Count("12"),
                     Ui.Tab.Key("failed").Label("Failed").Href("#failed").Count("3").Alarm(true)
                 ],
-                Ui.Tabs.Style(Ui.TabStyle.Border).Size(Ui.Size.Sm)[
+                Ui.Tabs.Style(Ui.TabStyle.Border).Sm[
                     Ui.Tab.Key("b1").Label("Bordered").Href("#one").Active(true),
                     Ui.Tab.Key("b2").Label("Second").Href("#two"),
                     Ui.Tab.Key("b3").Label("Unavailable").Href("#three").Disabled(true)
@@ -100,14 +100,14 @@ public sealed partial class UiKitNavigationDemo : Component
             "Menu, steps, breadcrumbs, pagination and the dock",
             "The rest of the category, each a real link where it navigates.",
             Div.Data(Testid("ui-nav-rest")).Class("space-y-4")[
-                Ui.Menu.Size(Ui.Size.Sm).Horizontal(true)[
+                Ui.Menu.Sm.Horizontal(true)[
                     Ui.MenuItem.Key("m1").Text("Overview").Href("#overview").Active(true),
                     Ui.MenuItem.Key("m2").Text("Queues").Href("#queues"),
                     Ui.MenuItem.Key("m3").Text("Logs").Href("#logs")
                 ],
                 Ui.Steps[
-                    Ui.Step.Key("s1").Tone(Ui.Tone.Success)["Ordered"],
-                    Ui.Step.Key("s2").Tone(Ui.Tone.Success)["Packed"],
+                    Ui.Step.Key("s1").Success["Ordered"],
+                    Ui.Step.Key("s2").Success["Packed"],
                     Ui.Step.Key("s3")["Shipped"]
                 ],
                 // Already data-shaped: the crumbs are a list of (text, href), and the last one has no

@@ -94,7 +94,7 @@ public sealed partial class PlaceOrder : Component
     }
 
     protected override Component? Render() =>
-        Ui.Button.Tone(Ui.Tone.Primary).Size(Ui.Size.Sm).Disabled(_placing).OnClick(PlaceAsync)["Buy"];
+        Ui.Button.Primary.Sm.Disabled(_placing).OnClick(PlaceAsync)["Buy"];
 }
 ```
 

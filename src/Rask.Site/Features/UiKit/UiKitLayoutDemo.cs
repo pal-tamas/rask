@@ -60,14 +60,14 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Button.Key("3")["»"]
                 ],
                 Div.Class("flex flex-wrap items-center gap-6")[
-                    Ui.Indicator.Key("i").Badge(Ui.Badge.Tone(Ui.Tone.Error)["9"])[
+                    Ui.Indicator.Key("i").Badge(Ui.Badge.Error["9"])[
                         Ui.Button["Inbox"]
                     ],
                     Ui.Avatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round(true)
                         .Class("w-12"),
                     // No picture: the monogram stands in. Most accounts have none, and a broken image is
                     // worse than two letters — the NAME is still what a screen reader announces.
-                    Ui.Avatar.Key("a2").Name("Ada Lovelace").Size(Ui.Size.Lg)
+                    Ui.Avatar.Key("a2").Name("Ada Lovelace").Lg
                 ]
             ]);
 
@@ -103,20 +103,20 @@ public sealed partial class UiKitLayoutDemo : Component
                         Ui.Profile.Key("me").Name("Ada Lovelace").Caption("ada@example.com")[
                             Ui.MenuItem.Key("settings").Text("Settings").Icon(Ui.IconName.Gear),
                             Ui.MenuSeparator.Key("sep"),
-                            Ui.MenuItem.Key("out").Text("Sign out").Tone(Ui.Tone.Error)
+                            Ui.MenuItem.Key("out").Text("Sign out").Error
                         ]
                     ]
                 ],
                 Div.Class("flex flex-col gap-4")[
                     Div.Data(Testid("ui-spacer-row")).Class("flex items-center gap-2 rounded-xl border border-base-300 p-2")[
-                        Ui.Button.Key("left").Variant(Ui.Variant.Ghost).Size(Ui.Size.Sm)["Rask"],
+                        Ui.Button.Key("left").Ghost.Sm["Rask"],
                         Ui.Divider.Key("bar-sep").Vertical(true).Subtle(true).Class("my-1"),
-                        Ui.Button.Key("docs").Variant(Ui.Variant.Ghost).Size(Ui.Size.Sm)["Docs"],
+                        Ui.Button.Key("docs").Ghost.Sm["Docs"],
                         Ui.Spacer.Key("spacer"),
-                        Ui.Button.Key("right").Size(Ui.Size.Sm)["Sign in"]
+                        Ui.Button.Key("right").Sm["Sign in"]
                     ],
                     Div[
-                        Ui.Heading.Key("h").Level(3).Size(Ui.Size.Lg)["Orders"],
+                        Ui.Heading.Key("h").Level(3).Lg["Orders"],
                         Ui.Subheading.Key("sh")["Everything placed in the last 30 days."]
                     ],
                     Ui.Divider.Key("then").Text("then").Align(Ui.Align.Start),

@@ -11,11 +11,11 @@ public sealed partial class DisposalAsyncDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Ui.Button.Tone(Ui.Tone.Primary)
+                Ui.Button.Primary
                     .Id("dispose-async-mount")
                     .Disabled(_asyncMounted)
                     .OnClick(MountAsync)[Ui.Icon.Name(Ui.IconName.Play), "Mount async probe"],
-                Ui.Button.Variant(Ui.Variant.Outline)
+                Ui.Button.Outline
                     .Id("dispose-async-unmount")
                     .Disabled(!_asyncMounted)
                     .OnClick(UnmountAsync)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount async probe"]

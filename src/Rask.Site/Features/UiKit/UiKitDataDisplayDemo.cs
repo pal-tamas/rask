@@ -130,10 +130,10 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         .Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))
                         .Icon(Ui.IconName.Gear)
                         .Title("Jobs")
-                        .Action(Ui.StatusDot.Label("2 failed").Tone(Ui.Tone.Error))[
+                        .Action(Ui.StatusDot.Label("2 failed").Error)[
                         Ui.MetricRow.Columns(2)[
                             Ui.Metric.Key("outstanding").Label("Outstanding").Value("12"),
-                            Ui.Metric.Key("failed").Label("Failed").Value("2").Tone(Ui.Tone.Error)
+                            Ui.Metric.Key("failed").Label("Failed").Value("2").Error
                                 .Caption("dead after 5 attempts")
                         ]
                     ],
@@ -143,7 +143,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         .Action(Ui.Badge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"])[
                         Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
                             .Label("Last error")
-                            .Tone(Ui.Tone.Error)
+                            .Error
                     ],
                     Ui.Card.Key("empty")[
                         Ui.Empty.Title("Nothing stored matches")
@@ -175,13 +175,13 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "The rest of the category",
             "Static, and covered by unit tests for their class composition.",
             Div.Data(Testid("ui-display-rest")).Class("flex flex-wrap items-center gap-3")[
-                Ui.Badge.Key("badge").Tone(Ui.Tone.Info)["Beta"],
-                Ui.Kbd.Key("kbd").Text("⌘K").Size(Ui.Size.Sm),
+                Ui.Badge.Key("badge").Info["Beta"],
+                Ui.Kbd.Key("kbd").Text("⌘K").Sm,
                 // What FullText.Snippet returns for a search of "sqlite fast": matches between U+E000 and U+E001.
                 Span.Key("highlight").Data(Testid("ui-highlight"))[
                     Ui.Highlight.Text("…SQLite is small, and fast…")
                 ],
-                Ui.StatusDot.Key("status").Label("Healthy").Tone(Ui.Tone.Success),
+                Ui.StatusDot.Key("status").Label("Healthy").Success,
                 Ui.Countdown.Key("countdown").Value(42).Label("seconds left"),
                 Ui.ChatBubble.Key("chat").Message("On my way").Author("Ada").When("09:14")
             ]);
@@ -192,7 +192,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
 
     private static Component Aura(string key, Ui.AuraStyle style, string label) =>
         Div.Key(key)[
-            Ui.Aura.Style(style).Size(Ui.Size.Lg)[
+            Ui.Aura.Style(style).Lg[
                 Div.Class("rounded-xl border border-base-300 bg-base-100 px-6 py-4 text-sm font-medium")[
                     label
                 ]

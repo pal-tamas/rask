@@ -10,7 +10,7 @@ public sealed partial class NetworkInfoDemo(INetworkInfo network) : Component
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
+                Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("net-read")
                     .OnClick(Read)["Read network status"],
                 Div.Class("text-sm text-ui-muted")["Connection: ", Code.Id("net-value")[_value ?? "(not requested)"]],

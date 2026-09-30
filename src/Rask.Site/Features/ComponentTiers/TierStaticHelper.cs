@@ -10,5 +10,5 @@ namespace Rask.Site.Features;
 internal static partial class TierStaticHelper
 {
     public static Component Badge(string label) =>
-        Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[label];
+        Ui.Badge.Neutral.Soft[label];
 }

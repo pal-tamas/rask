@@ -43,7 +43,7 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
                     Code.Id("resize-value")[
                         _width > 0 ? $"{_width.ToString("0", Inv)} × {_height.ToString("0", Inv)} px" : "(measuring…)"]
                 ],
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
+                Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("resize-toggle")
                     .OnClick(() => _wide = !_wide)["Toggle width"],
                 Div

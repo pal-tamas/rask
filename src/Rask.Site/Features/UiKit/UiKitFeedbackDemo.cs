@@ -32,10 +32,10 @@ public sealed partial class UiKitFeedbackDemo : Component
             "Alert",
             "Tone and fill compose, as everywhere else in the kit.",
             Div.Data(Testid("ui-alert")).Class("space-y-2")[
-                Ui.Alert.Key("i").Tone(Ui.Tone.Info)["A new version is available."],
-                Ui.Alert.Key("s").Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft)["Saved."],
-                Ui.Alert.Key("w").Tone(Ui.Tone.Warning)["Two jobs are close to their retry limit."],
-                Ui.Alert.Key("e").Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)["Payment failed."]
+                Ui.Alert.Key("i").Info["A new version is available."],
+                Ui.Alert.Key("s").Success.Soft["Saved."],
+                Ui.Alert.Key("w").Warning["Two jobs are close to their retry limit."],
+                Ui.Alert.Key("e").Error.Outline["Payment failed."]
             ]);
 
     private static Component LoadingSection() =>
@@ -57,11 +57,11 @@ public sealed partial class UiKitFeedbackDemo : Component
             "Progress",
             "A real <progress> element, so it reports its own value without being told to.",
             Div.Data(Testid("ui-progress")).Class("space-y-3")[
-                Ui.Progress.Label("Upload").Value(_progress).Max(100).Tone(Ui.Tone.Primary),
+                Ui.Progress.Label("Upload").Value(_progress).Max(100).Primary,
                 Div.Class("flex gap-2")[
-                    Ui.Button.Key("less").Size(Ui.Size.Sm)
+                    Ui.Button.Key("less").Sm
                         .OnClick(() => { _progress = Math.Max(0, _progress - 10); })["−10"],
-                    Ui.Button.Key("more").Size(Ui.Size.Sm)
+                    Ui.Button.Key("more").Sm
                         .OnClick(() => { _progress = Math.Min(100, _progress + 10); })["+10"]
                 ],
                 Ui.RadialProgress.Label("Disk used").Percent(_progress)
@@ -75,22 +75,22 @@ public sealed partial class UiKitFeedbackDemo : Component
             + "and Toggleable shows it on a tap — a touch screen has no hover.",
             Div.Data(Testid("ui-tooltip")).Class("flex flex-wrap items-center gap-8 pt-8")[
                 Ui.Tooltip.Key("k").Tip("Save").Kbd("⌘S").Position(Ui.Position.Top)[
-                    Ui.Button.Size(Ui.Size.Sm)["Shortcut"]
+                    Ui.Button.Sm["Shortcut"]
                 ],
                 Ui.Tooltip.Key("tap").Tip("Tapping shows this on a phone").Toggleable(true)[
                     Ui.Icon.Name(Ui.IconName.Info).Class("size-5")
                 ],
                 Ui.Tooltip.Key("disabled").Tip("Available once the form is valid")[
-                    Ui.Button.Size(Ui.Size.Sm).Disabled(true)["Disabled"]
+                    Ui.Button.Sm.Disabled(true)["Disabled"]
                 ],
                 Ui.Tooltip.Key("t").Tip("Above").Position(Ui.Position.Top)[
-                    Ui.Button.Size(Ui.Size.Sm)["Top"]
+                    Ui.Button.Sm["Top"]
                 ],
-                Ui.Tooltip.Key("r").Tip("Beside").Position(Ui.Position.Right).Tone(Ui.Tone.Info)[
-                    Ui.Button.Size(Ui.Size.Sm)["Right"]
+                Ui.Tooltip.Key("r").Tip("Beside").Position(Ui.Position.Right).Info[
+                    Ui.Button.Sm["Right"]
                 ],
                 Ui.Tooltip.Key("o").Tip("Always shown").Position(Ui.Position.Top).Open(true)[
-                    Ui.Button.Size(Ui.Size.Sm)["Open"]
+                    Ui.Button.Sm["Open"]
                 ]
             ]);
 
@@ -121,11 +121,11 @@ public sealed partial class UiKitFeedbackDemo : Component
             + "says role=alert; everything else is announced politely.",
             Div.Data(Testid("ui-toast"))[
                 Div.Class("flex flex-wrap gap-2")[
-                    Ui.Button.Key("ok").Tone(Ui.Tone.Primary)
+                    Ui.Button.Key("ok").Primary
                         .OnClick(() => Push("Saved.", null, Ui.Tone.Success))["Save"],
-                    Ui.Button.Key("undo").Variant(Ui.Variant.Outline)
+                    Ui.Button.Key("undo").Outline
                         .OnClick(() => Push("Moved to the bin.", "Order deleted", Ui.Tone.Success))["Delete"],
-                    Ui.Button.Key("bad").Tone(Ui.Tone.Error)
+                    Ui.Button.Key("bad").Error
                         .OnClick(() => Push("Payment failed.", null, Ui.Tone.Error))["Fail"]
                 ],
                 Ui.Toaster.Key("toaster").Position(Ui.Position.Bottom).Align(Ui.Align.End)[
@@ -138,7 +138,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                             .Duration(6.Seconds)
                             .Action(t.Heading is null
                                 ? null
-                                : Ui.Button.Size(Ui.Size.Xs).Variant(Ui.Variant.Ghost)
+                                : Ui.Button.Xs.Ghost
                                     .OnClick(() => Drop(t.Id))["Undo"])
                             .OnDismiss(() => Drop(t.Id)))
                 ]
@@ -160,7 +160,7 @@ public sealed partial class UiKitFeedbackDemo : Component
     private static AttrBag Testid(string value) => new("testid", value);
 
     private static UiLoading Spin(string key, Ui.LoadingShape shape, string label) =>
-        Ui.Loading.Key(key).Text(label).Shape(shape).Size(Ui.Size.Lg);
+        Ui.Loading.Key(key).Text(label).Shape(shape).Lg;
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

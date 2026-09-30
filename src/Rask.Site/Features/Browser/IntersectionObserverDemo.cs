@@ -38,7 +38,7 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
                     Ui.Badge
                         .Tone(_visible ? Ui.Tone.Success : Ui.Tone.Neutral)
-                        .Variant(Ui.Variant.Soft)
+                        .Soft
                         .Id("io-status")[_visible ? "in view" : "out of view"],
                     Span.Class("text-sm text-ui-muted").Id("io-changes")[$"{_changes} change(s)"]
                 ],
