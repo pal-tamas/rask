@@ -21,6 +21,12 @@ them until tagged releases begin.
   | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
   | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
   | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
+- **One design standard for the whole codebase: SOLID and Clean Code.** The
+  [code analysis guide](docs/code-analysis.md#design) now states it — one responsibility per type and per file,
+  extension through the existing seams, small well-named methods, no copied helper — and the review and ship
+  gates hold every change to it. Large types are split in two steps: partial files by responsibility, then an
+  internal type where the seam is worth testing alone.
+
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
   and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are
