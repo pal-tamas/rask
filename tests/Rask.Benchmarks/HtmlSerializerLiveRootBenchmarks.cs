@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Core.Live;
 
 namespace Rask.Benchmarks;
 
@@ -19,6 +20,7 @@ public partial class HtmlSerializerLiveRootBenchmarks : global::Rask.Core.RaskMa
     private Component _large = null!;
     private Component _xlarge = null!;
     private IServiceProvider _services = null!;
+    private readonly RenderedHtmlBuffers _buffers = new();
 
     [GlobalSetup]
     public void Setup()
@@ -46,6 +48,14 @@ public partial class HtmlSerializerLiveRootBenchmarks : global::Rask.Core.RaskMa
     // large Allocated drop that scales with page size.
     [Benchmark]
     public string RenderPageXLarge() => _xlarge.RenderAsLiveRoot(_services);
+
+    // The same page the way a live session renders it: into the session's reused char buffer (#1141).
+    [Benchmark]
+    public int RenderPageXLargeInto()
+    {
+        _xlarge.RenderAsLiveRootInto(_services, publishOnly: false, _buffers);
+        return _buffers.Current.Length;
+    }
 
     private static Component BuildPage(int rowCount)
     {

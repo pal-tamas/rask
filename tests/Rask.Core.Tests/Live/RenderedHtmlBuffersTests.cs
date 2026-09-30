@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Encodings.Web;
 using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
@@ -8,8 +9,15 @@ public class RenderedHtmlBuffersTests
     private static RenderedHtmlBuffers WithCurrent(string html)
     {
         var b = new RenderedHtmlBuffers();
-        b.CopyFrom(new StringBuilder(html));
+        Write(b, html);
         return b;
+    }
+
+    private static void Write(RenderedHtmlBuffers b, string html)
+    {
+        var writer = b.BeginWrite();
+        writer.Append(html);
+        b.EndWrite(writer);
     }
 
     [Fact]
@@ -18,13 +26,13 @@ public class RenderedHtmlBuffersTests
         using var b = new RenderedHtmlBuffers();
         Assert.False(b.HasPrevious);
         // With no baseline a render can never dedup as a no-op — it must always be treated as changed.
-        b.CopyFrom(new StringBuilder("<p>x</p>"));
+        Write(b, "<p>x</p>");
 
         Assert.False(b.CurrentEqualsPrevious());
     }
 
     [Fact]
-    public void CopyFrom_exposes_the_rendered_chars_as_current()
+    public void A_write_exposes_the_rendered_chars_as_current()
     {
         using var b = WithCurrent("<div>hello</div>");
 
@@ -41,7 +49,7 @@ public class RenderedHtmlBuffersTests
         Assert.Equal("<p>same</p>", b.PreviousSpan.ToString());
 
         // A byte-identical next render is a no-op that must dedup.
-        b.CopyFrom(new StringBuilder("<p>same</p>"));
+        Write(b, "<p>same</p>");
         Assert.True(b.CurrentEqualsPrevious());
     }
 
@@ -50,7 +58,7 @@ public class RenderedHtmlBuffersTests
     {
         using var b = WithCurrent("<p>a</p>");
         b.Commit();
-        b.CopyFrom(new StringBuilder("<p>b</p>"));
+        Write(b, "<p>b</p>");
 
         Assert.False(b.CurrentEqualsPrevious());
     }
@@ -60,7 +68,7 @@ public class RenderedHtmlBuffersTests
     {
         using var b = WithCurrent("<p>a</p>");
         b.Commit();
-        b.CopyFrom(new StringBuilder("<p>aa</p>"));
+        Write(b, "<p>aa</p>");
 
         Assert.False(b.CurrentEqualsPrevious());
     }
@@ -72,7 +80,7 @@ public class RenderedHtmlBuffersTests
         // distinct — the swap must not alias current onto previous.
         using var b = WithCurrent("<p>one</p>");
         b.Commit();
-        b.CopyFrom(new StringBuilder("<p>two</p>"));
+        Write(b, "<p>two</p>");
 
         Assert.Equal("<p>two</p>", b.CurrentSpan.ToString());
         Assert.Equal("<p>one</p>", b.PreviousSpan.ToString());
@@ -85,7 +93,7 @@ public class RenderedHtmlBuffersTests
         b.Commit();
         b.Invalidate();
         Assert.False(b.HasPrevious);
-        b.CopyFrom(new StringBuilder("<p>x</p>"));
+        Write(b, "<p>x</p>");
 
         Assert.False(b.CurrentEqualsPrevious());
     }
@@ -97,7 +105,7 @@ public class RenderedHtmlBuffersTests
         b.SeedPrevious("<html><head></head><body>x</body></html>");
         Assert.True(b.HasPrevious);
         // The first live update after the GET must dedup a byte-identical re-render against the seed.
-        b.CopyFrom(new StringBuilder("<html><head></head><body>x</body></html>"));
+        Write(b, "<html><head></head><body>x</body></html>");
 
         Assert.True(b.CurrentEqualsPrevious());
     }
@@ -107,13 +115,13 @@ public class RenderedHtmlBuffersTests
     {
         using var b = new RenderedHtmlBuffers();
         var big = new string('a', 5000);
-        b.CopyFrom(new StringBuilder(big));
+        Write(b, big);
         Assert.Equal(5000, b.CurrentSpan.Length);
         Assert.Equal(big, b.CurrentSpan.ToString());
 
         b.Commit();
         var bigger = new string('b', 9000);
-        b.CopyFrom(new StringBuilder(bigger));
+        Write(b, bigger);
         Assert.Equal(bigger, b.CurrentSpan.ToString());
         Assert.Equal(big, b.PreviousSpan.ToString());
     }
@@ -152,9 +160,51 @@ public class RenderedHtmlBuffersTests
     public void Disposing_twice_is_idempotent()
     {
         var b = new RenderedHtmlBuffers();
-        b.CopyFrom(new StringBuilder("<p>x</p>"));
+        Write(b, "<p>x</p>");
         b.Dispose();
         // Returning the same array to the pool twice would let two sessions rent the same buffer.
         b.Dispose();
+    }
+
+    [Fact]
+    public void Writing_past_the_buffer_grows_it_and_keeps_what_was_written()
+    {
+        using var b = WithCurrent("<p>seed</p>");
+        b.Commit();
+        var big = new string('x', 70_000);
+
+        var html = b.BeginWrite();
+        html.Append("<p>").Append(big).Append('!');
+        b.EndWrite(html);
+
+        Assert.Equal("<p>" + big + "!", b.CurrentSpan.ToString());
+        Assert.Equal("<p>seed</p>", b.PreviousSpan.ToString());
+    }
+
+    [Fact]
+    public void A_replace_shifts_the_tail_in_place_whether_it_grows_or_shrinks()
+    {
+        using var b = new RenderedHtmlBuffers();
+
+        var html = b.BeginWrite();
+        html.Append("<head>SENTINEL</head><body>tail</body>");
+        html.Replace(6, "SENTINEL".Length, new StringBuilder("<link rel=\"a\"><link rel=\"b\">"));
+        html.Replace(6, "<link rel=\"a\">".Length, new StringBuilder());
+        b.EndWrite(html);
+
+        Assert.Equal("<head><link rel=\"b\"></head><body>tail</body>", b.CurrentSpan.ToString());
+    }
+
+    [Fact]
+    public void An_encoded_value_that_crosses_the_buffer_end_is_encoded_whole()
+    {
+        using var b = new RenderedHtmlBuffers();
+        var value = string.Concat(Enumerable.Repeat("a&b<é>'", 2_000));
+
+        var html = b.BeginWrite();
+        html.AppendEncoded(value);
+        b.EndWrite(html);
+
+        Assert.Equal(HtmlEncoder.Default.Encode(value), b.CurrentSpan.ToString());
     }
 }
