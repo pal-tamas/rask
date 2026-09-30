@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.ScopedScripts;
 
@@ -26,8 +27,6 @@ namespace Rask.Generators.ScopedScripts;
 [Generator(LanguageNames.CSharp)]
 public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
 {
-    private const string ComponentFullName = "Rask.Core.Component";
-    private const string ExternalComponentFullName = "Rask.External.ExternalComponent";
     private const string SourceMetadataKey = "build_metadata.AdditionalFiles.RaskTsSource";
 
     internal static readonly DiagnosticDescriptor Rask094 = new(

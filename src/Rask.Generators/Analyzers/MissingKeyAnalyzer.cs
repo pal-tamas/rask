@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.Analyzers;
 
@@ -20,7 +21,6 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
 {
-    private const string ComponentFullName = "Rask.Core.Component";
     private const string ChainFullName = "Rask.Core.IComponentChain";
     private const string RaskCoreAssembly = "Rask.Core";
     private const string GeneratedClassName = "Generated";

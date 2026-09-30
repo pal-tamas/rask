@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Rask.Generators.Shared;
+using static Rask.Generators.Shared.Identifiers;
 
 namespace Rask.Batteries.Generators;
 
@@ -130,6 +131,8 @@ internal static class TypeScriptModule
         string result,
         NestedShape? resultShape)
     {
+        // The factory is camelCased so it does not collide with the interface of the same name in
+        // contracts.ts; it yields the type, which is what shows in an editor tooltip.
         var name = CamelCase(Leaf(contract.WireName));
         var spec = new StringBuilder();
         spec.Append("  name: '").Append(contract.WireName).Append("',\n");
@@ -236,16 +239,4 @@ internal static class TypeScriptModule
         return dot >= 0 ? wireName.Substring(dot + 1) : wireName;
     }
 
-    /// <summary>
-    ///     Lower-cases the first letter, so the factory does not collide with the interface of the
-    ///     same name in <c>contracts.ts</c>.
-    /// </summary>
-    /// <remarks>
-    ///     The factory yields, not the type: a signature reads better naming the shape than the verb,
-    ///     and the type is what shows in an editor tooltip.
-    /// </remarks>
-    private static string CamelCase(string name) =>
-        name.Length == 0
-            ? name
-            : char.ToLowerInvariant(name[0]).ToString(CultureInfo.InvariantCulture) + name.Substring(1);
 }
