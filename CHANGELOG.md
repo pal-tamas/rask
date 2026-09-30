@@ -543,6 +543,9 @@ them until tagged releases begin.
 - **A sign-up racing the first one is no longer refused for want of the first-run token.** Registration read "not
   yet claimed" and then compared the token, so a racer that lost the admin slot in between found the token already
   spent and got `FirstRunTokenRequired`. The token is now compared first (#1143).
+- **Every meta template builds again.** Analog, Next.js, Nuxt, SolidStart, SvelteKit and TanStack Start failed on
+  RASK015/017: Rask's scoped CSS/TypeScript globs reached into `client/` and took `globals.css` or `next.config.ts`
+  for a component's assets. A meta host now keeps its front end out of them, as a SPA host already did (#1147).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
