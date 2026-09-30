@@ -155,6 +155,24 @@ Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
 `.Calls` lists every call in order; `.ArgsFor(id)` is the single-call shorthand, `.CallCount(id)` counts, and
 `.SetException(id, ex)` faults one. An unconfigured call returns `default` — the same as a real absent value.
 
+### Components that call web APIs
+
+A component that calls the browser through [`Rask.Web`](web-apis.md) is tested by faking the web object it calls:
+the fake answers every chain that starts at it, for the test's own flow, and nothing reaches a browser.
+
+```csharp
+using var storage = LocalStorage.Fake();
+storage.Returns(s => s.GetItem("theme"), "dark");
+
+var page = Page.Render(() => ThemeToggle, services);
+await page.ClickAsync();
+
+Assert.Equal(["getItem", "setItem"], storage.Calls.Select(c => c.Member));
+```
+
+Any web object fakes the same way — `Navigator.Clipboard.Fake()`, `Window.MatchMedia(q).Fake()` — and `Raise("change",
+new MediaQueryListEvent { Matches = true })` fires an event at the handlers subscribed to it.
+
 ### Components that take file uploads
 
 A file input's handler receives `IRaskFile`s the host reads back from the browser, so a test has to supply

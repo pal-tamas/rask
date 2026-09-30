@@ -268,6 +268,9 @@ them until tagged releases begin.
   - An object's events are `On{Event}` subscriptions (`await Window.MatchMedia(q).OnChange(e => _wide = e.Matches)`,
     `await Window.OnOnline(() => …)`), their payload MDN's event type, and a method's callback is a C# handler
     (`await Navigator.Geolocation.GetCurrentPosition(p => …)`); either runs in its component's order and re-renders it.
+  - Any web object is faked in a test with `Fake()` — `using var clipboard = Navigator.Clipboard.Fake();`,
+    `clipboard.Returns(c => c.ReadText(), "pasted")`, `clipboard.Calls`, `Raise("change", e)` — for the test's own flow;
+    nothing reaches a browser.
   - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
     members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
