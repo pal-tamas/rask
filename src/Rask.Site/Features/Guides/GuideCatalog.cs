@@ -704,10 +704,10 @@ public static class GuideCatalog
             SearchTitle = "Prerender a .NET WebAssembly app to static HTML",
             Description = "Render each route of a .NET WebAssembly app to HTML at publish time, so crawlers see content, not a spinner. Also writes sitemap.xml and robots.txt.",
         },
-        new("code-analysis", "Code analysis", "The analyzers and warnings-as-errors adoption.", "Advanced")
+        new("code-analysis", "Code analysis", "The analyzers, warnings as errors, and the SOLID + Clean Code standard.", "Advanced")
         {
             SearchTitle = ".NET analyzers and warnings-as-errors setup",
-            Description = "How the repo builds with .NET analyzers and warnings as errors: the public API analyzer gate, recommended Roslyn analyzers, and adopting them one per PR.",
+            Description = "How Rask builds with .NET analyzers and warnings as errors, the public API gate, and the SOLID and Clean Code standard every change is reviewed against.",
         },
         new("api-style", "Public API style", "How every public name is chosen, and the gate that records the surface.", "Advanced")
         {

@@ -57,9 +57,23 @@ rows of `ProductRead`), `Product.Find(id)` + `product.Save()`, and the writes, `
 `QueryKey.For<Product>(…)` by itself. Then `rask db add AddProducts` — the app applies it when it starts.
 [Chapter 2](tutorial/02-first-feature.md) writes all of it out.
 
-## Wiring one-liners
+## Wiring
 
-A data-backed app needs these in `Program.cs` (`rask new` writes them for you):
+`rask new` writes one line — `RaskApp.Create(args).Run<App>();` — and `RaskApp` wires every battery below,
+maps them onto `RaskAppDbContext` and applies pending migrations when it starts. Settings live in
+`appsettings.json` under `Rask`; code only turns a battery off or sets what has to be code:
+
+```csharp
+var app = RaskApp.Create(args);
+app.Configure(c => c.Jobs.Off());                              // no background work in this app
+app.Configure(c => c.Mail.Configure(o => o.From = "hi@shop.example"));   // wins over Rask:Mail
+app.Run<App>();
+```
+
+### A hand-wired host
+
+Without `RaskApp` — `AddRask()`/`MapRask<App>()` on a plain `WebApplication` — a data-backed app needs
+these in `Program.cs`:
 
 ```csharp
 builder.Services.AddRaskCqrs();                        // the mediator (IDispatcher)
@@ -92,7 +106,7 @@ app.MapRaskStorage();   // file storage's public/temporary link routes — after
 builder.Services.AddRaskSqliteLitestream();   // off-box backup; reads Rask:Litestream
 ```
 
-After any `modelBuilder.AddRask…` line: `rask db add <Name>` (a `RaskApp` applies it when it starts).
+After any `modelBuilder.AddRask…` line: `rask db add <Name>`.
 
 ## Code idioms
 

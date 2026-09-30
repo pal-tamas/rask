@@ -67,7 +67,7 @@ protected override Component? Render() =>
 ```
 
 The page root is an ordinary component too: it renders into `<body>`, and Rask composes the document
-around it — see [the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
+around it — see [the document and the `HeadAssets` override](getting-started.md#7-the-document-and-the-headassets-override).
 
 ---
 

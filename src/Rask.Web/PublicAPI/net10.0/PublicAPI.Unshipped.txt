@@ -11453,3 +11453,50 @@ static Rask.Web.Types.PerformanceMeasureOptions.operator ==(Rask.Web.Types.Perfo
 static Rask.Web.Window.Atob(string! data) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Web.Window.RequestAnimationFrame(System.Action<double>! callback) -> System.Threading.Tasks.ValueTask<int>
 static Rask.Web.Window.RequestAnimationFrame(System.Func<double, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.WebCall
+Rask.Web.WebCall.<Clone>$() -> Rask.Web.WebCall!
+Rask.Web.WebCall.Args.get -> System.Collections.Generic.IReadOnlyList<object?>!
+Rask.Web.WebCall.Args.init -> void
+Rask.Web.WebCall.Deconstruct(out string! Member, out System.Collections.Generic.IReadOnlyList<object?>! Args) -> void
+Rask.Web.WebCall.Equals(Rask.Web.WebCall? other) -> bool
+Rask.Web.WebCall.Member.get -> string!
+Rask.Web.WebCall.Member.init -> void
+Rask.Web.WebCall.WebCall(string! Member, System.Collections.Generic.IReadOnlyList<object?>! Args) -> void
+Rask.Web.WebFake<T>
+Rask.Web.WebFake<T>.Calls.get -> System.Collections.Generic.IReadOnlyList<Rask.Web.WebCall!>!
+Rask.Web.WebFake<T>.Dispose() -> void
+Rask.Web.WebFake<T>.Raise(string! type, Rask.Core.Event! e) -> void
+Rask.Web.WebFake<T>.Returns<TValue>(System.Linq.Expressions.Expression<System.Func<T!, System.Threading.Tasks.ValueTask<TValue>>!>! member, TValue value) -> Rask.Web.WebFake<T!>!
+Rask.Web.WebFaking
+override Rask.Web.WebCall.Equals(object? obj) -> bool
+override Rask.Web.WebCall.GetHashCode() -> int
+override Rask.Web.WebCall.ToString() -> string!
+static Rask.Web.WebCall.operator !=(Rask.Web.WebCall? left, Rask.Web.WebCall? right) -> bool
+static Rask.Web.WebCall.operator ==(Rask.Web.WebCall? left, Rask.Web.WebCall? right) -> bool
+static Rask.Web.WebFaking.Fake<T>(this T! web) -> Rask.Web.WebFake<T!>!
+static Rask.Web.Caches.Fake() -> Rask.Web.WebFake<Rask.Web.Types.CacheStorage!>!
+static Rask.Web.CookieStore.Fake() -> Rask.Web.WebFake<Rask.Web.Types.CookieStore!>!
+static Rask.Web.Crypto.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Crypto!>!
+static Rask.Web.CustomElements.Fake() -> Rask.Web.WebFake<Rask.Web.Types.CustomElementRegistry!>!
+static Rask.Web.Document.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Document!>!
+static Rask.Web.DocumentPictureInPicture.Fake() -> Rask.Web.WebFake<Rask.Web.Types.DocumentPictureInPicture!>!
+static Rask.Web.History.Fake() -> Rask.Web.WebFake<Rask.Web.Types.History!>!
+static Rask.Web.IndexedDB.Fake() -> Rask.Web.WebFake<Rask.Web.Types.IDBFactory!>!
+static Rask.Web.LocalStorage.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Storage!>!
+static Rask.Web.Location.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Location!>!
+static Rask.Web.Locationbar.Fake() -> Rask.Web.WebFake<Rask.Web.Types.BarProp!>!
+static Rask.Web.Menubar.Fake() -> Rask.Web.WebFake<Rask.Web.Types.BarProp!>!
+static Rask.Web.Navigation.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Navigation!>!
+static Rask.Web.Navigator.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Navigator!>!
+static Rask.Web.Performance.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Performance!>!
+static Rask.Web.Personalbar.Fake() -> Rask.Web.WebFake<Rask.Web.Types.BarProp!>!
+static Rask.Web.Scheduler.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Scheduler!>!
+static Rask.Web.Screen.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Screen!>!
+static Rask.Web.Scrollbars.Fake() -> Rask.Web.WebFake<Rask.Web.Types.BarProp!>!
+static Rask.Web.SessionStorage.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Storage!>!
+static Rask.Web.SpeechSynthesis.Fake() -> Rask.Web.WebFake<Rask.Web.Types.SpeechSynthesis!>!
+static Rask.Web.Statusbar.Fake() -> Rask.Web.WebFake<Rask.Web.Types.BarProp!>!
+static Rask.Web.Toolbar.Fake() -> Rask.Web.WebFake<Rask.Web.Types.BarProp!>!
+static Rask.Web.TrustedTypes.Fake() -> Rask.Web.WebFake<Rask.Web.Types.TrustedTypePolicyFactory!>!
+static Rask.Web.VisualViewport.Fake() -> Rask.Web.WebFake<Rask.Web.Types.VisualViewport!>!
+static Rask.Web.Window.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Window!>!

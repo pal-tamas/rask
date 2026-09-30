@@ -59,8 +59,8 @@ public sealed partial class Header(IUserProvider users) : Component
 }
 ```
 
-To do without it, drop the `AddRaskAuth` line from `Program.cs` — or, in an app built on the `Rask`
-package, write `app.Configure(c => c.Auth.Off())`. Bringing your own store or an external provider
+To do without it, write `app.Configure(c => c.Auth.Off())` in `Program.cs` (a hand-wired host drops its
+`AddRaskAuth` line instead). Bringing your own store or an external provider
 (Keycloak/OIDC, an existing users table) is still supported: the pages, the guards and the
 `Authorize` component are written against `ClaimsPrincipal`, so they do not care where it came from.
 
@@ -94,8 +94,8 @@ dotnet user-secrets set "Rask:Auth:BearerSigningKey" "<at least 32 bytes>"   # d
 rask deploy --env "Rask__Auth__BearerSigningKey=…"                           # deployed
 ```
 
-`AddRaskAuth<AppDbContext>()` reads `Rask:Auth` itself. A callback — `AddRaskAuth<AppDbContext>(o => …)` —
-runs after the section and wins.
+The battery reads `Rask:Auth` itself. A callback — `app.Configure(c => c.Auth.Configure(o => …))`, or
+`AddRaskAuth<AppDbContext>(o => …)` on a hand-wired host — runs after the section and wins.
 
 Ask for a token by sending `X-Rask-Auth-Mode: bearer` alongside the usual `X-Rask-Auth` header on
 `POST /api/auth/login`. The answer is a `BearerSession` — the token, its type, its remaining seconds and

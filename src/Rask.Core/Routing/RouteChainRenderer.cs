@@ -26,7 +26,7 @@ internal static class RouteChainRenderer
     {
         var route = ctx.Route
                     ?? throw new InvalidOperationException(
-                        "Outlet() and Router rendering require an active route context. " +
+                        "Outlet and Router rendering require an active route context. " +
                         "Place Outlet inside a Router render tree.");
 
         if (route.Cursor >= route.Chain.Count)
