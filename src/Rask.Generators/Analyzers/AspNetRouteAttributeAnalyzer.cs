@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.Analyzers;
 
@@ -29,7 +30,6 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
 {
-    private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskRouteAttribute = "Rask.Core.Routing.RouteAttribute";
     private const string RaskNotFoundAttribute = "Rask.Core.Routing.NotFoundAttribute";
     private const string MvcRouteAttribute = "Microsoft.AspNetCore.Mvc.RouteAttribute";
@@ -66,7 +66,7 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
     private static void Analyze(SymbolAnalysisContext context)
     {
         var type = (INamedTypeSymbol)context.Symbol;
-        if (!IsComponent(type))
+        if (!InheritsFromComponent(type))
         {
             return;
         }
@@ -95,19 +95,6 @@ public sealed class AspNetRouteAttributeAnalyzer : DiagnosticAnalyzer
                 type.Name,
                 Describe(attribute.AttributeClass)));
         }
-    }
-
-    private static bool IsComponent(INamedTypeSymbol type)
-    {
-        for (var t = type.BaseType; t is not null; t = t.BaseType)
-        {
-            if (string.Equals(t.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static bool IsForeignRoute(ITypeSymbol? attribute) =>
