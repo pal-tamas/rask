@@ -106,7 +106,7 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Label("Country")
                     .Placeholder("Choose…")
                     .OnChange(v => { _country = v; }),
-                Ui.FileInput.Value("").Key("avatar").Label("Avatar").Size(Ui.Size.Sm)
+                Ui.FileInput.Value("").Key("avatar").Label("Avatar").Sm
             ]);
 
     private Component SelectSection() =>
@@ -250,9 +250,9 @@ public sealed partial class UiKitDataInputDemo : Component
             "The words are part of the hit target: on a phone a 16px box on its own is the difference "
             + "between a control and a dare.",
             Div.Data(Testid("ui-choices")).Class("flex flex-wrap items-center gap-4")[
-                Ui.Checkbox.Value(_remember).Key("remember").Tone(Ui.Tone.Primary)
+                Ui.Checkbox.Value(_remember).Key("remember").Primary
                     .OnChange(v => { _remember = v; })["Remember me"],
-                Ui.Toggle.Value(_alerts).Key("alerts").Tone(Ui.Tone.Success)
+                Ui.Toggle.Value(_alerts).Key("alerts").Success
                     .OnChange(v => { _alerts = v; })["Email alerts"],
                 // A radio binds its OWN checked state, so it only ever reports true — choosing one
                 // fires nothing on the option it deselected. The group's value belongs to the group.
@@ -269,7 +269,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "volume wants and what a rank does not.",
             Div.Data(Testid("ui-range")).Class("grid max-w-sm gap-4")[
                 Ui.Range.Value(_volume).Key("vol").Label("Volume").Min(0).Max(100).Step(5)
-                    .Tone(Ui.Tone.Accent).OnChange(v => { _volume = v; }),
+                    .Accent.OnChange(v => { _volume = v; }),
                 Span.Class("text-sm text-ui-muted")[
                     $"Volume: {_volume.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}"
                 ],
@@ -285,7 +285,7 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-otp")).Class("space-y-2")[
                 Ui.Otp.Key("otp").Value(_code).Length(6).Label("Verification code").Joined(true)
                     .Hint("Six digits, sent to your phone.")
-                    .Tone(Ui.Tone.Primary).OnChange(v => { _code = v; }),
+                    .Primary.OnChange(v => { _code = v; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
                     _code.Length == 6 ? "Code complete." : $"{_code.Length} of 6 entered."
                 ]

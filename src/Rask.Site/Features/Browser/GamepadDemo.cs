@@ -53,7 +53,7 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
         Ui.Card.Class("shadow-sm")[
                 Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
                 Div.Class("text-sm text-ui-muted mb-2")[
-                    "Connected pads: ", Code.Id("gamepad-count")[_pads.Count.ToString(CultureInfo.InvariantCulture)]],
+                    "Connected pads: ", Code.Id("gamepad-count")[_pads.Count]],
                 _pads.Count == 0
                     ? Div.Class("text-ui-muted text-sm")["No controllers connected."]
                     : Ui.List[

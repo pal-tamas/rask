@@ -46,11 +46,11 @@ public sealed partial class NestedSubObjectDemo : Component
                 ]
             ],
             Div[
-                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Place order"]
+                Ui.Button.Primary.Submit.Id("nf-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Place order"]
             ]
         ],
         _submission is null
             ? null
-            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-result")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("nf-result")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }

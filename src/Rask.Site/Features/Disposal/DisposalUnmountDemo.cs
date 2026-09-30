@@ -11,11 +11,11 @@ public sealed partial class DisposalUnmountDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Ui.Button.Tone(Ui.Tone.Primary)
+                Ui.Button.Primary
                     .Id("unmount-hook-mount")
                     .Disabled(_hookMounted)
                     .OnClick(MountHook)[Ui.Icon.Name(Ui.IconName.Play), "Start ticker"],
-                Ui.Button.Variant(Ui.Variant.Outline)
+                Ui.Button.Outline
                     .Id("unmount-hook-unmount")
                     .Disabled(!_hookMounted)
                     .OnClick(UnmountHook)[Ui.Icon.Name(Ui.IconName.Stop), "Stop ticker"]

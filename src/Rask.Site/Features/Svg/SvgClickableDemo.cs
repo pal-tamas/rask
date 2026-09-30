@@ -16,7 +16,7 @@ public sealed partial class SvgClickableDemo : Component
 
     protected override Component? Render() =>
         [
-            Svg.Width("240").Height("48").ViewBox("0 0 240 48")[BuildSwatches()],
+            Svg.Width("240").Height("48").ViewBox("0 0 240 48")[Swatches.Select(Swatch)],
             P.Class("mt-2 mb-0 text-sm text-ui-muted")[
                 "Selected colour: ",
                 Strong[Swatches[_selected].Name]
@@ -24,26 +24,16 @@ public sealed partial class SvgClickableDemo : Component
         ];
 
     // Keyed so the diff codec reconciles the swatches by identity rather than by position.
-    private List<Component> BuildSwatches()
-    {
-        var children = new List<Component>();
-        for (var i = 0; i < Swatches.Length; i++)
-        {
-            var index = i;
-            var (_, hex) = Swatches[i];
-            children.Add(Circle
-                .Cx((24 + (i * 56)).ToString(CultureInfo.InvariantCulture))
-                .Cy("24")
-                .R("18")
-                .Fill(i == _selected ? hex : "#e5e7eb")
-                .Stroke("#1f2937")
-                .StrokeWidth("2")
-                .PointerEvents("all")
-                .Style("cursor: pointer;")
-                .OnClick(() => _selected = index)
-                .Key(hex));
-        }
-
-        return children;
-    }
+    private Component Swatch((string Name, string Hex) swatch, int index) =>
+        Circle
+            .Cx((24 + (index * 56)).ToString(CultureInfo.InvariantCulture))
+            .Cy("24")
+            .R("18")
+            .Fill(index == _selected ? swatch.Hex : "#e5e7eb")
+            .Stroke("#1f2937")
+            .StrokeWidth("2")
+            .PointerEvents("all")
+            .Style("cursor: pointer;")
+            .OnClick(() => _selected = index)
+            .Key(swatch.Hex);
 }

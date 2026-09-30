@@ -13,10 +13,10 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 |--------|------|
 | `.razor` component (markup + `@code`) | `sealed partial class : Component` with `Render()` returning a tree |
 | `RenderFragment` / Razor markup | A chain — `Div.Class("panel")[Span["hi"]]`, children via an indexer |
-| `@onclick="Handler"` | `.OnClick(() => ...)` (a plain delegate, set by a chain step) |
+| `@onclick="Handler"` | `.OnClick(() => ...)` (a lambda, set by a chain step) |
 | `[Parameter] public T X { get; set; }` | `public T X { get; set; }` — becomes a chain step (required if non-nullable) or an optional setter |
 | `EventCallback` / `EventCallback<T>` | `Callback` / `Callback<T>` — one property taking a sync (`Action`/`Action<T>`) or async (`Func<Task>`/`Func<T,Task>`) handler |
-| `[CascadingParameter]` / `CascadingValue` | `Context.Provide<T>(value)` / `Context.Get<T>()` / `Context.Required<T>()` |
+| `[CascadingParameter]` / `CascadingValue` | `Context.Provide(value)` / `Context.Get<T>()` / `Context.Required<T>()` |
 | `@key="x"` | `.Key(x)` — an ordinary chain step |
 | `OnInitialized` / `OnInitializedAsync` | `OnMount()` — one hook; the part before its first `await` is the synchronous half |
 | `OnParametersSet` / `OnParametersSetAsync` | `OnUpdated()` |
@@ -109,7 +109,7 @@ component that should update.
 
 ```csharp
 // Rask — provide high, read deep (nearest provider wins, matched by type)
-Context.Provide<Theme>(_theme)[ ThemeCard ]
+Context.Provide(_theme)[ ThemeCard ]
 // in any descendant's Render():
 var theme = Context.Required<Theme>();   // or Context.Get<T>() (null if absent)
 ```
@@ -130,7 +130,7 @@ public sealed partial class UserPage(Navigator nav) : Component   // Navigator v
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
-    // navigate from a handler: nav.NavigateTo(Routes.HomePage()), nav.SetQuery("tab", "x")
+    // navigate from a handler: Routes.HomePage().Go(), nav.SetQuery("tab", "x")
 }
 
 // type-safe link (generated URL builder) instead of a "/users/42" string:
@@ -181,7 +181,7 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
   `Range` inside the indexer. Pass enumerables **directly** instead:
 
   ```csharp
-  Ul[items.Select(i => (Component)Li.Key(i.Id)[i.Name])]   // ✓ pass the sequence
+  Ul[items.Select(i => Li.Key(i.Id)[i.Name])]              // ✓ pass the sequence
   // Ul[.. items.Select(...)]                            // ✗ parses as Range
   ```
 

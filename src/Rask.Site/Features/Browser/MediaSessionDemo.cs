@@ -58,14 +58,14 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("ms-publish").OnClick(Publish)["Publish metadata"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Id("ms-publish").OnClick(Publish)["Publish metadata"],
+                    Ui.Button.Primary.Outline
                         .Id("ms-playing")
                         .OnClick(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Outline
                         .Id("ms-paused")
                         .OnClick(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("ms-clear").OnClick(Clear)["Clear"]
+                    Ui.Button.Error.Outline.Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "

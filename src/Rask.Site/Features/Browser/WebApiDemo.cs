@@ -15,10 +15,10 @@ public sealed partial class WebApiDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Ui.Button.Tone(Ui.Tone.Primary).Id("web-read").OnClick(Read)["Read the browser"],
-                Ui.Button.Variant(Ui.Variant.Outline).Id("web-store").OnClick(Store)["Round-trip localStorage"],
-                Ui.Button.Variant(Ui.Variant.Outline).Id("web-keep").OnClick(Keep)["Keep a media query"],
-                Ui.Button.Variant(Ui.Variant.Outline).Id("web-watch").OnClick(Watch)["Watch the width"]
+                Ui.Button.Primary.Id("web-read").OnClick(Read)["Read the browser"],
+                Ui.Button.Outline.Id("web-store").OnClick(Store)["Round-trip localStorage"],
+                Ui.Button.Outline.Id("web-keep").OnClick(Keep)["Keep a media query"],
+                Ui.Button.Outline.Id("web-watch").OnClick(Watch)["Watch the width"]
             ],
             P.Id("web-read-out").Class("text-sm mb-1")[_read],
             P.Id("web-store-out").Class("text-sm mb-1")[_stored],

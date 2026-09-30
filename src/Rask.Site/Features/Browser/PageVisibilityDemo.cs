@@ -13,7 +13,7 @@ public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Com
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
+                Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("vis-read")
                     .OnClick(Read)["Read visibility"],
                 Div.Class("text-sm text-ui-muted")["State: ", Code.Id("vis-value")[_state ?? "(not read)"]],
