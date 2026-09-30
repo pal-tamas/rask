@@ -20,6 +20,10 @@ namespace Rask.Server.Tests.WebSockets;
 /// </summary>
 public class ShutdownDrainTests
 {
+    // Room for the close to be queued on a loaded machine. Free when nothing is wrong: every client here answers
+    // the server's close, so the drain ends on the handshake, not on this budget (#1138).
+    private static readonly Action<RaskServerOptions> RoomToClose = o => o.ShutdownDrainTimeout = TimeSpan.FromSeconds(5);
+
     [Fact]
     public void The_shutdown_frame_has_the_exact_shape_the_client_branches_on()
     {
@@ -36,7 +40,7 @@ public class ShutdownDrainTests
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
     public async Task A_connected_client_is_told_the_server_is_going_away(LiveTransportKind transport)
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(configureServer: RoomToClose);
         await using var ws = await ConnectAsync(host, transport);
 
         await host.StopAsync();
@@ -47,19 +51,18 @@ public class ShutdownDrainTests
     [Fact]
     public async Task The_socket_is_closed_with_going_away_not_aborted()
     {
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(configureServer: RoomToClose);
         using var ws = await ConnectAsync(host);
+        var ending = ws.ReadUntilServerClosesAsync(TimeSpan.FromSeconds(5));
 
         await host.StopAsync();
+        var (frames, status, reason) = await ending;
 
         // The announcement rides the same render lock as the close, and TCP preserves order, so the
         // frame is always ahead of the close on the wire.
-        Assert.Equal(LivePayload.ServerShutdownJson, await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)));
-
-        var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(2));
-        Assert.NotNull(close);
-        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, close.Value.Status);
-        Assert.Equal("server-shutdown", close.Value.Reason);
+        Assert.Equal(LivePayload.ServerShutdownJson, frames.FirstOrDefault());
+        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, status);
+        Assert.Equal("server-shutdown", reason);
     }
 
     [Theory]
@@ -69,7 +72,7 @@ public class ShutdownDrainTests
         // What the browser branches on once the frame is past: a socket's close description, or the stream's
         // close event. An HTTP response that merely stops reads as a dropped link and backs off, so the stream
         // must say it — and a drain that aborted instead would give no reason on either transport.
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(configureServer: RoomToClose);
         await using var ws = await ConnectAsync(host, transport);
 
         await host.StopAsync();
@@ -123,7 +126,7 @@ public class ShutdownDrainTests
         // Not "eventually, via container teardown" — the old path fired an unawaited RemoveAsync, so a
         // component's async unmount raced process exit with nobody observing it. A stream counts in the drain
         // exactly as a socket does, so the stop waits for it too.
-        using var host = RaskTestHost.Create<TestApp>();
+        using var host = RaskTestHost.Create<TestApp>(configureServer: RoomToClose);
         await using var ws = await ConnectAsync(host, transport);
         Assert.Equal(1, host.Store.Count);
 
@@ -271,16 +274,16 @@ public class ShutdownDrainTests
         // because Kestrel's own StopAsync waits for in-flight requests, and a WebSocket is an in-flight
         // request: the drain runs while Kestrel waits.
         using var host = RaskTestHost.Create<TestApp>(
-            configureServices: s => s.Configure<HostOptions>(o => o.ServicesStopConcurrently = true));
+            configureServices: s => s.Configure<HostOptions>(o => o.ServicesStopConcurrently = true),
+            configureServer: RoomToClose);
         using var ws = await ConnectAsync(host);
+        var ending = ws.ReadUntilServerClosesAsync(TimeSpan.FromSeconds(5));
 
         await host.StopAsync();
+        var (frames, status, _) = await ending;
 
-        Assert.Equal(LivePayload.ServerShutdownJson, await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)));
-
-        var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(2));
-        Assert.NotNull(close);
-        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, close.Value.Status);
+        Assert.Equal(LivePayload.ServerShutdownJson, frames.FirstOrDefault());
+        Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, status);
         Assert.Equal(0, host.Store.Count);
     }
 

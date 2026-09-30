@@ -1,7 +1,7 @@
 # Routing
 
 Rask routing is declaration-driven and source-generated. A routable component carries a `[Route]` attribute
-naming the URL it answers; a module initializer (emitted by the `RoutesGenerator`) registers it at startup, and the `Router()` in your `App` tree matches
+naming the URL it answers; a module initializer (emitted by the `RoutesGenerator`) registers it at startup, and the `Router` in your `App` tree matches
 the current URL against the registry and renders the matching page. The same generator also emits a **type-safe URL
 builder** for every route, so links and navigation never carry stringly-typed paths that rot.
 
@@ -58,7 +58,7 @@ Routes use Blazor-style `{param}` placeholders, support optional segments (`{nam
 - A malformed template raises [RASK003](diagnostics.md#rask003).
 - A segment with no matching property raises [RASK004](diagnostics.md#rask004).
 
-A route only matters once a `Router()` is somewhere in the tree to match against it. The standard place is the page
+A route only matters once a `Router` is somewhere in the tree to match against it. The standard place is the page
 root (`App`):
 
 ```csharp
@@ -70,7 +70,7 @@ public sealed partial class App : Component
 }
 ```
 
-`Router()` matches `RouteState.Path`, builds the route chain, instantiates each page via DI, binds URL pieces to
+`Router` matches `RouteState.Path`, builds the route chain, instantiates each page via DI, binds URL pieces to
 properties, and fires the page lifecycle.
 
 ### Type-safe URLs — `SomePage.Url(...)` and `SomePage.Go(...)`
@@ -219,10 +219,10 @@ the sort column and direction, the current page and page size — in `[QueryPara
 header click and pager button back through `Navigator.SetQuery`. Because the state lives in the URL, it's
 shareable and bookmarkable, and browser back/forward replay it for free. The source (the whole page, verbatim):
 
-## Nested routes — `[ParentRoute]` + `Outlet()`
+## Nested routes — `[ParentRoute]` + `Outlet`
 
 A page can declare a parent layout with `[ParentRoute]`. The child's template is joined onto the
-parent's, and the parent renders the matched child wherever it places an `Outlet()`:
+parent's, and the parent renders the matched child wherever it places an `Outlet`:
 
 ```csharp
 [Route("/")]
@@ -246,11 +246,11 @@ public sealed partial class AboutPage : Component
 ```
 
 An empty child template (`[Route("")]`) means "the default child for this layout". The showcase app is built this
-way: every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout hosts the `Outlet()`.
+way: every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout hosts the `Outlet`.
 
 <!-- demo:routing-nested-layout -->
 
-`Outlet()` must be called inside a `Router()` render tree (it throws otherwise). A `[ParentRoute]` cycle raises
+`Outlet` must be called inside a `Router` render tree (it throws otherwise). A `[ParentRoute]` cycle raises
 [RASK007](diagnostics.md#rask007).
 
 ## Programmatic navigation — `Navigator`
@@ -353,7 +353,7 @@ Mutate `RouteState` through `Navigator`, not by setting `Path`/`Query` directly,
 
 `RouteState` raises an `event EventHandler? Changed` whenever `Path` or `Query` actually changes (`Path` is compared by
 value, `Query` by reference, so a no-op set doesn't fire). Components **inside** the routed page subtree usually don't
-need it — the router re-renders them on navigation. But a component rendered **above** the `Router()` (a sidebar,
+need it — the router re-renders them on navigation. But a component rendered **above** the `Router` (a sidebar,
 breadcrumb, header path display) won't be re-rendered by the router, so it must subscribe explicitly. Subscribe in
 `OnMount`, unsubscribe in `OnUnmount`:
 

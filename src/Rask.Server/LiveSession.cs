@@ -727,9 +727,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     ///     </para>
     /// </summary>
     /// <param name="ct">
-    ///     The drain's budget token. Deliberately not <c>_socketCt</c>: that one is cancelled by the
-    ///     deadline, and using it here would make the close throw at exactly the moment it most needs to
-    ///     complete.
+    ///     The drain's deadline — the same one that aborts the socket, so the close is tried for exactly as
+    ///     long as it could still reach the client.
     /// </param>
     internal async Task CloseForShutdownAsync(CancellationToken ct)
     {

@@ -12,7 +12,7 @@ using Rask.Core.Live;
 namespace Rask.Core;
 
 // [CollectionBuilder] makes `Component` itself a collection-expression target, so a render body
-// can be written as `Render() => [Nav(), Main()[Router()]]` (the items are built into a Fragment by
+// can be written as `Render() => [Nav, Main[Router]]` (the items are built into a Fragment by
 // RaskFragment below). The builder is self-referential (typeof(Component)) and public so collection
 // expressions in *other* assemblies bind to it even though Fragment itself is internal. The
 // required iteration type comes from the *pattern* GetEnumerator below — Component deliberately
@@ -1762,7 +1762,7 @@ public abstract partial class Component : RaskMarkup
     // The clean test mirrors RenderForLive's short-circuit: no prop/state change, no cache bypass, and
     // no ambient-state read. A dirty component falls through so its fresh Render() runs; if it stays
     // eligible afterwards it re-caches, otherwise it reverts to the element path transparently.
-    internal bool TryReplayCleanSubtree(StringBuilder sb, FrameWriter frames, LiveRenderContext? liveCtx)
+    internal bool TryReplayCleanSubtree(HtmlWriter html, FrameWriter frames, LiveRenderContext? liveCtx)
     {
         var cached = _live?.Cached;
         if (cached is null
@@ -1816,7 +1816,7 @@ public abstract partial class Component : RaskMarkup
         // Re-emit the HTML and re-write the full frame stream (with fresh offsets) into the active
         // writer in one pass — the replayed frames are identical to a fresh walk's, so the diff sees
         // no change, and no Element object graph is touched.
-        HtmlSerializer.ReplayLeanFrames(cached.Frames.AsSpan(0, cached.FrameCount), sb, frames);
+        HtmlSerializer.ReplayLeanFrames(cached.Frames.AsSpan(0, cached.FrameCount), html, frames);
 
         // Leave the forward slot exactly as a walk would have: empty. A walk either armed our own key
         // and cleared it in its finally, or let our first element consume an ancestor's. Replaying skips
@@ -2775,7 +2775,7 @@ public abstract partial class Component : RaskMarkup
         RenderAsLiveRootCore(services, publishOnly, sink);
 
     // Returns the rendered page as a string when sink is null; when a sink is supplied the page is
-    // copied into it instead and null is returned (the caller reads sink.Current).
+    // written into it instead and null is returned (the caller reads sink.Current).
     private string? RenderAsLiveRootCore(IServiceProvider? services, bool publishOnly, RenderedHtmlBuffers? sink)
     {
         using var ctx = BeginRootRender(services, out var previousEditContexts);
@@ -2859,52 +2859,45 @@ public abstract partial class Component : RaskMarkup
 
     private string? SerializePage(RenderedHtmlBuffers? sink)
     {
-        // Serialize straight into a pooled builder and splice the head-asset block in place,
-        // so the page materializes to a string exactly once (the final ToString). The previous
-        // path allocated the page TWICE — ToHtml() produced one full-page string, then ApplyTo
-        // copied the whole page into a second builder to inject the head assets.
-        var pageBuilder = RaskStringBuilderPool.Shared.Get();
+        // A live update writes straight into the session's own buffer (#1141); a page that becomes a
+        // string goes through a pooled builder and materializes once, in the final ToString.
+        var builder = sink is null ? RaskStringBuilderPool.Shared.Get() : null;
+        var html = builder is null ? sink!.BeginWrite() : HtmlWriter.Over(builder);
         try
         {
-            HtmlSerializer.Serialize(this, pageBuilder);
+            HtmlSerializer.Serialize(this, html);
 
-            // Splice component-declared <head> contributions into the RaskHeadAssets sentinel.
-            // The registry was populated by HtmlSerializer as it descended through user
-            // components; we resolve the active context (still live before the using-disposal
-            // below) and apply once. The sentinel offset was recorded during serialization
-            // (HeadSentinelIndex), so no whole-page IndexOf scan is needed here.
+            // Splice component-declared <head> contributions into the RaskHeadAssets sentinel, whose
+            // offset was recorded during serialization (HeadSentinelIndex), so no whole-page scan.
             if (LiveRenderContext.Current is { } liveCtx)
             {
-                // ApplyInPlace replaces the head-asset sentinel in place, shifting every byte
-                // position after it. The diff codec's frame offsets were captured against the
-                // pre-splice HTML, so when a frame stream is being captured (diff path) we must
-                // move the offsets past the sentinel by the same delta — otherwise an
-                // InsertSubtree fragment (sliced from this post-splice HTML via those offsets)
-                // reads the wrong bytes.
+                // The splice shifts every char after the sentinel, and the diff codec's frame offsets were
+                // captured before it — so when a frame stream is being captured, move them by the same
+                // delta, or an InsertSubtree fragment sliced through them reads the wrong chars.
                 var sentinelIdx = liveCtx.HeadSentinelIndex;
-                var preLen = pageBuilder.Length;
-                liveCtx.HeadAssets.ApplyInPlace(pageBuilder, sentinelIdx, liveCtx.Services);
+                var preLen = html.Length;
+                liveCtx.HeadAssets.ApplyInPlace(html, sentinelIdx, liveCtx.Services);
                 if (sentinelIdx >= 0 && FrameSinkScope.Current is { } frameSink)
                 {
                     frameSink.AdjustOffsetsFrom(
                         sentinelIdx + HeadAssetRegistry.Sentinel.Length,
-                        pageBuilder.Length - preLen);
+                        html.Length - preLen);
                 }
             }
 
-            // Materialise the page exactly once: into the session's reused char buffer on the live-update
-            // path (zero GC), or into a fresh string for the first-render / test / full-HTML-fallback path.
-            if (sink is not null)
-            {
-                sink.CopyFrom(pageBuilder);
-                return null;
-            }
-
-            return pageBuilder.ToString();
+            return builder?.ToString();
         }
         finally
         {
-            RaskStringBuilderPool.Shared.Return(pageBuilder);
+            if (builder is null)
+            {
+                sink!.EndWrite(html);
+            }
+            else
+            {
+                html.Release();
+                RaskStringBuilderPool.Shared.Return(builder);
+            }
         }
     }
 

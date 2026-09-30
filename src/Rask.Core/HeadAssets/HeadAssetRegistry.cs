@@ -317,6 +317,20 @@ internal sealed class HeadAssetRegistry
     public void ApplyInPlace(StringBuilder page, int sentinelIdx, IServiceProvider? services = null)
     {
         ArgumentNullException.ThrowIfNull(page);
+        var html = HtmlWriter.Over(page);
+        try
+        {
+            ApplyInPlace(html, sentinelIdx, services);
+        }
+        finally
+        {
+            html.Release();
+        }
+    }
+
+    /// <inheritdoc cref="ApplyInPlace(StringBuilder, int, IServiceProvider?)" />
+    public void ApplyInPlace(HtmlWriter page, int sentinelIdx, IServiceProvider? services = null)
+    {
         _ = services;
         if (sentinelIdx < 0)
         {
@@ -325,15 +339,7 @@ internal sealed class HeadAssetRegistry
 
         var block = RaskStringBuilderPool.Shared.Get();
         AppendHeadBlock(block);
-        page.Remove(sentinelIdx, Sentinel.Length);
-        if (block.Length > 0)
-        {
-            // No StringBuilder.Insert(int, StringBuilder) overload exists; the block is small
-            // (a handful of <head> tags), so materializing it once is far cheaper than the
-            // whole-page copy this method replaces.
-            page.Insert(sentinelIdx, block.ToString());
-        }
-
+        page.Replace(sentinelIdx, Sentinel.Length, block);
         RaskStringBuilderPool.Shared.Return(block);
     }
 

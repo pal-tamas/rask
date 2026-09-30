@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Text;
 
 namespace Rask.Core.Live;
 
@@ -29,7 +28,7 @@ internal sealed class RenderedHtmlBuffers : IDisposable
     private int _prevLen;
 
     /// <summary>
-    ///     Starts with no buffers at all: the first <see cref="CopyFrom" /> / <see cref="SeedPrevious" />
+    ///     Starts with no buffers at all: the first <see cref="BeginWrite" /> / <see cref="SeedPrevious" />
     ///     rents each one at the size the page actually needs.
     ///     <para>
     ///         These are per-session and live as long as the session does, so pre-renting a fixed size is
@@ -50,7 +49,7 @@ internal sealed class RenderedHtmlBuffers : IDisposable
     /// <summary>True once at least one render has been committed as the baseline.</summary>
     public bool HasPrevious { get; private set; }
 
-    /// <summary>The just-rendered page, valid until the next <see cref="CopyFrom" />.</summary>
+    /// <summary>The just-rendered page, valid until the next <see cref="BeginWrite" />.</summary>
     public ReadOnlyMemory<char> Current => _cur.AsMemory(0, _curLen);
 
     /// <summary>Span view of <see cref="Current" />.</summary>
@@ -59,13 +58,21 @@ internal sealed class RenderedHtmlBuffers : IDisposable
     /// <summary>The last committed (applied) render, or empty when <see cref="HasPrevious" /> is false.</summary>
     public ReadOnlySpan<char> PreviousSpan => _prev.AsSpan(0, _prevLen);
 
-    /// <summary>Copy the freshly serialized page out of <paramref name="sb" /> into the current buffer.</summary>
-    public void CopyFrom(StringBuilder sb)
+    /// <summary>
+    ///     Starts serializing the page straight into the current buffer; <see cref="EndWrite" /> takes it back.
+    ///     Sized like the last committed page first, so a steady page never regrows mid-render.
+    /// </summary>
+    public HtmlWriter BeginWrite()
     {
-        var len = sb.Length;
-        EnsureCapacity(ref _cur, len);
-        sb.CopyTo(0, _cur, 0, len);
-        _curLen = len;
+        EnsureCapacity(ref _cur, _prevLen);
+        return HtmlWriter.Into(_cur);
+    }
+
+    /// <summary>Ends <see cref="BeginWrite" />: what was written becomes <see cref="Current" />.</summary>
+    public void EndWrite(HtmlWriter writer)
+    {
+        _cur = writer.Detach(out _curLen);
+        writer.Release();
     }
 
     /// <summary>True when the current render is byte-identical to the committed baseline (a no-op render).</summary>
