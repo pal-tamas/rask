@@ -114,11 +114,11 @@ in `Program.cs`:
 ```csharp
 var app = RaskApp.Create(args);
 
-app.Configure(c => c.Jobs.Configure(o =>
+app.Configure(c =>
 {
-    o.Run<PurgeStaleCarts>().Every(1.Hour);
-    o.Run<NightlyBackup>().Daily.At(3, 00);
-}));
+    c.Jobs.Run<PurgeStaleCarts>().Every(1.Hour);
+    c.Jobs.Run<NightlyBackup>().Daily.At(3, 0);
+});
 
 app.Run<App>();
 ```

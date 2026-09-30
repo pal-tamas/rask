@@ -34,7 +34,7 @@ Dockerfile below (override with `--dockerfile`).
 - **Migrations apply themselves.** The new container applies the app's pending migrations as it starts,
   before it listens — so the health check cannot pass over an un-migrated database, and there is no
   separate migrate step to run. One that fails stops the container, and the old one keeps serving. When a
-  pipeline applies migrations instead, pass `--env Rask__Database__MigrateOnStart=false`. See
+  pipeline applies migrations instead, pass `--env Rask:Database:MigrateOnStart=false`. See
   [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start). Apps scaffolded with `rask new` ship the `/health` endpoint; probe a
   different path with `--health-path <path>`, or skip the probe with `--no-health-check`.
   HTTP requests are zero-downtime; **live sessions re-establish**, because a session is a component tree
@@ -170,7 +170,7 @@ on one disk**. An app scaffolded by `rask new` is already wired for [Litestream]
 which streams the write-ahead log to object storage; it stays inert until you point it somewhere:
 
 ```bash
-rask deploy --env "Rask__Litestream__ReplicaUrl=s3://your-bucket/app" \
+rask deploy --env "Rask:Litestream:ReplicaUrl=s3://your-bucket/app" \
             --env "AWS_ACCESS_KEY_ID=…" --env "AWS_SECRET_ACCESS_KEY=…"
 ```
 
@@ -193,7 +193,7 @@ Beyond your own `--env` values, every deployed container gets:
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
 | `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
 | `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
-| `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask__Auth__PublicOrigin=http://your-host:8080`. |
+| `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
 | `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
 | `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |
@@ -324,10 +324,10 @@ other variable, and the secrets among it are [remembered by name](secrets.md):
 | `Rask__Storage__Azure__ConnectionString`, `__Container` | Azure Blob Storage. |
 
 ```bash
-rask deploy --env Rask__Storage__Provider=S3 \
-            --env Rask__Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
-            --env Rask__Storage__S3__Bucket=shop-files --env Rask__Storage__S3__Region=auto \
-            --env Rask__Storage__S3__AccessKeyId=… --env Rask__Storage__S3__SecretAccessKey=…
+rask deploy --env Rask:Storage:Provider=S3 \
+            --env Rask:Storage:S3:ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
+            --env Rask:Storage:S3:Bucket=shop-files --env Rask:Storage:S3:Region=auto \
+            --env Rask:Storage:S3:AccessKeyId=… --env Rask:Storage:S3:SecretAccessKey=…
 ```
 
 The same two cautions as the log store apply, and the first is sharper here:

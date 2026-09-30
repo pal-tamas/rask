@@ -53,7 +53,7 @@ public sealed class WebPushScaffoldTests
                 AllowTrailingCommas = true,
             })!;
 
-        var keys = node["Rask"]!["WebPush"]!["VapidKeys"]!;
+        var keys = node["Rask"]!["Push"]!["VapidKeys"]!;
 
         return ((string)keys["PublicKey"]!, (string)keys["PrivateKey"]!);
     }
@@ -199,8 +199,8 @@ public sealed class WebPushScaffoldTests
 
         (var publicKey, var privateKey) = Pair(files);
 
-        Assert.Equal(publicKey, configuration["Rask:WebPush:VapidKeys:PublicKey"]);
-        Assert.Equal(privateKey, configuration["Rask:WebPush:VapidKeys:PrivateKey"]);
+        Assert.Equal(publicKey, configuration["Rask:Push:VapidKeys:PublicKey"]);
+        Assert.Equal(privateKey, configuration["Rask:Push:VapidKeys:PrivateKey"]);
     }
 
     [Fact]

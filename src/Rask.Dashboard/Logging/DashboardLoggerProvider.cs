@@ -11,7 +11,7 @@ namespace Rask.Dashboard.Logging;
 /// </summary>
 /// <remarks>
 /// Registered whether or not <see cref="RaskDashboardOptions.CaptureLogs" /> is on, because that setting can come
-/// from <c>Rask:Dashboard</c> and is not known until the options are built. With capture off, every logger it
+/// from <c>Rask:Ops</c> and is not known until the options are built. With capture off, every logger it
 /// hands out is the null logger, which the logging pipeline skips before formatting anything.
 /// </remarks>
 [ProviderAlias("RaskDashboard")]

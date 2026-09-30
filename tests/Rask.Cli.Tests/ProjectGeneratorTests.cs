@@ -170,7 +170,7 @@ public sealed class ProjectGeneratorTests
         var settings = files["appsettings.json"];
 
         Assert.Contains("\"ReplicaUrl\": \"\"", settings, StringComparison.Ordinal);
-        Assert.Contains("Rask__Litestream__ReplicaUrl", settings, StringComparison.Ordinal);
+        Assert.Contains("Rask:Litestream:ReplicaUrl", settings, StringComparison.Ordinal);
     }
 
     /// <summary>

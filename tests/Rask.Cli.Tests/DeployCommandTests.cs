@@ -9,6 +9,19 @@ public sealed partial class DeployCommandTests
 {
     private const string WorkingDir = "/proj";
 
+    [Theory]
+    [InlineData("Rask:Litestream:ReplicaUrl=s3://bucket/app", "Rask__Litestream__ReplicaUrl=s3://bucket/app")]
+    [InlineData("Rask__Mail__From=ops@shop.test", "Rask__Mail__From=ops@shop.test")]
+    [InlineData("Rask:Jobs:Window=10:30", "Rask__Jobs__Window=10:30")]
+    public void A_colon_env_key_reaches_the_container_as_double_underscores(string written, string passed)
+    {
+        var entry = written;
+
+        var environment = DeployCommand.AsEnvironmentEntry(entry);
+
+        Assert.Equal(passed, environment);
+    }
+
     [Fact]
     public void No_example_names_a_connection_string_key_the_app_no_longer_reads()
     {

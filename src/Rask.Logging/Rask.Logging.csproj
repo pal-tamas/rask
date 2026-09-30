@@ -47,7 +47,7 @@
     <PackageReference Include="Microsoft.Extensions.Options"/>
   </ItemGroup>
 
-  <!-- RaskLoggingOptions binds Rask:Logging and the store's connection string comes from Rask:ConnectionStrings:Logs.
+  <!-- RaskLoggingOptions binds Rask:Logs and the store's connection string comes from Rask:ConnectionStrings:Logs.
        The configuration binding source generator writes the bind at compile time, so no reflection binder runs. -->
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>

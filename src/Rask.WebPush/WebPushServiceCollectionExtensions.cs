@@ -12,7 +12,7 @@ public static class WebPushServiceCollectionExtensions
 {
     /// <summary>
     /// The sender alone — <see cref="IWebPush" />, one subscription at a time — for an app that keeps its
-    /// subscriptions somewhere of its own. Reads <c>Rask:WebPush</c> and refuses to start without a key pair and a contact.
+    /// subscriptions somewhere of its own. Reads <c>Rask:Push</c> and refuses to start without a key pair and a contact.
     /// </summary>
     public static IServiceCollection AddRaskWebPush(
         this IServiceCollection services,
@@ -22,7 +22,7 @@ public static class WebPushServiceCollectionExtensions
 
         // A second call registers nothing — before, it added a second options instance and a second typed client.
         if (!services.AddRaskOptions<WebPushOptions>(
-                "Rask:WebPush", static (section, o) => section.Bind(o), configure, static o => o.Validate()))
+                "Rask:Push", static (section, o) => section.Bind(o), configure, static o => o.Validate()))
         {
             return services;
         }
@@ -52,7 +52,7 @@ public static class WebPushServiceCollectionExtensions
         // Validated at the first send (WebPushSender checks its options when it is built), not at start. An app that
         // also called AddRaskWebPush() first keeps that call's start-time validation: the options are registered once.
         if (services.AddRaskOptions<WebPushOptions>(
-                "Rask:WebPush", static (section, o) => section.Bind(o), configure, validate: null))
+                "Rask:Push", static (section, o) => section.Bind(o), configure, validate: null))
         {
             services.AddHttpClient<IWebPush, WebPushSender>();
         }

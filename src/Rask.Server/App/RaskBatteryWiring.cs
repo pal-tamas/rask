@@ -608,7 +608,7 @@ internal static class RaskBatteryWiring
                 });
             }
 
-            // Configured through Rask:Dashboard.
+            // Configured through Rask:Ops.
             services.AddRaskDashboard<TContext>();
         }
     }
@@ -627,7 +627,7 @@ internal static class RaskBatteryWiring
             : [],
     };
 
-    // Web Push is configured either through the block or through Rask:WebPush:VapidKeys; either is enough, and
+    // Web Push is configured either through the block or through Rask:Push:VapidKeys; either is enough, and
     // AddRaskWebPush binds the section itself.
     private static bool HasVapidKeys(ConfigurationManager configuration, RaskAppOptions options)
     {
@@ -638,7 +638,7 @@ internal static class RaskBatteryWiring
             return true;
         }
 
-        return !string.IsNullOrWhiteSpace(configuration["Rask:WebPush:VapidKeys:PublicKey"])
-               && !string.IsNullOrWhiteSpace(configuration["Rask:WebPush:VapidKeys:PrivateKey"]);
+        return !string.IsNullOrWhiteSpace(configuration["Rask:Push:VapidKeys:PublicKey"])
+               && !string.IsNullOrWhiteSpace(configuration["Rask:Push:VapidKeys:PrivateKey"]);
     }
 }

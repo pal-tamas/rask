@@ -117,9 +117,9 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
-> **`AllowAnonymousAccess` is configuration too.** `Rask:Dashboard:AllowAnonymousAccess` set to `true`
-> opens the console to everyone, in every environment, and like every `Rask:Dashboard` key it can arrive as
-> an environment variable (`Rask__Dashboard__AllowAnonymousAccess=true`). The panels show job payloads,
+> **`AllowAnonymousAccess` is configuration too.** `Rask:Ops:AllowAnonymousAccess` set to `true`
+> opens the console to everyone, in every environment, and like every `Rask:Ops` key it can arrive as
+> an environment variable (`Rask__Ops__AllowAnonymousAccess=true`). The panels show job payloads,
 > stored email bodies and log lines, so guard the deploy environment's variables as carefully as the code.
 
 ## Actions
@@ -144,7 +144,7 @@ Reading tells you what broke; these fix it.
 }
 ```
 
-Every dashboard option is `Rask:Dashboard` in `appsettings.json`; a callback —
+Every dashboard option is `Rask:Ops` in `appsettings.json`; a callback —
 `AddRaskDashboard<AppDbContext>(o => o.Actions = RaskDashboardActions.All)` — runs after the section and
 wins. `Actions` defaults to `Safe`. Buttons for a tier that is off are hidden, not disabled.
 

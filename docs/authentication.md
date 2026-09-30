@@ -91,7 +91,7 @@ as before, and only a caller sending `Authorization: Bearer …` takes the new p
 ```bash
 # The signing key never goes in that file.
 dotnet user-secrets set "Rask:Auth:BearerSigningKey" "<at least 32 bytes>"   # development
-rask deploy --env "Rask__Auth__BearerSigningKey=…"                           # deployed
+rask deploy --env "Rask:Auth:BearerSigningKey=…"                           # deployed
 ```
 
 The battery reads `Rask:Auth` itself. A callback — `app.Configure(c => c.Auth.Configure(o => …))`, or

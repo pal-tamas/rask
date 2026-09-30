@@ -125,7 +125,7 @@
     <Compile Include="..\Rask.Hosting.Shared\Dev\DevServerProcess.cs" Link="Shared\Dev\DevServerProcess.cs"/>
   </ItemGroup>
 
-  <!-- The live, server, culture and upload options bind Rask:Live / Rask:Server / Rask:Culture / Rask:Uploads.
+  <!-- The live, server, culture and upload options bind Rask:Live / Rask:Server / Rask:Cultures / Rask:Uploads.
        The configuration binding source generator writes those binds at compile time, so no reflection binder
        runs; the SDK leaves it off unless a project asks. -->
   <PropertyGroup>

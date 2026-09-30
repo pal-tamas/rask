@@ -16,11 +16,11 @@ a push subscription through a **service worker**, which the PWA battery serves �
 Nothing to register, and nothing in `Program.cs`. The battery keeps every browser that subscribed in a
 `PushSubscriber` table in `app.db` — mapped by `RaskAppDbContext`, created by the first migration — and it
 remembers who was signed in when each one subscribed, so you can reach one person's phone and laptop at once.
-It reads `Rask:WebPush` from `appsettings.json`: the key pair, and the contact address the scaffold put there:
+It reads `Rask:Push` from `appsettings.json`: the key pair, and the contact address the scaffold put there:
 
 ```jsonc
 "Rask": {
-  "WebPush": {
+  "Push": {
     "Subject": "mailto:admin@example.com"
   }
 }
@@ -54,16 +54,16 @@ Console.WriteLine(keys.PrivateKey);
 ```jsonc
 // appsettings.Development.json
 {
-  "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
+  "Rask": { "Push": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
 }
 ```
 
-Change `Rask:WebPush:Subject` in `appsettings.json` to an address you read — it is not a secret. When you
+Change `Rask:Push:Subject` in `appsettings.json` to an address you read — it is not a secret. When you
 deploy, the keys come from the environment instead, and production should have a pair of its own:
 
 ```bash
-rask deploy --env "Rask__WebPush__VapidKeys__PublicKey=<public>" \
-            --env "Rask__WebPush__VapidKeys__PrivateKey=<private>"
+rask deploy --env "Rask:Push:VapidKeys:PublicKey=<public>" \
+            --env "Rask:Push:VapidKeys:PrivateKey=<private>"
 ```
 
 The **public** key is handed to the browser to subscribe with. The **private** key signs the request and

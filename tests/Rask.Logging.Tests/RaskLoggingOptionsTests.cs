@@ -7,7 +7,7 @@ using Rask.SQLite;
 namespace Rask.Logging.Tests;
 
 /// <summary>
-/// The options come from <c>Rask:Logging</c> and then the callback, and a bad value fails when they are built — at host
+/// The options come from <c>Rask:Logs</c> and then the callback, and a bad value fails when they are built — at host
 /// start in a real app, where the message names the key — not hours later when the first flush tears the host down.
 /// </summary>
 public sealed class RaskLoggingOptionsTests
@@ -22,7 +22,7 @@ public sealed class RaskLoggingOptionsTests
 
         var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskLoggingOptions>());
 
-        Assert.Contains("Rask:Logging", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Rask:Logs", error.Message, StringComparison.Ordinal);
     }
 
     public static TheoryData<Action<RaskLoggingOptions>> InvalidOptions() => new()
@@ -56,9 +56,9 @@ public sealed class RaskLoggingOptionsTests
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Rask:Logging:MaxRows"] = "50",
-                ["Rask:Logging:MinimumLevel"] = "Warning",
-                ["Rask:Logging:ExcludedCategories:0"] = "App.Noise",
+                ["Rask:Logs:MaxRows"] = "50",
+                ["Rask:Logs:MinimumLevel"] = "Warning",
+                ["Rask:Logs:ExcludedCategories:0"] = "App.Noise",
             })
             .Build());
         services.AddRaskLogging(o => o.ExcludedCategories.Add("App.Chatter"));

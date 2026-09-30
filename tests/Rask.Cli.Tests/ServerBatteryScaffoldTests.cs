@@ -218,12 +218,12 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Equal("no-reply@example.com", rask.GetProperty("Mail").GetProperty("From").GetString());
         Assert.Equal("06:00:00", rask.GetProperty("Snapshots").GetProperty("Interval").GetString());
         Assert.Equal(7, rask.GetProperty("Snapshots").GetProperty("Retain").GetInt32());
-        Assert.Equal("mailto:admin@example.com", rask.GetProperty("WebPush").GetProperty("Subject").GetString());
+        Assert.Equal("mailto:admin@example.com", rask.GetProperty("Push").GetProperty("Subject").GetString());
 
         // A wasm-hosted host renders no pages of its own, so it tunes no live runtime and ships no culture list:
         // those sections would be settings nothing reads.
         Assert.False(rask.TryGetProperty("Server", out _));
-        Assert.False(rask.TryGetProperty("Culture", out _));
+        Assert.False(rask.TryGetProperty("Cultures", out _));
 
         // …and none of the old spellings survive in the code that used to read them.
         var program = files["Program.cs"];

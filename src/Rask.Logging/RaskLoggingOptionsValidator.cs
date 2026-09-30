@@ -4,7 +4,7 @@ using Rask.SQLite;
 namespace Rask.Logging;
 
 /// <summary>
-/// Checks <see cref="RaskLoggingOptions"/> once <c>Rask:Logging</c> and the callback have applied — at host start,
+/// Checks <see cref="RaskLoggingOptions"/> once <c>Rask:Logs</c> and the callback have applied — at host start,
 /// so a bad value fails fast, naming its key.
 /// </summary>
 internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLoggingOptions>
@@ -24,17 +24,17 @@ internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLogging
     {
         if (options.Retention < TimeSpan.Zero)
         {
-            failures.Add("Rask:Logging:Retention cannot be negative.");
+            failures.Add("Rask:Logs:Retention cannot be negative.");
         }
 
         if (options.MaxRows < 0)
         {
-            failures.Add("Rask:Logging:MaxRows cannot be negative.");
+            failures.Add("Rask:Logs:MaxRows cannot be negative.");
         }
 
         if (options.PurgeInterval <= TimeSpan.Zero)
         {
-            failures.Add("Rask:Logging:PurgeInterval must be positive.");
+            failures.Add("Rask:Logs:PurgeInterval must be positive.");
         }
     }
 
@@ -42,32 +42,32 @@ internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLogging
     {
         if (options.FlushInterval <= TimeSpan.Zero)
         {
-            failures.Add("Rask:Logging:FlushInterval must be positive.");
+            failures.Add("Rask:Logs:FlushInterval must be positive.");
         }
 
         if (options.BatchSize < 1)
         {
-            failures.Add("Rask:Logging:BatchSize must be at least 1.");
+            failures.Add("Rask:Logs:BatchSize must be at least 1.");
         }
 
         if (options.MaxScopeValues < 1)
         {
-            failures.Add("Rask:Logging:MaxScopeValues must be at least 1. Set CaptureScopes = false to store no scope state.");
+            failures.Add("Rask:Logs:MaxScopeValues must be at least 1. Set CaptureScopes = false to store no scope state.");
         }
 
         if (options.MaxScopeValueLength < 1)
         {
-            failures.Add("Rask:Logging:MaxScopeValueLength must be at least 1.");
+            failures.Add("Rask:Logs:MaxScopeValueLength must be at least 1.");
         }
 
         if (options.QueueCapacity < 1)
         {
-            failures.Add("Rask:Logging:QueueCapacity must be at least 1.");
+            failures.Add("Rask:Logs:QueueCapacity must be at least 1.");
         }
 
         if (options.ShutdownDrainTimeout < TimeSpan.Zero)
         {
-            failures.Add("Rask:Logging:ShutdownDrainTimeout cannot be negative.");
+            failures.Add("Rask:Logs:ShutdownDrainTimeout cannot be negative.");
         }
     }
 
@@ -75,12 +75,12 @@ internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLogging
     {
         if (options.BusyRetry is null)
         {
-            failures.Add("Rask:Logging:BusyRetry is required.");
+            failures.Add("Rask:Logs:BusyRetry is required.");
         }
 
         if (options.Pragmas is null)
         {
-            failures.Add("Rask:Logging:Pragmas is required.");
+            failures.Add("Rask:Logs:Pragmas is required.");
             return;
         }
 
@@ -92,7 +92,7 @@ internal sealed class RaskLoggingOptionsValidator : IValidateOptions<RaskLogging
         }
         catch (ArgumentException ex)
         {
-            failures.Add($"Rask:Logging:Pragmas: {ex.Message}");
+            failures.Add($"Rask:Logs:Pragmas: {ex.Message}");
         }
     }
 }

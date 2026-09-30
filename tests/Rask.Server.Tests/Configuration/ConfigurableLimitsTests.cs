@@ -234,9 +234,9 @@ public class ConfigurableLimitsTests
     {
         using var provider = Provider(new()
         {
-            ["Rask:Culture:SupportedCultures:0"] = "en",
-            ["Rask:Culture:SupportedCultures:1"] = "hu",
-            ["Rask:Culture:UseCookie"] = "false",
+            ["Rask:Cultures:0"] = "en",
+            ["Rask:Cultures:1"] = "hu",
+            ["Rask:Cultures:UseCookie"] = "false",
         });
 
         var culture = provider.GetRequiredService<RaskCultureOptions>();

@@ -128,7 +128,7 @@ what it can do:
   refused before any file is written.
 
 Languages are **not** on that list, and not on the command line at all: a scaffolded server app ships
-English in `appsettings.json` (`Rask:Culture:SupportedCultures`), and adding another is an entry in that list.
+English in `appsettings.json` (`Rask:Cultures`), and adding another is an entry in that list.
 See [localization](localization.md).
 
 Everything else has a `--no-` to leave it out: `--no-jobs`, `--no-push`, `--no-ops`, and so on. There is
@@ -302,7 +302,7 @@ failing: the files on disk are correct either way.
 | `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages read through the [model surface](data.md) without it, but they write through it: a save is a command whose handler loads the entity and calls `SaveChangesAsync`. The scaffold's plumbing needs it too — background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `wasm-hosted` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
-| `--no-data` | Leave out the SQLite database (`c.Data.Off()`): no `RaskAppDbContext`, no WAL + `busy_timeout` connection, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
+| `--no-data` | Leave out the SQLite database (`c.Data.Off()`): no `RaskAppDbContext`, no WAL + `busy_timeout` connection, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask:Litestream:ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
 | `--no-jobs` | Leave out durable background jobs (`c.Jobs.Off()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
 | `--no-cache` | Leave out the database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. |
@@ -396,7 +396,7 @@ in the framework's own idiom, and the template does not write one yet. The PWA a
 scaffolded on a front-end template (not yet on a meta framework one) — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
 ² Languages are configured, never chosen on the command line — there is no `--culture` and no
-`--no-localization`. On `server` a scaffolded app already lists English in `Rask:Culture:SupportedCultures`,
+`--no-localization`. On `server` a scaffolded app already lists English in `Rask:Cultures`,
 because ICU is in the runtime regardless and it costs nothing.
 
 A browser-WASM app scaffolds no registration, because there it is not free: culture data is roughly **a

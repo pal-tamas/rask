@@ -57,7 +57,7 @@ public sealed class JobsOptions
     public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// The zone a calendar schedule's wall-clock time is read in — <c>.Daily.At(3, 00)</c> means 3am here.
+    /// The zone a calendar schedule's wall-clock time is read in — <c>.Daily.At(3, 0)</c> means 3am here.
     /// Defaults to UTC, so the same app keeps the same schedule on every machine it is deployed to; set it
     /// when "3am" has to mean 3am where your customers are, and it will follow daylight saving.
     /// </summary>
@@ -94,8 +94,8 @@ public sealed class JobsOptions
 
     /// <summary>
     /// Runs <typeparamref name="TJob"/> on a schedule, durably — the cadence is a step:
-    /// <c>Run&lt;PurgeStaleCarts&gt;().Every(1.Hour)</c>, <c>Run&lt;Backup&gt;().Daily.At(3, 00)</c>,
-    /// <c>Run&lt;Digest&gt;().Weekly.On(DayOfWeek.Monday).At(9, 00)</c>.
+    /// <c>Run&lt;PurgeStaleCarts&gt;().Every(1.Hour)</c>, <c>Run&lt;Backup&gt;().Daily.At(3, 0)</c>,
+    /// <c>Run&lt;Digest&gt;().Weekly.On(DayOfWeek.Monday).At(9, 0)</c>.
     /// </summary>
     /// <typeparam name="TJob">The job to enqueue on each tick. A fresh one is built per run.</typeparam>
     public RecurringJob Run<TJob>()
@@ -103,7 +103,7 @@ public sealed class JobsOptions
 
     /// <summary>
     /// Runs the job <paramref name="make"/> builds on a schedule, for a job that needs arguments:
-    /// <c>Run(() =&gt; new Digest(Top: 10)).Weekly.On(DayOfWeek.Monday).At(9, 00)</c>.
+    /// <c>Run(() =&gt; new Digest(Top: 10)).Weekly.On(DayOfWeek.Monday).At(9, 0)</c>.
     /// </summary>
     /// <typeparam name="TJob">The job to enqueue on each tick.</typeparam>
     public RecurringJob Run<TJob>(Func<TJob> make)
@@ -114,5 +114,19 @@ public sealed class JobsOptions
         job.RefuseADuplicateName(job.Name);
         Recurring.Add(job);
         return job;
+    }
+
+    /// <summary>
+    /// Machinery: takes in a schedule declared somewhere else — on the battery, as <c>c.Jobs.Run&lt;T&gt;()</c> — so it
+    /// runs beside the ones declared here, under the same rule that two schedules may not share a name.
+    /// </summary>
+    /// <param name="job">The declared schedule.</param>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public void Adopt(RecurringJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        var adopted = new RecurringJob(job.Name, job.Factory, Recurring);
+        adopted.RefuseADuplicateName(job.Name);
+        Recurring.Add(job.Schedule is { } schedule ? adopted.With(schedule) : adopted);
     }
 }

@@ -42,7 +42,7 @@ internal static class WebPushAssembly
     private const string SettingsFile = "appsettings.json";
 
     /// <summary>The section that has to be present for a generated pair to be read by anything.</summary>
-    private const string Marker = "\"WebPush\"";
+    private const string Marker = "\"Push\"";
 
     /// <summary>
     ///     <paramref name="existing" /> plus <c>appsettings.Development.json</c> holding a freshly minted
@@ -95,8 +95,8 @@ internal static class WebPushAssembly
               //
               // Production does NOT read this file — it is Development-only. Deployed, both keys come
               // from the environment, which is what `rask deploy --env` sets:
-              //   Rask__WebPush__VapidKeys__PublicKey
-              //   Rask__WebPush__VapidKeys__PrivateKey
+              //   Rask__Push__VapidKeys__PublicKey
+              //   Rask__Push__VapidKeys__PrivateKey
               // Mint a SEPARATE pair for it. Replacing a pair silently unsubscribes everyone already
               // subscribed to the old one, so treat a change as a migration, not routine rotation.
               //
@@ -104,7 +104,7 @@ internal static class WebPushAssembly
               // the app still starts and simply does not wire the sender. Mint a replacement with
               // VapidKeys.Generate() and paste it back here.
               "Rask": {
-                "WebPush": {
+                "Push": {
                   "VapidKeys": {
 
             """);

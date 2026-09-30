@@ -34,7 +34,7 @@ public static class RaskDashboardServiceCollectionExtensions
     /// this does not open anything by accident.
     /// </para>
     /// <para>
-    /// <see cref="RaskDashboardOptions"/> reads the <c>Rask:Dashboard</c> configuration section first and then
+    /// <see cref="RaskDashboardOptions"/> reads the <c>Rask:Ops</c> configuration section first and then
     /// <paramref name="configure"/>, so code wins. That includes
     /// <see cref="RaskDashboardOptions.AllowAnonymousAccess"/>: an environment variable can open the console,
     /// which is the point of it being configuration, and a reason to keep the deploy environment's variables
@@ -49,7 +49,7 @@ public static class RaskDashboardServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddRaskOptions<RaskDashboardOptions>("Rask:Dashboard", static (section, o) => section.Bind(o),
+        services.AddRaskOptions<RaskDashboardOptions>("Rask:Ops", static (section, o) => section.Bind(o),
             configure, validate: null);
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IValidateOptions<RaskDashboardOptions>, RaskDashboardOptionsValidator>());
@@ -84,7 +84,7 @@ public static class RaskDashboardServiceCollectionExtensions
         // Registered as a logging provider rather than a bespoke channel, so the log panel sees exactly
         // what every other sink sees. TryAddEnumerable keys on the implementation type, so a repeated
         // AddRaskDashboard call doesn't double-capture every entry. Registered whether or not capture is on:
-        // Rask:Dashboard:CaptureLogs is not readable until the options are built, so the provider reads it
+        // Rask:Ops:CaptureLogs is not readable until the options are built, so the provider reads it
         // and hands out a logger that drops everything when it is off.
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<ILoggerProvider, DashboardLoggerProvider>());

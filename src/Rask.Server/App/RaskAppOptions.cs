@@ -181,11 +181,11 @@ public sealed class RaskAppOptions
     /// </remarks>
     public IList<string> Cultures { get; } = [];
 
-    /// <summary>The live-runtime options — diff mode, session cap, path base.</summary>
-    public Action<RaskLiveOptions>? Live { get; set; }
+    /// <summary>The live-runtime options — diff mode, session cap, path base: <c>c.Live.Configure(o =&gt; …)</c>.</summary>
+    public Configurable<RaskLiveOptions> Live { get; } = new();
 
-    /// <summary>The server-host limits: frame sizes, rates, grace periods, session resume.</summary>
-    public Action<RaskServerOptions>? Server { get; set; }
+    /// <summary>The server-host limits — frame sizes, rates, grace periods, session resume: <c>c.Server.Configure(o =&gt; …)</c>.</summary>
+    public Configurable<RaskServerOptions> Server { get; } = new();
 
     /// <summary>
     /// Whether a reverse proxy sits in front, so <c>X-Forwarded-For</c>/<c>X-Forwarded-Proto</c> should be

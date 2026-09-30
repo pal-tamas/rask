@@ -70,7 +70,7 @@ builder.Services.AddRaskDashboard<AppDbContext>(o =>
 });
 ```
 
-Every one of these is also `Rask:Dashboard` in `appsettings.json` (`"RefreshInterval": "00:00:02"`,
+Every one of these is also `Rask:Ops` in `appsettings.json` (`"RefreshInterval": "00:00:02"`,
 `"Actions": "All"`), and the callback runs after the section and wins. That includes `AllowAnonymousAccess`,
 which opens the console to everyone — settable from an environment variable, so guard the deploy environment's
 variables as carefully as the code.

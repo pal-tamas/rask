@@ -2,7 +2,7 @@ namespace Rask.Background;
 
 /// <summary>
 /// When a recurring job is due. Either a plain interval (<c>.Every(1.Hour)</c>) or a calendar time in the
-/// app's <see cref="JobsOptions.TimeZone"/> (<c>.Daily.At(3, 00)</c>, <c>.Weekly.On(DayOfWeek.Monday).At(9, 00)</c>).
+/// app's <see cref="JobsOptions.TimeZone"/> (<c>.Daily.At(3, 0)</c>, <c>.Weekly.On(DayOfWeek.Monday).At(9, 0)</c>).
 /// </summary>
 public abstract class Schedule
 {

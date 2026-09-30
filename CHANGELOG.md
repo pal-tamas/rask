@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Changed
 
+- **One word per setting, in code and in configuration.** A battery's section is named like its switch, so the
+  appsettings key follows from the line in `Program.cs`. `rask deploy --env` takes that same colon spelling, a
+  schedule goes straight on the jobs battery, and the live runtime and server limits are tuned like every battery —
+  each call kept, where assigning a lambda used to replace the last one:
+
+  ```csharp
+  // before
+  "Rask": { "Logging": {…}, "WebPush": {…}, "Dashboard": {…}, "Culture": { "SupportedCultures": ["en", "hu"] } }
+  rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"
+  app.Configure(c => c.Jobs.Configure(o => { o.Run<PurgeStaleCarts>().Every(1.Hour); }));
+  c.Live = o => o.MaxSessions = 5_000;
+
+  // after
+  "Rask": { "Logs": {…}, "Push": {…}, "Ops": {…}, "Cultures": ["en", "hu"] }
+  rask deploy --env "Rask:Litestream:ReplicaUrl=s3://bucket/app"
+  app.Configure(c => c.Jobs.Run<PurgeStaleCarts>().Every(1.Hour));
+  c.Live.Configure(o => o.MaxSessions = 5_000);
+  ```
+
+  **Breaking:** the old section names are no longer read — rename `Rask:Logging`, `Rask:WebPush`, `Rask:Dashboard`
+  and `Rask:Culture` (and their `Rask__…` environment variables, VAPID keys included). `Rask:Cultures` also takes the
+  named settings beside the list, or the whole object: `{ "SupportedCultures": […], "DefaultCulture": "hu" }`.
+
 - **A flag turns on with no argument, a class list comes in parts, and a forwarded event is awaited.** Every
   `bool` step has a twin without its argument, and `Class` takes several names, leaving out a null or blank one —
   so a conditional class no longer means string arithmetic, which is how the site's ResizeObserver demo shipped

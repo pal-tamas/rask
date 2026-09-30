@@ -1,6 +1,6 @@
 namespace Rask.Background;
 
-/// <summary>A daily job still being worded: <c>.Daily.At(3, 00)</c>.</summary>
+/// <summary>A daily job still being worded: <c>.Daily.At(3, 0)</c>.</summary>
 /// <param name="job">The job being scheduled.</param>
 public readonly struct DailyJob(RecurringJob job)
 {

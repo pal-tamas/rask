@@ -118,9 +118,9 @@ public sealed class RaskConfigurationTests
         var keys = VapidKeys.Generate();
         var built = Build(settings: new()
         {
-            ["Rask:WebPush:VapidKeys:PublicKey"] = keys.PublicKey,
-            ["Rask:WebPush:VapidKeys:PrivateKey"] = keys.PrivateKey,
-            ["Rask:WebPush:Subject"] = "mailto:ops@example.test",
+            ["Rask:Push:VapidKeys:PublicKey"] = keys.PublicKey,
+            ["Rask:Push:VapidKeys:PrivateKey"] = keys.PrivateKey,
+            ["Rask:Push:Subject"] = "mailto:ops@example.test",
         });
 
         var options = built.Services.GetRequiredService<WebPushOptions>();
@@ -136,8 +136,8 @@ public sealed class RaskConfigurationTests
         var keys = VapidKeys.Generate();
         var built = Build(settings: new()
         {
-            ["Rask:WebPush:VapidKeys:PublicKey"] = keys.PublicKey,
-            ["Rask:WebPush:VapidKeys:PrivateKey"] = keys.PrivateKey,
+            ["Rask:Push:VapidKeys:PublicKey"] = keys.PublicKey,
+            ["Rask:Push:VapidKeys:PrivateKey"] = keys.PrivateKey,
         });
 
         var error = Assert.Throws<OptionsValidationException>(() => built.Services.GetRequiredService<WebPushOptions>());
@@ -157,6 +157,50 @@ public sealed class RaskConfigurationTests
 
         Assert.Null(built.Services.GetRequiredService<WebPushOptions>().VapidKeys);
     }
+
+    [Fact]
+    public void The_cultures_are_read_as_a_plain_list()
+    {
+        var settings = new Dictionary<string, string?> { ["Rask:Cultures:0"] = "en", ["Rask:Cultures:1"] = "hu" };
+
+        var built = Build(settings);
+
+        Assert.Equal(["en", "hu"], built.Services.GetRequiredService<Rask.Core.Globalization.RaskCultureOptions>().SupportedCultures);
+    }
+
+    [Fact]
+    public void Live_settings_configured_twice_both_apply()
+    {
+        void Arrange(RaskApp app) => app.Configure(c =>
+        {
+            c.Live.Configure(o => o.MaxSessions = 7);
+            c.Live.Configure(o => o.MinifyScopedAssets = false);
+        });
+
+        var live = Build(arrange: Arrange).Services.GetRequiredService<Rask.Core.Live.RaskLiveOptions>();
+
+        Assert.Equal(7, live.MaxSessions);
+        Assert.False(live.MinifyScopedAssets);
+    }
+
+    [Fact]
+    public void A_job_scheduled_on_the_battery_runs_beside_the_ones_in_its_options()
+    {
+        void Arrange(RaskApp app) => app.Configure(c =>
+        {
+            c.Jobs.Run<PurgeStaleCarts>().Every(TimeSpan.FromHours(1));
+            c.Jobs.Configure(o => o.Run<NightlyBackup>().Daily.At(3, 0));
+        });
+
+        var jobs = Build(arrange: Arrange).Services.GetRequiredService<Rask.Background.JobsOptions>().RecurringJobs;
+
+        Assert.Equal(["NightlyBackup", "PurgeStaleCarts"], jobs.Select(j => j.Name).Order(StringComparer.Ordinal));
+        Assert.All(jobs, j => Assert.NotNull(j.Schedule));
+    }
+
+    internal sealed record PurgeStaleCarts : Rask.Background.IJob;
+
+    internal sealed record NightlyBackup : Rask.Background.IJob;
 
     private static WebApplication Build(Dictionary<string, string?>? settings = null, Action<RaskApp>? arrange = null)
     {

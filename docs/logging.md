@@ -90,7 +90,7 @@ the line at start if it does not; an app that calls `AddRaskLogging()` itself ke
 
 ### Options
 
-Every option is `Rask:Logging` in `appsettings.json`:
+Every option is `Rask:Logs` in `appsettings.json`:
 
 ```jsonc
 {

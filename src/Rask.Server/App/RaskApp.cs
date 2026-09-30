@@ -260,8 +260,8 @@ public sealed partial class RaskApp
     {
         // The live runtime, now that Configure has had its say. One call, because a second is dropped.
         _builder.Services.AddRask(
-            configure: _options.Live,
-            configureServer: o => _options.Server?.Invoke(o),
+            configure: o => _options.Live.Apply(o),
+            configureServer: o => _options.Server.Apply(o),
             configureCulture: _options.Cultures.Count == 0
                 ? null
                 : c =>

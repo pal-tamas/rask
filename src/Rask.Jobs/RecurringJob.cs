@@ -4,9 +4,9 @@ namespace Rask.Background;
 /// <remarks>
 /// <code>
 /// o.Run&lt;PurgeStaleCarts&gt;().Every(1.Hour);
-/// o.Run&lt;Backup&gt;().Daily.At(3, 00);
-/// o.Run&lt;Digest&gt;().Weekly.On(DayOfWeek.Monday).At(9, 00);
-/// o.Run&lt;CloseBooks&gt;().Monthly.On(1).At(6, 00);
+/// o.Run&lt;Backup&gt;().Daily.At(3, 0);
+/// o.Run&lt;Digest&gt;().Weekly.On(DayOfWeek.Monday).At(9, 0);
+/// o.Run&lt;CloseBooks&gt;().Monthly.On(1).At(6, 0);
 /// </code>
 /// <para>
 /// The durable name defaults to the job's type name; <see cref="Named"/> overrides it. It is what the

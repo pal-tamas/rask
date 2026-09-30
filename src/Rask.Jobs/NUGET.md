@@ -8,7 +8,7 @@ app's own database, with no broker or Redis.
 - A background **`JobProcessor`** polls the `Job` table and runs each due job — **at-least-once**, with
   **exponential-backoff** retries up to `MaxAttempts` (then left as a dead letter for inspection).
 - **Delayed** (`await Jobs.Enqueue(job).In(24.Hours)`, `.At(when)`) and durable **recurring**
-  (`o.Run<T>().Every(1.Hour)`, `.Daily.At(3, 00)`, `.Weekly.On(DayOfWeek.Monday).At(9, 00)`) jobs — recurring
+  (`o.Run<T>().Every(1.Hour)`, `.Daily.At(3, 0)`, `.Weekly.On(DayOfWeek.Monday).At(9, 0)`) jobs — recurring
   runs are tracked in the DB, so a restart never double-runs them. Read the schedule back from
   `JobsOptions.RecurringJobs`.
 - **Metrics** on the `Rask.Jobs` meter: processed / failed / **dead-lettered** counters, a duration
@@ -30,7 +30,7 @@ builder.Services.AddRaskCqrs();
 builder.Services.AddRaskJobs<AppDbContext>(o =>
 {
     o.Run<PurgeStaleCarts>().Every(1.Hour);
-    o.Run<NightlyBackup>().Daily.At(3, 00);
+    o.Run<NightlyBackup>().Daily.At(3, 0);
 });
 
 // AppDbContext.OnModelCreating:  modelBuilder.AddRaskJobs();

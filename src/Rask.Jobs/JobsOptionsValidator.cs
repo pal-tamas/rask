@@ -22,8 +22,8 @@ internal sealed class JobsOptionsValidator : IValidateOptions<JobsOptions>
         if (options.Recurring.FirstOrDefault(r => r.Schedule is null) is { } unscheduled)
         {
             failures.Add(
-                $"Run<{unscheduled.Name}>() has no schedule. Finish it with .Every(1.Hour), .Daily.At(3, 00), "
-                + ".Weekly.On(DayOfWeek.Monday).At(9, 00) or .Monthly.On(1).At(6, 00).");
+                $"Run<{unscheduled.Name}>() has no schedule. Finish it with .Every(1.Hour), .Daily.At(3, 0), "
+                + ".Weekly.On(DayOfWeek.Monday).At(9, 0) or .Monthly.On(1).At(6, 0).");
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);

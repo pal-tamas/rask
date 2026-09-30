@@ -94,7 +94,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     [
         "rask deploy --host root@box.example.com --domain app.example.com",
         "rask deploy --host deploy@box.example.com --port 8080",
-        "rask deploy --env Rask__Mail__Smtp__Password=... --env-file .env.production",
+        "rask deploy --env Rask:Mail:Smtp:Password=... --env-file .env.production",
         "rask deploy --github-actions",
         "rask deploy --dry-run",
         "rask deploy status",
@@ -483,7 +483,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             Console.WriteErrorLine(
                 "  ! No Litestream replica configured — this app's database exists only on this box's disk.",
                 ConsoleStyle.Warning);
-            await Console.Error.WriteLineAsync("    Turn on continuous backup:  rask deploy --env \"Rask__Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("    Turn on continuous backup:  rask deploy --env \"Rask:Litestream:ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)").ConfigureAwait(false);
         }
 
         // With --domain the deploy names the public origin itself. On a bare port it cannot know the address people
@@ -493,7 +493,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             Console.WriteErrorLine(
                 "  ! No public address set — confirm and reset emails will not be sent until there is one.",
                 ConsoleStyle.Warning);
-            await Console.Error.WriteLineAsync("    Name it:  rask deploy --env \"Rask__Auth__PublicOrigin=http://your-host:" + plan.Port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("    Name it:  rask deploy --env \"Rask:Auth:PublicOrigin=http://your-host:" + plan.Port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)").ConfigureAwait(false);
         }
 
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
@@ -1466,7 +1466,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
                     return false;
                 }
 
-                entries.Add(line);
+                entries.Add(AsEnvironmentEntry(line));
             }
         }
 
@@ -1479,11 +1479,21 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
                 return false;
             }
 
-            entries.Add(entry);
+            entries.Add(AsEnvironmentEntry(entry));
         }
 
         env = entries;
         return true;
+    }
+
+    /// <summary>
+    ///     <c>Rask:Mail:From=x</c> — the key as appsettings spells it — as the container's environment needs it,
+    ///     <c>Rask__Mail__From=x</c>. Only the key is touched: a value may hold colons of its own (a URL, a time).
+    /// </summary>
+    internal static string AsEnvironmentEntry(string entry)
+    {
+        var equals = entry.IndexOf('=', StringComparison.Ordinal);
+        return entry[..equals].Replace(":", "__", StringComparison.Ordinal) + entry[equals..];
     }
 
     /// <summary>Lower-case a name into a Docker-safe image/container slug (<c>[a-z0-9._-]</c>).</summary>

@@ -29,7 +29,7 @@ with no code — see [Configuration](configuration.md#every-section) for every s
 ## Getting them onto the server
 
 ```bash
-rask deploy --env "Rask__Mail__Smtp__Password=…" --env "Stripe__ApiKey=…"   # one-offs
+rask deploy --env "Rask:Mail:Smtp:Password=…" --env "Stripe__ApiKey=…"   # one-offs
 rask deploy --env-file .env.production                          # a file of KEY=VALUE lines
 ```
 
@@ -62,7 +62,7 @@ remembered variable **fails**:
 This app was last deployed with Rask__Mail__Smtp__Password, which isn't set now.
 
 Deploying without it would start the app misconfigured, so this is a refusal rather than a warning.
-  • pass it again:      rask deploy --env Rask__Mail__Smtp__Password=…
+  • pass it again:      rask deploy --env Rask:Mail:Smtp:Password=…
   • or from a file:     rask deploy --env-file .env.production
   • deploying from CI?  add it to the deploy step in .github/workflows/deploy.yml
   • no longer needed?   remove it from "envKeys" in .rask/deploy.json
@@ -75,7 +75,7 @@ and the host's fingerprint). Your **app's** secrets are separate — add them to
 
 ```yaml
 - name: Deploy
-  run: rask deploy --no-setup-host --env "Rask__Mail__Smtp__Password=${{ secrets.SMTP_PASSWORD }}"
+  run: rask deploy --no-setup-host --env "Rask:Mail:Smtp:Password=${{ secrets.SMTP_PASSWORD }}"
 ```
 
 If that job starts failing after you deploy a new variable from your own machine, that's the check above

@@ -103,7 +103,7 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 // one disk — the whole premise of running a real product on a single server.
 //
 // Inert until you point it somewhere. To turn it on:
-//   rask deploy --env "Rask__Litestream__ReplicaUrl=s3://your-bucket/app"
+//   rask deploy --env "Rask:Litestream:ReplicaUrl=s3://your-bucket/app"
 // plus whatever credentials your provider needs (e.g. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY).
 // s3://, gcs://, abs:// and file:// replicas are all supported — see docs/sqlite.md.
 if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:Litestream:ReplicaUrl"]))
@@ -148,8 +148,8 @@ builder.Services.AddRaskCache<AppDbContext>();
 // The files your users upload, kept by id: save an upload with IFiles.SaveAsync, keep the returned
 // Id on your entity, and hand the file back with files.Url(id), files.Share(id).For(lifetime)
 // or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
-// which NO backup covers — until you point them at a bucket: rask deploy --env Rask__Storage__Provider=S3
-// --env Rask__Storage__S3__Bucket=... (and the keys beside it), or Rask__Storage__Provider=Azure. The routes that
+// which NO backup covers — until you point them at a bucket: rask deploy --env Rask:Storage:Provider=S3
+// --env Rask:Storage:S3:Bucket=... (and the keys beside it), or Rask__Storage__Provider=Azure. The routes that
 // serve the links are mapped further down, by app.MapRaskStorage().
 builder.Services.AddRaskStorage<AppDbContext>();
 
@@ -178,7 +178,7 @@ builder.Services.AddRaskSqliteSnapshots();
 // your database (`rask deploy` sets Rask__ConnectionStrings__Logs to a path on that volume).
 // Tip: an EF Core app logs every SQL command at Information, which will dominate the store
 // on the default settings. Either raise the floor for that category in Logging:LogLevel, or
-// add "Microsoft.EntityFrameworkCore.Database" to Rask:Logging:ExcludedCategories.
+// add "Microsoft.EntityFrameworkCore.Database" to Rask:Logs:ExcludedCategories.
 builder.Services.AddRaskLogging();
 
 // rask:end

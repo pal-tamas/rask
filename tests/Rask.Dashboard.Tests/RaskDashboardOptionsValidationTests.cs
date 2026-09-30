@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 namespace Rask.Dashboard.Tests;
 
 /// <summary>
-///     A bad <c>Rask:Dashboard</c> value fails when the options are built, naming the key it came from.
+///     A bad <c>Rask:Ops</c> value fails when the options are built, naming the key it came from.
 /// </summary>
 public sealed class RaskDashboardOptionsValidationTests
 {
@@ -18,7 +18,7 @@ public sealed class RaskDashboardOptionsValidationTests
         var error = Assert.Throws<OptionsValidationException>(
             () => provider.GetRequiredService<IOptions<RaskDashboardOptions>>().Value);
 
-        Assert.Contains("Rask:Dashboard:PageSize must be at least 1.", error.Failures);
+        Assert.Contains("Rask:Ops:PageSize must be at least 1.", error.Failures);
     }
 
     [Fact]
@@ -38,9 +38,9 @@ public sealed class RaskDashboardOptionsValidationTests
 
         Assert.Equal(
             [
-                "Rask:Dashboard:RefreshInterval must be positive.",
-                "Rask:Dashboard:MaxPollDuration cannot be negative.",
-                "Rask:Dashboard:LogBufferSize must be at least 1.",
+                "Rask:Ops:RefreshInterval must be positive.",
+                "Rask:Ops:MaxPollDuration cannot be negative.",
+                "Rask:Ops:LogBufferSize must be at least 1.",
             ],
             error.Failures);
     }

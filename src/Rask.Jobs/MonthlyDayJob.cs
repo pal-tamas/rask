@@ -1,6 +1,6 @@
 namespace Rask.Background;
 
-/// <summary>A monthly job with its date chosen: <c>.At(6, 00)</c> finishes it.</summary>
+/// <summary>A monthly job with its date chosen: <c>.At(6, 0)</c> finishes it.</summary>
 /// <param name="job">The job being scheduled.</param>
 /// <param name="day">The day of the month it runs on.</param>
 public readonly struct MonthlyDayJob(RecurringJob job, int day)

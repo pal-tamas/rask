@@ -1,6 +1,6 @@
 namespace Rask.Background;
 
-/// <summary>A weekly job with its day chosen: <c>.At(9, 00)</c> finishes it.</summary>
+/// <summary>A weekly job with its day chosen: <c>.At(9, 0)</c> finishes it.</summary>
 /// <param name="job">The job being scheduled.</param>
 /// <param name="day">The weekday it runs on.</param>
 public readonly struct WeeklyDayJob(RecurringJob job, DayOfWeek day)

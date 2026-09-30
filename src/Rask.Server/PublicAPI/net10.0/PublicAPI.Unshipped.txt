@@ -125,8 +125,6 @@ Rask.RaskAppOptions.HealthPath.set -> void
 Rask.RaskAppOptions.MigrateOnStart.get -> bool
 Rask.RaskAppOptions.MigrateOnStart.set -> void
 Rask.RaskAppOptions.Jobs.get -> Rask.Battery<Rask.Background.JobsOptions!>!
-Rask.RaskAppOptions.Live.get -> System.Action<Rask.Core.Live.RaskLiveOptions!>?
-Rask.RaskAppOptions.Live.set -> void
 Rask.RaskAppOptions.Logs.get -> Rask.Battery<Rask.Logging.RaskLoggingOptions!>!
 Rask.RaskAppOptions.Mail.get -> Rask.Battery<Rask.Mailing.MailOptions!>!
 Rask.RaskAppOptions.Ops.get -> Rask.Battery!
@@ -136,8 +134,6 @@ Rask.RaskAppOptions.Pwa.get -> Rask.Battery<Rask.Core.Browser.WebAppManifest!>!
 Rask.RaskAppOptions.RaskAppOptions() -> void
 Rask.RaskAppOptions.RunBeforeDatabaseOpensAsync.get -> System.Func<System.IServiceProvider!, System.Threading.Tasks.Task!>?
 Rask.RaskAppOptions.RunBeforeDatabaseOpensAsync.set -> void
-Rask.RaskAppOptions.Server.get -> System.Action<Rask.Server.RaskServerOptions!>?
-Rask.RaskAppOptions.Server.set -> void
 Rask.RaskAppOptions.Snapshots.get -> Rask.Battery<Rask.SQLite.Snapshots.SqliteSnapshotOptions!>!
 Rask.RaskAppOptions.Storage.get -> Rask.Battery<Rask.Storage.StorageOptions!>!
 Rask.RaskAppOptions.Validation.get -> Rask.Battery!
@@ -161,3 +157,14 @@ static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TE
 static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, System.Func<TInput>! input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
 static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, TInput input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
 Rask.RaskAppOptions.Toasts.get -> Rask.ToastOptions!
+Rask.Configurable<TOptions>
+Rask.Configurable<TOptions>.Configurable() -> void
+Rask.Configurable<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Configurable<TOptions!>!
+Rask.JobsBattery
+Rask.JobsBattery.extension(Rask.Battery<Rask.Background.JobsOptions!>!)
+Rask.JobsBattery.extension(Rask.Battery<Rask.Background.JobsOptions!>!).Run<TJob>() -> Rask.Background.RecurringJob!
+Rask.JobsBattery.extension(Rask.Battery<Rask.Background.JobsOptions!>!).Run<TJob>(System.Func<TJob>! make) -> Rask.Background.RecurringJob!
+Rask.RaskAppOptions.Live.get -> Rask.Configurable<Rask.Core.Live.RaskLiveOptions!>!
+Rask.RaskAppOptions.Server.get -> Rask.Configurable<Rask.Server.RaskServerOptions!>!
+static Rask.JobsBattery.Run<TJob>(this Rask.Battery<Rask.Background.JobsOptions!>! jobs) -> Rask.Background.RecurringJob!
+static Rask.JobsBattery.Run<TJob>(this Rask.Battery<Rask.Background.JobsOptions!>! jobs, System.Func<TJob>! make) -> Rask.Background.RecurringJob!

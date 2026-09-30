@@ -346,7 +346,7 @@ The rest of `StorageOptions` binds the same way — `AllowedTypes` (above), `Orp
 `SweepInterval` (see [the sweep](#the-orphan-sweep)) — or is set in code. The options are validated when the
 app starts, so a bad value stops the boot, naming `Rask:Storage` — not the first upload in production.
 
-Secrets go the way every other secret does: `rask deploy --env Rask__Storage__S3__SecretAccessKey=…`, remembered by
+Secrets go the way every other secret does: `rask deploy --env Rask:Storage:S3:SecretAccessKey=…`, remembered by
 name and never by value (see [secrets](secrets.md)).
 
 ## Providers
@@ -379,12 +379,12 @@ One provider covers every store that speaks the S3 API. Requests are signed with
 | Google Cloud Storage | `https://storage.googleapis.com` | Interoperability HMAC keys, not a service-account key file. |
 
 ```bash
-rask deploy --env Rask__Storage__Provider=S3 \
-            --env Rask__Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
-            --env Rask__Storage__S3__Bucket=shop-files \
-            --env Rask__Storage__S3__Region=auto \
-            --env Rask__Storage__S3__AccessKeyId=… \
-            --env Rask__Storage__S3__SecretAccessKey=…
+rask deploy --env Rask:Storage:Provider=S3 \
+            --env Rask:Storage:S3:ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
+            --env Rask:Storage:S3:Bucket=shop-files \
+            --env Rask:Storage:S3:Region=auto \
+            --env Rask:Storage:S3:AccessKeyId=… \
+            --env Rask:Storage:S3:SecretAccessKey=…
 ```
 
 Temporary URLs here are presigned by the provider, so downloads go straight from the bucket.

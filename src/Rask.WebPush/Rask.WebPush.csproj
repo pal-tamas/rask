@@ -30,7 +30,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
   </ItemGroup>
 
-  <!-- WebPushOptions binds Rask:WebPush. The configuration binding source generator writes that bind at compile
+  <!-- WebPushOptions binds Rask:Push. The configuration binding source generator writes that bind at compile
        time, so no reflection binder runs; the SDK leaves it off unless a project asks. -->
   <PropertyGroup>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>

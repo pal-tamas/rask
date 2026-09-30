@@ -40,7 +40,7 @@ is created on first use, so there is no migration to add. Every option is config
 }
 ```
 
-A callback — `AddRaskLogging(o => …)` — runs after the `Rask:Logging` section and wins.
+A callback — `AddRaskLogging(o => …)` — runs after the `Rask:Logs` section and wins.
 
 ```csharp
 // Read it back from your own code, with nothing injected.

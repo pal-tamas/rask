@@ -198,8 +198,8 @@ internal static partial class ProjectGenerator
             steps.Append("appsettings.Development.json. It is gitignored: the private key signs every push you\n");
             steps.Append("send, so it never belongs in the repository. Nothing else to do to push locally.\n");
             steps.Append("\nDeployed, both keys come from the environment — give production a pair of its own:\n");
-            steps.Append("  rask deploy --env \"Rask__WebPush__VapidKeys__PublicKey=<public>\" \\\n");
-            steps.Append("              --env \"Rask__WebPush__VapidKeys__PrivateKey=<private>\"\n");
+            steps.Append("  rask deploy --env \"Rask:Push:VapidKeys:PublicKey=<public>\" \\\n");
+            steps.Append("              --env \"Rask:Push:VapidKeys:PrivateKey=<private>\"\n");
             steps.Append("  (VapidKeys.Generate() returns a fresh pair. Replacing a pair unsubscribes\n");
             steps.Append("   everyone already subscribed to the old one.)\n");
         }

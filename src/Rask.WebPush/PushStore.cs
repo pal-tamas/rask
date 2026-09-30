@@ -175,9 +175,9 @@ internal sealed partial class PushStore<TContext>(
         catch (InvalidOperationException ex)
         {
             throw new InvalidOperationException(
-                "Web Push cannot send: " + ex.Message + " Set Rask:WebPush:VapidKeys:PublicKey and PrivateKey — "
+                "Web Push cannot send: " + ex.Message + " Set Rask:Push:VapidKeys:PublicKey and PrivateKey — "
                 + "VapidKeys.Generate() mints a pair, and `rask new` writes one to appsettings.Development.json — "
-                + "and Rask:WebPush:Subject, a mailto: or https: contact.",
+                + "and Rask:Push:Subject, a mailto: or https: contact.",
                 ex);
         }
     }

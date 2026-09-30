@@ -19,7 +19,7 @@ second is an entry in the list that is already there:
 The first entry is the default a visitor falls back to. **That list is where languages are configured** —
 there is no CLI flag for it, because the file is where the answer lives and stays
 ([#854](https://github.com/pal-tamas/rask/issues/854)). In the environment it is one variable per entry
-(`Rask__Culture__SupportedCultures__0=en`).
+(`Rask__Cultures__0=en`).
 
 A `configureCulture` callback on `AddRask` still works and runs after the section. The list is appended to
 rather than replaced, so a language added in code joins the configured ones:
@@ -209,7 +209,7 @@ public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 `SetAsync` switches the session, remembers the choice, and repaints. No reload.
 
 **No template scaffolds this, deliberately** ([#854](https://github.com/pal-tamas/rask/issues/854)).
-A new project starts with English in `Rask:Culture:SupportedCultures`; adding a language is another
+A new project starts with English in `Rask:Cultures`; adding a language is another
 entry there. That is the whole configuration surface — there is
 no `--culture` flag, because a flag would only restate what the file already says, and it would say it
 once at scaffold time while the file goes on being the truth.

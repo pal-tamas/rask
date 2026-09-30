@@ -73,7 +73,7 @@ The csproj sets `RaskLitestreamDownload=false`: the binary belongs in the Docker
 Set the replica when you deploy:
 
 ```bash
-rask deploy --env "Rask__Litestream__ReplicaUrl=s3://my-bucket/shop"
+rask deploy --env "Rask:Litestream:ReplicaUrl=s3://my-bucket/shop"
 ```
 
 Now the box is **disposable**: if it dies, a fresh box restores `app.db` from the replica on startup and

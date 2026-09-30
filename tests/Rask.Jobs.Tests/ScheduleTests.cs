@@ -173,7 +173,7 @@ public sealed class ScheduleTests
         var result = new JobsOptionsValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(".Daily.At(3, 00)", result.FailureMessage, StringComparison.Ordinal);
+        Assert.Contains(".Daily.At(3, 0)", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]

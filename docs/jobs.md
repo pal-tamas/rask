@@ -39,14 +39,15 @@ builder.Services.AddRaskCqrs();
 builder.Services.AddRaskJobs<AppDbContext>(o =>
 {
     o.Run<PurgeStaleCarts>().Every(1.Hour);
-    o.Run<NightlyBackup>().Daily.At(3, 00);
-    o.Run<WeeklyDigest>().Weekly.On(DayOfWeek.Monday).At(9, 00);
-    o.Run<CloseBooks>().Monthly.On(1).At(6, 00);
+    o.Run<NightlyBackup>().Daily.At(3, 0);
+    o.Run<WeeklyDigest>().Weekly.On(DayOfWeek.Monday).At(9, 0);
+    o.Run<CloseBooks>().Monthly.On(1).At(6, 0);
 });
 
 builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=app.db"));
 ```
 
+With `RaskApp` the same steps go straight on the battery — `app.Configure(c => c.Jobs.Run<PurgeStaleCarts>().Every(1.Hour))`.
 A schedule is code, so `Run<TJob>()` stays in the callback. The plain values live in `Rask:Jobs`, which the
 callback runs after:
 
@@ -57,7 +58,7 @@ callback runs after:
     "Jobs": {
       "PollInterval": "00:00:05",
       "MaxAttempts": 25,
-      "TimeZone": "Europe/Budapest"   // what ".Daily.At(3, 00)" means; UTC unless you say otherwise
+      "TimeZone": "Europe/Budapest"   // what ".Daily.At(3, 0)" means; UTC unless you say otherwise
     }
   }
 }
@@ -94,8 +95,8 @@ await Jobs.Enqueue(new CloseBooks()).At(monthEnd);                 // at a momen
   Each job's outcome is saved on its own, so a row edited or deleted underneath the drain costs that one row
   rather than re-running everything the batch had already executed. Completed jobs are purged after
   `RetentionPeriod` (default 7 days; `TimeSpan.Zero` keeps them).
-- **Recurring** — `o.Run<T>()` plus a cadence (`.Every(1.Hour)`, `.Daily.At(3, 00)`,
-  `.Weekly.On(DayOfWeek.Monday).At(9, 00)`, `.Monthly.On(1).At(6, 00)`) enqueues a fresh job on each tick,
+- **Recurring** — `o.Run<T>()` plus a cadence (`.Every(1.Hour)`, `.Daily.At(3, 0)`,
+  `.Weekly.On(DayOfWeek.Monday).At(9, 0)`, `.Monthly.On(1).At(6, 0)`) enqueues a fresh job on each tick,
   tracked durably in `RecurringJobState` under the job's type name — `.Named("purge-carts")` overrides that,
   and two schedules for one job need it. A restart never double-runs a tick, and an interval job that fell
   more than one interval behind restarts from now rather than bursting catch-up runs. A calendar time is read

@@ -290,9 +290,9 @@ A subscription the push service says is gone is dropped as the send finds it. A 
 subscription to `POST /_rask/push/subscribe` instead of calling `Push.Subscribe`, and reads the public key from
 `GET /_rask/push/key`.
 
-The keys come from `Rask:WebPush`: `rask new` wrote a development pair to the gitignored
+The keys come from `Rask:Push`: `rask new` wrote a development pair to the gitignored
 `appsettings.Development.json`, and deployed they come from the environment
-(`Rask__WebPush__VapidKeys__PublicKey` / `__PrivateKey`). The contact is `Rask:WebPush:Subject`, a `mailto:` or
+(`Rask__Push__VapidKeys__PublicKey` / `__PrivateKey`). The contact is `Rask:Push:Subject`, a `mailto:` or
 `https:` address. `VapidKeys.Generate()` mints a pair; never regenerate a live one.
 
 ---

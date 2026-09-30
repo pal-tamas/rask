@@ -69,17 +69,17 @@ var keys = VapidKeys.Generate();   // dotnet-run once; persist keys.PublicKey / 
 
 ```jsonc
 // appsettings.json — the contact is not a secret
-{ "Rask": { "WebPush": { "Subject": "mailto:admin@example.com" } } }
+{ "Rask": { "Push": { "Subject": "mailto:admin@example.com" } } }
 
 // appsettings.Development.json — gitignored, so the private key stays out of the repository
-{ "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } } }
+{ "Rask": { "Push": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } } }
 ```
 
 **Deployed, the keys come from the environment**, and production should have a pair of its own:
 
 ```bash
-rask deploy --env "Rask__WebPush__VapidKeys__PublicKey=<public>" \
-            --env "Rask__WebPush__VapidKeys__PrivateKey=<private>"
+rask deploy --env "Rask:Push:VapidKeys:PublicKey=<public>" \
+            --env "Rask:Push:VapidKeys:PrivateKey=<private>"
 ```
 
 The table and the subscribe endpoints work before any keys exist — a fresh clone of a scaffolded app has

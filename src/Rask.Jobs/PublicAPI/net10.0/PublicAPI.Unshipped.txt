@@ -313,3 +313,4 @@ static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.Rec
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Single(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
 static Rask.Background.RecurringJobStateReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+Rask.Background.JobsOptions.Adopt(Rask.Background.RecurringJob! job) -> void

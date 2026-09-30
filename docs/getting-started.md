@@ -64,7 +64,7 @@ They emit the same starter pages, so the rest of this guide applies whichever yo
 [PWA](pwa.md) with Web Push, a Dockerfile for [`rask deploy`](cli.md), and the localization machinery —
 wiring, not sample pages. `wasm` takes the PWA and the Dockerfile; the rest need a host to put a
 database in. Languages are configured rather than chosen on the command line — a server app starts
-with English in `appsettings.json` (`Rask:Culture:SupportedCultures`), and adding another is an entry in
+with English in `appsettings.json` (`Rask:Cultures`), and adding another is an entry in
 that list. A browser-WASM
 app registers none, because a language there means shipping ICU: roughly a megabyte of extra download
 that an app formatting nothing culture-sensitive should not pay by default. See

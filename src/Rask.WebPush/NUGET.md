@@ -28,9 +28,9 @@ A WebAssembly client or a SPA posts it to the endpoints `RaskApp` maps: `GET /_r
 
 ## Keys
 
-The key pair and the contact come from `Rask:WebPush`. A `rask new` app already has a development pair in
+The key pair and the contact come from `Rask:Push`. A `rask new` app already has a development pair in
 its gitignored `appsettings.Development.json`; deployed, both keys come from the environment
-(`Rask__WebPush__VapidKeys__PublicKey`, `…__PrivateKey`). The table and the subscribe endpoints work without
+(`Rask__Push__VapidKeys__PublicKey`, `…__PrivateKey`). The table and the subscribe endpoints work without
 keys; sending names the settings it is missing.
 
 ## Test

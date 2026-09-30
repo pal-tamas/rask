@@ -61,8 +61,8 @@ public sealed class DashboardAuthorizationTests
     [Fact]
     public async Task AllowAnonymousAccess_from_configuration_opens_it_the_same_way()
     {
-        // Rask:Dashboard is read like every other section, so this switch is reachable from an environment variable
-        // (Rask__Dashboard__AllowAnonymousAccess) — which is exactly why the deploy environment is guarded like code.
+        // Rask:Ops is read like every other section, so this switch is reachable from an environment variable
+        // (Rask__Ops__AllowAnonymousAccess) — which is exactly why the deploy environment is guarded like code.
         await using var h = new DashboardHarness(
             environment: Environments.Production,
             extra: services => services.AddSingleton(Configuration("true")));
@@ -86,7 +86,7 @@ public sealed class DashboardAuthorizationTests
         new Microsoft.Extensions.Configuration.ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Rask:Dashboard:AllowAnonymousAccess"] = allowAnonymousAccess,
+                ["Rask:Ops:AllowAnonymousAccess"] = allowAnonymousAccess,
             })
             .Build();
 

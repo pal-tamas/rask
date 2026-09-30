@@ -108,8 +108,8 @@ public sealed class PushBatteryTests
         var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await harness.Push.Send(WebPushMessage.Text("Hello"), TestContext.Current.CancellationToken));
 
-        Assert.Contains("Rask:WebPush:VapidKeys:PublicKey", error.Message, StringComparison.Ordinal);
-        Assert.Contains("Rask:WebPush:Subject", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Rask:Push:VapidKeys:PublicKey", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Rask:Push:Subject", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

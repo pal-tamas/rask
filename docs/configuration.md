@@ -1,7 +1,7 @@
 # Configuration
 
 **Every Rask setting lives in `appsettings.json`, under `Rask`.** Each part reads its own section when the
-host builds its options — the host reads `Rask:Live`, `Rask:Server`, `Rask:Culture` and `Rask:Uploads`, the
+host builds its options — the host reads `Rask:Live`, `Rask:Server`, `Rask:Cultures` and `Rask:Uploads`, the
 mail battery reads `Rask:Mail`, and so on — so `Program.cs` says only how the app differs from the default,
 and `appsettings.json` says how it is tuned:
 
@@ -65,7 +65,7 @@ Rask__Server__SessionGracePeriod=00:00:20
 ```
 
 That is how a deployment overrides a committed value, and how a secret reaches the app without being in
-source: `rask deploy --env "Rask__Mail__Smtp__Password=…"`. See [Secrets](secrets.md).
+source: `rask deploy --env "Rask:Mail:Smtp:Password=…"`. See [Secrets](secrets.md).
 
 ## Value formats
 
@@ -75,10 +75,10 @@ source: `rask deploy --env "Rask__Mail__Smtp__Password=…"`. See [Secrets](secr
 | Enum | The member's name | `"DisabledFull"`, `"Warning"` |
 | `bool` | `true` / `false` | `"SessionResume": false` |
 | Number | A JSON number | `"MaxSessions": 1000` |
-| List | A JSON array, or an index per key | `"SupportedCultures": [ "en", "hu" ]`, `Rask__Culture__SupportedCultures__0=en` |
+| List | A JSON array, or an index per key | `"SupportedCultures": [ "en", "hu" ]`, `Rask__Cultures__0=en` |
 
 **A list that already has entries is appended to, not replaced.** This matters for three lists:
-`Rask:Culture:SupportedCultures`, `Rask:Logging:ExcludedCategories` and `Rask:Spa:ImmutablePathPrefixes`.
+`Rask:Cultures`, `Rask:Logs:ExcludedCategories` and `Rask:Spa:ImmutablePathPrefixes`.
 Configuration adds to whatever the defaults (or an earlier source) put there; index `0` in configuration is
 the first entry *configuration* adds, not the first entry of the list. To remove a default entry, do it in
 the callback.
@@ -128,13 +128,13 @@ A few things to know:
 | `Rask:BehindProxy` | — | `Rask.Server` | `true` makes `RaskApp` trust `X-Forwarded-For` / `X-Forwarded-Proto`, so `Request.Scheme` and the client IP are the visitor's rather than the proxy's. Off by default, because trusting them from an arbitrary client lets it forge its own IP. `rask deploy --domain` sets `Rask__BehindProxy=true`, since Caddy is in front; port mode leaves it unset. In code: `app.Configure(c => c.BehindProxy = true)`. |
 | `Rask:Live` | `RaskLiveOptions` | `Rask.Server` | `DiffMode`, `MaxSessions`, `MinifyScopedAssets`, `PathBase`. A non-empty `MapRask<App>(pathBase:)` argument wins over `PathBase`. [Details](#live-runtime--rasklive). |
 | `Rask:Server` | `RaskServerOptions` | `Rask.Server` | WebSocket caps, grace periods, resume, shutdown drain, and the initial render's `QuiescenceTimeout`. [Details](#server-host--raskserver). |
-| `Rask:Culture` | `RaskCultureOptions` | `Rask.Server` | `SupportedCultures` (the first is the default; appended to), negotiation switches. See [localization](localization.md). |
+| `Rask:Cultures` | `RaskCultureOptions` | `Rask.Server` | `SupportedCultures` (the first is the default; appended to), negotiation switches. See [localization](localization.md). |
 | `Rask:Uploads` | `RaskUploadOptions` | `Rask.Server` | [File uploads](#file-uploads--raskuploads). |
 | `Rask:DataProtection:KeyPath` | — | `Rask.Server` | Where the key ring persists. See [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy). |
 | `Rask:Auth` | `AuthOptions` | `Rask.Auth` | `Bearer`, `BearerSigningKey`, `BearerLifetime`, `FirstRunToken`, `CookieName`, the page paths, password and lockout rules. Keep `BearerSigningKey` in user secrets or the environment. See [authentication](authentication.md). |
 | `Rask:Api` | `ApiOptions` | `Rask.Api` | `NotFound`, `Controllers`. |
 | `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization` and the relay limits. `AuthorizeRoom` is code-only. |
-| `Rask:Dashboard` | `RaskDashboardOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
+| `Rask:Ops` | `RaskDashboardOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `MapRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [TypeScript front ends](spa.md). |
 | `Rask:Meta` | `MetaHostingOptions` | `Rask.Meta.Hosting` | `Framework` by the build's names (`nuxt`, `nextjs`, `tanstack-start`, `solidstart`, `sveltekit`, `analog`). Precedence: build metadata, then this section, then the callback, then a `rask dev` session's dev server. See [meta frameworks](meta.md). |
 | `Rask:Data` | `RaskDataOptions` | `Rask.Data` | See [Rask.Data](data.md). |
@@ -150,16 +150,16 @@ A few things to know:
 | `Rask:Cache` | `CacheOptions` | `Rask.Cache` | See [cache](cache.md). |
 | `Rask:Jobs` | `JobsOptions` | `Rask.Jobs` | `Run<T>()` is code-only. See [jobs](jobs.md). |
 | `Rask:ConnectionStrings:Logs` | — | `Rask.Logging` | The log store's own file. |
-| `Rask:Logging` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |
+| `Rask:Logs` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |
 | `Rask:Mail` | `MailOptions` | `Rask.Mail` | Any `Rask:Mail:Smtp` key turns SMTP delivery on; put `Rask__Mail__Smtp__Password` in the environment. See [mail](mail.md). |
 | `Rask:Outbox` | `OutboxOptions` | `Rask.Outbox` | See [outbox](outbox.md). |
-| `Rask:WebPush` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
+| `Rask:Push` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
 | `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `NotificationPublishStrategy`, `StopOnFirstNotificationException`, `ValidateRequests`, and the subscription knobs `ReplayCapacity`, `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
 | `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits, and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
 
 ### Guard the environment like code
 
-Configuration can turn things *off* as easily as on. `Rask:Dashboard:AllowAnonymousAccess`,
+Configuration can turn things *off* as easily as on. `Rask:Ops:AllowAnonymousAccess`,
 `Rask:Signaling:RequireAuthorization` and `Rask:Cqrs:Server:RequireAuthenticatedUser` are all settable from
 an environment variable, which is the point of them being configuration — and it means whoever can set the
 deploy environment's variables can open the operator console to the internet. Treat the deploy environment
@@ -218,8 +218,8 @@ refuses the start. See [choosing the database](data.md#choosing-the-database).
 > | `ConnectionStrings:Logs` | `Rask:ConnectionStrings:Logs` |
 > | `Litestream:ReplicaUrl` | `Rask:Litestream:ReplicaUrl` |
 > | `Sqlite:SnapshotDirectory` | `Rask:Snapshots:DestinationDirectory` |
-> | `WebPush:PublicKey` / `WebPush:PrivateKey` | `Rask:WebPush:VapidKeys:PublicKey` / `Rask:WebPush:VapidKeys:PrivateKey` |
-> | `WebPush:Subject` | `Rask:WebPush:Subject` |
+> | `WebPush:PublicKey` / `WebPush:PrivateKey` | `Rask:Push:VapidKeys:PublicKey` / `Rask:Push:VapidKeys:PrivateKey` |
+> | `WebPush:Subject` | `Rask:Push:Subject` |
 > | `Mail:PickupDirectory` | `Rask:Mail:PickupDirectory` |
 > | `Rask:<ServerOption>` (e.g. `Rask:MaxInboundFramesPerSecond`) | `Rask:Server:<ServerOption>` |
 > | `Storage:<StorageOption>` (e.g. `Storage:Provider`, `Storage:S3:Bucket`) | `Rask:Storage:<StorageOption>` |

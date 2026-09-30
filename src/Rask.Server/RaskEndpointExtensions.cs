@@ -302,18 +302,34 @@ public static partial class RaskEndpointExtensions
         AddVisitorServices(services, configureCulture);
     }
 
+    // `"Cultures": ["en", "hu"]` is the list itself — the same word as `c.Cultures` in code. The named settings sit
+    // beside it (`Rask__Cultures__0=en`, `Rask__Cultures__UseCookie=false`), or the whole thing is written as an
+    // object: `"Cultures": { "SupportedCultures": [...], "DefaultCulture": "hu" }`.
+    private static void BindCultures(IConfigurationSection section, RaskCultureOptions options)
+    {
+        section.Bind(options);
+        foreach (var entry in section.GetChildren())
+        {
+            if (int.TryParse(entry.Key, NumberStyles.None, CultureInfo.InvariantCulture, out _)
+                && !string.IsNullOrWhiteSpace(entry.Value))
+            {
+                options.SupportedCultures.Add(entry.Value);
+            }
+        }
+    }
+
     private static void AddVisitorServices(IServiceCollection services, Action<RaskCultureOptions>? configureCulture)
     {
         // Scoped: a DI scope on the server IS a live session, and so a visitor. Registered even when
         // the app configured nothing, because IRaskCulture is a host contract; without a configured
         // culture this is inert. Negotiating one from the request arrives in a later change.
         //
-        // The options bind from Rask:Culture and then configureCulture, registered HERE rather than inside
+        // The options bind from Rask:Cultures and then configureCulture, registered HERE rather than inside
         // Core's AddRaskCulture: Core is shared with the browser, which has no configuration to bind. Core's
         // own TryAddSingleton of the options is then a no-op, and so is its IsEnabled switch — which is read
         // off the built options by MapRask instead, since nothing is built yet.
-        services.AddRaskOptions<RaskCultureOptions>("Rask:Culture", static (section, o) => section.Bind(o), configureCulture,
-            validate: null);
+        services.AddRaskOptions<RaskCultureOptions>("Rask:Cultures", static (section, o) => BindCultures(section, o),
+            configureCulture, validate: null);
         services.AddRaskCulture(configure: null, ServiceLifetime.Scoped);
         // Typed browser/device API wrappers — the transport-agnostic Core set, Scoped (one per WebSocket
         // session). Registered via the shared helper (RaskBrowserApis) so the interface → impl list lives in
