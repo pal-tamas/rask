@@ -55,10 +55,10 @@ public sealed partial class UiKitActionsDemo : Component
                 Ui.Button.Key("dash").Warning.Dash["Dash"],
                 Ui.Button.Key("ghost").Ghost["Ghost"],
                 Ui.Button.Key("link").Variant(Ui.Variant.Link)["Link"],
-                Ui.Button.Key("wide").Wide(true)["Wide"],
-                Ui.Button.Key("circle").AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.Close)],
-                Ui.Button.Key("square").AccessibleLabel("Add").Square(true)[Ui.Icon.Name(Ui.IconName.Plus)],
-                Ui.Button.Key("disabled").Disabled(true)["Disabled"]
+                Ui.Button.Key("wide").Wide()["Wide"],
+                Ui.Button.Key("circle").AccessibleLabel("Close").Circle()[Ui.Icon.Name(Ui.IconName.Close)],
+                Ui.Button.Key("square").AccessibleLabel("Add").Square()[Ui.Icon.Name(Ui.IconName.Plus)],
+                Ui.Button.Key("disabled").Disabled()["Disabled"]
             ]);
 
     private Component PendingButtonSection() =>
@@ -93,7 +93,7 @@ public sealed partial class UiKitActionsDemo : Component
                     .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation components"],
                 Ui.Link.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))["Data display components"],
                 Ui.Button.Key("to-github").Ghost
-                    .Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]
+                    .Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]
             ]);
 
     private Component DropdownSection() =>
@@ -127,7 +127,7 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuSeparator.Key("sep"),
                     Ui.MenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
                         .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
-                    Ui.MenuItem.Key("export").Text("Export").Disabled(true)
+                    Ui.MenuItem.Key("export").Text("Export").Disabled()
                 ]
             ]);
 
@@ -164,7 +164,7 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuGroup.Title("Invoices")[
                         Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus)
                             .OnClick(() => { _lastAction = "started a new invoice"; }),
-                        Ui.MenuItem.Text("Export all").Icon(Ui.IconName.Download).Disabled(true)
+                        Ui.MenuItem.Text("Export all").Icon(Ui.IconName.Download).Disabled()
                     ],
                     Ui.MenuSeparator,
                     Ui.MenuItem.Text("Copy invoice link").Icon(Ui.IconName.Clipboard)

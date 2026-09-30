@@ -33,14 +33,14 @@ public sealed partial class NestedListIndexerDemo : Component
                 Td.Style("width: 5rem;")[
                     Ui.Button
                         .AccessibleLabel("Move up")
-                        .Square(true)
+                        .Square()
                         .Outline
                         .Class("me-1")
                         .Disabled(i == 0)
                         .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[Ui.Icon.Name(Ui.IconName.ArrowUp)],
                     Ui.Button
                         .AccessibleLabel("Remove SKU")
-                        .Square(true)
+                        .Square()
                         .Error
                         .Outline
                         .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.Close)]

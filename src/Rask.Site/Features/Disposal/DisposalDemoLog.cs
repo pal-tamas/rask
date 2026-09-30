@@ -31,7 +31,7 @@ internal sealed partial class DisposalDemoLog : Component
             Entries.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
                 : Ui.List
-                    .Ordered(true)
+                    .Ordered()
                     .Id(ListId)[Entries.Select((line, i) => Li
                         .Key(i)
                         .Class("ps-2")[Code.Class("text-sm")[line]]).ToArray()]

@@ -9,6 +9,28 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A flag turns on with no argument, a class list comes in parts, and a forwarded event is awaited.** Every
+  `bool` step has a twin without its argument, and `Class` takes several names, leaving out a null or blank one —
+  so a conditional class no longer means string arithmetic, which is how the site's ResizeObserver demo shipped
+  `class="w-fullp-4"`. An event handler may now return a `ValueTask`, which is what `Invoke` returns, so a child
+  hands its click to its own event without `async`/`await` or `.AsTask()`:
+
+  ```csharp
+  // before
+  Ui.Button.Square(true).Disabled(true)["Go"]
+  Div.Class((_wide ? "w-full" : "w-1/2") + " p-4 rounded")
+  Button.OnClick(async () => await OnRate.Invoke(i))["★"]
+
+  // after
+  Ui.Button.Square().Disabled()["Go"]
+  Div.Class("p-4 rounded", _wide ? "w-full" : "w-1/2")
+  Button.OnClick(() => OnRate.Invoke(i))["★"]
+  ```
+
+  That last line used to compile too — as an `Action` that dropped the `ValueTask` unawaited, so a slow or failing
+  handler ran detached from the render and its exception went unobserved. An `async` lambda still binds to the
+  `Task` overload it always did.
+
 - **The docs, samples and scaffold say only true things, in the short words.** Kit calls use the short forms
   that already existed — `Ui.Button.Primary.Submit`, `Ui.Alert.Error`, `.Ghost.Sm` — instead of
   `Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)` (518 sites across the docs, `llms.txt`, the

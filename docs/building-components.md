@@ -15,6 +15,16 @@ The `[…]` is an indexer, not a collection initializer, so the last child takes
 The name is the component. `Div` *is* a `Div`, so `.` shows every property it has — its own and the whole
 inherited HTML surface. Children go in the indexer.
 
+A `bool` step turns on with no argument, and `Class` takes its names in parts — a null or blank part is left
+out, so a conditional class needs no string arithmetic:
+
+```csharp
+Button.Disabled()["Save"]                                 // Disabled(true)
+Button.Disabled(_saving)["Save"]                          // decided at run time
+Div.Class("p-4 rounded", _wide ? "w-full" : "w-1/2")      // "p-4 rounded w-full"
+Li.Class("item", _active ? "active" : null)
+```
+
 ## Components that need something first
 
 Some components cannot exist until you have told them something. A form control does not know what type it
@@ -117,7 +127,8 @@ the call as invoking it (CS1593) and never reach the step. There is no `OnPickAs
 Declare an event as `Action<T>` or `Func<T, Task>` and [RASK096](diagnostics.md#rask096) stops the build with
 `Declare 'OnPick' as Callback<int>, not Action<int>` — its quick-fix rewrites the type and the `?.Invoke` calls.
 
-Fire an event with `await OnPick.Invoke();`. An unset event does nothing, so there is no null check, and a
+Fire an event with `await OnPick.Invoke();`, or hand a child's click straight on to it —
+`Button.OnClick(() => OnRate.Invoke(n))` — which is awaited like any other handler. An unset event does nothing, so there is no null check, and a
 non-nullable `Callback` is never a required step — leave it off the chain and it stays unset. `Invoke` returns a
 `ValueTask` already complete for a synchronous handler, so the sync path never picks up a `Task`. Call a template
 with `Template?.Invoke(item)`.

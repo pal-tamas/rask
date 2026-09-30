@@ -113,7 +113,7 @@ input), and `DirName`. A control of your own forwards them the same way (see
 `ContentType`/`OpenReadStream()`), and constrain the picker with `Accept`, `Multiple`, and `Capture`:
 
 ```csharp
-Input.Of<string>().Type(InputType.File).Accept("image/*").Multiple(true)
+Input.Of<string>().Type(InputType.File).Accept("image/*").Multiple()
      .OnFiles(async files => { foreach (var f in files) await Save(f); })
 ```
 

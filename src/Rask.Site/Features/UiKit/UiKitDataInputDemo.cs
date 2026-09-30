@@ -91,13 +91,13 @@ public sealed partial class UiKitDataInputDemo : Component
                 // around the input, and the label keeps its place above the field: a floating caption rises
                 // through exactly the room the icon now occupies.
                 Ui.Input.Value(_search).Key("search").Label("Search")
-                    .Icon(Ui.IconName.Search).Kbd("⌘K").Clearable(true)
+                    .Icon(Ui.IconName.Search).Kbd("⌘K").Clearable()
                     .Placeholder("Find a package")
                     .OnInput(v => _search = v ?? ""),
                 // AutoSize is CSS — `field-sizing: content` — so the box grows as you type with no runtime at
                 // all, and where an engine has not shipped it the box keeps its Rows and scrolls.
                 Ui.Textarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(2)
-                    .AutoSize(true)
+                    .AutoSize()
                     .Resize(Ui.Resize.None)
                     .Hint("Anything else? The box grows as you type.")
                     .OnChange(v => { _notes = v; }),
@@ -147,8 +147,8 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Options(Countries)
                     .Label("Country")
                     .Placeholder("Search countries")
-                    .Searchable(true)
-                    .Clearable(true)
+                    .Searchable()
+                    .Clearable()
                     .Filter((v, text) =>
                         v.Contains(text, StringComparison.OrdinalIgnoreCase)
                         || Countries.Any(o => string.Equals(o.Value, v, StringComparison.Ordinal)
@@ -176,7 +176,7 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Label("Packages")
                     .Placeholder("Choose packages")
                     .Native(false)
-                    .SelectAll(true)
+                    .SelectAll()
                     .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase))
                     .OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling")
                     .OptionDisabled(v => v is "blazor")
@@ -219,7 +219,7 @@ public sealed partial class UiKitDataInputDemo : Component
                         .Options([("news", "News"), ("releases", "Releases"), ("jobs", "Jobs")])
                         .Label("Email me about")
                         .Layout(Ui.ChoiceLayout.Pills)
-                        .CheckAll(true)
+                        .CheckAll()
                         .OnChange(v => { _topics = [.. v]; }),
                     P.Class("text-sm text-ui-muted").Data(Testid("ui-choice-state"))[
                         _topics.Count == 0
@@ -283,7 +283,7 @@ public sealed partial class UiKitDataInputDemo : Component
             "One input drawn as several. Per-digit boxes need script to move focus, defeat the "
             + "browser's SMS autofill, and drop a pasted code entirely into the first box.",
             Div.Data(Testid("ui-otp")).Class("space-y-2")[
-                Ui.Otp.Key("otp").Value(_code).Length(6).Label("Verification code").Joined(true)
+                Ui.Otp.Key("otp").Value(_code).Length(6).Label("Verification code").Joined()
                     .Hint("Six digits, sent to your phone.")
                     .Primary.OnChange(v => { _code = v; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
@@ -366,11 +366,11 @@ public sealed partial class UiKitDataInputDemo : Component
             + "script. The runtime only marks the area while a file is dragged over it.",
             Div.Data(Testid("ui-dropzone")).Class("max-w-md space-y-2")[
                 Ui.FileInput.Value("").Key("receipts").Label("Receipts").Id("demo-receipts")
-                    .Dropzone(true)
+                    .Dropzone()
                     .Title("Drop receipts here, or click to choose")
                     .Text("PDF or JPG, several at once")
                     .Accept(".pdf,.jpg,.jpeg")
-                    .Multiple(true)
+                    .Multiple()
                     .OnFiles(files =>
                     {
                         _dropped.Clear();

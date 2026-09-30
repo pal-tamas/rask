@@ -6,7 +6,7 @@ grouping, a column chooser, and a card layout on a phone. It lives in [the UI ki
 
 ```csharp
 Ui.DataGrid.Data(_products).RowKey(p => p.Id)[c => [
-    c.Field(p => p.Name).Title("Product").Sortable(true),
+    c.Field(p => p.Name).Title("Product").Sortable(),
     c.Field(p => p.Price).Title("Price").Class("text-right"),
 ]]
 ```
@@ -59,7 +59,7 @@ second name for the same slot is a second thing to get wrong.
 
 ```csharp
 Ui.DataGrid.Data(db.Products).RowKey(p => p.Id).PageSize(25)[c => [
-    c.Field(p => p.Name).Title("Product").Sortable(true),
+    c.Field(p => p.Name).Title("Product").Sortable(),
 ]]
 ```
 

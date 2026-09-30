@@ -12,7 +12,7 @@ public sealed partial class ElementsGroupingDemo : Component
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12")[
                 P.Class("font-semibold mb-1")["Ordered (start=2, reversed)"],
-                Ol.Class("mb-0").Start(2).Reversed(true)[
+                Ol.Class("mb-0").Start(2).Reversed()[
                     Li.Value(2)["Second"], Li["First-ish"], Li["Zeroth-ish"]
                 ]
             ],

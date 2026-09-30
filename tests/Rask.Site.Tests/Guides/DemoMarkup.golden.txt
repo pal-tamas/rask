@@ -1068,7 +1068,7 @@ div .bg-base-100 .border .border-base-300 .p-4 .rounded-xl .shadow-sm .sm:p-5
 div .mb-2 .text-sm .text-ui-muted
 code
 button .btn .btn-outline .btn-primary .mb-2
-div .bg-ui-well .rounded .text-center .w-fullp-4
+div .bg-ui-well .p-4 .rounded .text-center .w-full
 
 === browser-screen ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm

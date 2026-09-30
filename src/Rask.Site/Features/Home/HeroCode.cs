@@ -118,8 +118,8 @@ public sealed partial class HeroCode : Component
                         Ui.Header.Title($"Products ({count.Data})"),
                         Ui.DataGrid.Data(_products).RowKey(p => p.Id)
                             .Label("Products")[c => [
-                                c.Field(p => p.Name).Sortable(true),
-                                c.Field(p => p.Price).Sortable(true),
+                                c.Field(p => p.Name).Sortable(),
+                                c.Field(p => p.Price).Sortable(),
                             ]]
                     ];
                 }

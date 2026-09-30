@@ -26,7 +26,7 @@ public sealed partial class ElementsFormsDemo : Component
             Div.Class("mb-2")[
                 Label.For("fruit").Class("label mb-1")["Favourite"],
                 Select.Of<string>().Id("fruit").Name("fruit").Class("select")[
-                    Optgroup.Label("Fruit")[Option.Value("apple")["Apple"], Option.Value("pear").Selected(true)["Pear"]],
+                    Optgroup.Label("Fruit")[Option.Value("apple")["Apple"], Option.Value("pear").Selected()["Pear"]],
                     Optgroup.Label("Veg")[Option.Value("kale")["Kale"]]
                 ]
             ],

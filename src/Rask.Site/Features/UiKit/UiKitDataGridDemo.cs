@@ -52,10 +52,10 @@ public sealed partial class UiKitDataGridDemo : Component
             + "type. Written as a flat child, a column would have nothing to infer its own lambda from.",
             Div.Data(Testid("ui-grid-basic"))[
                 Ui.DataGrid.Data(Catalog).RowKey(r => r.Id).Zebra(true).Label("Packages")[c => [
-                    c.Field(r => r.Name).Title("Package").Sortable(true),
+                    c.Field(r => r.Name).Title("Package").Sortable(),
                     c.Field(r => r.Channel).Title("Channel")
                         .Cell(r => Ui.Badge.Tone(r.Channel is "stable" ? Ui.Tone.Success : Ui.Tone.Info)[r.Channel]),
-                    c.Field(r => r.Downloads).Title("Downloads").Sortable(true).Class("text-right")
+                    c.Field(r => r.Downloads).Title("Downloads").Sortable().Class("text-right")
                         .Footer(rows => rows.Sum(x => x.Downloads)),
                 ]]
             ]);
@@ -98,8 +98,8 @@ public sealed partial class UiKitDataGridDemo : Component
                     .Detail(r => P.Class("text-sm text-ui-muted")[
                         $"{r.Name} shipped on {r.Shipped:d MMMM yyyy}."
                     ])[c => [
-                        c.Field(r => r.Channel).Title("Channel").Groupable(true),
-                        c.Field(r => r.Name).Title("Package").Sortable(true),
+                        c.Field(r => r.Channel).Title("Channel").Groupable(),
+                        c.Field(r => r.Name).Title("Package").Sortable(),
                         c.Field(r => r.Downloads).Title("Downloads").Class("text-right")
                             .Footer(rows => rows.Sum(x => x.Downloads)),
                     ]]
@@ -120,8 +120,8 @@ public sealed partial class UiKitDataGridDemo : Component
                     .Sort(_sort)
                     .SortDescending(_descending)
                     .OnSortChange(sort => { _sort = sort.Field; _descending = sort.Descending; })[c => [
-                        c.Field(r => r.Name).Title("Package").Sortable(true),
-                        c.Field(r => r.Downloads).Title("Downloads").Sortable(true).Class("text-right"),
+                        c.Field(r => r.Name).Title("Package").Sortable(),
+                        c.Field(r => r.Downloads).Title("Downloads").Sortable().Class("text-right"),
                     ]],
                 P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-grid-controlled-state"))[
                     $"Page {_page + 1}, sorted by {_sort ?? "nothing"} "
@@ -146,7 +146,7 @@ public sealed partial class UiKitDataGridDemo : Component
                     .PageHref(page => PageMeta.LinkTo(Routes.UiKitDataGridPage(Page: page + 1)))
                     .RowTone(r => r.Downloads > 9000 ? Ui.Tone.Success : null)
                     .Toolbar(Ui.Badge.Info[$"{Catalog.Length} packages"])[c => [
-                        c.Field(r => r.Id).Title("#").Mono(true),
+                        c.Field(r => r.Id).Title("#").Mono(),
                         c.Field(r => r.Name).Title("Package"),
                         c.Field(r => r.Channel).Title("Channel").ShowFrom(Ui.Breakpoint.Md),
                         c.Field(r => r.Shipped).Title("Shipped").ShowFrom(Ui.Breakpoint.Lg),

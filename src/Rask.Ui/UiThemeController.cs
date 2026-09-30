@@ -54,7 +54,7 @@ public sealed partial class UiThemeController : Component
 
         if (OnChange.HasValue)
         {
-            button = button.OnClick(() => OnChange.Invoke(Theme).AsTask());
+            button = button.OnClick(() => OnChange.Invoke(Theme));
         }
 
         return button[Span[Label]];

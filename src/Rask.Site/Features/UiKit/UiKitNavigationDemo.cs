@@ -28,7 +28,7 @@ public sealed partial class UiKitNavigationDemo : Component
             + "whole thing works before any runtime has booted. daisyUI defines no megamenu-open class, "
             + "so there is nothing for a page to drive.",
             Div.Data(Testid("ui-megamenu")).Class("min-h-32")[
-                Ui.Megamenu.Wide(true)[
+                Ui.Megamenu.Wide()[
                     Ui.MegamenuPanel.Key("products").Trigger("Products").Id("mm-products")[
                         Div.Class("grid gap-2 p-4 sm:grid-cols-2")[
                             PanelLink("a", "Framework", "The renderer and the chain."),
@@ -54,17 +54,17 @@ public sealed partial class UiKitNavigationDemo : Component
             + "back button.",
             Div.Data(Testid("ui-tabs")).Class("space-y-4")[
                 Ui.Tabs.Style(Ui.TabStyle.Box)[
-                    Ui.Tab.Key("all").Label("All").Href("#all").Active(true).Count("128"),
+                    Ui.Tab.Key("all").Label("All").Href("#all").Active().Count("128"),
                     Ui.Tab.Key("open").Label("Open").Href("#open").Count("12"),
-                    Ui.Tab.Key("failed").Label("Failed").Href("#failed").Count("3").Alarm(true)
+                    Ui.Tab.Key("failed").Label("Failed").Href("#failed").Count("3").Alarm()
                 ],
                 Ui.Tabs.Style(Ui.TabStyle.Border).Sm[
-                    Ui.Tab.Key("b1").Label("Bordered").Href("#one").Active(true),
+                    Ui.Tab.Key("b1").Label("Bordered").Href("#one").Active(),
                     Ui.Tab.Key("b2").Label("Second").Href("#two"),
-                    Ui.Tab.Key("b3").Label("Unavailable").Href("#three").Disabled(true)
+                    Ui.Tab.Key("b3").Label("Unavailable").Href("#three").Disabled()
                 ],
                 Ui.Tabs.Style(Ui.TabStyle.Lift)[
-                    Ui.Tab.Key("l1").Label("Lifted").Href("#one").Active(true),
+                    Ui.Tab.Key("l1").Label("Lifted").Href("#one").Active(),
                     Ui.Tab.Key("l2").Label("Second").Href("#two")
                 ]
             ]);
@@ -82,7 +82,7 @@ public sealed partial class UiKitNavigationDemo : Component
                     Ui.Tabs.Key("row").Style(Ui.TabStyle.Border)[
                         Ui.Tab.Key("t1").Label("Details").Name("details").Icon(Ui.IconName.Book),
                         Ui.Tab.Key("t2").Label("History").Name("history").Icon(Ui.IconName.Clock).Count("4"),
-                        Ui.Tab.Key("t3").Label("Danger").Name("danger").Disabled(true)
+                        Ui.Tab.Key("t3").Label("Danger").Name("danger").Disabled()
                     ],
                     Ui.TabPanel.Key("p1").Name("details").Class("text-sm")[
                         "Everything about this record that does not change."
@@ -100,8 +100,8 @@ public sealed partial class UiKitNavigationDemo : Component
             "Menu, steps, breadcrumbs, pagination and the dock",
             "The rest of the category, each a real link where it navigates.",
             Div.Data(Testid("ui-nav-rest")).Class("space-y-4")[
-                Ui.Menu.Sm.Horizontal(true)[
-                    Ui.MenuItem.Key("m1").Text("Overview").Href("#overview").Active(true),
+                Ui.Menu.Sm.Horizontal()[
+                    Ui.MenuItem.Key("m1").Text("Overview").Href("#overview").Active(),
                     Ui.MenuItem.Key("m2").Text("Queues").Href("#queues"),
                     Ui.MenuItem.Key("m3").Text("Logs").Href("#logs")
                 ],

@@ -15,7 +15,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `RenderFragment` / Razor markup | A chain — `Div.Class("panel")[Span["hi"]]`, children via an indexer |
 | `@onclick="Handler"` | `.OnClick(() => ...)` (a lambda, set by a chain step) |
 | `[Parameter] public T X { get; set; }` | `public T X { get; set; }` — becomes a chain step (required if non-nullable) or an optional setter |
-| `EventCallback` / `EventCallback<T>` | `Callback` / `Callback<T>` — one property taking a sync (`Action`/`Action<T>`) or async (`Func<Task>`/`Func<T,Task>`) handler |
+| `EventCallback` / `EventCallback<T>` | `Callback` / `Callback<T>` — one property taking a sync (`Action`/`Action<T>`) or async (`Func<Task>`/`Func<T,Task>`, or a `ValueTask`) handler |
 | `[CascadingParameter]` / `CascadingValue` | `Context.Provide(value)` / `Context.Get<T>()` / `Context.Required<T>()` |
 | `@key="x"` | `.Key(x)` — an ordinary chain step |
 | `OnInitialized` / `OnInitializedAsync` | `OnMount()` — one hook; the part before its first `await` is the synchronous half |
@@ -88,7 +88,7 @@ public sealed partial class RatingStars : Component
 {
     public Callback<int> OnRate { get; set; }
     protected override Component? Render() =>
-        Button.OnClick(async () => await OnRate.Invoke(5))["Rate"];
+        Button.OnClick(() => OnRate.Invoke(5))["Rate"];
 }
 
 // parent — the lambda captures `this`, so invoking OnRate re-renders the parent

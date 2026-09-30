@@ -235,7 +235,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         // accident is a bug report about a form that saved nothing.
         if (Placeholder is { } placeholder)
         {
-            yield return Option.Value(string.Empty).Disabled(true).Selected(current is null)[placeholder];
+            yield return Option.Value(string.Empty).Disabled().Selected(current is null)[placeholder];
         }
 
         foreach (var (value, text) in Options)
@@ -522,7 +522,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                 .Class("input input-sm w-full")
                 .Placeholder("Search…")
                 .Autocomplete("off")
-                .Autofocus(true)
+                .Autofocus()
                 .Role("combobox")
                 .Aria(aria)
                 .OnInput(async raw =>

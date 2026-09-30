@@ -1364,6 +1364,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 generic: true);
             EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
                 generic: true);
+            EmitShorthandSteps(sb, setterName, typeFqn, "T", "<T>", " where T : " + receiver, visibility);
             return;
         }
 
@@ -1378,6 +1379,42 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             generic: false, typeParameters, constraints);
         EmitCarrierOverloads(sb, setterName, name, typeFqn, receiver, wrap, pendingBit, visibility,
             generic: false, typeParameters, constraints);
+        EmitShorthandSteps(sb, setterName, typeFqn, receiver, typeParameters, constraints, visibility);
+    }
+
+    /// <summary>
+    ///     The two steps that let a common value be written without its ceremony: <c>.Disabled()</c> for
+    ///     <c>.Disabled(true)</c> on any <c>bool</c> prop, and <c>.Class("p-4", wide ? "w-full" : null)</c> — joined
+    ///     with one space, blanks dropped — beside the one-string <c>Class</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Both forward to the setter just emitted, so the pending-bit and fold bookkeeping happens exactly once, in
+    ///     one place. The flag step is a METHOD, not a property: the prop itself is the component's instance
+    ///     member of that name and always wins member lookup, so <c>.Disabled</c> would read the value. A single
+    ///     string still binds to the ordinary <c>Class(string?)</c> — its normal form beats this one's expanded form.
+    /// </remarks>
+    private static void EmitShorthandSteps(
+        StringBuilder sb, string setterName, string typeFqn, string self, string typeArgs, string where,
+        string visibility)
+    {
+        var escaped = EscapeIdentifier(setterName);
+        if (typeFqn is "bool" or "bool?")
+        {
+            sb.Append("    /// <summary>Sets <c>").Append(setterName).AppendLine("</c> to <c>true</c>.</summary>");
+            sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
+                .Append(typeArgs).Append("(this ").Append(self).Append(" __b)").Append(where)
+                .Append(" => ").Append(escaped).AppendLine("(__b, true);");
+        }
+
+        if (string.Equals(typeFqn, "string?", StringComparison.Ordinal)
+            && string.Equals(setterName, "Class", StringComparison.Ordinal))
+        {
+            sb.AppendLine("    /// <summary>Sets <c>Class</c> to these names joined by one space; null and blank ones are left out.</summary>");
+            sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
+                .Append(typeArgs).Append("(this ").Append(self)
+                .Append(" __b, params global::System.ReadOnlySpan<string?> parts)").Append(where)
+                .Append(" => ").Append(escaped).AppendLine("(__b, global::Rask.Core.BuilderRuntime.JoinClasses(parts));");
+        }
     }
 
     private static void EmitKeySetter(StringBuilder sb, string typeFqn, string receiver, string visibility, int pendingBit)
@@ -1446,7 +1483,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     {
         if (CarrierDelegates(typeFqn).Count > 0)
         {
-            sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(1)]");
+            sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(2)]");
         }
     }
 
@@ -1493,6 +1530,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
     private const string TaskFqn = "global::System.Threading.Tasks.Task";
 
+    // A forwarded callback — `.OnClick(() => OnRate.Invoke(i))` — returns the ValueTask Invoke hands back. Without
+    // this shape the lambda still compiled, as an Action that dropped the ValueTask unawaited.
+    private const string ValueTaskFqn = "global::System.Threading.Tasks.ValueTask";
+
     /// <summary>
     ///     The delegate shapes a carrier-typed property accepts, or empty when the type is not a carrier.
     /// </summary>
@@ -1531,12 +1572,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             CallbackFqn when args.Count == 1 => [
                 Generic("global::System.Action", args),
                 Generic("global::System.Func", [.. args, TaskFqn]),
+                Generic("global::System.Func", [.. args, ValueTaskFqn]),
                 "global::System.Action",
                 Generic("global::System.Func", [TaskFqn]),
+                Generic("global::System.Func", [ValueTaskFqn]),
             ],
             CallbackFqn => [
                 Generic("global::System.Action", args),
                 Generic("global::System.Func", [.. args, TaskFqn]),
+                Generic("global::System.Func", [.. args, ValueTaskFqn]),
             ],
             ValidatorFqn when args.Count == 1 => [
                 Generic("global::Rask.Core.Forms.Validate", args),
@@ -1608,7 +1652,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///         forwarding a carrier a component already holds.
     ///     </para>
     ///     <para>
-    ///         The pass-through carries <c>[OverloadResolutionPriority(1)]</c> because <c>null</c> converts
+    ///         The pass-through carries <c>[OverloadResolutionPriority(2)]</c> — above the Task shapes at 1 — because <c>null</c> converts
     ///         to every one of these and would otherwise be ambiguous (CS0121) — and passing <c>null</c> for
     ///         a handler is a spelling the framework has always blessed. Priority filtering runs AFTER
     ///         applicability and a lambda is never applicable to the struct, so the sync and async lambdas
@@ -1653,6 +1697,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // (`.OnClick(OnClick)` where its own is `Action?`) is ordinary, and requiring the caller to
             // null-check first would be ceremony the chain exists to remove. `null` on its own still
             // reaches the carrier-typed pass-through, which outranks these.
+            // An `async` lambda converts to Func<…, Task> and Func<…, ValueTask> equally well (CS0121), so the Task
+            // shape outranks the ValueTask one. A lambda that RETURNS a ValueTask — `() => OnRate.Invoke(i)` — cannot
+            // reach the Task shape at all, and between the two left, Func<ValueTask> beats Action on its own.
+            if (shape.EndsWith(TaskFqn + ">", StringComparison.Ordinal))
+            {
+                sb.AppendLine("    [global::System.Runtime.CompilerServices.OverloadResolutionPriority(1)]");
+            }
+
             sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
                 .Append(typeArgs).Append("(this ").Append(self).Append(" __b, ").Append(shape)
                 .Append("? value)").Append(where);

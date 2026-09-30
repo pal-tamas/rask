@@ -191,7 +191,26 @@ public class BuilderFormControlChainTests
         Assert.Contains(
             "public static T Class<T>(this T __b, string? value) where T : global::Rask.Core.Element",
             output, StringComparison.Ordinal);
-        Assert.Equal(1, Occurrences(output, " Class<T>(this T __b"));
+        Assert.Equal(1, Occurrences(output, " Class<T>(this T __b, string? value)"));
+        Assert.Equal(1, Occurrences(output, " Class<T>(this T __b, params global::System.ReadOnlySpan<string?> parts)"));
+    }
+
+    [Fact]
+    public void A_bool_prop_gets_a_step_without_its_argument()
+    {
+        var source = """
+                     namespace Rask.Core;
+                     public abstract partial class Element : Component
+                     {
+                         public bool? Hidden { get; set; }
+                     }
+                     """;
+
+        var output = Setters(source);
+
+        Assert.Contains(
+            "public static T Hidden<T>(this T __b) where T : global::Rask.Core.Element => Hidden(__b, true);",
+            output, StringComparison.Ordinal);
     }
 
     // The machinery is gone rather than merely unused. A phantom mode left on the intermediate states

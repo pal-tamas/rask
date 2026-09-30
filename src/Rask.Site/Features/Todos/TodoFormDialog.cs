@@ -51,7 +51,7 @@ public sealed partial class TodoFormDialog : Component
                     // parse, where browsers ignore the attribute, so that path still needs a click.
                     // Reliable focus-on-open would need ElementRef + IJSRuntime; this page is a routed
                     // CRUD flow, not a dialog implementation.
-                    Ui.Input.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus(true).ShowValidation(false),
+                    Ui.Input.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus().ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => Model.Title),
                     Div.Class("flex justify-end gap-2")[
                         Ui.Button.Outline.OnClick(OnCancel)["Cancel"],

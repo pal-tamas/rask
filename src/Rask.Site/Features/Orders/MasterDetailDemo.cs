@@ -70,7 +70,7 @@ public sealed partial class MasterDetailDemo : Component
                 Td.Style("width:44px;")[
                     Ui.Button
                         .AccessibleLabel(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
-                        .Square(true)
+                        .Square()
                         .Variant(Ui.Variant.Link)
                         .Class("p-0 no-underline")
                         .Data("testid", $"expander-{order.Id}")

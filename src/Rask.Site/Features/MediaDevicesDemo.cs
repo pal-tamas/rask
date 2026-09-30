@@ -19,8 +19,8 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
                     .Ref(_video)
                     .Width(320)
                     .Height(240)
-                    .Muted(true)
-                    .PlaysInline(true)
+                    .Muted()
+                    .PlaysInline()
                     .Class("rounded border mb-2 bg-slate-900 block"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("media-start").OnClick(StartCamera)[Ui.Icon.Name(Ui.IconName.VideoCamera), "Start camera"],

@@ -117,12 +117,12 @@ public sealed partial class TodosPage : Component
             // rather than as visible text.
             Ui.Button
                 .AccessibleLabel($"Edit {item.Title}")
-                .Square(true)
+                .Square()
                 .Outline
                 .OnClick(() => OpenEdit(item))[Ui.Icon.Name(Ui.IconName.Pencil)],
             Ui.Button
                 .AccessibleLabel($"Delete {item.Title}")
-                .Square(true)
+                .Square()
                 .Error
                 .Outline
                 .OnClick(() => Delete(item))[Ui.Icon.Name(Ui.IconName.Trash)]

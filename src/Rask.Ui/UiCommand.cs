@@ -116,7 +116,7 @@ public sealed partial class UiCommand : Component
             .Class("grow bg-transparent py-3 outline-none")
             .Placeholder(Placeholder ?? Label)
             .Autocomplete("off")
-            .Autofocus(true)
+            .Autofocus()
             .Role("combobox")
             .Aria(BoxAria(active))
             // Enter presses the highlighted option in the runtime, because what an option DOES — a handler, a link —

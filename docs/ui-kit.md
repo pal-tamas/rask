@@ -332,7 +332,7 @@ A bare `Ui.Icon.Name(…)` is the right size in all of these. The kit's styleshe
 from the button or badge it sits in, and leaves alone an icon that has a size class of its own.
 
 A square or circle button holds one glyph, so it names itself with **`AccessibleLabel`**:
-`Ui.Button.AccessibleLabel("Close").Square(true)[Ui.Icon.Name(Ui.IconName.Close)]`.
+`Ui.Button.AccessibleLabel("Close").Square()[Ui.Icon.Name(Ui.IconName.Close)]`.
 
 The kit's classes and ARIA compose with yours instead of replacing them. `.Class("mb-0")` is added to the
 kit's classes through `ResolveClass()`. A label you set with `.Aria(…)` wins over one the kit would derive
@@ -342,10 +342,10 @@ through `ResolveAria()`, which writes into Core's `aria-*` slot so the attribute
 **One tag, and that has a consequence.** An element's children are written straight from the indexer, so
 an element-derived component cannot draw anything around them. The two places this shows:
 
-- **`Ui.Table.Scroll(true)`** puts the table in a bordered box that scrolls sideways. While it does,
+- **`Ui.Table.Scroll()`** puts the table in a bordered box that scrolls sideways. While it does,
   `Ui.Table` renders as the box with the `<table>` inside. The id, classes, data, ARIA and handlers stay on
   the `<table>`, so `#orders tbody tr` finds the same rows either way.
-- **`Ui.List.Ordered(true)`** is an `<ol>`, numbered. Use it when the order means something, such as a log
+- **`Ui.List.Ordered()`** is an `<ol>`, numbered. Use it when the order means something, such as a log
   or a set of steps. A row is a plain `Li`.
 
 The kit pads cells and rows with a stylesheet rule on its `ui-table` / `ui-list` marker, in the layer
@@ -365,7 +365,7 @@ leaves the app wants.
 ```csharp
 Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]    // stays in the app
 Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
-Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]     // leaves it
+Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab()["GitHub"]     // leaves it
 ```
 
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
@@ -380,7 +380,7 @@ Ui.Sidebar.Id("app-nav").Collapsible(Ui.Breakpoint.Lg).Page(Main[Outlet])[
     Ui.Brand.Label("Shop").Href(Routes.HomePage()),
     Ui.NavList.AccessibleLabel("Main")[
         Ui.NavItem.Label("Orders").Href(Routes.OrdersPage()).Icon(Ui.IconName.Book).Badge("12"),
-        Ui.NavGroup.Title("Catalogue").Expandable(true)[
+        Ui.NavGroup.Title("Catalogue").Expandable()[
             Ui.NavItem.Label("Products").Href(Routes.ProductsPage()),
             Ui.NavItem.Label("Categories").Href(Routes.CategoriesPage())
         ]
@@ -437,7 +437,7 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
       }
 
       protected override Component? Render() =>
-          Ui.Sidebar.Id("nav").Page(Ui.Main[Children ?? []]).Collapsible(Ui.Breakpoint.Lg).Collapsable(true)
+          Ui.Sidebar.Id("nav").Page(Ui.Main[Children ?? []]).Collapsible(Ui.Breakpoint.Lg).Collapsable()
               .Collapsed(_rail)
               .OnCollapse(async rail =>
               {
@@ -657,7 +657,7 @@ Ui.RadioGroup.Bind(() => _account.Plan).Options(plans).Label("Plan")
     .Layout(Ui.ChoiceLayout.Cards)
     .OptionDescription(v => v == "pro" ? "Everything, billed monthly" : null)
 
-Ui.CheckboxGroup.Bind(() => _account.Topics).Options(topics).Label("Email me about").CheckAll(true)
+Ui.CheckboxGroup.Bind(() => _account.Topics).Options(topics).Label("Email me about").CheckAll()
 ```
 
 `Layout` is Flux's set of looks — `List`, `Cards`, `Pills`, `Buttons`, `Segmented`. It is not called
@@ -871,16 +871,16 @@ would have exactly one legal argument.
 | `Ui.FileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
 
 
-**A file drop area is the same file input.** `Ui.FileInput.Dropzone(true)` draws Flux UI's large area in place
+**A file drop area is the same file input.** `Ui.FileInput.Dropzone()` draws Flux UI's large area in place
 of the compact box, with `Title` (the `Label` by default) and `Text` for what is accepted:
 
 ```csharp
 Ui.FileInput.Value("").Label("Receipts")
-    .Dropzone(true)
+    .Dropzone()
     .Title("Drop receipts here, or click to choose")
     .Text("PDF or JPG, several at once")
     .Accept(".pdf,.jpg")
-    .Multiple(true)
+    .Multiple()
     .OnFiles(files => _receipts.AddRange(files.Select(f => f.Name)))
 ```
 

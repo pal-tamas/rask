@@ -114,6 +114,48 @@ public static class AutoCallback
         };
     }
 
+    /// <summary>Wrap a no-arg <see cref="ValueTask" /> callback so it awaits, then re-renders its owner.</summary>
+    public static Func<ValueTask>? Wrap(Func<ValueTask>? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (DelegateOwner.Resolve(d) is not { } r)
+        {
+            return d;
+        }
+
+        return async () =>
+        {
+            r.MarkDirtyForAsyncHandler();
+            await d().ConfigureAwait(false);
+            r.StateHasChanged();
+        };
+    }
+
+    /// <summary>Wrap a one-arg <see cref="ValueTask" /> callback so it awaits, then re-renders its owner.</summary>
+    public static Func<T, ValueTask>? Wrap<T>(Func<T, ValueTask>? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (DelegateOwner.Resolve(d) is not { } r)
+        {
+            return d;
+        }
+
+        return async arg =>
+        {
+            r.MarkDirtyForAsyncHandler();
+            await d(arg).ConfigureAwait(false);
+            r.StateHasChanged();
+        };
+    }
+
     /// <summary>Wrap a two-arg callback so it re-renders its owner after running.</summary>
     /// <remarks>
     ///     Typed rather than left to the <see cref="Delegate" /> fallback, and that is not tidiness. The
@@ -143,6 +185,27 @@ public static class AutoCallback
 
     /// <inheritdoc cref="Wrap{T1, T2}(Action{T1, T2}?)" />
     public static Func<T1, T2, Task>? Wrap<T1, T2>(Func<T1, T2, Task>? d)
+    {
+        if (d is null)
+        {
+            return null;
+        }
+
+        if (DelegateOwner.Resolve(d) is not { } r)
+        {
+            return d;
+        }
+
+        return async (arg1, arg2) =>
+        {
+            r.MarkDirtyForAsyncHandler();
+            await d(arg1, arg2).ConfigureAwait(false);
+            r.StateHasChanged();
+        };
+    }
+
+    /// <inheritdoc cref="Wrap{T1, T2}(Action{T1, T2}?)" />
+    public static Func<T1, T2, ValueTask>? Wrap<T1, T2>(Func<T1, T2, ValueTask>? d)
     {
         if (d is null)
         {

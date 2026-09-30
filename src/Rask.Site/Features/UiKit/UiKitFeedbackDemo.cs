@@ -77,11 +77,11 @@ public sealed partial class UiKitFeedbackDemo : Component
                 Ui.Tooltip.Key("k").Tip("Save").Kbd("⌘S").Position(Ui.Position.Top)[
                     Ui.Button.Sm["Shortcut"]
                 ],
-                Ui.Tooltip.Key("tap").Tip("Tapping shows this on a phone").Toggleable(true)[
+                Ui.Tooltip.Key("tap").Tip("Tapping shows this on a phone").Toggleable()[
                     Ui.Icon.Name(Ui.IconName.Info).Class("size-5")
                 ],
                 Ui.Tooltip.Key("disabled").Tip("Available once the form is valid")[
-                    Ui.Button.Sm.Disabled(true)["Disabled"]
+                    Ui.Button.Sm.Disabled()["Disabled"]
                 ],
                 Ui.Tooltip.Key("t").Tip("Above").Position(Ui.Position.Top)[
                     Ui.Button.Sm["Top"]
@@ -89,7 +89,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                 Ui.Tooltip.Key("r").Tip("Beside").Position(Ui.Position.Right).Info[
                     Ui.Button.Sm["Right"]
                 ],
-                Ui.Tooltip.Key("o").Tip("Always shown").Position(Ui.Position.Top).Open(true)[
+                Ui.Tooltip.Key("o").Tip("Always shown").Position(Ui.Position.Top).Open()[
                     Ui.Button.Sm["Open"]
                 ]
             ]);
@@ -103,7 +103,7 @@ public sealed partial class UiKitFeedbackDemo : Component
             + "is worse than silence.",
             Div.Data(Testid("ui-skeleton")).Class("max-w-sm space-y-3")[
                 Div.Class("flex items-center gap-3")[
-                    Ui.Skeleton.Key("av").Circle(true).Class("size-10"),
+                    Ui.Skeleton.Key("av").Circle().Class("size-10"),
                     Div.Class("grow")[Ui.Skeleton.Key("lines").Lines(2)]
                 ],
                 Ui.Skeleton.Key("c").Class("h-24 w-full")

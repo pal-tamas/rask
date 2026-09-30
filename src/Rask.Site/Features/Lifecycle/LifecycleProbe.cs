@@ -66,7 +66,7 @@ public sealed partial class LifecycleProbe : Component
                     .OnClick(() => _clicks++)[Ui.Icon.Name(Ui.IconName.Retry), "Trigger re-render"]
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
-            Ui.List.Ordered(true)[
+            Ui.List.Ordered()[
                 Row("OnMount (before its await)", Ran(_onMount)),
                 Row("OnMount (after a 450ms await)", _onMountSettled ? "resolved" : "awaiting…"),
                 Row("OnUpdated", Ran(_onUpdated)),

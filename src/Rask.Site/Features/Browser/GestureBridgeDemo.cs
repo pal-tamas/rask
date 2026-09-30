@@ -96,7 +96,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     Ui.Button.Outline
                         .Id("camera-btn")
                         .Data(g)["Start camera"])
-                .Video(true)
+                .Video()
                 .FacingMode("user")
                 // OnStream keeps the started stream reachable from C# — the only way a Server-hosted
                 // app can hold one, and what makes the stop button below possible at all. No
@@ -120,7 +120,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
             Video
                 .Ref(_preview)
                 .Id("gesture-preview")
-                .Muted(true)
+                .Muted()
                 .Style("width:12rem;max-width:100%;border-radius:.25rem;background:#000")
         ];
 

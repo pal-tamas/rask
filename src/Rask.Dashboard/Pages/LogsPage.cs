@@ -228,7 +228,7 @@ public sealed partial class LogsPage(
             .Value(Category ?? "")
             .Options(choices)
             .Label("Category")
-            .Native(true)
+            .Native()
             .OnChange(CategoryChangedAsync);
     }
 
@@ -327,7 +327,7 @@ public sealed partial class LogsPage(
             c.Field(r => r.Timestamp).Title("When").Cell(r =>
                 Span.Title(r.Timestamp.UtcDateTime.ToString("u"))[DashboardParts.Ago(r.Timestamp.UtcDateTime, now)]),
             c.Field(r => r.Level).Title("Level").Cell(r => LevelBadge(r.Level)),
-            c.Field(r => r.Category).Title("Category").Mono(true),
+            c.Field(r => r.Category).Title("Category").Mono(),
             c.Field(r => r.Message).Title("Message").Cell(MessageCell),
         ]];
     }
@@ -360,7 +360,7 @@ public sealed partial class LogsPage(
             : Div[
                 scopes.SelectMany(s => new Component[]
                 {
-                    Ui.Badge.Key(s.Key).Mono(true)[$"{s.Key}={s.Value}"],
+                    Ui.Badge.Key(s.Key).Mono()[$"{s.Key}={s.Value}"],
                     " ",
                 })
             ];

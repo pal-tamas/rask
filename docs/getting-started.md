@@ -241,7 +241,7 @@ public sealed partial class RatingStars : Component
     protected override Component? Render() =>
         Div[
             Enumerable.Range(1, 5).Select(i => Button.Key(i)
-                .OnClick(async () => await OnRate.Invoke(i))[i <= Value ? "★" : "☆"])   // child invokes; parent re-renders
+                .OnClick(() => OnRate.Invoke(i))[i <= Value ? "★" : "☆"])   // child invokes; parent re-renders
         ];
 }
 

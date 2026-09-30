@@ -31,7 +31,7 @@ public sealed partial class NestedListForeachDemo : Component
                 Td.Style("width: 3rem;")[
                     Ui.Button
                         .AccessibleLabel("Remove item")
-                        .Square(true)
+                        .Square()
                         .Error
                         .Outline
                         .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]

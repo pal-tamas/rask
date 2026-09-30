@@ -2687,6 +2687,7 @@ public abstract partial class Component : RaskMarkup
     private static Func<Task>? AsyncInvocation(Delegate handler, JsonElement payload) => handler switch
     {
         Func<Task> f => f,
+        Func<ValueTask> f => () => f().AsTask(),
         Func<string, Task> f => Bind(f, ExtractString(payload, "value")),
         Func<IReadOnlyList<string>, Task> f => Bind<IReadOnlyList<string>>(f, ExtractStringList(payload)),
         Func<FormData, Task> f => Bind(f, FormData.FromJson(payload)),

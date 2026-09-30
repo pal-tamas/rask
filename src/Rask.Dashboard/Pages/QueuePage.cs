@@ -161,7 +161,7 @@ public sealed partial class QueuePage(
                 .Detail(Filter == QueueFilter.Failed
                     ? "No dead letters. This is the number you want at zero."
                     : "Nothing in this slice right now."))[c => [
-                c.Field(r => r.Id).Title("#").Mono(true),
+                c.Field(r => r.Id).Title("#").Mono(),
                 c.Field(r => r.Type).Title(TypeColumnLabel()),
                 c.Field(r => r.CreatedAt).Title("When").Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
@@ -234,17 +234,17 @@ public sealed partial class QueuePage(
             .OnClose(Close)
             .Footer([.. RowActionButtons(row, isDead), Ui.Button.Key("close").OnClick(Close)["Close"]])[
             Ui.DetailList[
-                Ui.DetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
+                Ui.DetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(),
                 Ui.DetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
                 Ui.DetailRow.Key("status").Label("Status").Value(StatusText(row, isDead, now))
                     .Tone(isDead ? Ui.Tone.Error : null),
                 Ui.DetailRow.Key("attempts").Label("Total attempts")
-                    .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(true),
-                Ui.DetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(true),
+                    .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(),
+                Ui.DetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(),
                 Ui.DetailRow.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
-                    .Value(row.RunAt.ToString("u")).Mono(true),
+                    .Value(row.RunAt.ToString("u")).Mono(),
                 row.ProcessedAt is { } done
-                    ? Ui.DetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono(true)
+                    ? Ui.DetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono()
                     : null,
                 Ui.DetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
             ],

@@ -1609,7 +1609,7 @@ Ui.Select.Bind(() => _order.Package)
         .Options(packages)
         .Label("Package")
         .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
-        .Native(true)
+        .Native()
 ```
 
 **Fix:** drop `Native(true)`. A template already implies the drawn list, so leaving `Native` unset is

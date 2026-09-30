@@ -61,6 +61,22 @@ public class CarrierTests
         Assert.True(ran);
     }
 
+    [Fact]
+    public async Task A_handler_that_returns_a_value_task_is_awaited_through_invoke()
+    {
+        var gate = new TaskCompletionSource();
+        var inner = new Callback(async () => await gate.Task);
+        var forward = new Callback(() => inner.Invoke());
+
+        var pending = forward.Invoke();
+        var waitedBeforeRelease = !pending.IsCompleted;
+        gate.SetResult();
+        await pending;
+
+        Assert.True(waitedBeforeRelease);
+        Assert.True(pending.IsCompletedSuccessfully);
+    }
+
     // An unset slot is inert rather than throwing, so a component declares its event non-nullable and
     // fires it unconditionally: `await OnRate.Invoke(n);` with nothing wired simply completes.
     [Fact]

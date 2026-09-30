@@ -93,8 +93,8 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
     private static Component Placeholder(int index) =>
         Li.Key($"placeholder-{index}").Class("query-row flex gap-2 items-center").Data("loading", null)[
             Span["loading…"],
-            Ui.Button.Class("query-ship").Disabled(true)["Ship"],
-            Ui.Button.Class("query-pick").Disabled(true)["Details"]
+            Ui.Button.Class("query-ship").Disabled()["Ship"],
+            Ui.Button.Class("query-pick").Disabled()["Details"]
         ];
 
     private void GoTo(int page)

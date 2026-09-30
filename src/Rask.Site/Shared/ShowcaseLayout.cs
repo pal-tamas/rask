@@ -241,7 +241,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                         if (i.MatchPrefix is { } mp)
                         {
                             RouteUrl match = mp;
-                            item = item.Match(match).MatchPrefix(true);
+                            item = item.Match(match).MatchPrefix();
                         }
 
                         return item;

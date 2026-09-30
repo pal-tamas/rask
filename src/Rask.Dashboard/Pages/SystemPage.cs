@@ -77,12 +77,12 @@ public sealed partial class SystemPage(
                     .Key("size")
                     .Label("Size")
                     .Value(db.SizeBytes is { } size ? DashboardParts.Bytes(size) : "—")
-                    .Mono(true),
+                    .Mono(),
                 Ui.DetailRow
                     .Key("journal")
                     .Label("Journal mode")
                     .Value(db.JournalMode?.ToUpperInvariant() ?? "n/a")
-                    .Mono(true)
+                    .Mono()
                     // WAL is the mode every Rask deployment expects; anything else is worth noticing.
                     .Tone(db.JournalMode is not null
                           && !db.JournalMode.Equals("wal", StringComparison.OrdinalIgnoreCase)
@@ -92,13 +92,13 @@ public sealed partial class SystemPage(
                     .Key("fks")
                     .Label("Foreign keys")
                     .Value(db.ForeignKeys switch { true => "on", false => "off", null => "n/a" })
-                    .Mono(true)
+                    .Mono()
                     .Tone(db.ForeignKeys is false ? Ui.Tone.Warning : null),
                 Ui.DetailRow
                     .Key("provider")
                     .Label("Provider")
                     .Value(ShortProvider(db.Provider))
-                    .Mono(true)
+                    .Mono()
             ]
         ];
     }
@@ -178,7 +178,7 @@ public sealed partial class SystemPage(
         _snapshots.Count == 0
             ? Ui.Empty.Title("No snapshots stored")
             : Ui.DataGrid.Data(_snapshots.Take(10).ToList()).RowKey(s => s.Name).Label("Newest snapshots")[c => [
-                c.Field(s => s.Name).Title("Snapshot").Mono(true),
+                c.Field(s => s.Name).Title("Snapshot").Mono(),
                 c.Field(s => s.SizeBytes).Title("Size").Value(s => DashboardParts.Bytes(s.SizeBytes)),
                 c.Field(s => s.CreatedAt).Title("Taken").Cell(s =>
                     Span.Title(s.CreatedAt.ToString("u"))[DashboardParts.Ago(s.CreatedAt, now)]),
@@ -193,7 +193,7 @@ public sealed partial class SystemPage(
 
         return Ui.Card.Title("Recurring jobs")[
             Ui.DataGrid.Data(_recurring).RowKey(r => r.Name).Label("Recurring jobs")[c => [
-                c.Field(r => r.Name).Title("Name").Mono(true),
+                c.Field(r => r.Name).Title("Name").Mono(),
                 c.Field(r => r.Schedule).Title("Schedule"),
                 c.Field(r => r.LastEnqueuedAt).Title("Last enqueued").Cell(r =>
                     r.LastEnqueuedAt is { } last

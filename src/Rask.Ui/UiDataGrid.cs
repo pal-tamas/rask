@@ -12,7 +12,7 @@ namespace Rask;
 /// <remarks>
 /// <para>
 /// <b>Columns are the chain's children, and they arrive through a factory:</b>
-/// <c>Ui.DataGrid.Data(_products)[c =&gt; [ c.Field(p =&gt; p.Name).Title("Product").Sortable(true) ]]</c>.
+/// <c>Ui.DataGrid.Data(_products)[c =&gt; [ c.Field(p =&gt; p.Name).Title("Product").Sortable() ]]</c>.
 /// The lambda's parameter is the grid, which is what fixes the row type — a column written as a flat
 /// child has nothing to infer its own lambda from and does not compile. See the grid's column indexer.
 /// </para>
@@ -1041,7 +1041,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         var on = CurrentGrouped.Contains(token, StringComparer.Ordinal);
         return Ui.Button
             .AccessibleLabel(on ? "Stop grouping by " + (column.Title ?? token) : "Group by " + (column.Title ?? token))
-            .Square(true)
+            .Square()
             .Size(Ui.Size.Xs)
             .Variant(on ? Ui.Variant.Soft : Ui.Variant.Ghost)
             .Disabled(Busy)
@@ -1174,10 +1174,10 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         return cell[column.Body(row)];
     }
 
-    // One handler either way. `Invoke` returns a completed ValueTask for a synchronous one, so `AsTask()`
-    // hands back the cached completed task rather than a state machine being created for it.
-    private Func<Task>? RowClickHandler(T row) =>
-        OnRowClick.HasValue ? () => OnRowClick.Invoke(row).AsTask() : null;
+    // One handler either way: `Invoke` returns a completed ValueTask for a synchronous one, and the cell's
+    // OnClick takes the ValueTask as it is.
+    private Func<ValueTask>? RowClickHandler(T row) =>
+        OnRowClick.HasValue ? () => OnRowClick.Invoke(row) : null;
 
     private HTMLInputElement<bool> SelectBox(T row)
     {
@@ -1199,7 +1199,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
         return Ui.Button
             .AccessibleLabel(open ? "Collapse row" : "Expand row")
-            .Square(true)
+            .Square()
             .Size(Ui.Size.Xs)
             .Variant(Ui.Variant.Ghost)
             .OnClick(() => ToggleExpand(key))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)];
@@ -1328,7 +1328,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
         return Ui.Button
             .AccessibleLabel(collapsed ? "Expand group" : "Collapse group")
-            .Square(true)
+            .Square()
             .Size(Ui.Size.Xs)
             .Variant(Ui.Variant.Ghost)
             .OnClick(() => ToggleBand(path))[Ui.Icon.Name(collapsed ? Ui.IconName.ChevronRight : Ui.IconName.ChevronDown)];
@@ -1489,7 +1489,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 .Class(UiClass.Compose(
                     "flex items-center gap-1 rounded-full bg-base-200 py-1 pe-1 ps-2 text-sm",
                     ctx.IsDropTarget(GroupZone, index) ? "ring-2 ring-primary" : ""))
-                .Draggable(true)
+                .Draggable()
                 .OnDragStart(ctx.DragStart(GroupZone, index))
                 .OnDragOver(ctx.DragOver(GroupZone, index))
                 .OnDrop(ctx.Drop(GroupZone, index))
@@ -1509,7 +1509,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private static Component? MoveButton(bool enabled, string label, Ui.IconName icon, Func<Task> click) =>
         Ui.Button
             .AccessibleLabel(label)
-            .Square(true)
+            .Square()
             .Size(Ui.Size.Xs)
             .Variant(Ui.Variant.Ghost)
             .Disabled(!enabled)

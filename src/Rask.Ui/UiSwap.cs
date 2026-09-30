@@ -62,7 +62,7 @@ public sealed partial class UiSwap : Component
         if (OnChange.HasValue)
         {
             var next = Active != true;
-            button = button.OnClick(() => OnChange.Invoke(next).AsTask());
+            button = button.OnClick(() => OnChange.Invoke(next));
         }
 
         return button[

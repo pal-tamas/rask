@@ -17,7 +17,7 @@ public sealed partial class ElementsMetadataDemo : Component
             Base.Href("/"),
             Link.Rel("stylesheet").Href("/app.css"),
             Style["body{margin:0}"],
-            Script.Src("/app.js").Defer(true),
+            Script.Src("/app.js").Defer(),
             Noscript["This app needs JavaScript."]
         ],
         Body[P["Hello world"]]

@@ -111,7 +111,7 @@ public sealed partial class UiPagination : Component
 
         if (OnSelect.HasValue && page != Current)
         {
-            button = button.OnClick(() => OnSelect.Invoke(page).AsTask());
+            button = button.OnClick(() => OnSelect.Invoke(page));
         }
 
         return button[page.ToString(System.Globalization.CultureInfo.InvariantCulture)];

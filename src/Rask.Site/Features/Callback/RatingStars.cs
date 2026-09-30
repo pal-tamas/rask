@@ -20,6 +20,6 @@ public sealed partial class RatingStars : Component
             Enumerable.Range(1, 5).Select(i => Ui.Button.Key(i)
                 .Variant(Ui.Variant.Link)
                 .Class("text-2xl leading-none " + (i <= Value ? "text-ui-warn-ink" : "text-ui-muted"))
-                .OnClick(async () => await OnRate.Invoke(i))[i <= Value ? "★" : "☆"])
+                .OnClick(() => OnRate.Invoke(i))[i <= Value ? "★" : "☆"])
         ];
 }

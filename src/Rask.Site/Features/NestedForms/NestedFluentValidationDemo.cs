@@ -33,7 +33,7 @@ public sealed partial class NestedFluentValidationDemo : Component
                 Td.Style("width: 3rem;")[
                     Ui.Button
                         .AccessibleLabel("Remove line")
-                        .Square(true)
+                        .Square()
                         .Error
                         .Outline
                         .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]

@@ -28,7 +28,7 @@ public sealed partial class LifecycleCycleDemo : Component
             _cycleLog.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
                 : Ui.List
-                    .Ordered(true)
+                    .Ordered()
                     .Id("lifecycle-cycle-log")[
                     _cycleLog.Select((l, i) => Li
                         .Key(i)

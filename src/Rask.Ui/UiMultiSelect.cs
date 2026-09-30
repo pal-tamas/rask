@@ -177,7 +177,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
 
         return Select
             .Of<string>()
-            .Multiple(true)
+            .Multiple()
             .Id(FieldId)
             .Name(Name)
             .OnSelect(picked => CommitAsync(acc, ctx, chosen, Map(picked)))
@@ -394,7 +394,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                 .Class("input input-sm w-full")
                 .Placeholder("Search…")
                 .Autocomplete("off")
-                .Autofocus(true)
+                .Autofocus()
                 .Aria("label", "Search " + (Label ?? AccessibleLabel ?? "options"))
                 // Back to the top of the narrowed list, which Normalize then snaps onto the first option
                 // a reader can actually land on.

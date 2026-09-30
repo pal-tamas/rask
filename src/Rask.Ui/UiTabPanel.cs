@@ -41,6 +41,6 @@ public sealed partial class UiTabPanel : Component
             .Class(Class)
             .Aria("labelledby", scope.TabId(Name));
 
-        return (shown ? panel : panel.Hidden(true))[Children ?? []];
+        return (shown ? panel : panel.Hidden())[Children ?? []];
     }
 }

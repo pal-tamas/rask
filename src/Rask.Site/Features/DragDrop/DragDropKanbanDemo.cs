@@ -78,7 +78,7 @@ public sealed partial class DragDropKanbanDemo : Component
         return Div
             .Key(card.Id)
             .Class(cls)
-            .Draggable(true)
+            .Draggable()
             .OnDragStart(ctx.DragStart(zone, index))
             .OnDragOver(ctx.DragOver(zone, index))
             .OnDrop(ctx.Drop(zone, index))

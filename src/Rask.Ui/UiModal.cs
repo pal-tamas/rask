@@ -134,7 +134,7 @@ public sealed partial class UiModal : Component
         {
             // The dialog's own toggle event: the platform reports every way it closed, the ones no handler here
             // saw included — Escape, the backdrop, a button inside the body.
-            dialog = dialog.OnToggle(e => string.Equals(e.NewState, "open", StringComparison.Ordinal) ? Task.CompletedTask : OnClose.Invoke().AsTask());
+            dialog = dialog.OnToggle(e => string.Equals(e.NewState, "open", StringComparison.Ordinal) ? ValueTask.CompletedTask : OnClose.Invoke());
         }
 
         // Escape, and a light dismiss where the browser does one: the platform raises cancel for those and
@@ -210,8 +210,8 @@ public sealed partial class UiModal : Component
             .AccessibleLabel("Close")
             .Variant(Ui.Variant.Ghost)
             .Size(Ui.Size.Sm)
-            .Square(true)
-            .OnClick(() => OnClose.Invoke().AsTask());
+            .Square()
+            .OnClick(() => OnClose.Invoke());
 
         // The trap presses the [data-rask-dismiss] control on Escape. The close button IS that control unless
         // the caller wants a dismissal told apart from a close — then Escape presses a hidden one of its own.

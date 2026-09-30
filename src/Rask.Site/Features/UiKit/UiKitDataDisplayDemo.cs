@@ -140,7 +140,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                     Ui.Card
                         .Key("detail")
                         .Title("A failed job")
-                        .Action(Ui.Badge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"])[
+                        .Action(Ui.Badge.Mono()["requestId=0HN8Q2V3R1T0K:00000001"])[
                         Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
                             .Label("Last error")
                             .Error

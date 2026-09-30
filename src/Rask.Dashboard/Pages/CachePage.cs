@@ -128,7 +128,7 @@ public sealed partial class CachePage(
             .Empty(Ui.Empty
                 .Title(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
                 .Detail("Entries appear here as soon as something is cached."))[c => [
-                c.Field(r => r.Key).Title("Key").Mono(true),
+                c.Field(r => r.Key).Title("Key").Mono(),
                 c.Field(r => r.Bytes).Title("Size").Value(r => DashboardParts.Bytes(r.Bytes)),
                 c.Field(r => r.CreatedAt).Title("Written").ShowFrom(Ui.Breakpoint.Md).Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),

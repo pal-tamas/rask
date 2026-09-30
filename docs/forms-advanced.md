@@ -147,12 +147,12 @@ under a `role="combobox"` box, with the arrow keys, Home/End, Enter and a roving
 more than the platform will show (groups, options that are visibly unavailable) or has to escape an
 `overflow: hidden` ancestor. The drawn list needs the runtime; the native one does not.
 
-**A plain `<select multiple>` bound to a collection.** `Select.Bind(() => …).Multiple(true)` binds the
+**A plain `<select multiple>` bound to a collection.** `Select.Bind(() => …).Multiple()` binds the
 whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the
 `IReadOnlyList<string>` / `IList<string>` / `ICollection<string>` / `IEnumerable<string>` interfaces:
 
 ```csharp
-Select.Bind(() => model.Tags).Multiple(true)[
+Select.Bind(() => model.Tags).Multiple()[
     Option.Value("news")["News"], Option.Value("sport")["Sport"], Option.Value("weather")["Weather"]
 ]
 ```
@@ -166,14 +166,14 @@ Two limits worth knowing:
 - **The element type is `string`.** The reflective version that would accept any parsable element needs
   `MakeGenericType` and `Array.CreateInstance`, both of which are AOT-hostile — and
   `src/Rask.Site` has to publish with zero trim warnings. Bind `string[]` and convert.
-- **`.Multiple(true)` over a scalar property keeps the single-value binding.** That is a model which can
+- **`.Multiple()` over a scalar property keeps the single-value binding.** That is a model which can
   only hold one answer; widening it silently would be the more surprising behaviour.
 
 **Taking the picked values yourself.** `OnSelect` (a synchronous or an asynchronous handler) hands over the
 raw option values the user picked, as `IReadOnlyList<string>` — the whole selection every time, never a delta:
 
 ```csharp
-Select.Of<string>().Multiple(true).OnSelect(picked => _chosen = Map(picked))[
+Select.Of<string>().Multiple().OnSelect(picked => _chosen = Map(picked))[
     Option.Value("news")["News"], Option.Value("sport")["Sport"], Option.Value("weather")["Weather"]
 ]
 ```

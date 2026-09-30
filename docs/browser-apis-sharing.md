@@ -96,7 +96,7 @@ Trigger.EyeDropper.Template(g => Button.Type("button").Data(g)["Pick a colour"])
 Trigger.Install.Template(g => Button.Type("button").Data(g)["Install app"])
     .OnOutcome(o => outcome = o)
 Trigger.MediaCapture.For(preview).Template(g => Button.Type("button").Data(g)["Start camera"])
-    .Video(true)
+    .Video()
     // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
     .OnStream(id => camera = id)
 Trigger.PictureInPicture.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])

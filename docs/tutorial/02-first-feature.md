@@ -330,10 +330,10 @@ public sealed partial class ProductsPage : Component
         Ui.Header.Title(count.Data is { } n ? $"Products ({n})" : "Products")
             .Actions(Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]),
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
-            c.Field(p => p.Name).Title("Name").Sortable(true),
-            c.Field(p => p.Price).Title("Price").Sortable(true),
+            c.Field(p => p.Name).Title("Name").Sortable(),
+            c.Field(p => p.Price).Title("Price").Sortable(),
             c.Field(p => p.InStock).Title("In stock"),
-            c.Field(p => p.UpdatedAt).Title("Updated").Sortable(true),
+            c.Field(p => p.UpdatedAt).Title("Updated").Sortable(),
             c.Column().Title("Actions").Cell(p => Div[
                 Ui.Button.Ghost.Sm.Href(Routes.UpdateProduct(p.Id))["Edit"],
                 // The grid re-runs its query on every render, so asking for one is the whole refresh.

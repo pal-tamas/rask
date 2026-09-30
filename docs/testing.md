@@ -114,8 +114,8 @@ public async Task Clicking_increments()
 
   ```csharp
   var grid = Page.Render(() => Ui.DataGrid.Data(rows).RowKey(r => r.Id)[c => [
-      c.Field(r => r.Name).Sortable(true),
-      c.Field(r => r.Total).Sortable(true),
+      c.Field(r => r.Name).Sortable(),
+      c.Field(r => r.Total).Sortable(),
   ]]);
 
   await grid.InvokeAsync(grid.HandlerIds("click")[1]);   // click the second sortable header
@@ -368,7 +368,7 @@ public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
         "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
         Button
             .Type("submit")
-            .Disabled(true)
+            .Disabled()
             .Name("action")
             .Value("save")
             .Id("go")

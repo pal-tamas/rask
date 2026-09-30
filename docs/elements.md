@@ -158,8 +158,8 @@ no JavaScript on either side. `ContentEditable` is a string rather than a `bool?
 rather than bare booleans, so `false` renders explicitly (`translate` spells its values `yes`/`no`).
 
 ```csharp
-Div.Hidden(true)                     // hidden
-Div.Inert(true)                      // inert
+Div.Hidden()                     // hidden
+Div.Inert()                      // inert
 Div.Popover("auto")                  // popover="auto"
 Div.ContentEditable("plaintext-only")
 Span.Translate(false)                // translate="no" — a product name, a username, a code sample

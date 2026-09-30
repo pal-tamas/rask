@@ -35,9 +35,9 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip) : Compon
                     .Ref(_video)
                     .Width(320)
                     .Height(180)
-                    .Muted(true)
-                    .PlaysInline(true)
-                    .Controls(true)
+                    .Muted()
+                    .PlaysInline()
+                    .Controls()
                     .Class("rounded border mb-2 bg-slate-900"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("pip-enter").OnClick(Enter)["Open miniplayer"],

@@ -72,17 +72,17 @@ public sealed partial class ElementsMediaDemo : Component
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
                 P.Class("text-sm mb-1 text-ui-muted")["audio (controls)"],
-                Audio.Controls(true).Preload("none").Class("w-full")
+                Audio.Controls().Preload("none").Class("w-full")
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 P.Class("text-sm mb-1 text-ui-muted")["video (poster + track)"],
                 Video
-                    .Controls(true)
+                    .Controls()
                     .Width(240)
                     .Poster(Asset("rask-placeholder.svg"))
                     .Preload("none")
                     .Class("border rounded")[
-                    Track.Kind("captions").Src(Asset("captions.vtt")).Srclang("en").Label("English").Default(true)
+                    Track.Kind("captions").Src(Asset("captions.vtt")).Srclang("en").Label("English").Default()
                 ]
             ]
         ];

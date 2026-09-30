@@ -49,7 +49,7 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
                 Div
                     .Ref(_box)
                     .Id("resize-box")
-                    .Class((_wide ? "w-full" : "w-1/2") + "p-4 rounded bg-ui-well text-center")[
+                    .Class("p-4 rounded bg-ui-well text-center", _wide ? "w-full" : "w-1/2")[
                     "📐 observed box (resize the window too)"
                 ]
             ];

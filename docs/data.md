@@ -421,8 +421,8 @@ public sealed partial class ProductsPage : Component
 
     protected override Component Render() =>
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
-            c.Field(p => p.Name).Title("Product").Sortable(true),
-            c.Field(p => p.PriceAmount).Title("Price").Sortable(true),
+            c.Field(p => p.Name).Title("Product").Sortable(),
+            c.Field(p => p.PriceAmount).Title("Price").Sortable(),
         ]];
 }
 ```

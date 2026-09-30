@@ -63,7 +63,7 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Indicator.Key("i").Badge(Ui.Badge.Error["9"])[
                         Ui.Button["Inbox"]
                     ],
-                    Ui.Avatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round(true)
+                    Ui.Avatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round()
                         .Class("w-12"),
                     // No picture: the monogram stands in. Most accounts have none, and a broken image is
                     // worse than two letters — the NAME is still what a screen reader announces.
@@ -90,7 +90,7 @@ public sealed partial class UiKitLayoutDemo : Component
                             .Icon(Ui.IconName.Book),
                         Ui.NavItem.Key("actions").Label("Actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))
                             .Icon(Ui.IconName.Sparkles).Badge("5").BadgeTone(Ui.Tone.Primary),
-                        Ui.NavGroup.Key("more").Title("More").Expandable(true)[
+                        Ui.NavGroup.Key("more").Title("More").Expandable()[
                             Ui.NavItem.Key("feedback").Label("Feedback")
                                 .Href(PageMeta.LinkTo(Routes.UiKitFeedbackPage())),
                             Ui.NavItem.Key("navigation").Label("Navigation")
@@ -110,7 +110,7 @@ public sealed partial class UiKitLayoutDemo : Component
                 Div.Class("flex flex-col gap-4")[
                     Div.Data(Testid("ui-spacer-row")).Class("flex items-center gap-2 rounded-xl border border-base-300 p-2")[
                         Ui.Button.Key("left").Ghost.Sm["Rask"],
-                        Ui.Divider.Key("bar-sep").Vertical(true).Subtle(true).Class("my-1"),
+                        Ui.Divider.Key("bar-sep").Vertical().Subtle().Class("my-1"),
                         Ui.Button.Key("docs").Ghost.Sm["Docs"],
                         Ui.Spacer.Key("spacer"),
                         Ui.Button.Key("right").Sm["Sign in"]
@@ -120,8 +120,8 @@ public sealed partial class UiKitLayoutDemo : Component
                         Ui.Subheading.Key("sh")["Everything placed in the last 30 days."]
                     ],
                     Ui.Divider.Key("then").Text("then").Align(Ui.Align.Start),
-                    Ui.Text.Key("t")["Body copy in the kit's scale. ", Ui.Text.Key("strong").Inline(true).Strong(true)["Strong"],
-                        " for what matters, ", Ui.Text.Key("subtle").Inline(true).Subtle(true)["subtle"], " for what can be skipped."]
+                    Ui.Text.Key("t")["Body copy in the kit's scale. ", Ui.Text.Key("strong").Inline().Strong()["Strong"],
+                        " for what matters, ", Ui.Text.Key("subtle").Inline().Subtle()["subtle"], " for what can be skipped."]
                 ]
             ]);
 

@@ -146,10 +146,10 @@ public sealed partial class StoragePage(
                 .Detail("Files appear here as soon as the app saves one."))[c => [
                 c.Field(r => r.Name).Title("Name"),
                 c.Field(r => r.Public).Title("Access").Value(r => r.Public ? "public" : "private"),
-                c.Field(r => r.ContentType).Title("Type").Mono(true).ShowFrom(Ui.Breakpoint.Md),
+                c.Field(r => r.ContentType).Title("Type").Mono().ShowFrom(Ui.Breakpoint.Md),
                 c.Field(r => r.Size).Title("Size").Value(r => DashboardParts.Bytes(r.Size)),
                 c.Field(r => r.Provider).Title("Provider").ShowFrom(Ui.Breakpoint.Lg),
-                c.Field(r => r.Id).Title("Id").Mono(true).Value(r => r.Id.ToString("N")),
+                c.Field(r => r.Id).Title("Id").Mono().Value(r => r.Id.ToString("N")),
                 c.Field(r => r.CreatedAt).Title("Saved").Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]),
             ]];

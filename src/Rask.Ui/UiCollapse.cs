@@ -44,7 +44,7 @@ public sealed partial class UiCollapse : Component
         if (OnToggle.HasValue)
         {
             var next = Open != true;
-            title = title.OnClick(() => OnToggle.Invoke(next).AsTask());
+            title = title.OnClick(() => OnToggle.Invoke(next));
         }
 
         return Div.Class(UiClass.Compose(
