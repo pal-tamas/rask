@@ -25,6 +25,7 @@ import {
 import { raskReadFileChunk, raskRegisterFiles } from "../../Rask.Core/Resources/rask-files.js";
 import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
+import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
 import {
     beginLoading,
@@ -57,221 +58,11 @@ let _renderQueue = Promise.resolve();
 // commits — scroll to that anchor, else to the top. Cleared on consume.
 let _pendingScrollHash = "";
 
-// scopedJsReady starts true: per-component scripts ship as
-// <script src="/_rask/a/{hash}.js" defer> tags in the initial HTML's <head> (and
-// are morphed in/out as components mount/unmount). The browser's defer semantics
-// run them before DOMContentLoaded, which is well before any user click could
-// trigger a Rask.* invoke. The legacy bundle-based gate (waiting for one big
-// inline-injected script) is gone with the cssText/jsText payload fields. The
-// pendingScopedInvokes queue is kept because the user-Head-declared CDN path
-// (see pendingHeadAssets below) still needs to defer Rask.* calls until those
-// external deps have loaded.
-let scopedJsReady = true;
-let pendingScopedInvokes: RaskPendingInvoke[] = [];
-
-// External Head-declared <script src> and <link rel=stylesheet> are tracked
-// here so Rask.* JS invokes can wait until every declared dep has reached
-// a terminal state — load, error, OR a 5-second safety timeout — before
-// firing. Without this, a component invoking e.g. window.hljs in its
-// OnRenderedAsync would have to hand-roll its own load-event workaround.
-// The gate is global on purpose: components don't know about each other's
-// deps, and per-invoke dependency declarations push API surface back onto
-// users.
-//
-// CONTRACT: the gate guarantees the asset's terminal event has fired
-// before draining queued Rask.* invokes — NOT that the asset loaded
-// successfully. A failed asset (CDN flake, refresh cache miss, extension
-// block, integrity mismatch, CSP) still terminates the gate via its
-// 'error' event or the 5s timeout, and queued invokes run anyway. User
-// JS that depends on a global the asset was meant to define MUST be
-// defensive — e.g. `if (typeof window.hljs === "undefined") return;`.
-// The framework logs a clear warning on the failure paths so the
-// resulting TypeError isn't a mystery.
-const pendingHeadAssets = new Set();
-const trackedHeadAssets = new WeakSet();
-const failedHeadAssets = new Set();
-const HEAD_ASSET_LOAD_TIMEOUT_MS = 5000;
-// Scoped /_rask/a/{hash}.js scripts are same-origin and effectively always fire a
-// load/error event, so they only need a hang-backstop, not the short user-CDN
-// contract. The window must comfortably exceed how long a cold scoped-JS load can lag
-// behind the first-render Rask.* invoke on a constrained 2-core runner — a deep-link
-// straight to a CodeSample page queues Rask.CodeSample.rendered before the per-component
-// <script defer> has executed, and a short window force-faults the invoke into
-// "Could not find ... on target" so highlighting never lands. A genuinely-missing asset
-// (404) still surfaces fast: its <script> fires an 'error' event that drains the gate
-// immediately, so the long window only ever applies to a slow-but-loading asset.
-const SCOPED_ASSET_LOAD_TIMEOUT_MS = 30000;
-// CSS_FOUC_GUARD_MS + the scoped-CSS FOUC gating functions (waitForUnappliedHeadCss /
-// preloadNewHeadStylesheets) come from rask-scoped, imported at the top of this file.
-
-function isAssetAlreadyLoaded(url: string): boolean {
-    if (!url || !window.performance || !performance.getEntriesByName) return false;
-    const entries = performance.getEntriesByName(url) as PerformanceResourceTiming[];
-    for (let i = 0; i < entries.length; i++) {
-        if (entries[i].responseEnd > 0) return true;
-    }
-    return false;
-}
-
-function trackHeadAsset(el: Element, parserInserted = false): void {
-    if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
-    // Per-component scoped tags carry data-rask-key with the framework-reserved
-    // "rsk-" prefix, served from /_rask/a/{hash}.{ext}. Scoped CSS (<link rsk-css->)
-    // never defines a JS global, so it stays out of the invoke gate. Scoped JS
-    // (<script rsk-js->) DOES define window.Rask.{Type}; it must be tracked so a
-    // first-render Rask.* invoke waits for the script's actual load event rather
-    // than racing a fixed poll timeout — on a constrained runner the cold scoped-JS
-    // load can lag well past that window, which previously force-faulted the call.
-    const key = el.getAttribute("data-rask-key");
-    const isScoped = !!(key && key.indexOf("rsk-") === 0);
-    let url: string;
-    const script = el as HTMLScriptElement;
-    const link = el as HTMLLinkElement;
-    if (el.tagName === "SCRIPT" && script.src) url = script.src;
-    else if (el.tagName === "LINK" && link.rel === "stylesheet" && link.href) url = link.href;
-    else return;
-    if (isScoped && el.tagName !== "SCRIPT") return;
-    // A same-origin asset (scoped /_rask/a/* OR a vendored user-Head script like a
-    // self-hosted highlight.min.js) is reliable but can load slowly on a constrained
-    // cold boot; it gets the generous hang-backstop. Only a true cross-origin CDN keeps
-    // the short 5s contract (a dead CDN must not hold Rask.* invokes for 30s). A failed
-    // same-origin asset still fires 'error' quickly, so the longer window only ever
-    // applies to a genuinely slow-but-loading asset.
-    const sameOrigin = typeof url === "string" && url.indexOf(location.origin) === 0;
-    const useLongBackstop = isScoped || sameOrigin;
-    trackedHeadAssets.add(el);
-    // A scoped script the HTML PARSER put in <head> has already run. A prerendered page ships its rsk-js
-    // <script defer> in the document, and deferred and module scripts execute in document order once
-    // parsing ends — so it executed (or errored) before main.js, the module that imports this runtime.
-    // Its load event fired long before the listener below could be attached, so waiting for one parked
-    // every Rask.* invoke until the 30s backstop: a CodeSample that would not highlight or copy, an
-    // ElementRef measure that did nothing, for half a minute after every refresh. The namespace poll
-    // still covers a namespace that genuinely is not there.
-    if (isScoped && parserInserted) return;
-    // A scoped (rsk-) script must wait for its real load event before draining Rask.*
-    // invokes: the eager <link rel="prefetch" as="script"> warms the HTTP cache and creates
-    // a Resource Timing entry, but downloaded != executed — window.Rask.{Type} is only
-    // defined once the script actually runs. Trusting timing here would let a first-render
-    // invoke dispatch before execution and fault with "Could not find Rask.{Type}". For a
-    // genuine warm non-scoped user-Head asset, "downloaded" stays an acceptable proxy (the
-    // user's defensive code is the contract), so it keeps the fast path.
-    if (!isScoped && isAssetAlreadyLoaded(url)) return;
-    pendingHeadAssets.add(el);
-    const finish = (outcome: string): void => {
-        if (!pendingHeadAssets.delete(el)) return;
-        if (outcome === "error" || outcome === "timeout") {
-            failedHeadAssets.add(url);
-            const reason = outcome === "error"
-                ? "fired 'error' event (network failure / blocked / integrity mismatch / CSP)"
-                : `did not fire load/error within ${HEAD_ASSET_LOAD_TIMEOUT_MS}ms — proceeding anyway`;
-            // console.warn rather than .error: the page CAN still render
-            // (the user's defensive code is the contract). Surface enough
-            // context that the consequent TypeError in user JS is traceable
-            // back to the asset that failed.
-            console.warn(`[Rask] Head asset (${el.tagName.toLowerCase()}) ${url} ${reason}. ` +
-                "Queued Rask.* invokes will run; user JS depending on this asset's global must be defensive.");
-        }
-        maybeDrainPendingInvokes();
-    };
-    el.addEventListener("load", () => finish("load"), {once: true});
-    el.addEventListener("error", () => finish("error"), {once: true});
-    // Safety: the load/error event may have fired between insertion and our
-    // listener attach (cache hit). The performance.getEntriesByName check
-    // covers most cases; the timeout covers everything else so a missed
-    // event doesn't hold Rask.* invokes forever. Same-origin assets get a generous
-    // hang-backstop (a slow same-origin load is legitimate); cross-origin CDNs keep
-    // the shorter contract.
-    setTimeout(() => finish("timeout"), useLongBackstop ? SCOPED_ASSET_LOAD_TIMEOUT_MS : HEAD_ASSET_LOAD_TIMEOUT_MS);
-}
-
-// `parserInserted` is true only for the sweep at boot, before this runtime has rendered anything: every
-// head element present then came from the served document, not from a morph (see trackHeadAsset).
-function scanHeadAssets(parserInserted = false) {
-    const els = document.head.querySelectorAll("script[src], link[rel=stylesheet]");
-    for (let i = 0; i < els.length; i++) trackHeadAsset(els[i], parserInserted);
-}
-
-function headAssetsReady() {
-    return pendingHeadAssets.size === 0;
-}
-
-function maybeDrainPendingInvokes() {
-    if (!scopedJsReady || !headAssetsReady()) return;
-    if (pendingScopedInvokes.length === 0) return;
-    // Re-queue any whose Rask.{Name} namespace still hasn't appeared — they'll be drained
-    // by the polling loop below when (if) the per-component script eventually loads.
-    const stillWaiting = [];
-    const ready = [];
-    for (let i = 0; i < pendingScopedInvokes.length; i++) {
-        const c = pendingScopedInvokes[i];
-        if (raskNamespaceReady(c.identifier)) ready.push(c);
-        else stillWaiting.push(c);
-    }
-    pendingScopedInvokes = stillWaiting;
-    for (let i = 0; i < ready.length; i++) {
-        const c = ready[i];
-        beginInvokeJS(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId);
-    }
-}
-
-// Returns true when `Rask.{Name}` is populated on window (for "Rask.{Name}.{method}"
-// identifiers), or true when the identifier doesn't follow the Rask.* pattern. Lets
-// beginInvokeJS distinguish "the per-component script hasn't loaded yet — park me"
-// from "ready to dispatch".
-function raskNamespaceReady(identifier: string): boolean {
-    if (typeof identifier !== "string") return true;
-    if (identifier.indexOf("Rask.") !== 0) return true;
-    const rest = identifier.substring(5);
-    const dot = rest.indexOf(".");
-    const name = dot < 0 ? rest : rest.substring(0, dot);
-    return !!(window.Rask && window.Rask[name]);
-}
-
-// Per-component scripts load asynchronously over HTTP from /_rask/a/{hash}.js. A first-
-// render OnRenderedAsync calling Rask.X.method races the script's load event; the parked
-// invoke needs a way to wake up when window.Rask.X appears. A 100ms poll catches the
-// common cache-warm-load path and times out on genuinely-missing namespaces (those calls
-// then surface "Could not find" as documented, rather than hanging forever).
-//
-// The timeout matches the scoped-asset load backstop (SCOPED_ASSET_LOAD_TIMEOUT_MS): on a
-// constrained cold boot (e.g. the 2-core CI runner) the per-component bundle can execute
-// several seconds after the first-render invoke is queued, and when its <script> isn't yet
-// tracked as a pending head asset, headAssetsReady() is true — so a short 5s window would
-// force-fault "Could not find 'Rask.X.method' on target" and trip RootErrorBoundary while
-// the bundle was merely still loading. The longer window lets the namespace appear first.
-const RASK_NAMESPACE_POLL_INTERVAL_MS = 100;
-const RASK_NAMESPACE_POLL_TIMEOUT_MS = SCOPED_ASSET_LOAD_TIMEOUT_MS;
-let raskNamespacePollHandle = 0;
-let raskNamespacePollStarted = 0;
-
-function ensureRaskNamespacePoll() {
-    if (raskNamespacePollHandle !== 0) return;
-    raskNamespacePollStarted = Date.now();
-    raskNamespacePollHandle = setInterval(() => {
-        const timedOut = Date.now() - raskNamespacePollStarted > RASK_NAMESPACE_POLL_TIMEOUT_MS;
-        // Force-dispatch only once there's nothing left to wait for: the queue drained,
-        // OR the poll timed out AND every tracked head/scoped asset has reached a
-        // terminal state. The headAssetsReady() guard is what keeps a still-loading
-        // scoped /_rask/a/{hash}.js from being faulted prematurely on a slow runner —
-        // its load event drains the queue normally; a genuinely missing/errored
-        // namespace still surfaces "Could not find" once its script terminates.
-        if (pendingScopedInvokes.length === 0 || (timedOut && headAssetsReady())) {
-            // Time's up: drain whatever's left through beginInvokeJS — the missing-namespace
-            // calls will surface their original "Could not find" JSException, which the
-            // component's ErrorBoundary catches. Better than hanging forever.
-            clearInterval(raskNamespacePollHandle);
-            raskNamespacePollHandle = 0;
-            const drained = pendingScopedInvokes;
-            pendingScopedInvokes = [];
-            for (let i = 0; i < drained.length; i++) {
-                const c = drained[i];
-                dispatchUnparked(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId);
-            }
-            return;
-        }
-        maybeDrainPendingInvokes();
-    }, RASK_NAMESPACE_POLL_INTERVAL_MS);
-}
+// Parks a first-render Rask.X invoke until the head's assets have settled and window.Rask.X exists
+// (rask-head-assets, shared with the server runtime).
+const invokeGate = createInvokeGate<RaskPendingInvoke>(
+    c => c.identifier,
+    c => dispatchUnparked(c.taskId, c.identifier, c.argsJson, c.resultType, c.targetInstanceId));
 
 // Read once from <base href> (or the page URL if no <base> is set) so the
 // runtime can host under a sub-path like /Rask/ on GitHub Pages without the
@@ -332,7 +123,7 @@ export function setExports(exports: RaskWasmExports): void {
     // Initial sweep for Head-declared external assets emitted by the browser's
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
-    scanHeadAssets(true);
+    invokeGate.scanHeadAssets(true);
 
     // Let registered IHostedServices drain when the page really goes away — the browser's nearest
     // thing to SIGTERM. `pagehide` rather than `beforeunload` because it also fires on mobile, where
@@ -639,8 +430,8 @@ function applyDiffReply(reply: RaskFrameReply): unknown {
         // A diff can insert Head-declared external <script>/<link> and scoped-JS tags
         // (keyed InsertSubtree). Track them so their load events feed the Rask.* invoke
         // gate, then drain anything now unblocked — the full-HTML morph path does the same.
-        scanHeadAssets();
-        maybeDrainPendingInvokes();
+        invokeGate.scanHeadAssets();
+        invokeGate.drain();
         applyFrameInvokes(reply, dispatchWasmInvoke);
         if (typeof window.raskAfterMorph === "function") window.raskAfterMorph();
     };
@@ -682,7 +473,7 @@ function applyFullReply(reply: RaskFrameReply): unknown {
             root = document.querySelector("[data-rask-root]") || document.body;
             // Pick up any newly-inserted Head-declared external assets so
             // their load events feed into the Rask.* invoke gate.
-            scanHeadAssets();
+            invokeGate.scanHeadAssets();
         }
         applyHistory(reply.history);
         // Cross-route navigation in WASM commits via this full-HTML morph (not the
@@ -968,20 +759,9 @@ export function beginInvokeJS(
     argsJson: string | null,
     resultType: number,
     targetInstanceId: string): void {
-    // Two gates for Rask.* identifiers:
-    //  1. headAssetsReady() — user-Head-declared CDN <script>/<link> deps still loading.
-    //  2. raskNamespaceReady() — the component's per-component script
-    //     (/_rask/a/{hash}.js, served by the host endpoint) hasn't executed yet, so
-    //     window.Rask.{TypeName} doesn't exist. First-render OnRenderedAsync races this
-    //     load; the parked invoke wakes up via the polling tick when the script's IIFE
-    //     populates window.Rask.{TypeName}.
-    if (typeof identifier === "string"
-        && identifier.indexOf("Rask.") === 0
-        && (!scopedJsReady || !headAssetsReady() || !raskNamespaceReady(identifier))) {
-        pendingScopedInvokes.push({taskId, identifier, argsJson, resultType, targetInstanceId});
-        ensureRaskNamespacePoll();
-        return;
-    }
+    // A Rask.* call waits while head assets are still loading or window.Rask.{TypeName} does not exist yet
+    // (a first-render OnRenderedAsync racing its scoped script); the gate dispatches it when both clear.
+    if (invokeGate.park({taskId, identifier, argsJson, resultType, targetInstanceId})) return;
     dispatchUnparked(taskId, identifier, argsJson, resultType, targetInstanceId);
 }
 

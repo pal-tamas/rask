@@ -533,6 +533,10 @@ them until tagged releases begin.
   ```bash
   cd shop && rask db add Init   # was: rask db add Init --project Shop.Server
   ```
+- **A server page's first `Rask.*` call waits for a slow scoped script.** On a cold load, a call from
+  `OnRendered` to a component's scoped TypeScript could fault with "Could not find 'Rask.X' on target" when the
+  script took longer than 5 seconds to execute. The WASM runtime already waited for the script's own load event,
+  with a 30-second backstop for same-origin assets; the server runtime now shares that gate with it.
 - **A CQRS message nested two types deep crosses the wire.** The codec generator looked one level into a
   container type, so `Orders.Returns.Refund` silently got no contract. It now walks every depth, like
   the island, Blazor and validator generators — all four share one walker.
