@@ -34,15 +34,15 @@ public sealed partial class NestedListIndexerDemo : Component
                     Ui.Button
                         .AccessibleLabel("Move up")
                         .Square(true)
-                        .Variant(Ui.Variant.Outline)
+                        .Outline
                         .Class("me-1")
                         .Disabled(i == 0)
                         .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[Ui.Icon.Name(Ui.IconName.ArrowUp)],
                     Ui.Button
                         .AccessibleLabel("Remove SKU")
                         .Square(true)
-                        .Tone(Ui.Tone.Error)
-                        .Variant(Ui.Variant.Outline)
+                        .Error
+                        .Outline
                         .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.Close)]
                 ]
             ]);
@@ -57,15 +57,15 @@ public sealed partial class NestedListIndexerDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("nf-idx-add")
                         .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[Ui.Icon.Name(Ui.IconName.Plus), "Add row"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-idx-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Submit"]
+                    Ui.Button.Primary.Submit.Id("nf-idx-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
+                : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
         ];
     }
 }

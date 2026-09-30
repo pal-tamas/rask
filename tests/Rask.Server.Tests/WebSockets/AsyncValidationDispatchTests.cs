@@ -38,23 +38,12 @@ public class AsyncValidationDispatchTests
 
         await ws.SendJsonAsync(new { id = changeId, value = "admin" }, ct: TestContext.Current.CancellationToken);
 
-        // Drain every frame the dispatcher emits for this handler — typically the mid-await
-        // ("Checking...") plus the post-handler. The last frame on the wire must reflect the
-        // terminal state.
-        string? last = null;
-        while (true)
-        {
-            var frame = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500));
-            if (frame is null)
-            {
-                break;
-            }
+        // Wait for the frame that carries the verdict — after the mid-await ("Checking...") one, if any — rather
+        // than for a gap in the traffic: a loaded machine can take longer than any gap to send the first (#1144).
+        var verdict = await ws.ReceiveUntilAsync(f => f.Contains("Already taken.", StringComparison.Ordinal), TimeSpan.FromSeconds(5));
 
-            last = frame;
-        }
-
-        Assert.NotNull(last);
-        var html = JsonDocument.Parse(last!).RootElement.GetProperty("html").GetString()!;
+        Assert.NotNull(verdict);
+        var html = JsonDocument.Parse(verdict).RootElement.GetProperty("html").GetString()!;
         Assert.Contains("Already taken.", html);
         Assert.DoesNotContain("Checking...", html);
     }

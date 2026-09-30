@@ -73,11 +73,13 @@ internal sealed partial class AccountService<TUser>(
         }
 
         // The gate applies only while the instance is unclaimed. Asking the database rather than the in-memory token means
-        // a restart cannot re-open the window on an app that already has accounts.
+        // a restart cannot re-open the window on an app that already has accounts. The token is compared FIRST: the winner of
+        // the claim clears it only after the claim is saved, so a token that stopped matching mid-race is always followed by a
+        // claimed instance — asked the other way round, a racer could see "unclaimed", then a cleared token, and be refused (#1143).
         if (options.FirstUserIsAdmin
             && options.RequireFirstRunToken
-            && !await claims.IsClaimedAsync(cancellationToken).ConfigureAwait(false)
-            && !firstRun.Matches(firstRunToken))
+            && !firstRun.Matches(firstRunToken)
+            && !await claims.IsClaimedAsync(cancellationToken).ConfigureAwait(false))
         {
             attempt.Fail();
             return Fail(AuthError.FirstRunTokenRequired);

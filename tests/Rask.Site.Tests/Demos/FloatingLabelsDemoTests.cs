@@ -21,7 +21,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
         await Fill(page, html, "ff-Age", "30");
         await Fill(page, html, "ff-Plan", "pro");
 
-        await page.InvokeAsync(SubmitHandler(page.Render()));
+        await page.Invoke(SubmitHandler(page.Render()));
 
         var final = page.Render();
         Assert.Contains("Created account for Ada Lovelace", final);
@@ -35,7 +35,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
             var hid = TryAttrOnTagWith(html, $"id=\"{id}\"", attr);
             if (hid is not null)
             {
-                await page.InvokeAsync(hid, $"{{\"value\":\"{value}\"}}");
+                await page.Invoke(hid, $"{{\"value\":\"{value}\"}}");
             }
         }
     }

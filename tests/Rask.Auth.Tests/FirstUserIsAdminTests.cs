@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -149,6 +151,51 @@ public sealed class FirstUserIsAdminTests
 
         Assert.Equal(1, admins);
         Assert.Equal(racers, await harness.UserCountAsync());
+    }
+
+    /// <summary>
+    ///     The interleaving #1143 caught once in six racers, made certain: another registration wins the claim and clears
+    ///     the token in the instant after this one read "unclaimed". The token is still what this racer was given, so it
+    ///     must register rather than be told a token is required.
+    /// </summary>
+    [Fact]
+    public async Task A_racer_whose_token_is_cleared_mid_check_still_registers()
+    {
+        ClaimedJustAfterTheRead? claims = null;
+        await using var harness = new AuthHarness(extraServices: s => s.Replace(ServiceDescriptor.Singleton<IInstanceClaimStore>(sp =>
+            claims = new ClaimedJustAfterTheRead(
+                new InstanceClaimStore<AuthDbContext>(
+                    sp.GetRequiredService<IDbContextFactory<AuthDbContext>>(), sp.GetService<TimeProvider>() ?? TimeProvider.System),
+                sp.GetRequiredService<FirstRunToken>()))));
+        await harness.StartAsync();
+        claims!.Armed = true;
+
+        var result = await RegisterAsync(harness, "racer@example.com", AuthHarness.FirstRunTokenValue);
+
+        Assert.True(result.Succeeded, $"refused: {result.Error}");
+    }
+
+    // Once armed, reads the real answer, then lets "the winner" finish — claim saved, token cleared — before handing it
+    // back. Armed only after start-up, whose own IsClaimedAsync is what issues the token in the first place.
+    private sealed class ClaimedJustAfterTheRead(IInstanceClaimStore inner, FirstRunToken token) : IInstanceClaimStore
+    {
+        public bool Armed { get; set; }
+
+        public async Task<bool> IsClaimedAsync(CancellationToken cancellationToken = default)
+        {
+            var claimed = await inner.IsClaimedAsync(cancellationToken);
+            if (Armed)
+            {
+                Armed = false;
+                await inner.TryClaimAsync(Guid.NewGuid(), cancellationToken);
+                token.Clear();
+            }
+
+            return claimed;
+        }
+
+        public Task<bool> TryClaimAsync(Guid userId, CancellationToken cancellationToken = default) =>
+            inner.TryClaimAsync(userId, cancellationToken);
     }
 
     private static async Task<AuthResult> RegisterAsync(

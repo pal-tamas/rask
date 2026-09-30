@@ -209,8 +209,8 @@ kind to discover.
 
 **Every template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
 card and a footer — so a project looks the same whether its front end is C# components, React or Nuxt.
-The built-in `/login` and `/register` pages are drawn with it too, and an app with a database links
-sign-in from the starter's navbar.
+The sign-in pages `rask new` writes into `Features/Auth/` are drawn with it too, and an app with a database
+links sign-in from the starter's navbar.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately.

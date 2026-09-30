@@ -16,7 +16,7 @@ dotnet add package Rask.Ui
 ```csharp
 using Rask;
 
-Ui.Button.Tone(Ui.Tone.Primary)["Save"]
+Ui.Button.Primary["Save"]
 ```
 
 Live, on rask.sh: [Actions](https://rask.sh/docs/ui/actions) · [Data display](https://rask.sh/docs/ui/data-display) ·
@@ -260,7 +260,7 @@ Colour, fill and size are independent and compose, so an outlined error button n
 own:
 
 ```csharp
-Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Size(Ui.Size.Lg)["Delete"]
+Ui.Button.Error.Outline.Lg["Delete"]
 ```
 
 | Enum | Members |
@@ -316,11 +316,11 @@ from `Element`, so every step an element takes works on them unchanged, the even
 show is their **children**, the same as a raw element's:
 
 ```csharp
-Ui.Button.Id("save").Tone(Ui.Tone.Primary).OnClick(SaveAsync)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
+Ui.Button.Id("save").Primary.OnClick(SaveAsync)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
 
-Ui.Badge.Tone(Ui.Tone.Success)["Live"]
+Ui.Badge.Success["Live"]
 
-Ui.Alert.Tone(Ui.Tone.Error)[Ui.Icon.Name(Ui.IconName.Warning), Span["Payment failed: "], Code[error]]
+Ui.Alert.Error[Ui.Icon.Name(Ui.IconName.Warning), Span["Payment failed: "], Code[error]]
 
 Ui.Table.Id("orders").Data("testid", "orders").Aria(("label", "Orders"))[
     Thead[Tr[Th["Order"], Th["Total"]]],
@@ -363,7 +363,7 @@ is an ordinary link the browser follows itself, written exactly as given. That i
 leaves the app wants.
 
 ```csharp
-Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]    // stays in the app
+Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]    // stays in the app
 Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
 Ui.Button.Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]     // leaves it
 ```
@@ -466,7 +466,7 @@ is Flux UI's answer to the double submit, and it holds on both hosts: the Server
 the handler's ack, the WebAssembly runtime when its dispatch returns.
 
 ```csharp
-Ui.Button.Tone(Ui.Tone.Primary).OnClick(SaveAsync)["Save"]          // waits automatically
+Ui.Button.Primary.OnClick(SaveAsync)["Save"]          // waits automatically
 Ui.Button.Loading(false).OnClick(StepAsync)[Ui.Icon.Name(Ui.IconName.Plus)]  // a stepper: presses queue
 Ui.Button.Loading(_exporting)["Export"]                            // work that outlives the handler
 ```
@@ -546,7 +546,7 @@ Ui.Dropdown.Trigger("View").Align(Ui.Align.End)[
     ],
     Ui.MenuSeparator.Key("sep"),
     Ui.MenuCheckbox.Key("archived").Value(_archived).Text("Show archived").OnChange(on => _archived = on),
-    Ui.MenuItem.Text("Delete").Tone(Ui.Tone.Error).OnClick(Delete)
+    Ui.MenuItem.Text("Delete").Error.OnClick(Delete)
 ]
 ```
 
@@ -724,7 +724,7 @@ and it is the same control underneath (`UiMenuSurface`), so the keyboard is iden
 Ui.ContextMenu.Target(Div.TabIndex(0).Class("card")["Invoice 42"])[
     Ui.MenuItem.Text("Open").OnClick(Open),
     Ui.MenuSeparator,
-    Ui.MenuItem.Text("Delete").Tone(Ui.Tone.Error).OnClick(Delete)
+    Ui.MenuItem.Text("Delete").Error.OnClick(Delete)
 ]
 ```
 
@@ -967,8 +967,8 @@ toast changes its **icon** and not only its colour.
 using Rask;   // every template's GlobalUsings.cs already says this
 
 Ui.Card[
-    Ui.Input.Label("Email").Hint("We never share it"),
-    Ui.Button.Tone(Ui.Tone.Primary).Size(Ui.Size.Small).OnClick(Save)["Save"],
+    Ui.Input.Of<string>().Label("Email").Hint("We never share it"),
+    Ui.Button.Primary.Sm.OnClick(Save)["Save"],
     Button["a plain <button>"]
 ]
 ```

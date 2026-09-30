@@ -28,7 +28,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"new\"}");
+        await page.Invoke(changeId!, "{\"value\":\"new\"}");
 
         var fid = new FieldIdentifier(model, "Username");
         Assert.Equal(new[] { "no good" }, ctx.GetValidationMessages(fid));
@@ -49,7 +49,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
 
         // Held un-awaited on purpose: the gate keeps the validator mid-flight so the state below is
         // observable. InvokeAsync returning a Task is what makes that expressible through the public API.
-        var dispatchTask = page.InvokeAsync(changeId!, "{\"value\":\"taken\"}");
+        var dispatchTask = page.Invoke(changeId!, "{\"value\":\"taken\"}");
 
         await validator.Started.Task;
         var fid = new FieldIdentifier(model, "Username");
@@ -75,8 +75,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         ]);
 
         // Mirror the browser: OnInput sets the value, OnChange (blur) touches and validates.
-        await page.InputAsync("{\"value\":\"admin\"}");
-        await page.ChangeAsync("{\"value\":\"admin\"}");
+        await page.On("input").Input("admin");
+        await page.On("input").Change("admin");
 
         var fid = new FieldIdentifier(model, "Username");
         Assert.Equal("admin", model.Username);

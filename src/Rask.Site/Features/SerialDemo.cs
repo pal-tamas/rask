@@ -26,11 +26,11 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .Type(InputType.Number)
                         .Disabled(_port is not null)
                         .OnInput(v => _baudRate = int.TryParse(v, CultureInfo.InvariantCulture, out var baud) ? baud : 0),
-                    Ui.Button.Tone(Ui.Tone.Primary)
+                    Ui.Button.Primary
                         .Id("serial-connect")
                         .Disabled(_port is not null)
                         .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.Cube), "Connect"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                    Ui.Button.Error.Outline
                         .Id("serial-disconnect")
                         .Disabled(_port is null)
                         .OnClick(Disconnect)["Disconnect"]
@@ -41,7 +41,7 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                         .Placeholder("Line to send")
                         .Disabled(_port is null)
                         .OnInput(v => _outgoing = v),
-                    Ui.Button.Tone(Ui.Tone.Primary)
+                    Ui.Button.Primary
                         .Id("serial-send")
                         .Disabled(_port is null)
                         .OnClick(Send)["Send"]

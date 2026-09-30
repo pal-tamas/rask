@@ -34,8 +34,8 @@ public sealed partial class NestedFluentValidationDemo : Component
                     Ui.Button
                         .AccessibleLabel("Remove line")
                         .Square(true)
-                        .Tone(Ui.Tone.Error)
-                        .Variant(Ui.Variant.Outline)
+                        .Error
+                        .Outline
                         .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
                 ]
             ]);
@@ -66,15 +66,15 @@ public sealed partial class NestedFluentValidationDemo : Component
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("nf-fv-add")
                         .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[Ui.Icon.Name(Ui.IconName.Plus), "Add line"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-fv-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Place"]
+                    Ui.Button.Primary.Submit.Id("nf-fv-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Place"]
                 ]
             ],
             _submission is null
                 ? null
-                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
+                : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
         ];
     }
 }

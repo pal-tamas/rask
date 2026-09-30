@@ -10,7 +10,7 @@ public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Compon
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
+                Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("nav-read")
                     .OnClick(Read)["Read navigator info"],
                 Div.Class("text-sm text-ui-muted")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],

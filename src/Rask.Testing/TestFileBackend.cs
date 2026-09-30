@@ -24,7 +24,7 @@ namespace Rask.Testing;
 ///     files.Add("notes.txt", "hello", "text/plain");
 ///
 ///     var page = Page.Render(new UploadPage(), TestServiceProvider.With&lt;IBrowserFileBackend&gt;(files));
-///     await page.On("#picker").FilesAsync(files);
+///     await page.On("#picker").Files(files);
 ///
 ///     Assert.Equal("notes.txt", page.TextOf("[data-testid=name]"));
 ///     </code>
@@ -149,7 +149,7 @@ public sealed class TestFileBackend : IBrowserFileBackend
     /// <summary>
     ///     The <c>files</c>-event payload for <paramref name="files" />, without going through a backend
     ///     instance — a <see cref="TestFile" /> carries its own metadata. This is what
-    ///     <c>page.On("#picker").FilesAsync(file)</c> uses.
+    ///     <c>page.On("#picker").Files(file)</c> uses.
     /// </summary>
     public static string PayloadFor(params TestFile[] files)
     {

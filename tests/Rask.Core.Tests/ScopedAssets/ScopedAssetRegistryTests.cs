@@ -564,7 +564,7 @@ public partial class ScopedAssetRegistryTests
     {
         var ex = Assert.Throws<ArgumentException>(() => ScopedAssetRegistry.RegisterCss(typeof(Generic<>), ".x {}"));
 
-        Assert.Contains("Open generic", ex.Message);
+        Assert.Contains("is an open generic type", ex.Message);
     }
 
     [Fact]

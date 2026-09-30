@@ -35,7 +35,7 @@ public sealed partial class CultureFormatsDemo : Component
         // table look broken rather than instructive. Say so instead of showing four identical columns.
         if (!Rask.Core.Globalization.RaskCultureResolver.IsGlobalizationSupported)
         {
-            return Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft)["This build runs with ", Code["InvariantGlobalization"], ", so every culture formats identically. Set ", Code["<RaskGlobalization>true</RaskGlobalization>"], " to ship ICU — see the WASM section of this guide."];
+            return Ui.Alert.Warning.Soft["This build runs with ", Code["InvariantGlobalization"], ", so every culture formats identically. Set ", Code["<RaskGlobalization>true</RaskGlobalization>"], " to ship ICU — see the WASM section of this guide."];
         }
 
         return Ui.Table.Class("align-middle")[

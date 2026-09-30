@@ -25,6 +25,12 @@
     <_RaskMetaDir Condition="'$(RaskMetaFramework)' != ''"
     >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskMetaAppDir)'))</_RaskMetaDir>
 
+    <!-- The front end's own globals.css and next.config.ts are not scoped assets. The host carries Rask.Core's
+         scoped CSS/TS globs through Rask.Server, which would pair them with components and fail on RASK015/017
+         (#1147) — the same exclusion Rask.Spa.Hosting makes for a SPA's client. -->
+    <RaskScopedSourceExclude Condition="'$(_RaskMetaDir)' != ''"
+    >$(RaskScopedSourceExclude);$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)/', '$(_RaskMetaDir)'))/**</RaskScopedSourceExclude>
+
     <!-- Design-time builds are excluded: an IDE reloading the project must never shell out to npm. -->
     <_RaskMetaDoBuild
       Condition="'$(_RaskMetaDir)' != '' AND '$(RaskMetaBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'"

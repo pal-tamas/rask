@@ -10,7 +10,7 @@ public sealed partial class ValidationSummaryDemo : Component
     private string? _submission;
 
     private static Component SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
-        Ui.Alert.Tone(Ui.Tone.Error).Variant(Ui.Variant.Soft).Class("text-sm mb-0")[Div.Class("font-semibold mb-1")[
+        Ui.Alert.Error.Soft.Class("text-sm mb-0")[Div.Class("font-semibold mb-1")[
                 Ui.Icon.Name(Ui.IconName.Warning).Class("me-1"),
                 $"Please fix {entries.Count} error{(entries.Count == 1 ? "" : "s")}:"
             ], Ul.Class("mb-0 ps-3")[
@@ -48,11 +48,11 @@ public sealed partial class ValidationSummaryDemo : Component
                     .ShowValidation(false)
             ],
             Div[
-                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Register"]
+                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CheckCircle), "Register"]
             ]
         ],
         _submission is null
             ? null
-            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }

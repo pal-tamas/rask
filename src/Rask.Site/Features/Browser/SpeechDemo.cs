@@ -17,8 +17,8 @@ public sealed partial class SpeechDemo(ISpeechSynthesis speech) : Component
                     .Class("mb-2")
                     .OnInput(v => _text = v),
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("speech-speak").OnClick(Speak)["Speak"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Id("speech-speak").OnClick(Speak)["Speak"],
+                    Ui.Button.Error.Outline
                         .Id("speech-cancel")
                         .OnClick(Cancel)["Stop"]
                 ],

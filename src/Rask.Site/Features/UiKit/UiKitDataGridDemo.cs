@@ -145,7 +145,7 @@ public sealed partial class UiKitDataGridDemo : Component
                     .TotalCount(Catalog.Length)
                     .PageHref(page => PageMeta.LinkTo(Routes.UiKitDataGridPage(Page: page + 1)))
                     .RowTone(r => r.Downloads > 9000 ? Ui.Tone.Success : null)
-                    .Toolbar(Ui.Badge.Tone(Ui.Tone.Info)[$"{Catalog.Length} packages"])[c => [
+                    .Toolbar(Ui.Badge.Info[$"{Catalog.Length} packages"])[c => [
                         c.Field(r => r.Id).Title("#").Mono(true),
                         c.Field(r => r.Name).Title("Package"),
                         c.Field(r => r.Channel).Title("Channel").ShowFrom(Ui.Breakpoint.Md),

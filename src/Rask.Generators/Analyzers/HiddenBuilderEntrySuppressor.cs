@@ -62,7 +62,7 @@ public sealed class HiddenBuilderEntrySuppressor : DiagnosticSuppressor
         }
 
         var model = context.GetSemanticModel(tree);
-        if (model.Compilation.GetTypeByMetadataName(BuilderEntry.ComponentFullName) is not { } component)
+        if (model.Compilation.GetTypeByMetadataName(ComponentSymbols.ComponentFullName) is not { } component)
         {
             return false;
         }

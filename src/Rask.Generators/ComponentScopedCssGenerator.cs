@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators;
 
@@ -83,7 +84,7 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
             return null;
         }
 
-        if (!AssetPairing.InheritsFromComponent(symbol))
+        if (!InheritsFromComponent(symbol))
         {
             return null;
         }

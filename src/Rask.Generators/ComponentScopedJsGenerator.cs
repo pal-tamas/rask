@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators;
 
@@ -35,9 +36,6 @@ namespace Rask.Generators;
 [Generator(LanguageNames.CSharp)]
 public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
 {
-    /// <summary>The base every island derives from, whose module is not a scoped asset.</summary>
-    private const string ExternalComponentFullName = "Rask.External.ExternalComponent";
-
     /// <summary>The metadata carrying the <c>.ts</c> a compiled file came from.</summary>
     private const string SourceMetadataKey = "build_metadata.AdditionalFiles.RaskTsSource";
 
@@ -159,7 +157,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             return null;
         }
 
-        if (!AssetPairing.InheritsFromComponent(symbol))
+        if (!InheritsFromComponent(symbol))
         {
             return null;
         }

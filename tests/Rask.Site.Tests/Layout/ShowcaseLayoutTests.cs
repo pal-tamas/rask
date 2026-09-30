@@ -193,7 +193,7 @@ public sealed class ShowcaseLayoutTests
 
         // Open the mobile drawer the way a tap on the hamburger does: the hamburger is a label for the sidebar's
         // checkbox, whose change handler mirrors the state into _drawerOpen — and the checkbox renders checked.
-        var opened = await page.On("#docs-sidebar").ChangeAsync("true");
+        var opened = await page.On("#docs-sidebar").Change("true");
 
         Assert.Matches("<input[^>]*id=\"docs-sidebar\"[^>]*checked|<input[^>]*checked[^>]*id=\"docs-sidebar\"", opened);
 

@@ -76,12 +76,12 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
     {
         if (_error is not null)
         {
-            return Ui.Alert.Tone(Ui.Tone.Error).Variant(Ui.Variant.Soft).Class("mb-0")[Strong["Error: "], _error];
+            return Ui.Alert.Error.Soft.Class("mb-0")[Strong["Error: "], _error];
         }
 
         if (_post is null)
         {
-            return Ui.Loading.Text("Loading…").Size(Ui.Size.Sm).Class("text-ui-muted");
+            return Ui.Loading.Text("Loading…").Sm.Class("text-ui-muted");
         }
 
         // An <article> rather than Ui.Card's <div>: this is a self-contained syndicated item, and the

@@ -18,7 +18,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         var picked = files.Add("notes.txt", "hello world", "text/plain");
         var page = Page.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
-        await page.On("#picker").FilesAsync(picked);
+        await page.On("#picker").Files(picked);
 
         var received = Assert.Single(page.Instance.Received);
         Assert.Equal("notes.txt", received.Name);
@@ -41,7 +41,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         using var diagnostics = CapturingDiagnostics.Install();
         var page = Page.Render(UploadProbe);
 
-        await page.On("#picker").FilesAsync(picked);
+        await page.On("#picker").Files(picked);
 
         Assert.True(page.Instance.Fired, "the handler still runs");
         Assert.Empty(page.Instance.Received);
@@ -58,7 +58,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         files.Add("b.txt", "two");
         var page = Page.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
-        await page.On("#picker").FilesAsync(files);
+        await page.On("#picker").Files(files);
 
         Assert.Equal(["a.txt", "b.txt"], page.Instance.Received.Select(f => f.Name));
     }
@@ -71,7 +71,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         var files = new TestFileBackend();
         var page = Page.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
-        await page.On("#picker").FilesAsync(files.Add("notes.txt", "hi"));
+        await page.On("#picker").Files(files.Add("notes.txt", "hi"));
 
         Assert.Equal(["notes.txt"], files.Released);
     }
@@ -122,7 +122,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         var files = new TestFileBackend();
         var page = Page.Render(UploadFormProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
-        await page.On("#form").SubmitAsync(files.FormPayload("attachment", files.Add("cv.pdf", "x")));
+        await page.On("#form").Submit(files.FormPayload("attachment", files.Add("cv.pdf", "x")));
 
         Assert.Equal(["cv.pdf"], page.Instance.Received.Select(f => f.Name));
     }

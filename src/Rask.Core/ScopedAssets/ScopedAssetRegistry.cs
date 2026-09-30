@@ -147,8 +147,8 @@ public static partial class ScopedAssetRegistry
         if (componentType.IsGenericTypeDefinition)
         {
             throw new ArgumentException(
-                "Open generic types cannot be registered (no stable scope id). " +
-                $"Got: {componentType.FullName}.",
+                $"{componentType.FullName} is an open generic type, which has no stable scope id for scoped styles. " +
+                "Put the .css beside a non-generic component that wraps it or that it derives from.",
                 nameof(componentType));
         }
 
@@ -254,8 +254,8 @@ public static partial class ScopedAssetRegistry
         if (componentType.IsGenericTypeDefinition)
         {
             throw new ArgumentException(
-                "Open generic types cannot be registered. " +
-                $"Got: {componentType.FullName}.",
+                $"{componentType.FullName} is an open generic type, which has no stable scope id for a scoped script. " +
+                "Put the script beside a non-generic component that wraps it or that it derives from.",
                 nameof(componentType));
         }
 

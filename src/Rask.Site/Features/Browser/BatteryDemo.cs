@@ -55,7 +55,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("battery-read").OnClick(Read)["Read now"]
+                    Ui.Button.Primary.Id("battery-read").OnClick(Read)["Read now"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Level: ", Code.Id("battery-level")[_status is { } s ? $"{s.Level * 100:0}%" : "(none)"]],

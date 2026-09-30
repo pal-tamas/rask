@@ -52,20 +52,6 @@ internal static class AssetPairing
     public static string MakeKey(string dir, string name) =>
         dir.Length == 0 ? name : dir + "/" + name;
 
-    /// <summary>Whether <paramref name="symbol" /> derives from <c>Rask.Core.Component</c> — what a sibling file pairs with.</summary>
-    public static bool InheritsFromComponent(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
-        {
-            if (string.Equals(t.OriginalDefinition.ToDisplayString(), "Rask.Core.Component", StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /// <summary>
     ///     A location in a sibling file that is not part of the compilation.
     /// </summary>

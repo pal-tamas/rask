@@ -19,7 +19,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
         Action<IReadOnlyList<IRaskFile>> handler = files => received = files;
         var page = Page.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
-        var ok = await page.TryInvokeAsync("h0", """
+        var ok = await page.TryInvoke("h0", """
                                                  { "id": "h0", "type": "files", "files": [
                                                      { "token": "t1", "name": "a.txt", "size": 5, "type": "text/plain", "lastModified": 1 },
                                                      { "token": "t2", "name": "b.txt", "size": 3, "type": "text/plain", "lastModified": 2 }
@@ -49,7 +49,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
         };
         var page = Page.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
-        await page.InvokeAsync("h0", """
+        await page.Invoke("h0", """
                                      { "id": "h0", "type": "files", "files": [
                                          { "token": "x", "name": "x.txt", "size": 1, "type": "text/plain", "lastModified": 0 }
                                      ]}

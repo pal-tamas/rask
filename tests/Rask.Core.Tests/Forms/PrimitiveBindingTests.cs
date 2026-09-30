@@ -75,7 +75,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         Assert.Contains("type=\"number\"", html);
         Assert.Contains("value=\"1.5\"", html);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"3.14\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"3.14\"}");
 
         Assert.True(ok);
         Assert.Equal(3.14f, p.F, 0.0001f);
@@ -87,7 +87,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { D = 0d };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
 
-        await page.ChangeAsync("{\"value\":\"6.022e23\"}");
+        await page.On("input").Change("6.022e23");
 
         Assert.Equal(6.022e23, p.D, 1e20);
     }
@@ -98,7 +98,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { M = 0m };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.M)]);
 
-        await page.ChangeAsync("{\"value\":\"12345.6789\"}");
+        await page.On("input").Change("12345.6789");
 
         Assert.Equal(12345.6789m, p.M);
     }
@@ -114,7 +114,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var html = page.Html;
         var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
 
-        await page.InvokeAsync(changeId!, $"{{\"value\":\"{raw}\"}}");
+        await page.Invoke(changeId!, $"{{\"value\":\"{raw}\"}}");
 
         Assert.Equal(expected, p.B);
     }
@@ -127,7 +127,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { Ul = 0ul };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Ul)]);
 
-        await page.ChangeAsync("{\"value\":\"9223372036854775808\"}");
+        await page.On("input").Change("9223372036854775808");
 
         Assert.Equal(9223372036854775808ul, p.Ul);
     }
@@ -138,7 +138,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { H = (Half)0 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.H)]);
 
-        await page.ChangeAsync("{\"value\":\"2.5\"}");
+        await page.On("input").Change("2.5");
 
         Assert.Equal((Half)2.5, p.H);
     }
@@ -152,7 +152,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
 
         var fresh = Guid.NewGuid();
-        await page.InvokeAsync(changeId!, $"{{\"value\":\"{fresh}\"}}");
+        await page.Invoke(changeId!, $"{{\"value\":\"{fresh}\"}}");
 
         Assert.Equal(fresh, p.Token);
     }
@@ -163,7 +163,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new IdentityHolder { Letter = 'a' };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Letter)]);
 
-        await page.ChangeAsync("{\"value\":\"Z\"}");
+        await page.On("input").Change("Z");
 
         Assert.Equal('Z', p.Letter);
     }
@@ -175,7 +175,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new IdentityHolder { Token = known };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Token)]);
 
-        await page.ChangeAsync("{\"value\":\"not-a-guid\"}");
+        await page.On("input").Change("not-a-guid");
 
         // Unparseable Guid text must NOT zero the field — TrySetTyped returns false, setter never runs.
         Assert.Equal(known, p.Token);
@@ -189,7 +189,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
 
         // char.TryParse only accepts a single character — a two-char string fails to parse.
-        await page.InvokeAsync(changeId!, "{\"value\":\"ab\"}");
+        await page.Invoke(changeId!, "{\"value\":\"ab\"}");
 
         Assert.Equal('a', p.Letter);
     }
@@ -202,7 +202,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
 
         // Enum binding goes through Enum.TryParse(ignoreCase: true), so a lower-cased member name binds.
-        await page.InvokeAsync(changeId!, "{\"value\":\"high\"}");
+        await page.Invoke(changeId!, "{\"value\":\"high\"}");
 
         Assert.Equal(Priority.High, p.Level);
     }
@@ -215,7 +215,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
 
         // A string that is not a member name leaves the model untouched.
-        await page.InvokeAsync(changeId!, "{\"value\":\"medium\"}");
+        await page.Invoke(changeId!, "{\"value\":\"medium\"}");
 
         Assert.Equal(Priority.High, p.Level);
     }
@@ -226,7 +226,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { OptionalDouble = 9.9 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalDouble)]);
 
-        await page.ChangeAsync("{\"value\":\"\"}");
+        await page.On("input").Change("");
 
         Assert.Null(p.OptionalDouble);
     }
@@ -237,7 +237,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { D = 1.5 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
 
-        await page.ChangeAsync("{\"value\":\"not-a-number\"}");
+        await page.On("input").Change("not-a-number");
 
         // Invalid input (non-empty, unparseable) must NOT silently zero the field — TrySetTyped
         // returns false and the setter is never called. The empty-input case is a separate
@@ -251,7 +251,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { D = 1.5 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
 
-        await page.ChangeAsync("{\"value\":\"\"}");
+        await page.On("input").Change("");
 
         // Empty input on a non-nullable value type clears to default(T) so the user can
         // actually empty the field. Without this, the next render snaps the input back to

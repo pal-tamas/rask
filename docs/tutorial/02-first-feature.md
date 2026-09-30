@@ -118,9 +118,9 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
 
         return
         [
-            Ui.Header.Title("New product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Header.Title("New product").Actions(Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]),
             Ui.Card[
-                save.IsError ? Ui.Alert.Tone(Ui.Tone.Error)["Something went wrong — please try again."] : null,
+                save.IsError ? Ui.Alert.Error["Something went wrong — please try again."] : null,
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.Create(model, cancellationToken: ct);
@@ -130,7 +130,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
                     Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
-                    Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save"]
+                    Ui.Button.Submit.Primary.Disabled(save.IsPending)["Save"]
                 ]
             ]
         ];
@@ -144,7 +144,7 @@ URL, so renaming a route breaks the build instead of the link. See [routing](../
 The page is built from the [Rask.Ui kit](../ui-kit.md), so there isn't a class string in it. `Ui.Input` is
 a whole field in one line: its label floats inside the box until you type (put guidance in `Hint`, under
 the field, rather than in a placeholder), and the field's own validation message appears under it.
-`Ui.Button.Type(Ui.ButtonType.Submit)` is the form's submit button, and **Cancel** is a `Ui.Button` too. Given
+`Ui.Button.Submit` is the form's submit button, and **Cancel** is a `Ui.Button` too. Given
 `Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
 the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
 
@@ -199,7 +199,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
 
         if (product.Data is not { } loaded)
         {
-            return Ui.Alert.Tone(Ui.Tone.Warning)[
+            return Ui.Alert.Warning[
                 "Product not found. ", Ui.Link.Href(Routes.ProductsPage())["Back to the list"], "."
             ];
         }
@@ -213,15 +213,15 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
 
         return
         [
-            Ui.Header.Title("Edit product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Header.Title("Edit product").Actions(Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]),
             Ui.Card[
                 save.Error switch
                 {
                     null => null,
-                    DbUpdateConcurrencyException => Ui.Alert.Tone(Ui.Tone.Error)[
+                    DbUpdateConcurrencyException => Ui.Alert.Error[
                         "Someone else changed this product while you were editing it. Reload to see their changes."],
-                    KeyNotFoundException => Ui.Alert.Tone(Ui.Tone.Error)["This product has been deleted."],
-                    _ => Ui.Alert.Tone(Ui.Tone.Error)["Something went wrong — please try again."],
+                    KeyNotFoundException => Ui.Alert.Error["This product has been deleted."],
+                    _ => Ui.Alert.Error["Something went wrong — please try again."],
                 },
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
@@ -232,7 +232,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
                     Ui.Checkbox.Bind(() => _model.InStock)["In stock"],
-                    Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save changes"]
+                    Ui.Button.Submit.Primary.Disabled(save.IsPending)["Save changes"]
                 ]
             ]
         ];
@@ -282,7 +282,7 @@ public sealed partial class DeleteProduct : Component
         // One button per row, and each row is its own DeleteProduct, so each has its own pending state.
         var delete = QueryClient.Command();
 
-        return Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Ghost).Size(Ui.Size.Sm)
+        return Ui.Button.Error.Ghost.Sm
             .Disabled(delete.IsPending)
             .OnClick(async () =>
             {
@@ -328,14 +328,14 @@ public sealed partial class ProductsPage : Component
         return
         [
         Ui.Header.Title(count.Data is { } n ? $"Products ({n})" : "Products")
-            .Actions(Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]),
+            .Actions(Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]),
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(true),
             c.Field(p => p.Price).Title("Price").Sortable(true),
             c.Field(p => p.InStock).Title("In stock"),
             c.Field(p => p.UpdatedAt).Title("Updated").Sortable(true),
             c.Column().Title("Actions").Cell(p => Div[
-                Ui.Button.Variant(Ui.Variant.Ghost).Size(Ui.Size.Sm).Href(Routes.UpdateProduct(p.Id))["Edit"],
+                Ui.Button.Ghost.Sm.Href(Routes.UpdateProduct(p.Id))["Edit"],
                 // The grid re-runs its query on every render, so asking for one is the whole refresh.
                 DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
             ]),

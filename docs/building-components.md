@@ -56,11 +56,11 @@ narrower than it looks: choosing a mode is still enforced, because the openings 
 no longer enforced is which steps *follow* one — a `Validate` on a controlled control compiles and does
 nothing, as an unread property always could.
 
-Both spellings infer the type from what you passed, so `Input.Of<string>()` is never needed. Where the value
-alone cannot say — `null` names no type — write it once:
+Both spellings infer the type from what you passed. A control you give no value at all names its type with
+`Of<T>()`:
 
 ```csharp
-Input.Value<string>(null).Placeholder("Anything")
+Input.Of<string>().Placeholder("Anything")
 ```
 
 ## Two things to settle
@@ -131,7 +131,7 @@ using Rask;                        // every template's GlobalUsings.cs
 using static Rask.Markup;            // the C# templates' too, so the tags are bare in any class
 
 Div.Class("panel")[                          // an element: bare
-    Ui.Button.Tone(Ui.Tone.Primary)["Save"], // the UI kit: through `Ui`
+    Ui.Button.Primary["Save"], // the UI kit: through `Ui`
     Trigger.Fullscreen.Template(g => Button.Data(g)["⛶"]).For(_video),   // a browser capability: through `Trigger`
     Validation.Message.Template(m => Span[m[0]]).For(() => _m.Email),    // form feedback: through `Validation`
     Mui.Button["From npm"]                   // an npm package you declared: through its class

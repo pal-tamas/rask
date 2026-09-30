@@ -27,19 +27,19 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                     ]
                 ],
             Div.Class("flex-wrap")[
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                Ui.Button.Primary.Outline
                     .Id("nav-set-page1")
                     .OnClick(() => nav.SetQuery("page", "1"))["SetQuery page=1"],
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                Ui.Button.Primary.Outline
                     .Id("nav-set-page2")
                     .OnClick(() => nav.SetQuery("page", "2"))["SetQuery page=2"],
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                Ui.Button.Primary.Outline
                     .Id("nav-set-sort")
                     .OnClick(() => nav.SetQuery("sort", "asc"))["SetQuery sort=asc"],
-                Ui.Button.Variant(Ui.Variant.Outline)
+                Ui.Button.Outline
                     .Id("nav-remove-page")
                     .OnClick(() => nav.RemoveQuery("page"))["RemoveQuery page"],
-                Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                Ui.Button.Error.Outline
                     .Id("nav-clear")
                     .OnClick(() => nav.ClearQuery())["ClearQuery"]
             ]
