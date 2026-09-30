@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using Microsoft.CodeAnalysis.CSharp;
+using static Rask.Generators.CodeText;
 
 namespace Rask.Generators.External.PackageIslands;
 
@@ -503,5 +504,4 @@ internal sealed class PackageIslandEmitter
             ? value.ToString("R", CultureInfo.InvariantCulture) + "d"
             : "0d";
 
-    private static string Literal(string value) => SymbolDisplay.FormatLiteral(value, quote: true);
 }

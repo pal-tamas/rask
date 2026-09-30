@@ -7,6 +7,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Rask.Generators.External.PackageIslands;
 using Rask.Generators.Shared;
+using static Rask.Generators.CodeText;
+using static Rask.Generators.Shared.Identifiers;
 
 namespace Rask.Generators.External;
 
@@ -529,11 +531,6 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         _ => null,
     };
 
-    // Escaped rather than a raw string literal: the TypeScript carries quotes and braces of its own,
-    // and an escaped literal cannot be broken by anything a doc comment or a prop name contains.
-    private static string Literal(string value) =>
-        Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
-
     /// <summary>Every named type in the assembly, nested types included.</summary>
     private static IEnumerable<INamedTypeSymbol> Types(INamespaceOrTypeSymbol root)
     {
@@ -735,7 +732,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
         var ns = type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToDisplayString();
         var group = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var visibility = PackageIslandProps.IsExternallyVisible(type) ? "public" : "internal";
+        var visibility = ComponentSymbols.IsExternallyVisible(type) ? "public" : "internal";
         var exportsLocation = type.GetMembers("Exports").FirstOrDefault()?.Locations
             .FirstOrDefault(static l => l.IsInSource) ?? location;
 
@@ -765,9 +762,6 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             yield return model;
         }
     }
-
-    // The author's own literal, but still text in a doc comment: one line, XML-escaped, so it cannot end the comment.
-    private static string Prose(string text) => PackageIslandNaming.Escape(PackageIslandNaming.SingleLine(text));
 
     /// <summary>
     ///     Pairs a package island with its committed props snapshot, reporting what cannot be generated.
@@ -1310,9 +1304,6 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             && string.Equals(prop.Type.Kind, "callback", StringComparison.Ordinal));
         return callback is null ? 0 : PackageIslandProps.ForwardedArgIndex(callback.Type);
     }
-
-    private static string CamelCase(string name) =>
-        name.Length == 0 || char.IsLower(name[0]) ? name : char.ToLowerInvariant(name[0]) + name.Substring(1);
 
     /// <summary>
     ///     The expression that reads a callback argument of <paramref name="type" /> out of the frame.

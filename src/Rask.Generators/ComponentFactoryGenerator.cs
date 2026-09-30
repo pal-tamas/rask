@@ -9,13 +9,14 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using static Rask.Generators.CodeText;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators;
 
 [Generator(LanguageNames.CSharp)]
 public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 {
-    private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
     private const string RaskMarkupAttributeFullName = "Rask.Core.RaskMarkupAttribute";
     private const string ElementFullName = "Rask.Core.Element";
@@ -5000,11 +5001,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return new EquatableArray<Candidate>(result.ToArray());
     }
 
-    // The author's own literal, but still text in a doc comment: one line, XML-escaped, so it cannot end the comment.
-    private static string Prose(string text) =>
-        global::Rask.Generators.External.PackageIslands.PackageIslandNaming.Escape(
-            global::Rask.Generators.External.PackageIslands.PackageIslandNaming.SingleLine(text));
-
     // [FactoryGeneric] and [RaskChainEntry], the two attributes that shape a candidate's entry.
     private static (GenericFactoryConfig? GenericFactory, string? ChainEntry, List<TagInfo> Tags) ReadFactoryAttributes(
         INamedTypeSymbol symbol)
@@ -5325,19 +5321,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static bool IsExternallyVisible(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol; t is not null; t = t.ContainingType)
-        {
-            if (t.DeclaredAccessibility != Accessibility.Public)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     // Rask.Core.RaskMarkup is the builder surface and nothing else — Component's own base. A type that
     // names it DIRECTLY is a markup host: it wants to name markup without being a component, which is
     // what a test class, a fixture or a demo factory is.
@@ -5358,20 +5341,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private static bool HasRaskMarkupAttribute(INamedTypeSymbol symbol) =>
         symbol.GetAttributes().Any(static attribute => string.Equals(
             attribute.AttributeClass?.ToDisplayString(), RaskMarkupAttributeFullName, StringComparison.Ordinal));
-
-    private static bool InheritsFromComponent(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
-        {
-            var name = t.OriginalDefinition.ToDisplayString();
-            if (string.Equals(name, ComponentFullName, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     // Does this level of a component's inheritance chain belong to the SHARED builder surface — the
     // props emitted once as constrained generic extensions (GetSetterHost) instead of per component?

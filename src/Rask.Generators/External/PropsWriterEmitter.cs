@@ -6,6 +6,8 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Rask.Generators.Shared;
+using static Rask.Generators.CodeText;
+using static Rask.Generators.Shared.Identifiers;
 
 namespace Rask.Generators.External;
 
@@ -227,11 +229,6 @@ internal sealed class PropsWriterEmitter(bool stringEnums = false)
         sb.AppendLine($"            default: writer.WriteNumberValue((long){access}); break;");
         sb.AppendLine("        }");
     }
-
-    private static string CamelCase(string name) =>
-        name.Length == 0 || char.IsLower(name[0]) ? name : char.ToLowerInvariant(name[0]) + name.Substring(1);
-
-    private static string Literal(string value) => SymbolDisplay.FormatLiteral(value, quote: true);
 
     private static string Format(string expression, string access) =>
         expression.Replace("{0}", access);
