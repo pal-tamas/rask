@@ -80,9 +80,8 @@ public class ComponentScopedCssGeneratorTests
             new[] { ("/proj/Counter.cs", source) },
             new[] { ("/proj/Conter.css", ".typo { color: red; }") });
 
-        var orphans = run.Diagnostics.Where(d => d.Id == "RASK015").ToList();
-        Assert.NotEmpty(orphans);
-        Assert.All(orphans, d => Assert.Equal("/proj/Conter.css", d.Location.GetLineSpan().Path));
+        var orphan = Assert.Single(run.Diagnostics, d => d.Id == "RASK015");
+        Assert.Equal("/proj/Conter.css", orphan.Location.GetLineSpan().Path);
     }
 
     [Fact]
