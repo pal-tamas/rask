@@ -78,7 +78,7 @@ override Rask.Outbox.OutboxInterceptor.SavingChangesAsync(Microsoft.EntityFramew
 override Rask.Outbox.OutboxProcessor<TContext>.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 static Rask.Outbox.OutboxMessage.For(string! type, string! payload, System.DateTime occurredAt) -> Rask.Outbox.OutboxMessage!
 static Rask.Outbox.OutboxModelBuilderExtensions.AddRaskOutbox(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-static Rask.Outbox.OutboxSerializerRegistry.Deserialize(string! typeName, string! payload) -> Rask.Cqrs.INotification?
+static Rask.Outbox.OutboxSerializerRegistry.Deserialize(string! typeName, string! payload) -> Rask.Cqrs.IEvent?
 static Rask.Outbox.OutboxSerializerRegistry.RegisterEvent(string! typeName, System.Type! type) -> void
 static Rask.Outbox.OutboxSerializerRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<(string! TypeName, System.Type! Type)>! registrations) -> void
 static Rask.Outbox.OutboxSerializerRegistry.Serialize(Rask.Outbox.IOutboxEvent! domainEvent) -> (string! Type, string! Payload)

@@ -3,8 +3,8 @@ Rask.Data.Aggregate<TId>
 Rask.Data.Aggregate<TId>.Aggregate() -> void
 Rask.Data.Aggregate<TId>.ClearDomainEvents() -> void
 Rask.Data.Aggregate<TId>.DeletedAt.get -> System.DateTime?
-Rask.Data.Aggregate<TId>.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
-Rask.Data.Aggregate<TId>.Raise(Rask.Cqrs.INotification! domainEvent) -> void
+Rask.Data.Aggregate<TId>.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.IEvent!>!
+Rask.Data.Aggregate<TId>.Raise(Rask.Cqrs.IEvent! domainEvent) -> void
 Rask.Data.Aggregate<TId>.Version.get -> int
 Rask.Data.AmbientContextBinding
 Rask.Data.AmbientContextBinding.ContextType.get -> System.Type!
@@ -60,7 +60,7 @@ Rask.Data.IDomainEventDeliveryOwner.Name.get -> string!
 Rask.Data.IEntity
 Rask.Data.IHasDomainEvents
 Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
-Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
+Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.IEvent!>!
 Rask.Data.IPrincipalSource
 Rask.Data.IPrincipalSource.Current.get -> System.Security.Claims.ClaimsPrincipal?
 Rask.Data.IReadModel

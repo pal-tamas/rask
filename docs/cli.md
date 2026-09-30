@@ -666,7 +666,7 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | A scoped `.css` / `.ts` sibling | ✅ Applied live; the bundle URL changes and the `<link>` is swapped. |
 | Deleting a scoped `.css` | ✅ The rules disappear from the page. |
 | A `[Route]` template | ✅ The route table is rebuilt. |
-| A CQRS command/query/notification handler body | ✅ The next dispatch runs the new code. |
+| A CQRS command/query/event handler body | ✅ The next dispatch runs the new code. |
 | A job or outbox event type's body | ✅ Applied live. |
 | **Adding or removing a type** — a new component, page, handler, job | ⚠️ Rude edit → the app restarts, and the browser reloads itself. |
 | **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |

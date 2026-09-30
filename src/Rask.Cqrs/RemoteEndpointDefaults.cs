@@ -51,7 +51,7 @@ public static class RemoteEndpointDefaults
     /// <summary>
     ///     The path segment appended to <see cref="RoutePrefix" /> for a subscription:
     ///     <c>GET {prefix}/events/{name}?m={json}</c> answers with a <c>text/event-stream</c> of the
-    ///     notification's generated JSON, one event per notification. The subscription record travels in
+    ///     event's generated JSON, one event per event. The subscription record travels in
     ///     <see cref="MessageQueryParameter" />, exactly as a query's message does.
     /// </summary>
     public const string EventsSegment = "events";

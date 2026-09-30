@@ -6,17 +6,17 @@ namespace Rask.Outbox.Tests;
 //
 // The stand-in types are plain INotifications rather than IOutboxEvents on purpose. The generator
 // registers every IOutboxEvent in the compilation, so one here would sit in the *generated* group as well
-// and could never be dropped by replacing a test-owned one. Deserialize only needs an INotification back.
+// and could never be dropped by replacing a test-owned one. Deserialize only needs an IEvent back.
 //
 // Kept in lockstep with JobSerializerRegistryReplaceTests — the two registries share a shape and have
 // drifted into the same bug together before.
 public sealed class OutboxSerializerRegistryReplaceTests
 {
-    public sealed record Original(int N) : INotification;
+    public sealed record Original(int N) : IEvent;
 
-    public sealed record Renamed(int N) : INotification;
+    public sealed record Renamed(int N) : IEvent;
 
-    public sealed record Other(int N) : INotification;
+    public sealed record Other(int N) : IEvent;
 
     private static string Name<T>() => typeof(T).FullName!.Replace('+', '.');
 

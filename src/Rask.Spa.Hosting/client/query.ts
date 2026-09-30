@@ -39,7 +39,7 @@ export function raskQuery<T>(message: Dispatchable<T, 'query'>, options?: CallOp
 }
 
 /**
- * Mutation options for a command or notification factory.
+ * Mutation options for a command or event factory.
  *
  *     const ship = useMutation({
  *       ...raskMutation(shipOrder),

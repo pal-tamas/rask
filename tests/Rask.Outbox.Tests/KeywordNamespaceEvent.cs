@@ -29,7 +29,7 @@ public sealed class KeywordRecorder
     }
 }
 
-public sealed class KeywordEventHandler(KeywordRecorder recorder) : INotificationHandler<KeywordEvent>
+public sealed class KeywordEventHandler(KeywordRecorder recorder) : IEventHandler<KeywordEvent>
 {
     public Task Handle(KeywordEvent notification)
     {

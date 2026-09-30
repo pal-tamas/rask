@@ -8,7 +8,7 @@ public sealed class SubscriptionTests
     private static readonly TimeSpan Wait = TimeSpan.FromSeconds(5);
 
     [Fact]
-    public async Task A_published_notification_reaches_every_subscriber()
+    public async Task A_published_event_reaches_every_subscriber()
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
@@ -46,7 +46,7 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task A_subscription_starts_with_the_last_notification_published()
+    public async Task A_subscription_starts_with_the_last_event_published()
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
@@ -88,7 +88,7 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task A_subscription_reaches_only_the_notifications_it_matches()
+    public async Task A_subscription_reaches_only_the_events_it_matches()
     {
         var mine = Guid.NewGuid();
         var yours = Guid.NewGuid();
@@ -103,7 +103,7 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task A_subscription_starts_with_the_last_notification_it_matches()
+    public async Task A_subscription_starts_with_the_last_event_it_matches()
     {
         var mine = Guid.NewGuid();
         var yours = Guid.NewGuid();
@@ -174,7 +174,7 @@ public sealed class SubscriptionTests
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        var feed = services.GetRequiredService<NotificationFeed>();
+        var feed = services.GetRequiredService<EventFeed>();
         var listening = await ListenAsync(dispatcher.Subscribe<Chimed>(TestContext.Current.CancellationToken));
 
         await listening.DisposeAsync();
@@ -183,7 +183,7 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task The_replay_store_forgets_the_oldest_notification_past_its_capacity()
+    public async Task The_replay_store_forgets_the_oldest_event_past_its_capacity()
     {
         var doors = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToArray();
         await using var services = Build(allowed: [.. doors], capacity: 4);
@@ -219,7 +219,7 @@ public sealed class SubscriptionTests
 
         var watch = CqrsRegistry.FindSubscription(typeof(WatchDoor))!;
 
-        Assert.Equal(typeof(DoorOpened), watch.NotificationType);
+        Assert.Equal(typeof(DoorOpened), watch.EventType);
         Assert.True(watch.Matches(new WatchDoor(door), new DoorOpened(door)));
         Assert.False(watch.Matches(new WatchDoor(door), new DoorOpened(Guid.NewGuid())));
         Assert.Null(CqrsRegistry.FindSubscription(typeof(Chimed)));

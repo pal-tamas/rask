@@ -8,8 +8,8 @@
 // You own this file. It is refreshed on build only while the header line above is intact, so
 // deleting that line forks it permanently.
 
-/** Query, command or notification — the distinction the server enforces with a 405. */
-export type MessageKind = 'query' | 'command' | 'notification'
+/** Query, command or event — the distinction the server enforces with a 405. */
+export type MessageKind = 'query' | 'command' | 'event'
 
 /**
  * A message with its wire name and its result type bound together.
@@ -538,7 +538,7 @@ export function httpTransport(options: HttpTransportOptions = {}): RaskTransport
         return download
       }
 
-      // 204 for a void command, 202 for a notification, and an empty 200 for a null result.
+      // 204 for a void command, 202 for an event, and an empty 200 for a null result.
       if (response.status === 204 || response.status === 202) return undefined
       const text = await response.text()
       return text.length === 0 ? undefined : JSON.parse(text)

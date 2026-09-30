@@ -8,8 +8,8 @@ namespace Rask.Data;
 
 /// <summary>
 /// Publishes each entity's <see cref="IHasDomainEvents.DomainEvents"/> in-process <b>after</b> the change
-/// commits, through <c>Rask.Cqrs</c>' <see cref="IDispatcher.Publish{TNotification}"/>. Events are
-/// resolved by their runtime type, so a stored <see cref="INotificationHandler{TNotification}"/> reacts with
+/// commits, through <c>Rask.Cqrs</c>' <see cref="IDispatcher.Publish{TEvent}"/>. Events are
+/// resolved by their runtime type, so a stored <see cref="IEventHandler{TEvent}"/> reacts with
 /// no extra wiring. Handlers run in a fresh DI scope. Stands down automatically when a transactional
 /// outbox owns delivery — see <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
 /// </summary>
@@ -28,7 +28,7 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
 
     // Events collected pre-save, keyed by the context whose SaveChanges is in flight (a context runs one
     // save at a time, so a per-context slot is safe; the weak table never keeps a context alive).
-    private readonly ConditionalWeakTable<DbContext, List<INotification>> _pending = new();
+    private readonly ConditionalWeakTable<DbContext, List<IEvent>> _pending = new();
 
     /// <summary>
     /// Creates the interceptor, deciding from the built container whether anything else already owns
@@ -110,7 +110,7 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
 
         // Drain the events off the tracked entities now — a Deleted entity is detached once the save
         // completes, so collecting after SaveChanges would lose its events.
-        var events = new List<INotification>();
+        var events = new List<IEvent>();
         foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(static entry => entry.Entity))
         {
             if (entity.DomainEvents.Count == 0)
@@ -142,7 +142,7 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
         foreach (var domainEvent in events)
         {
-            // PublishAsync resolves handlers by the event's concrete runtime type, so the INotification
+            // PublishAsync resolves handlers by the event's concrete runtime type, so the IEvent
             // static type here is fine.
             await dispatcher.Publish(domainEvent, cancellationToken).ConfigureAwait(false);
         }

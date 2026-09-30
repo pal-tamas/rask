@@ -131,7 +131,7 @@ If losing an event on a crash is acceptable, plain in-process domain events need
 
 ## 3. React to the event
 
-`Features/Orders/OrderPlacedHandler.cs`. Any `INotificationHandler<OrderPlaced>` runs when an order is placed
+`Features/Orders/OrderPlacedHandler.cs`. Any `IEventHandler<OrderPlaced>` runs when an order is placed
 — delivered by the outbox processor, post-commit, with retries. This one logs the sale and queues chapter 4's
 receipt job, so the receipt is now derived from the order's own transaction:
 
@@ -142,17 +142,17 @@ using Shop.Features.Shared;
 namespace Shop.Features.Orders;
 
 public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
-    : INotificationHandler<OrderPlaced>
+    : IEventHandler<OrderPlaced>
 {
-    public async Task Handle(OrderPlaced notification)
+    public async Task Handle(OrderPlaced e)
     {
-        logger.LogInformation("Order {Id} placed", notification.Id);
-        await Jobs.Enqueue(new SendOrderReceipt(notification.Id));
+        logger.LogInformation("Order {Id} placed", e.Id);
+        await Jobs.Enqueue(new SendOrderReceipt(e.Id));
     }
 }
 ```
 
-`INotificationHandler<T>` is the one interface the outbox delivers to, so it's the one thing in this chapter
+`IEventHandler<T>` is the one interface the outbox delivers to, so it's the one thing in this chapter
 you implement rather than call. Nothing registers it: it's found at build time.
 
 Because the event row committed atomically with the order, the handler is guaranteed to run **eventually**,

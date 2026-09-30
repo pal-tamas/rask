@@ -42,29 +42,29 @@ public sealed class CreateThingHandler : ICommandHandler<CreateThing, int>
         Task.FromResult(command.Name.Length);
 }
 
-// ---- Notification with two handlers ----
-public sealed record Pinged(string Message) : INotification;
+// ---- Event with two handlers ----
+public sealed record Pinged(string Message) : IEvent;
 
-public sealed class PingedHandlerA(Recorder recorder) : INotificationHandler<Pinged>
+public sealed class PingedHandlerA(Recorder recorder) : IEventHandler<Pinged>
 {
-    public Task Handle(Pinged notification)
+    public Task Handle(Pinged e)
     {
-        recorder.Add($"A:{notification.Message}");
+        recorder.Add($"A:{e.Message}");
         return Task.CompletedTask;
     }
 }
 
-public sealed class PingedHandlerB(Recorder recorder) : INotificationHandler<Pinged>
+public sealed class PingedHandlerB(Recorder recorder) : IEventHandler<Pinged>
 {
-    public Task Handle(Pinged notification)
+    public Task Handle(Pinged e)
     {
-        recorder.Add($"B:{notification.Message}");
+        recorder.Add($"B:{e.Message}");
         return Task.CompletedTask;
     }
 }
 
-// ---- Notification nobody handles ----
-public sealed record Unheard : INotification;
+// ---- Event nobody handles ----
+public sealed record Unheard : IEvent;
 
 // ---- An open-generic behavior that records entry/exit around every request ----
 public sealed class TracingBehavior<TRequest, TResult>(Recorder recorder) : IPipelineBehavior<TRequest, TResult>
@@ -103,35 +103,35 @@ public sealed class ShortCircuitAdd(Recorder recorder) : IPipelineBehavior<Add, 
 // ---- A request with no registered handler (to prove the clear runtime error) ----
 public sealed record Orphan : IQuery<int>;
 
-// ---- A notification whose handlers fail, for the publish failure-mode tests. One succeeds and two
+// ---- An event whose handlers fail, for the publish failure-mode tests. One succeeds and two
 // throw; the throwing handlers are async (record, yield, then throw) so under WhenAll every handler's
 // task is started before any of them faults. ----
-public sealed record Grumble(string Tag) : INotification;
+public sealed record Grumble(string Tag) : IEvent;
 
-public sealed class GrumbleOk(Recorder recorder) : INotificationHandler<Grumble>
+public sealed class GrumbleOk(Recorder recorder) : IEventHandler<Grumble>
 {
-    public Task Handle(Grumble notification)
+    public Task Handle(Grumble e)
     {
-        recorder.Add($"ok:{notification.Tag}");
+        recorder.Add($"ok:{e.Tag}");
         return Task.CompletedTask;
     }
 }
 
-public sealed class GrumbleBoomOne(Recorder recorder) : INotificationHandler<Grumble>
+public sealed class GrumbleBoomOne(Recorder recorder) : IEventHandler<Grumble>
 {
-    public async Task Handle(Grumble notification)
+    public async Task Handle(Grumble e)
     {
-        recorder.Add($"boom1:{notification.Tag}");
+        recorder.Add($"boom1:{e.Tag}");
         await Task.Yield();
         throw new InvalidOperationException("boom-1");
     }
 }
 
-public sealed class GrumbleBoomTwo(Recorder recorder) : INotificationHandler<Grumble>
+public sealed class GrumbleBoomTwo(Recorder recorder) : IEventHandler<Grumble>
 {
-    public async Task Handle(Grumble notification)
+    public async Task Handle(Grumble e)
     {
-        recorder.Add($"boom2:{notification.Tag}");
+        recorder.Add($"boom2:{e.Tag}");
         await Task.Yield();
         throw new InvalidOperationException("boom-2");
     }

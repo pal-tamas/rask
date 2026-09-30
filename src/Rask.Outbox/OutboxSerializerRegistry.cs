@@ -123,12 +123,12 @@ public static class OutboxSerializerRegistry
     internal static string TypeName(Type type) => (type.FullName ?? type.Name).Replace('+', '.');
 
     /// <summary>Rehydrates a stored event, or <c>null</c> if its type isn't registered.</summary>
-    public static INotification? Deserialize(string typeName, string payload)
+    public static IEvent? Deserialize(string typeName, string payload)
     {
         ArgumentNullException.ThrowIfNull(typeName);
         ArgumentNullException.ThrowIfNull(payload);
         return _types.TryGetValue(typeName, out var type)
-            ? JsonSerializer.Deserialize(payload, type, Json) as INotification
+            ? JsonSerializer.Deserialize(payload, type, Json) as IEvent
             : null;
     }
 }

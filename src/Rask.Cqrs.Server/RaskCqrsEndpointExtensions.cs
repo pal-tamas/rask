@@ -71,7 +71,7 @@ public static class RaskCqrsEndpointExtensions
         // prefix for the same reasons as the upload route — one CSRF header, one authentication rule, one rate limit.
         group.MapGet(
             options.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment + "/{name}",
-            (RequestDelegate)(context => NotificationStream.ServeAsync(context, options)));
+            (RequestDelegate)(context => EventStream.ServeAsync(context, options)));
 
         return group;
     }
@@ -363,7 +363,7 @@ public static class RaskCqrsEndpointExtensions
     private static Task<bool> AuthorizedAsync(HttpContext context, RemoteContract contract) =>
         AuthorizedAsync(context, contract.Name, contract.AllowAnonymous, contract.Roles, contract.Policy);
 
-    // The one authorization check, for a request (the handler's attributes) and a subscription (the notification's).
+    // The one authorization check, for a request (the handler's attributes) and a subscription (the event's).
     internal static async Task<bool> AuthorizedAsync(
         HttpContext context,
         string name,
@@ -626,7 +626,7 @@ public static class RaskCqrsEndpointExtensions
 
         if (contract.WriteResult is null)
         {
-            context.Response.StatusCode = contract.Kind == RemoteMessageKind.Notification
+            context.Response.StatusCode = contract.Kind == RemoteMessageKind.Event
                 ? StatusCodes.Status202Accepted
                 : StatusCodes.Status204NoContent;
             return;

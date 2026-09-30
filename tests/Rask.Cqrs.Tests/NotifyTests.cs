@@ -99,18 +99,18 @@ public sealed class NotifyTests
     }
 }
 
-public sealed record Reported(int Number) : INotification;
+public sealed record Reported(int Number) : IEvent;
 
 public sealed class Reports
 {
     public List<int> Seen { get; } = [];
 }
 
-public sealed class RecordReport(Reports reports) : INotificationHandler<Reported>
+public sealed class RecordReport(Reports reports) : IEventHandler<Reported>
 {
-    public Task Handle(Reported notification)
+    public Task Handle(Reported e)
     {
-        reports.Seen.Add(notification.Number);
+        reports.Seen.Add(e.Number);
         return Task.CompletedTask;
     }
 }

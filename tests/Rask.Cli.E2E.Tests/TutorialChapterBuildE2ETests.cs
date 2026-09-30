@@ -135,7 +135,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderPlaced", "7"));
             Write(fs, orders, "Order.cs", Pick(ch7, "Raise(new OrderPlaced", "7"));
             Write(fs, orders, "PlaceOrder.cs", Pick(ch7, "Order.Place(ProductId", "7"));
-            Write(fs, orders, "OrderPlacedHandler.cs", Pick(ch7, "INotificationHandler<OrderPlaced>", "7"));
+            Write(fs, orders, "OrderPlacedHandler.cs", Pick(ch7, "IEventHandler<OrderPlaced>", "7"));
 
             await Build(csproj, "chapter 7");
         }

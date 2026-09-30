@@ -35,7 +35,7 @@ modelBuilder.AddRaskOutbox(); // maps the OutboxMessage table
 
 `db.SaveChanges()` now writes an `OutboxMessage` row for each `IOutboxEvent` the entity raised, in the
 same transaction; the processor drains and publishes them just after commit. Any
-`INotificationHandler<OrderPlaced>` reacts — the same handler works whether events are delivered in-process
+`IEventHandler<OrderPlaced>` reacts — the same handler works whether events are delivered in-process
 (Rask.Data) or via the outbox.
 
 In a multi-tenant app each message records the tenant the change was saved in, and the processor re-enters it

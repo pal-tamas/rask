@@ -50,12 +50,12 @@ public sealed class CqrsDispatchGeneratorTests
     public void Emits_notification_fanout()
     {
         var run = CqrsGeneratorFixture.Run(Preamble + """
-            public sealed record Ping : INotification;
-            public sealed class PingA : INotificationHandler<Ping>
+            public sealed record Ping : IEvent;
+            public sealed class PingA : IEventHandler<Ping>
             {
                 public Task Handle(Ping n) => Task.CompletedTask;
             }
-            public sealed class PingB : INotificationHandler<Ping>
+            public sealed class PingB : IEventHandler<Ping>
             {
                 public Task Handle(Ping n) => Task.CompletedTask;
             }
@@ -64,7 +64,7 @@ public sealed class CqrsDispatchGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         var source = run.GeneratedSource("__RaskCqrsRegistry");
         Assert.Contains("(typeof(global::Demo.Ping), __Notify_", source);
-        Assert.Contains("NotificationDispatch.PublishAll", source);
+        Assert.Contains("EventDispatch.PublishAll", source);
         Assert.Contains("TryAddEnumerable", source);
     }
 

@@ -16,24 +16,24 @@ public static class CqrsRegistry
     /// (<c>Task&lt;TResult&gt;</c> for queries/result-commands, <c>Task&lt;Unit&gt;</c> for void commands).</summary>
     public delegate Task RequestInvoker(IServiceProvider provider, object request, CancellationToken cancellationToken);
 
-    /// <summary>Invokes every handler for a notification.</summary>
-    public delegate Task NotificationInvoker(IServiceProvider provider, object notification, CancellationToken cancellationToken);
+    /// <summary>Invokes every handler for an event.</summary>
+    public delegate Task EventInvoker(IServiceProvider provider, object e, CancellationToken cancellationToken);
 
     private static readonly Lock _lock = new();
     private static readonly Dictionary<Type, RequestInvoker> _manualRequests = new();
-    private static readonly Dictionary<Type, NotificationInvoker> _manualNotifications = new();
+    private static readonly Dictionary<Type, EventInvoker> _manualEvents = new();
 
     // One entry per contributing assembly, keyed by that assembly's generated registry type.
     private static readonly List<(object Key, (Type Type, RequestInvoker Invoker)[] Items)> _requestGroups = new();
-    private static readonly List<(object Key, (Type Type, NotificationInvoker Invoker)[] Items)> _notificationGroups = new();
+    private static readonly List<(object Key, (Type Type, EventInvoker Invoker)[] Items)> _eventGroups = new();
 
     // The flattened dispatch tables. Rebuilt under the lock and installed in a single store, so a
     // dispatch in flight observes either the complete old table or the complete new one.
     private static volatile Dictionary<Type, RequestInvoker> _requests =
         new Dictionary<Type, RequestInvoker>();
 
-    private static volatile Dictionary<Type, NotificationInvoker> _notifications =
-        new Dictionary<Type, NotificationInvoker>();
+    private static volatile Dictionary<Type, EventInvoker> _events =
+        new Dictionary<Type, EventInvoker>();
 
     private static readonly List<(object Key, (Type Type, SubscriptionRegistration Registration)[] Items)> _subscriptionGroups = new();
 
@@ -57,15 +57,15 @@ public static class CqrsRegistry
         }
     }
 
-    /// <summary>Maps a notification type to its fan-out invoker.</summary>
-    public static void RegisterNotification(Type notificationType, NotificationInvoker invoker)
+    /// <summary>Maps an event type to its fan-out invoker.</summary>
+    public static void RegisterEvent(Type eventType, EventInvoker invoker)
     {
-        ArgumentNullException.ThrowIfNull(notificationType);
+        ArgumentNullException.ThrowIfNull(eventType);
         ArgumentNullException.ThrowIfNull(invoker);
         lock (_lock)
         {
-            _manualNotifications[notificationType] = invoker;
-            RebuildNotifications();
+            _manualEvents[eventType] = invoker;
+            RebuildEvents();
         }
     }
 
@@ -92,27 +92,27 @@ public static class CqrsRegistry
     }
 
     /// <summary>
-    ///     The notification counterpart of <see cref="ReplaceRequests" />.
+    ///     The event counterpart of <see cref="ReplaceRequests" />.
     /// </summary>
-    public static void ReplaceNotifications(
+    public static void ReplaceEvents(
         object groupKey,
-        IEnumerable<(Type Type, NotificationInvoker Invoker)> registrations)
+        IEnumerable<(Type Type, EventInvoker Invoker)> registrations)
     {
         ArgumentNullException.ThrowIfNull(groupKey);
         ArgumentNullException.ThrowIfNull(registrations);
 
-        var items = registrations as (Type Type, NotificationInvoker Invoker)[] ?? registrations.ToArray();
+        var items = registrations as (Type Type, EventInvoker Invoker)[] ?? registrations.ToArray();
         lock (_lock)
         {
-            if (ReplaceGroup(_notificationGroups, groupKey, items))
+            if (ReplaceGroup(_eventGroups, groupKey, items))
             {
-                RebuildNotifications();
+                RebuildEvents();
             }
         }
     }
 
     /// <summary>
-    ///     Installs <paramref name="registrations" /> as the complete set of <see cref="ISubscription{TNotification}" />
+    ///     Installs <paramref name="registrations" /> as the complete set of <see cref="ISubscription{TEvent}" />
     ///     records owned by <paramref name="groupKey" />, the same per-assembly swap as <see cref="ReplaceRequests" />.
     /// </summary>
     public static void ReplaceSubscriptions(
@@ -233,10 +233,10 @@ public static class CqrsRegistry
     }
 
     // Caller holds _lock.
-    private static void RebuildNotifications()
+    private static void RebuildEvents()
     {
-        var map = new Dictionary<Type, NotificationInvoker>();
-        foreach (var (_, items) in _notificationGroups)
+        var map = new Dictionary<Type, EventInvoker>();
+        foreach (var (_, items) in _eventGroups)
         {
             foreach (var (type, invoker) in items)
             {
@@ -244,12 +244,12 @@ public static class CqrsRegistry
             }
         }
 
-        foreach (var (type, invoker) in _manualNotifications)
+        foreach (var (type, invoker) in _manualEvents)
         {
             map[type] = invoker;
         }
 
-        _notifications = map;
+        _events = map;
     }
 
     /// <summary>Called by generated code to enqueue a handler's DI registration (applied by <c>AddRaskCqrs</c>).</summary>
@@ -265,23 +265,23 @@ public static class CqrsRegistry
                 "AddRaskCqrs() was called during startup.");
 
     /// <summary>
-    ///     Finds the fan-out invoker for a notification type, or null when nothing handles it here.
+    ///     Finds the fan-out invoker for an event type, or null when nothing handles it here.
     /// </summary>
-    /// <param name="notificationType">The notification's concrete type.</param>
+    /// <param name="eventType">The event's concrete type.</param>
     /// <remarks>
     ///     Public so a remote transport can <em>compose</em> with the local fan-out rather than replace
-    ///     it: on a client, publishing a notification should still reach the handlers in that process —
+    ///     it: on a client, publishing an event should still reach the handlers in that process —
     ///     a badge, a toast — and also travel to the server. Replacing the invoker outright would
     ///     silently drop the local ones.
     /// </remarks>
-    public static NotificationInvoker? FindNotificationInvoker(Type notificationType)
+    public static EventInvoker? FindEventInvoker(Type eventType)
     {
-        ArgumentNullException.ThrowIfNull(notificationType);
-        return _notifications.TryGetValue(notificationType, out var invoker) ? invoker : null;
+        ArgumentNullException.ThrowIfNull(eventType);
+        return _events.TryGetValue(eventType, out var invoker) ? invoker : null;
     }
 
-    internal static NotificationInvoker? GetNotificationInvoker(Type notificationType) =>
-        _notifications.TryGetValue(notificationType, out var invoker) ? invoker : null;
+    internal static EventInvoker? GetEventInvoker(Type eventType) =>
+        _events.TryGetValue(eventType, out var invoker) ? invoker : null;
 
     internal static void ApplyRegistrations(IServiceCollection services, ServiceLifetime lifetime)
     {

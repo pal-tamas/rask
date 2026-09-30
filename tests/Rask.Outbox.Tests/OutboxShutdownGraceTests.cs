@@ -16,7 +16,7 @@ public sealed class OutboxGate
     public TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
 
-public sealed class GatedEventHandler(OutboxGate gate) : INotificationHandler<GatedEvent>
+public sealed class GatedEventHandler(OutboxGate gate) : IEventHandler<GatedEvent>
 {
     public async Task Handle(GatedEvent notification)
     {

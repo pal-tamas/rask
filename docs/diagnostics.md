@@ -495,8 +495,8 @@ public sealed class HandlerTwo : IQueryHandler<GetValue, int> { /* ... */ } // �
 ```
 
 **Fix:** keep a single handler for the request type (merge the logic, or split into two distinct
-request types). Notifications are exempt — an `INotification` may have any number of
-`INotificationHandler`s.
+request types). Events are exempt — an `IEvent` may have any number of
+`IEventHandler`s.
 
 ## RASK029
 **Handler cannot be registered** · Warning

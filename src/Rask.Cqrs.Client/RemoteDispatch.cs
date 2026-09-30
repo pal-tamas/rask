@@ -28,7 +28,7 @@ internal sealed class RemoteDispatch(
     // whole response — and an event stream's whole response arrives when the subscription ends.
     private static readonly HttpRequestOptionsKey<bool> StreamingResponse = new("WebAssemblyEnableStreamingResponse");
 
-    public IAsyncEnumerable<INotification> Subscribe(
+    public IAsyncEnumerable<IEvent> Subscribe(
         RemoteContract contract,
         object? subscription,
         Action? connected,
@@ -38,7 +38,7 @@ internal sealed class RemoteDispatch(
         return Stream(contract, subscription, connected, cancellationToken);
     }
 
-    private async IAsyncEnumerable<INotification> Stream(
+    private async IAsyncEnumerable<IEvent> Stream(
         RemoteContract contract,
         object? subscription,
         Action? connected,
@@ -50,7 +50,7 @@ internal sealed class RemoteDispatch(
                        ? string.Empty
                        : "?" + RemoteEndpointDefaults.MessageQueryParameter + "="
                          + Uri.EscapeDataString(
-                             Encoding.UTF8.GetString(NotificationWire.EncodeMessage(contract, subscription))));
+                             Encoding.UTF8.GetString(EventWire.EncodeMessage(contract, subscription))));
 
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
@@ -91,7 +91,7 @@ internal sealed class RemoteDispatch(
             }
             else if (data.Length > 0)
             {
-                yield return NotificationWire.DecodeEvent(contract, Encoding.UTF8.GetBytes(data.ToString()));
+                yield return EventWire.DecodeEvent(contract, Encoding.UTF8.GetBytes(data.ToString()));
             }
 
             name = null;
@@ -194,13 +194,13 @@ internal sealed class RemoteDispatch(
 
     public async Task Publish(
         RemoteContract contract,
-        object notification,
+        object e,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contract);
-        ArgumentNullException.ThrowIfNull(notification);
+        ArgumentNullException.ThrowIfNull(e);
 
-        using var response = await SendCoreAsync(contract, notification, cancellationToken).ConfigureAwait(false);
+        using var response = await SendCoreAsync(contract, e, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<HttpResponseMessage> SendCoreAsync(
@@ -245,11 +245,11 @@ internal sealed class RemoteDispatch(
     // ValidationBehavior before any handler sees the request, so a caller that skips this (a
     // hand-written client, a replayed request) gains nothing by it.
     // Requests only. ValidationBehavior wraps the request pipeline, and Publish does not go
-    // through it — so validating a notification here would reject in the browser something the
+    // through it — so validating an event here would reject in the browser something the
     // server and every in-process publish accept, which is a worse failure than not checking.
     private async Task ValidateAsync(RemoteContract contract, object message)
     {
-        if (validator is null || contract.Kind == RemoteMessageKind.Notification)
+        if (validator is null || contract.Kind == RemoteMessageKind.Event)
         {
             return;
         }

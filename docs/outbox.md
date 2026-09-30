@@ -66,8 +66,8 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 Now `db.SaveChanges()` writes an `OutboxMessage` row for every `IOutboxEvent` the aggregate raised, in the
 same transaction; the background `OutboxProcessor` drains and publishes them just after commit. Any
-`INotificationHandler<OrderPlaced>` reacts — the **same handler** works whether the event is delivered
-in-process or via the outbox (`IOutboxEvent` is an `INotification`).
+`IEventHandler<OrderPlaced>` reacts — the **same handler** works whether the event is delivered
+in-process or via the outbox (`IOutboxEvent` is an `IEvent`).
 
 Add a migration for the new table before running — `rask db add AddOutbox && rask db update`
 (or `dotnet ef migrations add AddOutbox` directly).

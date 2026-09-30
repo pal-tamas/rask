@@ -52,7 +52,7 @@ public sealed record OrderPlaced(Guid Id, string Customer) : IOutboxEvent;
 /// </summary>
 public sealed record SaboteurEvent : IOutboxEvent;
 
-public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> factory) : INotificationHandler<SaboteurEvent>
+public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> factory) : IEventHandler<SaboteurEvent>
 {
     public async Task Handle(SaboteurEvent notification)
     {
@@ -88,7 +88,7 @@ public sealed class Recorder
     }
 }
 
-public sealed class OrderPlacedHandler(Recorder recorder) : INotificationHandler<OrderPlaced>
+public sealed class OrderPlacedHandler(Recorder recorder) : IEventHandler<OrderPlaced>
 {
     public Task Handle(OrderPlaced notification)
     {

@@ -8,7 +8,7 @@ internal sealed class TypeScriptContract
 {
     public string WireName { get; set; } = string.Empty;
 
-    /// <summary>The verb the transport uses: <c>query</c>, <c>command</c> or <c>notification</c>.</summary>
+    /// <summary>The verb the transport uses: <c>query</c>, <c>command</c> or <c>event</c>.</summary>
     public string Kind { get; set; } = string.Empty;
 
     public WireType Message { get; set; } = null!;

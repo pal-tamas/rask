@@ -12,21 +12,21 @@ public sealed record AttachToThing(int Id, IRaskFile File) : ICommand<string>;
 
 public sealed record ExportThings(int Year) : IQuery<FileDownload>;
 
-public sealed record ThingRenamed(int Id) : INotification;
+public sealed record ThingRenamed(int Id) : IEvent;
 
-// A notification WITH a client-side handler. ThingRenamed has none, so it only ever exercises the
+// An event WITH a client-side handler. ThingRenamed has none, so it only ever exercises the
 // travelling half; this one exercises the composition — the client's own reactor still runs.
-public sealed record ThingArchived(int Id) : INotification;
+public sealed record ThingArchived(int Id) : IEvent;
 
-public sealed class ThingArchivedReactor : INotificationHandler<ThingArchived>
+public sealed class ThingArchivedReactor : IEventHandler<ThingArchived>
 {
     private static readonly System.Collections.Concurrent.ConcurrentBag<int> Recorded = [];
 
     public static IReadOnlyCollection<int> Seen => Recorded;
 
-    public Task Handle(ThingArchived notification)
+    public Task Handle(ThingArchived e)
     {
-        Recorded.Add(notification.Id);
+        Recorded.Add(e.Id);
         return Task.CompletedTask;
     }
 }

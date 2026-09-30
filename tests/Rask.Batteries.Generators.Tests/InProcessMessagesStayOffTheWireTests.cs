@@ -21,7 +21,7 @@ public sealed class InProcessMessagesStayOffTheWireTests
             }
 
             public sealed record OrderPaid(int OrderId) : Rask.Outbox.IOutboxEvent;
-            public sealed class OrderPaidHandler : INotificationHandler<OrderPaid>
+            public sealed class OrderPaidHandler : IEventHandler<OrderPaid>
             {
                 public Task Handle(OrderPaid n) => Task.CompletedTask;
             }
@@ -46,7 +46,7 @@ public sealed class InProcessMessagesStayOffTheWireTests
     public void The_auth_events_are_marked_local_only_so_no_browser_can_publish_or_watch_them()
     {
         var events = typeof(Rask.Auth.UserRegistered).Assembly.GetTypes()
-            .Where(t => typeof(INotification).IsAssignableFrom(t) && !t.IsInterface)
+            .Where(t => typeof(IEvent).IsAssignableFrom(t) && !t.IsInterface)
             .ToList();
 
         var exposed = events.Where(t => !t.IsDefined(typeof(LocalOnlyAttribute), inherit: false)).Select(t => t.Name);

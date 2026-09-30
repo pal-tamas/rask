@@ -9,6 +9,32 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask.Cqrs says "event", not "notification".** You raise an event on an aggregate and publish one through the
+  dispatcher, so the thing a handler reacts to is now called that too:
+
+  ```csharp
+  public sealed record OrderPlaced(Guid Id) : IEvent;                        // was INotification
+
+  public sealed class LogSale : IEventHandler<OrderPlaced>                   // was INotificationHandler<OrderPlaced>
+  {
+      public Task Handle(OrderPlaced e) => …;
+  }
+  ```
+
+  | Before | After |
+  |---|---|
+  | `INotification` | `IEvent` |
+  | `INotificationHandler<TNotification>` | `IEventHandler<TEvent>` |
+  | `NotificationPublishStrategy`, `CqrsOptions.NotificationPublishStrategy` | `EventPublishStrategy`, `CqrsOptions.EventPublishStrategy` |
+  | `CqrsOptions.StopOnFirstNotificationException` | `CqrsOptions.StopOnFirstEventException` |
+  | `NotificationDispatch` | `EventDispatch` |
+  | `CqrsRegistry.NotificationInvoker` / `FindNotificationInvoker` / `RegisterNotification` / `ReplaceNotifications` | `EventInvoker` / `FindEventInvoker` / `RegisterEvent` / `ReplaceEvents` |
+  | `RemoteMessageKind.Notification`, `SubscriptionRegistration.NotificationType` | `RemoteMessageKind.Event`, `SubscriptionRegistration.EventType` |
+  | TypeScript contract kind `'notification'` | `'event'` |
+
+  `IDispatcher.Publish` keeps its name. The browser's `Notification` API (`INotifications`, `Rask.Web`) is a
+  different thing and is unchanged.
+
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
   and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are

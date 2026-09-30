@@ -139,7 +139,7 @@ land on. Point `Rask__Storage__Provider` at S3 or Azure before adding a second h
 itself also need the shared key ring above.
 
 **And a published event reaches only its own process's subscriptions.** A [subscription](subscriptions.md) hears the
-notifications its own process publishes, so behind a load balancer a page hears its own host's events and catches up on
+events its own process publishes, so behind a load balancer a page hears its own host's events and catches up on
 the rest when its queries refetch. Carrying events between hosts is [on the roadmap](roadmap.md).
 
 ## Running more than one instance

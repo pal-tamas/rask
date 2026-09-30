@@ -12,7 +12,7 @@ namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Emits a reflection-free dispatch table for Rask.Cqrs. For every handler
-/// (<c>IQueryHandler</c>/<c>ICommandHandler</c>/<c>INotificationHandler</c>) it generates a
+/// (<c>IQueryHandler</c>/<c>ICommandHandler</c>/<c>IEventHandler</c>) it generates a
 /// closed-generic invoker and a per-assembly <c>[ModuleInitializer]</c> that registers the invoker
 /// and the handler's DI descriptor into <c>CqrsRegistry</c>. No runtime reflection or assembly
 /// scanning — the trimmer keeps handler constructors alive via <c>[DynamicDependency]</c>.
@@ -31,7 +31,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         true,
         description: "The dispatcher maps each request type to exactly one handler, so two handlers for the same query "
                      + "or command would make dispatch non-deterministic. Reported on each competing handler. "
-                     + "Notifications are exempt: an INotification may have any number of handlers.",
+                     + "Events are exempt: an IEvent may have any number of handlers.",
         helpLinkUri: DiagnosticHelp.Link("RASK028"));
 
     private static readonly DiagnosticDescriptor Rask029 = new(
@@ -129,7 +129,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             "IQueryHandler`2" => (HandlerKind?)HandlerKind.Query,
             "ICommandHandler`1" => HandlerKind.CommandVoid,
             "ICommandHandler`2" => HandlerKind.CommandResult,
-            "INotificationHandler`1" => HandlerKind.Notification,
+            "IEventHandler`1" => HandlerKind.Event,
             _ => null,
         };
 
@@ -263,13 +263,13 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         var registerable = Registerable(spc, models);
 
         var requests = registerable
-            .Where(e => e.Model.Kind != HandlerKind.Notification)
+            .Where(e => e.Model.Kind != HandlerKind.Event)
             .ToList();
 
         spc.AddSource("__RaskCqrsRegistry.g.cs", SourceText.From(
             Build(
                 UniqueRequests(spc, requests),
-                NotificationTypes(registerable),
+                EventTypes(registerable),
                 HandlerImplementations(registerable),
                 ImplementationTypes(registerable, policies),
                 subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
@@ -277,18 +277,18 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             Encoding.UTF8));
     }
 
-    private static List<string> NotificationTypes(List<(HandlerModel Model, LocationInfo? Location)> registerable) =>
+    private static List<string> EventTypes(List<(HandlerModel Model, LocationInfo? Location)> registerable) =>
         registerable
-            .Where(e => e.Model.Kind == HandlerKind.Notification)
+            .Where(e => e.Model.Kind == HandlerKind.Event)
             .Select(e => e.Model.RequestTypeFqn)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(t => t, StringComparer.Ordinal)
             .ToList();
 
-    private static List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> HandlerImplementations(
+    private static List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsEvent)> HandlerImplementations(
         List<(HandlerModel Model, LocationInfo? Location)> registerable) =>
         registerable
-            .Select(e => (e.Model.ServiceInterfaceFqn, e.Model.HandlerTypeFqn, IsNotification: e.Model.Kind == HandlerKind.Notification))
+            .Select(e => (e.Model.ServiceInterfaceFqn, e.Model.HandlerTypeFqn, IsEvent: e.Model.Kind == HandlerKind.Event))
             .Distinct()
             .OrderBy(t => t.ServiceInterfaceFqn, StringComparer.Ordinal)
             .ThenBy(t => t.HandlerTypeFqn, StringComparer.Ordinal)
@@ -358,8 +358,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
     private static string Build(
         List<HandlerModel> requests,
-        List<string> notificationTypes,
-        List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> handlerImpls,
+        List<string> eventTypes,
+        List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsEvent)> handlerImpls,
         List<string> distinctImplTypes,
         List<SubscriptionModel> subscriptions,
         List<(string ServiceFqn, string ImplementationFqn)> policies)
@@ -381,16 +381,16 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         }
 
         AppendInit(sb, handlerImpls, policies);
-        AppendRefreshAll(sb, requests, notificationTypes, subscriptions);
+        AppendRefreshAll(sb, requests, eventTypes, subscriptions);
 
         for (var i = 0; i < requests.Count; i++)
         {
             EmitRequestInvoker(sb, requests[i], i);
         }
 
-        for (var i = 0; i < notificationTypes.Count; i++)
+        for (var i = 0; i < eventTypes.Count; i++)
         {
-            EmitNotificationInvoker(sb, notificationTypes[i], i);
+            EmitEventInvoker(sb, eventTypes[i], i);
         }
 
         sb.AppendLine("}");
@@ -400,14 +400,14 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     // Init() runs once, at module load. RefreshAll() is the re-invocable half the hot-reload
     // coordinator calls after a metadata update (see RaskHotReload.RefreshTargetTypeNames) —
     // so it must hold ONLY idempotent work. The dispatch tables qualify: ReplaceRequests /
-    // ReplaceNotifications install this assembly's whole contribution, so re-running them swaps in
+    // ReplaceEvents install this assembly's whole contribution, so re-running them swaps in
     // the invokers built from the new IL and drops handlers that no longer exist. The DI
     // registrations below deliberately do NOT belong there: RegisterServices
     // enqueues onto a queue that is never drained, so refreshing it on every save would grow
     // that queue without bound for the life of the watch session.
     private static void AppendInit(
         StringBuilder sb,
-        List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> handlerImpls,
+        List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsEvent)> handlerImpls,
         List<(string ServiceFqn, string ImplementationFqn)> policies)
     {
         sb.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
@@ -418,7 +418,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         foreach (var impl in handlerImpls)
         {
-            var method = impl.IsNotification ? "TryAddEnumerable" : "TryAdd";
+            var method = impl.IsEvent ? "TryAddEnumerable" : "TryAdd";
             sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterServices(static (services, lifetime) => ")
                 .Append("global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.")
                 .Append(method).AppendLine("(services,")
@@ -444,7 +444,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     }
 
     private static void AppendRefreshAll(
-        StringBuilder sb, List<HandlerModel> requests, List<string> notificationTypes, List<SubscriptionModel> subscriptions)
+        StringBuilder sb, List<HandlerModel> requests, List<string> eventTypes, List<SubscriptionModel> subscriptions)
     {
         sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
@@ -467,13 +467,13 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine();
 
         sb.AppendLine(
-            "        global::Rask.Cqrs.CqrsRegistry.ReplaceNotifications(typeof(__RaskCqrsRegistry), " +
-            "new (global::System.Type, global::Rask.Cqrs.CqrsRegistry.NotificationInvoker)[]");
+            "        global::Rask.Cqrs.CqrsRegistry.ReplaceEvents(typeof(__RaskCqrsRegistry), " +
+            "new (global::System.Type, global::Rask.Cqrs.CqrsRegistry.EventInvoker)[]");
         sb.AppendLine("        {");
-        for (var i = 0; i < notificationTypes.Count; i++)
+        for (var i = 0; i < eventTypes.Count; i++)
         {
             sb.Append("            (typeof(")
-                .Append(notificationTypes[i]).Append("), __Notify_").Append(i).AppendLine("),");
+                .Append(eventTypes[i]).Append("), __Notify_").Append(i).AppendLine("),");
         }
 
         sb.AppendLine("        });");
@@ -502,10 +502,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             // legitimate way to write one, and casting to the concrete type would not find it.
             sb.Append("            (typeof(").Append(subscription.SubscriptionFqn)
                 .AppendLine("), new global::Rask.Cqrs.SubscriptionRegistration(");
-            sb.Append("                typeof(").Append(subscription.NotificationFqn).AppendLine("),");
+            sb.Append("                typeof(").Append(subscription.EventFqn).AppendLine("),");
             sb.Append("                static (s, n) => ((global::Rask.Cqrs.ISubscription<")
-                .Append(subscription.NotificationFqn).Append(">)s).Matches((")
-                .Append(subscription.NotificationFqn).AppendLine(")n),");
+                .Append(subscription.EventFqn).Append(">)s).Matches((")
+                .Append(subscription.EventFqn).AppendLine(")n),");
             sb.Append("                static (sp, s, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
                 .Append(subscription.SubscriptionFqn).Append(">(sp, (")
                 .Append(subscription.SubscriptionFqn).AppendLine(")s, ct))),");
@@ -554,15 +554,15 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine();
     }
 
-    private static void EmitNotificationInvoker(StringBuilder sb, string notificationType, int index)
+    private static void EmitEventInvoker(StringBuilder sb, string eventType, int index)
     {
         sb.Append("    private static global::System.Threading.Tasks.Task __Notify_").Append(index)
-            .AppendLine("(global::System.IServiceProvider provider, object notification, global::System.Threading.CancellationToken ct)");
+            .AppendLine("(global::System.IServiceProvider provider, object e, global::System.Threading.CancellationToken ct)");
         sb.AppendLine("    {");
-        sb.Append("        var typed = (").Append(notificationType).AppendLine(")notification;");
+        sb.Append("        var typed = (").Append(eventType).AppendLine(")e;");
         sb.Append("        var handlers = global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetServices<")
-            .Append("global::Rask.Cqrs.INotificationHandler<").Append(notificationType).AppendLine(">>(provider);");
-        sb.Append("        return global::Rask.Cqrs.NotificationDispatch.PublishAll<").Append(notificationType)
+            .Append("global::Rask.Cqrs.IEventHandler<").Append(eventType).AppendLine(">>(provider);");
+        sb.Append("        return global::Rask.Cqrs.EventDispatch.PublishAll<").Append(eventType)
             .AppendLine(">(provider, typed, handlers, ct);");
         sb.AppendLine("    }");
         sb.AppendLine();
@@ -588,7 +588,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         Query,
         CommandVoid,
         CommandResult,
-        Notification,
+        Event,
     }
 
     private sealed record HandlerModel(
@@ -606,7 +606,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         SubscriptionModel? Subscription,
         EquatableArray<PolicyModel> Policies);
 
-    private sealed record SubscriptionModel(string SubscriptionFqn, string NotificationFqn);
+    private sealed record SubscriptionModel(string SubscriptionFqn, string EventFqn);
 
     private sealed record PolicyModel(string ServiceFqn, string ImplementationFqn);
 

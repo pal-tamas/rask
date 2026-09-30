@@ -123,7 +123,7 @@ using Rask.WebPush;
 
 namespace Shop.Features.Orders;
 
-public sealed class OrderShippedHandler : INotificationHandler<OrderShipped>
+public sealed class OrderShippedHandler : IEventHandler<OrderShipped>
 {
     public async Task Handle(OrderShipped notification)
     {

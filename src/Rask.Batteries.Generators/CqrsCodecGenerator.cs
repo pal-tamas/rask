@@ -144,11 +144,11 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         model.AllowAnonymous = authorization.AllowAnonymous;
 
         // Who may SUBSCRIBE is the record's own business, so it is read off the record rather than a
-        // handler — neither a notification nor a subscription has one. A notification that declares nothing
+        // handler — neither an event nor a subscription has one. An event that declares nothing
         // stays closed to bare subscribers: every auth event would otherwise be one browser request away. A
         // subscription record needs no declaration, since its IWatchPolicy already fails closed, but honours
         // one when it carries it.
-        if (kind is RemoteKind.Notification or RemoteKind.Subscription && HasAuthorization(type))
+        if (kind is RemoteKind.Event or RemoteKind.Subscription && HasAuthorization(type))
         {
             var subscribe = Authorization(type);
             model.SubscribeDeclared = true;
@@ -192,7 +192,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         Kind = contract.Kind switch
         {
             RemoteKind.Query => "query",
-            RemoteKind.Notification => "notification",
+            RemoteKind.Event => "event",
             _ => "command",
         },
         Message = contract.Message,
@@ -295,7 +295,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                     }
 
                     var handles = iface.MetadataName is "IQueryHandler`2" or "ICommandHandler`1"
-                        or "ICommandHandler`2" or "INotificationHandler`1";
+                        or "ICommandHandler`2" or "IEventHandler`1";
 
                     if (handles && iface.TypeArguments.Length > 0)
                     {
@@ -436,13 +436,13 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                     return RemoteKind.ResultCommand;
 
                 // Keep looking: ICommand<T> also implies nothing about ICommand, but a type may implement
-                // both INotification and ICommand, and the more specific shape should win.
+                // both IEvent and ICommand, and the more specific shape should win.
                 case "ICommand":
                     kind ??= RemoteKind.VoidCommand;
                     break;
 
-                case "INotification":
-                    kind ??= RemoteKind.Notification;
+                case "IEvent":
+                    kind ??= RemoteKind.Event;
                     break;
 
                 // A subscription is never anything else, so it wins outright: what it carries is its result.
@@ -664,13 +664,13 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         {
             entry.AppendLine(
                 "            LocalInvoker = static async (provider, message, cancellationToken) => "
-                + $"{{ {(contract.Kind is RemoteKind.VoidCommand or RemoteKind.Notification ? local : "return " + local)}; }},");
+                + $"{{ {(contract.Kind is RemoteKind.VoidCommand or RemoteKind.Event ? local : "return " + local)}; }},");
         }
 
         // A request's invoker is emitted closed over the concrete result type, which is what lets a
-        // client hand back a real Task<TResult> without MakeGenericType. Notifications need none:
+        // client hand back a real Task<TResult> without MakeGenericType. Events need none:
         // IRemoteDispatch.PublishAsync is not generic, so a transport calls it directly.
-        if (contract.Kind is not (RemoteKind.Notification or RemoteKind.Subscription))
+        if (contract.Kind is not (RemoteKind.Event or RemoteKind.Subscription))
         {
             var send = contract.Kind == RemoteKind.VoidCommand
                 ? $"Remote(provider).SendAsync({field}, message, cancellationToken)"
@@ -751,7 +751,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         Query,
         VoidCommand,
         ResultCommand,
-        Notification,
+        Event,
         Subscription,
     }
 

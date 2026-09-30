@@ -215,7 +215,7 @@ public sealed class RemoteDispatchTests
     }
 
     [Fact]
-    public async Task Publishing_a_notification_reaches_the_server()
+    public async Task Publishing_a_event_reaches_the_server()
     {
         var handler = Handler(new HttpResponseMessage(HttpStatusCode.Accepted));
 
