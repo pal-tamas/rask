@@ -249,7 +249,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
 
         Assert.NotNull(changeId);
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
+        await page.Invoke(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Same(p, captured!.Model);
@@ -275,7 +275,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("Street required", initial);
 
         var changeId = page.HandlerId("change")!;
-        var afterBlur = await page.InvokeAsync(changeId, "{\"value\":\"\"}");
+        var afterBlur = await page.Invoke(changeId, "{\"value\":\"\"}");
 
         Assert.Contains("Street required", afterBlur);
     }

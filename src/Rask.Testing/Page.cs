@@ -8,7 +8,7 @@ namespace Rask.Testing;
 
 /// <summary>
 ///     A rendered component under test. <see cref="Html" /> is the current markup; invoke a handler
-///     (<see cref="InvokeAsync(string, string?)" />, <see cref="ClickAsync(string?)" />) to simulate an event, which dispatches it
+///     (<see cref="Invoke(string, string?)" />, <c>page.On(selector).Click()</c>) to simulate an event, which dispatches it
 ///     and re-renders, or call <see cref="Render()" /> to re-render after mutating external state.
 /// </summary>
 public partial class Page : IRenderHandle
@@ -71,58 +71,6 @@ public partial class Page : IRenderHandle
         }
     }
 
-    /// <summary>
-    ///     Re-renders until <paramref name="predicate" /> accepts the markup, then returns it — the way to
-    ///     test a component that loads asynchronously. <c>OnMount</c> completes on a thread-pool
-    ///     continuation, so the markup it produces is not there when <see cref="Render()" /> returns; this
-    ///     waits for it instead of guessing with a fixed delay.
-    ///     <code>
-    ///     var page = Page.Render(new OrdersPage(store), services);
-    ///     await page.WaitForAsync(html => !html.Contains("Reading…"));
-    ///     </code>
-    /// </summary>
-    /// <param name="predicate">Receives the current markup on every attempt.</param>
-    /// <param name="timeout">How long to keep trying. Defaults to 5 seconds.</param>
-    /// <exception cref="TimeoutException">
-    ///     The predicate never accepted the markup. The message carries the last markup seen, so a failure
-    ///     shows what the component actually rendered rather than only that it timed out.
-    /// </exception>
-    public async Task<string> WaitForAsync(Func<string, bool> predicate, TimeSpan? timeout = null)
-    {
-        ArgumentNullException.ThrowIfNull(predicate);
-
-        var budget = timeout ?? TimeSpan.FromSeconds(5);
-        var startedAt = Stopwatch.GetTimestamp();
-
-        while (true)
-        {
-            var html = Render();
-            if (predicate(html))
-            {
-                return html;
-            }
-
-            if (Stopwatch.GetElapsedTime(startedAt) >= budget)
-            {
-                throw new TimeoutException(
-                    $"The rendered markup did not satisfy the predicate within {budget}. Last render:{Environment.NewLine}{html}");
-            }
-
-            await Task.Delay(PollInterval, CancellationToken.None).ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>
-    ///     Re-renders until the markup contains <paramref name="expected" />, then returns it — the common
-    ///     shape of <see cref="WaitForAsync(Func{string, bool}, TimeSpan?)" />.
-    /// </summary>
-    /// <exception cref="TimeoutException">The text never appeared; the message carries the last markup.</exception>
-    public Task<string> WaitForAsync(string expected, TimeSpan? timeout = null)
-    {
-        ArgumentNullException.ThrowIfNull(expected);
-        return WaitForAsync(html => html.Contains(expected, StringComparison.Ordinal), timeout);
-    }
-
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
 
     // The handle the component under test renders through. It records the request rather than rendering
@@ -168,7 +116,7 @@ public partial class Page : IRenderHandle
     /// <summary>
     ///     The handler ids for <b>every</b> element wired to <paramref name="domEvent" />, in document order
     ///     — index the one under test when a component wires several (a grid's sort headers, a list's row
-    ///     buttons): <c>await page.InvokeAsync(page.HandlerIds("click")[2])</c>. Like <see cref="HandlerId" />,
+    ///     buttons): <c>await page.Invoke(page.HandlerIds("click")[2])</c>. Like <see cref="HandlerId" />,
     ///     treat these as valid only for the render they were read from, so re-read after every re-render.
     /// </summary>
     public IReadOnlyList<string> HandlerIds(string domEvent) => Attrs("data-rask-on-" + domEvent);
@@ -274,13 +222,11 @@ public partial class Page : IRenderHandle
 
     /// <summary>
     ///     The events of the single element matching <paramref name="selector" />:
-    ///     <c>await page.On("#save").ClickAsync()</c>.
+    ///     <c>await page.On("#save").Click()</c>.
     /// </summary>
     /// <remarks>
-    ///     A handle rather than <c>ClickAsync(selector)</c> overloads, because the existing
-    ///     <see cref="ClickAsync(string?)" /> already takes a <see cref="string" /> — the JSON payload — so a
-    ///     selector overload would be chosen by argument count and quietly send "#save" as event args. Two
-    ///     meanings for one parameter type is exactly the trap this API is meant to remove.
+    ///     A handle rather than <c>Click(selector)</c>: <c>page.Click("Save")</c> already finds a button by the text a
+    ///     person reads, and one parameter meaning both would be the trap this API is meant to remove.
     /// </remarks>
     /// <exception cref="InvalidOperationException">There is not exactly one match.</exception>
     public ElementActions On(string selector) => new(this, selector);
@@ -291,16 +237,19 @@ public partial class Page : IRenderHandle
     public readonly struct ElementActions(Page page, string selector)
     {
         /// <summary>Dispatches this element's <c>click</c> handler, then re-renders.</summary>
-        public Task<string> ClickAsync(string? jsonPayload = null) => Raise("click", jsonPayload);
+        public Task<string> Click() => Dispatch("click", null);
 
         /// <summary>Raises <c>input</c> with <paramref name="value" /> as the event's value.</summary>
-        public Task<string> InputAsync(string value) => Raise("input", JsonValuePayload(value));
+        public Task<string> Input(string value) => Dispatch("input", JsonValuePayload(value));
 
         /// <summary>Raises <c>change</c> with <paramref name="value" /> as the event's value.</summary>
-        public Task<string> ChangeAsync(string value) => Raise("change", JsonValuePayload(value));
+        public Task<string> Change(string value) => Dispatch("change", JsonValuePayload(value));
 
-        /// <summary>Dispatches this element's <c>submit</c> handler, then re-renders.</summary>
-        public Task<string> SubmitAsync(string? jsonPayload = null) => Raise("submit", jsonPayload);
+        /// <summary>
+        ///     Dispatches this element's <c>submit</c> handler, then re-renders. <paramref name="form" /> is the
+        ///     posted form — <c>TestFileBackend.FormPayload(…)</c> for one that carries files.
+        /// </summary>
+        public Task<string> Submit(string? form = null) => Dispatch("submit", form);
 
         /// <summary>
         ///     Picks <paramref name="files" /> on this file input: raises its <c>files</c> handler with the
@@ -308,27 +257,29 @@ public partial class Page : IRenderHandle
         ///     Stage them with <c>TestFileBackend.Add(...)</c> and register that backend — without one the
         ///     handler is handed an empty list and the test silently proves nothing.
         /// </summary>
-        public Task<string> FilesAsync(params TestFile[] files) =>
-            Raise("files", TestFileBackend.PayloadFor(files));
+        public Task<string> Files(params TestFile[] files) =>
+            Dispatch("files", TestFileBackend.PayloadFor(files));
 
         /// <summary>Picks every file staged in <paramref name="backend" /> — the single-input case.</summary>
-        public Task<string> FilesAsync(TestFileBackend backend)
+        public Task<string> Files(TestFileBackend backend)
         {
             ArgumentNullException.ThrowIfNull(backend);
-            return Raise("files", backend.Payload());
+            return Dispatch("files", backend.Payload());
         }
 
-        /// <summary>Dispatches an arbitrary DOM event by name, for anything without a helper above.</summary>
-        public Task<string> RaiseAsync(string domEvent, string? jsonPayload = null) =>
-            Raise(domEvent, jsonPayload);
+        /// <summary>
+        ///     Dispatches any DOM event by name with the event data a browser would send — for what the verbs above do
+        ///     not cover: <c>.Raise("click", "{\"clientX\":10}")</c>, <c>.Raise("keydown", "{\"key\":\"Enter\"}")</c>.
+        /// </summary>
+        public Task<string> Raise(string domEvent, string? jsonPayload = null) => Dispatch(domEvent, jsonPayload);
 
         /// <summary>The element itself, re-resolved from the current render.</summary>
         public HtmlNode Element => page.Find(selector);
 
         // Resolved per call, not captured: a handler re-renders, and the node from the previous render is
         // then stale. Re-resolving means `var save = page.On("#save")` keeps working across renders.
-        private Task<string> Raise(string domEvent, string? jsonPayload) =>
-            page.InvokeAsync(page.HandlerIdFor(selector, domEvent), jsonPayload);
+        private Task<string> Dispatch(string domEvent, string? jsonPayload) =>
+            page.Invoke(page.HandlerIdFor(selector, domEvent), jsonPayload);
 
         private static string JsonValuePayload(string value) =>
             "{\"value\":" + System.Text.Json.JsonSerializer.Serialize(value) + "}";
@@ -394,7 +345,7 @@ public partial class Page : IRenderHandle
     /// </summary>
     /// <exception cref="ArgumentException">The payload is not valid JSON.</exception>
     /// <exception cref="InvalidOperationException">The id is not a live handler in the current render.</exception>
-    public async Task<string> InvokeAsync(string handlerId, string? jsonPayload = null)
+    public async Task<string> Invoke(string handlerId, string? jsonPayload = null)
     {
         ArgumentNullException.ThrowIfNull(handlerId);
 
@@ -415,10 +366,10 @@ public partial class Page : IRenderHandle
     ///     Dispatches <paramref name="handlerId" /> if it is live in the current render, re-rendering and
     ///     returning <c>true</c>; returns <c>false</c> — without re-rendering — if no such handler is
     ///     registered. Use this to assert that a handler is <b>gone</b> (a removed element, a disposed
-    ///     subtree); <see cref="InvokeAsync" /> is the ergonomic default when you expect it to be there.
+    ///     subtree); <see cref="Invoke" /> is the ergonomic default when you expect it to be there.
     /// </summary>
     /// <exception cref="ArgumentException">The payload is not valid JSON.</exception>
-    public async Task<bool> TryInvokeAsync(string handlerId, string? jsonPayload = null)
+    public async Task<bool> TryInvoke(string handlerId, string? jsonPayload = null)
     {
         ArgumentNullException.ThrowIfNull(handlerId);
 
@@ -459,31 +410,6 @@ public partial class Page : IRenderHandle
             return await _root.TryInvokeHandlerAsync(handlerId, doc.RootElement, _services, _root.LifetimeTokenInternal)
                 .ConfigureAwait(false);
         }
-    }
-
-    /// <summary>Dispatches the <b>first</b> <c>click</c> handler in the current render (see <see cref="HandlerId" />).</summary>
-    public Task<string> ClickAsync(string? jsonPayload = null) => InvokeEventAsync("click", jsonPayload);
-
-    /// <summary>Dispatches the <b>first</b> <c>input</c> handler, e.g. <c>InputAsync("{\"value\":\"hi\"}")</c>.</summary>
-    public Task<string> InputAsync(string? jsonPayload = null) => InvokeEventAsync("input", jsonPayload);
-
-    /// <summary>Dispatches the <b>first</b> <c>change</c> handler.</summary>
-    public Task<string> ChangeAsync(string? jsonPayload = null) => InvokeEventAsync("change", jsonPayload);
-
-    /// <summary>Dispatches the <b>first</b> <c>submit</c> handler, e.g. <c>SubmitAsync("{\"form\":{...}}")</c>.</summary>
-    public Task<string> SubmitAsync(string? jsonPayload = null) => InvokeEventAsync("submit", jsonPayload);
-
-    /// <summary>Picks <paramref name="files" /> on the <b>first</b> file input in the current render.</summary>
-    public Task<string> FilesAsync(params TestFile[] files) =>
-        InvokeEventAsync("files", TestFileBackend.PayloadFor(files));
-
-    // Resolves the event's handler id from the CURRENT render, then dispatches — so the id is never stale.
-    private Task<string> InvokeEventAsync(string domEvent, string? jsonPayload)
-    {
-        var id = HandlerId(domEvent)
-                 ?? throw new InvalidOperationException(
-                     $"No {domEvent} handler (data-rask-on-{domEvent}) in the current render.");
-        return InvokeAsync(id, jsonPayload);
     }
 }
 

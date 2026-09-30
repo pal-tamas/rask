@@ -70,6 +70,18 @@ them until tagged releases begin.
   handler ran detached from the render and its exception went unobserved. An `async` lambda still binds to the
   `Task` overload it always did.
 
+- **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
+  its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
+
+  | Before | After |
+  | --- | --- |
+  | `await page.ClickAsync()` | `await page.Click("Save")`, or `await page.On("#save").Click()` |
+  | `await page.InputAsync("{\"value\":\"Ada\"}")` | `await page.Type("Ada").Into("Name")`, or `await page.On("#name").Input("Ada")` |
+  | `await page.On(sel).ChangeAsync(v)` / `SubmitAsync(json)` / `FilesAsync(f)` | `.Change(v)` / `.Submit(json)` / `.Files(f)` |
+  | `await page.On(sel).RaiseAsync("keydown", json)` | `await page.On(sel).Raise("keydown", json)` |
+  | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
+  | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
+  | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
 - **The docs, samples and scaffold say only true things, in the short words.** Kit calls use the short forms
   that already existed — `Ui.Button.Primary.Submit`, `Ui.Alert.Error`, `.Ghost.Sm` — instead of
   `Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)` (518 sites across the docs, `llms.txt`, the
@@ -396,6 +408,15 @@ them until tagged releases begin.
 
 ### Security
 
+- **Scaffolded front ends no longer lock a vulnerable `brace-expansion` or `ip-address`.** Every template
+  locked `brace-expansion` 5.0.9 (nuxt and analog also 2.1.4), open to a quadratic-time `{a},b}` expansion and to
+  stack exhaustion on nested brace groups; analog and angular locked `ip-address` 10.7.0. The lockfiles now carry
+  5.0.12 / 2.1.7 and 10.7.2.
+- **The analog and angular templates audit clean again.** Analog locked `webpack-dev-middleware` 7.4.2
+  (path traversal via a non-slash-terminated `publicPath`), pinned exactly by `@angular-devkit/build-angular` 20;
+  an npm `overrides` entry now takes it to 7.4.6 without the build-angular 22 major, whose Angular 22 and
+  TypeScript 6 peers `npm ci` refuses beside the template's Angular 20. Both templates also move `fast-uri` from
+  3.1.7 to 3.1.8 (inconsistent host case normalization).
 - **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
   `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
   run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
@@ -617,6 +638,12 @@ them until tagged releases begin.
 - **The shutdown drain keeps to one budget.** `ShutdownDrainTimeout` is measured once, from `ApplicationStopping`.
   A drain that ran late used to start a second budget of its own, waiting on sockets the first had already
   aborted and stretching shutdown to twice the setting (#1138).
+- **A sign-up racing the first one is no longer refused for want of the first-run token.** Registration read "not
+  yet claimed" and then compared the token, so a racer that lost the admin slot in between found the token already
+  spent and got `FirstRunTokenRequired`. The token is now compared first (#1143).
+- **Every meta template builds again.** Analog, Next.js, Nuxt, SolidStart, SvelteKit and TanStack Start failed on
+  RASK015/017: Rask's scoped CSS/TypeScript globs reached into `client/` and took `globals.css` or `next.config.ts`
+  for a component's assets. A meta host now keeps its front end out of them, as a SPA host already did (#1147).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted

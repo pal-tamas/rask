@@ -16,7 +16,7 @@ public sealed partial class WebApiDemoTests : global::Rask.Core.RaskMarkup
         storage.Returns(s => s.GetItem("rask-web-demo"), "held by the fake");
         var page = Page.Render(() => WebApiDemo, TestServices.Default());
 
-        await page.InvokeAsync(HandlerIn(page.Render(), "id=\"web-store\"", "data-rask-on-click"), "{}");
+        await page.Invoke(HandlerIn(page.Render(), "id=\"web-store\"", "data-rask-on-click"), "{}");
 
         Assert.Contains("localStorage says: held by the fake", page.Render(), StringComparison.Ordinal);
         Assert.Equal(["setItem", "getItem"], storage.Calls.Select(c => c.Member));

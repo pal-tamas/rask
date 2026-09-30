@@ -37,6 +37,7 @@
        that starts reading a new file outside this project must add it here. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\Rask.Meta.Hosting\**" />
+    <RaskTestReads Include="..\..\src\Rask.Core\build\**" />
     <RaskTestReads Include="..\..\src\Rask.Cli\Scaffolding\MetaTemplate.cs" />
   </ItemGroup>
 

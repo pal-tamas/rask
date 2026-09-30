@@ -36,11 +36,11 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
         var trio = new Trio();
         var page = Page.Render(trio);
 
-        await page.InvokeAsync(page.HandlerIds("click")[1]);
+        await page.Invoke(page.HandlerIds("click")[1]);
 
         Assert.Equal(["b"], trio.Clicked);
 
-        await page.InvokeAsync(page.HandlerIds("click")[2]);
+        await page.Invoke(page.HandlerIds("click")[2]);
 
         Assert.Equal(["b", "c"], trio.Clicked);
     }

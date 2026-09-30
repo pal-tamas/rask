@@ -25,7 +25,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
     }
 
     [Fact]
-    public async Task An_instance_placed_in_the_tree_mounts_and_repaints_when_its_hook_completes()
+    public void An_instance_placed_in_the_tree_mounts_and_repaints_when_its_hook_completes()
     {
         var loader = NewLoader();
         var page = Page.Render(() => Div.Class("host")[loader]);
@@ -34,11 +34,11 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
 
         // The half that makes "load your data in Mount" work at all: the async hook completing re-renders
         // through the handle adoption supplied.
-        await page.WaitForAsync(html => html.Contains("loaded", StringComparison.Ordinal));
+        page.Shows(html => html.Contains("loaded", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task It_stays_mounted_when_its_parent_renders_again_before_its_Mount_completes()
+    public void It_stays_mounted_when_its_parent_renders_again_before_its_Mount_completes()
     {
         // The order that used to lose it: a parent rebuilds its child map every render, and the walk registered
         // a runtime-built instance only the first time — so the second render read it as removed, unmounted it
@@ -50,7 +50,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
         page.Render();
         gated.Release();
 
-        await page.WaitForAsync(html => html.Contains("loaded", StringComparison.Ordinal));
+        page.Shows(html => html.Contains("loaded", StringComparison.Ordinal));
         Assert.Equal(0, gated.Unmounts);
     }
 

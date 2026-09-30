@@ -35,7 +35,7 @@ public partial class MdnElementTypeTests : global::Rask.Core.RaskMarkup
         var emphatic = true;
         var page = Page.Render(() => Div[emphatic ? Em["hi"] : Strong["hi"], Button.OnClick(() => emphatic = !emphatic)["flip"]]);
 
-        var html = await page.On("button").ClickAsync();
+        var html = await page.On("button").Click();
 
         Assert.Contains("<strong>hi</strong>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<em>", html, StringComparison.Ordinal);

@@ -366,9 +366,9 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
 
     private sealed class CapturingProbe : IRaskDevToolsProbe
     {
-        public List<(string Name, Component? Component, RenderCause? Cause)> Events { get; } = [];
+        public Log<(string Name, Component? Component, RenderCause? Cause)> Events { get; } = [];
 
-        public List<(string HandlerId, Component Owner, Exception? Fault, bool Ended)> Handlers { get; } = [];
+        public Log<(string HandlerId, Component Owner, Exception? Fault, bool Ended)> Handlers { get; } = [];
 
         public int Commits { get; private set; }
 
@@ -383,7 +383,7 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         public void ComponentRendered(Component component, long startTimestamp) =>
             Events.Add(("rendered", component, null));
 
-        public List<(string Name, Component Component, Component? Parent)> Walks { get; } = [];
+        public Log<(string Name, Component Component, Component? Parent)> Walks { get; } = [];
 
         public void ComponentWalked(Component component, Component? parent, long startTimestamp, int frameStart, int frameEnd)
         {
@@ -405,18 +405,18 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
 
         public void StateRequested(Component component) => Events.Add(("state-requested", component, null));
 
-        public List<(Context Provider, Component Owner, object? Head)> Provides { get; } = [];
+        public Log<(Context Provider, Component Owner, object? Head)> Provides { get; } = [];
 
-        public List<(Component Reader, Type Requested, string? Name)> Reads { get; } = [];
+        public Log<(Component Reader, Type Requested, string? Name)> Reads { get; } = [];
 
         public void ContextProvided(Context provider, Component owner) =>
             Provides.Add((provider, owner, ContextStack.Head?.Value));
 
         public void ContextRead(Component reader, Type requested, string? name) => Reads.Add((reader, requested, name));
 
-        public List<(Component Component, Exception Exception, ErrorSource Source, bool Caught)> Faults { get; } = [];
+        public Log<(Component Component, Exception Exception, ErrorSource Source, bool Caught)> Faults { get; } = [];
 
-        public List<RaskDiagnosticEvent> Diagnostics { get; } = [];
+        public Log<RaskDiagnosticEvent> Diagnostics { get; } = [];
 
         public void ComponentFaulted(Component component, Exception exception, ErrorSource source, bool caught) =>
             Faults.Add((component, exception, source, caught));
@@ -447,5 +447,38 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         public void FrameReceived(LiveSessionBase session, int bytes, JsonElement frame)
         {
         }
+    }
+
+    // Written by whatever renders while the probe is installed — a stray async render another test left behind
+    // included — so an assertion enumerates a snapshot, never the list being written (#1146).
+    private sealed class Log<T> : IEnumerable<T>
+    {
+        private readonly List<T> _items = [];
+
+        public void Add(T item)
+        {
+            lock (_items)
+            {
+                _items.Add(item);
+            }
+        }
+
+        public void Clear()
+        {
+            lock (_items)
+            {
+                _items.Clear();
+            }
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            lock (_items)
+            {
+                return _items.ToList().GetEnumerator();
+            }
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

@@ -157,7 +157,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
 
         Assert.NotNull(changeId);
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
+        await page.Invoke(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Same(p, captured!.Model);

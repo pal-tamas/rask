@@ -107,7 +107,7 @@ public sealed class DevToolsTreeTabDetailsTests
     {
         var page = Tab(3);
 
-        await page.On("[data-rask-devtools-reads] button").ClickAsync();
+        await page.On("[data-rask-devtools-reads] button").Click();
 
         Assert.Contains("ThemeShell", page.Find("[data-rask-devtools-details]").TextContent);
         Assert.NotEmpty(page.FindAll("[data-rask-devtools-provides]"));
