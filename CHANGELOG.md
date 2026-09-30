@@ -361,6 +361,11 @@ them until tagged releases begin.
   locked `brace-expansion` 5.0.9 (nuxt and analog also 2.1.4), open to a quadratic-time `{a},b}` expansion and to
   stack exhaustion on nested brace groups; analog and angular locked `ip-address` 10.7.0. The lockfiles now carry
   5.0.12 / 2.1.7 and 10.7.2.
+- **The analog and angular templates audit clean again.** Analog locked `webpack-dev-middleware` 7.4.2
+  (path traversal via a non-slash-terminated `publicPath`), pinned exactly by `@angular-devkit/build-angular` 20;
+  an npm `overrides` entry now takes it to 7.4.6 without the build-angular 22 major, whose Angular 22 and
+  TypeScript 6 peers `npm ci` refuses beside the template's Angular 20. Both templates also move `fast-uri` from
+  3.1.7 to 3.1.8 (inconsistent host case normalization).
 - **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
   `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
   run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
