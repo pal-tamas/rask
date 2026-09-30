@@ -32,7 +32,7 @@ public sealed class WebPushScaffoldTests
     private const string Version = "9.9.9";
 
     private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
+        ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,
@@ -69,7 +69,7 @@ public sealed class WebPushScaffoldTests
     [Fact]
     public void Only_the_key_file_is_marked_secret()
     {
-        var files = ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(["push"]), Version).Files;
+        var files = ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(["push"]), Version).Files;
 
         var secret = Assert.Single(files, f => f.Secret);
         Assert.Equal(WebPushAssembly.DevelopmentSettingsFile, Path.GetFileName(secret.Path));
@@ -211,7 +211,7 @@ public sealed class WebPushScaffoldTests
         // copies every appsettings*.json into the publish output, and the final stage copies that output
         // — so without an entry here, `rask deploy` builds the developer's VAPID private key into the
         // image it pushes. Verified against a real `dotnet publish`, which does copy the file.
-        var result = ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(["push", "docker"]), Version);
+        var result = ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(["push", "docker"]), Version);
 
         var dockerignore = result.Files.SingleOrDefault(f =>
             Path.GetFileName(f.Path).Equals(".dockerignore", StringComparison.Ordinal));

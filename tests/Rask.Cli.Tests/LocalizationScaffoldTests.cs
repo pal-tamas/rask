@@ -26,7 +26,7 @@ public class LocalizationScaffoldTests
     [Fact]
     public void A_localized_template_with_no_languages_named_means_english()
     {
-        var batteries = NewCommand.BatteriesOf(["localization"]).Normalized();
+        var batteries = BatterySelection.BatteriesOf(["localization"]).Normalized();
 
         Assert.True(batteries.Localization);
         Assert.Equal(["en"], batteries.Cultures);
@@ -38,7 +38,7 @@ public class LocalizationScaffoldTests
         // The default is ONE language, and the machinery to add another. Adding Hungarian is a line in
         // the block Program.cs already has, rather than a refactor of every string in the app — which
         // is also why there is no flag for it: the file is where the answer lives.
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+        var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, []);
 
         Assert.True(batteries.Localization);
         Assert.Equal(["en"], batteries.Cultures);
@@ -71,8 +71,8 @@ public class LocalizationScaffoldTests
             Assert.DoesNotContain("localization", template.SupportedFlags);
         }
 
-        Assert.DoesNotContain("localization", NewCommand.FeatureFlags);
-        Assert.DoesNotContain("localization", NewCommand.BatteryFlags);
+        Assert.DoesNotContain("localization", BatterySelection.FeatureFlags);
+        Assert.DoesNotContain("localization", BatterySelection.BatteryFlags);
     }
 
     /// <summary>
@@ -86,11 +86,11 @@ public class LocalizationScaffoldTests
     {
         Assert.True(TemplateCatalog.TryGet("server", out var server));
         Assert.True(server!.ShipsLocalization);
-        Assert.True(NewCommand.ToBatteries(server, []).Localization);
+        Assert.True(BatterySelection.ToBatteries(server, []).Localization);
 
         Assert.True(TemplateCatalog.TryGet("wasm", out var wasm));
         Assert.False(wasm!.ShipsLocalization);
-        Assert.False(NewCommand.ToBatteries(wasm, []).Localization);
+        Assert.False(BatterySelection.ToBatteries(wasm, []).Localization);
     }
 
     /// <summary>
@@ -108,7 +108,7 @@ public class LocalizationScaffoldTests
             StringComparison.Ordinal);
 
         // And an app that named none keeps it commented out, so it costs nothing and is still findable.
-        var plain = WasmCsprojOf(NewCommand.BatteriesOf([]).Normalized());
+        var plain = WasmCsprojOf(BatterySelection.BatteriesOf([]).Normalized());
         Assert.DoesNotContain("\n    <RaskGlobalization>true</RaskGlobalization>", plain, StringComparison.Ordinal);
         Assert.Contains("<!-- <RaskGlobalization>true</RaskGlobalization> -->", plain, StringComparison.Ordinal);
     }
