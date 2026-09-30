@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
+using Rask.Hosting.Shared;
 
 namespace Rask.Server.Http;
 
@@ -50,7 +51,7 @@ internal static class PageCompression
         // part of correctness that does not rely on every cache honouring that.
         response.Headers.Append(HeaderNames.Vary, HeaderNames.AcceptEncoding);
 
-        var encoding = Negotiate(context.Request);
+        var encoding = ContentEncodingNegotiation.Negotiate(context.Request);
         if (encoding is null || response.Headers.ContainsKey(HeaderNames.ContentEncoding))
         {
             await response.WriteAsync(content, context.RequestAborted).ConfigureAwait(false);
@@ -77,40 +78,5 @@ internal static class PageCompression
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
-    }
-
-    /// <summary>
-    ///     <c>"br"</c> or <c>"gzip"</c>, whichever the client ranks higher (brotli on a tie), or <c>null</c>
-    ///     for identity.
-    /// </summary>
-    /// <remarks>
-    ///     Read with ASP.NET's typed header parser, as <c>Accept-Language</c> is in
-    ///     <see cref="ServerCultureNegotiation" />, so quality values are honoured rather than skipped:
-    ///     <c>br;q=0</c> is a refusal, and a client that ranks gzip above brotli gets gzip.
-    ///     <c>ScopedAssetCompression.Negotiate</c> ignores <c>q</c>; that was a fair trade for immutable
-    ///     cached assets, and there is no reason to make it for a document built per request.
-    /// </remarks>
-    internal static string? Negotiate(HttpRequest request)
-    {
-        double brotli = 0, gzip = 0;
-        foreach (var entry in request.GetTypedHeaders().AcceptEncoding)
-        {
-            var quality = entry.Quality ?? 1d;
-            if (entry.Value.Equals("br", StringComparison.OrdinalIgnoreCase))
-            {
-                brotli = Math.Max(brotli, quality);
-            }
-            else if (entry.Value.Equals("gzip", StringComparison.OrdinalIgnoreCase))
-            {
-                gzip = Math.Max(gzip, quality);
-            }
-        }
-
-        if (brotli > 0 && brotli >= gzip)
-        {
-            return "br";
-        }
-
-        return gzip > 0 ? "gzip" : null;
     }
 }

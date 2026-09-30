@@ -520,6 +520,9 @@ them until tagged releases begin.
   were dropped; on the server they were not — the dispatch's drain rendered the next one anyway, so a component that
   kept asking for renders kept getting them. The server now drops them as the WASM runtime already did, and both
   share one drain.
+- **A client that refuses brotli is not sent brotli.** The SPA host's precompressed files looked for `br` anywhere
+  in `Accept-Encoding`, so `br;q=0` still got the `.br` file. It now reads quality values as the page document
+  already did; the page, the scoped assets and the SPA host share one reading of the header.
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
