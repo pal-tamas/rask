@@ -1,5 +1,7 @@
 using System.Globalization;
 using Spectre.Console;
+using static Rask.Cli.Commands.CaddyRouting;
+using static Rask.Cli.Commands.DockerCommands;
 
 namespace Rask.Cli.Commands;
 

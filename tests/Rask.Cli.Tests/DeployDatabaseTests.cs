@@ -18,7 +18,7 @@ public sealed class DeployDatabaseTests
     [Fact]
     public void The_run_arguments_carry_the_volume_and_the_connection_string()
     {
-        var args = DeployCommand.BuildRunArguments(Host, "shop", domain: null, color: null, 8080, []);
+        var args = DockerCommands.BuildRunArguments(Host, "shop", domain: null, color: null, 8080, []);
 
         Assert.Contains("shop-data:/data", args, StringComparer.Ordinal);
         Assert.Contains("Rask__ConnectionStrings__App=Data Source=/data/app.db", args, StringComparer.Ordinal);

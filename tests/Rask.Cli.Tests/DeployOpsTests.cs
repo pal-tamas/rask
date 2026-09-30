@@ -32,7 +32,7 @@ public sealed class DeployOpsTests
     {
         // :current is what containers run and what the next deploy moves aside; :latest is kept so the
         // box still reads the way a person expects from `docker images`.
-        var args = DeployCommand.BuildBuildArguments("deploy@box", "shop", "/proj/Dockerfile", "/proj");
+        var args = DockerCommands.BuildBuildArguments("deploy@box", "shop", "/proj/Dockerfile", "/proj");
 
         Assert.Equal(
             ["-H", "ssh://deploy@box", "build", "-t", "shop:current", "-t", "shop:latest", "-f", "/proj/Dockerfile", "/proj"],
@@ -43,13 +43,13 @@ public sealed class DeployOpsTests
     public void Retag_moves_a_tag_without_rebuilding() =>
         Assert.Equal(
             ["-H", "ssh://deploy@box", "tag", "shop:current", "shop:previous"],
-            DeployCommand.BuildRetagArguments("deploy@box", "shop", "current", "previous"));
+            DockerCommands.BuildRetagArguments("deploy@box", "shop", "current", "previous"));
 
     [Fact]
     public void Run_arguments_can_start_a_chosen_tag() =>
         Assert.Contains(
             "shop:previous",
-            DeployCommand.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, [], 8080, "previous"));
+            DockerCommands.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, [], 8080, "previous"));
 
     [Theory]
     [InlineData("50", false, new[] { "logs", "--tail", "50" })]
@@ -57,7 +57,7 @@ public sealed class DeployOpsTests
     [InlineData("10", true, new[] { "logs", "--tail", "10", "--follow" })]
     public void Logs_arguments_carry_tail_and_follow(string tail, bool follow, string[] expected)
     {
-        var args = DeployCommand.BuildLogsArguments("deploy@box", "shop-blue", tail, follow);
+        var args = DockerCommands.BuildLogsArguments("deploy@box", "shop-blue", tail, follow);
 
         Assert.Equal([.. new[] { "-H", "ssh://deploy@box" }.Concat(expected).Append("shop-blue")], args);
     }
