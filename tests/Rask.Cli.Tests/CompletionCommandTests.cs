@@ -23,7 +23,7 @@ public sealed class CompletionCommandTests
         Assert.Contains("deploy", script, StringComparison.Ordinal); // a command name
         // Option names appear as `--template` (bash/zsh) or `-l template` (fish) — match the bare name.
         Assert.Contains("template", script, StringComparison.Ordinal); // an option from `new`'s schema
-        Assert.Contains("outbox", script, StringComparison.Ordinal);   // a feature-only option
+        Assert.Contains("snapshots", script, StringComparison.Ordinal); // a feature-only option
     }
 
     [Fact]

@@ -41,7 +41,7 @@ internal static class TemplateCatalog
     ///     </para>
     /// </remarks>
     private static readonly string[] DatabaseFlags =
-        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "storage"];
+        ["cqrs", "data", "jobs", "mail", "cache", "snapshots", "logs", "storage"];
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [

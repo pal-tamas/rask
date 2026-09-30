@@ -76,15 +76,38 @@ internal sealed class LocalDispatcher : IDispatcher
             feed.Publish(e);
         }
 
+        using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
+
+        // Durable first, so an in-memory handler that throws cannot cost the ones that must not be lost.
+        var durable = CqrsRegistry.DurableHandlersOf(type);
+        var runDurableHere = durable.Count > 0 && !DurableEvents.Take(e) && !await Stored(e, durable, cancellationToken).ConfigureAwait(false);
+
         // An event with no handlers has no generated invoker, and reaches only its subscribers.
-        var invoker = CqrsRegistry.GetEventInvoker(type);
-        if (invoker is null)
+        if (CqrsRegistry.GetEventInvoker(type) is { } invoker)
         {
-            return;
+            await invoker(provider, e, cancellationToken).ConfigureAwait(false);
         }
 
-        using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
-        await invoker(provider, e, cancellationToken).ConfigureAwait(false);
+        if (runDurableHere)
+        {
+            foreach (var handler in durable)
+            {
+                await CqrsRegistry.FindDurableHandler(handler)!(provider, e, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    // Hands the event's durable handlers to the store (the outbox), false when there is none: a browser app, or
+    // Rask.Cqrs on its own, has nowhere durable to put them, so they run here like any other handler.
+    private async Task<bool> Stored(IEvent e, IReadOnlyList<string> durable, CancellationToken cancellationToken)
+    {
+        if (provider.GetService<IDurableEventStore>() is not { } store)
+        {
+            return false;
+        }
+
+        await store.Store(e, durable, cancellationToken).ConfigureAwait(false);
+        return true;
     }
 
     public IAsyncEnumerable<TEvent> Subscribe<TEvent>(CancellationToken cancellationToken = default)

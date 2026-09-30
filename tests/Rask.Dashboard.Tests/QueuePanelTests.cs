@@ -117,7 +117,7 @@ public sealed class QueuePanelTests
 
         await using (var db = h.NewContext())
         {
-            db.Set<OutboxMessage>().Add(OutboxMessage.For("Some.Event", "{}", occurred));
+            db.Set<OutboxMessage>().Add(OutboxMessage.For("Some.Event", "{}", "Some.Handler:Some.Event", occurred));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

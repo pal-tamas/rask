@@ -28,7 +28,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     internal static readonly string[] FeatureFlags =
     [
         "pwa", "cqrs", "data", "docker",
-        "jobs", "mail", "cache", "storage", "outbox", "push", "snapshots", "logs", "ops", "tests",
+        "jobs", "mail", "cache", "storage", "push", "snapshots", "logs", "ops", "tests",
     ];
 
     /// <summary>
@@ -125,13 +125,12 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 choices: IslandRuntimes.All)
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
-            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose writes, jobs, outbox and domain events all go through it.")
+            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose writes, jobs and domain events all go through it.")
             .Flag("no-data", description: "Leave out the database and EF Core — and with it every battery that maps onto a DbContext.")
             .Flag("no-jobs", description: "Leave out durable background jobs.")
             .Flag("no-mail", description: "Leave out transactional email.")
             .Flag("no-cache", description: "Leave out the database-backed ICache + IDistributedCache.")
             .Flag("no-storage", description: "Leave out file storage for uploads (IFiles) and its StoredFile table.")
-            .Flag("no-outbox", description: "Leave out the transactional outbox for durable domain events.")
             .Flag("no-snapshots", description: "Leave out scheduled point-in-time SQLite backups.")
             .Flag("no-logs", description: "Leave out the durable log store (it keeps a database of its own).")
             .Flag("no-ops", description: "Leave out the operator dashboard at /_rask.")
@@ -524,7 +523,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Mail = on.Contains("mail", StringComparer.Ordinal),
             Cache = on.Contains("cache", StringComparer.Ordinal),
             Storage = on.Contains("storage", StringComparer.Ordinal),
-            Outbox = on.Contains("outbox", StringComparer.Ordinal),
             Push = on.Contains("push", StringComparer.Ordinal),
             Snapshots = on.Contains("snapshots", StringComparer.Ordinal),
             Logs = on.Contains("logs", StringComparer.Ordinal),
@@ -555,7 +553,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             Mail = On("mail"),
             Cache = On("cache"),
             Storage = On("storage"),
-            Outbox = On("outbox"),
             Push = On("push"),
             Snapshots = On("snapshots"),
             Logs = On("logs"),
@@ -715,7 +712,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         "mail" => batteries.Mail,
         "cache" => batteries.Cache,
         "storage" => batteries.Storage,
-        "outbox" => batteries.Outbox,
         "push" => batteries.Push,
         "snapshots" => batteries.Snapshots,
         "logs" => batteries.Logs,

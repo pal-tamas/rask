@@ -24,7 +24,7 @@ using Rask.Logging;
 using Rask.Mailing;
 // rask:end
 using Rask.Meta.Hosting;
-// rask:if cqrs data outbox
+// rask:if cqrs data
 using Rask.Outbox;
 // rask:end
 // rask:if cqrs data
@@ -86,11 +86,10 @@ builder.Services.AddRaskMeta();
 // knows which one to open. The non-generic
 // AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
 builder.Services.AddRaskData<AppDbContext>();
-// rask:if outbox
-// Transactional outbox: a domain event marked IOutboxEvent is written to the outbox table in
-// the SAME transaction as the change that raised it, then relayed at-least-once by a
-// background processor. Registering it is also what hands it domain-event delivery, so
-// AddRaskData above needs no argument to match.
+// rask:if data
+// Transactional outbox: every IDurableHandler<T> is written to the outbox table in the SAME
+// transaction as the change that raised its event, then run at-least-once by a background
+// processor. Plain IEventHandler<T>s keep running in memory; each handler chooses.
 builder.Services.AddRaskOutbox<AppDbContext>();
 // rask:end
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o

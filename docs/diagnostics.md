@@ -73,7 +73,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | RASK032 | — | *Retired* — native chrome cannot sit inside an HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
 | [RASK034](#rask034) | — | *Retired* — the `BsDataGrid` it analysed went with `Rask.Bootstrap` |
-| [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
+| [RASK035](#rask035) | Warning | Background job type cannot be registered |
 | [RASK036](#rask036) | Warning | A chain-entry host must be `partial` |
 | [RASK037](#rask037) | Warning | `using` alias is hidden by a chain entry |
 | [RASK038](#rask038) | Error | Chain does not set a required property |
@@ -589,9 +589,9 @@ grid. The kit's grid, `Ui.DataGrid`, is checked by its successor [RASK076](#rask
 reused.
 
 ## RASK035
-**Background job or outbox event type cannot be registered** · Warning
+**Background job type cannot be registered** · Warning
 
-A type implementing `IJob` or `IOutboxEvent` was found, but the generated registry can't map its stored
+A type implementing `IJob` was found, but the generated registry can't map its stored
 name to its CLR type — so it is skipped. Enqueuing it still writes a row; the processor then fails to
 rehydrate it, records `No registered job type '…'`, and retries until `MaxAttempts` before dead-lettering.
 Before this diagnostic existed the type was skipped **silently**, which is exactly what made the failure
@@ -602,8 +602,8 @@ The reasons, all about reconstructing a runtime `Type.FullName` from a name the 
 | Shape | Why |
 |-------|-----|
 | **Generic** — `record Reindex<T> : IJob` | A closed generic's `FullName` carries assembly-qualified type arguments, so no static key matches. |
-| **Nested in a generic** — `class Outer<T> { record Ev : IOutboxEvent; }` | Naming it would leak `T` into the generated file. |
-| **`file`-local** — `file record Ev : IOutboxEvent;` | Invisible outside its own file, and its `FullName` carries a synthesized `<file>F0__` segment. |
+| **Nested in a generic** — `class Outer<T> { record Job : IJob; }` | Naming it would leak `T` into the generated file. |
+| **`file`-local** — `file record Job : IJob;` | Invisible outside its own file, and its `FullName` carries a synthesized `<file>F0__` segment. |
 | **Inaccessible** — `private`/`protected` at any level of its containing chain | The generated registry lives in the same assembly but a different file, so it can't name the type. |
 
 An **abstract** base carrying the marker is skipped without a warning — modelling a hierarchy that way is
@@ -612,17 +612,17 @@ normal, and its concrete derivatives register as usual.
 ```csharp
 public class Outer<T>
 {
-    public sealed record Raised(int Id) : IOutboxEvent;    // ✗ RASK035: nested inside the generic type 'Outer'
+    public sealed record Reindex(int Id) : IJob;           // ✗ RASK035: nested inside the generic type 'Outer'
 }
 
-public static class OrderEvents
+public static class SearchJobs
 {
-    public sealed record Raised(int Id) : IOutboxEvent;    // ✓ nested in a non-generic type is fine
+    public sealed record Reindex(int Id) : IJob;           // ✓ nested in a non-generic type is fine
 }
 ```
 
 **Fix:** move the type out of the generic (or `file`-local, or inaccessible) declaration, and make it
-non-generic — nesting inside a plain `static class` is the usual way to keep events grouped. Suppress with
+non-generic — nesting inside a plain `static class` is the usual way to keep jobs grouped. Suppress with
 `#pragma warning disable RASK035` / `.editorconfig` (`dotnet_diagnostic.RASK035.severity = none`) only if
 you never enqueue that type.
 
@@ -1162,15 +1162,14 @@ dropped.
 mark it `[LocalOnly]`:
 
 ```csharp
-// A job payload, an outbox event, a command only another handler publishes: never on the wire, so
+// A job payload, a domain event, a command only another handler publishes: never on the wire, so
 // never encoded, so free to carry whatever its handler finds convenient.
 [LocalOnly]
 public sealed record RebuildIndex(IComparer<string> Order) : ICommand;
 ```
 
 `[LocalOnly]` on an **interface** marks every message implementing it, which is how `Rask.Jobs`'
-`IJob` and `Rask.Outbox`' `IOutboxEvent` keep whole families of in-process messages out of the wire
-vocabulary at once.
+`IJob` keeps a whole family of in-process messages out of the wire vocabulary at once.
 
 > This diagnostic only fires in a project that references a remote transport (`Rask.Cqrs.Client` or
 > `Rask.Cqrs.Server`). An app using `Rask.Cqrs` purely in-process generates no codecs, so none of these

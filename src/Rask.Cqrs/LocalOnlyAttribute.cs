@@ -10,7 +10,7 @@ namespace Rask.Cqrs;
 ///         Rask.Cqrs exposes a handler's message remotely by default, so that a hosted app's client and
 ///         server share one message vocabulary with nothing extra to declare. That default is right for
 ///         the messages an app's own UI sends, and wrong for the ones it doesn't: a command that only
-///         another handler publishes, a job payload, an outbox event, anything whose caller is always
+///         another handler publishes, a job payload, a domain event, anything whose caller is always
 ///         in-process. Mark those <see cref="LocalOnlyAttribute" /> and they are unreachable from
 ///         outside — the endpoint answers 404 for a name it was never given.
 ///     </para>
@@ -22,9 +22,8 @@ namespace Rask.Cqrs;
 ///     </para>
 ///     <para>
 ///         Applying it to an <b>interface</b> marks every message that implements it, which is how a
-///         family of always-in-process messages opts out at once: <c>Rask.Jobs</c>' <c>IJob</c> and
-///         <c>Rask.Outbox</c>' <c>IOutboxEvent</c> both derive from <see cref="ICommand" />, and neither
-///         a job payload nor an outbox event is ever something a browser sends.
+///         family of always-in-process messages opts out at once: <c>Rask.Jobs</c>' <c>IJob</c> derives from
+///         <see cref="ICommand" />, and a job payload is never something a browser sends.
 ///     </para>
 /// </remarks>
 [AttributeUsage(

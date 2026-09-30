@@ -2,8 +2,8 @@
 
 > **Goal:** react to "an order was placed" reliably — the reaction runs even if the process crashes right
 > after the sale.
-> **You'll write:** an `IOutboxEvent`, a domain method that raises it, a component that places orders, and
-> a handler.
+> **You'll write:** an event, a domain method that raises it, a component that places orders, and a
+> durable handler.
 
 In Chapter 4 we enqueued a job explicitly. Sometimes you'd rather have the *domain* announce that something
 happened and let any number of handlers react — without the code that placed the order knowing who's
@@ -27,8 +27,12 @@ that raises the event, and a small component that inserts what it built. Four sm
 ```csharp
 namespace Shop.Features.Orders;
 
-public sealed record OrderPlaced(Guid Id) : IOutboxEvent;
+[LocalOnly]
+public sealed record OrderPlaced(Guid Id) : IEvent;
 ```
+
+`[LocalOnly]` keeps it on the server. Without it, a signed-in browser could publish an `OrderPlaced` for an order
+nobody placed, and its handler would send a receipt for it. Only `Order.Place` should ever say a sale happened.
 
 **Raising it.** Announce the change from the same code that makes it, so an order can never be placed
 without saying so. Here is chapter 3's `Features/Orders/Order.cs` with `Place` added — the whole file, so you
@@ -113,27 +117,23 @@ section 3 queues the receipt from the event instead, durably.
 
 ## 2. Nothing to remember
 
-There is nothing to register: the outbox battery is on, and being on is what hands it delivery. Its table
-is mapped by `RaskAppDbContext` and was created by the first migration, so there is nothing to migrate either.
+There is nothing to register. The outbox is on whenever the database is, its table is mapped by
+`RaskAppDbContext`, and it was created by the first migration, so there is nothing to migrate either.
 
-That is worth a sentence, because the alternative is a bug you would never see. `DomainEventInterceptor`
-drains and **clears** every entity's events during `SaveChanges`. Were it still running alongside the outbox,
-it would empty them before `OutboxInterceptor` could copy them: the outbox table stays empty, delivery quietly
-stops being durable, and **nothing fails**, because the handlers still run in-process. Every test passes. You
-find out when a crash loses an order confirmation. A framework that makes you opt out of that by hand is
-asking you to remember something on pain of silent data loss, so Rask decides it for you.
-
-Both interceptors sit in every context's `SaveChanges` pipeline — which is why `PlaceOrder`'s
-`Order.Create` gets the outbox, the timestamps and the version bump exactly as chapter 2's form saves do.
-
-If losing an event on a crash is acceptable, plain in-process domain events need no outbox at all:
-`app.Configure(c => c.Outbox.Off())` in `Program.cs`, and the data battery dispatches them itself.
+Every `SaveChanges` runs the outbox's interceptor beside the timestamps and the version bump. That's why
+`PlaceOrder`'s `Order.Create` gets all three, exactly as chapter 2's form saves do.
 
 ## 3. React to the event
 
-`Features/Orders/OrderPlacedHandler.cs`. Any `IEventHandler<OrderPlaced>` runs when an order is placed
-— delivered by the outbox processor, post-commit, with retries. This one logs the sale and queues chapter 4's
-receipt job, so the receipt is now derived from the order's own transaction:
+An event can have any number of handlers, and **each handler chooses** how it is run:
+
+- `IEventHandler<OrderPlaced>` runs in memory straight after the commit. It's fast, but it's gone if the process
+  dies at that moment. That suits a dashboard counter.
+- `IDurableHandler<OrderPlaced>` is written to the outbox in the order's own transaction, and runs from there after
+  the commit, retried until it succeeds. That suits a receipt.
+
+A receipt must not be lost, so `Features/Orders/OrderPlacedHandler.cs` is durable. It logs the sale and queues
+chapter 4's receipt job, so the receipt is now derived from the order's own transaction:
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -142,7 +142,7 @@ using Shop.Features.Shared;
 namespace Shop.Features.Orders;
 
 public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
-    : IEventHandler<OrderPlaced>
+    : IDurableHandler<OrderPlaced>
 {
     public async Task Handle(OrderPlaced e)
     {
@@ -152,10 +152,9 @@ public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
 }
 ```
 
-`IEventHandler<T>` is the one interface the outbox delivers to, so it's the one thing in this chapter
-you implement rather than call. Nothing registers it: it's found at build time.
+It's the one thing in this chapter you implement rather than call. Nothing registers it: it's found at build time.
 
-Because the event row committed atomically with the order, the handler is guaranteed to run **eventually**,
+Because its outbox row committed atomically with the order, the handler is guaranteed to run **eventually**,
 even if the app is killed the instant after the sale — which closes the gap Chapter 4 left open. Delivery is
 **at-least-once**, so make the handler safe to repeat: it can run twice if the process dies between the work
 and the acknowledgement. Here that could mean two receipt jobs, so a real shop has the job check whether a

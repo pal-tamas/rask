@@ -91,6 +91,20 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
 }
 ```
 
+### Durable handlers
+
+A handler that must not be lost implements `IDurableHandler<T>` instead. It is written to the
+[outbox](outbox.md) and runs from there after the commit, retried until it succeeds; each handler of the event chooses:
+
+```csharp
+public sealed class RefreshDashboard : IEventHandler<OrderPlaced> { … }   // in memory, at once
+public sealed class SendReceipt : IDurableHandler<OrderPlaced> { … }      // outbox: atomic, retried
+```
+
+Raised on an aggregate, the event's durable rows commit in the save's own transaction; published through the
+dispatcher, they are stored in a transaction of their own. With no outbox (a browser app, or `Rask.Cqrs` on its own)
+a durable handler runs in memory like any other.
+
 ### Subscribing
 
 An event is also what a screen subscribes to. `PublishAsync` runs its handlers and hands it to every open
@@ -266,8 +280,9 @@ Failure to *arrive* is the one thing remote dispatch adds to the in-process call
 ### `[LocalOnly]`
 
 Keeps a message off the wire entirely, and on an **interface** covers a whole family. This matters more
-than it looks: `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
-outbox event in the app would become an internet-reachable endpoint.
+than it looks: `IJob` derives from `ICommand`, so without it every job payload in the app would become an
+internet-reachable endpoint. Mark a **domain event** `[LocalOnly]` too: an event travels from a browser like any
+message, so an unmarked `OrderPlaced` could be published for an order nobody placed, and its handlers would run.
 
 It is also **how a client keeps a message in-process.** "A client is a pure client" is not a figure of
 speech — `AddRaskCqrsClient()` replaces the invoker for *every* request message it has a contract for, so

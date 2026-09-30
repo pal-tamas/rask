@@ -130,7 +130,7 @@ public static class RaskCqrsClientServiceCollectionExtensions
 
             var transport = provider.GetService<IRemoteDispatch>()
                             ?? throw new InvalidOperationException(
-                                "No remote transport is registered, so this e cannot reach the server. "
+                                "No remote transport is registered, so this event cannot reach the server. "
                                 + "Call AddRaskCqrsClient() during startup.");
 
             await transport.Publish(contract, e, cancellationToken).ConfigureAwait(false);

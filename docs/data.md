@@ -106,8 +106,9 @@ framework writes them:
 var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10);
 ```
 
-`Aggregate<TId>` also carries the domain-events buffer: `Raise(…)` inside a method, and the events are
-published after the save commits ([below](#what-the-interceptors-do)).
+`Aggregate<TId>` also carries the domain-events buffer: `Raise(…)` inside a method. After the save commits, each
+`IEventHandler<T>` runs in memory, and each `IDurableHandler<T>` runs from the [outbox](outbox.md), which stored it in
+the same transaction ([below](#what-the-interceptors-do)).
 
 **Aggregates declare no constructor.** The implicit parameterless one is what EF Core materialises rows
 through, what `Product.Create(model)` starts from, and what gives `new ProductModel()` the aggregate's
@@ -1410,18 +1411,11 @@ host.Services.AddRaskQuery();
 - **`SoftDeleteInterceptor`** — for an aggregate that declares `Deletes = Deletion.Soft`, rewrites a `Deleted`
   entry to `Modified` + sets `DeletedAt`. Your handler just calls `db.Remove(entity)`; to restore, load with
   `IgnoreQueryFilters()` and clear `DeletedAt`. Every other entity's delete removes the row.
-- **`DomainEventInterceptor`** — after the change commits, publishes each entity's `DomainEvents`
-  through `IDispatcher.PublishAsync` (in a fresh scope) and clears them. Any
-  `IEventHandler<T>` registered by `AddRaskCqrs()` reacts automatically.
-
-  It **stands down on its own** when something else owns delivery — [`Rask.Outbox`](outbox.md) claims it by
-  registering an `IDomainEventDeliveryOwner`. The handover is resolved when the container is built, not when
-  either `Add` call runs, so `AddRaskData()` needs no argument and the two calls work in either order.
-  That matters more than it looks: this interceptor *drains and clears* the events in `SavingChanges`, so
-  running it alongside an outbox would empty each entity before `OutboxInterceptor` could copy it — the
-  outbox table stays empty and delivery silently stops being durable, while every handler still runs and
-  nothing reports an error. `RaskDataOptions.DispatchDomainEventsInProcess` (a `bool?`, default `null` =
-  automatic) overrides the decision in both directions.
+- **`DomainEventInterceptor`**: after the change commits, publishes each entity's `DomainEvents`
+  through `IDispatcher.Publish` (in a fresh scope) and clears them, so every `IEventHandler<T>` reacts in memory.
+  An `IDurableHandler<T>` is not run here: [`Rask.Outbox`](outbox.md)'s interceptor stored it in the save's own
+  transaction, reading the same events. The events are cleared only after the commit, so the order of the two
+  interceptors doesn't matter. With no `AddRaskCqrs()` there is nothing to reach, and nothing is published.
 
 ## Optimistic concurrency
 

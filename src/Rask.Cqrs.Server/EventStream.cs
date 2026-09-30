@@ -68,7 +68,7 @@ internal static class EventStream
         if (contract is null
             || (contract.Kind == RemoteMessageKind.Event && !contract.SubscribeDeclared))
         {
-            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown e", null)
+            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown event", null)
                 .ConfigureAwait(false);
             return;
         }

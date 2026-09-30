@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Cqrs;
@@ -39,6 +40,11 @@ public static class CqrsRegistry
 
     private static volatile Dictionary<Type, SubscriptionRegistration> _subscriptions =
         new Dictionary<Type, SubscriptionRegistration>();
+
+    // Durable handlers, per contributing assembly: (event type, (handler type, invoker)).
+    private static readonly List<(object Key, (Type Type, (Type Handler, EventInvoker Invoker) Invoker)[] Items)> _durableGroups = new();
+
+    private static volatile DurableTable _durable = DurableTable.Empty;
 
     // The modules whose initializer has been forced, so a lookup that misses does it at most once per module.
     private static readonly ConcurrentDictionary<System.Reflection.Module, bool> _initialized = new();
@@ -109,6 +115,75 @@ public static class CqrsRegistry
                 RebuildEvents();
             }
         }
+    }
+
+    /// <summary>
+    ///     Installs <paramref name="registrations" /> as the complete set of <see cref="IDurableHandler{TEvent}" />s
+    ///     owned by <paramref name="groupKey" />: each event type, the handler, and the invoker that runs that one
+    ///     handler. The same per-assembly swap as <see cref="ReplaceRequests" />.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void ReplaceDurableHandlers(
+        object groupKey,
+        IEnumerable<(Type EventType, Type HandlerType, EventInvoker Invoker)> registrations)
+    {
+        ArgumentNullException.ThrowIfNull(groupKey);
+        ArgumentNullException.ThrowIfNull(registrations);
+
+        var items = registrations.Select(static r => (r.EventType, (r.HandlerType, r.Invoker))).ToArray();
+        lock (_lock)
+        {
+            if (ReplaceGroup(_durableGroups, groupKey, items))
+            {
+                _durable = DurableTable.From(_durableGroups.SelectMany(static g => g.Items));
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The names of the durable handlers of <paramref name="eventType" /> — what the outbox stores one row per —
+    ///     or an empty list when it has none.
+    /// </summary>
+    /// <param name="eventType">The event's concrete type.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IReadOnlyList<string> DurableHandlersOf(Type eventType)
+    {
+        ArgumentNullException.ThrowIfNull(eventType);
+        return _durable.ByEvent.TryGetValue(eventType, out var names) ? names : [];
+    }
+
+    /// <summary>Whether any loaded assembly declares an <see cref="IDurableHandler{TEvent}" /> — so the outbox is in use.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static bool HasDurableHandlers => _durable.ByHandler.Count > 0;
+
+    /// <summary>The invoker that runs the durable handler stored as <paramref name="handler" />, or null.</summary>
+    /// <param name="handler">A name from <see cref="DurableHandlersOf" />.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static EventInvoker? FindDurableHandler(string handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return _durable.ByHandler.TryGetValue(handler, out var invoker) ? invoker : null;
+    }
+
+    /// <summary>The event type stored as <paramref name="name" /> by <see cref="NameOf" />, when a durable handler takes it.</summary>
+    /// <param name="name">The stored type name.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static Type? FindDurableEvent(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        return _durable.EventsByName.TryGetValue(name, out var type) ? type : null;
+    }
+
+    /// <summary>
+    ///     The name a type is stored under: its full name, dot-separated even for a nested type (which is what Roslyn
+    ///     writes), so a stored row and a generated registration agree.
+    /// </summary>
+    /// <param name="type">The event or handler type.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static string NameOf(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return (type.FullName ?? type.Name).Replace('+', '.');
     }
 
     /// <summary>
@@ -288,6 +363,37 @@ public static class CqrsRegistry
         foreach (var registration in Registrations)
         {
             registration(services, lifetime);
+        }
+    }
+
+    // The flattened durable lookups, built together and installed in one store.
+    private sealed record DurableTable(
+        Dictionary<Type, string[]> ByEvent,
+        Dictionary<string, EventInvoker> ByHandler,
+        Dictionary<string, Type> EventsByName)
+    {
+        public static readonly DurableTable Empty = new([], new(StringComparer.Ordinal), new(StringComparer.Ordinal));
+
+        public static DurableTable From(IEnumerable<(Type Type, (Type Handler, EventInvoker Invoker) Invoker)> items)
+        {
+            var byEvent = new Dictionary<Type, List<string>>();
+            var byHandler = new Dictionary<string, EventInvoker>(StringComparer.Ordinal);
+            var eventsByName = new Dictionary<string, Type>(StringComparer.Ordinal);
+            foreach (var (eventType, (handlerType, invoker)) in items)
+            {
+                // Keyed by handler AND event: one class may handle two events durably, and each is its own row.
+                var name = $"{NameOf(handlerType)}:{NameOf(eventType)}";
+                if (!byEvent.TryGetValue(eventType, out var names))
+                {
+                    byEvent[eventType] = names = [];
+                }
+
+                names.Add(name);
+                byHandler[name] = invoker;
+                eventsByName[NameOf(eventType)] = eventType;
+            }
+
+            return new DurableTable(byEvent.ToDictionary(static p => p.Key, static p => p.Value.ToArray()), byHandler, eventsByName);
         }
     }
 }

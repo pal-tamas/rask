@@ -30,7 +30,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
 {
     private static readonly DiagnosticDescriptor Rask035 = new(
         "RASK035",
-        "Job or outbox event type cannot be registered",
+        "Background job type cannot be registered",
         "{0} type '{1}' {2}; it is skipped, so it will fail to deserialize and dead-letter at runtime — {3}",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
@@ -60,7 +60,7 @@ public abstract class RegistryGeneratorBase : IIncrementalGenerator
     /// <summary>Hint name of the generated file.</summary>
     protected abstract string HintName { get; }
 
-    /// <summary>How RASK035 names the artifact, e.g. <c>Background job</c> or <c>Outbox event</c>.</summary>
+    /// <summary>How RASK035 names the artifact, e.g. <c>Background job</c>.</summary>
     protected abstract string ArtifactNoun { get; }
 
     /// <inheritdoc/>

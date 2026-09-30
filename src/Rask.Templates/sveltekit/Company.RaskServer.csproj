@@ -36,7 +36,7 @@
          which are Rask components — and this host renders none, so it carries no Rask.Core for
          them to render with. -->
     <PackageReference Include="Rask.Auth.Api" Version="{{RaskVersion}}"/>
-    <!-- rask:if outbox -->
+    <!-- rask:if data -->
     <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
     <!-- rask:if jobs -->

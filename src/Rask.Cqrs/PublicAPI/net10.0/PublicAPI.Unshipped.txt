@@ -231,3 +231,15 @@ Rask.Cqrs.IRemoteDispatch.Publish(Rask.Cqrs.RemoteContract! contract, object! e,
 Rask.Cqrs.RaskValidationException.RaskValidationException() -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.DurableEvents
+Rask.Cqrs.IDurableEventStore
+Rask.Cqrs.IDurableEventStore.Store(Rask.Cqrs.IEvent! e, System.Collections.Generic.IReadOnlyList<string!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDurableHandler<TEvent>
+Rask.Cqrs.IDurableHandler<TEvent>.Handle(TEvent e) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.CqrsRegistry.DurableHandlersOf(System.Type! eventType) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Cqrs.CqrsRegistry.FindDurableEvent(string! name) -> System.Type?
+static Rask.Cqrs.CqrsRegistry.FindDurableHandler(string! handler) -> Rask.Cqrs.CqrsRegistry.EventInvoker?
+static Rask.Cqrs.CqrsRegistry.NameOf(System.Type! type) -> string!
+static Rask.Cqrs.CqrsRegistry.ReplaceDurableHandlers(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! EventType, System.Type! HandlerType, Rask.Cqrs.CqrsRegistry.EventInvoker! Invoker)>! registrations) -> void
+static Rask.Cqrs.DurableEvents.MarkStored(Rask.Cqrs.IEvent! e) -> void
+static Rask.Cqrs.CqrsRegistry.HasDurableHandlers.get -> bool

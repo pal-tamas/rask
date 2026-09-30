@@ -26,7 +26,7 @@ internal static class RaskHotReload
     /// <summary>
     ///     Every generator-emitted registry that exposes a re-invocable <c>RefreshAll()</c>, in
     ///     refresh order. All of these are emitted into the *user's* assembly, so the coordinator
-    ///     reaches them by name — <c>Rask.Cqrs</c>, <c>Rask.Jobs</c> and <c>Rask.Outbox</c> do not
+    ///     reaches them by name — <c>Rask.Cqrs</c> and <c>Rask.Jobs</c> do not
     ///     reference <c>Rask.Core</c> and must not start to.
     ///     <para>
     ///         Adding a generator that registers through a <c>[ModuleInitializer]</c> without adding
@@ -39,8 +39,7 @@ internal static class RaskHotReload
         "__RaskRoutesRegistry",
         "__RaskCqrsRegistry",
         "__RaskValidatorRegistry",
-        "Rask.Background.Generated.__RaskJobsRegistry",
-        "Rask.Outbox.Generated.__RaskOutboxRegistry"
+        "Rask.Background.Generated.__RaskJobsRegistry"
     ];
 
     internal const string ScopedCssRegistrationTypeName = "__RaskScopedCssRegistration";

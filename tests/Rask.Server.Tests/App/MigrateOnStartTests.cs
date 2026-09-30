@@ -142,7 +142,6 @@ public sealed class MigrateOnStartTests
         c.Mail.Off();
         c.Cache.Off();
         c.Storage.Off();
-        c.Outbox.Off();
         c.Push.Off();
         c.Ops.Off();
         c.Snapshots.Off();

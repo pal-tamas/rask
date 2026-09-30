@@ -130,6 +130,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             "ICommandHandler`1" => HandlerKind.CommandVoid,
             "ICommandHandler`2" => HandlerKind.CommandResult,
             "IEventHandler`1" => HandlerKind.Event,
+            "IDurableHandler`1" => HandlerKind.Durable,
             _ => null,
         };
 
@@ -154,7 +155,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             Fqn(symbol, compilation),
             requestFqn,
             resultFqn,
-            Fqn(iface, compilation),
+            // A durable handler is resolved by its own type: the outbox runs ONE handler per row, not the set.
+            kind == HandlerKind.Durable ? Fqn(symbol, compilation) : Fqn(iface, compilation),
             registerability?.Problem,
             registerability?.Remedy);
     }
@@ -263,13 +265,14 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         var registerable = Registerable(spc, models);
 
         var requests = registerable
-            .Where(e => e.Model.Kind != HandlerKind.Event)
+            .Where(e => e.Model.Kind is not (HandlerKind.Event or HandlerKind.Durable))
             .ToList();
 
         spc.AddSource("__RaskCqrsRegistry.g.cs", SourceText.From(
             Build(
                 UniqueRequests(spc, requests),
                 EventTypes(registerable),
+                DurableHandlers(registerable),
                 HandlerImplementations(registerable),
                 ImplementationTypes(registerable, policies),
                 subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
@@ -283,6 +286,17 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             .Select(e => e.Model.RequestTypeFqn)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(t => t, StringComparer.Ordinal)
+            .ToList();
+
+    // One (event, handler) pair per durable handler: the outbox stores and runs each on its own.
+    private static List<(string EventFqn, string HandlerFqn)> DurableHandlers(
+        List<(HandlerModel Model, LocationInfo? Location)> registerable) =>
+        registerable
+            .Where(e => e.Model.Kind == HandlerKind.Durable)
+            .Select(e => (EventFqn: e.Model.RequestTypeFqn, HandlerFqn: e.Model.HandlerTypeFqn))
+            .Distinct()
+            .OrderBy(t => t.EventFqn, StringComparer.Ordinal)
+            .ThenBy(t => t.HandlerFqn, StringComparer.Ordinal)
             .ToList();
 
     private static List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsEvent)> HandlerImplementations(
@@ -359,6 +373,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     private static string Build(
         List<HandlerModel> requests,
         List<string> eventTypes,
+        List<(string EventFqn, string HandlerFqn)> durables,
         List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsEvent)> handlerImpls,
         List<string> distinctImplTypes,
         List<SubscriptionModel> subscriptions,
@@ -381,7 +396,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         }
 
         AppendInit(sb, handlerImpls, policies);
-        AppendRefreshAll(sb, requests, eventTypes, subscriptions);
+        AppendRefreshAll(sb, requests, eventTypes, durables, subscriptions);
 
         for (var i = 0; i < requests.Count; i++)
         {
@@ -391,6 +406,11 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         for (var i = 0; i < eventTypes.Count; i++)
         {
             EmitEventInvoker(sb, eventTypes[i], i);
+        }
+
+        for (var i = 0; i < durables.Count; i++)
+        {
+            EmitDurableInvoker(sb, durables[i], i);
         }
 
         sb.AppendLine("}");
@@ -444,7 +464,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     }
 
     private static void AppendRefreshAll(
-        StringBuilder sb, List<HandlerModel> requests, List<string> eventTypes, List<SubscriptionModel> subscriptions)
+        StringBuilder sb, List<HandlerModel> requests, List<string> eventTypes, List<(string EventFqn, string HandlerFqn)> durables, List<SubscriptionModel> subscriptions)
     {
         sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
@@ -477,6 +497,12 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("        });");
+
+        // Only when there is something to install, as with subscriptions below.
+        if (durables.Count > 0)
+        {
+            AppendDurableHandlers(sb, durables);
+        }
 
         // Only when there is something to install, so an assembly that declares no subscription makes no call that an
         // older Rask.Cqrs would not have.
@@ -554,6 +580,34 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         sb.AppendLine();
     }
 
+    private static void AppendDurableHandlers(StringBuilder sb, List<(string EventFqn, string HandlerFqn)> durables)
+    {
+        sb.AppendLine();
+        sb.AppendLine(
+            "        global::Rask.Cqrs.CqrsRegistry.ReplaceDurableHandlers(typeof(__RaskCqrsRegistry), " +
+            "new (global::System.Type, global::System.Type, global::Rask.Cqrs.CqrsRegistry.EventInvoker)[]");
+        sb.AppendLine("        {");
+        for (var i = 0; i < durables.Count; i++)
+        {
+            sb.Append("            (typeof(").Append(durables[i].EventFqn)
+                .Append("), typeof(").Append(durables[i].HandlerFqn)
+                .Append("), __Durable_").Append(i).AppendLine("),");
+        }
+
+        sb.AppendLine("        });");
+    }
+
+    // Runs ONE durable handler: the outbox stores a row per handler, so a failure retries that handler alone.
+    private static void EmitDurableInvoker(StringBuilder sb, (string EventFqn, string HandlerFqn) durable, int index)
+    {
+        sb.Append("    private static global::System.Threading.Tasks.Task __Durable_").Append(index)
+            .AppendLine("(global::System.IServiceProvider provider, object e, global::System.Threading.CancellationToken ct) =>");
+        sb.Append("        ((global::Rask.Cqrs.IDurableHandler<").Append(durable.EventFqn).Append(">)")
+            .Append("global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<")
+            .Append(durable.HandlerFqn).Append(">(provider)).Handle((").Append(durable.EventFqn).AppendLine(")e);");
+        sb.AppendLine();
+    }
+
     private static void EmitEventInvoker(StringBuilder sb, string eventType, int index)
     {
         sb.Append("    private static global::System.Threading.Tasks.Task __Notify_").Append(index)
@@ -589,6 +643,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         CommandVoid,
         CommandResult,
         Event,
+        Durable,
     }
 
     private sealed record HandlerModel(

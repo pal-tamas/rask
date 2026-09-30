@@ -34,7 +34,6 @@ Rask.Data.Deletion.Hard = 0 -> Rask.Data.Deletion
 Rask.Data.Deletion.None = 2 -> Rask.Data.Deletion
 Rask.Data.Deletion.Soft = 1 -> Rask.Data.Deletion
 Rask.Data.DomainEventInterceptor
-Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Data.RaskDataOptions! options, System.Collections.Generic.IEnumerable<Rask.Data.IDomainEventDeliveryOwner!>! deliveryOwners) -> void
 Rask.Data.Entity<TId>
 Rask.Data.Entity<TId>.CreatedAt.get -> System.DateTime
 Rask.Data.Entity<TId>.Entity() -> void
@@ -55,8 +54,6 @@ Rask.Data.GeneratedReadQuery
 Rask.Data.IAggregate
 Rask.Data.IDataChanges
 Rask.Data.IDataChanges.Saved(System.Collections.Generic.IReadOnlyCollection<System.Type!>! entityTypes) -> void
-Rask.Data.IDomainEventDeliveryOwner
-Rask.Data.IDomainEventDeliveryOwner.Name.get -> string!
 Rask.Data.IEntity
 Rask.Data.IHasDomainEvents
 Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
@@ -113,10 +110,6 @@ Rask.Data.RangeOverlapException.RangeOverlapException() -> void
 Rask.Data.RangeOverlapException.RangeOverlapException(string! message) -> void
 Rask.Data.RangeOverlapException.RangeOverlapException(string! message, System.Exception? innerException) -> void
 Rask.Data.RangeOverlapException.Table.get -> string!
-Rask.Data.RaskDataOptions
-Rask.Data.RaskDataOptions.DispatchDomainEventsInProcess.get -> bool?
-Rask.Data.RaskDataOptions.DispatchDomainEventsInProcess.set -> void
-Rask.Data.RaskDataOptions.RaskDataOptions() -> void
 Rask.Data.RaskDataServiceCollectionExtensions
 Rask.Data.RaskDbContext
 Rask.Data.RaskDbContext.CurrentTenant.get -> System.Guid?
@@ -241,8 +234,6 @@ static Rask.Data.RangeExclusionSpec.TryParse(object? value, out Rask.Data.RangeE
 static Rask.Data.RangeExclusionSpec.operator !=(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
 static Rask.Data.RangeExclusionSpec.operator ==(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
 static Rask.Data.RangeOverlapException.ForTable(string! table, System.Exception? innerException = null) -> Rask.Data.RangeOverlapException!
-static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Data.RaskDataOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Data.RaskDataOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.ReadDb.Configure(System.Func<Rask.Data.RaskReadDbContext!>! createContext) -> void
 static Rask.Data.ReadDb.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.ReadDb.IsConfigured.get -> bool
@@ -300,3 +291,6 @@ static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TI
 static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, TInput input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
 Rask.Data.ModelQuery<TEntity>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.Collections.Generic.List<TEntity!>!>
 Rask.Data.Projection<TEntity, TResult>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<System.Collections.Generic.List<TResult>!>
+Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory) -> void
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

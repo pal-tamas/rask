@@ -44,15 +44,6 @@ namespace Rask.Background.Generated
     }
 }
 
-namespace Rask.Outbox.Generated
-{
-    internal static class __RaskOutboxRegistry
-    {
-        internal static Action? Hook;
-        internal static void RefreshAll() => Hook?.Invoke();
-    }
-}
-
 namespace Rask.Core.Tests.HotReload
 {
     /// <summary>
@@ -62,13 +53,12 @@ namespace Rask.Core.Tests.HotReload
     {
         internal static IDisposable Arm(
             Action? css = null, Action? js = null,
-            Action? cqrs = null, Action? jobs = null, Action? outbox = null)
+            Action? cqrs = null, Action? jobs = null)
         {
             global::__RaskScopedCssRegistration.Hook = css;
             global::__RaskScopedJsRegistration.Hook = js;
             global::__RaskCqrsRegistry.Hook = cqrs;
             Background.Generated.__RaskJobsRegistry.Hook = jobs;
-            Outbox.Generated.__RaskOutboxRegistry.Hook = outbox;
             return new Disarm();
         }
 
@@ -80,7 +70,6 @@ namespace Rask.Core.Tests.HotReload
                 global::__RaskScopedJsRegistration.Hook = null;
                 global::__RaskCqrsRegistry.Hook = null;
                 Background.Generated.__RaskJobsRegistry.Hook = null;
-                Outbox.Generated.__RaskOutboxRegistry.Hook = null;
             }
         }
     }

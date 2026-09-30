@@ -24,7 +24,7 @@ namespace Rask.Batteries.Generators;
 ///         Contracts are collected from the compilation itself and from any referenced assembly that
 ///         references Rask.Cqrs — in a hosted app, that is the shared contracts library both halves
 ///         compile against. Messages marked <c>[LocalOnly]</c>, directly or through an interface they
-///         implement, are excluded: that is how <c>IJob</c> and <c>IOutboxEvent</c> keep whole families
+///         implement, are excluded: that is how <c>IJob</c> keeps a whole family
 ///         of always-in-process messages out of the wire vocabulary.
 ///     </para>
 /// </remarks>
@@ -47,7 +47,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                      + "reported now rather than failing on the wire. Supported: the primitive types, string, Guid, "
                      + "the date/time types, Uri, enums, byte[], nullable versions of those, arrays and lists of them, "
                      + "string-keyed dictionaries, and records or classes composed of the same. A message that is never "
-                     + "sent anywhere — a job payload, an outbox event, a command only another handler publishes — "
+                     + "sent anywhere — a job payload, an event only this process handles, a command only another handler publishes — "
                      + "should say so with [LocalOnly], which exempts it entirely.",
         helpLinkUri: DiagnosticHelp.Link("RASK053"));
 

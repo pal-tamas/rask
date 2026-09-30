@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Data;
-// rask:if outbox
+// rask:if data
 using Rask.Outbox;
 // rask:end
 // rask:if jobs
@@ -36,7 +36,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskD
         // Tenancy.PerTenant` — which is why it takes `this`. It has to come LAST, after the models, the
         // configurations AND every battery's tables. Anything mapped after it silently misses out.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-        // rask:if outbox
+        // rask:if data
         modelBuilder.AddRaskOutbox();
         // rask:end
         // rask:if jobs

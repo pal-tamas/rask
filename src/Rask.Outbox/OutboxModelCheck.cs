@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rask.Batteries;
+using Rask.Cqrs;
 
 namespace Rask.Outbox;
 
@@ -19,4 +20,9 @@ internal sealed class OutboxModelCheck<TContext>(IDbContextFactory<TContext> con
     protected override Type Entity => typeof(OutboxMessage);
 
     protected override string MapCall => "AddRaskOutbox";
+
+    // The outbox is always on, so an app with no durable handler has nothing to store and needs no table.
+    protected override bool Needed => CqrsRegistry.HasDurableHandlers;
+
+    protected override string Alternative => "";
 }

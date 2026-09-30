@@ -130,7 +130,6 @@ Rask.RaskAppOptions.Live.set -> void
 Rask.RaskAppOptions.Logs.get -> Rask.Battery<Rask.Logging.RaskLoggingOptions!>!
 Rask.RaskAppOptions.Mail.get -> Rask.Battery<Rask.Mailing.MailOptions!>!
 Rask.RaskAppOptions.Ops.get -> Rask.Battery!
-Rask.RaskAppOptions.Outbox.get -> Rask.Battery<Rask.Outbox.OutboxOptions!>!
 Rask.RaskAppOptions.Push.get -> Rask.Battery<Rask.WebPush.WebPushOptions!>!
 Rask.RaskAppOptions.Pwa.get -> Rask.Battery<Rask.Core.Browser.WebAppManifest!>!
 Rask.RaskAppOptions.RaskAppOptions() -> void
@@ -161,3 +160,4 @@ static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TE
 static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, System.Func<TInput>! input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
 static Rask.Data.QueryClientReads.extension(Rask.Querying.QueryClient!).Query<TInput, TEntity>(Rask.Querying.QueryKey prefix, TInput input, System.Func<TInput, Rask.Data.ModelQuery<TEntity!>!>! rows, Rask.Querying.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Querying.Query<System.Collections.Generic.List<TEntity!>!>!
 Rask.RaskAppOptions.Toasts.get -> Rask.ToastOptions!
+Rask.RaskAppOptions.Outbox.get -> Rask.Settings<Rask.Outbox.OutboxOptions!>!

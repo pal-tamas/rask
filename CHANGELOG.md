@@ -34,6 +34,38 @@ them until tagged releases begin.
 
   `IDispatcher.Publish` keeps its name. The browser's `Notification` API (`INotifications`, `Rask.Web`) is a
   different thing and is unchanged.
+- **Each handler chooses whether it is durable.** An event is a plain `IEvent`; `IEventHandler<T>` runs in memory
+  straight after the commit, and `IDurableHandler<T>` runs through the transactional outbox, with its row written
+  in the same transaction as the change that raised the event:
+
+  ```csharp
+  [LocalOnly]
+  public sealed record OrderPlaced(Guid Id) : IEvent;                          // was : IOutboxEvent
+
+  public sealed class RefreshDashboard : IEventHandler<OrderPlaced> { … }      // in memory, at once
+  public sealed class SendReceipt : IDurableHandler<OrderPlaced> { … }         // outbox: atomic, retried
+  ```
+
+  Before, one event went one way for the whole app. With the outbox on, a plain `INotification` raised on an
+  aggregate was **never delivered**, and nothing reported it. Now:
+  - Each durable handler is its own outbox row, so a failing one is retried alone.
+  - A bare `dispatcher.Publish(e)` stores its durable rows in a transaction of its own.
+  - A save wakes the processor at once, instead of it waiting for the next `PollInterval` (5s).
+  - Without an outbox (a browser app, or `Rask.Cqrs` on its own), a durable handler runs in memory.
+
+  **The outbox follows the data battery**, since the handler is now the switch. Removed:
+  - `IOutboxEvent`, `c.Outbox.Off()`, `rask new --no-outbox`
+  - `RaskDataOptions` with `DispatchDomainEventsInProcess`, and `AddRaskData(configure)`
+  - `IDomainEventDeliveryOwner`
+  - `OutboxSerializerRegistry.Replace`
+
+  `c.Outbox.Configure(o => …)` and `Rask:Outbox` still set the options.
+
+  **Upgrading:**
+  1. Declare events `: IEvent`, and give each handler that must not be lost `IDurableHandler<T>`.
+  2. Mark each domain event `[LocalOnly]`. `IOutboxEvent` did that for you: events travel from a browser like any
+     message, so an unmarked `OrderPlaced` could be published by a signed-in user.
+  3. Add the outbox's new `Handler` column: `rask db add AddOutboxHandler && rask db update`.
 
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset

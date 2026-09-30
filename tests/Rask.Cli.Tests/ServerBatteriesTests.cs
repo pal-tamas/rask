@@ -15,7 +15,7 @@ namespace Rask.Cli.Tests;
 public sealed class ServerBatteriesTests
 {
     public static TheoryData<string> DbPillarFlags =>
-        ["jobs", "mail", "cache", "storage", "outbox", "snapshots"];
+        ["jobs", "mail", "cache", "storage", "snapshots"];
 
     [Theory]
     [MemberData(nameof(DbPillarFlags))]
@@ -53,7 +53,6 @@ public sealed class ServerBatteriesTests
         Assert.True(all.Mail);
         Assert.True(all.Cache);
         Assert.True(all.Storage);
-        Assert.True(all.Outbox);
         Assert.True(all.Push);
         Assert.True(all.Snapshots);
         Assert.True(all.Logs);
@@ -153,7 +152,7 @@ public sealed class ServerBatteriesTests
 
 
     public static TheoryData<string> EveryDbBattery =>
-        ["jobs", "mail", "cache", "storage", "outbox", "snapshots", "ops"];
+        ["jobs", "mail", "cache", "storage", "snapshots", "ops"];
 
     [Theory]
     [MemberData(nameof(EveryDbBattery))]
@@ -202,6 +201,14 @@ public sealed class ServerBatteriesTests
     }
 
     [Fact]
+    public void The_outbox_has_no_switch_because_each_handler_chooses_durability()
+    {
+        var flags = NewCommand.FeatureFlags;
+
+        Assert.DoesNotContain("outbox", flags);
+    }
+
+    [Fact]
     public void Turning_one_battery_off_leaves_the_rest_alone()
     {
         var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["jobs"]);
@@ -211,7 +218,6 @@ public sealed class ServerBatteriesTests
         Assert.True(batteries.Mail);
         Assert.True(batteries.Cache);
         Assert.True(batteries.Storage);
-        Assert.True(batteries.Outbox);
         Assert.True(batteries.Ops);
     }
 

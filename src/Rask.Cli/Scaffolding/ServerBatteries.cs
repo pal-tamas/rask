@@ -63,9 +63,6 @@ internal sealed record ServerBatteries
     /// <summary>File storage for uploads (<c>Files.Save</c>), with a <c>StoredFile</c> row per file on the app's database.</summary>
     public bool Storage { get; init; }
 
-    /// <summary>A transactional outbox for durable domain-event delivery.</summary>
-    public bool Outbox { get; init; }
-
     /// <summary>Server-sent Web Push (VAPID), with subscription endpoints.</summary>
     public bool Push { get; init; }
 
@@ -87,7 +84,7 @@ internal sealed record ServerBatteries
     public bool Tests { get; init; }
 
     /// <summary>True when any battery needs a <c>TContext</c> — i.e. a database-backed pillar is on.</summary>
-    public bool AnyDbPillar => Jobs || Mail || Cache || Storage || Outbox;
+    public bool AnyDbPillar => Jobs || Mail || Cache || Storage;
 
     /// <summary>True when anything touches the SQLite file on disk beyond EF itself.</summary>
     /// <remarks>
@@ -164,7 +161,7 @@ internal sealed record ServerBatteries
     public ServerBatteries Reduced()
     {
         // Every pillar registers as AddRaskX<TContext>, so losing the context loses all of them. And losing the
-        // mediator loses the context: jobs, the outbox and Rask.Data's domain events are all delivered through it,
+        // mediator loses the context: jobs and Rask.Data's domain events (the outbox's too) are all delivered through it,
         // and those packages reference Rask.Cqrs.
         var data = Data && Cqrs;
 
@@ -175,7 +172,6 @@ internal sealed record ServerBatteries
             Mail = Mail && data,
             Cache = Cache && data,
             Storage = Storage && data,
-            Outbox = Outbox && data,
             Snapshots = Snapshots && data,
             Ops = Ops && data,
 

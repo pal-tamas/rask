@@ -7,55 +7,25 @@ using Rask.Cqrs;
 namespace Rask.Data;
 
 /// <summary>
-/// Publishes each entity's <see cref="IHasDomainEvents.DomainEvents"/> in-process <b>after</b> the change
-/// commits, through <c>Rask.Cqrs</c>' <see cref="IDispatcher.Publish{TEvent}"/>. Events are
-/// resolved by their runtime type, so a stored <see cref="IEventHandler{TEvent}"/> reacts with
-/// no extra wiring. Handlers run in a fresh DI scope. Stands down automatically when a transactional
-/// outbox owns delivery — see <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
+/// Publishes each entity's <see cref="IHasDomainEvents.DomainEvents"/> <b>after</b> the change commits, through
+/// <c>Rask.Cqrs</c>' <see cref="IDispatcher.Publish{TEvent}"/>: every <see cref="IEventHandler{TEvent}"/> runs in
+/// memory, in a fresh DI scope. A durable handler (<see cref="IDurableHandler{TEvent}"/>) is not run here — the
+/// outbox wrote its row in the save's own transaction, and runs it from there.
 /// </summary>
 /// <remarks>
-/// Events are drained off the tracked entities in <c>SavingChanges</c> (before a delete detaches its
-/// entity) and published in <c>SavedChanges</c> (after the change commits). A failed save discards them, so a
-/// rolled-back change never fires its events.
+/// Events are read off the tracked entities in <c>SavingChanges</c> (before a delete detaches its entity) and
+/// published in <c>SavedChanges</c> (after the change commits). They are cleared only then, so the outbox's
+/// interceptor, reading the same events in the same <c>SavingChanges</c>, sees them whichever of the two runs
+/// first. A failed save discards them, so a rolled-back change never fires its events.
 /// </remarks>
-public sealed class DomainEventInterceptor : SaveChangesInterceptor
+public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : SaveChangesInterceptor
 {
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 
-    // Resolved once, when the container builds this singleton — which is the whole point. Registration
-    // order in Program.cs cannot reach it, so AddRaskData before or after AddRaskOutbox behaves the same.
-    private readonly bool _standDown;
-
-    // Events collected pre-save, keyed by the context whose SaveChanges is in flight (a context runs one
-    // save at a time, so a per-context slot is safe; the weak table never keeps a context alive).
-    private readonly ConditionalWeakTable<DbContext, List<IEvent>> _pending = new();
-
-    /// <summary>
-    /// Creates the interceptor, deciding from the built container whether anything else already owns
-    /// domain-event delivery.
-    /// </summary>
-    /// <param name="scopeFactory">Used to run each handler in a fresh scope.</param>
-    /// <param name="options">
-    /// Rask.Data's options. <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/> overrides the
-    /// automatic answer in both directions when it is not <c>null</c>.
-    /// </param>
-    /// <param name="deliveryOwners">
-    /// Everything that has claimed ownership of delivery (<c>Rask.Outbox</c> registers one). A non-empty
-    /// sequence makes this interceptor a no-op, so it cannot drain events the outbox has not copied yet.
-    /// </param>
-    public DomainEventInterceptor(
-        IServiceScopeFactory scopeFactory,
-        RaskDataOptions options,
-        IEnumerable<IDomainEventDeliveryOwner> deliveryOwners)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(deliveryOwners);
-
-        _scopeFactory = scopeFactory;
-        _standDown = options.DispatchDomainEventsInProcess is { } dispatch
-            ? !dispatch
-            : deliveryOwners.Any();
-    }
+    // What each context's in-flight save raised, keyed by that context (one save at a time per context, so one slot
+    // is safe; the weak table never keeps a context alive). The entities are kept too, because a deleted one is
+    // detached by the time SavedChanges runs and could no longer be found to clear.
+    private readonly ConditionalWeakTable<DbContext, Pending> _pending = new();
 
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -99,18 +69,12 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
 
     private void Collect(DbContext? context)
     {
-        // The only guard that matters, and it has to be here rather than at the publish step: collecting
-        // is what CLEARS the events off the entities. An outbox copies them in its own interceptor, so
-        // draining them here would empty the outbox rather than merely double-deliver. Nothing is
-        // collected, so nothing is pending, so the publish path is a no-op too.
-        if (_standDown || context is null)
+        if (context is null)
         {
             return;
         }
 
-        // Drain the events off the tracked entities now — a Deleted entity is detached once the save
-        // completes, so collecting after SaveChanges would lose its events.
-        var events = new List<IEvent>();
+        var pending = new Pending();
         foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(static entry => entry.Entity))
         {
             if (entity.DomainEvents.Count == 0)
@@ -118,41 +82,63 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
                 continue;
             }
 
-            events.AddRange(entity.DomainEvents);
-            entity.ClearDomainEvents();
+            pending.Entities.Add(entity);
+            pending.Events.AddRange(entity.DomainEvents);
         }
 
-        if (events.Count > 0)
+        if (pending.Events.Count > 0)
         {
-            _pending.AddOrUpdate(context, events);
+            _pending.AddOrUpdate(context, pending);
         }
     }
 
     private async Task PublishAsync(DbContext? context, CancellationToken cancellationToken)
     {
-        if (context is null || !_pending.TryGetValue(context, out var events))
+        if (context is null || !_pending.TryGetValue(context, out var pending))
         {
             return;
         }
 
         _pending.Remove(context);
+        pending.Clear();
 
         var scope = _scopeFactory.CreateAsyncScope();
         await using var scopeScope = scope.ConfigureAwait(false);
-        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
-        foreach (var domainEvent in events)
+
+        // No AddRaskCqrs, no handlers: there is nothing an event could reach.
+        if (scope.ServiceProvider.GetService<IDispatcher>() is not { } dispatcher)
         {
-            // PublishAsync resolves handlers by the event's concrete runtime type, so the IEvent
-            // static type here is fine.
-            await dispatcher.Publish(domainEvent, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        foreach (var e in pending.Events)
+        {
+            // Publish resolves handlers by the event's concrete runtime type, so the IEvent static type is fine.
+            await dispatcher.Publish(e, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private void Discard(DbContext? context)
     {
-        if (context is not null)
+        if (context is not null && _pending.TryGetValue(context, out var pending))
         {
             _pending.Remove(context);
+            pending.Clear();
+        }
+    }
+
+    private sealed class Pending
+    {
+        public List<IHasDomainEvents> Entities { get; } = [];
+
+        public List<IEvent> Events { get; } = [];
+
+        public void Clear()
+        {
+            foreach (var entity in Entities)
+            {
+                entity.ClearDomainEvents();
+            }
         }
     }
 }

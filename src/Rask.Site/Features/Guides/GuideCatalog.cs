@@ -86,7 +86,7 @@ public static class GuideCatalog
         new("07-outbox-events", "Ch 7 · Outbox & events", "Domain events with the transactional outbox.", "Tutorial", "tutorial/07-outbox-events.md")
         {
             SearchTitle = "Tutorial 7: domain events and a transactional outbox",
-            Description = "Raise domain events when an order is placed and deliver them through a transactional outbox, so handlers still run after a crash. Written in C# with EF Core.",
+            Description = "Raise a domain event when an order is placed; each handler runs in memory, or durably through a transactional outbox that survives a crash. C# and EF Core.",
         },
         new("08-production-sqlite", "Ch 8 · Production SQLite", "WAL, pragmas, and continuous backup.", "Tutorial", "tutorial/08-production-sqlite.md")
         {
@@ -149,7 +149,7 @@ public static class GuideCatalog
             "Data")
         {
             SearchTitle = "Transactional outbox pattern in .NET, no broker",
-            Description = "Deliver domain events crash-safely with a transactional outbox on your app's database: events commit with the data and relay at-least-once, with no broker.",
+            Description = "Run event handlers crash-safely with a transactional outbox on your app's database: a durable handler commits with the data and runs at-least-once, no broker.",
         },
 
         // ---- Auth ----
