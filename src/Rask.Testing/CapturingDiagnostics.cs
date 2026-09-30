@@ -34,7 +34,7 @@ namespace Rask.Testing;
 ///     </para>
 ///     <code>
 ///     using var diagnostics = CapturingDiagnostics.Install();
-///     await page.ClickAsync("#save");
+///     await page.On("#save").Click();
 ///     Assert.Empty(diagnostics.Errors);
 ///     </code>
 /// </remarks>

@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
+  its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
+
+  | Before | After |
+  | --- | --- |
+  | `await page.ClickAsync()` | `await page.Click("Save")`, or `await page.On("#save").Click()` |
+  | `await page.InputAsync("{\"value\":\"Ada\"}")` | `await page.Type("Ada").Into("Name")`, or `await page.On("#name").Input("Ada")` |
+  | `await page.On(sel).ChangeAsync(v)` / `SubmitAsync(json)` / `FilesAsync(f)` | `.Change(v)` / `.Submit(json)` / `.Files(f)` |
+  | `await page.On(sel).RaiseAsync("keydown", json)` | `await page.On(sel).Raise("keydown", json)` |
+  | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
+  | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
+  | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
 - **The docs, samples and scaffold say only true things, in the short words.** Kit calls use the short forms
   that already existed — `Ui.Button.Primary.Submit`, `Ui.Alert.Error`, `.Ghost.Sm` — instead of
   `Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)` (518 sites across the docs, `llms.txt`, the

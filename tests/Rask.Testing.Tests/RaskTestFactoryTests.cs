@@ -78,7 +78,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
         Assert.Contains("off", page.Html);
         Assert.NotNull(page.HandlerId("click"));
 
-        await page.ClickAsync();
+        await page.On("button").Click();
 
         Assert.NotNull(page.HandlerId("click"));
     }

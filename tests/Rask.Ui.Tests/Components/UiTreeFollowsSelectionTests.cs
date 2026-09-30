@@ -16,10 +16,10 @@ public sealed class UiTreeFollowsSelectionTests
         var page = Page.Render(new TreeSelectionHost());
 
         // The reader has been somewhere else first, so the cursor is theirs rather than the selection's default.
-        await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\"}");
+        await page.On("[role=\"tree\"]").Raise("keydown", "{\"key\":\"ArrowDown\"}");
         Assert.Equal("docs", Cursor(page.Html));
 
-        await page.On("#select-readme").ClickAsync();
+        await page.On("#select-readme").Click();
 
         Assert.Equal("README.md", Cursor(page.Html));
     }
@@ -29,9 +29,9 @@ public sealed class UiTreeFollowsSelectionTests
     {
         var page = Page.Render(new TreeSelectionHost());
         // Without a cursor of the reader's, the tree would start on the selection anyway and prove nothing.
-        await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"End\"}");
+        await page.On("[role=\"tree\"]").Raise("keydown", "{\"key\":\"End\"}");
 
-        await page.On("#select-deep").ClickAsync();
+        await page.On("#select-deep").Click();
 
         Assert.Equal("tree.md", Cursor(page.Html));
     }
@@ -41,10 +41,10 @@ public sealed class UiTreeFollowsSelectionTests
     {
         var page = Page.Render(new TreeSelectionHost());
 
-        await page.On(".ui-tree-row:has-text(\"README.md\")").ClickAsync();
-        await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"Home\"}");
+        await page.On(".ui-tree-row:has-text(\"README.md\")").Click();
+        await page.On("[role=\"tree\"]").Raise("keydown", "{\"key\":\"Home\"}");
         // A render the page causes without touching the selection is not a new selection.
-        await page.On("#noop").ClickAsync();
+        await page.On("#noop").Click();
 
         Assert.Equal("src", Cursor(page.Html));
     }

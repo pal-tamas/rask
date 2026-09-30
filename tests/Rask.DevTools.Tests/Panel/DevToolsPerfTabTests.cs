@@ -111,9 +111,9 @@ public sealed class DevToolsPerfTabTests
         var page = Receiver(feed);
 
         await page.On("[data-rask-devtools-patch]")
-            .RaiseAsync("keydown", "{\"key\":\"patch:nope@20,-3@20,1e9@20,2@x,2@-7,2,4.25@20\"}");
-        await page.On("[data-rask-devtools-patch]").RaiseAsync("keydown", "{\"key\":\"Enter\"}");
-        await page.On("[data-rask-devtools-patch]").RaiseAsync("keydown", "{\"key\":\"patch:1.5@10\"}");
+            .Raise("keydown", "{\"key\":\"patch:nope@20,-3@20,1e9@20,2@x,2@-7,2,4.25@20\"}");
+        await page.On("[data-rask-devtools-patch]").Raise("keydown", "{\"key\":\"Enter\"}");
+        await page.On("[data-rask-devtools-patch]").Raise("keydown", "{\"key\":\"patch:1.5@10\"}");
 
         var items = feed.InteractionsSnapshot();
         // Matched by size, not by order: the 10-byte frame was sent first.

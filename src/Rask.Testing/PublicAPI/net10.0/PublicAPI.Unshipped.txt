@@ -47,38 +47,22 @@ Rask.Testing.Test
 Rask.Testing.Page
 Rask.Testing.Page.Attr(string! name) -> string?
 Rask.Testing.Page.Attrs(string! name) -> System.Collections.Generic.IReadOnlyList<string!>!
-Rask.Testing.Page.ChangeAsync(string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.ClickAsync(string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.ElementActions
-Rask.Testing.Page.ElementActions.ChangeAsync(string! value) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.ElementActions.ClickAsync(string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.ElementActions.Element.get -> Rask.Testing.HtmlNode!
 Rask.Testing.Page.ElementActions.ElementActions() -> void
 Rask.Testing.Page.ElementActions.ElementActions(Rask.Testing.Page! page, string! selector) -> void
-Rask.Testing.Page.ElementActions.FilesAsync(Rask.Testing.TestFileBackend! backend) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.ElementActions.FilesAsync(params Rask.Testing.TestFile![]! files) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.ElementActions.InputAsync(string! value) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.ElementActions.RaiseAsync(string! domEvent, string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.ElementActions.SubmitAsync(string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.Exists(string! selector) -> bool
-Rask.Testing.Page.FilesAsync(params Rask.Testing.TestFile![]! files) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.Find(string! selector) -> Rask.Testing.HtmlNode!
 Rask.Testing.Page.FindAll(string! selector) -> System.Collections.Generic.IReadOnlyList<Rask.Testing.HtmlNode!>!
 Rask.Testing.Page.HandlerId(string! domEvent) -> string?
 Rask.Testing.Page.HandlerIdFor(string! selector, string! domEvent) -> string!
 Rask.Testing.Page.HandlerIds(string! domEvent) -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Testing.Page.Html.get -> string!
-Rask.Testing.Page.InputAsync(string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.InvokeAsync(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.On(string! selector) -> Rask.Testing.Page.ElementActions
 Rask.Testing.Page.Render() -> string!
 Rask.Testing.Page.Root.get -> Rask.Testing.HtmlNode!
-Rask.Testing.Page.SubmitAsync(string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page.TestId(string! id) -> Rask.Testing.HtmlNode!
 Rask.Testing.Page.TextOf(string! selector) -> string!
-Rask.Testing.Page.TryInvokeAsync(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<bool>!
-Rask.Testing.Page.WaitForAsync(System.Func<string!, bool>! predicate, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task<string!>!
-Rask.Testing.Page.WaitForAsync(string! expected, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task<string!>!
 Rask.Testing.Page<T>
 Rask.Testing.Page<T>.Instance.get -> T!
 Rask.Testing.StagedDownload
@@ -201,3 +185,13 @@ Rask.Testing.Page.As<TUser>(TUser! user) -> Rask.Testing.Page!
 Rask.Testing.TestRun
 static Rask.Testing.TestRun.Begin() -> void
 static Rask.Testing.TestRun.End() -> void
+Rask.Testing.Page.ElementActions.Change(string! value) -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.ElementActions.Click() -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.ElementActions.Files(Rask.Testing.TestFileBackend! backend) -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.ElementActions.Files(params Rask.Testing.TestFile![]! files) -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.ElementActions.Input(string! value) -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.ElementActions.Raise(string! domEvent, string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.ElementActions.Submit(string? form = null) -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.Invoke(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<string!>!
+Rask.Testing.Page.Shows(System.Func<string!, bool>! condition) -> void
+Rask.Testing.Page.TryInvoke(string! handlerId, string? jsonPayload = null) -> System.Threading.Tasks.Task<bool>!

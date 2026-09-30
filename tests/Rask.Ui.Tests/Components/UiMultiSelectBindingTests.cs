@@ -154,7 +154,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         var page = global::Rask.Testing.Page.Render(
             Ui.Select.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
 
-        await page.On("[role=\"option\"]:has-text(\"Rask.Ui\")").ClickAsync();
+        await page.On("[role=\"option\"]:has-text(\"Rask.Ui\")").Click();
 
         Assert.Equal(["core", "ui", "legacy"], model.Tags);
     }
@@ -168,7 +168,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         var page = global::Rask.Testing.Page.Render(
             Ui.Select.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
 
-        await page.On("[aria-label=\"Remove Rask.Core\"]").ClickAsync();
+        await page.On("[aria-label=\"Remove Rask.Core\"]").Click();
 
         Assert.Equal(["legacy"], model.Tags);
     }

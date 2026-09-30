@@ -57,7 +57,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         var page = Page.Render(host, TestServices.Default());
 
         var id = Handler(page.Render(), "data-rask-on-input");
-        await page.InvokeAsync(id, "{\"value\":\"hopper\"}");
+        await page.Invoke(id, "{\"value\":\"hopper\"}");
 
         Assert.Equal("hopper", host.Data.Name);
     }
@@ -69,7 +69,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         var page = Page.Render(host, TestServices.Default());
 
         var id = Handler(page.Render(), "data-rask-on-input");
-        await page.InvokeAsync(id, "{\"value\":\"ada\"}");
+        await page.Invoke(id, "{\"value\":\"ada\"}");
 
         Assert.Equal("ada", host.Data.Name);
     }
@@ -81,7 +81,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         var page = Page.Render(host, TestServices.Default());
 
         var id = Handler(page.Render(), "data-rask-on-input");
-        await page.InvokeAsync(id, "{\"value\":\"grace\"}");
+        await page.Invoke(id, "{\"value\":\"grace\"}");
 
         Assert.Equal("grace", host.Data.Name);
     }

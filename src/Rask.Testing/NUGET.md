@@ -6,21 +6,25 @@ event handlers, and assert on the re-rendered markup. No browser, no server, no 
 ```csharp
 using Rask.Testing;
 
-public sealed class Counter : Component
+public sealed partial class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>
         Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
 }
 
-[Fact]
-public async Task Clicking_increments()
+// Deriving from RaskMarkup puts your components in reach by name, as they are in markup.
+public sealed partial class CounterTests : RaskMarkup
 {
-    var page = Page.Render(new Counter());
-    Assert.Contains("Count: 0", page.Html);
+    [Fact]
+    public async Task Clicking_increments()
+    {
+        var page = Page.Render(() => Counter);
+        Assert.Contains("Count: 0", page.Html);
 
-    await page.ClickAsync();               // dispatch the click handler + re-render
-    Assert.Contains("Count: 1", page.Html);
+        await page.On("button").Click();     // dispatch the button's click handler + re-render
+        Assert.Contains("Count: 1", page.Html);
+    }
 }
 ```
 
@@ -65,16 +69,19 @@ it did find.
   keeps an assertion about a component from quietly becoming one about a page — reach for this only when
   the page is the thing under test.
 - **`Page.Html`** — the current markup, reflecting the latest state.
-- **`.WaitForAsync(text | predicate, timeout?)`** — re-renders until the markup contains the text (or the
-  predicate accepts it), then returns it; throws with the last markup after 5 seconds by default. Use it
-  for a component that loads in `OnMount`: `Render` mounts it, but the load completes on a
-  continuation, so the result is not in the markup yet when `Render` returns.
-- **`.ClickAsync(json?)` / `.InvokeAsync(handlerId, json?)`** — dispatch a handler (optionally with a JSON
-  event payload like `"{\"value\":\"hi\"}"` for an input) and re-render; returns the new `Html`.
+- **`.Shows(text)`** / **`.Shows(html => …)`** — re-renders until the page shows the text (or the markup
+  satisfies the condition), waiting up to `.Patience` (5 s by default); throws a `PageException` carrying
+  what the page does show. Synchronous — no `await`. Use it for a component that loads in `OnMount`:
+  `Render` mounts it, but the load completes on a continuation, so the result is not in the markup yet
+  when `Render` returns.
+- **`.On(selector)`** — drive one element: `.Click()`, `.Input(value)`, `.Change(value)`, `.Submit(form?)`,
+  `.Files(...)`, `.Raise(domEvent, json?)`. Each dispatches and re-renders; returns the new `Html`.
+- **`.Invoke(handlerId, json?)`** — dispatch a handler by id (optionally with a JSON event payload like
+  `"{\"value\":\"hi\"}"` for an input) and re-render; returns the new `Html`.
 - **`.HandlerId(domEvent)`** — the handler id wired to `"click"`/`"input"`/`"change"`/`"submit"`/…
 - **`.Attr(name)`** — the first `name="…"` attribute value in the current `Html`.
 - **`.HandlerIds(domEvent)`** / **`.Attrs(name)`** — every match, in document order. Index these to target
-  one of several same-event elements: `await page.InvokeAsync(page.HandlerIds("click")[1])`.
+  one of several same-event elements: `await page.Invoke(page.HandlerIds("click")[1])`.
 
 ### Finding elements
 
@@ -102,15 +109,16 @@ nothing: `tag`, `*`, `#id`, `.class`, `[attr]`, `[attr="v"]`, `[attr^="v"]`, `[a
 ### Driving one element
 
 ```csharp
-await page.On("#save").ClickAsync();
-await page.On("#name").InputAsync("Ada");
-await page.On("form#signup").SubmitAsync();
+await page.On("#save").Click();
+await page.On("#name").Input("Ada");
+await page.On("form#signup").Submit();
+await page.On("#search").Raise("keydown", "{\"key\":\"Enter\"}");   // event data the verbs don't carry
 ```
 
 `.HandlerId(domEvent)` returns the **first** match in the document and `.HandlerIds` is indexed by
 position — so adding an unrelated button above the one under test silently re-points the assertion and the
 test keeps passing. `.On(selector)` names the element instead. (It's a handle rather than a
-`ClickAsync(selector)` overload because `ClickAsync` already takes a `string`, the JSON payload.)
+`Click(selector)` overload because `page.Click("Save")` already finds a button by the text a person reads.)
 
 ### Fakes for the things a component needs
 
@@ -119,7 +127,7 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
   `.Staged` (`FileName`, `ContentType`, `Bytes`, `.Text`).
 - **`TestFileBackend`** — an `IBrowserFileBackend` serving files a test staged in memory, so an `OnFiles`
   handler can be tested at all. Stage with `.Add("notes.txt", "hello")`, register it, then
-  `page.On("#picker").FilesAsync(file)`. The handler gets real files: `OpenReadStream()` returns the bytes
+  `page.On("#picker").Files(file)`. The handler gets real files: `OpenReadStream()` returns the bytes
   and `maxAllowedSize` is enforced as the real backends enforce it. **Without a backend registered the
   handler is handed an empty list** — it still fires, so a test can pass while proving nothing.
   `.FormPayload(field, …)` covers a file inside a submitted form; `.Released` records the framework's
@@ -139,7 +147,7 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
   unhooks another — so they may be disposed in any order. Because concurrent captures share the events,
   a test asserting on a *count* should filter to what it provoked (`OfCategory(...)`) rather than assert
   over everything captured.
-- **`.TryInvokeAsync(handlerId, json?)`** — dispatch only if the id is still live; returns `false` rather
+- **`.TryInvoke(handlerId, json?)`** — dispatch only if the id is still live; returns `false` rather
   than throwing, so you can assert a handler is gone.
 - **`.Instance`** — the component object you passed in, for asserting its state directly.
 - **`.Render()`** — re-render after mutating external state the component reads.

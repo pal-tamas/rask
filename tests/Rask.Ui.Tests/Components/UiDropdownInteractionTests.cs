@@ -50,10 +50,10 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     }
 
     private static Task OpenAsync(Page page) =>
-        page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+        page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
     private static Task KeyAsync(Page page, string key) =>
-        page.On("[role=\"menu\"][autofocus]").RaiseAsync("keydown", $"{{\"key\":\"{key}\"}}");
+        page.On("[role=\"menu\"][autofocus]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
 
     [Fact]
     public async Task Opening_puts_the_cursor_on_the_first_item_and_the_trigger_says_it_is_open()
@@ -137,7 +137,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(Menu());
         await OpenAsync(page);
 
-        await page.On("[role=\"menu\"][autofocus]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
+        await page.On("[role=\"menu\"][autofocus]").Raise("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
 
         Assert.Equal("Edit", Cursor(page.Html));
     }
@@ -149,13 +149,13 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(Menu(view));
         await OpenAsync(page);
 
-        await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
+        await page.On("[role=\"menuitemcheckbox\"]").Click();
         Assert.True(view.ShowArchived);
         Assert.Contains("aria-checked=\"true\"", page.Html, StringComparison.Ordinal);
 
         var date = Regex.Match(page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"menuitemradio\"[^>]*>(?:(?!</button>).)*Date", RegexOptions.Singleline)
             .Groups[1].Value;
-        await page.On("#" + date).ClickAsync();
+        await page.On("#" + date).Click();
         Assert.Equal("date", view.Sort);
     }
 
@@ -194,16 +194,16 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(new KeyLastHost());
         await OpenAsync(page);
 
-        await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
+        await page.On("[role=\"menuitemcheckbox\"]").Click();
         Assert.Contains("aria-checked=\"true\"", Regex.Match(page.Html, "<button[^>]*role=\"menuitemcheckbox\"[^>]*>").Value, StringComparison.Ordinal);
 
         // And back: the second redraw is the one a stale instance got wrong, holding the first claim's value.
-        await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
+        await page.On("[role=\"menuitemcheckbox\"]").Click();
         Assert.Contains("aria-checked=\"false\"", Regex.Match(page.Html, "<button[^>]*role=\"menuitemcheckbox\"[^>]*>").Value, StringComparison.Ordinal);
 
         var date = Regex.Match(page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"menuitemradio\"[^>]*>(?:(?!</button>).)*Date", RegexOptions.Singleline)
             .Groups[1].Value;
-        await page.On("#" + date).ClickAsync();
+        await page.On("#" + date).Click();
         Assert.Contains(
             "aria-checked=\"true\"",
             Regex.Match(page.Html, "<button id=\"" + Regex.Escape(date) + "\"[^>]*>").Value,
@@ -218,12 +218,12 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(new ControlledHost());
         await OpenAsync(page);
 
-        await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
+        await page.On("[role=\"menuitemcheckbox\"]").Click();
         Assert.Contains("aria-checked=\"true\"", Regex.Match(page.Html, "<button[^>]*role=\"menuitemcheckbox\"[^>]*>").Value, StringComparison.Ordinal);
 
         var date = Regex.Match(page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"menuitemradio\"[^>]*>(?:(?!</button>).)*Date", RegexOptions.Singleline)
             .Groups[1].Value;
-        await page.On("#" + date).ClickAsync();
+        await page.On("#" + date).Click();
         Assert.Contains(
             "aria-checked=\"true\"",
             Regex.Match(page.Html, "<button id=\"" + Regex.Escape(date) + "\"[^>]*>").Value,
@@ -238,7 +238,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         await KeyAsync(page, "ArrowDown");
         await KeyAsync(page, "ArrowRight");
 
-        await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"open\",\"newState\":\"closed\"}");
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"open\",\"newState\":\"closed\"}");
 
         Assert.Equal("", Cursor(page.Html));
         Assert.DoesNotContain("data-open", page.Html, StringComparison.Ordinal);
@@ -252,7 +252,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(Menu());
         await OpenAsync(page);
 
-        await page.On("[aria-haspopup=\"menu\"][role=\"menuitem\"]").ClickAsync();
+        await page.On("[aria-haspopup=\"menu\"][role=\"menuitem\"]").Click();
 
         Assert.Contains("class=\"ui-menu-sub\" data-open", page.Html, StringComparison.Ordinal);
         Assert.Equal("Name", Cursor(page.Html));

@@ -26,7 +26,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Button clicks", page.Render());
         Assert.Matches(@"Button clicks</code>\s*<span[^>]*>not yet", page.Render());
 
-        await page.InvokeAsync(clickId);
+        await page.Invoke(clickId);
 
         Assert.Matches(@"Button clicks</code>\s*<span[^>]*>ran 1x", page.Render());
     }
