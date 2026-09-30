@@ -12,7 +12,7 @@ public sealed partial class NavigatorDemo(Navigator nav) : Component
                 .OnClick(() => nav.NavigateTo("/dashboard"))["Open dashboard"],
 
             // Or update just the query, keeping the same path:
-            Select.Value<string>(null)
+            Select.Of<string>()
                 .OnChange(v => nav.SetQuery("sort", v))[
                 Option.Value("asc")["Sort ascending"],
                 Option.Value("desc")["Sort descending"]

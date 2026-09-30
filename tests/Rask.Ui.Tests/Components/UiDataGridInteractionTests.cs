@@ -46,17 +46,17 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(Grid());
         Assert.Equal(["Banana", "Apple", "Carrot"], Names(page.Html));
 
-        await page.On("thead button:has-text(\"Name\")").ClickAsync();
+        await page.On("thead button:has-text(\"Name\")").Click();
         Assert.Equal(["Apple", "Banana", "Carrot"], Names(page.Html));
         Assert.Contains("aria-sort=\"ascending\"", page.Html, StringComparison.Ordinal);
 
-        await page.On("thead button:has-text(\"Name\")").ClickAsync();
+        await page.On("thead button:has-text(\"Name\")").Click();
         Assert.Equal(["Carrot", "Banana", "Apple"], Names(page.Html));
         Assert.Contains("aria-sort=\"descending\"", page.Html, StringComparison.Ordinal);
 
         // The third click is the one worth having: it restores the order the caller gave, which no
         // two-state toggle can ever get back to.
-        await page.On("thead button:has-text(\"Name\")").ClickAsync();
+        await page.On("thead button:has-text(\"Name\")").Click();
         Assert.Equal(["Banana", "Apple", "Carrot"], Names(page.Html));
         Assert.DoesNotContain("aria-sort=\"ascending\"", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-sort=\"descending\"", page.Html, StringComparison.Ordinal);
@@ -67,8 +67,8 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(Grid());
 
-        await page.On("thead button:has-text(\"Name\")").ClickAsync();
-        await page.On("thead button:has-text(\"Points\")").ClickAsync();
+        await page.On("thead button:has-text(\"Name\")").Click();
+        await page.On("thead button:has-text(\"Points\")").Click();
 
         Assert.Equal(["Carrot", "Banana", "Apple"], Names(page.Html));
     }
@@ -82,10 +82,10 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
             c.Field(r => r.Name).Title("Name").Sortable(true),
         ]]);
 
-        await page.On(".join button:has-text(\"2\")").ClickAsync();
+        await page.On(".join button:has-text(\"2\")").Click();
         Assert.Equal(["Carrot"], Names(page.Html));
 
-        await page.On("thead button").ClickAsync();
+        await page.On("thead button").Click();
         Assert.Equal(["Apple", "Banana"], Names(page.Html));
     }
 
@@ -98,7 +98,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(["Banana", "Apple"], Names(page.Html));
 
-        await page.On(".join button:has-text(\"2\")").ClickAsync();
+        await page.On(".join button:has-text(\"2\")").Click();
         Assert.Equal(["Carrot"], Names(page.Html));
     }
 
@@ -130,7 +130,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
                 c.Field(r => r.Name).Title("Name"),
             ]]);
 
-        await page.On("thead input").ChangeAsync("true");
+        await page.On("thead input").Change("true");
 
         Assert.NotNull(reported);
         Assert.Equal([1, 2], reported!.Order());
@@ -175,7 +175,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
             c.Field(r => r.Name).Title("Name"),
         ]]);
 
-        await page.On("[aria-label=\"Group by Team\"]").ClickAsync();
+        await page.On("[aria-label=\"Group by Team\"]").Click();
 
         Assert.Contains("Team: Fruit (2)", page.Html, StringComparison.Ordinal);
         Assert.Contains("Team: Veg (1)", page.Html, StringComparison.Ordinal);
@@ -189,7 +189,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
             c.Field(r => r.Name).Title("Name"),
         ]]);
 
-        await page.On("[aria-label=\"Group by Team\"]").ClickAsync();
+        await page.On("[aria-label=\"Group by Team\"]").Click();
         Assert.Contains("Banana", page.Html, StringComparison.Ordinal);
 
         await ClickNth(page, "tbody button", 0);
@@ -207,10 +207,10 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
             c.Field(r => r.Name).Title("Name"),
         ]]);
 
-        await page.On("[aria-label=\"Group by Team\"]").ClickAsync();
+        await page.On("[aria-label=\"Group by Team\"]").Click();
         Assert.Contains("Team: Fruit (2)", page.Html, StringComparison.Ordinal);
 
-        await page.On("[aria-label=\"Stop grouping by Team\"]").ClickAsync();
+        await page.On("[aria-label=\"Stop grouping by Team\"]").Click();
 
         Assert.DoesNotContain("Team: Fruit (2)", page.Html, StringComparison.Ordinal);
     }
@@ -223,7 +223,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
             c.Field(r => r.Points).Title("Points"),
         ]]);
 
-        await page.On("button:has-text(\"Columns\")").ClickAsync();
+        await page.On("button:has-text(\"Columns\")").Click();
         Assert.Equal(2, Occurrences(page.Html, "checkbox-xs"));
 
         // The second box in the menu is the Points column.
@@ -240,7 +240,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
             c.Field(r => r.Points).Title("Points"),
         ]]);
 
-        await page.On("button:has-text(\"Columns\")").ClickAsync();
+        await page.On("button:has-text(\"Columns\")").Click();
         await ClickNth(page, "[aria-label=\"Move down\"]", 0);
 
         var head = Regex.Match(page.Html, "<thead.*?</thead>", RegexOptions.Singleline).Value;
@@ -269,10 +269,10 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
                 c.Field(r => r.Name).Title("Name"),
             ]]);
 
-        await page.WaitForAsync(html => html.Contains("Banana", StringComparison.Ordinal));
+        page.Shows(html => html.Contains("Banana", StringComparison.Ordinal));
         Assert.Equal(["Banana", "Apple"], Names(page.Html));
 
-        await page.On(".join button:has-text(\"2\")").ClickAsync();
+        await page.On(".join button:has-text(\"2\")").Click();
 
         Assert.Equal(["Carrot"], Names(page.Html));
         Assert.Equal(2, asked.Count);
@@ -282,7 +282,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_awaited_source_is_not_asked_again_for_the_page_it_already_holds()
+    public void An_awaited_source_is_not_asked_again_for_the_page_it_already_holds()
     {
         var calls = 0;
 
@@ -296,7 +296,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
                 c.Field(r => r.Name).Title("Name"),
             ]]);
 
-        await page.WaitForAsync(html => html.Contains("Banana", StringComparison.Ordinal));
+        page.Shows(html => html.Contains("Banana", StringComparison.Ordinal));
         page.Render();
         page.Render();
 
@@ -307,11 +307,11 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     // a test that silently drove the first of three checkboxes would pass for the wrong reason — so a
     // repeated control is addressed by position rather than by a selector that only looks specific.
     private static Task<string> ClickNth(Page page, string selector, int index) =>
-        page.InvokeAsync(page.FindAll(selector)[index].Attributes["data-rask-on-click"]!);
+        page.Invoke(page.FindAll(selector)[index].Attributes["data-rask-on-click"]!);
 
     private static Task<string> ChangeNth(
         Page page, string selector, int index, string value) =>
-        page.InvokeAsync(
+        page.Invoke(
             page.FindAll(selector)[index].Attributes["data-rask-on-change"]!,
             $"{{\"value\":\"{value}\"}}");
 

@@ -47,8 +47,8 @@ public sealed class AuthSignIn : IAuthSignIn
         if (!_inHandler)
         {
             throw new InvalidOperationException(
-                "AuthSignIn can only be used from event handlers. " +
-                "Calling it during component Render() or initial GET is not supported.");
+                "AuthSignIn works only inside an event handler (a click, a form submit). " +
+                "Move the call out of Render() and the first-load hooks into the handler that signs the user in.");
         }
     }
 

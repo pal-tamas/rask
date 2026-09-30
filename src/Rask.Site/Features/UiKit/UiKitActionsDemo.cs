@@ -49,11 +49,11 @@ public sealed partial class UiKitActionsDemo : Component
             "Colour, fill and size are three independent axes and compose, so an outlined error button "
             + "needs no member of its own.",
             Div.Data(Testid("ui-button")).Class("flex flex-wrap items-center gap-2")[
-                Ui.Button.Key("solid").Tone(Ui.Tone.Primary)["Primary"],
-                Ui.Button.Key("outline").Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)["Outline"],
-                Ui.Button.Key("soft").Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft)["Soft"],
-                Ui.Button.Key("dash").Tone(Ui.Tone.Warning).Variant(Ui.Variant.Dash)["Dash"],
-                Ui.Button.Key("ghost").Variant(Ui.Variant.Ghost)["Ghost"],
+                Ui.Button.Key("solid").Primary["Primary"],
+                Ui.Button.Key("outline").Error.Outline["Outline"],
+                Ui.Button.Key("soft").Success.Soft["Soft"],
+                Ui.Button.Key("dash").Warning.Dash["Dash"],
+                Ui.Button.Key("ghost").Ghost["Ghost"],
                 Ui.Button.Key("link").Variant(Ui.Variant.Link)["Link"],
                 Ui.Button.Key("wide").Wide(true)["Wide"],
                 Ui.Button.Key("circle").AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.Close)],
@@ -68,7 +68,7 @@ public sealed partial class UiKitActionsDemo : Component
             + "same width, tells a screen reader it is busy, and drops a second press until the first is done. "
             + "Loading(false) opts a stepper out, so its presses queue.",
             Div.Data(Testid("ui-button-loading")).Class("flex flex-wrap items-center gap-3")[
-                Ui.Button.Key("slow-save").Tone(Ui.Tone.Primary).OnClick(async () =>
+                Ui.Button.Key("slow-save").Primary.OnClick(async () =>
                 {
                     await Task.Delay(1500);
                     _saves++;
@@ -89,10 +89,10 @@ public sealed partial class UiKitActionsDemo : Component
             "Given a generated route, a button or a link is an <a> the runtime routes inside the app, so the "
             + "page changes without reloading. A plain string stays an ordinary link, for a URL that leaves.",
             Div.Data(Testid("ui-button-route")).Class("flex flex-wrap items-center gap-3")[
-                Ui.Button.Key("to-navigation").Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                Ui.Button.Key("to-navigation").Primary.Outline
                     .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation components"],
                 Ui.Link.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))["Data display components"],
-                Ui.Button.Key("to-github").Variant(Ui.Variant.Ghost)
+                Ui.Button.Key("to-github").Ghost
                     .Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]
             ]);
 
@@ -147,7 +147,7 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuItem.Key("open").Text("Open").OnClick(() => { _lastAction = "opened the card"; }),
                     Ui.MenuItem.Key("copy").Text("Copy link").OnClick(() => { _lastAction = "copied the link"; }),
                     Ui.MenuSeparator.Key("sep"),
-                    Ui.MenuItem.Key("delete").Text("Delete").Tone(Ui.Tone.Error)
+                    Ui.MenuItem.Key("delete").Text("Delete").Error
                         .OnClick(() => { _lastAction = "deleted the card"; })
                 ]
             ]);
@@ -169,7 +169,7 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuSeparator,
                     Ui.MenuItem.Text("Copy invoice link").Icon(Ui.IconName.Clipboard)
                         .OnClick(() => { _lastAction = "copied the invoice link"; }),
-                    Ui.MenuItem.Text("Sign out").Tone(Ui.Tone.Error)
+                    Ui.MenuItem.Text("Sign out").Error
                         .OnClick(() => { _lastAction = "signed out"; })
                 ]
             ]);
@@ -185,7 +185,7 @@ public sealed partial class UiKitActionsDemo : Component
             Div.Data(Testid("ui-popover"))[
                 Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Gear).Align(Ui.Align.Start)
                     .PanelClass("w-72")[
-                    Ui.Heading.Key("h").Level(3).Size(Ui.Size.Sm).Class("mb-2")["Narrow the list"],
+                    Ui.Heading.Key("h").Level(3).Sm.Class("mb-2")["Narrow the list"],
                     Ui.CheckboxGroup.Values(_filters).Key("f")
                         .Options([("open", "Open"), ("mine", "Assigned to me"), ("old", "Older than a week")])
                         .Label("Show")
@@ -226,7 +226,7 @@ public sealed partial class UiKitActionsDemo : Component
                     .Trigger("Filters")
                     .Position(Ui.ModalPosition.End)
                     .Dismissible(false)
-                    .Footer(Ui.Button.Tone(Ui.Tone.Primary).Command("close").CommandFor("demo-filters")["Apply"])[
+                    .Footer(Ui.Button.Primary.Command("close").CommandFor("demo-filters")["Apply"])[
                     P["Only the close button, Escape, or Apply closes this one."]
                 ]
             ]);
@@ -239,7 +239,7 @@ public sealed partial class UiKitActionsDemo : Component
             + "click outside — apart from a close, so backing out is logged differently from Cancel.",
             Div.Data(Testid("ui-modal"))[
                 Ui.Button
-                    .Tone(Ui.Tone.Error)
+                    .Error
                     .OnClick(() => { _confirming = true; })["Delete order"],
                 _confirming
                     ? Ui.Modal
@@ -247,9 +247,9 @@ public sealed partial class UiKitActionsDemo : Component
                         .OnCancel(() => { _lastAction = "dismissed the dialog"; })
                         .OnClose(() => { _confirming = false; })
                         .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
-                            Ui.Button.Key("cancel").Variant(Ui.Variant.Ghost)
+                            Ui.Button.Key("cancel").Ghost
                                 .OnClick(() => { _confirming = false; })["Cancel"],
-                            Ui.Button.Key("confirm").Tone(Ui.Tone.Error)
+                            Ui.Button.Key("confirm").Error
                                 .OnClick(() =>
                                 {
                                     _confirming = false;
@@ -298,8 +298,8 @@ public sealed partial class UiKitActionsDemo : Component
                     .Class("mt-3 rounded-xl border border-base-300 bg-base-100 p-4 text-base-content")[
                     P.Class("text-sm")[$"This box is painted by the {UiTheme.Value(_theme)} theme."],
                     Div.Class("mt-2 flex gap-2")[
-                        Ui.Button.Key("p").Tone(Ui.Tone.Primary).Size(Ui.Size.Sm)["Primary"],
-                        Ui.Button.Key("a").Tone(Ui.Tone.Accent).Size(Ui.Size.Sm)["Accent"]
+                        Ui.Button.Key("p").Primary.Sm["Primary"],
+                        Ui.Button.Key("a").Accent.Sm["Accent"]
                     ]
                 ]
             ]);
@@ -319,8 +319,8 @@ public sealed partial class UiKitActionsDemo : Component
                 Ui.Fab
                     .AccessibleLabel("Compose")
                     .Icon(Ui.IconName.Plus)[
-                    Ui.Button.Key("photo").Size(Ui.Size.Sm)["Photo"],
-                    Ui.Button.Key("file").Size(Ui.Size.Sm)["File"]
+                    Ui.Button.Key("photo").Sm["Photo"],
+                    Ui.Button.Key("file").Sm["File"]
                 ]
             ]);
 
@@ -331,7 +331,7 @@ public sealed partial class UiKitActionsDemo : Component
             .Key(key)
             .Label(label)
             .Theme(theme)
-            .Size(Ui.Size.Sm)
+            .Sm
             .Active(_theme == theme)
             .OnChange(chosen => { _theme = chosen; });
 

@@ -26,7 +26,7 @@ public sealed class SearchIsAShareableLinkTests
         var harness = store.Dashboard();
         var route = harness.Services.GetRequiredService<RouteState>();
 
-        var page = await HistoryAsync(harness);
+        var page = History(harness);
         await SearchAsync(page, "timeout");
 
         Assert.Contains("q=timeout", route.Path + Query(route), StringComparison.Ordinal);
@@ -42,7 +42,7 @@ public sealed class SearchIsAShareableLinkTests
         var harness = store.Dashboard();
         var route = harness.Services.GetRequiredService<RouteState>();
 
-        var page = await HistoryAsync(harness);
+        var page = History(harness);
         await SearchAsync(page, "timeout");
         await SearchAsync(page, "");
 
@@ -77,13 +77,13 @@ public sealed class SearchIsAShareableLinkTests
 
     // History loads on PollingPanel's asynchronous mount, so the first render is a placeholder with no
     // search box on it yet.
-    private static async Task<Page> HistoryAsync(DashboardHarness harness)
+    private static Page History(DashboardHarness harness)
     {
         var logs = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         logs.View = "history";
         var page = Page.Render(logs, harness.Services);
 
-        await page.WaitForAsync("stored entries");
+        page.Shows("stored entries");
         return page;
     }
 
@@ -121,7 +121,7 @@ public sealed class SearchIsAShareableLinkTests
         // The payload shape a change handler is fed: {"value": "…"}, exactly as the browser's own
         // listener sends it. A bare JSON string reaches the handler as an empty term, which navigates
         // to a URL with no q on it — the very failure under test, arriving from the test's own side.
-        await page.InvokeAsync(handler, $$"""{"value":{{System.Text.Json.JsonSerializer.Serialize(term)}}}""");
+        await page.Invoke(handler, $$"""{"value":{{System.Text.Json.JsonSerializer.Serialize(term)}}}""");
     }
 
     private static string Query(RouteState route) =>

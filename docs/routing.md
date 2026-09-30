@@ -127,7 +127,7 @@ itself, it may only be called **from an event handler**.
 >
 > ```csharp
 > My.Features.Home.HomePage.Go();          // qualify the receiver (the namespace must still be imported)
-> navigator.NavigateTo(Routes.HomePage()); // or use the Routes formatter, which never collides
+> Routes.HomePage().Go();                  // or go through Routes, which never collides
 > ```
 >
 > `HomePage.Go()` unqualified is at its best from code that is *not* a markup host — a service, a handler
@@ -174,9 +174,8 @@ emitted and raises [RASK097](diagnostics.md#rask097).
 > The generated navigation helpers and component chain symbols do not exist until the generator runs. If the
 > IDE flags them as undefined, run `dotnet build` once and reload the solution.
 
-For one page that has to answer more than one URL, register the extra template yourself —
-`RouteRegistry.Add(new RouteRegistration(typeof(MyPage), "/alias", null))`. `Route` is deliberately singular:
-one page, one canonical URL, one formatter.
+For one page that has to answer more than one URL, repeat `[Route]` (see above): the first is the canonical URL
+the helpers build, the rest are alternates the router matches.
 
 ## Route and query parameters
 

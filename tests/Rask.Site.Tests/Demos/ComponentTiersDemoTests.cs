@@ -32,8 +32,8 @@ public sealed partial class ComponentTiersDemoTests : global::Rask.Core.RaskMark
         var page = Page.Render(() => ComponentTiersDemo, TestServices.Default());
         var clickId = ClickHandler(page.Render());
 
-        await page.InvokeAsync(clickId);
-        await page.InvokeAsync(clickId);
+        await page.Invoke(clickId);
+        await page.Invoke(clickId);
 
         var final = page.Render();
         Assert.Contains("Clicked 2 times", final);

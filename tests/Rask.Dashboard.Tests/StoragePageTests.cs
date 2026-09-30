@@ -89,7 +89,8 @@ public sealed class StoragePageTests
         await h.Get<IFiles>().Save(new MemoryStream("x"u8.ToArray()), "report <img src=x onerror=alert(1)>.txt", TestContext.Current.CancellationToken);
 
         var page = Page.Render(ActivatorUtilities.CreateInstance<StoragePage>(h.Services), h.Services);
-        var html = await page.WaitForAsync("report");
+        page.Shows("report");
+        var html = page.Html;
 
         Assert.Contains("report &lt;img", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<img src=x", html, StringComparison.Ordinal);
@@ -103,7 +104,8 @@ public sealed class StoragePageTests
 
         var page = Page.Render(ActivatorUtilities.CreateInstance<StoragePage>(h.Services), h.Services);
         // Waited on the call rather than the heading, whose apostrophe the page encodes.
-        var html = await page.WaitForAsync("AddRaskStorage");
+        page.Shows("AddRaskStorage");
+        var html = page.Html;
 
         Assert.Contains("modelBuilder.AddRaskStorage()", html, StringComparison.Ordinal);
     }

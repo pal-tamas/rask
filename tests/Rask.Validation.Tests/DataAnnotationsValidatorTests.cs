@@ -25,7 +25,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
 
         Assert.NotNull(submit1);
 
-        await page.InvokeAsync(submit1!, "{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
+        await page.Invoke(submit1!, "{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
 
         Assert.Null(captured);
 
@@ -40,7 +40,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
 
         Assert.NotNull(submit2);
 
-        await page.InvokeAsync(submit2!, "{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
+        await page.Invoke(submit2!, "{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         Assert.Same(p, captured);
     }

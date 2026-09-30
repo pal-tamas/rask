@@ -11,7 +11,7 @@ public sealed partial class StorageEstimateDemo(IStorageEstimator storage) : Com
 
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
+                Ui.Button.Primary.Outline.Class("mb-2")
                     .Id("storage-est-read")
                     .OnClick(Read)["Estimate storage"],
                 Div.Class("text-sm text-ui-muted")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],

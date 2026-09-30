@@ -223,11 +223,11 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
 
-        await page.On(".modal-backdrop").ClickAsync();
+        await page.On(".modal-backdrop").Click();
         Assert.Equal(["cancel", "close"], heard);
 
         heard.Clear();
-        await page.On("[data-rask-dismiss]").ClickAsync();
+        await page.On("[data-rask-dismiss]").Click();
         Assert.Equal(["cancel", "close"], heard);
     }
 
@@ -240,7 +240,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
 
-        await page.On(".btn-square").ClickAsync();
+        await page.On(".btn-square").Click();
 
         Assert.Equal(["close"], heard);
     }
@@ -276,10 +276,10 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
 
         // The backdrop still closes it in markup; the handler only reports that it was a dismissal.
         Assert.Contains("command=\"close\"", Tag(page.Html, "<button class=\"modal-backdrop"));
-        await page.On(".modal-backdrop").ClickAsync();
+        await page.On(".modal-backdrop").Click();
         Assert.Equal(1, cancelled);
 
-        await page.On("dialog").RaiseAsync("cancel");
+        await page.On("dialog").Raise("cancel");
         Assert.Equal(2, cancelled);
     }
 

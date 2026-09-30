@@ -30,36 +30,36 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("Count: 0", page.Html);
 
-        var afterOne = await page.ClickAsync();
+        var afterOne = await page.On("button").Click();
 
         Assert.Contains("Count: 1", afterOne);
 
         // State persists across invocations on the same rendered component.
-        await page.ClickAsync();
+        await page.On("button").Click();
 
         Assert.Contains("Count: 2", page.Html);
     }
 
     [Fact]
-    public async Task InvokeAsync_by_handler_id_runs_the_handler()
+    public async Task Invoke_by_handler_id_runs_the_handler()
     {
         var page = Page.Render(new Counter());
         var clickId = page.HandlerId("click")!;
 
-        await page.InvokeAsync(clickId);
+        await page.Invoke(clickId);
 
         Assert.Contains("Count: 1", page.Html);
     }
 
     [Fact]
-    public async Task InvokeAsync_throws_on_an_unknown_id()
+    public async Task Invoke_throws_on_an_unknown_id()
     {
         var page = Page.Render(new Counter());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => page.InvokeAsync("not-a-real-id"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => page.Invoke("not-a-real-id"));
     }
 
-    // A component that reads the event payload — proves InvokeAsync plumbs the JSON event args through.
+    // A component that reads the event payload — proves Invoke plumbs the JSON event args through.
     private sealed class NameEcho : Component
     {
         private string _name = "";
@@ -72,33 +72,33 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InvokeAsync_with_a_payload_passes_the_event_args_to_the_handler()
+    public async Task Invoke_with_a_payload_passes_the_event_args_to_the_handler()
     {
         var page = Page.Render(new NameEcho());
         var inputId = page.HandlerId("input")!;
 
-        await page.InvokeAsync(inputId, "{\"value\":\"Ada\"}");
+        await page.Invoke(inputId, "{\"value\":\"Ada\"}");
 
         Assert.Contains("Hi Ada", page.Html);
     }
 
     [Fact]
-    public async Task InputAsync_resolves_the_input_handler_and_passes_the_value()
+    public async Task Input_on_an_element_resolves_its_handler_and_passes_the_value()
     {
         var page = Page.Render(new NameEcho());
 
-        await page.InputAsync("{\"value\":\"Grace\"}");
+        await page.On("input").Input("Grace");
 
         Assert.Contains("Hi Grace", page.Html);
     }
 
     [Fact]
-    public async Task InvokeAsync_with_invalid_json_throws_an_ArgumentException()
+    public async Task Invoke_with_invalid_json_throws_an_ArgumentException()
     {
         var page = Page.Render(new Counter());
         var id = page.HandlerId("click")!;
 
-        await Assert.ThrowsAsync<ArgumentException>(() => page.InvokeAsync(id, "value=hi"));
+        await Assert.ThrowsAsync<ArgumentException>(() => page.Invoke(id, "value=hi"));
     }
 
     private sealed class Labelled : Component

@@ -15,14 +15,14 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("orientation-read").OnClick(Read)["Read current"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Id("orientation-read").OnClick(Read)["Read current"],
+                    Ui.Button.Primary.Outline
                         .Id("orientation-portrait")
                         .OnClick(() => Lock(OrientationLock.Portrait))["Lock portrait"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Outline
                         .Id("orientation-landscape")
                         .OnClick(() => Lock(OrientationLock.Landscape))["Lock landscape"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("orientation-unlock").OnClick(Unlock)["Unlock"]
+                    Ui.Button.Error.Outline.Id("orientation-unlock").OnClick(Unlock)["Unlock"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],

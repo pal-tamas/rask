@@ -3398,7 +3398,10 @@ public static partial class RaskEndpointExtensions
         var asm = typeof(RaskEndpointExtensions).Assembly;
         var name = asm.GetManifestResourceNames()
                        .FirstOrDefault(n => n.EndsWith("rask-sw.js", StringComparison.Ordinal))
-                   ?? throw new InvalidOperationException("rask-sw.js embedded resource not found.");
+                   ?? throw new InvalidOperationException(
+                       $"The Rask service worker is missing from {asm.GetName().Name} {asm.GetName().Version}. This is a "
+                       + "packaging fault rather than anything in your app: clear obj/ and bin/ and rebuild; if it "
+                       + "persists, reinstall the package.");
         using var stream = asm.GetManifestResourceStream(name)!;
         using var reader = new StreamReader(stream, Encoding.UTF8);
         return reader.ReadToEnd();

@@ -38,16 +38,16 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
             // Headless: we render our own buttons; the triggers just supply the gesture attribute.
             Trigger.Fullscreen
                 .Template(g =>
-                Ui.Button.Tone(Ui.Tone.Primary).Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
+                Ui.Button.Primary.Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
             Trigger.ScreenOrientation
                 .Orientation("landscape")
                 .Template(g =>
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Outline
                         .Id("orientation-btn")
                         .Data(g)["Lock landscape"]),
             Trigger.Install
                 .Template(g =>
-                    Ui.Button.Tone(Ui.Tone.Success).Variant(Ui.Variant.Outline)
+                    Ui.Button.Success.Outline
                         .Id("install-btn")
                         .Data(g)["Install app"])
                 .OnOutcome(outcome =>
@@ -66,7 +66,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
         Div.Class("flex gap-2 items-center flex-wrap mb-2")[
             Trigger.EyeDropper
                 .Template(g =>
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("eyedropper-btn")
                         .Data(g)["Pick a colour"])
                 .OnColor(hex =>
@@ -93,7 +93,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
             Trigger.MediaCapture
                 .For(_preview)
                 .Template(g =>
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("camera-btn")
                         .Data(g)["Start camera"])
                 .Video(true)
@@ -107,14 +107,14 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                     _camera = id;
                     return Task.CompletedTask;
                 }),
-            Ui.Button.Variant(Ui.Variant.Outline)
+            Ui.Button.Outline
                 .Id("camera-stop-btn")
                 .Disabled(_camera is null)
                 .OnClick(StopCameraAsync)["Stop camera"],
             Trigger.PictureInPicture
                 .For(_preview)
                 .Template(g =>
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("pip-btn")
                         .Data(g)["Pop out video"]),
             Video

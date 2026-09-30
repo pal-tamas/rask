@@ -421,8 +421,9 @@ public static partial class BuilderRuntime
         }
 
         throw new InvalidOperationException(
-            $"Component '{typeof(T)}' has no parameterless constructor; it can only be instantiated "
-            + "inside a LiveRenderContext (e.g. via MapRask<TApp>).");
+            $"Component '{typeof(T)}' takes services in its constructor, so only a running Rask app can create it. "
+            + "Render it from a page the app serves (in a test, through Page.Visit or Page.Render), or give it a "
+            + "parameterless constructor.");
     }
 
     /// <inheritdoc cref="Component.EntryRequired{T}" />

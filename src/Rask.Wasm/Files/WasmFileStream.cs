@@ -28,7 +28,8 @@ internal sealed class WasmFileStream : Stream
     public override void Flush() { }
 
     public override int Read(byte[] buffer, int offset, int count) =>
-        throw new NotSupportedException("WasmFileStream is async-only — use ReadAsync.");
+        throw new NotSupportedException(
+            "The browser hands a file's bytes over asynchronously, so read it with await stream.ReadAsync(…) or CopyToAsync(…).");
 
     public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {

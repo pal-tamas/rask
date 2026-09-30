@@ -13,7 +13,7 @@ handler that updates the UI, and a route. It assumes you're comfortable with C# 
 Rask-specific ideas, not the language.
 
 > **Coming from Blazor?** Skim [migrating from Blazor](migration-from-blazor.md) for the concept
-> mapping (`@page` → `[Route]`, `[Parameter]` → a property, `EventCallback` → a plain delegate). **Just
+> mapping (`@page` → `[Route]`, `[Parameter]` → a property, `EventCallback` → `Callback`). **Just
 > want to look first?** Click through the [live demo](https://rask.sh/docs/) — a full
 > multi-page Rask app, no install needed.
 
@@ -205,7 +205,7 @@ public sealed partial class Greeting : Component
 
 ## 5. Add interactivity
 
-Keep local state in fields and wire event handlers as plain delegates. After the handler runs, **the
+Keep local state in fields and wire event handlers as lambdas. After the handler runs, **the
 component that owns it re-renders automatically** — you never call `StateHasChanged()` by hand for a
 local update. A click does a server round-trip (server host) or a local re-render (WASM host); the same
 code works for both.
@@ -240,7 +240,7 @@ public sealed partial class RatingStars : Component
 
     protected override Component? Render() =>
         Div[
-            Enumerable.Range(1, 5).Select(i => (Component)Button.Key(i)
+            Enumerable.Range(1, 5).Select(i => Button.Key(i)
                 .OnClick(async () => await OnRate.Invoke(i))[i <= Value ? "★" : "☆"])   // child invokes; parent re-renders
         ];
 }

@@ -70,7 +70,7 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
         // The second tab's handler: tabs render in file order, and they are the only clickable things.
         var handlers = Regex.Matches(html, "data-rask-on-click=\"(?<id>[^\"]+)\"");
         Assert.Equal(2, handlers.Count);
-        await page.InvokeAsync(handlers[1].Groups["id"].Value);
+        await page.Invoke(handlers[1].Groups["id"].Value);
 
         var after = page.Render();
         Assert.Contains(">QueryClient</span>.Query(", after, StringComparison.Ordinal);

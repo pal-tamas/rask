@@ -56,7 +56,7 @@ derives everything from the bound property:
 
 A control's value comes from exactly one place, and the step you open the chain with says which:
 
-| Opened with | Mode | Then adds | Does **not** offer |
+| Opened with | Mode | Its steps | Compile, but do nothing here |
 | --- | --- | --- | --- |
 | `.Bind(() => model.Field)` | bound | `Validate`, `AfterBind` | `Checked`, `OnInput`, `OnChange` |
 | `.Value(v)` or `.Of<T>()` | controlled | `Checked`, `OnInput`, `OnChange` | `Validate`, `AfterBind` |

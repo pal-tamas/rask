@@ -64,7 +64,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(ClipboardIsland.Label("Copy"), Services(js));
         Assert.Contains("state: idle", page.Html, StringComparison.Ordinal);
 
-        await page.On("[data-rask-on-click]").ClickAsync();
+        await page.On("[data-rask-on-click]").Click();
 
         Assert.Equal("navigator.clipboard.readText", js.LastIdentifier);
         Assert.Contains("state: copied", page.Html, StringComparison.Ordinal);
@@ -120,7 +120,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(ThemeIsland.Label("Theme"), Services(js));
 
-        await page.On("[data-rask-on-click]").ClickAsync();
+        await page.On("[data-rask-on-click]").Click();
 
         Assert.Contains("__raskApi.matchMedia", js.LastIdentifier, StringComparison.Ordinal);
     }

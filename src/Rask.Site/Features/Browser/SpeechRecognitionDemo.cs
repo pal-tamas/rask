@@ -21,11 +21,11 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary)
+                    Ui.Button.Primary
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
                         .OnClick(Start)["Start listening"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                    Ui.Button.Error.Outline
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
                         .OnClick(Stop)["Stop"]

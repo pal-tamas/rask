@@ -84,7 +84,7 @@ public sealed class LogsPageTests
         await using var harness = store.Dashboard();
         await store.AppendAsync("kept across restarts");
 
-        var html = await RenderHistoryAsync(harness);
+        var html = RenderHistory(harness);
 
         Assert.Contains("kept across restarts", html, StringComparison.Ordinal);
         Assert.Contains("1 stored entries", html, StringComparison.Ordinal);
@@ -100,7 +100,7 @@ public sealed class LogsPageTests
         await store.AppendAsync("routine", LogLevel.Information);
         await store.AppendAsync("broken", LogLevel.Error);
 
-        var html = await RenderHistoryAsync(harness, page => page.Level = nameof(LogLevel.Error));
+        var html = RenderHistory(harness, page => page.Level = nameof(LogLevel.Error));
 
         Assert.Contains("broken", html, StringComparison.Ordinal);
         Assert.DoesNotContain("routine", html, StringComparison.Ordinal);
@@ -112,7 +112,7 @@ public sealed class LogsPageTests
         await using var store = new LogStoreFixture();
         await using var harness = store.Dashboard();
 
-        var html = await RenderHistoryAsync(harness);
+        var html = RenderHistory(harness);
 
         Assert.Contains("0 stored entries", html, StringComparison.Ordinal);
     }
@@ -129,7 +129,7 @@ public sealed class LogsPageTests
             await store.AppendAsync($"entry {i}");
         }
 
-        var html = await RenderHistoryAsync(harness);
+        var html = RenderHistory(harness);
 
         Assert.Contains("page=2", html, StringComparison.Ordinal);
         Assert.Contains("aria-current=\"page\"", html, StringComparison.Ordinal);
@@ -148,7 +148,7 @@ public sealed class LogsPageTests
             await store.AppendAsync($"entry {i}");
         }
 
-        var html = await RenderHistoryAsync(harness, page => page.Page = 99);
+        var html = RenderHistory(harness, page => page.Page = 99);
 
         // Newest first, two to a page: the third and last page holds the oldest entry, and says it is current.
         Assert.Contains("entry 0", html, StringComparison.Ordinal);
@@ -212,12 +212,14 @@ public sealed class LogsPageTests
 
     // History reads the store on PollingPanel's asynchronous mount, so the first render is the placeholder
     // — wait for the panel to report its total instead of asserting on markup that has not loaded yet.
-    private static Task<string> RenderHistoryAsync(DashboardHarness harness, Action<LogsPage>? configure = null)
+    private static string RenderHistory(DashboardHarness harness, Action<LogsPage>? configure = null)
     {
         var page = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         page.View = "history";
         configure?.Invoke(page);
-        return Page.Render(page, harness.Services).WaitForAsync("stored entries");
+        var rendered = Page.Render(page, harness.Services);
+        rendered.Shows("stored entries");
+        return rendered.Html;
     }
 
     /// <summary>A real log store on a temp file, plus a dashboard harness wired to it.</summary>

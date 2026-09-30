@@ -20,8 +20,8 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     _watch is null
-                        ? Ui.Button.Tone(Ui.Tone.Primary).Id("geowatch-start").OnClick(Start)["Start watching"]
-                        : Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("geowatch-stop").OnClick(Stop)["Stop"]
+                        ? Ui.Button.Primary.Id("geowatch-start").OnClick(Start)["Start watching"]
+                        : Ui.Button.Error.Outline.Id("geowatch-stop").OnClick(Stop)["Stop"]
                 ],
                 Div.Class("text-sm text-ui-muted")[
                     "Position: ", Code.Id("geowatch-value")[_location ?? "(not watching)"],

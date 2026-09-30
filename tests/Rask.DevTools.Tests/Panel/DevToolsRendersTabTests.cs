@@ -72,7 +72,7 @@ public sealed class DevToolsRendersTabTests
     {
         var page = Render(Feed());
 
-        await page.On("[aria-pressed=\"false\"]").ClickAsync();
+        await page.On("[aria-pressed=\"false\"]").Click();
 
         var rows = page.FindAll("tbody tr");
         Assert.Equal(3, rows.Count);
@@ -89,7 +89,7 @@ public sealed class DevToolsRendersTabTests
         var feed = Feed();
         var page = Render(feed);
 
-        await page.On("button[title=\"Forget the renders counted so far\"]").ClickAsync();
+        await page.On("button[title=\"Forget the renders counted so far\"]").Click();
 
         Assert.Empty(feed.CommitsSnapshot());
         Assert.Contains("No renders yet", page.Html);
