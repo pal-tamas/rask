@@ -54,6 +54,31 @@ internal static class ProjectLocator
         }
     }
 
+    /// <summary>
+    /// The one <c>*.Server.csproj</c> directly below <paramref name="directory"/> — a wasm-hosted solution is a directory
+    /// OF projects ({name}.Client/, .Server/, .Shared/) with no csproj at its root, and the Server is the one that runs
+    /// and owns the database. Null when there is none, or more than one.
+    /// </summary>
+    public static string? ServerProjectOneLevelDown(IFileSystem fileSystem, string directory)
+    {
+        IReadOnlyList<string> projects;
+        try
+        {
+            projects = fileSystem.ListFilesRecursive(directory, "*.Server.csproj");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+
+        var root = Path.GetFullPath(directory);
+        var candidates = projects
+            .Where(p => string.Equals(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(p))), root, StringComparison.Ordinal))
+            .ToList();
+
+        return candidates.Count == 1 ? candidates[0] : null;
+    }
+
     public static ProjectContext? Locate(IFileSystem fileSystem, string startDirectory)
     {
         var directory = Path.GetFullPath(startDirectory);

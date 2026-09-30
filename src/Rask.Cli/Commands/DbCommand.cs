@@ -178,6 +178,14 @@ internal sealed partial class DbCommand(
         }
 
         var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
+
+        // A wasm-hosted solution's root holds no csproj of its own; its Server project owns the database, which
+        // is also the project `rask dev` runs from there.
+        if (located is null && ProjectLocator.ServerProjectOneLevelDown(_fileSystem, _workingDirectory) is { } server)
+        {
+            return Path.GetDirectoryName(server);
+        }
+
         if (located is null && !(remote && FileSubcommands.Contains(subcommand)))
         {
             Console.WriteErrorLine(

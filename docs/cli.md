@@ -856,7 +856,8 @@ rask db restore backups/app-20260805-081500.db --remote
 
 A friendly wrapper over `dotnet ef` for the everyday migration lifecycle, meant to pair with what
 your feature code needs. It finds the project for you (the single `.csproj` at or above the
-current directory — override with `--project`), and if the EF Core tools aren't installed it installs
+current directory, or — at a wasm-hosted solution's root — its `.Server` project, as `rask dev` does;
+override with `--project`), and if the EF Core tools aren't installed it installs
 `dotnet-ef` globally the first time you run it.
 
 | Action | Wraps | Notes |

@@ -345,7 +345,7 @@ internal sealed partial record DevTarget(
             // A wasm-hosted solution is a directory OF projects: {name}.Client/, .Server/, .Shared/, with
             // no csproj at the root. Running it means running the Server host, which the next-steps text
             // used to make the user type by hand. Pick it when it is unambiguous.
-            var server = ServerProjectOneLevelDown(fileSystem, directory);
+            var server = ProjectLocator.ServerProjectOneLevelDown(fileSystem, directory);
             if (server is not null)
             {
                 return server;
@@ -361,23 +361,6 @@ internal sealed partial record DevTarget(
         }
 
         return null;
-    }
-
-    private static string? ServerProjectOneLevelDown(IFileSystem fileSystem, string directory)
-    {
-        var candidates = SafeListFiles(fileSystem, directory, "*.csproj", recursive: true)
-            .Where(p => IsOneLevelBelow(directory, p))
-            .Where(p => p.EndsWith(".Server.csproj", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        return candidates.Count == 1 ? candidates[0] : null;
-    }
-
-    private static bool IsOneLevelBelow(string root, string file)
-    {
-        var parent = Path.GetDirectoryName(Path.GetFullPath(file));
-        return parent is not null
-               && string.Equals(Path.GetDirectoryName(parent), Path.GetFullPath(root), StringComparison.Ordinal);
     }
 
     private static DevTemplateKind Classify(IFileSystem fileSystem, string csproj)

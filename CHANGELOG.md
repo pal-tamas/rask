@@ -527,6 +527,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask db` works from a wasm-hosted solution's root.** It stopped with "Run this inside a project, or pass
+  --project" where `rask dev` already ran the Server project. It now targets that `.Server` project too:
+
+  ```bash
+  cd shop && rask db add Init   # was: rask db add Init --project Shop.Server
+  ```
 - **A CQRS message nested two types deep crosses the wire.** The codec generator looked one level into a
   container type, so `Orders.Returns.Refund` silently got no contract. It now walks every depth, like
   the island, Blazor and validator generators — all four share one walker.
