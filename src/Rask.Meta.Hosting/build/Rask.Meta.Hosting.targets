@@ -126,8 +126,8 @@
   </Target>
 
   <Target Name="_RaskMetaProbeNode" Condition="'$(_RaskMetaDoBuild)' == 'true'">
-    <Exec Command="node --version" ContinueOnError="true" EchoOff="true"
-          StandardOutputImportance="low" ConsoleToMSBuild="true">
+    <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true" EchoOff="true"
+          StandardOutputImportance="low" StandardErrorImportance="low" ConsoleToMSBuild="true">
       <Output TaskParameter="ExitCode" PropertyName="_RaskMetaNodeExit"/>
       <Output TaskParameter="ConsoleOutput" PropertyName="_RaskMetaNodeVersion"/>
     </Exec>

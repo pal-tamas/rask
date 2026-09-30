@@ -523,6 +523,9 @@ them until tagged releases begin.
 - **A client that refuses brotli is not sent brotli.** The SPA host's precompressed files looked for `br` anywhere
   in `Accept-Encoding`, so `br;q=0` still got the `.br` file. It now reads quality values as the page document
   already did; the page, the scoped assets and the SPA host share one reading of the header.
+- **A meta-framework host built without Node says only what to install.** Its Node probe was missing a flag the SPA
+  and island probes carry, so a machine without Node also got MSBuild's own `MSB3073` error about the command,
+  ahead of RASKMETA003's install instructions.
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
