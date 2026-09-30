@@ -35,6 +35,12 @@ them until tagged releases begin.
   gates hold every change to it. Large types are split in two steps: partial files by responsibility, then an
   internal type where the seam is worth testing alone.
 
+- **The generators ask "is this a component?" in one place.** Five copies of the component check, three of
+  the "visible outside the assembly" check and fifteen spellings of the `Component`/`ExternalComponent` type
+  names across the generators and analyzers are now `ComponentSymbols`; the C# literal, doc-comment and camelCase helpers
+  copied between the island, package-island and batteries generators are `CodeText` and a shared
+  `Identifiers`. Every generated file is byte-for-byte what it was.
+
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
   and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are

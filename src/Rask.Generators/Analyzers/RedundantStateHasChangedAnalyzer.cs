@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.Analyzers;
 
@@ -17,7 +18,6 @@ namespace Rask.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
 {
-    private const string ComponentFullName = "Rask.Core.Component";
     private const string RaskCoreAssembly = "Rask.Core";
 
     private static readonly DiagnosticDescriptor Rask026 = new(

@@ -58,7 +58,7 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(static start =>
         {
-            var component = start.Compilation.GetTypeByMetadataName(BuilderEntry.ComponentFullName);
+            var component = start.Compilation.GetTypeByMetadataName(ComponentSymbols.ComponentFullName);
             if (component is null)
             {
                 return;

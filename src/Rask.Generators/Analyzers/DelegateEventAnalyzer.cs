@@ -40,7 +40,7 @@ public sealed class DelegateEventAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(static start =>
         {
-            if (start.Compilation.GetTypeByMetadataName(BuilderEntry.ComponentMetadataName) is not { } component)
+            if (start.Compilation.GetTypeByMetadataName(ComponentSymbols.ComponentFullName) is not { } component)
             {
                 return;
             }

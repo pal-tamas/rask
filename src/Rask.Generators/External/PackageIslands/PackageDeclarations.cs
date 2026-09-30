@@ -164,7 +164,7 @@ internal static class PackageDeclarations
             read.Runtime,
             read.Module,
             island.Export,
-            PackageIslandProps.IsExternallyVisible(declaration),
+            ComponentSymbols.IsExternallyVisible(declaration),
             new EquatableArray<string>(directories),
             default,
             new EquatableArray<string>(reserved.ToArray()),
