@@ -41,6 +41,25 @@ public sealed class ScopedTypeScriptDeclarationTests
         Assert.Contains("@(_RaskCompiledScopedDts)", additional);
     }
 
+    /// <summary>
+    ///     A design-time build (an IDE reload, <c>dotnet format</c>) compiles too, with a cached tsgo only:
+    ///     user code calls the members generated from the declarations, so skipping it is CS0246 (#1139).
+    /// </summary>
+    [Fact]
+    public void A_design_time_build_compiles_with_a_cached_tsgo_and_never_fetches_one()
+    {
+        var elements = XDocument.Load(_targets).Descendants().ToList();
+
+        var doBuild = elements.First(e => e.Name.LocalName == "_RaskScopedTsDoBuild");
+        var cachedOnly = elements.Single(e => e.Name.LocalName == "_RaskScopedTsCachedOnly");
+        var resolve = elements.Single(e =>
+            e.Name.LocalName == "ResolveTypeScriptToolTask" && (string?)e.Attribute("Tool") == "tsgo");
+
+        Assert.DoesNotContain("DesignTimeBuild", (string?)doBuild.Attribute("Condition"), StringComparison.Ordinal);
+        Assert.Equal("'$(DesignTimeBuild)' == 'true'", (string?)cachedOnly.Attribute("Condition"));
+        Assert.Equal("$(_RaskScopedTsCachedOnly)", (string?)resolve.Attribute("CachedOnly"));
+    }
+
     [Fact]
     public void The_tsgo_emit_writes_a_declaration_the_generator_can_read()
     {

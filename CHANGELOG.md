@@ -25,6 +25,15 @@ them until tagged releases begin.
   a script, `AuthSignIn` outside a handler, a hand-built or re-read upload, a synchronous read of a browser
   file, a failed `docker build` and a rollback on a first deploy each say what to do next. `rask dev
   --no-restart` and `rask deploy status`/`--health-path` describe what they do without deployment jargon.
+- **A live update renders the page straight into the session's buffer.** No pooled builder to regrow and no copy
+  out of one: a 1,500-row page allocates 336 B per live render instead of 267.59 KB (`RenderPageXLargeInto`). A
+  connected 1,000-row session's footprint reads 12.7 KB (0.3%) higher, which is large-object-heap fragmentation
+  only — with fragmentation subtracted the two are identical (#1141).
+- **One design standard for the whole codebase: SOLID and Clean Code.** The
+  [code analysis guide](docs/code-analysis.md#design) now states it — one responsibility per type and per file,
+  extension through the existing seams, small well-named methods, no copied helper — and the review and ship
+  gates hold every change to it. Large types are split in two steps: partial files by responsibility, then an
+  internal type where the seam is worth testing alone.
 
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
@@ -273,6 +282,9 @@ them until tagged releases begin.
   - An object's events are `On{Event}` subscriptions (`await Window.MatchMedia(q).OnChange(e => _wide = e.Matches)`,
     `await Window.OnOnline(() => …)`), their payload MDN's event type, and a method's callback is a C# handler
     (`await Navigator.Geolocation.GetCurrentPosition(p => …)`); either runs in its component's order and re-renders it.
+  - Any web object is faked in a test with `Fake()` — `using var clipboard = Navigator.Clipboard.Fake();`,
+    `clipboard.Returns(c => c.ReadText(), "pasted")`, `clipboard.Calls`, `Raise("change", e)` — for the test's own flow;
+    nothing reaches a browser.
   - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
     members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
@@ -531,6 +543,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A design-time build compiles scoped TypeScript too, so `dotnet format` and an IDE reload see its generated calls.**
+  They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
+  with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time
+  build now compiles with a cached tsgo and still never downloads one (#1139).
+- **The shutdown drain keeps to one budget.** `ShutdownDrainTimeout` is measured once, from `ApplicationStopping`.
+  A drain that ran late used to start a second budget of its own, waiting on sockets the first had already
+  aborted and stretching shutdown to twice the setting (#1138).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted
