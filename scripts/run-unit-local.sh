@@ -258,6 +258,8 @@ fi
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
 # evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
 # project references from src/*.Generators/bin/DEBUG/, while this gate builds Release. See the header.
+# Rask.Dom.Tasks too: Rask.Core loads its MDN emitter from bin/$(Configuration), and without it the
+# workspace has no element types, so every chain that uses one fails to bind and RASK095 fires falsely.
 #
 # CONCURRENT, and safe to be: these projects have no ProjectReference at all, so there is no shared
 # output for two builds to race over — they share only source-linked .cs files, which are read and
@@ -265,9 +267,9 @@ fi
 # box; same reasoning as the -m cap on the solution build above, applied to parallelism that is ours
 # rather than MSBuild's.
 rask_build_debug_generators() {
-  echo "==> Source generators in Debug (dotnet format resolves analyzers from the default configuration)"
+  echo "==> Source generators + DOM emitter in Debug (dotnet format evaluates the default configuration)"
   gen_pids=""
-  for proj in src/*.Generators/*.csproj; do
+  for proj in src/*.Generators/*.csproj src/Rask.Dom.Tasks/Rask.Dom.Tasks.csproj; do
     [ -e "$proj" ] || continue
     dotnet build "$proj" -c Debug -m:1 --nologo -v quiet &
     gen_pids="$gen_pids $!"
