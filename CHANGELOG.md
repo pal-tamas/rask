@@ -360,6 +360,10 @@ them until tagged releases begin.
 
 ### Security
 
+- **Scaffolded front ends no longer lock a vulnerable `brace-expansion` or `ip-address`.** Every template
+  locked `brace-expansion` 5.0.9 (nuxt and analog also 2.1.4), open to a quadratic-time `{a},b}` expansion and to
+  stack exhaustion on nested brace groups; analog and angular locked `ip-address` 10.7.0. The lockfiles now carry
+  5.0.12 / 2.1.7 and 10.7.2.
 - **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
   `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
   run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
