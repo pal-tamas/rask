@@ -11,7 +11,7 @@ Steps fire based on what changed (step 0 classifies). For the slnx use `Rask.sln
 **Principles** (apply throughout): do your best on every change; weigh **user experience, security,
 and performance together**, never one at the cost of another; prefer **standard .NET / BCL APIs
 over hand-rolled code** (don't reinvent the wheel); **refactor opportunistically** when you touch
-code that's duplicated or unclear; **automate** whatever can be automated; **ask only when truly
+code that's duplicated or unclear, holding **SOLID + Clean Code** (`docs/code-analysis.md#design`); **automate** whatever can be automated; **ask only when truly
 blocked** — otherwise pick the sensible default and proceed.
 
 ## 0. Classify the change

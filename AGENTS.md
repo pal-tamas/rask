@@ -39,6 +39,7 @@ runtime, not a deprecated one.
 
 ## Principles
 Do your best on every change. Hold UX, security, and performance together. Don't reinvent the wheel —
-use the BCL/framework. Automate what you can. Ask only when genuinely blocked.
+use the BCL/framework. SOLID + Clean Code: one responsibility per type and file, small
+well-named methods, no copied helpers. Automate what you can. Ask only when genuinely blocked.
 
 See `docs/development-workflow.md` for the full details.

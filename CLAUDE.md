@@ -19,7 +19,9 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 - **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
 
 Standing rules: do your best every change, holding **UX + security + performance** together; prefer
-standard .NET APIs (don't reinvent); refactor duplication you touch; unit-test every feature (E2E
+standard .NET APIs (don't reinvent); refactor duplication you touch; **SOLID + Clean Code** (one
+responsibility per type and file, small well-named methods, no copied helper — `docs/code-analysis.md#design`);
+unit-test every feature (E2E
 only when unreachable); E2E for every `src/Rask.Site` change — **tests run locally, not in CI**.
 **BOTH HOOKS ARE HELD TO A HARD ONE-MINUTE BUDGET**, at any scope: `.githooks/pre-commit` and
 `.githooks/pre-push` each run `scripts/run-unit-local.sh` scoped to what changed (staged files /
