@@ -174,7 +174,7 @@ public class NestedBindingTests
         var ex = Assert.Throws<InvalidOperationException>(() =>
             ExpressionAccessor.Parse((Expression<Func<string>>)(() => p.Address!.Street)));
 
-        Assert.Contains("evaluated to null", ex.Message);
+        Assert.Contains("reached null before its last property", ex.Message);
     }
 
     [Fact]

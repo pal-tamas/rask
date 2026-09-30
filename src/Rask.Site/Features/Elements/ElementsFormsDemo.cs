@@ -15,7 +15,7 @@ public sealed partial class ElementsFormsDemo : Component
             Legend.Class("text-base float-none w-auto px-2")["Profile"],
             Div.Class("mb-2")[
                 Label.For("nm").Class("label mb-1")["Name"],
-                Input.Value<string>(null)
+                Input.Of<string>()
                     .Type(InputType.Text)
                     .Id("nm")
                     .Class("input")
@@ -25,14 +25,14 @@ public sealed partial class ElementsFormsDemo : Component
             ],
             Div.Class("mb-2")[
                 Label.For("fruit").Class("label mb-1")["Favourite"],
-                Select.Value<string>(null).Id("fruit").Name("fruit").Class("select")[
+                Select.Of<string>().Id("fruit").Name("fruit").Class("select")[
                     Optgroup.Label("Fruit")[Option.Value("apple")["Apple"], Option.Value("pear").Selected(true)["Pear"]],
                     Optgroup.Label("Veg")[Option.Value("kale")["Kale"]]
                 ]
             ],
             Div.Class("mb-0")[
                 Label.For("bio").Class("label mb-1")["Bio"],
-                Textarea.Value<string>(null).Id("bio").Class("textarea").Placeholder("About you…")
+                Textarea.Of<string>().Id("bio").Class("textarea").Placeholder("About you…")
             ]
         ],
         Div.Class("grid grid-cols-12 gap-4 items-center")[
@@ -50,8 +50,8 @@ public sealed partial class ElementsFormsDemo : Component
             ]
         ],
         Div[
-            Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)["Submit"], " ",
-            Ui.Button.Variant(Ui.Variant.Outline).Type(Ui.ButtonType.Reset)["Reset"]
+            Ui.Button.Primary.Submit["Submit"], " ",
+            Ui.Button.Outline.Reset["Reset"]
         ]
     ];
 

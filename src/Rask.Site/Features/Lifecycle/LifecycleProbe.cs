@@ -57,12 +57,12 @@ public sealed partial class LifecycleProbe : Component
     protected override Component? Render() =>
         [
             Div.Class("flex gap-3 items-center flex-wrap mb-3")[
-                Ui.Badge.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Soft).Class("text-base")[$"Render #{++_renderCount}"],
+                Ui.Badge.Primary.Soft.Class("text-base")[$"Render #{++_renderCount}"],
                 // The handler just records the click; Rask re-renders the component that owns the
                 // callback (this probe — the lambda closes over its state) right after it runs, so the
                 // badge repaints with no StateHasChanged (RASK026). Works the same through Ui.Button,
                 // which forwards the callback down to the native <button>.
-                Ui.Button.Tone(Ui.Tone.Primary)
+                Ui.Button.Primary
                     .OnClick(() => _clicks++)[Ui.Icon.Name(Ui.IconName.Retry), "Trigger re-render"]
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],

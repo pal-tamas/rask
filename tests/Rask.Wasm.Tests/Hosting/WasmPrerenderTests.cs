@@ -518,6 +518,8 @@ public class WasmPrerenderTests : IDisposable
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
+        await WriteBootShell(dir);
+
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
 
@@ -621,14 +623,7 @@ public class WasmPrerenderTests : IDisposable
             new RouteRegistration(typeof(Home), "/about", null),
         ]);
 
-        await File.WriteAllTextAsync(
-            Path.Combine(dir, "index.html"),
-            """
-            <!doctype html><html lang="en"><head><meta charset="utf-8"/><base href="/"/><title>Rask</title>
-            <script type="importmap">{"imports":{}}</script></head>
-            <body data-rask-root><div class="rask-boot">Loading…</div>
-            <script src="main.js" type="module"></script></body></html>
-            """, TestContext.Current.CancellationToken);
+        await WriteBootShell(dir);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
@@ -712,14 +707,7 @@ public class WasmPrerenderTests : IDisposable
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
-        await File.WriteAllTextAsync(
-            Path.Combine(dir, "index.html"),
-            """
-            <!doctype html><html lang="en"><head><meta charset="utf-8"/><base href="/"/><title>Rask</title>
-            <script type="importmap">{"imports":{}}</script></head>
-            <body data-rask-root><div class="rask-boot">Loading…</div>
-            <script src="main.js" type="module"></script></body></html>
-            """, TestContext.Current.CancellationToken);
+        await WriteBootShell(dir);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
@@ -793,6 +781,8 @@ public class WasmPrerenderTests : IDisposable
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
+        await WriteBootShell(dir);
+
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
 
@@ -840,14 +830,7 @@ public class WasmPrerenderTests : IDisposable
             new RouteRegistration(typeof(HeadContributor), "/about", null),
         ]);
 
-        await File.WriteAllTextAsync(
-            Path.Combine(dir, "index.html"),
-            """
-            <!doctype html><html lang="en"><head><meta charset="utf-8"/><base href="/"/><title>Rask</title>
-            <script type="importmap">{"imports":{}}</script></head>
-            <body data-rask-root><div class="rask-boot">Loading…</div>
-            <script src="main.js" type="module"></script></body></html>
-            """, TestContext.Current.CancellationToken);
+        await WriteBootShell(dir);
 
         var services = new ServiceCollection();
         services.AddScoped<RouteState>();
@@ -1003,5 +986,21 @@ public class WasmPrerenderTests : IDisposable
     {
         protected override Component? Render() =>
             route.Path.TrimEnd('/') == "/broken" ? throw new InvalidOperationException("boom") : Div["home-page"];
+    }
+
+    // A published wwwroot always starts with the SDK's boot shell. Rendering into an empty directory instead
+    // writes whole documents, and whether a second pass then reads one as "already rendered" depends on which
+    // head assets other tests left registered in the process — so every multi-pass test starts from this.
+    private static async Task WriteBootShell(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        await File.WriteAllTextAsync(
+            Path.Combine(dir, "index.html"),
+            """
+            <!doctype html><html lang="en"><head><meta charset="utf-8"/><base href="/"/><title>Rask</title>
+            <script type="importmap">{"imports":{}}</script></head>
+            <body data-rask-root><div class="rask-boot">Loading…</div>
+            <script src="main.js" type="module"></script></body></html>
+            """, TestContext.Current.CancellationToken);
     }
 }

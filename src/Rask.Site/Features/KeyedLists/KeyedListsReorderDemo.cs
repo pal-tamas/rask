@@ -30,10 +30,10 @@ public sealed partial class KeyedListsReorderDemo : Component
                     .Id("kl-toggle-keys")
                     .OnClick(() => _useKeys = !_useKeys)[Ui.Icon.Name(Ui.IconName.Key), _useKeys ? "Keys: ON" : "Keys: OFF"],
                 Span.Class("vr mx-1"),
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("kl-rotate").OnClick(Rotate)[Ui.Icon.Name(Ui.IconName.ArrowsUpDown), "Rotate"],
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("kl-reverse").OnClick(Reverse)[Ui.Icon.Name(Ui.IconName.Retry), "Reverse"],
-                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("kl-add").OnClick(AddTop)[Ui.Icon.Name(Ui.IconName.Plus), "Add to top"],
-                Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                Ui.Button.Primary.Outline.Id("kl-rotate").OnClick(Rotate)[Ui.Icon.Name(Ui.IconName.ArrowsUpDown), "Rotate"],
+                Ui.Button.Primary.Outline.Id("kl-reverse").OnClick(Reverse)[Ui.Icon.Name(Ui.IconName.Retry), "Reverse"],
+                Ui.Button.Primary.Outline.Id("kl-add").OnClick(AddTop)[Ui.Icon.Name(Ui.IconName.Plus), "Add to top"],
+                Ui.Button.Error.Outline
                     .Id("kl-remove")
                     .Disabled(_items.Count == 0)
                     .OnClick(RemoveTop)[Ui.Icon.Name(Ui.IconName.Minus), "Remove top"]
@@ -61,9 +61,9 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[(index + 1).ToString(CultureInfo.InvariantCulture)],
+        Ui.Badge.Neutral.Soft[(index + 1).ToString(CultureInfo.InvariantCulture)],
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
-        Ui.Input.Value<string>(null).AccessibleLabel("type here, then reorder…")
+        Ui.Input.Of<string>().AccessibleLabel("type here, then reorder…")
             .Type(InputType.Text)
             .Placeholder("type here, then reorder…").Class("kl-note")
     ];

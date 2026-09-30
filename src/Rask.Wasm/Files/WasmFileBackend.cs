@@ -12,7 +12,9 @@ internal sealed class WasmFileBackend : IBrowserFileBackend
             : string.Empty;
         if (string.IsNullOrEmpty(@ref))
         {
-            throw new InvalidOperationException("WASM file metadata is missing 'ref'.");
+            throw new InvalidOperationException(
+                "This file did not come from a file input, so the browser holds no bytes for it. Take the IRaskFile an "
+                + "input's OnFiles handler receives rather than building one by hand.");
         }
 
         var name = metadata.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String

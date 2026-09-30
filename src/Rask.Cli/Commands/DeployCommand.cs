@@ -109,7 +109,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     private static ArgumentSchema CreateSchema() =>
         new ArgumentSchema()
-            .Verb("status", "Show what is running, and on which color.")
+            .Verb("status", "Show what is running on the host, and what a rollback would restore.")
             .Verb("logs", "Print the deployed app's logs.")
             .Verb("rollback", "Put the previous image back.")
             // No short name: '-h' is reserved for --help across the whole CLI, and a command that claimed
@@ -123,7 +123,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             .Option("dockerfile", valueHint: "path", description: "Dockerfile to build (default: ./Dockerfile).")
             .Option("env-file", valueHint: "path", description: "File of KEY=VALUE lines to pass to the container.")
             .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")
-            .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before the blue-green swap (default: /health).")
+            .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before traffic moves to the new version (default: /health).")
             .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
             .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy on push, and print the secrets to add.")
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
@@ -499,7 +499,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
         if (await Run(BuildBuildArguments(host, slug, plan.Dockerfile, plan.ContextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.WriteErrorLine("Docker build failed.", ConsoleStyle.Error);
+            Console.WriteErrorLine("Docker build failed — its output is above. Run `docker build .` locally to reproduce it, then deploy again.", ConsoleStyle.Error);
             return 1;
         }
 
@@ -599,7 +599,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         if (await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false) is null)
         {
             Console.WriteErrorLine($"{reason} There is no previous image to fall back to.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync($"{slug}:{PreviousTag} is written by the deploy that replaces it, so the first deploy of an app has no predecessor.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("This is the app's first deploy, so there is no earlier version to go back to. Fix the problem above and deploy again.").ConfigureAwait(false);
             return 1;
         }
 

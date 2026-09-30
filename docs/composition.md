@@ -21,7 +21,7 @@ Children attach through the **indexer**, not a `Children:` parameter:
 Div.Class("panel")[
     Span.Class("title")["Hello"],
     "plain text becomes a Text node",   // string → Text (HTML-encoded)
-    items.Select(i => (Component)Li.Key(i.Id)[i.Name])
+    items.Select(i => Li.Key(i.Id)[i.Name])
 ]
 ```
 
@@ -108,11 +108,11 @@ capability. Reach for the cheapest one that does the job.
 **Tier 0 — a plain static method.** Just a function that returns markup:
 
 ```csharp
-internal static class Ui
+internal static class Tags
 {
     public static Component Badge(string label) => Span.Class("pill")[label];
 }
-// call it like any method — Ui.Badge("new")
+// call it like any method — Tags.Badge("new")
 ```
 
 There is no `Component` instance, so it has **no state, no lifecycle hooks, and no independent

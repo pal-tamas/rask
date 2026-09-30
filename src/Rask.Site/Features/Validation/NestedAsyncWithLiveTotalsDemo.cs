@@ -101,12 +101,12 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Totals(subtotal, discountPct, discount, tax, total),
                 Div[
-                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CreditCard), "Pay"]
+                    Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.CreditCard), "Pay"]
                 ]
             ],
             _submission is null
                 ? null
-                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("v-nlive-submission")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+                : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0").Id("v-nlive-submission")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
         ];
     }
 

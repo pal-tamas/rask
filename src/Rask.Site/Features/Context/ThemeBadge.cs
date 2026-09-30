@@ -13,8 +13,8 @@ public sealed partial class ThemeBadge : Component
             ? "bg-slate-900 text-slate-100 ring-1 ring-slate-600"
             : "bg-amber-100 text-amber-900";
         return Ui.Badge
-            .Tone(Ui.Tone.Neutral)
-            .Variant(Ui.Variant.Soft)
+            .Neutral
+            .Soft
             .Class($"theme-badge {css}")[theme.IsDark ? "🌙 Dark" : "☀️ Light"];
     }
 }

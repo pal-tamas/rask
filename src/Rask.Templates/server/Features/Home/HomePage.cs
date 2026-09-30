@@ -26,8 +26,7 @@ public sealed partial class HomePage : Component
                             Div.Class("card-body gap-4 text-left")[
                                 Ul.Class("space-y-2 text-sm")[
                                     Li[Code.Class("kbd kbd-sm")["rask dev"], " — run with hot reload"],
-                                    Li[Code.Class("kbd kbd-sm")["rask db add Init"], " — create the database"],
-                                    Li["Edit ", Code.Class("kbd kbd-sm")["HomePage.cs"], " — the sheet rebuilds from it"]
+                                    Li["Edit ", Code.Class("kbd kbd-sm")["HomePage.cs"], " — the page updates as you save"]
                                 ],
                                 Div.Class("card-actions justify-end")[
                                     A

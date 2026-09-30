@@ -74,8 +74,9 @@ mistake, the rule notes the ID.
 
 ## State, callbacks & events
 
-- **Raise child→parent events with a plain delegate prop.** There is no `EventCallback` type — use
-  `Action`, `Action<T>`, `Func<Task>`, or `Func<T, Task>`. The chain step wraps it so invoking it
+- **Raise child→parent events with a `Callback<T>` prop.** Declare it non-nullable
+  (`public Callback<int> OnRate { get; set; }`) and fire it with `await OnRate.Invoke(n)` — unset is a
+  no-op. The parent passes any handler shape, sync or async; the chain step wraps it so invoking it
   re-renders the parent that owns the lambda, with no `StateHasChanged` by hand. Write the lambda
   *inside* the component so it captures `this`:
   ```csharp
@@ -83,7 +84,7 @@ mistake, the rule notes the ID.
   ```
   A lambda over a plain local or a static method isn't wrapped and won't trigger a re-render. See
   [composition → callbacks](composition-callbacks-context.md#callbacks-child--parent).
-- **Don't expect a handler-only re-render to refire `OnUpdated`.** Auto-wrapped delegates are
+- **Don't expect a handler-only re-render to refire `OnUpdated`.** Auto-wrapped handlers are
   excluded from the `propsChanged` diff — changing only the lambda's identity doesn't refire it.
   `Updated*` fires when a *bound* value (a prop, a route/query param) actually changes. See
   [lifecycle → when Updated refires](lifecycle.md#when-onupdated-refires).
@@ -103,7 +104,7 @@ mistake, the rule notes the ID.
 
 ## Context & dependency injection
 
-- **Use `Context` to skip prop drilling, not as a general data bus.** `Context.Provide<T>(value)`
+- **Use `Context` to skip prop drilling, not as a general data bus.** `Context.Provide(value)`
   near the top, then `Context.Get<T>()` / `Required<T>()` / `Has<T>()` *inside `Render()`* below.
   Reading a context value latches the consumer out of the render cache, so it stays reactive even
   through a render-cached intermediate — that's the point. Provide a concrete type and consume by an

@@ -125,7 +125,7 @@ public static class ExpressionAccessor
 
         var target = EvaluateTarget(me.Expression)
                      ?? throw new InvalidOperationException(
-                         $"Bind expression target evaluated to null: {expression}");
+                         $"Bind({expression}) reached null before its last property. Create the object it walks through (e.g. `= new()` on the field) before the form renders.");
 
         return new Accessor(target, prop) { Owner = FindRootConstant(me) };
     }

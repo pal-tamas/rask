@@ -14,16 +14,16 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Outline
                         .Id("notif-permission")
                         .OnClick(RequestPermission)["Request permission"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Outline
                         .Id("notif-show")
                         .OnClick(Notify)["Notify"],
-                    Ui.Button.Variant(Ui.Variant.Outline)
+                    Ui.Button.Outline
                         .Id("badge-set")
                         .OnClick(SetBadge)["Set badge 3"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                    Ui.Button.Error.Outline
                         .Id("badge-clear")
                         .OnClick(ClearBadge)["Clear badge"]
                 ],

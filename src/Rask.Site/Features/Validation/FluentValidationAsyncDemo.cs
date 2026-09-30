@@ -16,11 +16,11 @@ public sealed partial class FluentValidationAsyncDemo : Component
         Form.Model(_model).OnSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
             Ui.Input.Bind(() => _model.Code).Label("Ticket code").Id("v9-code"),
             Div[
-                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.Ticket), "Reserve"]
+                Ui.Button.Primary.Submit[Ui.Icon.Name(Ui.IconName.Ticket), "Reserve"]
             ]
         ],
         _submission is null
             ? null
-            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
+            : Ui.Alert.Success.Soft.Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }

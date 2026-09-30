@@ -118,13 +118,13 @@ public sealed partial class TodosPage : Component
             Ui.Button
                 .AccessibleLabel($"Edit {item.Title}")
                 .Square(true)
-                .Variant(Ui.Variant.Outline)
+                .Outline
                 .OnClick(() => OpenEdit(item))[Ui.Icon.Name(Ui.IconName.Pencil)],
             Ui.Button
                 .AccessibleLabel($"Delete {item.Title}")
                 .Square(true)
-                .Tone(Ui.Tone.Error)
-                .Variant(Ui.Variant.Outline)
+                .Error
+                .Outline
                 .OnClick(() => Delete(item))[Ui.Icon.Name(Ui.IconName.Trash)]
         ];
 
@@ -138,7 +138,7 @@ public sealed partial class TodosPage : Component
                 Span.Class("text-ui-muted text-sm")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
-                Ui.Button.Tone(Ui.Tone.Primary).OnClick(OpenAdd)[Ui.Icon.Name(Ui.IconName.Plus), "New todo"]
+                Ui.Button.Primary.OnClick(OpenAdd)[Ui.Icon.Name(Ui.IconName.Plus), "New todo"]
             ],
             _todos.Count == 0
                 ? Div.Class("text-ui-muted text-sm")["No todos yet — click \"New todo\" to add one."]

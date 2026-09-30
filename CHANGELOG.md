@@ -21,6 +21,22 @@ them until tagged releases begin.
   | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
   | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
   | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
+- **The docs, samples and scaffold say only true things, in the short words.** Kit calls use the short forms
+  that already existed — `Ui.Button.Primary.Submit`, `Ui.Alert.Error`, `.Ghost.Sm` — instead of
+  `Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)` (518 sites across the docs, `llms.txt`, the
+  site and the templates). Navigation is `Routes.ProductsPage().Go()` with nothing injected, a control with no
+  value yet is `Ui.Input.Of<string>()`, `Context.Provide(_theme)` infers its type, numbers go straight into
+  markup (`Code[_clicks]`), and a sequence of children needs no `(Component)` cast. Events are `Callback<T>`
+  props everywhere the docs used to say "a plain delegate". Fixed: `docs/routing.md` no longer calls
+  `[Route]` singular, `docs/forms.md` no longer says bound mode "does not offer" steps that compile,
+  `llms.txt`/`docs/cli.md` no longer place the sign-in pages in `Rask.Auth` (they are scaffolded into
+  `Features/Auth/`), and the scaffolded home page no longer tells you to run `rask db add Init` — `rask new`
+  already did, and the WASM template has no database at all.
+- **Runtime errors end in a fix, like the diagnostics.** A `Bind(() => …)` that walks through null, a
+  component with services in its constructor created outside an app, an open generic with scoped styles or
+  a script, `AuthSignIn` outside a handler, a hand-built or re-read upload, a synchronous read of a browser
+  file, a failed `docker build` and a rollback on a first deploy each say what to do next. `rask dev
+  --no-restart` and `rask deploy status`/`--health-path` describe what they do without deployment jargon.
 - **A live update renders the page straight into the session's buffer.** No pooled builder to regrow and no copy
   out of one: a 1,500-row page allocates 336 B per live render instead of 267.59 KB (`RenderPageXLargeInto`). A
   connected 1,000-row session's footprint reads 12.7 KB (0.3%) higher, which is large-object-heap fragmentation

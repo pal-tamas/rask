@@ -19,8 +19,8 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("bt-request").OnClick(PairAndRead)[Ui.Icon.Name(Ui.IconName.Signal), "Pair & read battery"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Id("bt-request").OnClick(PairAndRead)[Ui.Icon.Name(Ui.IconName.Signal), "Pair & read battery"],
+                    Ui.Button.Error.Outline
                         .Id("bt-disconnect")
                         .Disabled(_device is null)
                         .OnClick(Disconnect)["Disconnect"]

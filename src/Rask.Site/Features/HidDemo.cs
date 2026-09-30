@@ -21,12 +21,12 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("hid-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.Cube), "Pair device"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Id("hid-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.Cube), "Pair device"],
+                    Ui.Button.Primary.Outline
                         .Id("hid-watch")
                         .Disabled(_device is null || _watch is not null)
                         .OnClick(Watch)["Open & watch"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                    Ui.Button.Error.Outline
                         .Id("hid-close")
                         .Disabled(_device is null)
                         .OnClick(Release)["Release"]
@@ -41,7 +41,7 @@ public sealed partial class HidDemo(IHid hid) : Component, IAsyncDisposable
                         Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Product"],
                         Dd.Class("col-span-7 sm:col-span-8")[_info.ProductName ?? "—"]
                     ],
-                Div.Class("text-sm text-ui-muted")["Reports: ", Code.Id("hid-count")[_reportCount.ToString(CultureInfo.InvariantCulture)]],
+                Div.Class("text-sm text-ui-muted")["Reports: ", Code.Id("hid-count")[_reportCount]],
                 Div.Class("text-sm text-ui-muted")["Last: ", Code.Id("hid-last")[_lastReport]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("hid-status")[_status]]
             ];
