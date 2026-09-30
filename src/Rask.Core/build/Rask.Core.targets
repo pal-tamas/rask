@@ -204,14 +204,17 @@
     <RaskScopedTsRootDir Condition="'$(RaskScopedTsRootDir)' == ''">$(MSBuildProjectDirectory)</RaskScopedTsRootDir>
 
     <!--
-      Whether any of this happens. Design-time builds are excluded for the reason Rask.Tailwind
-      records: an IDE reloading a project must never download a binary or shell out to a compiler.
-      That is safe here because the generator needs only PATHS to pair components and report
-      RASK017/018/020/055 — the compiled text is needed solely for the registration string, and no
-      user code references the class that holds it. Before the first real build the text is simply
-      absent, which the generator already skips rather than mistaking for an empty asset.
+      Whether any of this happens, and whether it may FETCH. A design-time build (an IDE reload,
+      `dotnet format`) compiles too, because user code calls the members ScopedScriptCallsGenerator
+      makes from tsgo's declarations — without them the design-time compile fails with CS0246 (#1139).
+      What it must never do is download a binary, the rule Rask.Tailwind records, so there it runs
+      only with a tsgo that is already cached, and in-repo only once the task DLL has been built; with
+      neither it skips, exactly as before, and the text is simply absent until the first real build.
+      The compile is incremental, so a reload with nothing changed runs no process at all.
     -->
-    <_RaskScopedTsDoBuild Condition="'$(RaskScopedTsAutoInclude)' != 'false' AND '$(RaskTypeScriptBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'">true</_RaskScopedTsDoBuild>
+    <_RaskScopedTsDoBuild Condition="'$(RaskScopedTsAutoInclude)' != 'false' AND '$(RaskTypeScriptBuild)' != 'false'">true</_RaskScopedTsDoBuild>
+    <_RaskScopedTsDoBuild Condition="'$(DesignTimeBuild)' == 'true' AND !Exists('$(MSBuildThisFileDirectory)Rask.TypeScript.Tasks.dll')"></_RaskScopedTsDoBuild>
+    <_RaskScopedTsCachedOnly Condition="'$(DesignTimeBuild)' == 'true'">true</_RaskScopedTsCachedOnly>
   </PropertyGroup>
 
   <!--
@@ -337,7 +340,8 @@
                                Version="$(RaskTsgoVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
                                Registry="$(RaskTypeScriptRegistry)"
-                               Offline="$(RaskTypeScriptOffline)">
+                               Offline="$(RaskTypeScriptOffline)"
+                               CachedOnly="$(_RaskScopedTsCachedOnly)">
       <Output TaskParameter="ToolPath" PropertyName="_RaskTsgoPath"/>
     </ResolveTypeScriptToolTask>
   </Target>
@@ -421,15 +425,16 @@
       csc pointed at output files that were never written. That cost a build to find; the same rule
       is recorded in Rask.Spa.Hosting.targets.
     -->
-    <Error Condition=" '$(_RaskTsgoPath)' == '' "
+    <Error Condition=" '$(_RaskTsgoPath)' == '' AND '$(_RaskScopedTsCachedOnly)' != 'true' "
            Text="Rask.TypeScript: the TypeScript compiler was not resolved, so the scoped .ts files in this project cannot be compiled. Set RaskTypeScriptBuild=false to build without them."/>
-    <MakeDir Directories="$(_RaskScopedTsOutDir)"/>
+    <MakeDir Directories="$(_RaskScopedTsOutDir)" Condition=" '$(_RaskTsgoPath)' != '' "/>
     <!-- Computed here rather than with the other properties: a companion project sets RaskScopedTsRootDir itself. -->
     <PropertyGroup>
       <_RaskScopedTsSourceMapArg Condition="'$(RaskScopedTsSourceMap)' == 'true'"> --inlineSourceMap --inlineSources --sourceRoot &quot;$([System.Uri]::new('$([MSBuild]::NormalizeDirectory($(RaskScopedTsRootDir)))').AbsoluteUri)&quot;</_RaskScopedTsSourceMapArg>
     </PropertyGroup>
     <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck --declaration$(_RaskScopedTsRemoveCommentsArg)$(_RaskScopedTsSourceMapArg) --ignoreConfig"
-          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition=" '$(_RaskTsgoPath)' != '' "/>
   </Target>
 
   <!--
@@ -466,9 +471,8 @@
         Filtered to files that are actually on disk. csc does not tolerate an AdditionalFile that is
         missing — it is CS2001, "source file could not be found", which fails the build naming a
         path under obj/ that the author never wrote. That happens whenever the compile did not run:
-        a design-time build (excluded on purpose, so an IDE reload never shells out to a compiler)
-        or RaskTypeScriptBuild=false. In both cases the right outcome is no registration, not a
-        broken build, and the generator already treats absent content as "nothing to register".
+        a design-time build with no cached tsgo (it never downloads one) or RaskTypeScriptBuild=false.
+        In both cases the right outcome is no registration, not a broken build, and the generator already treats absent content as "nothing to register".
       -->
       <AdditionalFiles Include="@(_RaskCompiledScopedJs)"
                        Condition="Exists('%(_RaskCompiledScopedJs.FullPath)')"/>

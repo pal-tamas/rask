@@ -58,6 +58,35 @@ internal static class WebSocketHelper
         {
             return null;
         }
+        catch (Exception ex) when (ex is WebSocketException or IOException or ObjectDisposedException)
+        {
+            // Aborted — nothing more will arrive, which is an assertion for the caller, not a crash.
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///     Reads every frame until the server closes, and answers its close the way a browser does. Start it
+    ///     BEFORE the server begins to close: the answer completes the handshake, so a drain ends on it rather
+    ///     than waiting out its budget and aborting (#1138).
+    /// </summary>
+    /// <returns>The text frames, then the close status and reason — both null if the socket was aborted instead.</returns>
+    public static async Task<(List<string> Frames, WebSocketCloseStatus? Status, string? Reason)> ReadUntilServerClosesAsync(
+        this WebSocket ws, TimeSpan timeout)
+    {
+        var frames = new List<string>();
+        while (await ws.TryReceiveTextAsync(timeout) is { } frame)
+        {
+            frames.Add(frame);
+        }
+
+        if (ws.State != WebSocketState.CloseReceived)
+        {
+            return (frames, null, null);
+        }
+
+        await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+        return (frames, ws.CloseStatus, ws.CloseStatusDescription);
     }
 
     /// <summary>
