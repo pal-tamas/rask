@@ -9,6 +9,10 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A live update renders the page straight into the session's buffer.** No pooled builder to regrow and no copy
+  out of one: a 1,500-row page allocates 336 B per live render instead of 267.59 KB (`RenderPageXLargeInto`). A
+  connected 1,000-row session's footprint reads 12.7 KB (0.3%) higher, which is large-object-heap fragmentation
+  only — with fragmentation subtracted the two are identical (#1141).
 - **One design standard for the whole codebase: SOLID and Clean Code.** The
   [code analysis guide](docs/code-analysis.md#design) now states it — one responsibility per type and per file,
   extension through the existing seams, small well-named methods, no copied helper — and the review and ship
@@ -529,6 +533,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A design-time build compiles scoped TypeScript too, so `dotnet format` and an IDE reload see its generated calls.**
+  They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
+  with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time
+  build now compiles with a cached tsgo and still never downloads one (#1139).
+- **The shutdown drain keeps to one budget.** `ShutdownDrainTimeout` is measured once, from `ApplicationStopping`.
+  A drain that ran late used to start a second budget of its own, waiting on sockets the first had already
+  aborted and stretching shutdown to twice the setting (#1138).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted

@@ -304,6 +304,52 @@ public class ResolveTypeScriptToolTaskTests
         Assert.Contains("RaskTypeScriptBuild=false", message, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    ///     Cached-only with a cold cache succeeds with no tool and no fetch — what a design-time build
+    ///     needs: an IDE reload that finds no tsgo skips the compile rather than failing or downloading.
+    /// </summary>
+    [Fact]
+    public void Resolving_cached_only_with_a_cold_cache_succeeds_with_no_tool_and_no_fetch()
+    {
+        var cache = Path.Combine(Path.GetTempPath(), "rask-cold-" + Guid.NewGuid().ToString("n"));
+        var engine = new RecordingBuildEngine();
+        var task = new ResolveTypeScriptToolTask
+        {
+            BuildEngine = engine,
+            Tool = "tsgo",
+            Version = Pins.Value.Tsgo,
+            CacheRoot = cache,
+            CachedOnly = true,
+        };
+
+        var resolved = task.Execute();
+
+        Assert.True(resolved);
+        Assert.Equal(string.Empty, task.ToolPath);
+        Assert.Empty(engine.Errors);
+        Assert.False(Directory.Exists(cache));
+    }
+
+    /// <summary>Cached-only with a warm cache resolves the same tool an ordinary build does.</summary>
+    [Fact]
+    public void Resolving_cached_only_with_a_warm_cache_returns_the_cached_tool()
+    {
+        var cached = Resolve("tsgo", Pins.Value.Tsgo);
+        var task = new ResolveTypeScriptToolTask
+        {
+            BuildEngine = new RecordingBuildEngine(),
+            Tool = "tsgo",
+            Version = Pins.Value.Tsgo,
+            CacheRoot = DefaultCacheRoot(),
+            CachedOnly = true,
+        };
+
+        var resolved = task.Execute();
+
+        Assert.True(resolved);
+        Assert.Equal(cached, task.ToolPath);
+    }
+
     /// <summary>An unknown tool name is refused before anything reaches the network.</summary>
     [Fact]
     public void An_unknown_tool_is_refused()
