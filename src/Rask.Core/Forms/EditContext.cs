@@ -17,7 +17,7 @@ namespace Rask.Core.Forms;
 ///         user what is wrong before they submit, not to keep bad data out.
 ///     </para>
 /// </remarks>
-public sealed class EditContext : IDisposable
+public sealed partial class EditContext : IDisposable
 {
     // Default sticky window for the Validation.Indicator. After PendingCount
     // drops to 0, the field stays "validating" for this many milliseconds —
@@ -42,6 +42,9 @@ public sealed class EditContext : IDisposable
     private readonly Dictionary<FieldIdentifier, Component> _bindingOwners = new();
     private Delegate? _formDelegate;
 
+    // What a validator that throws leaves on its field: a crashed rule must not crash the form.
+    private const string CouldNotValidate = "Validation could not be completed.";
+
     /// <summary>Creates a context for <paramref name="model" />, the object whose fields are edited.</summary>
     /// <param name="model">The form's model. Fields bind to its properties, and to those of any nested
     ///     object reachable from it.</param>
@@ -59,6 +62,9 @@ public sealed class EditContext : IDisposable
     public object Model { get; }
 
     internal IEnumerable<FieldIdentifier> RegisteredFields => _states.Keys;
+
+    // The key form-level messages are recorded under: the model itself, with no field name.
+    private FieldIdentifier FormField => new(Model, string.Empty);
 
     /// <summary>
     ///     Whether anything registered here validates asynchronously — an <see cref="IAsyncFieldValidator" /> or
@@ -519,313 +525,6 @@ public sealed class EditContext : IDisposable
     }
 
     /// <summary>
-    ///     Validates the whole form, running every rule — synchronous and asynchronous — and reports whether
-    ///     it passed. Clears the existing messages first, so the messages afterwards are exactly this run's.
-    /// </summary>
-    /// <param name="cancellationToken">Cancels the in-flight validators.</param>
-    /// <returns><see langword="true" /> when no field produced a message.</returns>
-    public async ValueTask<bool> Validate(CancellationToken cancellationToken = default)
-    {
-        // Supersede every in-flight per-field run before we re-validate from scratch.
-#pragma warning disable S6966 // cancel synchronously: a superseded run must see it before this call returns
-        foreach (var s in _states.Values)
-        {
-            s.Cts?.Cancel();
-        }
-#pragma warning restore S6966
-
-        ClearAllMessages();
-
-        // Inline per-field delegates first: sync invoked, async awaited. Each one isolates
-        // its own exception so one bad delegate doesn't kill the whole submit pipeline.
-        foreach (var pair in _fieldDelegates)
-        {
-            await InvokeFieldDelegateAsync(pair.Key, pair.Value, cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        // Form-level inline delegate runs next so cross-field rules (e.g. "passwords match")
-        // can observe the per-field messages just produced above.
-        if (_formDelegate is not null)
-        {
-            await InvokeFormDelegateAsync(_formDelegate, cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        // Attribute-driven validators (DataAnnotations, FluentValidation, …) follow,
-        // in registration order — sync first, then async. First-error-wins gates each
-        // validator so a field that's already flagged stays tied to the earliest rule.
-        foreach (var v in _validators)
-        {
-            var pre = SnapshotMessageCounts();
-            v.Validate(this);
-            TrimGatedMessages(pre);
-        }
-
-        await RunAsyncValidatorsAsync(cancellationToken).ConfigureAwait(false);
-
-        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-        return !HasValidationMessages();
-    }
-
-    private async ValueTask RunAsyncValidatorsAsync(CancellationToken cancellationToken)
-    {
-        foreach (var v in _asyncValidators)
-        {
-            var pre = SnapshotMessageCounts();
-            try
-            {
-                await v.Validate(this, cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-                AddValidationMessage(new FieldIdentifier(Model, string.Empty),
-                    "Validation could not be completed.");
-            }
-
-            TrimGatedMessages(pre);
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-    }
-
-    /// <summary>
-    ///     Validates one field, awaiting any asynchronous rule, and reports whether it passed. While it
-    ///     runs, <see cref="IsValidating" /> reports the field as in flight, which is what a pending
-    ///     indicator watches.
-    /// </summary>
-    /// <param name="field">The field to validate.</param>
-    /// <param name="cancellationToken">Cancels the in-flight validator.</param>
-    /// <returns><see langword="true" /> when the field produced no message.</returns>
-    public async ValueTask<bool> ValidateField(FieldIdentifier field,
-        CancellationToken cancellationToken = default)
-    {
-        var state = GetOrCreate(field);
-
-        // Latest-wins: cancel any prior in-flight run for this field.
-        // Note on the CTS lifecycle (looks racy, isn't): the live transports serialize handler
-        // execution end to end — the Server WS dispatcher and the WASM session each hold their
-        // lock across the whole awaited handler (which is where validation runs), so two
-        // ValidateField calls for the same field never overlap. By the time a later call
-        // reaches here, the earlier one has already nulled state.Cts (sync + finally paths), so
-        // these Cancel/Dispose calls only ever touch a still-owned CTS — no double-dispose, no
-        // ObjectDisposedException. Keep validation off background threads to preserve this.
-#pragma warning disable S6966 // cancel synchronously: a superseded run must see it before this call returns
-        state.Cts?.Cancel();
-#pragma warning restore S6966
-        state.Cts?.Dispose();
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        state.Cts = cts;
-
-        ClearMessages(field);
-
-        var hasFieldDelegate = _fieldDelegates.TryGetValue(field, out var fieldReg);
-        var fieldDelegateIsAsync = hasFieldDelegate && DelegateValidator.IsAsync(fieldReg.Validate);
-
-        // Fast sync path: nothing async to await. Inline first, then attribute-driven, and
-        // first-error-wins short-circuits as soon as any stage flags the field.
-        if (!fieldDelegateIsAsync && _asyncValidators.Count == 0)
-        {
-            if (hasFieldDelegate)
-            {
-                InvokeSyncFieldDelegate(field, fieldReg);
-            }
-
-            RunSyncFieldValidators(field, state);
-            ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-            if (ReferenceEquals(state.Cts, cts))
-            {
-                state.Cts = null;
-            }
-
-            cts.Dispose();
-            return state.Messages.Count == 0;
-        }
-
-        return await ValidateFieldPendingAsync(field, state, fieldReg, hasFieldDelegate, fieldDelegateIsAsync, cts)
-            .ConfigureAwait(false);
-    }
-
-    private async ValueTask<bool> ValidateFieldPendingAsync(
-        FieldIdentifier field, FieldState state, DelegateRegistration fieldReg, bool hasFieldDelegate,
-        bool fieldDelegateIsAsync, CancellationTokenSource cts)
-    {
-        // Async path. Enter the pending bookkeeping up front so the inline delegate (async
-        // or sync) runs ahead of the attribute-driven validators — same order as the sync
-        // path above.
-        var wasZero = state.PendingCount == 0;
-        state.PendingCount++;
-        if (wasZero)
-        {
-            ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        try
-        {
-            if (fieldDelegateIsAsync)
-            {
-                if (!await RunAsyncFieldDelegateAsync(field, fieldReg, cts).ConfigureAwait(false))
-                {
-                    return false;
-                }
-            }
-            else if (hasFieldDelegate)
-            {
-                InvokeSyncFieldDelegate(field, fieldReg);
-            }
-
-            RunSyncFieldValidators(field, state);
-            if (state.Messages.Count == 0 && !await RunAsyncFieldValidatorsAsync(field, state, cts).ConfigureAwait(false))
-            {
-                return false;
-            }
-
-            return state.Messages.Count == 0;
-        }
-        finally
-        {
-            state.PendingCount--;
-            if (state.PendingCount == 0)
-            {
-                if (ReferenceEquals(state.Cts, cts))
-                {
-                    state.Cts = null;
-                }
-
-                ArmStickyDismissal(field, state);
-                ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-            }
-
-            cts.Dispose();
-        }
-    }
-
-    // First-error-wins: skip sync IFieldValidators once the field already has a message from an earlier stage.
-    private void RunSyncFieldValidators(FieldIdentifier field, FieldState state)
-    {
-        if (state.Messages.Count > 0)
-        {
-            return;
-        }
-
-        foreach (var v in _validators)
-        {
-            v.ValidateField(this, field);
-            if (state.Messages.Count > 0)
-            {
-                return;
-            }
-        }
-    }
-
-    // False when the run was superseded or cancelled; a validator that throws is reported as a message instead.
-    private async ValueTask<bool> RunAsyncFieldDelegateAsync(
-        FieldIdentifier field, DelegateRegistration fieldReg, CancellationTokenSource cts)
-    {
-        try
-        {
-            var msgs = await DelegateValidator.InvokeAsync(
-                fieldReg.Validate, fieldReg.ValueGetter(), cts.Token).ConfigureAwait(false);
-            foreach (var m in msgs)
-            {
-                AddValidationMessage(field, m);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            return false;
-        }
-        catch (Exception)
-        {
-            AddValidationMessage(field, "Validation could not be completed.");
-        }
-
-        return !cts.IsCancellationRequested;
-    }
-
-    // As RunAsyncFieldDelegateAsync, over the registered async validators, stopping at the first message.
-    private async ValueTask<bool> RunAsyncFieldValidatorsAsync(
-        FieldIdentifier field, FieldState state, CancellationTokenSource cts)
-    {
-        foreach (var v in _asyncValidators)
-        {
-            try
-            {
-                await v.ValidateField(this, field, cts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return false;
-            }
-            catch (Exception)
-            {
-                AddValidationMessage(field, "Validation could not be completed.");
-            }
-
-            if (cts.IsCancellationRequested)
-            {
-                return false;
-            }
-
-            if (state.Messages.Count > 0)
-            {
-                break;
-            }
-        }
-
-        return true;
-    }
-
-    // Stamps the sticky deadline and schedules a one-shot dismissal render so the
-    // Validation.Indicator gets removed promptly when the sticky tail expires
-    // (without this timer the IsValidating(field) flip from true to false would
-    // only land on the next unrelated render). The render is requested via
-    // <see cref="ValidationStateChanged" /> — LiveRenderContext wires that event
-    // to the root component's render handle when the EditContext is first
-    // attached to a live render.
-    private void ArmStickyDismissal(FieldIdentifier field, FieldState state)
-    {
-        var sticky = ValidatingStickyMs;
-        if (sticky <= 0)
-        {
-            state.StickyUntilUtc = null;
-            return;
-        }
-
-        state.StickyUntilUtc = DateTimeOffset.UtcNow.AddMilliseconds(sticky);
-        state.StickyTimer?.Dispose();
-        state.StickyTimer = new Timer(static s =>
-        {
-#pragma warning disable S8969 // the compiler needs it: unboxing an object? is CS8605 without it
-            var (ctx, fid) = ((EditContext, FieldIdentifier))s!;
-#pragma warning restore S8969
-            if (!ctx._states.TryGetValue(fid, out var inner))
-            {
-                return;
-            }
-
-            // Only clear if we're still in the same sticky window: a fresh
-            // PendingCount > 0 in the meantime resets StickyUntilUtc and the
-            // new cycle owns the dismissal.
-            if (inner.PendingCount > 0)
-            {
-                return;
-            }
-
-            inner.StickyUntilUtc = null;
-            ctx.ValidationStateChanged?.Invoke(ctx, EventArgs.Empty);
-            // Drive the sticky-dismissal render through the host so the
-            // indicator actually leaves the DOM. ValidationStateChanged is a
-            // user-facing notification; the render request itself goes via the
-            // injected callback that LiveRenderContext wires on attach.
-            ctx.RequestRender?.Invoke();
-        }, (this, field), sticky, Timeout.Infinite);
-    }
-
-    /// <summary>
     ///     Marks every field the form knows about as touched, so validation messages that were held back
     ///     until a field was visited all become visible. This is what a rejected submit does — the user
     ///     asked to proceed, so every reason they cannot should now be on screen at once.
@@ -845,40 +544,6 @@ public sealed class EditContext : IDisposable
         }
     }
 
-    // First-error-wins gating. We snapshot the per-field message count before invoking a
-    // validator, then trim any messages that validator added on fields that already had
-    // earlier messages. Two consequences:
-    //   * Across stages — inline → form-level → sync IFieldValidator → async IAsyncFieldValidator
-    //     — a field can only carry an error from the *first* stage that produced one.
-    //   * Across validators within the sync or async stage, the earliest registered validator
-    //     to flag a field wins; later validators don't pile on for the same field.
-    // When the upstream rule passes on a re-validate, the snapshot is empty and the next
-    // stage gets to run, which gives the "fix the error, the next rule kicks in" behaviour.
-    private Dictionary<FieldIdentifier, int> SnapshotMessageCounts()
-    {
-        var snapshot = new Dictionary<FieldIdentifier, int>();
-        foreach (var pair in _states)
-        {
-            if (pair.Value.Messages.Count > 0)
-            {
-                snapshot[pair.Key] = pair.Value.Messages.Count;
-            }
-        }
-
-        return snapshot;
-    }
-
-    private void TrimGatedMessages(Dictionary<FieldIdentifier, int> preCounts)
-    {
-        foreach (var pair in preCounts)
-        {
-            if (_states.TryGetValue(pair.Key, out var s) && s.Messages.Count > pair.Value)
-            {
-                s.Messages.RemoveRange(pair.Value, s.Messages.Count - pair.Value);
-            }
-        }
-    }
-
     internal FieldState GetOrCreate(FieldIdentifier field)
     {
         if (!_states.TryGetValue(field, out var s))
@@ -888,99 +553,6 @@ public sealed class EditContext : IDisposable
         }
 
         return s;
-    }
-
-    private void InvokeSyncFieldDelegate(FieldIdentifier field, DelegateRegistration reg)
-    {
-        try
-        {
-            foreach (var msg in DelegateValidator.InvokeSync(reg.Validate, reg.ValueGetter()))
-            {
-                AddValidationMessage(field, msg);
-            }
-        }
-        catch
-        {
-            AddValidationMessage(field, "Validation could not be completed.");
-        }
-    }
-
-    private void InvokeSyncFormDelegate()
-    {
-        if (_formDelegate is null)
-        {
-            return;
-        }
-
-        try
-        {
-            foreach (var msg in DelegateValidator.InvokeSync(_formDelegate, Model))
-            {
-                AddValidationMessage(new FieldIdentifier(Model, string.Empty), msg);
-            }
-        }
-        catch
-        {
-            AddValidationMessage(new FieldIdentifier(Model, string.Empty), "Validation could not be completed.");
-        }
-    }
-
-    private async ValueTask InvokeFieldDelegateAsync(
-        FieldIdentifier field, DelegateRegistration reg, CancellationToken cancellationToken)
-    {
-        if (DelegateValidator.IsAsync(reg.Validate))
-        {
-            try
-            {
-                var msgs = await DelegateValidator.InvokeAsync(
-                    reg.Validate, reg.ValueGetter(), cancellationToken).ConfigureAwait(false);
-                foreach (var m in msgs)
-                {
-                    AddValidationMessage(field, m);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch
-            {
-                AddValidationMessage(field, "Validation could not be completed.");
-            }
-        }
-        else
-        {
-            InvokeSyncFieldDelegate(field, reg);
-        }
-    }
-
-    private async ValueTask InvokeFormDelegateAsync(Delegate validate, CancellationToken cancellationToken)
-    {
-        var formField = new FieldIdentifier(Model, string.Empty);
-        if (DelegateValidator.IsAsync(validate))
-        {
-            try
-            {
-                var msgs = await DelegateValidator.InvokeAsync(validate, Model, cancellationToken)
-                    .ConfigureAwait(false);
-                foreach (var m in msgs)
-                {
-                    AddValidationMessage(formField, m);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch
-            {
-                AddValidationMessage(formField, "Validation could not be completed.");
-            }
-        }
-        else
-        {
-            InvokeSyncFormDelegate();
-        }
     }
 
     internal sealed class FieldState
