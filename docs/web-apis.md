@@ -76,6 +76,19 @@ stop the browser listening too.
 `IsSupported` asks the browser whether the object at the end of a path is there, instead of your guessing from its
 user agent: `await Navigator.Clipboard.IsSupported`, `await Navigator.IsSupported`.
 
+A web API is generated once ONE browser engine ships it, so the device APIs only Chromium has are here too — WebUSB,
+WebHID, Web Bluetooth, the Battery Status and Network Information APIs, `navigator.vibrate`, the EyeDropper and Idle
+Detection. Their doc comment opens with **Chromium only.** (or Firefox, or Safari), and `IsSupported` is the guard:
+
+```csharp
+if (await Navigator.Usb.IsSupported)
+{
+    var device = await Navigator.Usb.RequestDevice(new() { Filters = [new() { VendorId = 0x2341 }] });
+}
+```
+
+Elements and their attributes stay cross-engine: markup only gets what two engines ship.
+
 ## Testing
 
 `Fake()` stands in for a web object in a test, for the test's own flow, until disposed of: every chain that starts at

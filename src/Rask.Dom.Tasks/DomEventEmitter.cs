@@ -52,6 +52,12 @@ namespace Rask.Core.Dom.Build
             "pop", "print", "priority", "processor", "ready", "rejection", "release", "remove", "resource", "resume",
             "reveal", "selected", "show", "signaling", "source", "statuses", "stop", "storage", "success", "timing", "tone",
             "track", "uncaptured", "unhandled", "unload", "unmute", "upgrade", "version", "voices",
+            // The single-engine APIs' (batterymanager's chargingchange, WebHID's inputreport, Web Speech's soundstart, …).
+            "action", "activate", "app", "audio", "bounds", "character", "characteristic", "charging", "configuration",
+            "discharging", "dismiss", "download", "format", "freeze", "gatt", "geometry", "handle", "install", "installed", "level",
+            "location", "managed", "no", "overflow", "prerendering", "prompt", "reading", "redraw", "reflection", "report",
+            "result", "screen", "screens", "server", "sink", "sound", "sources", "speech", "squeeze", "status", "stream",
+            "streaming", "swap", "terminate", "text", "validation", "value", "zoom",
         };
 
         private static string? CSharp(string idl) => idl.TrimEnd('?') switch

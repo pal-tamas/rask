@@ -18,6 +18,9 @@ internal static class WebHost
         "Element.requestFullscreen", "Element.requestPointerLock", "HTMLInputElement.showPicker", "HTMLSelectElement.showPicker",
         "HTMLVideoElement.requestPictureInPicture", "Navigator.share", "Window.open", "PaymentRequest.show", "Document.requestStorageAccess",
         "ScreenOrientation.lock", "Notification.requestPermission", "MediaDevices.getDisplayMedia", "Serial.requestPort",
+        "USB.requestDevice", "HID.requestDevice", "Bluetooth.requestDevice", "EyeDropper.open", "IdleDetector.requestPermission",
+        "Window.showOpenFilePicker", "Window.showSaveFilePicker", "Window.showDirectoryPicker", "Window.queryLocalFonts",
+        "DocumentPictureInPicture.requestWindow", "PresentationRequest.start", "ContactsManager.select",
     };
 
     private static readonly string[] Families = { "WebGL", "GPU", "AudioWorklet" };

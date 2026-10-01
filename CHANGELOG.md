@@ -398,6 +398,14 @@ them until tagged releases begin.
     other member; in a server app, where the click would be over before the call arrived, they do not compile.
     The globals are sealed classes, no longer static ones, so they can be extended.
   - A member that exists only on an HTTPS page (or localhost), MDN's `[SecureContext]`, says so in its doc comment.
+  - **A web API ships once ONE engine has it**, so the Chromium-only device APIs are generated too — WebUSB, WebHID,
+    Web Bluetooth, Battery Status, Network Information, `navigator.vibrate`, EyeDropper, Idle Detection, Background
+    Sync (~200 more interfaces). The doc comment opens with **Chromium only.** (or Firefox, or Safari) and
+    `IsSupported` guards it: `if (await Navigator.Usb.IsSupported) { … }`. Markup stays cross-engine (two engines).
+    IDL typedefs are now spelled out, so a member typed through one is generated (`Navigator.Vibrate(int[])`,
+    `Performance.GetEntriesByType(…)`). The device pickers that need the click (`Usb`/`Hid`/`Bluetooth.RequestDevice`,
+    `EyeDropper.Open`, `Window.ShowOpenFilePicker`, …) are WebAssembly's, and a class's WebAssembly-only statics
+    live in their own `{Class}WasmMembers` container.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,
