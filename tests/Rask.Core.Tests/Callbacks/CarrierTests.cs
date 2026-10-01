@@ -140,7 +140,7 @@ public class CarrierTests
     [Fact]
     public async Task An_async_validator_awaits_its_rule()
     {
-        var validator = new Validator<string>(new ValidateAsync<string>(async (v, ct) =>
+        var validator = new Validator<string>(new Func<string, ValueTask<IEnumerable<string>>>(async v =>
         {
             await Task.Yield();
             return v.Length < 3 ? ["too short"] : Enumerable.Empty<string>();

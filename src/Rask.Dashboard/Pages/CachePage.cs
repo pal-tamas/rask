@@ -31,23 +31,23 @@ public sealed partial class CachePage(
     protected override RaskDashboardOptions Options => options;
 
     /// <inheritdoc />
-    protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
+    protected override async Task<object?> Load(CancellationToken cancellationToken)
     {
         if (!cache.IsAvailable)
         {
             return null;
         }
 
-        _stats = await cache.StatsAsync(cancellationToken).ConfigureAwait(false);
+        _stats = await cache.Stats(cancellationToken).ConfigureAwait(false);
         (_rows, _total) = await cache
-            .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
+            .Page(Search, _page * options.PageSize, options.PageSize, cancellationToken)
             .ConfigureAwait(false);
 
         if (_rows.Count == 0 && _page > DashboardParts.LastPageIndex(_total, options.PageSize))
         {
             _page = DashboardParts.LastPageIndex(_total, options.PageSize);
             (_rows, _total) = await cache
-                .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
+                .Page(Search, _page * options.PageSize, options.PageSize, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -88,7 +88,7 @@ public sealed partial class CachePage(
                     .Caption("removed by the purge sweep")
             ],
             KeyGrid(now),
-            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(Resume),
             ResultToast(),
         ];
     }
@@ -182,7 +182,7 @@ public sealed partial class CachePage(
 
     private async Task EvictAsync(string key)
     {
-        var removed = await cache.EvictAsync(key, CancellationToken).ConfigureAwait(false);
+        var removed = await cache.Evict(key, CancellationToken).ConfigureAwait(false);
         _message = removed > 0 ? $"Evicted \"{key}\"." : $"\"{key}\" was already gone.";
         await RefreshAsync().ConfigureAwait(false);
     }
@@ -190,21 +190,21 @@ public sealed partial class CachePage(
     private async Task FlushAsync()
     {
         _confirmFlush = false;
-        _message = $"Flushed {await cache.FlushAsync(CancellationToken).ConfigureAwait(false)} entries.";
+        _message = $"Flushed {await cache.Flush(CancellationToken).ConfigureAwait(false)} entries.";
         _page = 0;
         await RefreshAsync().ConfigureAwait(false);
     }
 
     private async Task RefreshAsync()
     {
-        await LoadAsync(CancellationToken).ConfigureAwait(false);
-        await StateHasChangedAsync().ConfigureAwait(false);
+        await Load(CancellationToken).ConfigureAwait(false);
+        StateHasChanged();
     }
 
     private async Task GoAsync(int page)
     {
         _page = Math.Max(0, page);
-        await LoadAsync(CancellationToken).ConfigureAwait(false);
-        await StateHasChangedAsync().ConfigureAwait(false);
+        await Load(CancellationToken).ConfigureAwait(false);
+        StateHasChanged();
     }
 }

@@ -180,7 +180,7 @@ Your app still calls `AddAuthentication`/`AddAuthorization` and `UseAuthenticati
 the [accounts battery](authentication.md) registers them, so a scaffolded app already has them. Their
 absence fails loudly at startup rather than quietly per request.
 
-On the client side, attach the token with `ApiClientOptions.ConfigureRequestAsync` — it receives the
+On the client side, attach the token with `ApiClientOptions.ConfigureRequest` — it receives the
 request rather than the `HttpClient`, so a token is scoped to the call instead of becoming ambient state
 shared by everything that resolves the same client.
 
@@ -214,7 +214,7 @@ holding rules about the request as a whole — the same map `RemoteDispatchExcep
 is the one failure whose text is safe to show: a validation message was authored for whoever sent the
 request, which is why it crosses the wire when handler exception text does not.
 
-`ApiClientOptions.ConfigureRequestAsync` is the hook for a bearer token or a tenant header. It receives
+`ApiClientOptions.ConfigureRequest` is the hook for a bearer token or a tenant header. It receives
 the *request* rather than the `HttpClient`, deliberately: a token on the client is ambient state shared
 by everything that resolves it, while a token here is scoped to the call being made.
 

@@ -54,13 +54,11 @@ dotnet add package Rask.Server   # an ASP.NET app: live pages, database, auth, j
 dotnet add package Rask.Wasm     # a browser app on .NET WebAssembly
 ```
 
-## Four front ends, one back end
+## C# components, and islands for the rest
 
-Rask is a superset, not a rival: your React, Vue, Svelte, Angular or Lit components,
-[a real Blazor component](docs/blazor-components.md), a TypeScript SPA or a Nuxt or Next.js app all run
-on it — and it builds on ASP.NET Core and EF Core rather than replacing them. Pick one per project — all
-four sit on the same C# back end. Islands also compose *inside* a Rask component tree, so those two mix
-freely.
+Pages are C# components. Your React, Vue, Svelte, Solid, Angular, Lit or Preact components — and
+[a real Blazor component](docs/blazor-components.md) — run as islands *inside* those pages, against the
+same C# back end. Rask builds on ASP.NET Core and EF Core rather than replacing them.
 
 ### Rask components
 
@@ -103,37 +101,6 @@ public sealed partial class ColorPicker : ReactComponent
 ```
 
 → [Islands](docs/islands.md)
-
-### SPA
-
-A TypeScript single-page app on an ASP.NET host — React, Preact, Vue, Angular, Solid, Svelte or Lit.
-The client's TypeScript is generated from your C# message records on every build, so
-`await rask.dispatch(getOrder({ id }))` is typed and renaming a C# property breaks the build rather
-than the wire.
-
-```bash
-rask new Shop --template react
-```
-
-→ [TypeScript front ends](docs/spa.md)
-
-### Meta framework
-
-Nuxt, Next.js, SvelteKit, TanStack Start, SolidStart or Analog owning the *whole* front end — its own
-routing, its own rendering, its own Node server — with Rask as the backend behind it. The two ship as
-**one container on one port**: Rask fronts every request, supervises Node as a child process and
-forwards to it over loopback, so ASP.NET auth, rate limiting, logging and health stay in front of the
-framework and the session has one owner. The client was imported from the framework's *own* creator —
-`nuxi`, `create-next-app`, `sv`, `@tanstack/cli` — and is committed, so `rask new` writes it with no
-network and no Node, plus a node-server build and a dev proxy.
-`scripts/refresh-templates.sh` is how a newer upstream gets in. Add `Rask.Meta.Hosting`, and Node at
-runtime, because the framework needs it.
-
-```bash
-rask new Shop --template nuxt
-```
-
-→ [Meta framework front ends](docs/meta.md)
 
 ## Ship it
 

@@ -91,7 +91,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // The bake flag is read through its own provider so it stays out of the compilation cache key,
-        // the same shape CqrsCodecGenerator uses for RaskEmitTypeScript.
+        // the same shape CqrsCodecGenerator uses for RaskCqrsCodec.
         var baked = context.AnalyzerConfigOptionsProvider.Select((options, _) =>
             options.GlobalOptions.TryGetValue(BakedProperty, out var value)
             && value.Equals("true", StringComparison.OrdinalIgnoreCase));
@@ -439,7 +439,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     EndpointSkipped, site, declaredBy,
                     $"parameter '{parameter.Name}' binds from a request header, which a generated client "
                     + "cannot send. Pass it as a route or query value, or set it for every call with "
-                    + "ApiClientOptions.ConfigureRequestAsync"));
+                    + "ApiClientOptions.ConfigureRequest"));
                 return false;
             }
 

@@ -29,5 +29,5 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
                     "."]
             ];
 
-    private Task SignOutAsync() => auth.SignOutAsync(ReturnUrl);
+    private Task SignOutAsync() => auth.SignOut(ReturnUrl);
 }

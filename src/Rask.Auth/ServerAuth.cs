@@ -25,11 +25,11 @@ internal sealed class ServerAuth<TUser>(
     AuthOptions options) : IAuth
     where TUser : Authenticatable, new()
 {
-    public Task<AuthResult> RegisterAsync(
+    public Task<AuthResult> Register(
         string email, string password, string? returnUrl = null, string? firstRunToken = null) =>
         RegisterCoreAsync(email, password, apply: null, returnUrl, firstRunToken);
 
-    public Task<AuthResult> RegisterAsync<T>(
+    public Task<AuthResult> Register<T>(
         string email,
         string password,
         Action<T> apply,
@@ -48,7 +48,7 @@ internal sealed class ServerAuth<TUser>(
         return RegisterCoreAsync(email, password, user => apply((T)(object)user), returnUrl, firstRunToken);
     }
 
-    public async Task<AuthResult> SignInAsync(
+    public async Task<AuthResult> SignIn(
         string email, string password, bool remember = false, string? returnUrl = null)
     {
         var outcome = await accounts.ValidateAsync(email, password, Client()).ConfigureAwait(false);
@@ -61,27 +61,27 @@ internal sealed class ServerAuth<TUser>(
         return outcome.Result;
     }
 
-    public Task SignOutAsync(string? returnUrl = null) =>
+    public Task SignOut(string? returnUrl = null) =>
         signIn.SignOutAsync(returnUrl ?? options.LoginPath);
 
-    public Task SignOutOtherDevicesAsync() => accounts.SignOutOtherDevicesAsync(users.Current);
+    public Task SignOutOtherDevices() => accounts.SignOutOtherDevicesAsync(users.Current);
 
-    public async Task SignOutEverywhereAsync(string? returnUrl = null)
+    public async Task SignOutEverywhere(string? returnUrl = null)
     {
         await accounts.SignOutEverywhereAsync(users.Current).ConfigureAwait(false);
         await signIn.SignOutAsync(returnUrl ?? options.LoginPath).ConfigureAwait(false);
     }
 
-    public Task<AuthResult> SendPasswordResetAsync(string email) =>
+    public Task<AuthResult> SendPasswordReset(string email) =>
         accounts.SendPasswordResetAsync(email, Client());
 
-    public Task<AuthResult> ResetPasswordAsync(string userId, string token, string password) =>
+    public Task<AuthResult> ResetPassword(string userId, string token, string password) =>
         accounts.ResetPasswordAsync(userId, token, password);
 
-    public Task<AuthResult> ConfirmEmailAsync(string userId, string token) =>
+    public Task<AuthResult> ConfirmEmail(string userId, string token) =>
         accounts.ConfirmEmailAsync(userId, token);
 
-    public async Task<AuthResult> AddPasskeyAsync(string? name = null)
+    public async Task<AuthResult> AddPasskey(string? name = null)
     {
         if (AuthPrincipal.UserId(users.Current) is not { } userId)
         {
@@ -135,7 +135,7 @@ internal sealed class ServerAuth<TUser>(
             .ConfigureAwait(false);
     }
 
-    public async Task<AuthResult> SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null)
+    public async Task<AuthResult> SignInWithPasskey(bool remember = false, string? returnUrl = null)
     {
         if (accounts.BeginPasskeySignIn(Origin()) is not { } challenge)
         {
@@ -181,7 +181,7 @@ internal sealed class ServerAuth<TUser>(
         return outcome.Result;
     }
 
-    public Task<AuthResult> RemovePasskeyAsync(Guid id) =>
+    public Task<AuthResult> RemovePasskey(Guid id) =>
         AuthPrincipal.UserId(users.Current) is { } userId
             ? accounts.RemovePasskeyAsync(userId, id)
             : Task.FromResult(AuthResult.Fail(AuthError.NotAllowed));

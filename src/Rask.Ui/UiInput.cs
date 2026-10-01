@@ -178,11 +178,11 @@ public sealed partial class UiInput<T> : UiFormField<T>
             await Rask.Core.Forms.BindingHelpers
                 .NotifyAndValidateFieldAsync(Rask.Core.Forms.BindingHelpers.ResolveBindingContext(acc.Target), acc.Field)
                 .ConfigureAwait(false);
-            await self.InvokeAfterBindAsync(default!).ConfigureAwait(false);
+            await self.InvokeAfterBind(default!).ConfigureAwait(false);
             return;
         }
 
-        await self.InvokeOnChangeAsync(default!).ConfigureAwait(false);
+        await self.InvokeOnChange(default!).ConfigureAwait(false);
     }
 
     private HTMLInputElement<T> Field()

@@ -7,10 +7,8 @@
 // the shapes come from Rask.Core.Authentication.AuthApi, so a front end and a component are talking
 // to one API rather than to two that happen to agree today.
 //
-// WORKS ON A SERVER TOO, and that is deliberate rather than incidental. A meta framework's SSR pass
-// runs in node, where fetch exists but there is no cookie jar and no page origin — so every call
-// takes an optional `baseUrl` and `headers`, which is exactly what the callback into the C# app
-// needs. See docs/meta.md.
+// WORKS OUTSIDE A PAGE TOO: in node, fetch exists but there is no cookie jar and no page origin, so
+// every call takes an optional `baseUrl` and `headers`.
 
 /** Where the endpoints live, and who is asking. */
 export interface AuthRequest {

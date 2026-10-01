@@ -43,14 +43,14 @@ Rask.Cqrs.IPipelineBehavior<TRequest, TResult>
 Rask.Cqrs.IQuery<TResult>
 Rask.Cqrs.IQueryHandler<TQuery, TResult>
 Rask.Cqrs.IRemoteDispatch
-Rask.Cqrs.IRemoteDispatch.SendAsync(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-Rask.Cqrs.IRemoteDispatch.SendAsync<TResult>(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IRemoteDispatch.Send(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IRemoteDispatch.Send<TResult>(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IRemoteRequestValidator
 Rask.Cqrs.IRequestValidator<TRequest>
 Rask.Cqrs.ISubscription<TNotification>
 Rask.Cqrs.ISubscription<TNotification>.Matches(TNotification notification) -> bool
 Rask.Cqrs.IWatchPolicy<TSubscription>
-Rask.Cqrs.IWatchPolicy<TSubscription>.CanWatchAsync(TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
+Rask.Cqrs.IWatchPolicy<TSubscription>.CanWatch(TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 Rask.Cqrs.LocalOnlyAttribute
 Rask.Cqrs.LocalOnlyAttribute.LocalOnlyAttribute() -> void
 Rask.Cqrs.NotificationDispatch
@@ -172,7 +172,7 @@ override Rask.Cqrs.RequestValidationError.GetHashCode() -> int
 override Rask.Cqrs.Unit.Equals(object? obj) -> bool
 override Rask.Cqrs.Unit.GetHashCode() -> int
 override Rask.Cqrs.Unit.ToString() -> string!
-static Rask.Cqrs.CqrsRegistry.CanWatchAsync<TSubscription>(System.IServiceProvider! provider, TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
+static Rask.Cqrs.CqrsRegistry.CanWatch<TSubscription>(System.IServiceProvider! provider, TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 static Rask.Cqrs.CqrsRegistry.FindNotificationInvoker(System.Type! notificationType) -> Rask.Cqrs.CqrsRegistry.NotificationInvoker?
 static Rask.Cqrs.CqrsRegistry.RegisterNotification(System.Type! notificationType, Rask.Cqrs.CqrsRegistry.NotificationInvoker! invoker) -> void
 static Rask.Cqrs.CqrsRegistry.RegisterRequest(System.Type! requestType, Rask.Cqrs.CqrsRegistry.RequestInvoker! invoker) -> void

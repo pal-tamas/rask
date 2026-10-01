@@ -58,11 +58,11 @@ internal static class UiFormCommit
         {
             accessor.Setter(value);
             await BindingHelpers.NotifyAndValidateFieldAsync(context, accessor.Field).ConfigureAwait(false);
-            await control.InvokeAfterBindAsync(value).ConfigureAwait(false);
+            await control.InvokeAfterBind(value).ConfigureAwait(false);
         }
         else
         {
-            await control.InvokeOnChangeAsync(value).ConfigureAwait(false);
+            await control.InvokeOnChange(value).ConfigureAwait(false);
         }
     }
 
@@ -104,7 +104,7 @@ internal static class UiFormCommit
             // Controlled: a fresh list, never the collection the parent handed down. Mutating that one
             // would change the parent's state behind its back and leave OnChange looking like a no-op,
             // because the "new" value and the old are the same object.
-            await control.InvokeOnChangeAsync([.. picked]).ConfigureAwait(false);
+            await control.InvokeOnChange([.. picked]).ConfigureAwait(false);
             return;
         }
 
@@ -114,7 +114,7 @@ internal static class UiFormCommit
         }
 
         await BindingHelpers.NotifyAndValidateFieldAsync(context, accessor.Field).ConfigureAwait(false);
-        await control.InvokeAfterBindAsync(accessor.Getter() as ICollection<T> ?? [.. picked])
+        await control.InvokeAfterBind(accessor.Getter() as ICollection<T> ?? [.. picked])
             .ConfigureAwait(false);
     }
 

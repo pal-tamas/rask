@@ -109,9 +109,8 @@
     <!--
       In-repo there is no package, so the file above does not exist: a consumer references the PROJECT,
       and the sheet is still in Rask.Ui's own obj/. Conditioned on the packed item being empty so a
-      package consumer never evaluates this path — the same shape as Rask.Meta.Hosting's in-repo
-      fallback, and for the same reason: without it the in-repo build silently writes nothing and every
-      page links a stylesheet that was never produced.
+      package consumer never evaluates this path. Without it the in-repo build silently writes nothing
+      and every page links a stylesheet that was never produced.
 
       NOT A HARD-CODED TFM, and that is the whole point of the two steps below.
 

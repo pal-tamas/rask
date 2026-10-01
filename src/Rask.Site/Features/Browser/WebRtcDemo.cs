@@ -35,12 +35,12 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
     private string _state = "not connected";
     private bool _supported = true;
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         _supported = await rtc.IsSupportedAsync();
         if (!_supported)
         {
-            await StateHasChangedAsync();
+            StateHasChanged();
         }
     }
 
@@ -84,7 +84,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
 
         _connecting = true;
         _state = "connecting";
-        await StateHasChangedAsync();
+        StateHasChanged();
 
         // The caller. Its local candidates belong to the callee — in a real app, this is a signaling send.
         _caller = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
@@ -120,7 +120,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         _callerReady = true;
 
         await FlushAsync();
-        await StateHasChangedAsync();
+        StateHasChanged();
     }
 
     // Hands a batch of candidates to the other peer, holding them back until that peer has a remote
@@ -134,7 +134,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
         // Counted for the demo's own display: this is the batch the browser pushed into C#, so a non-zero
         // count is proof the whole gather → coalesce → [JSInvokable] → callback path ran.
         _localCandidates += candidates.Count;
-        await StateHasChangedAsync();
+        StateHasChanged();
 
         if (target is null || !ready)
         {

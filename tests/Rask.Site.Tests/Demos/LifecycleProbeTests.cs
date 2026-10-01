@@ -50,8 +50,8 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         Assert.Matches(@"OnMount \(after a 450ms await\)</code>\s*<span[^>]*>resolved", html);
         Assert.Matches(@"OnUpdated</code>\s*<span[^>]*>ran 1x", html);
 
-        // OnFirstRendered runs once however many renders follow; OnRendered runs after every one of them.
-        Assert.Matches(@"OnFirstRendered</code>\s*<span[^>]*>ran 1x", html);
+        // OnFirstRender runs once however many renders follow; OnRendered runs after every one of them.
+        Assert.Matches(@"OnFirstRender</code>\s*<span[^>]*>ran 1x", html);
         Assert.Matches(@"OnRendered</code>\s*<span[^>]*>ran \d+x", html);
     }
 

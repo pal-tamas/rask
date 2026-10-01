@@ -21,10 +21,8 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
 
     /// <summary>The template key for a Rask WebAssembly front end on an ASP.NET host.</summary>
     /// <remarks>
-    /// Named once and shared, because it is the one template key that is not derived from a table:
-    /// <see cref="SpaFramework.All"/> and <see cref="MetaTemplate.All"/> supply theirs, and a literal
-    /// spelled out at each of the four places that ask about it is how a key comes to be accepted by the
-    /// parser and then generate something else.
+    /// Named once and shared: a literal spelled out at each of the places that ask about it is how a key
+    /// comes to be accepted by the parser and then generate something else.
     /// </remarks>
     internal const string WasmHostedKey = "wasm-hosted";
 
@@ -217,22 +215,6 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
         TemplateInfo template, string dir, string name, ServerBatteries batteries, string version,
         IReadOnlyList<string> islands, DotnetTarget dotnet)
     {
-        // A front-end framework claims its own template key, so this has to be asked before the
-        // switch below — and asking the SAME list the catalog was built from is what stops a key
-        // being accepted by the parser and then generating something else.
-        if (SpaFramework.TryGet(template.Key, out var framework))
-        {
-            return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version, dotnet);
-        }
-
-        // The other front-end lane, asked the same way and for the same reason: the meta
-        // templates' keys ARE the RaskMetaFramework values, so this asks the table that decides
-        // what gets built rather than a second list that can drift from it.
-        if (MetaTemplate.TryGet(template.Key, out var meta))
-        {
-            return ProjectGenerator.GenerateMeta(dir, name, meta, batteries, version, dotnet);
-        }
-
         return template.Key switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
@@ -280,7 +262,6 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
     private static readonly Dictionary<string, string> SkipFrontEndBuild = new(StringComparer.Ordinal)
     {
         ["RaskSpaBuild"] = "false",
-        ["RaskMetaBuild"] = "false",
     };
 
     /// <summary>

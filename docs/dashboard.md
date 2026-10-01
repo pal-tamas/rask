@@ -23,10 +23,10 @@ builder.Services.AddAuthorization(o =>
 ## Where it can run
 
 The dashboard is server-rendered and reads your database directly, so it lives wherever your ASP.NET host
-does — the `server` template, and a host that serves a single-page app (a Rask WebAssembly app or a
-TypeScript front end) through [`MapRaskSpa`](spa.md#a-rask-webassembly-app).
+does — the `server` template, and a host that serves a Rask WebAssembly app through
+[`MapRaskSpa`](deployment.md#serving-a-webassembly-app).
 
-A SPA host normally runs no components at all: it serves the app and an API. Mounting the dashboard gives
+A WebAssembly host normally runs no components at all: it serves the app and an API. Mounting the dashboard gives
 it exactly one server-rendered route chain, scoped so the client keeps everything else:
 
 ```csharp
@@ -43,13 +43,13 @@ app.MapRaskSpa();                                           // the app, everywhe
 app gets it from `RaskApp.Create(args).Serve()`, which mounts the dashboard under `/_rask` and maps the
 browser app's fallback after it; the lines above are the same thing by hand.
 
-Two details are worth knowing if you assemble this by hand. The SPA's fallback is the lowest precedence
+Two details are worth knowing if you assemble this by hand. The app's fallback is the lowest precedence
 there is, so mounting the dashboard above it claims the dashboard's routes without taking any of the
 client's. And both halves want `/_rask/a/{hash}` — the dashboard's scoped styles and a WebAssembly app's
 baked ones — so the dashboard's endpoint answers a hash its own process never registered from the web
 root, where `MapRaskSpa` puts the app's.
 
-`RaskDashboardShell` is the root the pages render through: a host serving a SPA has no component of its
+`RaskDashboardShell` is the root the pages render through: a host serving a WebAssembly app has no component of its
 own for `MapRaskServer<TApp>` to name.
 
 ## What it shows
@@ -210,7 +210,7 @@ a probe:
 public sealed class BackupProbe(LitestreamStatus? litestream = null, ISqliteSnapshotStore? snapshots = null)
     : IDashboardBackupProbe
 {
-    public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken ct)
+    public Task<BackupReplicationInfo?> Replication(CancellationToken ct)
     {
         if (litestream is null)
         {
@@ -222,7 +222,7 @@ public sealed class BackupProbe(LitestreamStatus? litestream = null, ISqliteSnap
             new(s.IsReplicating, s.LastStartedAt, s.RestartCount, s.LastError));
     }
 
-    public async Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken ct) =>
+    public async Task<IReadOnlyList<BackupSnapshotInfo>> Snapshots(CancellationToken ct) =>
         snapshots is null
             ? []
             : [.. (await snapshots.ListAsync(ct)).Select(s => new BackupSnapshotInfo(s.Name, s.SizeBytes, s.CreatedAt))];

@@ -14,7 +14,7 @@ public sealed partial class ProgrammaticValidateDemo : Component, IDisposable
         _ctx.AddValidator(new SlowTitleValidator());
     }
 
-    private async Task ValidateNowAsync() => await _ctx.ValidateAsync().ConfigureAwait(false);
+    private async Task ValidateNowAsync() => await _ctx.Validate().ConfigureAwait(false);
 
     public void Dispose() => _ctx.Dispose();
 

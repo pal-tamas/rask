@@ -312,7 +312,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             StateHasChanged();
             try
             {
-                await ctx.ValidateAsync().ConfigureAwait(false);
+                await ctx.Validate().ConfigureAwait(false);
                 ctx.TouchAllRegisteredFields();
                 var isValid = !ctx.HasValidationMessages();
                 var onModel = isValid ? OnSubmit : OnInvalidSubmit;

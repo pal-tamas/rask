@@ -126,13 +126,10 @@ internal sealed partial class NewCommand
             return false;
         }
 
-        // Skip the front-end build for this one build. `dotnet-ef` builds the project to load the
-        // DbContext, and with the batteries on that build defaults to RaskSpaBuild/RaskMetaBuild=true —
-        // so scaffolding a front-end template ran the bundler, or on the meta lane a full Nuxt/Next
-        // production build, behind a line that says "Creating the first migration…". Minutes of silence
-        // for output nobody reads: the next thing anyone does is `rask dev`, which turns both off again
-        // and lets the framework's own dev server own the front end. A missing node then failed the
-        // migration step for a reason that has nothing to do with the database.
+        // Skip the client publish for this one build. `dotnet-ef` builds the project to load the
+        // DbContext, and that build defaults to RaskSpaBuild=true — a WebAssembly publish behind a line
+        // that says "Creating the first migration…", for output nobody reads: the next thing anyone does
+        // is `rask dev`, which turns it off again.
         var db = new DbCommand(Console, _fileSystem, _process, targetDirectory, SkipFrontEndBuild);
 
         Console.WriteLine("Creating the first migration…", ConsoleStyle.Dim);

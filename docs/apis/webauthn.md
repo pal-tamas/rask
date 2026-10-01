@@ -12,7 +12,7 @@
 
 This is the **browser half** on its own: it runs a ceremony and hands back what the authenticator signed, leaving the
 challenge and the verification to you. If you are adding passkeys to an app's accounts, Rask.Auth already does both
-ends — `auth.AddPasskeyAsync("MacBook")` and `auth.SignInWithPasskeyAsync()` — with the credential stored and the
+ends — `auth.AddPasskey("MacBook")` and `auth.SignInWithPasskey()` — with the credential stored and the
 signature verified server-side. See [Passkeys](../authentication.md#passkeys).
 
 Reach for `IWebAuthn` directly when the relying party is somebody else's server, or when you are verifying the

@@ -165,7 +165,7 @@ public sealed partial class DashboardLayout(
     // nothing instead of half-matching.
     //
     // OrdinalIgnoreCase to agree with QueuePage, which resolves its panel case-insensitively (QueuePage
-    // .LoadAsync). Comparing Ordinal here meant /_rask/queues/Jobs rendered the Jobs queue perfectly while
+    // .Load). Comparing Ordinal here meant /_rask/queues/Jobs rendered the Jobs queue perfectly while
     // the crumb and the switcher above it silently vanished — the page working and its chrome disagreeing
     // about whether you were on it.
     private IQueuePanel? CurrentQueue()

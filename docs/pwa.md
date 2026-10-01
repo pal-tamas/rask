@@ -32,14 +32,11 @@ Start a new app with the **`--pwa`** option:
 ```bash
 rask new MyApp --template wasm                # standalone browser-WASM PWA (full offline)
 rask new MyApp                                # installable + push-capable Server app (not offline)
-rask new MyApp --template react               # installable + push-capable TypeScript SPA (not offline)
 ```
 
 The WASM templates scaffold a manifest + icon and register Rask's default service worker from
 `index.html`. The Server template calls `AddRaskPwa(...)`, which serves the manifest + service worker
-and registers it for you, plus a static `offline.html`. A [front-end template](spa.md) puts all three
-in the client's own `public/` instead — the bundler copies them to the bundle root, so they work under
-its dev server as well as in a build, which a host-served worker would not. To add PWA to an existing app, follow the steps
+and registers it for you, plus a static `offline.html`. To add PWA to an existing app, follow the steps
 below — the [manifest](#installable--the-web-app-manifest) and, for WASM,
 [service-worker registration](#offline--the-service-worker); for Server, just
 [`AddRaskPwa`](#pwa-on-the-server-host).
@@ -112,7 +109,7 @@ public sealed partial class InstallButton(IInstallPrompt install) : Component
 {
     private bool _canInstall;
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         _canInstall = !await install.IsInstalledAsync() && await install.CanInstallAsync();
         StateHasChanged();
@@ -201,7 +198,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
 {
     private IAsyncDisposable? _subscription;
 
-    public override async Task OnFirstRendered()
+    public override async Task OnFirstRender()
     {
         // Subscribe BEFORE requesting. A sync that landed while the page was still booting is held for
         // the first subscriber, so an event that beat your startup code still reaches it.

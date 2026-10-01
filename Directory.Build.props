@@ -222,16 +222,11 @@
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Server\build\Rask.Server.props') "/>
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props"
           Condition=" '$(_RaskInRepoImplicitUsings)' == 'true' AND Exists('$(MSBuildThisFileDirectory)src\Rask.Wasm\build\Rask.Wasm.props') "/>
-  <!-- Knobs only (defaults for the front-end build), so unlike the implicit-usings props above this one
-       is imported everywhere: the matching .targets reads these defaults, and a consumer gets both
+  <!-- Knobs only (the WebAssembly client's publish folder), so unlike the implicit-usings props above this
+       one is imported everywhere: the matching .targets reads these defaults, and a consumer gets both
        automatically from the package's build/ folder. -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.props"
           Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Spa.Hosting\build\Rask.Spa.Hosting.props') "/>
-  <!-- Knobs only again, and the quietest of the three: the meta targets do nothing at all unless a
-       project sets RaskMetaFramework, so this is inert in every project in the repo. It also declares RaskEmitTypeScript compiler-visible, which is what makes the CQRS
-       generator project a meta host's message records into TypeScript. -->
-  <Import Project="$(MSBuildThisFileDirectory)src\Rask.Meta.Hosting\build\Rask.Meta.Hosting.props"
-          Condition=" Exists('$(MSBuildThisFileDirectory)src\Rask.Meta.Hosting\build\Rask.Meta.Hosting.props') "/>
   <!-- Same reasoning: knobs only. The island targets gate their own work on the project having a
        package.json, so this is inert in every project that has no front-end file. -->
   <Import Project="$(MSBuildThisFileDirectory)src\Rask.External\build\Rask.External.props"

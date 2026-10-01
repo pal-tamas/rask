@@ -242,13 +242,13 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
 
     private sealed class RejectingAsyncValidator : IAsyncFieldValidator
     {
-        public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+        public async ValueTask Validate(EditContext context, CancellationToken cancellationToken)
         {
             await Task.Delay(10, cancellationToken).ConfigureAwait(false);
             context.AddValidationMessage(new FieldIdentifier(context.Model, "Name"), "remote check failed");
         }
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
     }

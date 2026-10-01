@@ -255,32 +255,24 @@ internal sealed class DoctorCommand(
         }
     }
 
-    /// <summary>The Node row, measured against the LTS line the scaffolders themselves track.</summary>
+    /// <summary>The Node row, measured against the floor island builds enforce.</summary>
     private static DoctorCheck NodeCheck(string? node)
     {
         if (node is null)
         {
             return new DoctorCheck(
                 "node", DoctorStatus.Warn, "not found",
-                "`rask new --template react|vue|svelte|solid|lit|preact|angular` scaffolds with it. "
-                + NodeRequirement.InstallHint);
+                "Only islands (`rask new --islands …`) need it. " + NodeRequirement.InstallHint);
         }
 
+        // Warn, never fail: an app without islands builds on any Node, or none.
         var version = NodeRequirement.Parse(node);
-        if (version is not null && version < NodeRequirement.ScaffoldLine)
+        if (version is not null && version < NodeRequirement.BuildFloor)
         {
-            // Warn, never fail: this Node still BUILDS an app above RaskSpaMinimumNode. What it cannot
-            // reliably do is scaffold a new one, because that shells out to somebody else's current CLI.
-            var buildsFine = version >= NodeRequirement.BuildFloor;
             return new DoctorCheck(
                 "node", DoctorStatus.Warn,
-                $"{node} (below the {NodeRequirement.ScaffoldLine.Major} LTS line)",
-                buildsFine
-                    ? "Existing apps build on it, but `rask new` on a front-end template may not: "
-                      + "create-vite and the Angular CLI raise their own floors, and Angular already "
-                      + $"refuses below v{NodeRequirement.ScaffoldLine}. " + NodeRequirement.InstallHint
-                    : $"Below RaskSpaMinimumNode ({NodeRequirement.BuildFloor}) too, so a front-end "
-                      + "build fails with RASKSPA005. " + NodeRequirement.InstallHint);
+                $"{node} (below {NodeRequirement.BuildFloor})",
+                "An app with islands fails to build with RASKISLAND001. " + NodeRequirement.InstallHint);
         }
 
         return new DoctorCheck("node", DoctorStatus.Ok, node, null);

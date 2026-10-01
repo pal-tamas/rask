@@ -6,8 +6,8 @@ Rask.Dashboard.Pages.__RaskNav_StoragePage
 Rask.Dashboard.Pages.__RaskNav_StoragePage.extension(Rask.Dashboard.Pages.StoragePage!)
 Rask.Dashboard.Panels.IStoragePanelReader
 Rask.Dashboard.Panels.IStoragePanelReader.IsAvailable.get -> bool
-Rask.Dashboard.Panels.IStoragePanelReader.PageAsync(string? search, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.StoredFileRow!>! Rows, int Total)>!
-Rask.Dashboard.Panels.IStoragePanelReader.StatsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.StorageStats>!
+Rask.Dashboard.Panels.IStoragePanelReader.Page(string? search, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.StoredFileRow!>! Rows, int Total)>!
+Rask.Dashboard.Panels.IStoragePanelReader.Stats(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.StorageStats>!
 Rask.Dashboard.Panels.ProviderUsage
 Rask.Dashboard.Panels.ProviderUsage.<Clone>$() -> Rask.Dashboard.Panels.ProviderUsage!
 Rask.Dashboard.Panels.ProviderUsage.Bytes.get -> long
@@ -133,7 +133,7 @@ Rask.Dashboard.Pages.PollingPanel.IsLoading.get -> bool
 Rask.Dashboard.Pages.PollingPanel.IsParked.get -> bool
 Rask.Dashboard.Pages.PollingPanel.LoadError.get -> string?
 Rask.Dashboard.Pages.PollingPanel.PollingPanel() -> void
-Rask.Dashboard.Pages.PollingPanel.ResumeAsync() -> System.Threading.Tasks.Task!
+Rask.Dashboard.Pages.PollingPanel.Resume() -> System.Threading.Tasks.Task!
 Rask.Dashboard.Pages.QueuePage
 Rask.Dashboard.Pages.QueuePage.Queue.get -> string!
 Rask.Dashboard.Pages.QueuePage.Queue.set -> void
@@ -236,35 +236,35 @@ Rask.Dashboard.Panels.DatabaseInfo.Provider.init -> void
 Rask.Dashboard.Panels.DatabaseInfo.SizeBytes.get -> long?
 Rask.Dashboard.Panels.DatabaseInfo.SizeBytes.init -> void
 Rask.Dashboard.Panels.ICachePanelReader
-Rask.Dashboard.Panels.ICachePanelReader.EvictAsync(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
-Rask.Dashboard.Panels.ICachePanelReader.FlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.ICachePanelReader.Evict(string! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.ICachePanelReader.Flush(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
 Rask.Dashboard.Panels.ICachePanelReader.IsAvailable.get -> bool
-Rask.Dashboard.Panels.ICachePanelReader.PageAsync(string? search, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.CacheKeyRow!>! Rows, int Total)>!
-Rask.Dashboard.Panels.ICachePanelReader.StatsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.CacheStats>!
+Rask.Dashboard.Panels.ICachePanelReader.Page(string? search, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.CacheKeyRow!>! Rows, int Total)>!
+Rask.Dashboard.Panels.ICachePanelReader.Stats(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.CacheStats>!
 Rask.Dashboard.Panels.IDashboardBackupProbe
-Rask.Dashboard.Panels.IDashboardBackupProbe.ReplicationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupReplicationInfo?>!
-Rask.Dashboard.Panels.IDashboardBackupProbe.SnapshotsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.BackupSnapshotInfo!>!>!
-Rask.Dashboard.Panels.IDashboardBackupProbe.VerificationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupVerificationInfo?>!
+Rask.Dashboard.Panels.IDashboardBackupProbe.Replication(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupReplicationInfo?>!
+Rask.Dashboard.Panels.IDashboardBackupProbe.Snapshots(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.BackupSnapshotInfo!>!>!
+Rask.Dashboard.Panels.IDashboardBackupProbe.Verification(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupVerificationInfo?>!
 Rask.Dashboard.Panels.IQueueActions
-Rask.Dashboard.Panels.IQueueActions.DeleteAsync(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
-Rask.Dashboard.Panels.IQueueActions.PurgeProcessedAsync(System.TimeSpan olderThan, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
-Rask.Dashboard.Panels.IQueueActions.RetryAllAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
-Rask.Dashboard.Panels.IQueueActions.RetryAsync(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueueActions.Delete(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueueActions.PurgeProcessed(System.TimeSpan olderThan, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueueActions.RetryAll(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+Rask.Dashboard.Panels.IQueueActions.Retry(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
 Rask.Dashboard.Panels.IQueuePanel
-Rask.Dashboard.Panels.IQueuePanel.CountsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.QueueCounts>!
+Rask.Dashboard.Panels.IQueuePanel.Counts(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.QueueCounts>!
 Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Ui.IconName
 Rask.Dashboard.Panels.IQueuePanel.IsAvailable.get -> bool
 Rask.Dashboard.Panels.IQueuePanel.MaxAttempts.get -> int
-Rask.Dashboard.Panels.IQueuePanel.PageAsync(Rask.Dashboard.Panels.QueueFilter filter, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.QueueRow!>! Rows, int Total)>!
+Rask.Dashboard.Panels.IQueuePanel.Page(Rask.Dashboard.Panels.QueueFilter filter, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.QueueRow!>! Rows, int Total)>!
 Rask.Dashboard.Panels.IQueuePanel.Slug.get -> string!
 Rask.Dashboard.Panels.IQueuePanel.Title.get -> string!
 Rask.Dashboard.Panels.ISystemPanelReader
-Rask.Dashboard.Panels.ISystemPanelReader.DatabaseAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.DatabaseInfo!>!
+Rask.Dashboard.Panels.ISystemPanelReader.Database(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.DatabaseInfo!>!
 Rask.Dashboard.Panels.ISystemPanelReader.HasBackupProbe.get -> bool
-Rask.Dashboard.Panels.ISystemPanelReader.RecurringJobsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.RecurringJobRow!>!>!
-Rask.Dashboard.Panels.ISystemPanelReader.ReplicationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupReplicationInfo?>!
-Rask.Dashboard.Panels.ISystemPanelReader.SnapshotsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.BackupSnapshotInfo!>!>!
-Rask.Dashboard.Panels.ISystemPanelReader.VerificationAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupVerificationInfo?>!
+Rask.Dashboard.Panels.ISystemPanelReader.RecurringJobs(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.RecurringJobRow!>!>!
+Rask.Dashboard.Panels.ISystemPanelReader.Replication(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupReplicationInfo?>!
+Rask.Dashboard.Panels.ISystemPanelReader.Snapshots(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.BackupSnapshotInfo!>!>!
+Rask.Dashboard.Panels.ISystemPanelReader.Verification(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupVerificationInfo?>!
 Rask.Dashboard.Panels.QueueCounts
 Rask.Dashboard.Panels.QueueCounts.Deconstruct(out int Due, out int Delayed, out int Failed, out int Processed) -> void
 Rask.Dashboard.Panels.QueueCounts.Delayed.get -> int
@@ -344,7 +344,7 @@ Rask.Dashboard.RaskDashboardShell
 Rask.Dashboard.RaskDashboardShell.RaskDashboardShell() -> void
 RaskBuilderSettersRask_Dashboard
 RaskEntriesRask_Dashboard
-abstract Rask.Dashboard.Pages.PollingPanel.LoadAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<object?>!
+abstract Rask.Dashboard.Pages.PollingPanel.Load(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<object?>!
 abstract Rask.Dashboard.Pages.PollingPanel.Options.get -> Rask.Dashboard.RaskDashboardOptions!
 const Rask.Dashboard.RaskDashboardPolicies.Access = "RaskDashboard" -> string!
 override Rask.Dashboard.Logging.DashboardLogEntry.Equals(object? obj) -> bool

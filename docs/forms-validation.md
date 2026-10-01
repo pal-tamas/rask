@@ -6,10 +6,11 @@ Inline, DataAnnotations, FluentValidation, and async validators for Rask forms.
 
 ## Inline validation
 
-The lightest layer. Chain a `.Validate(…)` rule — per-field or per-form. Both
-accept a sync `Func<…, IEnumerable<string>>` or an async
-`Func<…, CancellationToken, ValueTask<IEnumerable<string>>>`; overload resolution picks by arity, no
-cast. An empty sequence means valid.
+The lightest layer. Chain a `.Validate(…)` rule — per-field or per-form. Both take either shape
+under the one name, the way `Callback` takes a sync or an async handler: `v => …` returning the
+messages, or `async v => …` awaiting something first (its token is `Current.Cancellation`). The
+lambda's shape picks the overload — no cast, no `…Async` sibling. An empty
+sequence means valid.
 
 ```csharp
 Form.Model(_model)
@@ -29,8 +30,8 @@ Per-field `Validate:` produces field-scoped messages and runs on each keystroke 
 touched. Form-level `Validate:` runs at submit and attaches messages to the form-level slot
 (`FieldIdentifier(model, "")`) — they surface in `Validation.Summary`, never against a specific input.
 
-An inline `Validate:` can also be async (`Func<…, CancellationToken, ValueTask<IEnumerable<string>>>`);
-the token cancels the in-flight check on the next keystroke:
+An inline `Validate:` can also be async (`async v => …`); the next keystroke cancels the in-flight
+check through the ambient token — `Current.Cancellation`, which anything awaited inside picks up:
 
 <!-- demo:validation-inline-async -->
 
@@ -165,15 +166,15 @@ FluentValidation one on the same field. Nothing was reordered to make this work.
 
 Three ways to validate asynchronously:
 
-1. **Inline async `Validate:`** — return a `ValueTask<IEnumerable<string>>`. The `CancellationToken`
-   cancels the in-flight check on the next keystroke (latest-wins).
+1. **Inline async `Validate:`** — `async v => …`. The field's token cancels the in-flight check on
+   the next keystroke (latest-wins).
 2. **`IAsyncFieldValidator`** — reach for this when the rule needs DI (an `HttpClient`, a
    repository) or you want to reuse it across forms. Add it to an `EditContext` you own:
 
    ```csharp
    public sealed class UniqueUsernameValidator : IAsyncFieldValidator
    {
-       public async ValueTask ValidateFieldAsync(EditContext ctx, FieldIdentifier field, CancellationToken ct)
+       public async ValueTask ValidateField(EditContext ctx, FieldIdentifier field, CancellationToken ct)
        {
            if (ctx.Model is SignupModel m && field.FieldName == nameof(SignupModel.Username))
            {
@@ -182,7 +183,7 @@ Three ways to validate asynchronously:
                    ctx.AddValidationMessage(field, "Already taken.");
            }
        }
-       public ValueTask ValidateAsync(EditContext c, CancellationToken ct) => default;
+       public ValueTask Validate(EditContext c, CancellationToken ct) => default;
    }
 
    _ctx = new EditContext(_model);
@@ -207,7 +208,7 @@ An `IAsyncFieldValidator` (the username-uniqueness check above) with the validat
 
 <!-- demo:validation-async -->
 
-Validation can also be driven **programmatically** — `EditContext.Validate()` and reading `IsValidating`:
+Validation can also be driven **programmatically** — `await EditContext.Validate()` and reading `IsValidating`:
 
 <!-- demo:validation-programmatic -->
 

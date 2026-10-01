@@ -24,22 +24,8 @@ internal static class TemplateCatalog
 
     /// <summary>
     /// The database-backed batteries. Available to any template that ships an ASP.NET host to put a
-    /// database <em>in</em> — the server template, and the front-end templates' ASP.NET host.
-    /// A pure browser-WASM SPA has no server to run them on.
+    /// database <em>in</em> — server and wasm-hosted. A pure browser-WASM SPA has no server to run them on.
     /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     <c>ops</c> is deliberately NOT here. The operator console is Rask components, so it needs a host
-    ///     built on <c>Rask.Server</c> to mount it — <c>Run&lt;App&gt;()</c> or <c>Serve()</c>. The meta
-    ///     templates front a Node server through <c>Rask.Meta.Hosting</c>, which ships no <c>Rask.Core</c> (#1069),
-    ///     so it is listed on the templates that can mount it rather than accepted and then disregarded.
-    ///     </para>
-    ///     <para>
-    ///     <c>storage</c> is here now that <c>Rask.Storage</c> references no <c>Rask.Core</c> (#1086). Before
-    ///     that, <c>MapRaskStorage()</c> named Core types, and every front-end template crashed at startup
-    ///     with <c>FileNotFoundException: Rask.Core</c>.
-    ///     </para>
-    /// </remarks>
     private static readonly string[] DatabaseFlags =
         ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "storage"];
 
@@ -49,8 +35,8 @@ internal static class TemplateCatalog
         // that shape is the wasm-hosted template below now (#1103): a project type answers "what is this
         // app" far better than a yes/no asked after the type has already been chosen.
         //
-        // "tests" — the <name>.Tests project — is on this and the wasm template only. The front-end-plus-host
-        // lanes are two halves with two test stories, and neither has a scaffolded one yet.
+        // "tests" — the <name>.Tests project — is on this and the wasm template only. wasm-hosted is two
+        // halves with two test stories, and has no scaffolded one yet.
         new("server", "Rask Server app",
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags, "ops", "push", "tests"],
@@ -62,12 +48,8 @@ internal static class TemplateCatalog
         // carries <RaskGlobalization> commented with the reason beside it.
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>([.. WebFlags, "tests"], StringComparer.Ordinal)),
-        // The same lane as react/angular below — a front end on an ASP.NET host — except the front end is
-        // C#. It lives in Client/ (capital, because it IS a C# project; the JS lanes use lowercase
-        // client/), the host serves it with MapRaskSpa, and the two halves talk over remote CQRS.
-        //
-        // "ops" is here, as on the TypeScript templates below: the host is RaskApp's Serve(), which mounts the
-        // console. Only the meta lane, which carries no Rask.Core (#1069), goes without.
+        // A C# front end on an ASP.NET host. It lives in Client/, the host serves it with MapRaskSpa, and
+        // the two halves talk over remote CQRS. "ops": the host is RaskApp's Serve(), which mounts the console.
         //
         // ShipsLocalization stays false for the same reason as wasm above: the browser half is where a
         // culture would have to resolve, and that means ICU on the wire.
@@ -77,63 +59,7 @@ internal static class TemplateCatalog
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags, "ops", "push"],
                 StringComparer.Ordinal)),
-        // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
-        // it over generated TypeScript. CQRS is listed but never optional here — the wire IS the template,
-        // so the generator forces it on and --no-cqrs is refused rather than silently ignored.
-        //
-        // --pwa is left out rather than half-scaffolded: it needs work on the CLIENT side (a service
-        // worker through vite-plugin-pwa) that these templates do not write yet, and --push needs it.
-        //
-        // Accounts are NOT a flag here or anywhere — the battery is on in the host, and the client reaches
-        // its /api/auth endpoints through auth.ts in the shared browser layer. What these templates do not
-        // scaffold is a sign-in PAGE in each framework's own idiom.
-        //
-        // The set is the frameworks create-vite ships a TypeScript template for, plus Angular through its
-        // own CLI. It used to be "the frameworks TanStack Query ships an adapter for", which stopped
-        // being the reason when the templates stopped shipping TanStack — and a rationale that no longer
-        // holds is worse than none, because the next person extends the set by the wrong rule.
-        .. SpaFrameworks(),
-
-        // The meta framework templates, one per framework: the framework's own Node server, with Rask
-        // in front of it. Derived from the same table the generator dispatches on, for the reason
-        // above.
-        //
-        // No "pwa" or "push": both need work in the framework's own idiom (a service worker through its
-        // plugin, a subscription call from its client) that these templates do not write yet, and a flag
-        // accepted and then ignored is this repository's most expensive bug class. "docker" IS here, and
-        // means something specific on this lane — the image carries a node runtime, because the front
-        // end has a server of its own.
-        .. MetaFrameworks(),
     ];
-
-    /// <summary>One template per front-end framework, all sharing the same flag set.</summary>
-    /// <remarks>
-    ///     Derived from <see cref="Scaffolding.SpaFramework.All" /> rather than listed again here. Two
-    ///     hand-maintained lists of the same frameworks is exactly how a template comes to be accepted by
-    ///     the parser and then generate something else — which is what <c>--template native</c> did after
-    ///     the native host was deleted.
-    /// </remarks>
-    private static IEnumerable<TemplateInfo> SpaFrameworks() =>
-        Scaffolding.SpaFramework.All.Select(framework => new TemplateInfo(
-            framework.Key,
-            $"Rask {framework.DisplayName} front end + ASP.NET host",
-            // "pwa" and "push": the PWA half is the client's own manifest, service worker and
-            // subscription call, none of which need a login. Accounts have no flag — the battery is on
-            // regardless; only a sign-in page in the framework's own idiom is left unscaffolded. "ops": the
-            // host is RaskApp's Serve(), which mounts the operator console at /_rask.
-            new HashSet<string>([.. DatabaseFlags, "docker", "ops", "pwa", "push"], StringComparer.Ordinal)));
-
-    /// <summary>One template per meta framework, all sharing the same flag set.</summary>
-    /// <remarks>
-    ///     Derived from <see cref="Scaffolding.MetaTemplate.All" />, and the keys are the values that go
-    ///     into <c>&lt;RaskMetaFramework&gt;</c> verbatim — so the template name, the csproj property and
-    ///     the framework the host was built against are one string, not three that can disagree.
-    /// </remarks>
-    private static IEnumerable<TemplateInfo> MetaFrameworks() =>
-        Scaffolding.MetaTemplate.All.Select(framework => new TemplateInfo(
-            framework.Key,
-            $"Rask {framework.DisplayName} front end + ASP.NET host (node at runtime)",
-            new HashSet<string>([.. DatabaseFlags, "docker"], StringComparer.Ordinal)));
 
     /// <summary>The default template when none is specified — a server-rendered app.</summary>
     public static TemplateInfo Default => All[0];

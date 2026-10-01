@@ -13,16 +13,16 @@ namespace Rask.Dashboard.Panels;
 public interface IDashboardBackupProbe
 {
     /// <summary>Continuous-replication state, or <c>null</c> if the app doesn't run any.</summary>
-    Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken);
+    Task<BackupReplicationInfo?> Replication(CancellationToken cancellationToken);
 
     /// <summary>Stored snapshots, newest first. Empty when the app takes none.</summary>
-    Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<BackupSnapshotInfo>> Snapshots(CancellationToken cancellationToken);
 
     /// <summary>
     /// Restore-verification state, or <c>null</c> when nothing has verified the backup — which is the
     /// default, since verification is opt-in and costs a real restore. The default implementation returns
     /// <c>null</c>, so an existing probe keeps compiling and simply shows no restorability tile.
     /// </summary>
-    Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
+    Task<BackupVerificationInfo?> Verification(CancellationToken cancellationToken) =>
         Task.FromResult<BackupVerificationInfo?>(null);
 }

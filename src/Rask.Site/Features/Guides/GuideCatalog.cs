@@ -306,17 +306,6 @@ public static class GuideCatalog
             SearchTitle = "React, Vue and Svelte components in a C# app",
             Description = "Use React, Vue, Svelte, Lit or Angular components in a C# app, from your own files or straight from npm, with typed props, callbacks and hot reload.",
         },
-        new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.", "Frontend")
-        {
-            SearchTitle = "TypeScript SPA with an ASP.NET Core backend",
-            Description = "Host a React, Vue, Svelte, Solid, Preact, Lit or Angular TypeScript app on ASP.NET Core, with types generated from your C# message records on each build.",
-        },
-        new("meta", "Meta framework front ends",
-            "Nuxt, Next, SvelteKit and three more owning the whole front end — one container.", "Frontend")
-        {
-            SearchTitle = "Nuxt, Next.js or SvelteKit with a .NET backend",
-            Description = "Run Nuxt, Next.js, SvelteKit, SolidStart, TanStack Start or Analog on a C# backend, shipped as one container on one port, calling into C# with shared sign-in.",
-        },
         new("blazor-components", "Blazor components",
             "A real Blazor component — MudBlazor, an RCL — hosted in a Rask page, server-rendered.", "Frontend")
         {

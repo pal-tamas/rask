@@ -39,7 +39,7 @@ parameter) and call from an **event handler or lifecycle hook**, never from `Ren
 ```csharp
 public sealed partial class ThemeToggle(IBrowserStorage storage, IMediaQuery media) : Component
 {
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         var saved = await storage.Local.GetAsync("theme");
         var dark = saved is null ? await media.PrefersDarkAsync() : saved == "dark";
@@ -52,13 +52,7 @@ Browser-gated APIs (clipboard, geolocation, notifications, fullscreen, crypto's 
 can fail — a denial/timeout/unsupported surfaces as a `JSException` from the awaited task, so gate on
 the API's `IsSupported`/permission check and wrap calls in `try/catch`.
 
-**Writing TypeScript rather than C#?** These wrappers reach the browser through modules that are
-themselves ordinary TypeScript, and an SPA or meta framework imports them directly instead —
-`import { getCurrentPosition } from './rask/browser/geolocation'`. One implementation, four front
-ends: a quirk fixed for the C# caller is fixed for the TypeScript one in the same commit. See
-[TypeScript front ends → Browser APIs](spa.md#browser-apis), and the third column of the
-[capability matrix](browser-capabilities.md) for which APIs ship a module and which you should simply
-call on the platform.
+See the [capability matrix](browser-capabilities.md) for which APIs work on which host.
 
 ## On this page
 

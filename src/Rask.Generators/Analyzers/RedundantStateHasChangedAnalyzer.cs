@@ -7,7 +7,7 @@ using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.Analyzers;
 
-// RASK026 — warn when StateHasChanged()/StateHasChangedAsync() is called on the component itself from
+// RASK026 — warn when StateHasChanged() is called on the component itself from
 // inside a Rask event or binding callback (OnChange, OnClick, OnInput, OnAnySubmit, AfterBind, …). Rask
 // re-renders the component that owns the callback automatically after the callback runs — even when a
 // child control fires it (the framework re-renders the delegate's owner) and even for two-way bindings
@@ -65,8 +65,7 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
         var invocation = (IInvocationOperation)context.Operation;
         var method = invocation.TargetMethod;
 
-        if (!(string.Equals(method.Name, "StateHasChanged", StringComparison.Ordinal)
-              || string.Equals(method.Name, "StateHasChangedAsync", StringComparison.Ordinal))
+        if (!string.Equals(method.Name, "StateHasChanged", StringComparison.Ordinal)
             || !InheritsFromOrIs(method.ContainingType, component))
         {
             return;

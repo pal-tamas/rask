@@ -61,7 +61,7 @@ public sealed class RaskCqrsClientOptions
     ///         surface this package exists to remove.
     ///     </para>
     /// </remarks>
-    public Func<HttpRequestMessage, CancellationToken, Task>? ConfigureRequestAsync { get; set; }
+    public Func<HttpRequestMessage, CancellationToken, Task>? ConfigureRequest { get; set; }
 
 
     /// <summary>

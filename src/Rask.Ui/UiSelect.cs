@@ -637,11 +637,11 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         {
             acc.Setter(value);
             await BindingHelpers.NotifyAndValidateFieldAsync(ctx, acc.Field).ConfigureAwait(false);
-            await self.InvokeAfterBindAsync(value).ConfigureAwait(false);
+            await self.InvokeAfterBind(value).ConfigureAwait(false);
         }
         else
         {
-            await self.InvokeOnChangeAsync(value).ConfigureAwait(false);
+            await self.InvokeOnChange(value).ConfigureAwait(false);
         }
     }
 

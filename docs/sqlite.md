@@ -552,7 +552,7 @@ builder.Services.AddDbContextFactory<AppDb>((sp, o) => o.UseRaskSqlite(sp));
 var app = builder.Build();
 
 // Restore from the replica BEFORE opening the DB — a no-op if the file already exists locally.
-await app.Services.RestoreSqliteFromLitestreamAsync();
+await app.Services.RestoreSqliteFromLitestream();
 
 // ... EnsureCreated / migrate / seed ...
 app.Run();
@@ -658,7 +658,7 @@ a busy writer without holding a thread. The restored copy goes to a temp directo
 every path, never beside the live database, so a stray `-wal`/`-shm` can't be mistaken for the real thing.
 
 In `-config` mode with several databases there is no single one to probe: set `DatabasePath` to pick one,
-or verification reports `Skipped` — the same choice `RestoreSqliteFromLitestreamAsync` already makes.
+or verification reports `Skipped` — the same choice `RestoreSqliteFromLitestream` already makes.
 
 There is an end-to-end check of all of this against a real object store in
 [`scripts/verify-litestream-minio.sh`](../scripts/verify-litestream-minio.sh): it runs MinIO in Docker,
@@ -698,7 +698,7 @@ must respect:
 - **Run a single instance.** Litestream assumes one writer — set scale-out to 1. Two instances writing
   their own local databases would diverge the replica.
 - **Enable Always On** so the app isn't unloaded when idle. On every cold start / redeploy the local
-  disk is empty, and `RestoreSqliteFromLitestreamAsync()` pulls the latest replica back before the app
+  disk is empty, and `RestoreSqliteFromLitestream()` pulls the latest replica back before the app
   opens the database.
 - **Graceful shutdown is handled for you.** App Service recycles the container with `SIGTERM`; the
   hosted service interrupts Litestream and lets it flush within `ShutdownGracePeriod`, so you don't lose

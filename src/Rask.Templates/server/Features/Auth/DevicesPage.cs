@@ -29,7 +29,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
 
     // The support check is JavaScript, so it waits for a browser to exist: on the first render this page is HTML
     // on its way out, with nothing to ask.
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         _passkeysSupported = await webAuthn.IsSupportedAsync();
         StateHasChanged();
@@ -98,7 +98,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
     {
         // The whole ceremony runs inside this click: the browser prompts, the authenticator signs, the server
         // verifies. A dismissed dialog comes back as a refusal rather than an exception.
-        var result = await auth.AddPasskeyAsync(model.Name);
+        var result = await auth.AddPasskey(model.Name);
         _passkeyError = result.Error;
 
         if (result.Succeeded)
@@ -110,14 +110,14 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
 
     private async Task RemoveAsync(Guid id)
     {
-        var result = await auth.RemovePasskeyAsync(id);
+        var result = await auth.RemovePasskey(id);
         _passkeyError = result.Error;
         await LoadAsync();
     }
 
     private async Task SignOutOthersAsync()
     {
-        await auth.SignOutOtherDevicesAsync();
+        await auth.SignOutOtherDevices();
         _signedOutOthers = true;
         await LoadAsync();
     }

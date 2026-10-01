@@ -80,7 +80,7 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
 
             // The front end is already built; a `dotnet run` that rebuilt it would add minutes and
             // could pick a different bundle than the one this test just proved.
-            "-p:RaskSpaBuild=false", "-p:RaskMetaBuild=false", "-p:RaskExternalBuild=false",
+            "-p:RaskSpaBuild=false", "-p:RaskExternalBuild=false",
         })
         {
             startInfo.ArgumentList.Add(argument);

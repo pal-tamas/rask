@@ -17,7 +17,7 @@ public sealed class QueueActionTests
         var max = h.Get<JobsOptions>().MaxAttempts;
         var id = await SeedAsync(h, Job(runAt: now.AddHours(-1), attempts: max, error: "boom"));
 
-        var affected = await h.Queue("jobs").RetryAsync(id, CancellationToken.None);
+        var affected = await h.Queue("jobs").Retry(id, CancellationToken.None);
 
         Assert.Equal(1, affected);
         var job = await SingleAsync(h);
@@ -39,7 +39,7 @@ public sealed class QueueActionTests
         // with a running processor.
         var id = await SeedAsync(h, Job(runAt: now.AddMinutes(-1), attempts: max - 1, error: "transient"));
 
-        Assert.Equal(0, await h.Queue("jobs").RetryAsync(id, CancellationToken.None));
+        Assert.Equal(0, await h.Queue("jobs").Retry(id, CancellationToken.None));
 
         var job = await SingleAsync(h);
         Assert.Equal(max - 1, job.Attempts);         // untouched
@@ -57,7 +57,7 @@ public sealed class QueueActionTests
         // happened, so ProcessedAt IS NULL is part of the guard rather than just Attempts >= max.
         var id = await SeedAsync(h, Job(runAt: now, attempts: max, processedAt: now));
 
-        Assert.Equal(0, await h.Queue("jobs").RetryAsync(id, CancellationToken.None));
+        Assert.Equal(0, await h.Queue("jobs").Retry(id, CancellationToken.None));
         Assert.NotNull((await SingleAsync(h)).ProcessedAt);
     }
 
@@ -74,9 +74,9 @@ public sealed class QueueActionTests
             Job(runAt: now, attempts: max - 1),      // still retrying
             Job(runAt: now, processedAt: now));      // done
 
-        Assert.Equal(2, await h.Queue("jobs").RetryAllAsync(CancellationToken.None));
+        Assert.Equal(2, await h.Queue("jobs").RetryAll(CancellationToken.None));
 
-        var counts = await h.Queue("jobs").CountsAsync(CancellationToken.None);
+        var counts = await h.Queue("jobs").Counts(CancellationToken.None);
         Assert.Equal(0, counts.Failed);
         Assert.Equal(3, counts.Due);        // the two revived plus the one that was already retrying
         Assert.Equal(1, counts.Processed);
@@ -95,9 +95,9 @@ public sealed class QueueActionTests
             Job(runAt: now, attempts: max),                   // dead letter → must survive
             Job(runAt: now));                                 // pending → must survive
 
-        Assert.Equal(1, await h.Queue("jobs").PurgeProcessedAsync(TimeSpan.FromDays(7), CancellationToken.None));
+        Assert.Equal(1, await h.Queue("jobs").PurgeProcessed(TimeSpan.FromDays(7), CancellationToken.None));
 
-        var counts = await h.Queue("jobs").CountsAsync(CancellationToken.None);
+        var counts = await h.Queue("jobs").Counts(CancellationToken.None);
         Assert.Equal(1, counts.Failed);
         Assert.Equal(1, counts.Due);
         Assert.Equal(1, counts.Processed);
@@ -112,10 +112,10 @@ public sealed class QueueActionTests
         var pending = await SeedAsync(h, Job(runAt: now));
         var done = await SeedAsync(h, Job(runAt: now, processedAt: now));
 
-        Assert.Equal(1, await h.Queue("jobs").DeleteAsync(pending, CancellationToken.None));
+        Assert.Equal(1, await h.Queue("jobs").Delete(pending, CancellationToken.None));
 
         // Deleting a completed row would erase the record of work that actually happened.
-        Assert.Equal(0, await h.Queue("jobs").DeleteAsync(done, CancellationToken.None));
+        Assert.Equal(0, await h.Queue("jobs").Delete(done, CancellationToken.None));
 
         await using var db = h.NewContext();
 
@@ -130,10 +130,10 @@ public sealed class QueueActionTests
         await using var h = new DashboardHarness(registered: Batteries.All, mapped: Batteries.Jobs);
         var outbox = h.Queue("outbox");
 
-        Assert.Equal(0, await outbox.RetryAsync(1, CancellationToken.None));
-        Assert.Equal(0, await outbox.RetryAllAsync(CancellationToken.None));
-        Assert.Equal(0, await outbox.PurgeProcessedAsync(TimeSpan.Zero, CancellationToken.None));
-        Assert.Equal(0, await outbox.DeleteAsync(1, CancellationToken.None));
+        Assert.Equal(0, await outbox.Retry(1, CancellationToken.None));
+        Assert.Equal(0, await outbox.RetryAll(CancellationToken.None));
+        Assert.Equal(0, await outbox.PurgeProcessed(TimeSpan.Zero, CancellationToken.None));
+        Assert.Equal(0, await outbox.Delete(1, CancellationToken.None));
     }
 
     private static Job Job(DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null) =>

@@ -7,13 +7,9 @@ namespace Rask.Cli.Tests;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <c>rask new Shop --template react --push</c> wrote its push helper to
-///         <c>client/src/rask/push.ts</c> and, in the same run, appended <c>src/rask/</c> to the client's
-///         <c>.gitignore</c>. Everything else in that directory is rewritten from the server assembly on
-///         every build, so ignoring it is right — but <c>push.ts</c> was written once, by the CLI, and by
-///         nothing afterwards. It was therefore never committed, and a fresh clone of a <c>--push</c>
-///         project simply did not have it: the client failed to build on an unresolved import, in a
-///         project whose <c>--push</c> flag was the only reason the file existed.
+///         A <c>--push</c> scaffold once wrote its push helper into a directory its own <c>.gitignore</c>
+///         ignored. The file was written once, by the CLI, and never committed, so a fresh clone of the
+///         project failed to build on an unresolved import.
 ///     </para>
 ///     <para>
 ///         Asserted as the general rule rather than as "push.ts is somewhere else", because the specific
@@ -34,70 +30,17 @@ public sealed class ScaffoldIgnoreOverlapTests
     private const string Root = "/scaffold-root";
     private const string Version = "1.0.0";
 
-    public static TheoryData<string> Frameworks
-    {
-        get
-        {
-            var data = new TheoryData<string>();
-
-            foreach (var framework in SpaFramework.All)
-            {
-                data.Add(framework.Key);
-            }
-
-            return data;
-        }
-    }
-
-    public static TheoryData<string> MetaFrameworks
-    {
-        get
-        {
-            var data = new TheoryData<string>();
-
-            foreach (var framework in MetaTemplate.All)
-            {
-                data.Add(framework.Key);
-            }
-
-            return data;
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(Frameworks))]
-    public void No_scaffolded_file_lands_where_the_scaffold_ignores_it(string key)
-    {
-        Assert.True(SpaFramework.TryGet(key, out var framework));
-
-        // --push is the battery that put a hand-owned file in a generated directory, so it is the one
-        // that has to be on. Pwa comes with it (--push implies --pwa) and brings its own client files.
-        AssertNoOverlap(ProjectGenerator.GenerateSpa(Root, "Shop", framework, new ServerBatteries { Push = true }, Version));
-    }
-
-    [Theory]
-    [MemberData(nameof(MetaFrameworks))]
-    public void No_meta_scaffold_file_lands_where_the_scaffold_ignores_it(string key)
-    {
-        var framework = MetaTemplate.All.Single(t => t.Key == key);
-
-        AssertNoOverlap(ProjectGenerator.GenerateMeta(Root, "Shop", framework, new ServerBatteries { Push = true }, Version));
-    }
-
     [Fact]
     public void No_server_scaffold_file_lands_where_the_scaffold_ignores_it()
     {
-        AssertNoOverlap(ProjectGenerator.GenerateServer(Root, "Shop", new ServerBatteries(), Version));
+        // --push is the battery that once put a hand-owned file in a generated directory, so it is on.
+        AssertNoOverlap(ProjectGenerator.GenerateServer(Root, "Shop", new ServerBatteries { Push = true }, Version));
     }
 
     [Fact]
-    public void The_push_helper_is_still_scaffolded_when_push_is_asked_for()
+    public void No_wasm_hosted_scaffold_file_lands_where_the_scaffold_ignores_it()
     {
-        // Guards the cheap way to pass the test above: not writing the file at all. It has to be both
-        // present AND outside the ignored directory.
-        var result = ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, new ServerBatteries { Push = true }, Version);
-
-        Assert.Contains(result.Files, f => Normalize(f.Path).EndsWith("push.ts", StringComparison.Ordinal));
+        AssertNoOverlap(ProjectGenerator.GenerateWasmHosted(Root, "Shop", new ServerBatteries { Push = true }, Version));
     }
 
     [Fact]
@@ -302,10 +245,7 @@ public sealed class ScaffoldIgnoreOverlapTests
     {
         var sources = result.Files
             .Where(f => Normalize(f.Path).EndsWith("/.gitignore", StringComparison.Ordinal))
-            .Select(f => (f.Path, Text: f.Content))
-            .Concat(result.Patches
-                .Where(p => p.Path.EndsWith(".gitignore", StringComparison.Ordinal))
-                .Select(p => (p.Path, Text: p.Transform(string.Empty))));
+            .Select(f => (f.Path, Text: f.Content));
 
         foreach (var (path, text) in sources)
         {

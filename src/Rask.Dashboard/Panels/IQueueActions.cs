@@ -19,20 +19,20 @@ public interface IQueueActions
     /// operation, so it needs no coordination with the drain at all. Returns rows affected.
     /// </para>
     /// </summary>
-    Task<int> RetryAsync(long id, CancellationToken cancellationToken);
+    Task<int> Retry(long id, CancellationToken cancellationToken);
 
     /// <summary>Retries every dead letter in this queue. Same guard, no id.</summary>
-    Task<int> RetryAllAsync(CancellationToken cancellationToken);
+    Task<int> RetryAll(CancellationToken cancellationToken);
 
     /// <summary>
     /// Deletes completed rows older than <paramref name="olderThan"/>. Guarded on
     /// <c>ProcessedAt IS NOT NULL</c>, so nothing outstanding — and no dead letter — is ever removed.
     /// </summary>
-    Task<int> PurgeProcessedAsync(TimeSpan olderThan, CancellationToken cancellationToken);
+    Task<int> PurgeProcessed(TimeSpan olderThan, CancellationToken cancellationToken);
 
     /// <summary>
     /// Deletes one outstanding row, destroying the work. Guarded on <c>ProcessedAt IS NULL</c> so a
     /// completed row's record is never lost; requires <see cref="RaskDashboardActions.Destructive"/>.
     /// </summary>
-    Task<int> DeleteAsync(long id, CancellationToken cancellationToken);
+    Task<int> Delete(long id, CancellationToken cancellationToken);
 }

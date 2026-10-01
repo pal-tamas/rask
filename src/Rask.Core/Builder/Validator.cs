@@ -33,11 +33,10 @@ public readonly struct Validator<T>
     public Validator(Validate<T> rule) => _rule = rule;
 
     /// <summary>
-    ///     Wraps an asynchronous rule — a server round-trip, say. Honour the supplied token and let
-    ///     <see cref="OperationCanceledException" /> propagate, so a superseded check is dropped rather
-    ///     than surfacing a stale message.
+    ///     Wraps an asynchronous rule — a server round-trip, say: <c>async v =&gt; await IsTaken(v) ? ["Taken"] : []</c>.
+    ///     A later edit supersedes the check through <c>Current.Cancellation</c>, which anything awaited inside picks up.
     /// </summary>
-    public Validator(ValidateAsync<T> rule) => _rule = rule;
+    public Validator(Func<T, ValueTask<IEnumerable<string>>> rule) => _rule = rule;
 
     internal Validator(Delegate? rule) => _rule = rule;
 
@@ -60,8 +59,17 @@ public readonly struct Validator<T>
     public ValueTask<IEnumerable<string>> Invoke(T value, CancellationToken cancellationToken) => _rule switch
     {
         Validate<T> syncRule => new ValueTask<IEnumerable<string>>(syncRule(value)),
-        ValidateAsync<T> asyncRule => asyncRule(value, cancellationToken),
+        Func<T, ValueTask<IEnumerable<string>>> asyncRule => InvokeWithAmbientToken(asyncRule, value, cancellationToken),
         null => new ValueTask<IEnumerable<string>>([]),
         _ => throw Callback.Unexpected(_rule),
     };
+
+    // The one-argument async rule reads the field's token from the ambient scope, so anything it awaits is
+    // cancelled when a later edit supersedes the check.
+    private static async ValueTask<IEnumerable<string>> InvokeWithAmbientToken(
+        Func<T, ValueTask<IEnumerable<string>>> rule, T value, CancellationToken cancellationToken)
+    {
+        using var scope = Ambient.Enter(cancellationToken);
+        return await rule(value).ConfigureAwait(false);
+    }
 }

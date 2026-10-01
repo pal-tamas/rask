@@ -181,7 +181,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     {
         public TaskCompletionSource Gate { get; } = new();
 
-        protected override async Task OnFirstRendered()
+        protected override async Task OnFirstRender()
         {
             await Gate.Task;
         }
@@ -226,7 +226,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
         // Tally hook re-entries on the root too — if the publishOnly walk is broken, these counters peg at
         // hundreds. A counts the first render, B every render after it.
-        protected override Task OnFirstRendered()
+        protected override Task OnFirstRender()
         {
             AOnRenderedCount++;
             _firstPending = true;

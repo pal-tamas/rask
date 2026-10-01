@@ -298,9 +298,7 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, "
-            + "svelte, lit, nuxt, nextjs, sveltekit, solidstart, tanstack-start, analog.",
-            console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -615,15 +613,13 @@ public sealed class NewCommandTests
         Assert.DoesNotContain("rask db update", console.OutText, StringComparison.Ordinal);
     }
 
-    // #1106: a meta template accepted --no-cqrs, forced the mediator back on anyway, and dropped the database instead.
-    [Theory]
-    [InlineData("nuxt")]
-    [InlineData("react")]
-    public async Task No_cqrs_is_refused_on_both_front_end_lanes(string template)
+    // #1106: a template that forces CQRS back on used to accept --no-cqrs, keep the mediator, and drop the database.
+    [Fact]
+    public async Task No_cqrs_is_refused_on_wasm_hosted()
     {
         var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", template, "--no-cqrs"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "wasm-hosted", "--no-cqrs"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
@@ -829,11 +825,10 @@ public sealed class NewCommandTests
         Assert.Empty(runner.Invocations);
     }
 
-    // The first migration builds the project to load the DbContext, and with the batteries on that
-    // build defaulted to RaskSpaBuild/RaskMetaBuild=true — so scaffolding a front-end template ran the
-    // bundler, or on the meta lane a full Nuxt/Next PRODUCTION build, behind a line that reads
-    // "Creating the first migration…". MSBuild reads properties from the environment, so the overlay on
-    // the dotnet-ef child is what turns it off without touching `rask db`'s argument surface.
+    // The first migration builds the project to load the DbContext, and that build defaults to
+    // RaskSpaBuild=true — a WebAssembly client publish behind a line that reads "Creating the first
+    // migration…". MSBuild reads properties from the environment, so the overlay on the dotnet-ef child
+    // is what turns it off without touching `rask db`'s argument surface.
     [Fact]
     public async Task The_first_migration_does_not_build_the_front_end()
     {
@@ -852,7 +847,6 @@ public sealed class NewCommandTests
         {
             Assert.NotNull(invocation.Environment);
             Assert.Equal("false", invocation.Environment!["RaskSpaBuild"]);
-            Assert.Equal("false", invocation.Environment!["RaskMetaBuild"]);
         }
     }
 

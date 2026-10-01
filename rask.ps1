@@ -7,8 +7,9 @@
 
     `dotnet tool install -g Rask.Cli` is one line, but it only works on a box that already has the
     .NET 10 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
-    `rask db` needs dotnet-ef, every browser-wasm build needs the wasm-tools workload, and the SPA
-    templates need Node. Today each of those is discovered by failure. This script front-loads them.
+    `rask db` needs dotnet-ef, every browser-wasm build needs the wasm-tools workload, and islands
+    (React, Vue, Svelte, ... components inside a Rask page) need Node to build. Otherwise each of those
+    is discovered by failure. This script front-loads them.
 
     Everything is installed per-user. Nothing here needs an elevated prompt or writes outside the
     user profile, and an SDK already on the box is left exactly as it is. Docker is the deliberate
@@ -39,7 +40,7 @@ param(
     [switch] $NoEf,
     # Skip the wasm-tools workload (needed by every browser-wasm build).
     [switch] $NoWasmTools,
-    # Skip Node.js (needed by the SPA templates: react, vue, svelte, angular, ...).
+    # Skip Node.js (needed only by islands: react, vue, svelte, angular, ...).
     [switch] $NoNode,
     # Never write to the user PATH.
     [switch] $NoPath,
@@ -66,10 +67,9 @@ $DotnetRoot = if ($env:RASK_INSTALL_DOTNET_ROOT) { $env:RASK_INSTALL_DOTNET_ROOT
 $Prefix = if ($env:RASK_INSTALL_PREFIX) { $env:RASK_INSTALL_PREFIX } else { Join-Path $env:LOCALAPPDATA 'rask' }
 $DotnetScriptUrl = if ($env:RASK_INSTALL_DOTNET_SCRIPT_URL) { $env:RASK_INSTALL_DOTNET_SCRIPT_URL } else { 'https://dot.net/v1/dotnet-install.ps1' }
 $NodeDist = if ($env:RASK_INSTALL_NODE_DIST) { $env:RASK_INSTALL_NODE_DIST } else { 'https://nodejs.org/dist' }
-# 24.15.0 rather than the build floor: this decides whether an existing Node is left alone, and the job
-# here is SCAFFOLDING, which shells out to create-vite@latest and @angular/cli@latest. Angular's CLI
-# refuses below ^22.22.3 || ^24.15.0 || >=26.0.0, so leaving a 22.12 box alone installs a toolchain that
-# then cannot run `rask new --template angular` (#886). Mirrors RASK_INSTALL_NODE_MIN in rask.sh.
+# 24.15.0 rather than the islands' build floor: this decides whether an existing Node is left alone, and
+# the standing rule is the latest LTS, which the island toolchains (Vite and the framework plugins) track
+# (#886). Mirrors RASK_INSTALL_NODE_MIN in rask.sh.
 $NodeMin = if ($env:RASK_INSTALL_NODE_MIN) { $env:RASK_INSTALL_NODE_MIN } else { '24.15.0' }
 $Package = if ($env:RASK_INSTALL_PACKAGE) { $env:RASK_INSTALL_PACKAGE } else { 'Rask.Cli' }
 
@@ -361,7 +361,7 @@ function Step-WasmTools {
 
 function Step-Node {
     if ($NoNode) { return }
-    Write-Step "Checking for Node.js >= $NodeMin (SPA templates)"
+    Write-Step "Checking for Node.js >= $NodeMin (islands)"
 
     $node = Get-Command node -ErrorAction SilentlyContinue
     if ($node) {
@@ -373,7 +373,7 @@ function Step-Node {
     if (-not $triple) {
         Write-Warn @(
             "no Node.js build for this platform ($([System.Runtime.InteropServices.RuntimeInformation]::OSDescription)) — skipping it.",
-            'Only `rask new --template react|vue|svelte|...` needs Node. Outside Windows, use rask.sh.')
+            'Only islands (`rask new --islands react|vue|svelte|...`) need Node. Outside Windows, use rask.sh.')
         return
     }
 
