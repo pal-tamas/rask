@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Cqrs.Tests;
 
+[Collection(NotifyFacadeCollection.Name)]
 public sealed class NotifyTests
 {
     private static readonly TimeSpan Wait = TimeSpan.FromSeconds(5);
