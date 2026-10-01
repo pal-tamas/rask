@@ -45,22 +45,25 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
     public async Task Disposing_cancels_a_pending_sticky_timer()
     {
         var model = new Model { Name = "ada" };
-        var ctx = new EditContext(model) { ValidatingStickyMs = 100 };
+        var ctx = new EditContext(model) { ValidatingStickyMs = 300 };
         var renderRequests = 0;
         ctx.RequestRender = () => Interlocked.Increment(ref renderRequests);
         ctx.AddValidator(new NoOpAsyncValidator());
 
         // Completes immediately but takes the async path (an async validator is registered),
-        // so the finally arms the 100ms sticky timer.
+        // so the finally arms the 300ms sticky timer.
         await ctx.ValidateField(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
 
-        // Counted from the dispose, not from the arm: under a loaded gate the 100ms timer can legitimately
-        // fire before Dispose is reached, and that render is not the one this test is about.
-        var beforeDispose = Volatile.Read(ref renderRequests);
         ctx.Dispose(); // must dispose the armed timer before it fires
-        await Task.Delay(250, TestContext.Current.CancellationToken); // well past the sticky window
 
-        Assert.Equal(beforeDispose, Volatile.Read(ref renderRequests));
+        // Counted after the dispose has settled, not before it: on a loaded machine the timer can fire before
+        // Dispose is reached, and a callback already running then may finish just after it. That render is not
+        // the one this test is about; a timer the dispose failed to cancel fires at 300ms, well after this count.
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        var afterDispose = Volatile.Read(ref renderRequests);
+        await Task.Delay(400, TestContext.Current.CancellationToken); // well past the sticky window
+
+        Assert.Equal(afterDispose, Volatile.Read(ref renderRequests));
         Assert.True(ctx.IsDisposed);
     }
 

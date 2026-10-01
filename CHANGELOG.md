@@ -196,8 +196,18 @@ them until tagged releases begin.
 
 - **`EditContext` runs every inline `Validate` rule through one path.** The field and form rules had four
   copies of the same "run it, record its messages, turn a throw into *Validation could not be completed.*"
-  code; they are two now, and the class is split into partial files — state and queries, sync validation,
-  async validation, and the sticky validating indicator. A form validates exactly as it did.
+  code; they are two now, and the class is split into partial files — state and queries, the rule runners
+  and first-error gating, validation, and the sticky validating indicator. A form validates exactly as it did.
+
+- **`Component` is split by what each part does.** The base class every component derives from was 3,300
+  lines in one file; it keeps its identity, shell and render members (480 lines), and its conversions,
+  children, global attributes, lifecycle, disposal, live render, root render, clean-subtree cache, handlers
+  and live state are partial files of their own. Nothing in them changed.
+
+- **`Ui.DataGrid` is split by what each part does.** `UiDataGrid` (1,600 lines) keeps its props, its state
+  and the column factory; querying and paging the rows, resolving columns, the sort/page/group/column
+  handlers, selection, rendering the table, the group bands and the column chooser are partial files of their
+  own. A grid renders and behaves exactly as it did.
 
 - **The source generators are split by what each part does.** `RoutesGenerator` (1,900 lines) is now
   partial files for its diagnostics, reading pages from symbols, the `Routes` class tree, the route registry,

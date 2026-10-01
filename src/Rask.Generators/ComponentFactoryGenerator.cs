@@ -183,49 +183,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return builderEnabled;
     }
 
-    // A setter is named after the property it writes. Always — including a DELEGATE property, which used
-    // to be the one exception: an extension method could not share a delegate prop's name, because C#
-    // resolves `x.OnClick(fn)` against the property and reads it as an invocation (CS1593). The rule
-    // dropped a leading `On` to dodge that (`OnRate` -> `.Rate(…)`), and where it could not, the property
-    // had no reachable setter at all and RASK042 asked the author to wrap the delegate in a carrier.
-    //
-    // Both are gone because every callback property is now a carrier — `Callback`/`Callback<T>` for an
-    // event, `Fn<…>` for a template or selector — a STRUCT rather than a delegate. The chain's receiver
-    // is the component, so the property IS on the receiver; being non-invocable, it does not stop the
-    // lookup, the call falls through to the extension setter, and the setter keeps the property's name.
-
-
     // What an asynchronous validation rule hands back: the messages, once the check completes.
     private const string ValidationTaskFqn =
         "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>";
-
-    // THE CHAIN'S RECEIVER IS THE COMPONENT. There is one shape, and a step hands back exactly what it
-    // was called on.
-    //
-    // Four types used to wrap it — `Build<T>`, the mode-carrying `Build<T, TMode>`, `FormBuild<T>` and
-    // `GridBuild<T, TKey>` — and each existed to carry in the TYPE something the component could not: a
-    // form control's bound/controlled mode, a form's submit-state children indexer, a grid's row key.
-    // What replaced each one is worth stating, because none of it is the same mechanism:
-    //
-    //   - the two INDEXERS are declared on the components themselves (Form and UiDataGrid<T>), which
-    //     scopes them exactly as well and costs no type parameter. An indexer cannot be constrained,
-    //     which is the only reason they ever needed a shape of their own;
-    //   - BIND-VERSUS-VALUE still does not compile, and needs no diagnostic to say so. The two openings
-    //     are declared on the SEED and neither is emitted as a setter on the control, so taking one
-    //     hands back the control and the other is simply not a member of it (CS1929). The mode types
-    //     were never what ruled the pair out — the seed was, and the seed is still here.
-    //
-    // The GRID's row key is the one guarantee that really was lost, and it is worth being honest about:
-    // `GridBuild<T, TKey>` opened carrying NoKey and declared the selection steps only over a pinned one,
-    // so a grid that never said what identifies a row was not a grid whose selection was rejected — it
-    // was one where selection was not offered. `Selected` and `OnSelect` are now ordinary
-    // extensions on UiDataGrid<TRow>, reachable before any RowKey step, and SelectionOf fabricates a
-    // strategy with no selector installed when they are.
-    //
-    // With the component as the receiver a generic self-type does the rest: `T` infers to whatever it was
-    // called on and returns exactly that. Emitting a shared step over more than one shape is CS0111 —
-    // they all collapse to the same signature — so one shape is load-bearing, not tidying.
-
 
     private sealed record Candidate(
         string Namespace,
@@ -325,8 +285,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         string ModelProperty,
         EquatableArray<string> TypedDelegateProperties,
         string Constraint);
-
-
 
     private readonly record struct PropInfo(
         string Name,
