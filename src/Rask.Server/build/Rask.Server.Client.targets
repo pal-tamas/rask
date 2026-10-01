@@ -3,8 +3,8 @@
   <!--
     The one-project build for a Rask WebAssembly client.
 
-    `rask new` with its wasm option writes ONE project whose browser app lives in a Client/ folder, the way a
-    TypeScript front end lives in client/. A .csproj carries exactly one SDK, and the two halves need
+    `rask new` with its wasm option writes ONE project whose browser app lives in a Client/ folder. A .csproj
+    carries exactly one SDK, and the two halves need
     different ones — Microsoft.NET.Sdk.Web on net10.0 (or a later version) for the server, and
     Microsoft.NET.Sdk.WebAssembly on the matching -browser framework for the browser — so the build generates
     the second project into obj/ and drives it, rather than asking the author to maintain a parallel one.

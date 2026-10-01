@@ -18,14 +18,14 @@ public static class RaskAuthEndpointExtensions
     /// </summary>
     /// <remarks>
     /// <para>
-    /// These are what make the three flows reach the hosts that are not C#. A TypeScript front end, a
-    /// meta framework's Node process and a WebAssembly client all speak to the same four routes, so
-    /// "the same API in every host" is one contract rather than one per host.
+    /// These are what make the three flows reach clients that do not render Rask components. A
+    /// WebAssembly client and any other HTTP client speak to the same four routes, so "the same API in
+    /// every host" is one contract rather than one per host.
     /// </para>
     /// <para>
-    /// <b>Map this before the host's catch-all.</b> <c>MapRask</c>, <c>MapRaskSpa</c> and
-    /// <c>MapRaskMeta</c> all end the pipeline with a fallback that answers every unmatched path — the
-    /// meta host forwards it to Node — so auth endpoints mapped afterwards are never reached.
+    /// <b>Map this before the host's catch-all.</b> <c>MapRask</c> and <c>MapRaskSpa</c> both end the
+    /// pipeline with a fallback that answers every unmatched path, so auth endpoints mapped afterwards are
+    /// never reached.
     /// </para>
     /// </remarks>
     public static IEndpointRouteBuilder MapRaskAuth(this IEndpointRouteBuilder endpoints)

@@ -20,9 +20,9 @@ The UI is C# too. Write components as plain C# classes that return a tree of HTM
 state is a field, and an event handler is a delegate. The *same* component code runs server-rendered with live WebSocket
 updates or fully client-side on WebAssembly.
 
-Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, real Blazor components
-(`Rask.Blazor`), TypeScript SPAs and Nuxt or Next.js apps all run on it — and it builds on ASP.NET Core
-and EF Core rather than replacing them.
+Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components and real Blazor
+components (`Rask.Blazor`) run inside Rask pages as islands — and it builds on ASP.NET Core and EF Core
+rather than replacing them.
 
 ```csharp
 [Route("/counter")]
@@ -38,7 +38,7 @@ public sealed partial class Counter : Component
 ## Install
 
 > **Prerequisites: none.** The installer below adds whatever is missing — the **.NET SDK**, the
-> `wasm-tools` workload the WASM templates need, Node for the SPA templates — all under `$HOME`, no
+> `wasm-tools` workload the WASM templates need, Node for islands — all under `$HOME`, no
 > `sudo`. Already have the .NET 10 or 11 SDK? `dotnet tool install -g Rask.Cli` is the whole story.
 
 ```bash
@@ -53,8 +53,7 @@ Or add to an existing project. **Pick a host** — each brings `Rask`, the share
 ```bash
 dotnet add package Rask.Server            # ASP.NET: live pages over WebSockets plus every battery, all on
 dotnet add package Rask.Wasm              # client-side WebAssembly, with the client halves of the batteries
-dotnet add package Rask.Spa.Hosting       # host a built SPA on ASP.NET: a Rask WASM app or a TypeScript bundle
-dotnet add package Rask.Meta.Hosting      # host Nuxt/Next/SvelteKit/Start/SolidStart/Analog beside your C# (needs Node)
+dotnet add package Rask.Spa.Hosting       # serve a Rask WebAssembly app from an ASP.NET host
 dotnet add package Rask.External           # a .tsx/.vue/.svelte/Lit component as a Rask component (needs Node)
 dotnet add package Rask.Blazor             # a real Blazor component (MudBlazor, an RCL) as a Rask component
 ```

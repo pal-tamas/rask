@@ -11,8 +11,8 @@ internal sealed record TemplateAsset(string Path, byte[] Bytes)
 {
     /// <summary>
     ///     Extensions never decoded as text. Reading one of these into a string and writing it back
-    ///     re-encodes it as UTF-8 and silently corrupts it — create-vite ships a PNG and two .ico files,
-    ///     and a corrupted favicon is the kind of damage that shows up only in a browser.
+    ///     re-encodes it as UTF-8 and silently corrupts it — a corrupted favicon is the kind of damage
+    ///     that shows up only in a browser.
     /// </summary>
     private static readonly ImmutableHashSet<string> BinaryExtensions =
         ImmutableHashSet.Create(

@@ -747,7 +747,7 @@ internal static class ExternalBuildPlan
     ///     Writes <paramref name="content" /> only if it would change.
     /// </summary>
     /// <remarks>
-    ///     Load-bearing rather than an optimisation, exactly as in Rask.Spa.Tasks: these files are
+    ///     Load-bearing rather than an optimisation, exactly as in GeneratedTypeScript: these files are
     ///     bundler inputs, so rewriting an identical one on every build restarts the dev server's
     ///     dependency graph and can loop a watch build against itself.
     /// </remarks>

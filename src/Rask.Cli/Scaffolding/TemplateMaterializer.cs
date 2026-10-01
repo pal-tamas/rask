@@ -23,12 +23,8 @@ namespace Rask.Cli.Scaffolding;
 ///         file no tree commits because its content is the target's own SDK band.</item>
 ///     </list>
 ///     <para>
-///         What it deliberately does NOT do is run anybody else's scaffolder. The front-end templates
-///         used to shell out to <c>create-vite@latest</c>, <c>nuxi@latest</c> and the rest, which meant
-///         `rask new` needed the network and a Node install, produced a different tree every morning,
-///         and left every front-end dependency invisible to this repository — no committed manifest, so
-///         nothing to review and nothing for Dependabot to bump. Owning the trees fixes all three; what
-///         it costs is a deliberate refresh (scripts/refresh-templates.sh) when a creator moves on.
+///         What it deliberately does NOT do is run anybody else's scaffolder: `rask new` needs no network
+///         and no Node install, and produces the same tree every time.
 ///     </para>
 /// </remarks>
 internal static class TemplateMaterializer

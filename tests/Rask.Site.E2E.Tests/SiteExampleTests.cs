@@ -45,13 +45,13 @@ public sealed class SiteExampleTests
             await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("class Product : Aggregate<Guid>");
             await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(2);
 
-            // The four front-end lanes are part of the prerendered document rather than something the
+            // The three front-end lanes are part of the prerendered document rather than something the
             // bundle fills in later. This is the section a visitor reads to work out which lane they
             // are in — and the one a crawler has to see all of, since choosing a front end is the
             // decision that brings people to the page at all. Asserted with no timeout extension, for
             // the same reason as the headline above: waiting would mean it was not prerendered.
-            await Expect(page.Locator("#front-ends a")).ToHaveCountAsync(4);
-            await Expect(page.Locator("#front-ends")).ToContainTextAsync("Meta framework");
+            await Expect(page.Locator("#front-ends a")).ToHaveCountAsync(3);
+            await Expect(page.Locator("#front-ends")).ToContainTextAsync("Blazor components");
 
             // The whole stack leads: the back end sits directly under the hero, the C# frontend follows
             // it, and only then the front-end lanes — which say what Rask is to the frameworks it hosts.

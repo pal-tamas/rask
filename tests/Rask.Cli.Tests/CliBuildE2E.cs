@@ -41,11 +41,10 @@ internal static class CliBuildE2E
         "Rask.Query",                       // wired by default wherever --cqrs is
         "Rask.Cqrs.Client",                 // --wasm --cqrs: the browser half of remote dispatch
         "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
-        "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
+        "Rask.Spa.Hosting",                 // Rask.Server depends on it: MapRaskSpa serves wasm-hosted's client
         "Rask.Auth",                        // --data: the scaffolded context maps the account tables
         "Rask.Auth.Client",                 // Rask's browser half depends on it
-        "Rask.Auth.Api",                    // the same, on the lanes with no renderer — and under Rask.Auth
-        "Rask.Meta.Hosting",                // the meta templates: the node supervisor, and the same emit
+        "Rask.Auth.Api",                    // Rask.Auth depends on it
         "Rask.Data",                        // every generated feature
         "Rask.SQLite",                      // --data + every generated feature (via Rask.SQLite.EntityFrameworkCore)
         "Rask.SQLite.EntityFrameworkCore",  // server template --data and generated features that own a context (UseRaskSqlite)

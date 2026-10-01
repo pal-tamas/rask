@@ -118,19 +118,14 @@ jobs:
           - `rask.sh` / `rask.ps1` — `RASK_INSTALL_NODE_MIN` / `$NodeMin`
           - `docs/installation.md` — both columns of the defaults table, the `≥ NN.NN` sentence, and the
             "Node NN LTS" summary
-          - `src/Rask.Cli/Scaffolding/ProjectGenerator.Spa.cs` — the Dockerfile's `setup_NN.x`
 
           **Held by nothing — check these by hand:**
 
           - `src/Rask.Cli/NodeRequirement.cs` — the codename in the `ScaffoldLine` doc comment
-          - `docs/spa.md` — "the current Active LTS (NN 'Codename')"
           - `tests/Rask.Cli.Tests/DoctorDependencyTests.cs` — the faked versions in the doctor cases
           - `scripts/tests/install-script.test.sh` — the version literals it checks the floor with
 
-          Leave alone anything quoting **Angular's** floor (`^22.22.3 || ^24.15.0 || >=26.0.0`) — that
-          is a fact about somebody else's CLI, not Rask's line.
-
-          `RaskSpaMinimumNode` / `RaskExternalMinimumNode` are the BUILD FLOOR, a different number on
+          `RaskExternalMinimumNode` is the BUILD FLOOR, a different number on
           purpose: the oldest Node an existing app still builds on. Raising the scaffold line does not
           raise those.
 

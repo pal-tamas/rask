@@ -86,10 +86,8 @@ check "garbage >= 22.12.0"                     no  "$(ge 'not-a-version' 22.12.0
 
 # --- the SHIPPED Node floor ------------------------------------------------------------------
 # Against the real default rather than a literal, so this pins what the installer actually does. The
-# floor decides whether an existing Node is LEFT ALONE, and what that Node has to be able to do is
-# scaffold — which runs create-vite@latest and @angular/cli@latest. Angular's CLI refuses below
-# ^22.22.3 || ^24.15.0 || >=26.0.0, so 24.14.0 is the exact machine that installed cleanly and then
-# could not run `rask new --template angular` (#886).
+# floor decides whether an existing Node is LEFT ALONE, and it is the Active LTS line the island
+# toolchains track. 24.14.0 is the exact machine that installed cleanly and then could not scaffold (#886).
 echo "==> the shipped RASK_INSTALL_NODE_MIN"
 check "24.14.0 is refused (the #886 machine)"  no  "$(ge v24.14.0 "$RASK_INSTALL_NODE_MIN")"
 check "24.15.0 satisfies it"                   yes "$(ge v24.15.0 "$RASK_INSTALL_NODE_MIN")"

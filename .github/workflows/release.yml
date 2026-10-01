@@ -43,8 +43,8 @@ jobs:
       # throttled. They simply were not on the list.
       #
       # Packing the solution has no list to go stale: a project carrying IsPackable=false (every test
-      # project, Rask.Core, Rask.Site) is skipped by the SDK, and everything else is packed because it
-      # exists. Verified to produce exactly the 35 packable projects and no others.
+      # project, the MSBuild task projects, Rask.Site) is skipped by the SDK, and everything else is packed
+      # because it exists. Verified to produce exactly the 39 packable projects and no others.
       #
       # No --no-build: pack on a solution re-invokes Build for the non-packable projects and
       # NETSDK1085 fails the run. The build above has already done the work, so this is incremental.

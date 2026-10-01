@@ -5,7 +5,8 @@ description: Check every dependency axis in the Rask repo — NuGet, the Node LT
 
 # check-dependency-updates
 
-The on-demand path. Dependabot covers NuGet + GitHub Actions weekly (`.github/dependabot.yml`), and
+The on-demand path. Dependabot covers NuGet, GitHub Actions and the site's own npm manifest weekly
+(`.github/dependabot.yml`), and
 `.github/workflows/lts-watch.yml` opens an issue when Node's Active LTS line moves. Neither sees the
 pins in §2, and nothing schedules a vulnerability scan any more — see the warning under §1.
 
@@ -42,16 +43,16 @@ rather than shipping. It does not know your intent — if a test fails, fix the 
 | esbuild | `src/Rask.Core/build/Rask.Core.targets` → `RaskEsbuildVersion` |
 | tsgo | same file → `RaskTsgoVersion` (dated on purpose — see above) |
 | TypeScript (props extractor) | `src/Rask.External/build/Rask.External.props` → `RaskExternalTypeScriptVersion`. The compiler's **JavaScript API**, so it stays on **6.x**: 7.x is the native compiler and publishes no JS API. It decides what every committed `*.props.json` says, so after a bump rebuild the projects with package islands and review the snapshot diff — a checker that answers differently rewrites them. |
-| Tailwind | `src/Rask.Tailwind/build/Rask.Tailwind.props` → `RaskTailwindVersion`, and the caret range in `ProjectGenerator.Spa.cs`. `TailwindVersionPinTests` asserts the range accepts the pin. |
-| daisyUI | **Vendored, not a version string:** `src/Rask.Ui/Styles/vendor/daisyui.mjs` is the standalone bundle itself. Read the current version from `var version = "…"` inside it; the same number is restated in the `@plugin` comment in `src/Rask.Ui/Styles/ui.css`, so **bump both**. Bumping means re-downloading the pinned release asset (`daisyui.mjs` from daisyUI's releases page), not an npm install — this project deliberately has no `package.json`, because Tailwind resolves `@plugin "daisyui"` the Node way and the standalone engine carries no package tree. Nothing else watches this pin: `dependabot.yml` declares no npm ecosystem at all. After a bump run the unit gate — `DaisyUiVersionPinTests` fails if the bundle and the `ui.css` sentence disagree, if the MIT header went missing, or if the compiled sheet no longer carries the themes the bundle defines; `UiClassNamesTests` fails if the new bundle stopped emitting a class the kit writes, which is the silent failure mode (the component renders unstyled and the build stays green). **There is a SECOND daisyUI pin:** the 13 front-end templates install it from npm, as `DaisyUiRange` in `src/Rask.Cli/Scaffolding/ProjectGenerator.Spa.cs`, because a JS lane has a package tree while the standalone engine does not. `DaisyUiVersionPinTests` fails if the range stops accepting the vendored version, so bump the two together — otherwise the same starter page renders differently depending on which half of the toolchain compiled its stylesheet. |
+| Tailwind | `src/Rask.Tailwind/build/Rask.Tailwind.props` → `RaskTailwindVersion`. |
+| daisyUI | **Vendored, not a version string:** `src/Rask.Ui/Styles/vendor/daisyui.mjs` is the standalone bundle itself. Read the current version from `var version = "…"` inside it; the same number is restated in the `@plugin` comment in `src/Rask.Ui/Styles/ui.css`, so **bump both**. Bumping means re-downloading the pinned release asset (`daisyui.mjs` from daisyUI's releases page), not an npm install — this project deliberately has no `package.json`, because Tailwind resolves `@plugin "daisyui"` the Node way and the standalone engine carries no package tree. Nothing else watches this pin: `dependabot.yml`'s only npm entry is the site's own `package.json`. After a bump run the unit gate — `DaisyUiVersionPinTests` fails if the bundle and the `ui.css` sentence disagree, if the MIT header went missing, or if the compiled sheet no longer carries the themes the bundle defines; `UiClassNamesTests` fails if the new bundle stopped emitting a class the kit writes, which is the silent failure mode (the component renders unstyled and the build stays green). |
 | Adapter fixtures | `tests/Rask.External.Tests/Rask.External.Tests.csproj` → `RaskPreactFixtureVersion`, `RaskHappyDomFixtureVersion`, `RaskReactFixtureVersion` (react and react-dom), `RaskVueFixtureVersion` and `RaskSolidFixtureVersion`. Exact versions, npm-installed together into `obj/preact-fixture` for `PreactAdapterTests`, `ReactAdapterTests`, `VueAdapterTests`, `SolidAdapterTests` and `LitAdapterTests` (happy-dom only), which are the only coverage those adapters have below a browser — island children included. Bump, delete `tests/Rask.External.Tests/obj/preact-fixture` (the install is stamped) and run the unit gate; a major that changed a framework's render, reconcile or unmount semantics fails there, which is the point of the pins. |
-| Node build floor | `Rask.Spa.Hosting.props` → `RaskSpaMinimumNode`, `Rask.External.props` → `RaskExternalMinimumNode`. Both 22.12.0, both vite's requirement. |
+| Node build floor | `Rask.External.props` → `RaskExternalMinimumNode`, 22.12.0 — vite's requirement for islands. |
 | Node scaffold line | `src/Rask.Cli/NodeRequirement.cs` → `ScaffoldLine`. **The source of truth**; everything else is held to it by `NodeRequirementTests`. |
 | Scaffolded test project | `src/Rask.Templates/{server,wasm}/Company.RaskServer.Tests/Company.RaskServer.Tests.csproj` → `Microsoft.NET.Test.Sdk`, `xunit.v3`, `xunit.runner.visualstudio`. Exact versions, the same as `Directory.Packages.props`; `TestProjectScaffoldTests` fails when a CPM bump leaves them behind, so bump them together. |
-| npm ranges for scaffolded apps | `ProjectGenerator.Spa.cs` → `TailwindRange`, `QueryRange`, `SvelteQueryRange`, `LitQueryRange`, `RouterRange`. Caret ranges, so they float within a major — check for a **major** bump, which is the case a caret hides. |
+| Island npm ranges | `src/Rask.Templates/_islands/*/island.json` → the `devDependencies` `rask new --islands <runtime>` merges into the app's `package.json` (react, vue, svelte, solid, preact, lit, angular — and their Vite plugins, `vite`, `typescript`). **Hand-bumped: it is not a `package.json`, so Dependabot cannot read it.** Caret ranges, so they float within a major — check each for a **major** bump, which is the case a caret hides, and keep `vite` and `typescript` on the same range across runtimes. |
 
-**Deliberately unpinned, leave alone:** the external scaffolders (`create-vite@latest`,
-`@angular/cli@latest`) and island dependencies, which come from the user's own `package.json`.
+**Deliberately unpinned, leave alone:** an existing app's island dependencies, which live in the
+user's own `package.json` once scaffolded.
 
 ## 3. Node
 
@@ -62,8 +63,7 @@ curl -fsS https://nodejs.org/dist/index.json | grep -o '"lts":"[^"]*"' | head -1
 ```
 
 Raise `NodeRequirement.ScaffoldLine`, then run the unit gate — the tests name every file that has to
-follow. Do not touch the places quoting **Angular's** floor (`^22.22.3 || ^24.15.0 || >=26.0.0`);
-that is a fact about someone else's CLI. The build floor is a separate, lower number on purpose.
+follow. The islands' build floor (`RaskExternalMinimumNode`) is a separate, lower number on purpose.
 
 ## 3b. MDN data (the element surface)
 
