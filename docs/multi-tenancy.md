@@ -64,7 +64,7 @@ public sealed class User : Authenticatable
     public void JoinTenant(Guid tenant) => RecordTenant(tenant);
 }
 
-await auth.RegisterAsync(model.Email, model.Password, (User user) => user.JoinTenant(invite.TenantId), ReturnUrl);
+await auth.Register(model.Email, model.Password, (User user) => user.JoinTenant(invite.TenantId), ReturnUrl);
 ```
 
 A user with no tenant — an administrator — carries no claim, and is covered [below](#administrators).

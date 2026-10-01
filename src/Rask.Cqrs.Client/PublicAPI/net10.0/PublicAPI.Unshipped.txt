@@ -5,8 +5,8 @@ Rask.Cqrs.Client.RaskCqrsClientOptions.BaseAddress.get -> System.Uri?
 Rask.Cqrs.Client.RaskCqrsClientOptions.BaseAddress.set -> void
 Rask.Cqrs.Client.RaskCqrsClientOptions.ChunkedUploadThreshold.get -> long
 Rask.Cqrs.Client.RaskCqrsClientOptions.ChunkedUploadThreshold.set -> void
-Rask.Cqrs.Client.RaskCqrsClientOptions.ConfigureRequestAsync.get -> System.Func<System.Net.Http.HttpRequestMessage!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
-Rask.Cqrs.Client.RaskCqrsClientOptions.ConfigureRequestAsync.set -> void
+Rask.Cqrs.Client.RaskCqrsClientOptions.ConfigureRequest.get -> System.Func<System.Net.Http.HttpRequestMessage!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
+Rask.Cqrs.Client.RaskCqrsClientOptions.ConfigureRequest.set -> void
 Rask.Cqrs.Client.RaskCqrsClientOptions.MaxQueryUrlLength.get -> int
 Rask.Cqrs.Client.RaskCqrsClientOptions.MaxQueryUrlLength.set -> void
 Rask.Cqrs.Client.RaskCqrsClientOptions.RaskCqrsClientOptions() -> void

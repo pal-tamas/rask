@@ -66,6 +66,38 @@ them until tagged releases begin.
   2. Mark each domain event `[LocalOnly]`. `IOutboxEvent` did that for you: events travel from a browser like any
      message, so an unmarked `OrderPlaced` could be published by a signed-in user.
   3. Add the outbox's new `Handler` column: `rask db add AddOutboxHandler && rask db update`.
+- **BREAKING: the last `…Async` suffixes go, and signing in needs nothing injected.** A new static `Auth`
+  (namespace `Rask.Core`) mirrors `IAuth` — `await Auth.SignIn(email, password)` from any handler, render or
+  request; outside any work in progress it throws and says to inject `IAuth` there instead (code under a
+  `Rask.*` namespace that also sees the `Rask.Auth` namespace writes `Rask.Core.Auth`).
+
+  | Before | After |
+  | --- | --- |
+  | `auth.SignInAsync` / `SignOutAsync` / `SignOutEverywhereAsync` / `SignOutOtherDevicesAsync` | `auth.SignIn` / `SignOut` / `SignOutEverywhere` / `SignOutOtherDevices`, or `Auth.SignIn(…)` etc. |
+  | `auth.RegisterAsync` / `RegisterAsync<TUser>` / `SignInWithPasskeyAsync` | `auth.Register` / `Register<TUser>` / `SignInWithPasskey` |
+  | `auth.SendPasswordResetAsync` / `ResetPasswordAsync` / `ConfirmEmailAsync` | `auth.SendPasswordReset` / `ResetPassword` / `ConfirmEmail` |
+  | `auth.AddPasskeyAsync` / `RemovePasskeyAsync` | `auth.AddPasskey` / `RemovePasskey` |
+  | `await RaskApp.Create(args).RunAsync<App>()` / `.ServeAsync()` | `RaskApp.Create(args).Run<App>()` / `.Serve()` (removed) |
+  | `await StateHasChangedAsync()` | `StateHasChanged()` (removed) |
+  | `protected override Task OnFirstRendered()` | `protected override Task OnFirstRender()` |
+  | `IRemoteDispatch.SendAsync` / `ApiCall.SendAsync` | `Send` |
+  | `IWatchPolicy<T>.CanWatchAsync` / `CqrsRegistry.CanWatchAsync<T>` | `CanWatch` |
+  | `IAsyncFieldValidator.ValidateAsync` / `ValidateFieldAsync` | `Validate` / `ValidateField` |
+  | `ctx.Validate()` / `ctx.ValidateField(field)` (sync, threw once an async validator existed) | removed — `await ctx.Validate()` / `await ctx.ValidateField(field)` |
+  | `await ctx.ValidateAsync(ct)` / `ValidateFieldAsync(field, ct)` | `await ctx.Validate(ct)` / `ValidateField(field, ct)` |
+  | `.Validate(async (v, ct) => …)` (the `ValidateAsync<T>` delegate) | `.Validate(async v => …)` — read the token from `Current.Cancellation`; the delegate is gone |
+  | `IFormControl<T>.InvokeOnChangeAsync` / `InvokeAfterBindAsync` | `InvokeOnChange` / `InvokeAfterBind` |
+  | `RaskAppOptions.RunBeforeDatabaseOpensAsync` | `RunBeforeDatabaseOpens` |
+  | `services.RestoreSqliteFromLitestreamAsync()` | `RestoreSqliteFromLitestream()` |
+  | `ApiClientOptions.ConfigureRequestAsync` / `RaskCqrsClientOptions.ConfigureRequestAsync` | `ConfigureRequest` |
+  | Dashboard `ICachePanelReader.StatsAsync` / `PageAsync` / `EvictAsync` / `FlushAsync` | `Stats` / `Page` / `Evict` / `Flush` |
+  | Dashboard `IQueuePanel.CountsAsync` / `PageAsync`, `IQueueActions.RetryAsync` / `RetryAllAsync` / `PurgeProcessedAsync` / `DeleteAsync` | `Counts` / `Page`, `Retry` / `RetryAll` / `PurgeProcessed` / `Delete` |
+  | Dashboard `IStoragePanelReader.StatsAsync` / `PageAsync` | `Stats` / `Page` |
+  | Dashboard `ISystemPanelReader.DatabaseAsync` / `RecurringJobsAsync` / `ReplicationAsync` / `SnapshotsAsync` / `VerificationAsync`, `IDashboardBackupProbe` likewise | `Database` / `RecurringJobs` / `Replication` / `Snapshots` / `Verification` |
+  | Dashboard `PollingPanel.LoadAsync` / `ResumeAsync` | `Load` / `Resume` |
+
+  One awaitable validation path: every rule, sync or async, runs through `await ctx.Validate()` /
+  `await ctx.ValidateField(field)`, so a form that gains an async validator changes nothing at the call site.
 - **BREAKING: React, Vue, Svelte and the rest run as islands only.** The meta-framework templates
   (`nuxt`, `nextjs`, `sveltekit`, `solidstart`, `tanstack-start`, `analog`) and the `Rask.Meta.Hosting`
   package are removed, and so are the TypeScript SPA templates (`react`, `preact`, `vue`, `solid`,
@@ -1055,7 +1087,7 @@ them until tagged releases begin.
 - **BREAKING — a recurring job says when it runs, on the calendar.** `o.Run<PurgeStaleCarts>().Every(1.Hour)`, `o.Run<NightlyBackup>().Daily.At(3, 00)`, `o.Run<WeeklyDigest>().Weekly.On(DayOfWeek.Monday).At(9, 00)`, `o.Run<CloseBooks>().Monthly.On(1).At(6, 00)` replace `AddRecurring<T>(name, every, factory)`. A calendar time is read in `o.TimeZone` — UTC by default, so a deploy cannot move a schedule, and `Rask:Jobs:TimeZone` takes an IANA id such as `Europe/Budapest` for an app whose 3am has to be a customer's 3am. It follows daylight saving, and `.Monthly.On(31)` runs on a short month's last day rather than skipping February. The durable name is the job's type name, `.Named("purge-carts")` overrides it, and two schedules for one job need one. A `Run<T>()` left without a cadence fails the host's start instead of silently never running. `JobsOptions.RecurringJobs` now reports a `Schedule` an operator can read ("every 1h", "daily at 03:00") in place of a bare `Interval`, and the dashboard's Recurring jobs card shows it.
 - **BREAKING — `RenderedComponent` is `Page`** (`Page<T>` for `Page.Render(component)`).
 - **BREAKING — `RaskTest` is `Test`.** `Page.Render(…)`, `Page.RenderDocument(…)`: the namespace already says Rask.
-- **BREAKING — five lifecycle hooks, one per moment.** `OnMount()`, `OnUpdated()`, `OnFirstRendered()`, `OnRendered()`, `OnUnmount()`, each `protected virtual Task`, replace the eight synchronous/asynchronous twins: `OnMount`+`OnMountAsync` → `OnMount`, `OnPropsChanged`+`OnPropsChangedAsync` → `OnUpdated`, `OnUnmount`+`OnUnmountAsync` → `OnUnmount`, and `OnRendered(bool)`/`OnRenderedAsync(bool)` → `OnFirstRendered()` for the first-render branch plus `OnRendered()` for every render (the first included, after `OnFirstRendered`). What used to go in the synchronous twin goes above the first `await`, which still runs before the first render; a body with nothing to await is written `async` all the same. Code that runs inside a lifecycle hook and passes no token is now cancelled with its component, as a handler already was.
+- **BREAKING — five lifecycle hooks, one per moment.** `OnMount()`, `OnUpdated()`, `OnFirstRender()`, `OnRendered()`, `OnUnmount()`, each `protected virtual Task`, replace the eight synchronous/asynchronous twins: `OnMount`+`OnMountAsync` → `OnMount`, `OnPropsChanged`+`OnPropsChangedAsync` → `OnUpdated`, `OnUnmount`+`OnUnmountAsync` → `OnUnmount`, and `OnRendered(bool)`/`OnRenderedAsync(bool)` → `OnFirstRender()` for the first-render branch plus `OnRendered()` for every render (the first included, after `OnFirstRender`). What used to go in the synchronous twin goes above the first `await`, which still runs before the first render; a body with nothing to await is written `async` all the same. Code that runs inside a lifecycle hook and passes no token is now cancelled with its component, as a handler already was.
 - **A component the app built itself joins the lifecycle on its own.** An instance built at runtime — a plugin, a type chosen by name — placed straight in the tree (`Div[page]`) is adopted by the render walk and gets `OnMount`/`OnUnmount` and a handle to re-render through; several instances of one type under one parent each keep theirs. The `Mount` wrapper component that did this by hand is removed.
 - **BREAKING — the cache reads the way you say it, with nothing injected.** `await Cache.Remember("products", LoadProducts).For(10.Minutes)`, `await Cache.Set("banner", text).Until(midnight)`, `await Cache.Get<string>("banner")`, `await Cache.Forget("products")` — from a handler, a render, a request or a job; each call is cancelled with the work it runs in. Lifetimes are steps: `.For(…)`, `.Sliding(…)`, `.Until(…)`. An injected `ICache` reads the same (`cache.Remember(…).For(…)`) for a hosted service or a timer. A trimmed or AOT app registers its `JsonSerializerContext` once — `AddRaskCache<AppDbContext>(o => o.Json = AppJson.Default)` — instead of passing a `JsonTypeInfo<T>` at every call; the external-store `AddRaskCache()` takes the same `configure`. Renamed: `GetOrAddAsync` → `Remember`, `SetAsync` → `Set`, `GetAsync` → `Get`, `RemoveAsync` → `Forget`; `DistributedCacheEntryOptions` → the lifetime steps; the `JsonTypeInfo<T>` overloads → `CacheOptions.Json`; the public `Cache` implementation class is now the static entry point.
 - **Rask.Data and Rask.SQLite.EntityFrameworkCore are trim-safe (#1132).** Both build `IsTrimmable`, so the trim

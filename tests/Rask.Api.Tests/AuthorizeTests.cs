@@ -90,7 +90,7 @@ public sealed class AuthorizeTests
 
         // `ada`, not `"ada"`. This client sends no Accept header, so content negotiation hands a
         // string-returning action to StringOutputFormatter and the answer is text/plain. The generated
-        // API client asks for application/json precisely so it never meets this — see ApiCall.SendAsync.
+        // API client asks for application/json precisely so it never meets this — see ApiCall.Send.
         Assert.Equal("ada", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
     }

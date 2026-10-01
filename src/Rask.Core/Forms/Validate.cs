@@ -9,7 +9,7 @@ namespace Rask.Core.Forms;
 /// <remarks>
 ///     Contravariant in <typeparamref name="T" /> so a validator written against a base type can validate
 ///     a more-derived bound value. Registered with the <see cref="EditContext" /> and invoked via
-///     <c>DelegateValidator</c> (which dispatches by arity), so the one-argument shape selects the
-///     synchronous path.
+///     <c>DelegateValidator</c>, which tells it from the asynchronous rule by its return type: the messages
+///     themselves select the synchronous path.
 /// </remarks>
 public delegate IEnumerable<string> Validate<in T>(T value);

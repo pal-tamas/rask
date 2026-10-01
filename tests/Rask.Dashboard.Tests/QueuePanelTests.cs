@@ -24,7 +24,7 @@ public sealed class QueuePanelTests
             Job(runAt: now.AddMinutes(-1), attempts: max),        // dead letter
             Job(runAt: now.AddMinutes(-1), processedAt: now));    // done
 
-        var counts = await h.Queue("jobs").CountsAsync(CancellationToken.None);
+        var counts = await h.Queue("jobs").Counts(CancellationToken.None);
 
         Assert.Equal(2, counts.Due);
         Assert.Equal(1, counts.Delayed);
@@ -45,7 +45,7 @@ public sealed class QueuePanelTests
             Job(runAt: now.AddMinutes(-1), attempts: max - 1),
             Job(runAt: now.AddMinutes(-1), attempts: max));
 
-        var counts = await h.Queue("jobs").CountsAsync(CancellationToken.None);
+        var counts = await h.Queue("jobs").Counts(CancellationToken.None);
 
         Assert.Equal(1, counts.Failed);
         Assert.Equal(1, counts.Due);
@@ -62,7 +62,7 @@ public sealed class QueuePanelTests
             Job(runAt: now, attempts: max, error: "boom"),
             Job(runAt: now));
 
-        var (rows, total) = await h.Queue("jobs").PageAsync(QueueFilter.Failed, 0, 25, CancellationToken.None);
+        var (rows, total) = await h.Queue("jobs").Page(QueueFilter.Failed, 0, 25, CancellationToken.None);
 
         Assert.Equal(1, total);
         Assert.Equal("boom", Assert.Single(rows).Error);
@@ -75,7 +75,7 @@ public sealed class QueuePanelTests
         var now = h.Clock.GetUtcNow().UtcDateTime;
         await SeedJobsAsync(h, [.. Enumerable.Range(0, 7).Select(_ => Job(runAt: now))]);
 
-        var (rows, total) = await h.Queue("jobs").PageAsync(QueueFilter.Outstanding, 0, 3, CancellationToken.None);
+        var (rows, total) = await h.Queue("jobs").Page(QueueFilter.Outstanding, 0, 3, CancellationToken.None);
 
         Assert.Equal(3, rows.Count);
         Assert.Equal(7, total);   // the pager needs what's behind the page, not the page size
@@ -92,8 +92,8 @@ public sealed class QueuePanelTests
         Assert.False(outbox.IsAvailable);
 
         // And it must not throw when something asks anyway — an unavailable panel reads as nothing.
-        Assert.Equal(default, await outbox.CountsAsync(CancellationToken.None));
-        Assert.Empty((await outbox.PageAsync(QueueFilter.Outstanding, 0, 25, CancellationToken.None)).Rows);
+        Assert.Equal(default, await outbox.Counts(CancellationToken.None));
+        Assert.Empty((await outbox.Page(QueueFilter.Outstanding, 0, 25, CancellationToken.None)).Rows);
     }
 
     [Fact]
@@ -122,13 +122,13 @@ public sealed class QueuePanelTests
         }
 
         var row = Assert.Single(
-            (await h.Queue("outbox").PageAsync(QueueFilter.Outstanding, 0, 25, CancellationToken.None)).Rows);
+            (await h.Queue("outbox").Page(QueueFilter.Outstanding, 0, 25, CancellationToken.None)).Rows);
 
         Assert.Equal(occurred, row.CreatedAt);
         // The outbox has no scheduled-run column, so RunAt mirrors OccurredAt — which correctly leaves
         // its Delayed count permanently zero rather than inventing a delay it doesn't have.
         Assert.Equal(occurred, row.RunAt);
-        Assert.Equal(0, (await h.Queue("outbox").CountsAsync(CancellationToken.None)).Delayed);
+        Assert.Equal(0, (await h.Queue("outbox").Counts(CancellationToken.None)).Delayed);
     }
 
     private static Job Job(DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null) =>

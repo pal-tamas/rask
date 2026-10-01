@@ -24,7 +24,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
     private IAsyncDisposable? _watch;
     private bool _started;
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         if (_started)
 
@@ -39,7 +39,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
         {
             _watchState = "not supported on this browser";
             _readState = "not supported on this browser";
-            await StateHasChangedAsync();
+            StateHasChanged();
             return;
         }
 

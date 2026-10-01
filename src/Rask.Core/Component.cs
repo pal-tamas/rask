@@ -1015,12 +1015,12 @@ public abstract partial class Component : RaskMarkup
 
     /// <summary>
     ///     Runs once, after this component is first in the page — where browser work that needs its elements
-    ///     starts: <c>protected override async Task OnFirstRendered() =&gt; _watch = await resize.Observe(_box, OnResize);</c>
+    ///     starts: <c>protected override async Task OnFirstRender() =&gt; _watch = await resize.Observe(_box, OnResize);</c>
     /// </summary>
-    protected virtual Task OnFirstRendered() => Task.CompletedTask;
+    protected virtual Task OnFirstRender() => Task.CompletedTask;
 
     /// <summary>
-    ///     Runs after every render, the first included (after <see cref="OnFirstRendered" />) — to keep something
+    ///     Runs after every render, the first included (after <see cref="OnFirstRender" />) — to keep something
     ///     outside Rask in step with what was just rendered.
     /// </summary>
     protected virtual Task OnRendered() => Task.CompletedTask;
@@ -1099,7 +1099,7 @@ public abstract partial class Component : RaskMarkup
         // method-group delegate would allocate each time.
         if (firstRender)
         {
-            AfterRendered(OnFirstRendered());
+            AfterRendered(OnFirstRender());
         }
 
         AfterRendered(OnRendered());
@@ -2236,7 +2236,8 @@ public abstract partial class Component : RaskMarkup
     // ordering in InvokeAsyncLifecycleWithRendering can be pinned against (#1037).
     internal bool IsRenderRequestedForTest => _live is { StateDirty: true };
 
-    public Task StateHasChangedAsync()
+    // The awaitable StateHasChanged, for the host alone: a session re-rendering its whole tree waits for the frame.
+    internal Task StateHasChangedAsync()
     {
         if (Live.IsUnmounted)
         {

@@ -231,7 +231,7 @@ public sealed class RaskAppOptions
     /// failure is a fresh empty database on a machine that was supposed to have recovered. Continuous
     /// backup fills this in for you when a replica URL is configured.
     /// </remarks>
-    public Func<IServiceProvider, Task>? RunBeforeDatabaseOpensAsync { get; set; }
+    public Func<IServiceProvider, Task>? RunBeforeDatabaseOpens { get; set; }
 
     /// <summary>
     /// Whether the app applies its pending migrations when it starts, before any battery's worker runs and before

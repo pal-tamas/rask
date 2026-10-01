@@ -13,7 +13,7 @@ namespace Rask.Cqrs;
 ///     <code>
 ///     public sealed class WatchOrderPolicy : IWatchPolicy&lt;WatchOrder&gt;
 ///     {
-///         public async Task&lt;bool&gt; CanWatchAsync(WatchOrder watch, CancellationToken ct) =&gt;
+///         public async Task&lt;bool&gt; CanWatch(WatchOrder watch, CancellationToken ct) =&gt;
 ///             (await Order.Where(o =&gt; o.Id == watch.OrderId).First())?.CustomerId == Current.UserId;
 ///     }
 ///     </code>
@@ -29,5 +29,5 @@ public interface IWatchPolicy<in TSubscription>
     /// <summary>Whether the current subscriber may open <paramref name="subscription" />.</summary>
     /// <param name="subscription">What is being asked for, with its own typed values.</param>
     /// <param name="cancellationToken">Cancels the check.</param>
-    Task<bool> CanWatchAsync(TSubscription subscription, CancellationToken cancellationToken);
+    Task<bool> CanWatch(TSubscription subscription, CancellationToken cancellationToken);
 }

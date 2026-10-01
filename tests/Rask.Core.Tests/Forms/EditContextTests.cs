@@ -33,14 +33,14 @@ public class EditContextTests
     }
 
     [Fact]
-    public void Adding_a_validator_dedupes_by_type()
+    public async Task Adding_a_validator_dedupes_by_type()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
         ctx.AddValidator(new MessageStampingValidator());
         ctx.AddValidator(new MessageStampingValidator()); // distinct instance, same type
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         // If the validator was added twice, we'd see two copies of "stamp" — dedup means one.
         Assert.Single(ctx.GetValidationMessages(fid));
@@ -62,13 +62,13 @@ public class EditContextTests
     }
 
     [Fact]
-    public void Validating_clears_the_old_messages_first()
+    public async Task Validating_clears_the_old_messages_first()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
         ctx.AddValidationMessage(fid, "stale");
 
-        ctx.Validate(); // no validators registered → no messages
+        await ctx.Validate(TestContext.Current.CancellationToken); // no validators registered → no messages
 
         Assert.Empty(ctx.GetValidationMessages(fid));
     }

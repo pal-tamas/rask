@@ -96,14 +96,14 @@ public sealed class GeneratedInvokerTests
 
         public bool SentVoid { get; private set; }
 
-        public Task<TResult> SendAsync<TResult>(RemoteContract contract, object message, CancellationToken cancellationToken)
+        public Task<TResult> Send<TResult>(RemoteContract contract, object message, CancellationToken cancellationToken)
         {
             Contract = contract;
             Message = message;
             return Task.FromResult<TResult>(default!);
         }
 
-        public Task SendAsync(RemoteContract contract, object message, CancellationToken cancellationToken)
+        public Task Send(RemoteContract contract, object message, CancellationToken cancellationToken)
         {
             Contract = contract;
             Message = message;

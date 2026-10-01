@@ -280,8 +280,8 @@ internal static class RaskBatteryWiring
                 // And the other half of the promise: a fresh box pulls the database back from the replica
                 // before anything opens it. On a box that already has app.db this is a no-op. An app that
                 // set its own pre-open step keeps it.
-                options.RunBeforeDatabaseOpensAsync ??= static async sp =>
-                    await sp.RestoreSqliteFromLitestreamAsync().ConfigureAwait(false);
+                options.RunBeforeDatabaseOpens ??= static async sp =>
+                    await sp.RestoreSqliteFromLitestream().ConfigureAwait(false);
             }
 
             if (options.Snapshots.Enabled)

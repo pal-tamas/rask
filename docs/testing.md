@@ -101,7 +101,7 @@ is in markup — a component is built through its chain, never with `new` (RASK0
   page.Shows(html => html.Contains("data-state=\"done\""));
   ```
 
-  Both overloads of `Render` fire `OnMount` and, once it has rendered, `OnFirstRendered` and `OnRendered` — the component
+  Both overloads of `Render` fire `OnMount` and, once it has rendered, `OnFirstRender` and `OnRendered` — the component
   renders through the handle, so state it sets after an await reaches the markup on the next render.
 - **`.On(selector)`** — the events of the **one** element the selector matches (tag, `#id`, `.class`,
   `[attr]`, `[attr="v"]`, descendant/child combinators, `:has-text("…")`; none or several throws):
@@ -494,7 +494,7 @@ Assert.Equal(new[] { "Already taken." }, ctx.GetValidationMessages(fid));
 For **async** flows, drive validation across the await boundary with a gated validator: invoke the
 handler without awaiting it, assert `ctx.IsValidating(fid)` is `true` mid-flight, release the
 validator, then await the dispatch task and assert it flips back to `false`. You can also call
-`ctx.ValidateAsync()` directly to exercise the pipeline without going through submit.
+`await ctx.Validate()` directly to exercise the pipeline without going through submit.
 
 See `tests/Rask.Core.Tests/Forms/FormBindingTests.cs` and `AsyncFormBindingTests.cs` for the full
 set. See [forms.md](forms.md) for the framework-side validation semantics.

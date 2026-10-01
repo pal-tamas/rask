@@ -25,7 +25,7 @@ public sealed class BrowserAuthRecoveryTests
         var handler = new StubHandler(HttpStatusCode.Accepted);
         var auth = Auth(handler, out _, out var route);
 
-        var result = await auth.SendPasswordResetAsync("owner@example.com");
+        var result = await auth.SendPasswordReset("owner@example.com");
 
         Assert.True(result.Succeeded);
         Assert.Equal("/api/auth/forgot-password", handler.LastPath);
@@ -42,7 +42,7 @@ public sealed class BrowserAuthRecoveryTests
         var handler = new StubHandler(HttpStatusCode.NoContent);
         var auth = Auth(handler, out var users, out _);
 
-        var result = await auth.ResetPasswordAsync("u1", "tok", "Password2longer");
+        var result = await auth.ResetPassword("u1", "tok", "Password2longer");
 
         Assert.True(result.Succeeded);
         Assert.Equal("/api/auth/reset-password", handler.LastPath);
@@ -58,7 +58,7 @@ public sealed class BrowserAuthRecoveryTests
         var handler = new StubHandler(HttpStatusCode.NoContent);
         var auth = Auth(handler, out _, out _);
 
-        var result = await auth.ConfirmEmailAsync("u1", "tok");
+        var result = await auth.ConfirmEmail("u1", "tok");
 
         Assert.True(result.Succeeded);
         Assert.Equal("/api/auth/confirm-email", handler.LastPath);
@@ -70,7 +70,7 @@ public sealed class BrowserAuthRecoveryTests
         var handler = new StubHandler(HttpStatusCode.NoContent);
         var auth = Auth(handler, out _, out _);
 
-        await auth.ConfirmEmailAsync("u1", "tok");
+        await auth.ConfirmEmail("u1", "tok");
 
         // Without it the endpoint answers 400. Cross-site markup cannot set a custom header, which is
         // the whole reason the endpoints require one.
@@ -84,7 +84,7 @@ public sealed class BrowserAuthRecoveryTests
             HttpStatusCode.BadRequest, """{"error":"InvalidToken","message":null}""");
         var auth = Auth(handler, out _, out _);
 
-        var result = await auth.ResetPasswordAsync("u1", "stale", "Password2longer");
+        var result = await auth.ResetPassword("u1", "stale", "Password2longer");
 
         // The name rather than the number, so a value added later cannot silently become a different
         // one — and "ask for a new link" is a different instruction from "pick a longer password".
@@ -99,7 +99,7 @@ public sealed class BrowserAuthRecoveryTests
             HttpStatusCode.ServiceUnavailable, """{"error":"MailNotConfigured","message":"no smtp"}""");
         var auth = Auth(handler, out _, out _);
 
-        var result = await auth.SendPasswordResetAsync("owner@example.com");
+        var result = await auth.SendPasswordReset("owner@example.com");
 
         Assert.Equal(AuthError.MailNotConfigured, result.Error);
         Assert.Equal("no smtp", result.Message);
@@ -111,7 +111,7 @@ public sealed class BrowserAuthRecoveryTests
         var handler = new StubHandler(HttpStatusCode.NoContent);
         var auth = Auth(handler, out _, out _, new AuthClientOptions { Prefix = "/internal/auth" });
 
-        await auth.ConfirmEmailAsync("u1", "tok");
+        await auth.ConfirmEmail("u1", "tok");
 
         Assert.Equal("/internal/auth/confirm-email", handler.LastPath);
     }
@@ -128,7 +128,7 @@ public sealed class BrowserAuthRecoveryTests
             """);
         var auth = Auth(handler, out var users, out var route);
 
-        var result = await auth.AddPasskeyAsync("Laptop");
+        var result = await auth.AddPasskey("Laptop");
 
         Assert.False(result.Succeeded);
         Assert.Equal(AuthError.PasskeyRejected, result.Error);
@@ -146,7 +146,7 @@ public sealed class BrowserAuthRecoveryTests
         var auth = Auth(handler, out _, out _);
         var id = Guid.NewGuid();
 
-        Assert.True((await auth.RemovePasskeyAsync(id)).Succeeded);
+        Assert.True((await auth.RemovePasskey(id)).Succeeded);
         Assert.Equal("/api/auth/passkeys/remove", handler.LastPath);
         Assert.Contains(id.ToString(), handler.LastBody, StringComparison.Ordinal);
     }

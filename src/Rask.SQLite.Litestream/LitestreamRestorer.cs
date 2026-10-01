@@ -5,7 +5,7 @@ namespace Rask.SQLite.Litestream;
 /// <summary>
 /// Restores the SQLite database from its Litestream replica when the local file is missing — the
 /// "recover on a fresh container/host" step. Never overwrites an existing database. Invoked via
-/// <see cref="LitestreamStartupExtensions.RestoreSqliteFromLitestreamAsync"/> before the app opens the DB.
+/// <see cref="LitestreamStartupExtensions.RestoreSqliteFromLitestream"/> before the app opens the DB.
 /// </summary>
 public sealed partial class LitestreamRestorer
 {

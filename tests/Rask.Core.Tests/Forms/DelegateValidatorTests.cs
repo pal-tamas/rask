@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Forms;
 public class DelegateValidatorTests
 {
     [Fact]
-    public void A_sync_field_validator_runs_on_ValidateField_and_appends_messages()
+    public async Task A_sync_field_validator_runs_on_ValidateField_and_appends_messages()
     {
         var m = new Model { Name = "ab" };
         var ctx = new EditContext(m);
@@ -14,12 +14,12 @@ public class DelegateValidatorTests
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(v => v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()));
 
-        Assert.False(ctx.ValidateField(fid));
+        Assert.False(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
         Assert.Contains("too short", ctx.GetValidationMessages(fid));
     }
 
     [Fact]
-    public void Registering_a_null_field_validator_clears_the_prior_registration()
+    public async Task Registering_a_null_field_validator_clears_the_prior_registration()
     {
         var m = new Model { Name = "ab" };
         var ctx = new EditContext(m);
@@ -27,12 +27,12 @@ public class DelegateValidatorTests
 
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(_ => new[] { "boom" }));
-        ctx.ValidateField(fid);
+        await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
         Assert.NotEmpty(ctx.GetValidationMessages(fid));
 
         // Drop the registration; re-validate; messages should clear and stay clear.
         ctx.RegisterFieldValidator(fid, null);
-        Assert.True(ctx.ValidateField(fid));
+        Assert.True(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
         Assert.Empty(ctx.GetValidationMessages(fid));
     }
 
@@ -44,13 +44,13 @@ public class DelegateValidatorTests
         var fid = new FieldIdentifier(m, nameof(Model.Name));
 
         ctx.RegisterFieldValidator(fid,
-            (Func<string, CancellationToken, ValueTask<IEnumerable<string>>>)(async (v, ct) =>
+            (Func<string, ValueTask<IEnumerable<string>>>)(async v =>
             {
-                await Task.Delay(10, ct).ConfigureAwait(false);
+                await Task.Delay(10, Current.Cancellation).ConfigureAwait(false);
                 return v == "x" ? new[] { "bad" } : Array.Empty<string>();
             }));
 
-        Assert.False(await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken));
+        Assert.False(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
         Assert.Contains("bad", ctx.GetValidationMessages(fid));
     }
 
@@ -65,12 +65,12 @@ public class DelegateValidatorTests
         var firstObserved = new TaskCompletionSource<bool>();
 
         ctx.RegisterFieldValidator(fid,
-            (Func<string, CancellationToken, ValueTask<IEnumerable<string>>>)(async (v, ct) =>
+            (Func<string, ValueTask<IEnumerable<string>>>)(async v =>
             {
                 firstStarted.TrySetResult();
                 try
                 {
-                    await Task.Delay(2000, ct).ConfigureAwait(false);
+                    await Task.Delay(2000, Current.Cancellation).ConfigureAwait(false);
                     firstObserved.TrySetResult(false);
                     return new[] { "first" };
                 }
@@ -81,19 +81,19 @@ public class DelegateValidatorTests
                 }
             }));
 
-        var firstTask = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken).AsTask();
+        var firstTask = ctx.ValidateField(fid, TestContext.Current.CancellationToken).AsTask();
         await firstStarted.Task;
 
         // Re-register with a quick second delegate and validate again. The CTS-based latest-
         // wins path in EditContext.ValidateFieldAsync cancels the first run.
         ctx.RegisterFieldValidator(fid,
-            (Func<string, CancellationToken, ValueTask<IEnumerable<string>>>)(async (_, _) =>
+            (Func<string, ValueTask<IEnumerable<string>>>)(async _ =>
             {
                 await Task.Yield();
                 return new[] { "second" };
             }));
 
-        var secondTask = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken).AsTask();
+        var secondTask = ctx.ValidateField(fid, TestContext.Current.CancellationToken).AsTask();
         await secondTask;
 
         // First should have observed cancellation.
@@ -105,7 +105,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public void A_sync_form_validator_runs_on_Validate_and_its_messages_attach_to_the_form_field()
+    public async Task A_sync_form_validator_runs_on_Validate_and_its_messages_attach_to_the_form_field()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -114,7 +114,7 @@ public class DelegateValidatorTests
             (Func<Model, IEnumerable<string>>)(model =>
                 string.IsNullOrEmpty(model.Name) ? new[] { "form bad" } : Array.Empty<string>()));
 
-        Assert.False(ctx.Validate());
+        Assert.False(await ctx.Validate(TestContext.Current.CancellationToken));
         var formField = new FieldIdentifier(m, "");
         Assert.Contains("form bad", ctx.GetValidationMessages(formField));
     }
@@ -126,32 +126,19 @@ public class DelegateValidatorTests
         var ctx = new EditContext(m);
 
         ctx.RegisterFormValidator(
-            (Func<Model, CancellationToken, ValueTask<IEnumerable<string>>>)(async (model, ct) =>
+            (Func<Model, ValueTask<IEnumerable<string>>>)(async model =>
             {
-                await Task.Delay(10, ct).ConfigureAwait(false);
+                await Task.Delay(10, Current.Cancellation).ConfigureAwait(false);
                 return string.IsNullOrEmpty(model.Name) ? new[] { "async form bad" } : Array.Empty<string>();
             }));
 
-        Assert.False(await ctx.ValidateAsync(TestContext.Current.CancellationToken));
+        Assert.False(await ctx.Validate(TestContext.Current.CancellationToken));
         var formField = new FieldIdentifier(m, "");
         Assert.Contains("async form bad", ctx.GetValidationMessages(formField));
     }
 
     [Fact]
-    public void A_sync_Validate_throws_when_an_async_delegate_is_registered()
-    {
-        var m = new Model();
-        var ctx = new EditContext(m);
-
-        ctx.RegisterFormValidator(
-            (Func<Model, CancellationToken, ValueTask<IEnumerable<string>>>)((_, _) =>
-                ValueTask.FromResult<IEnumerable<string>>(Array.Empty<string>())));
-
-        Assert.Throws<InvalidOperationException>(() => ctx.Validate());
-    }
-
-    [Fact]
-    public void A_throwing_delegate_is_swallowed_into_a_generic_message()
+    public async Task A_throwing_delegate_is_swallowed_into_a_generic_message()
     {
         var m = new Model();
         var ctx = new EditContext(m);
@@ -160,7 +147,7 @@ public class DelegateValidatorTests
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(_ => throw new InvalidOperationException("boom")));
 
-        ctx.ValidateField(fid);
+        await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         Assert.Contains(ctx.GetValidationMessages(fid),
             msg => msg.Contains("could not be completed"));

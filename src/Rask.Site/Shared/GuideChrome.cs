@@ -24,7 +24,7 @@ public sealed partial class GuideChrome : Component
     public string Slug { get; set; }
 #pragma warning restore CS8618
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         // Wire the scroll-spy once the guide body is in the DOM. The first-render guard IS this hook
         // now, rather than a bool the every-render one had to test. Still guarded below because the

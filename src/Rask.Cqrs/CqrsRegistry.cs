@@ -226,14 +226,14 @@ public static class CqrsRegistry
     /// <param name="provider">The subscriber's scope.</param>
     /// <param name="subscription">What is being asked for.</param>
     /// <param name="cancellationToken">Cancels the check.</param>
-    public static Task<bool> CanWatchAsync<TSubscription>(
+    public static Task<bool> CanWatch<TSubscription>(
         IServiceProvider provider,
         TSubscription subscription,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(provider);
         return provider.GetService<IWatchPolicy<TSubscription>>() is { } policy
-            ? policy.CanWatchAsync(subscription, cancellationToken)
+            ? policy.CanWatch(subscription, cancellationToken)
             : Task.FromResult(false);
     }
 

@@ -15,7 +15,7 @@ namespace Rask.Site.Features;
 public sealed partial class LifecycleProbe : Component
 {
     private int _clicks;
-    private int _onFirstRendered;
+    private int _onFirstRender;
     private int _onMount;
     private bool _onMountSettled;
     private int _onUpdated;
@@ -40,11 +40,11 @@ public sealed partial class LifecycleProbe : Component
         return Task.CompletedTask;
     }
 
-    protected override Task OnFirstRendered()
+    protected override Task OnFirstRender()
     {
         // Counted, not latched: its own hook now, and the count beside OnRendered's is what shows one
         // fires once per mount while the other fires per render — which a bool could only assert.
-        _onFirstRendered++;
+        _onFirstRender++;
         return Task.CompletedTask;
     }
 
@@ -70,7 +70,7 @@ public sealed partial class LifecycleProbe : Component
                 Row("OnMount (before its await)", Ran(_onMount)),
                 Row("OnMount (after a 450ms await)", _onMountSettled ? "resolved" : "awaiting…"),
                 Row("OnUpdated", Ran(_onUpdated)),
-                Row("OnFirstRendered", Ran(_onFirstRendered)),
+                Row("OnFirstRender", Ran(_onFirstRender)),
                 Row("OnRendered", _onRendered == 0 ? "not yet" : Ran(_onRendered)),
                 Row("Button clicks", Ran(_clicks))
             ]

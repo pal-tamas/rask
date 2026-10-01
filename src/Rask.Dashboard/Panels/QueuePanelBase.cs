@@ -49,7 +49,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
     /// </summary>
     public bool IsAvailable => IsRegistered && IsMapped();
 
-    public async Task<QueueCounts> CountsAsync(CancellationToken cancellationToken)
+    public async Task<QueueCounts> Counts(CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {
@@ -68,7 +68,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             Processed: await CountAsync(db, QueueFilter.Processed, now, cancellationToken).ConfigureAwait(false));
     }
 
-    public async Task<(IReadOnlyList<QueueRow> Rows, int Total)> PageAsync(
+    public async Task<(IReadOnlyList<QueueRow> Rows, int Total)> Page(
         QueueFilter filter, int skip, int take, CancellationToken cancellationToken)
     {
         if (!IsAvailable)
@@ -92,13 +92,13 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         return (rows, total);
     }
 
-    public Task<int> RetryAsync(long id, CancellationToken cancellationToken) =>
+    public Task<int> Retry(long id, CancellationToken cancellationToken) =>
         RetryWhereAsync(e => EF.Property<long>(e, "Id") == id, cancellationToken);
 
-    public Task<int> RetryAllAsync(CancellationToken cancellationToken) =>
+    public Task<int> RetryAll(CancellationToken cancellationToken) =>
         RetryWhereAsync(_ => true, cancellationToken);
 
-    public async Task<int> PurgeProcessedAsync(TimeSpan olderThan, CancellationToken cancellationToken)
+    public async Task<int> PurgeProcessed(TimeSpan olderThan, CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {
@@ -118,7 +118,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             .ConfigureAwait(false);
     }
 
-    public async Task<int> DeleteAsync(long id, CancellationToken cancellationToken)
+    public async Task<int> Delete(long id, CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {

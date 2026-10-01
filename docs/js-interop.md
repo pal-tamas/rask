@@ -135,7 +135,7 @@ IntelliSense. The component must be `partial`, which `rask new` components alrea
 trace of being whole.
 
 A **callback** re-enters the component and repaints it after it runs, in order with its event handlers. It lives
-until the component unmounts, so hand one over once (from `OnFirstRendered`, or a start button) rather than on
+until the component unmounts, so hand one over once (from `OnFirstRender`, or a start button) rather than on
 every render. An optional argument you leave unset reaches the script as `undefined`, so its defaults apply. A **class
 instance** lives in the browser; the proxy calls its methods and is released when the component unmounts
 (or on `await chart.DisposeAsync()`), as is every callback it was handed:

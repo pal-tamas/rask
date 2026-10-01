@@ -120,7 +120,7 @@ Who may open it is a **watch policy**, and *that* is where the database goes:
 ```csharp
 public sealed class WatchingOrders : IWatchPolicy<WatchOrder>
 {
-    public async Task<bool> CanWatchAsync(WatchOrder watch, CancellationToken ct) =>
+    public async Task<bool> CanWatch(WatchOrder watch, CancellationToken ct) =>
         (await Order.Where(o => o.Id == watch.OrderId).First())?.CustomerId == Current.UserId || Current.Principal?.IsInRole("Admin") == true;
 }
 ```

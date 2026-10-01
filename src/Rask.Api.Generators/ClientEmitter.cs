@@ -117,7 +117,7 @@ internal static class ClientEmitter
         var body = endpoint.Parameters.Any(p => p.Binding == ApiBinding.Body) ? "__body" : "null";
 
         builder.AppendLine(
-            "            var __bytes = await global::Rask.Api.Client.ApiCall.SendAsync(_http, _options, "
+            "            var __bytes = await global::Rask.Api.Client.ApiCall.Send(_http, _options, "
             + $"global::System.Net.Http.HttpMethod.{HttpMethodMember(endpoint.Method)}, __path, {body}, "
             + "cancellationToken).ConfigureAwait(false);");
 
