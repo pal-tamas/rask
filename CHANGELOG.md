@@ -575,6 +575,10 @@ them until tagged releases begin.
   `OnRendered` to a component's scoped TypeScript could fault with "Could not find 'Rask.X' on target" when the
   script took longer than 5 seconds to execute. The WASM runtime already waited for the script's own load event,
   with a 30-second backstop for same-origin assets; the server runtime now shares that gate with it.
+- **A `[JsonPropertyName]` with a line break no longer breaks the build.** The CQRS codec and the read-model
+  generator escaped only `\` and `"`, so such a name ended the generated string literal (CS1010). They, and the API
+  client generator's route literals, now use Roslyn's own escaping, and a route's `<` or `&` no longer malforms
+  the client's doc comment.
 - **A CQRS message nested two types deep crosses the wire.** The codec generator looked one level into a
   container type, so `Orders.Returns.Refund` silently got no contract. It now walks every depth, like
   the island, Blazor and validator generators — all four share one walker.

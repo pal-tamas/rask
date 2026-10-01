@@ -303,19 +303,17 @@ internal static class ClientEmitter
     ///     end the literal, so the rest of the template would be emitted as code.
     /// </remarks>
     private static string Quote(string value) =>
-        "\"" + value
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"")
-            .Replace("\r", "\\r")
-            .Replace("\n", "\\n") + "\"";
+        Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
-    /// <summary>Flattens a value for a single-line <c>///</c> comment.</summary>
+    /// <summary>Flattens and XML-escapes a value for a single-line <c>///</c> comment.</summary>
     /// <remarks>
     ///     A newline here does not end a literal, it ends the comment — and everything after it becomes
-    ///     code in the generated class.
+    ///     code in the generated class. A route's <c>&lt;</c> or <c>&amp;</c> left raw is a malformed doc
+    ///     comment (CS1570).
     /// </remarks>
     private static string Comment(string value) =>
-        value.Replace('\r', ' ').Replace('\n', ' ');
+        value.Replace('\r', ' ').Replace('\n', ' ')
+            .Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 
     private static string Indent(string text, string indent)
     {

@@ -24,6 +24,29 @@ public class CqrsCodecNestedTypesTests
         """;
 
     [Fact]
+    public void A_wire_name_carrying_a_line_break_still_compiles()
+    {
+        const string message = """
+            using Rask.Cqrs;
+            using System.Text.Json.Serialization;
+
+            namespace Shop.Contracts
+            {
+                public sealed record Rename(System.Guid Id, [property: JsonPropertyName("new\nname")] string Name) : ICommand;
+            }
+            """;
+        var options = new Dictionary<string, string> { ["build_property.RaskCqrsCodec"] = "true" };
+
+        var run = GeneratorHarness.Run(
+            message,
+            new CqrsCodecGenerator(),
+            options,
+            "Rask.Cqrs", "Rask.Cqrs.Client", "Rask.Wire", "Microsoft.Extensions.DependencyInjection.Abstractions");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void A_message_nested_two_levels_deep_gets_a_contract_like_one_nested_once()
     {
         var options = new Dictionary<string, string> { ["build_property.RaskCqrsCodec"] = "true" };
