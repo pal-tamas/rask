@@ -47,6 +47,12 @@ internal static class DelegateOwner
             return null; // static method / no receiver — nothing to re-render.
         }
 
+        // A ValueTask handler is held as a Task-returning adapter; the owner is the one who wrote the handler.
+        if (target is IHandlerAdapter adapter)
+        {
+            return Resolve(adapter.Inner);
+        }
+
         if (target is Component direct)
         {
             return direct; // method group or this-only lambda — no reflection on the hot path.

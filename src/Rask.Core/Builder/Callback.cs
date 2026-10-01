@@ -54,7 +54,7 @@ public readonly struct Callback
     ///     Wraps a handler that returns a <see cref="ValueTask" /> — most often another callback forwarded:
     ///     <c>.OnClick(() =&gt; OnRate.Invoke(i))</c>.
     /// </summary>
-    public Callback(Func<ValueTask> handler) => _handler = handler;
+    public Callback(Func<ValueTask> handler) => _handler = ValueTaskHandler.Adapt(handler);
 
     internal Callback(Delegate? handler) => _handler = handler;
 
@@ -79,7 +79,6 @@ public readonly struct Callback
     {
         Action syncHandler => Run(syncHandler),
         Func<Task> asyncHandler => Await(asyncHandler()),
-        Func<ValueTask> valueHandler => valueHandler(),
         null => default,
         _ => throw Unexpected(_handler),
     };
@@ -118,10 +117,10 @@ public readonly struct Callback<T>
     public Callback(Func<Task> handler) => _handler = handler;
 
     /// <inheritdoc cref="Callback(Func{ValueTask})" />
-    public Callback(Func<T, ValueTask> handler) => _handler = handler;
+    public Callback(Func<T, ValueTask> handler) => _handler = ValueTaskHandler<T>.Adapt(handler);
 
     /// <summary>A <see cref="ValueTask" />-returning handler that does not need the argument.</summary>
-    public Callback(Func<ValueTask> handler) => _handler = handler;
+    public Callback(Func<ValueTask> handler) => _handler = ValueTaskHandler.Adapt(handler);
 
     internal Callback(Delegate? handler) => _handler = handler;
 
@@ -144,10 +143,8 @@ public readonly struct Callback<T>
     {
         Action<T> syncHandler => Run(syncHandler, arg),
         Func<T, Task> asyncHandler => Callback.Await(asyncHandler(arg)),
-        Func<T, ValueTask> valueHandler => valueHandler(arg),
         Action ignoring => Run(ignoring),
         Func<Task> ignoringAsync => Callback.Await(ignoringAsync()),
-        Func<ValueTask> ignoringValue => ignoringValue(),
         null => default,
         _ => throw Callback.Unexpected(_handler),
     };
@@ -186,7 +183,7 @@ public readonly struct Callback<T1, T2>
     public Callback(Func<T1, T2, Task> handler) => _handler = handler;
 
     /// <inheritdoc cref="Callback(Func{ValueTask})" />
-    public Callback(Func<T1, T2, ValueTask> handler) => _handler = handler;
+    public Callback(Func<T1, T2, ValueTask> handler) => _handler = ValueTaskHandler<T1, T2>.Adapt(handler);
 
     internal Callback(Delegate? handler) => _handler = handler;
 
@@ -204,7 +201,6 @@ public readonly struct Callback<T1, T2>
     {
         Action<T1, T2> syncHandler => Run(syncHandler, arg1, arg2),
         Func<T1, T2, Task> asyncHandler => Callback.Await(asyncHandler(arg1, arg2)),
-        Func<T1, T2, ValueTask> valueHandler => valueHandler(arg1, arg2),
         null => default,
         _ => throw Callback.Unexpected(_handler),
     };
