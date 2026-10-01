@@ -15,7 +15,7 @@ goes anywhere the chain goes — a leaf inside a card, a subtree, or the whole o
 | `AngularComponent` | `Chart.ts` | `@analogjs/vite-plugin-angular` | Angular, as a standalone component |
 | `LitComponent` | `Chart.ts` | nothing — it is ordinary TypeScript | Lit, and any custom element with property-shaped inputs |
 
-The same seven the [SPA lane](spa.md) scaffolds a whole client for. Which one an island uses is
+Which one an island uses is
 decided by its **base class**, never by its file extension — three of them write `.tsx` and two write
 `.ts`, so the extension names a family and only the C# says which member.
 
@@ -150,8 +150,8 @@ Not a Rask rule. `@vitejs/plugin-react` resolves Babel 8 and `@preact/preset-vit
 rather than leaving an ERESOLVE tree that names four Babel packages and neither island.
 
 `ReactComponent` also still covers Preact the old way, for a project already built on it: alias
-`react` and `react-dom` to `preact/compat` in both tsconfig and the Vite plugin — the same aliasing
-the [TypeScript SPA lane](spa.md) relies on — and one adapter serves both. New code should reach for
+`react` and `react-dom` to `preact/compat` in both tsconfig and the Vite plugin, and one adapter serves
+both. New code should reach for
 `PreactComponent`, which imports Preact directly and needs no aliasing to be right.
 
 This is also why neither showcase carries a Preact island — both already carry a React one. It is
@@ -713,8 +713,8 @@ Serving islands from http://localhost:5174 (hot reload)…
 ```
 
 Nothing to configure. The dev server starts when the project has islands, dies with the host, and
-listens on **5174** — not Vite's 5173, which belongs to the [SPA lane's](spa.md) client, so a solution
-with both does not have two dev servers fighting for one port. Override it with
+listens on **5174** — not Vite's default 5173, so another Vite project on the machine does not fight it
+for the port. Override it with
 `<RaskExternalDevServerPort>` if something else is already there.
 
 **Under VS Code's F5 the app starts it.** No `rask dev` runs beside an app the debugger launched, so a
@@ -768,8 +768,8 @@ from. Its entry module imports the package itself — there is no file of yours 
 
 A project that *does* have both is checked before `npm` runs: too old a Node fails with
 **`RASKISLAND001`** naming the version it found, rather than failing later inside vite with an engines
-error nobody reads. The floor is `RaskExternalMinimumNode`, **22.12.0** — the same number as the SPA
-host's `RaskSpaMinimumNode`, because both run vite and vite asks for `^20.19.0 || >=22.12.0`. That
+error nobody reads. The floor is `RaskExternalMinimumNode`, **22.12.0**, because vite asks for
+`^20.19.0 || >=22.12.0`. That
 range has a hole (21.x satisfies neither arm) and a numeric floor cannot express it, so 22.12.0 is the
 lowest version with nothing unsupported beneath it. A Node whose version is not exactly `X.Y.Z` — a
 nightly, a release candidate — is allowed through rather than refused. Override the bar with

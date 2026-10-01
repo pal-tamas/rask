@@ -16,14 +16,13 @@ from `Rask.Auth`.
 
 The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and
 signed-in, and `IUserProvider` to read who that is — identical on the Server host, in WebAssembly, and
-inside an island. A TypeScript front end and a meta framework's Node process reach the same flows
-through `/api/auth`.
+inside an island. Any other client reaches the same flows through `/api/auth`.
 
 ## Two packages, one battery
 
 | Package | Use it when | What it adds |
 | --- | --- | --- |
-| `Rask.Auth.Api` | The host renders **no** Rask components — a SPA template, a meta template, or a plain ASP.NET app | Accounts and sessions, the `/api/auth` endpoints, the cookie, bearer tokens, the account lifecycle |
+| `Rask.Auth.Api` | The host renders **no** Rask components — a plain ASP.NET app or API | Accounts and sessions, the `/api/auth` endpoints, the cookie, bearer tokens, the account lifecycle |
 | `Rask.Auth` | The app **is** a Rask app — the `server` and `wasm` templates | All of the above, plus `IAuth` for components and email bodies written as components; `rask new` adds the pages |
 
 Reference one or the other, never both: `Rask.Auth` already contains `Rask.Auth.Api`. Both put their
@@ -31,10 +30,10 @@ types in the `Rask.Auth` namespace and both call the battery `AddRaskAuth` / `Ma
 app from one lane to the other changes a `PackageReference` and nothing else.
 
 The split exists because `Rask` — the core, with the renderer — is a dependency of the hosts that render
-components (`Rask.Server`, `Rask.Wasm`) and of nothing else, so `Rask.Spa.Hosting` and
-`Rask.Meta.Hosting` ship no copy of it. Until #1069 the accounts battery reached for Core on every lane,
-which meant a scaffolded SPA or meta app could not start at all: the assembly was simply absent and the
-process aborted before `Main`, after a build that succeeded. `Rask.Auth.Api` is the battery with that
+components (`Rask.Server`, `Rask.Wasm`) and of nothing else, so a plain ASP.NET host
+ships no copy of it. Until #1069 the accounts battery reached for Core on every host, which meant a host
+without it could not start at all: the assembly was simply absent and the process aborted before `Main`,
+after a build that succeeded. `Rask.Auth.Api` is the battery with that
 dependency removed; it speaks the wire contract in `Rask.Wire` — the `/api/auth` paths, the request and
 response shapes, `AuthResult` — which the browser-side `Rask.Auth.Client` also takes, so both halves
 agree without either one carrying the renderer.
@@ -303,9 +302,6 @@ again the moment it is turned back on:
 app.Configure(c => c.Auth.Configure(o => o.Passkeys = false));
 ```
 
-A TypeScript front end has the same three calls — `addPasskey`, `signInWithPasskey`, `removePasskey`, plus
-`passkeysSupported()` to gate the button — from the `auth` module.
-
 ## Concepts
 
 | Piece | What it is |
@@ -434,16 +430,6 @@ app.Configure(c => c.Auth.Configure(o =>
     o.RequireConfirmedEmail = true;
     o.TokenLifetime = 1.Hour;      // what the email promises AND what the token honours
 }));
-```
-
-From TypeScript, the same three flows are three functions on the shared browser layer:
-
-```ts
-import {auth} from './rask/browser'
-
-await auth.sendPasswordReset(email)
-await auth.resetPassword(userId, token, password)
-await auth.confirmEmail(userId, token)
 ```
 
 ---

@@ -10,8 +10,7 @@ namespace Rask.Templates.E2E.Tests;
 /// <remarks>
 ///     <para>
 ///         The claim under test is the plain one the unit suites cannot make: that what the scaffolder
-///         writes compiles. Eleven of the fifteen templates had nothing making it — the six meta ones
-///         were never built by anything, and Preact, Vue, Solid, Svelte and Lit had no build gate at all.
+///         writes compiles — and, through <c>An_islands_host_compiles</c>, that every island runtime does.
 ///     </para>
 ///     <para>
 ///         Built through the same dispatch <see cref="NewCommand"/> uses, so the arm under test is the
@@ -52,7 +51,7 @@ public sealed class TemplateBuildE2ETests
             // is where that is paid, behind its own switch.
             var (exit, output) = await CliBuildE2E.RunDotnet(
                 $"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -warnaserror -m:1 "
-                + "-p:RaskSpaBuild=false -p:RaskMetaBuild=false -p:RaskExternalBuild=false");
+                + "-p:RaskSpaBuild=false -p:RaskExternalBuild=false");
 
             Assert.True(exit == 0, $"--template {key} does not compile:\n{CliBuildE2E.Diagnostics(output)}");
         }
@@ -82,7 +81,7 @@ public sealed class TemplateBuildE2ETests
 
             var (exit, output) = await CliBuildE2E.RunDotnet(
                 $"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -warnaserror -m:1 "
-                + "-p:RaskSpaBuild=false -p:RaskMetaBuild=false -p:RaskExternalBuild=false");
+                + "-p:RaskSpaBuild=false -p:RaskExternalBuild=false");
 
             Assert.True(
                 exit == 0,
@@ -108,16 +107,6 @@ public sealed class TemplateBuildE2ETests
         // because it was a flag on the server template; it is the `wasm-hosted` KEY now (#1103), so it
         // arrives through the theory data like every other template and this dispatch has one axis fewer.
         var batteries = BatterySelection.ToBatteries(template, []);
-
-        if (SpaFramework.TryGet(key, out var spa))
-        {
-            return ProjectGenerator.GenerateSpa(projectDirectory, name, spa, batteries, version);
-        }
-
-        if (MetaTemplate.TryGet(key, out var meta))
-        {
-            return ProjectGenerator.GenerateMeta(projectDirectory, name, meta, batteries, version);
-        }
 
         return key switch
         {

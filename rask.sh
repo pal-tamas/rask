@@ -3,9 +3,9 @@
 #
 # `dotnet tool install -g Rask.Cli` is one line, but it only works on a box that already has the
 # .NET 10 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
-# `rask db` needs dotnet-ef, every browser-wasm build needs the wasm-tools workload, and the SPA
-# templates need Node. Today each of those is discovered by failure — a raw MSBuild error for a
-# missing workload, an exit 1 from `rask new --template react`. This script front-loads them.
+# `rask db` needs dotnet-ef, every browser-wasm build needs the wasm-tools workload, and islands
+# (React, Vue, Svelte, … components inside a Rask page) need Node to build. Otherwise each of those is
+# discovered by failure — a raw MSBuild error for a missing workload. This script front-loads them.
 #
 # Everything is installed USER-LOCALLY. Nothing here needs sudo, touches a distro package manager,
 # or writes outside $HOME. An SDK already on the box is left exactly as it is.
@@ -44,12 +44,10 @@ RASK_INSTALL_DOTNET_ROOT="${RASK_INSTALL_DOTNET_ROOT:-${DOTNET_ROOT:-$HOME/.dotn
 RASK_INSTALL_PREFIX="${RASK_INSTALL_PREFIX:-$HOME/.local/share/rask}"
 RASK_INSTALL_DOTNET_SCRIPT_URL="${RASK_INSTALL_DOTNET_SCRIPT_URL:-https://dot.net/v1/dotnet-install.sh}"
 RASK_INSTALL_NODE_DIST="${RASK_INSTALL_NODE_DIST:-https://nodejs.org/dist}"
-# 24.15.0, not the build floor (RaskSpaMinimumNode, 22.12.0). This decides whether an EXISTING Node is
-# left alone, and the thing that Node has to be able to do here is SCAFFOLD — which shells out to
-# create-vite@latest and @angular/cli@latest, and those track the Active LTS and raise their own floors
-# whenever they like. Angular's CLI already refuses below ^22.22.3 || ^24.15.0 || >=26.0.0, so a box
-# left on 22.12 installs cleanly and then fails `rask new --template angular` (#886). Installing an
-# app's build floor here would be provisioning a machine that cannot use what it just installed.
+# 24.15.0, not the islands' build floor (RaskExternalMinimumNode, 22.12.0). This decides whether an
+# EXISTING Node is left alone, and the standing rule is the latest LTS: the island toolchains (Vite and
+# the framework plugins) track the Active LTS and raise their own floors whenever they like, so a box
+# left on an app's build floor is provisioned for today's islands and not for next month's (#886).
 RASK_INSTALL_NODE_MIN="${RASK_INSTALL_NODE_MIN:-24.15.0}"
 RASK_INSTALL_PACKAGE="${RASK_INSTALL_PACKAGE:-Rask.Cli}"
 
@@ -405,7 +403,7 @@ Options:
   --no-sdk         never install the .NET SDK, even when none is found
   --no-ef          skip the dotnet-ef tool (rask db installs it on first use anyway)
   --no-wasm-tools  skip the wasm-tools workload (needed by every browser-wasm build)
-  --no-node        skip Node.js (needed by the SPA templates: react, vue, svelte, angular, ...)
+  --no-node        skip Node.js (needed only by islands: react, vue, svelte, angular, ...)
   --no-path        never write to a shell profile
   --dry-run        print what would happen and change nothing
   --quiet          print only errors and the final summary
@@ -715,7 +713,7 @@ step_wasm_tools() {
 
 step_node() {
     [ "$RASK_DO_NODE" = 1 ] || return 0
-    rask_step "Checking for Node.js >= $RASK_INSTALL_NODE_MIN (SPA templates)"
+    rask_step "Checking for Node.js >= $RASK_INSTALL_NODE_MIN (islands)"
 
     if command -v node >/dev/null 2>&1 &&
         rask_version_ge "$(node --version 2>/dev/null)" "$RASK_INSTALL_NODE_MIN"; then
@@ -733,7 +731,7 @@ step_node() {
     if ! _nd_triple="$(rask_node_triple)"; then
         rask_warn \
             "no Node.js build for $(uname -s)/$(uname -m) — skipping it." \
-            "Only \`rask new --template react|vue|svelte|...\` needs Node."
+            "Only islands (\`rask new --islands react|vue|svelte|...\`) need Node."
         return 0
     fi
 

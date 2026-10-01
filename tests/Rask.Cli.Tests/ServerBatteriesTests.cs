@@ -120,7 +120,7 @@ public sealed class ServerBatteriesTests
     public void Wasm_hosted_cannot_drop_the_wire_between_its_halves()
     {
         // The browser half dispatches to the host over Rask.Cqrs.Client, so CQRS is the template rather
-        // than a battery in it — the same reason GenerateSpa forces it. The generator forcing it is only
+        // than a battery in it. The generator forcing it is only
         // half the contract; NewCommand refusing --no-cqrs is the other, and NewCommandTests holds that.
         _ = TemplateCatalog.TryGet("wasm-hosted", out var hosted);
 

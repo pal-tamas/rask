@@ -192,7 +192,7 @@ public sealed class DoctorDependencyTests
     }
 
     [Fact]
-    public async Task A_missing_node_is_reported_against_the_templates_that_need_it()
+    public async Task A_missing_node_is_reported_against_the_islands_that_need_it()
     {
         var (console, command) = Build(Except("node", NotOnPath));
 
@@ -200,26 +200,25 @@ public sealed class DoctorDependencyTests
 
         Assert.Equal(0, exit);
         Assert.Equal("Warn", StatusOf(console.OutText, "node"));
+        Assert.Contains("islands", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_node_below_the_scaffold_line_is_reported_even_though_it_is_present()
+    public async Task A_node_below_the_island_build_floor_is_reported_even_though_it_is_present()
     {
-        // The #886 machine exactly: 24.14.0 is above RaskSpaMinimumNode and below Angular's floor, so
-        // everything builds and `rask new --template angular` fails after creating the directory.
-        var (console, command) = Build(Except("node", () => new ProcessResult(0, "v24.14.0", "")));
+        var (console, command) = Build(Except("node", () => new ProcessResult(0, "v22.11.0", "")));
 
         var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Equal("Warn", StatusOf(console.OutText, "node"));
-        Assert.Contains("24.14.0", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("RASKISLAND001", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_current_LTS_node_is_not_warned_about()
+    public async Task A_node_at_the_island_build_floor_is_not_warned_about()
     {
-        var (console, command) = Build(Except("node", () => new ProcessResult(0, "v24.20.0", "")));
+        var (console, command) = Build(Except("node", () => new ProcessResult(0, "v22.12.0", "")));
 
         await command.ExecuteAsync(["--json"], CancellationToken.None);
 

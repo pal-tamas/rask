@@ -1,5 +1,6 @@
 using Rask.Cli.Scaffolding;
 using Rask.Cli.Templates;
+using Rask.TestFiles;
 
 namespace Rask.Cli.Tests;
 
@@ -11,6 +12,20 @@ public sealed class TemplateTreeIntegrityTests
 {
     private static readonly string RepoRoot = CliBuildE2E.FindRepoRoot();
     private static string TemplateRoot => Path.Combine(RepoRoot, "src", "Rask.Templates");
+
+    // An image or font is copied byte for byte; decoding one as text and writing it back corrupts it.
+    [Theory]
+    [InlineData("wwwroot/favicon.ico", true)]
+    [InlineData("wwwroot/hero.PNG", true)]
+    [InlineData("wwwroot/fonts/inter.woff2", true)]
+    [InlineData("wwwroot/icon.svg", false)]
+    [InlineData("Program.cs", false)]
+    public void An_image_or_font_is_copied_as_bytes_and_text_is_not(string path, bool binary)
+    {
+        var asset = new TemplateAsset(path, []);
+
+        Assert.Equal(binary, asset.IsBinary);
+    }
 
     [Fact]
     public async Task Every_template_file_is_tracked()
@@ -37,7 +52,7 @@ public sealed class TemplateTreeIntegrityTests
 
         var listing = await TestProcess.Run(
             "git",
-            "ls-files --cached --others --exclude-standard -- src/Rask.Templates",
+            ["ls-files", "--cached", "--others", "--exclude-standard", "--", "src/Rask.Templates"],
             RepoRoot,
             cancellationToken: TestContext.Current.CancellationToken);
         var tracked = listing.StandardOutput
@@ -108,26 +123,5 @@ public sealed class TemplateTreeIntegrityTests
             missing.Length == 0,
             $"These template trees have no {TemplateMaterializer.ManifestFile}, so nothing records "
             + $"which files a battery owns:\n  {string.Join("\n  ", missing)}");
-    }
-
-    [Fact]
-    public void Every_front_end_template_can_be_re_imported()
-    {
-        // A committed tree is a snapshot, and scripts/refresh-templates.sh is the whole answer to it
-        // going stale: it re-runs the framework's own creator and shows the diff. A template missing
-        // from that script has no way back to upstream, and nothing would say so — it would simply
-        // drift until someone noticed the starter no longer looked like the framework's own.
-        var script = File.ReadAllText(Path.Combine(RepoRoot, "scripts", "refresh-templates.sh"));
-
-        var missing = SpaFramework.All.Select(f => f.Key)
-            .Concat(MetaTemplate.All.Select(f => f.Key))
-            .Where(key => !script.Contains($"{key})", StringComparison.Ordinal))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-
-        Assert.True(
-            missing.Length == 0,
-            "scripts/refresh-templates.sh names no creator for these templates, so there is no way to "
-            + $"pull a newer upstream into them:\n  {string.Join("\n  ", missing)}");
     }
 }

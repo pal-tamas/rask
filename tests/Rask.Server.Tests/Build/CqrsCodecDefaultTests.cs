@@ -3,9 +3,9 @@ using Rask.TestFiles;
 namespace Rask.Server.Tests.Build;
 
 /// <summary>
-///     Whether <c>Rask.Server.targets</c> turns the CQRS wire codec on — and with it the TypeScript contracts — by
-///     what the project serves: a front end in <c>client/</c> dispatches over the wire, a server-rendered app never
-///     does. Evaluation only, so no build and no node.
+///     Whether <c>Rask.Server.targets</c> turns the CQRS wire codec on by what the project serves: a WebAssembly
+///     client in <c>Client/</c> dispatches over the wire, a server-rendered app never does. Evaluation only, so no
+///     build.
 /// </summary>
 public sealed class CqrsCodecDefaultTests : IDisposable
 {
@@ -18,9 +18,9 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
-    public async Task A_typescript_front_end_in_client_turns_the_codec_on()
+    public async Task A_webassembly_client_in_Client_turns_the_codec_on()
     {
-        Write("client/package.json", "{}");
+        Write("Client/Program.cs", "// the browser half");
 
         var codec = await Evaluate();
 
@@ -38,11 +38,21 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
-    public async Task A_meta_framework_host_is_not_taken_for_a_typescript_front_end()
+    public async Task A_package_json_in_client_does_not_turn_the_codec_on()
     {
         Write("client/package.json", "{}");
 
-        var codec = await Evaluate("<RaskMetaFramework>nuxt</RaskMetaFramework>");
+        var codec = await Evaluate();
+
+        Assert.Equal("false", codec);
+    }
+
+    [Fact]
+    public async Task An_explicit_setting_wins_over_the_client_convention()
+    {
+        Write("Client/Program.cs", "// the browser half");
+
+        var codec = await Evaluate("<RaskCqrsCodec>false</RaskCqrsCodec>");
 
         Assert.Equal("false", codec);
     }
@@ -69,8 +79,7 @@ public sealed class CqrsCodecDefaultTests : IDisposable
         var result = await TestProcess.Run(
             "dotnet",
             ["msbuild", "Host.csproj", "-nologo", "-nodeReuse:false", "-getProperty:RaskCqrsCodec"],
-            _dir,
-            cancellationToken: TestContext.Current.CancellationToken);
+            _dir);
 
         Assert.True(result.ExitCode == 0, $"evaluation failed:\n{result.Output}");
         return result.StandardOutput.Trim();

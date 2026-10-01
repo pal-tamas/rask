@@ -26,7 +26,7 @@ whole story — the script exists for the case where you don't.
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
 | **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | installed if missing; `rask db` updates it when it is older than the EF Core runtime the app uses, rather than letting every command open with a version notice |
 | **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser` or `net11.0-browser`) — the `wasm` and `wasm-hosted` templates | left alone |
-| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | `rask new --template react\|vue\|svelte\|solid\|lit\|preact\|angular` and the meta framework templates (`nuxt\|nextjs\|sveltekit\|solidstart\|tanstack-start\|analog`), and `rask dev`'s dev server. The meta lane also needs node **at runtime**, not just at build time. | left alone if `node --version` is ≥ 24.15 (the Active LTS line the scaffolders track) |
+| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | [islands](islands.md) (`rask new --islands react\|vue\|svelte\|…`): their build bundles them, and `rask dev` serves them from Vite. Only at build time — a published app does not run Node. | left alone if `node --version` is ≥ 24.15 (the Active LTS line) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 
 Docker is deliberately not installed. Putting a container runtime on someone's workstation is a big,
@@ -56,7 +56,7 @@ everything after `--` becomes the script's arguments.
 | `--no-sdk` | | never install the .NET SDK, even when none is found |
 | `--no-ef` | | skip `dotnet-ef` (`rask db` installs it on first use anyway) |
 | `--no-wasm-tools` | | skip the workload — a server-only app never needs it |
-| `--no-node` | | skip Node — only the SPA templates need it |
+| `--no-node` | | skip Node — only islands need it |
 | `--no-path` | | never write to a shell profile |
 | `--dry-run` | | print every step and change nothing |
 | `--quiet` | | print only errors and the final summary |
@@ -216,7 +216,7 @@ dotnet tool install -g Rask.Cli
 # 3. what your project needs
 dotnet tool install -g dotnet-ef       # rask db
 dotnet workload install wasm-tools     # browser-wasm builds
-# 4. Node 24 LTS — https://nodejs.org   (SPA templates only)
+# 4. Node 24 LTS — https://nodejs.org   (islands only)
 ```
 
 `rask doctor` reports what it finds either way.

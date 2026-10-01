@@ -8,7 +8,7 @@
 
     <PackageId>Rask.Auth.Api</PackageId>
     <Title>Rask.Auth.Api — accounts and /api/auth for any ASP.NET host</Title>
-    <Description>Register, sign in and sign out as JSON endpoints, for an ASP.NET Core app that renders no Rask components — a TypeScript SPA host or a meta-framework host, where the front end owns the UI. Accounts are the app's own User aggregate (PBKDF2 or bcrypt password hashing, passkeys, one revocable session row per device, sign-in throttling) and are exposed at /api/auth, with email confirmation and password reset through the app's own mail queue and optional bearer tokens. The first account to register becomes the admin. This is the host-neutral half of Rask.Auth: no components, no renderer, no Rask.Core. Add Rask.Auth instead when the app IS a Rask app and wants the built-in sign-in pages.</Description>
+    <Description>Register, sign in and sign out as JSON endpoints, for an ASP.NET Core app that renders no Rask components — a plain API, or a host whose front end owns the UI, such as a mobile or desktop client. Accounts are the app's own User aggregate (PBKDF2 or bcrypt password hashing, passkeys, one revocable session row per device, sign-in throttling) and are exposed at /api/auth, with email confirmation and password reset through the app's own mail queue and optional bearer tokens. The first account to register becomes the admin. This is the host-neutral half of Rask.Auth: no components, no renderer, no Rask.Core. Add Rask.Auth instead when the app IS a Rask app and wants the built-in sign-in pages.</Description>
     <PackageTags>authentication authorization login register passkeys webauthn sessions bcrypt cookie-auth claims spa dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
@@ -39,8 +39,8 @@
     Deliberately NO reference to Rask.Core, and that is this package's whole reason to exist.
 
     Rask.Core is IsPackable=false and travels inside the host packages that render components
-    (Rask.Server, Rask.Wasm). A host that renders none — Rask.Spa.Hosting, Rask.Meta.Hosting — ships
-    no copy, so a battery that needs Core cannot run there at all: the assembly is simply absent and
+    (Rask.Server, Rask.Wasm). A host that renders none — a plain ASP.NET Core API, or one serving a
+    static bundle through Rask.Spa.Hosting — ships no copy, so a battery that needs Core cannot run there at all: the assembly is simply absent and
     the app aborts before Main. That is what #1069 was, and it is why the accounts battery is split
     rather than patched.
 

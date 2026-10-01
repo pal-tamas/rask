@@ -5,7 +5,7 @@ namespace Rask.Dashboard;
 /// <para>
 /// A <c>server</c>-template app never needs this: its own <c>App</c> is already the root, it already
 /// renders the router, and <c>AddRaskDashboard</c> mounts the console beside it. A host serving a single-page app is the case this exists for —
-/// a WebAssembly app or a TypeScript front end served by <c>MapRaskSpa</c>, where the ASP.NET host runs no
+/// a WebAssembly app served by <c>MapRaskSpa</c>, where the ASP.NET host runs no
 /// components at all, and mounting the operator dashboard on it means naming a root for
 /// <c>MapRaskServer&lt;TApp&gt;</c> to render. Without this, every such host would hand-roll the same four
 /// lines.

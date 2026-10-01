@@ -4,7 +4,7 @@
     <!--
       netstandard2.0 matches what MSBuild loads at build time: the task runs inside the MSBuild host
       process, which on Windows may still be full-framework MSBuild.exe. Same constraint, and the same
-      reasoning, as Rask.Wasm.Tasks and Rask.Spa.Tasks.
+      reasoning, as Rask.Wasm.Tasks.
     -->
     <TargetFramework>netstandard2.0</TargetFramework>
     <Nullable>enable</Nullable>

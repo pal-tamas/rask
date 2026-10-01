@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: React, Vue, Svelte and the rest run as islands only.** The meta-framework templates
+  (`nuxt`, `nextjs`, `sveltekit`, `solidstart`, `tanstack-start`, `analog`) and the `Rask.Meta.Hosting`
+  package are removed, and so are the TypeScript SPA templates (`react`, `preact`, `vue`, `solid`,
+  `svelte`, `lit`, `angular`). Those frameworks run as [islands](docs/islands.md) inside Rask pages —
+  `rask new Shop --islands react` — and `rask new --template` keeps `server`, `wasm` and `wasm-hosted`.
+  `Rask.Spa.Hosting` now only hosts a Rask WebAssembly client (`RaskApp.Create(args).Serve()`, or
+  `MapRaskSpa()` by hand); the generated TypeScript CQRS client and `Rask.Spa.Tasks` are gone. To migrate,
+  keep an existing SPA or meta-framework app on the previous Rask version, or move its front end into
+  islands.
 - **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
   its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
 
@@ -623,9 +632,6 @@ them until tagged releases begin.
 - **A client that refuses brotli is not sent brotli.** The SPA host's precompressed files looked for `br` anywhere
   in `Accept-Encoding`, so `br;q=0` still got the `.br` file. It now reads quality values as the page document
   already did; the page, the scoped assets and the SPA host share one reading of the header.
-- **A meta-framework host built without Node says only what to install.** Its Node probe was missing a flag the SPA
-  and island probes carry, so a machine without Node also got MSBuild's own `MSB3073` error about the command,
-  ahead of RASKMETA003's install instructions.
 - **A design-time build compiles scoped TypeScript too, so `dotnet format` and an IDE reload see its generated calls.**
   They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
   with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time

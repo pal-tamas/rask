@@ -25,8 +25,8 @@ namespace Rask.Cli.Tests;
 /// </para>
 ///
 /// <para>
-/// A refusal counts as passing on purpose: <c>--no-cqrs</c> on a TypeScript front end is rejected because
-/// the generated client dispatches through the mediator, and being told so is the opposite of the failure
+/// A refusal counts as passing on purpose: <c>--no-cqrs</c> on wasm-hosted is rejected because the browser
+/// half dispatches through the mediator, and being told so is the opposite of the failure
 /// this guards against. What cannot happen is exit 0 with byte-identical output.
 /// </para>
 /// </remarks>

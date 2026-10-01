@@ -72,8 +72,7 @@ internal static class DotnetWatchInvocation
         string? urls,
         Func<string, string?> readEnv,
         string? islandDevServerUrl = null,
-        bool once = false,
-        string? metaDevServerUrl = null)
+        bool once = false)
     {
         var env = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -119,17 +118,6 @@ internal static class DotnetWatchInvocation
             env["RASK_ISLANDS_DEV"] = islandDevServerUrl;
         }
 
-        // Where the meta framework's own dev server is listening. Without it the host has nothing to
-        // serve and nothing to forward to: RaskMetaBuild=false means there is no built front end, so the
-        // supervisor refuses to start and takes the whole session down before the first page. With it the
-        // host stops supervising and forwards to the process `rask dev` started beside it instead.
-        //
-        // Never under --once: that mode runs the app as it would run in production, against a real build.
-        if (!once && kind == DevTemplateKind.MetaHosted && metaDevServerUrl is { Length: > 0 })
-        {
-            env["RASK_META_DEV"] = metaDevServerUrl;
-        }
-
         return env;
     }
 
@@ -166,10 +154,6 @@ internal static class DotnetWatchInvocation
         //   • Rask.Spa.Hosting serves a WebAssembly client's BUILD output. The published bundle is republished
         //     by a nested emscripten relink on every save, and it is trimmed — trimming folds
         //     MetadataUpdater.IsSupported to false, so an applied delta could never reach the page.
-        //   • Rask.Spa.Hosting and Rask.Meta.Hosting skip their production front-end build: the
-        //     framework's own dev server owns the client and is what the browser talks to. The
-        //     generated TypeScript is emitted anyway, because a dev server compiling last build's
-        //     contracts is exactly the failure that pipeline exists to prevent.
         //   • Rask.External serves islands from a Vite dev server instead of bundling them. NOT
         //     RaskExternalBuild=false, which turns the feature off outright and leaves islands that
         //     never mount.
