@@ -91,7 +91,7 @@ internal static class WebEmitter
             extras[name] = WebMember.StaticsOf(name, interfaces[name]!, types, proxies, taken);
             if (!taken.Contains("Create"))
             {
-                extras[name].AddRange(WebMember.ConstructorsOf(name, interfaces[name]!, types, creates));
+                extras[name].AddRange(WebMember.ConstructorsOf(name, interfaces[name]!, types, creates, root["callbacks"]));
             }
         }
 

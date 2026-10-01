@@ -139,12 +139,14 @@ public static class ScopedScript
 
     // Rask.Web's handlers and callbacks ride the same channel: a function in the browser that runs `invoke` in its
     // owner's order and re-renders it, released when the owner unmounts or, earlier, when the caller lets it go.
-    internal static ScriptCallback Handler(Component owner, Func<JsonElement, Task> invoke) =>
-        Register(owner, (args, _) => invoke(args));
+    // An awaited one answers the browser when it has finished, and runs at once rather than in order: the browser only
+    // calls it while the C# that asked for it awaits the browser, so queueing it behind that would wait forever.
+    internal static ScriptCallback Handler(Component owner, Func<JsonElement, Task> invoke, bool awaited = false) =>
+        Register(owner, (args, _) => invoke(args), awaited);
 
     internal static void Release(ScriptCallback callback) => Callbacks.Unregister(callback.Id);
 
-    private static ScriptCallback Register(Component owner, Func<JsonElement, JsonSerializerOptions, Task> invoke)
+    private static ScriptCallback Register(Component owner, Func<JsonElement, JsonSerializerOptions, Task> invoke, bool awaited = false)
     {
         if (owner.IsTornDown)
         {
@@ -154,6 +156,11 @@ public static class ScopedScript
 
         var id = Callbacks.Register(TryRuntime(owner), (args, options) =>
         {
+            if (awaited)
+            {
+                return owner.RunFromScriptNow(() => invoke(args, options));
+            }
+
             owner.RunFromScript(() => invoke(args, options));
             return Task.CompletedTask;
         });

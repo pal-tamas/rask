@@ -192,6 +192,10 @@ public abstract partial class Component
         }
     }
 
+    // The same, run at once and finished when the callback is: for one the browser awaits (a lock's), whose caller is
+    // itself awaiting the browser, so queueing it in order would wait on that caller forever.
+    internal Task RunFromScriptNow(Func<Task?> invoke) => IsTornDown ? Task.CompletedTask : RunScriptCallback(invoke);
+
     /// <summary>Unmounted or disposed — what a script-side registration made now would never be released from.</summary>
     internal bool IsTornDown => _live is { IsUnmounted: true } or { IsDisposed: true };
 

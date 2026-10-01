@@ -44,9 +44,12 @@ internal sealed class JsChain
     private readonly IJSRuntime? _runtime;
     private readonly IReadOnlyList<Step>? _faked;
 
+    // Set on a kept root only: the C# handlers it was made with (an observer's), which it holds until it is disposed of.
+    private readonly ScopedScript.ScriptCallback[] _handlers;
+
     private JsChain(
         JsChain? parent, char kind, string? name, object?[]? args, IJSObjectReference? handle = null, IJSRuntime? runtime = null,
-        IReadOnlyList<Step>? faked = null)
+        IReadOnlyList<Step>? faked = null, ScopedScript.ScriptCallback[]? handlers = null)
     {
         _parent = parent;
         _kind = kind;
@@ -55,6 +58,7 @@ internal sealed class JsChain
         _handle = handle;
         _runtime = runtime;
         _faked = faked;
+        _handlers = handlers ?? [];
     }
 
     // One step of a path, as a fake matches it: `matchMedia("(min-width: 900px)")` is not `matchMedia("print")`.
@@ -101,21 +105,42 @@ internal sealed class JsChain
     {
         if (Faked(out _, out _))
         {
-            return new JsChain(null, StepRoot, null, null, faked: Path());
+            return new JsChain(null, StepRoot, null, null, faked: Path(), handlers: Handlers());
         }
 
         var runtime = Runtime;
         var handle = await runtime.InvokeAsync<IJSObjectReference>("__raskWeb.run", Arguments()).ConfigureAwait(false);
-        return new JsChain(null, StepRoot, null, null, handle, runtime);
+        return new JsChain(null, StepRoot, null, null, handle, runtime, handlers: Handlers());
     }
 
     internal async ValueTask<T> Keep<T>(Func<JsChain, T> wrap) => wrap(await Keep().ConfigureAwait(false));
+
+    // The handlers the chain hands the browser: what the object it makes calls back, and is released with it.
+    private ScopedScript.ScriptCallback[] Handlers()
+    {
+        var handlers = new List<ScopedScript.ScriptCallback>();
+        for (var c = this; c._kind != StepRoot; c = c._parent!)
+        {
+            handlers.AddRange((c._args ?? []).OfType<ScopedScript.ScriptCallback>());
+        }
+
+        return [.. handlers];
+    }
 
     // Whether the browser has what the chain ends at.
     internal ValueTask<bool> Exists() =>
         _kind == StepRoot || Faked(out _, out _) ? ValueTask.FromResult(true) : Runtime.InvokeAsync<bool>("__raskWeb.has", Arguments());
 
-    internal ValueTask Release() => _handle?.DisposeAsync() ?? default;
+    // Lets the browser drop a kept object, and the handlers it was made with stop reaching C#.
+    internal ValueTask Release()
+    {
+        foreach (var handler in _handlers)
+        {
+            ScopedScript.Release(handler);
+        }
+
+        return _handle?.DisposeAsync() ?? default;
+    }
 
     // Adds `handler` to the object the chain ends at, for events of `type`; each one arrives as the fields named in
     // `fields` (a JSON array: only what the payload type reads), read into a TEvent. Disposing of what this returns
@@ -168,6 +193,20 @@ internal sealed class JsChain
         Action<T1, T2, T3>? handler) =>
         handler is null ? null : ScopedScript.Handler(Owner(handler), a => Done(() => handler(Arg<T1>(a, 0), Arg<T2>(a, 1), Arg<T3>(a, 2))));
 
+    // A C# handler as a function whose promise the browser waits on: a lock is held until it returns. It runs at once,
+    // not queued behind the handler that is awaiting the call that runs it, which would wait on it forever.
+    internal static object? Awaited(Action? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), _ => Done(handler), awaited: true);
+
+    internal static object? Awaited(Func<Task>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), _ => handler(), awaited: true);
+
+    internal static object? Awaited<[DynamicallyAccessedMembers(Json)] T1>(Action<T1>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), a => Done(() => handler(Arg<T1>(a, 0))), awaited: true);
+
+    internal static object? Awaited<[DynamicallyAccessedMembers(Json)] T1>(Func<T1, Task>? handler) =>
+        handler is null ? null : ScopedScript.Handler(Owner(handler), a => handler(Arg<T1>(a, 0)), awaited: true);
+
     // One field of an event's payload, as the generated payload types read it.
     internal static T Field<[DynamicallyAccessedMembers(Json)] T>(JsonElement payload, string name) =>
         payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty(name, out var value) ? Value<T>(value) : default!;
@@ -200,7 +239,7 @@ internal sealed class JsChain
             return fake.Answer<T>(rest);
         }
 
-        var result = await Runtime.InvokeAsync<JsonElement>("__raskWeb.run", Arguments()).ConfigureAwait(false);
+        var result = await Runtime.InvokeAsync<JsonElement>("__raskWeb.read", Arguments()).ConfigureAwait(false);
         return Value<T>(result);
     }
 

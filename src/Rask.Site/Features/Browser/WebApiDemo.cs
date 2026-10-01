@@ -10,7 +10,11 @@ public sealed partial class WebApiDemo : Component
     private string _stored = "";
     private string _kept = "";
     private string _width = "";
+    private string _seen = "";
+    private string _lock = "";
     private IAsyncDisposable? _watch;
+    private Rask.Web.Types.IntersectionObserver? _observer;
+    private readonly ElementRef _panel = ElementRef.New();
 
     protected override Component? Render() =>
         Div[
@@ -18,12 +22,16 @@ public sealed partial class WebApiDemo : Component
                 Ui.Button.Primary.Id("web-read").OnClick(Read)["Read the browser"],
                 Ui.Button.Outline.Id("web-store").OnClick(Store)["Round-trip localStorage"],
                 Ui.Button.Outline.Id("web-keep").OnClick(Keep)["Keep a media query"],
-                Ui.Button.Outline.Id("web-watch").OnClick(Watch)["Watch the width"]
+                Ui.Button.Outline.Id("web-watch").OnClick(Watch)["Watch the width"],
+                Ui.Button.Outline.Id("web-observe").OnClick(ObservePanel)["Observe this panel"],
+                Ui.Button.Outline.Id("web-lock").OnClick(HoldLock)["Hold a lock"]
             ],
             P.Id("web-read-out").Class("text-sm mb-1")[_read],
             P.Id("web-store-out").Class("text-sm mb-1")[_stored],
             P.Id("web-keep-out").Class("text-sm mb-1")[_kept],
-            P.Id("web-watch-out").Class("text-sm mb-0")[_width]
+            P.Id("web-watch-out").Class("text-sm mb-1")[_width],
+            P.Id("web-observe-out").Ref(_panel).Class("text-sm mb-1")[_seen],
+            P.Id("web-lock-out").Class("text-sm mb-0")[_lock]
         ];
 
     // navigator.language, document.visibilityState, matchMedia(…).matches: three round trips.
@@ -48,11 +56,41 @@ public sealed partial class WebApiDemo : Component
         _width = "Watching (min-width: 900px)";
     }
 
+    // new IntersectionObserver(callback): the entries arrive as data, each time the panel crosses into or out of view.
+    private async Task ObservePanel()
+    {
+        if (_observer is not null)
+        {
+            return;
+        }
+
+        var observer = await IntersectionObserver.Create(entries =>
+            _seen = string.Join(", ", entries.Select(e => e.IsIntersecting ? $"In view, {e.IntersectionRatio:P0} of it" : "Out of view")));
+        await observer.Observe(_panel);
+        _observer = observer;
+    }
+
+    // navigator.locks.request: the browser holds the lock until the async handler has finished.
+    private async Task HoldLock()
+    {
+        await Navigator.Locks.Request("rask-web-demo", async lk =>
+        {
+            _lock = $"Holding {lk?.Name} ({lk?.Mode})";
+            await Task.Delay(100);
+        });
+        _lock += ", then let it go";
+    }
+
     protected override async Task OnUnmount()
     {
         if (_watch is not null)
         {
             await _watch.DisposeAsync();
+        }
+
+        if (_observer is not null)
+        {
+            await _observer.DisposeAsync();
         }
     }
 

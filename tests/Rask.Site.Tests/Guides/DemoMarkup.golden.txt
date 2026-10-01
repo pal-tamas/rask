@@ -4525,6 +4525,10 @@ button .btn .btn-primary
 button .btn .btn-outline
 button .btn .btn-outline
 button .btn .btn-outline
+button .btn .btn-outline
+button .btn .btn-outline
+p .mb-1 .text-sm
+p .mb-1 .text-sm
 p .mb-1 .text-sm
 p .mb-1 .text-sm
 p .mb-1 .text-sm

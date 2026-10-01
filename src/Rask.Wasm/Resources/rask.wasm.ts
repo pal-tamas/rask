@@ -712,12 +712,12 @@ function jsResolveIdentifier(target: unknown, identifier: string): [Record<strin
 }
 
 // A C# Callback handed to a component's scoped script (ScopedScript.Callback): each call goes back to
-// .NET with its arguments. Nothing awaits it — the script called a function, not a query.
-function scopedCallback(id: number): (...args: unknown[]) => void {
-    return (...args: unknown[]) => {
+// .NET with its arguments. What it returns settles once .NET has taken the call — or, for a callback the
+// browser awaits (a lock's), once the handler has finished.
+function scopedCallback(id: number): (...args: unknown[]) => Promise<void> {
+    return (...args: unknown[]) =>
         window.DotNet.invokeMethodAsync("Rask.Core", "RaskScopedCallback", id, args)
-            .catch((e: unknown) => console.error("[Rask] scoped-script callback failed", e));
-    };
+            .then(() => undefined, (e: unknown) => console.error("[Rask] scoped-script callback failed", e));
 }
 
 function jsReviver(_key: string, value: unknown): unknown {

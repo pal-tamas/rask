@@ -103,7 +103,7 @@ public partial class TypedElementRefTests : global::Rask.Core.RaskMarkup
 
         var rect = JsonSerializer.Deserialize(fromBrowser, RaskDomJsonContext.Default.DOMRect)!;
 
-        Assert.Equal((30.0, 42.0), (rect.Width!.Value, rect.Bottom!.Value));
+        Assert.Equal((30.0, 42.0), (rect.Width, rect.Bottom));
     }
 
     [Fact]

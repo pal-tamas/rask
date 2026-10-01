@@ -66,16 +66,46 @@ const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
 };
 // What JSON cannot carry — a C# handler, a kept object, an element — arrives as its own argument, revived by the host,
 // and the steps name it by position: {"__raskArg__": 0}.
+// A C# handler among them is handed what the browser calls it with as data, and the browser gets back the promise of
+// its finishing, which a lock waits on.
 const raskWebSteps = (steps: string, extras: unknown[]): RaskWebStep[] =>
     JSON.parse(steps, (_key, value: unknown) => {
         const index = value && typeof value === "object" ? (value as { __raskArg__?: unknown }).__raskArg__ : undefined;
-        return typeof index === "number" ? extras[index] : value;
+        if (typeof index !== "number") return value;
+        const extra = extras[index];
+        return typeof extra === "function"
+            ? (...args: unknown[]) => (extra as (...a: unknown[]) => unknown)(...args.map(a => raskWebData(a)))
+            : extra;
     }) as RaskWebStep[];
+// What crosses back to C# as a value. An object that serializes itself (DOMRect's toJSON) or is plain stays as it is;
+// one that is only the browser's — an IntersectionObserverEntry, a DOMException — crosses as the fields it can be
+// read for, which JSON alone would turn into {}. A node, a window or a function does not cross.
+const raskWebData = (value: unknown, depth = 0): unknown => {
+    if (typeof value === "function") return undefined;
+    if (value === null || typeof value !== "object" || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return value;
+    if (depth > 4 || value instanceof Node || value === window) return undefined;
+    if (Array.isArray(value)) return value.map(v => raskWebData(v, depth + 1));
+    if (typeof (value as { toJSON?: unknown }).toJSON === "function") return value;
+    const own = Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null;
+    const data: Record<string, unknown> = {};
+    for (const key in value) {
+        if (raskWebUnsafe.has(key) || (own && !Object.prototype.hasOwnProperty.call(value, key))) continue;
+        try {
+            const field = raskWebData((value as Record<string, unknown>)[key], depth + 1);
+            if (field !== undefined) data[key] = field;
+        } catch {
+            // A getter that throws in this state (a detached object's) has nothing to say.
+        }
+    }
+    return data;
+};
 // A subscription's listener, by the id C# holds to remove it.
 const raskWebListeners = new Map<number, { target: EventTarget; type: string; listener: (event: Event) => void }>();
 let raskWebNextListener = 0;
 window.__raskWeb = window.__raskWeb || {
     run: (root: unknown, steps: string, ...extras: unknown[]) => raskWebWalk(root, raskWebSteps(steps, extras)),
+    // The same, for a value C# reads: what it ends at (or resolves to) as data.
+    read: async (root: unknown, steps: string, ...extras: unknown[]) => raskWebData(await raskWebWalk(root, raskWebSteps(steps, extras))),
     // Whether the browser has what the chain ends at: the object before it exists and holds a member of that name.
     has: (root: unknown, steps: string, ...extras: unknown[]) => {
         const parsed = raskWebSteps(steps, extras);
@@ -95,7 +125,7 @@ window.__raskWeb = window.__raskWeb || {
         const names = JSON.parse(fields) as string[];
         const listener = (event: Event) => {
             const payload: Record<string, unknown> = {};
-            for (const name of names) payload[name] = (event as unknown as Record<string, unknown>)[name];
+            for (const name of names) payload[name] = raskWebData((event as unknown as Record<string, unknown>)[name]);
             handler(payload);
         };
         target.addEventListener(type, listener);

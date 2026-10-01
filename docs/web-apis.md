@@ -64,12 +64,30 @@ await using var online = await Window.OnOnline(() => _online = true);
 ```
 
 The event is MDN's type — Core's `Event` where an element event uses the same one, else a type in `Rask.Web.Types`
-(`MediaQueryListEvent`, `StorageEvent`) deriving from it — holding the fields that are values. A method that takes a
-callback takes a C# handler for it, run and re-rendered the same way: `await Navigator.Geolocation.GetCurrentPosition(p => _where = p.Coords)`.
+(`MediaQueryListEvent`, `StorageEvent`) deriving from it — holding the fields that are values. A method or constructor
+that takes a callback takes a C# handler for it, run and re-rendered the same way, and an element it takes is your
+`ElementRef`:
+
+```csharp
+await Navigator.Geolocation.GetCurrentPosition(p => _where = p.Coords);
+
+await using var io = await IntersectionObserver.Create(entries =>
+    _visible = entries.Where(e => e.IsIntersecting).Select(e => e.IntersectionRatio).ToArray());
+await io.Observe(_card);                                          // readonly ElementRef _card = ElementRef.New();
+
+await Navigator.Locks.Request("sync", async lk => await Sync());  // the lock is held until Sync() returns
+```
+
+What a callback is handed is data, read when it ran: an `IntersectionObserverEntry`, a `ResizeObserverEntry`, a
+`MutationRecord`, a `Lock` is a record under MDN's name, like `DOMRect`, its fields typed as MDN says (`e.IsIntersecting`
+is a `bool`). A field that is a node (an entry's `target`) is left out. The handler takes the arguments it can use, in
+order — an observer's entries, not the observer, which you already hold. A callback whose promise the browser waits on
+(a lock's) is finished before the browser goes on; one whose result the browser reads (an `Observable` predicate) is not
+generated.
 
 A handler has to belong to a component — a lambda written in one, or a method of it — since that is the component it
-re-renders; the component unmounting drops it. Keep the subscription in a field and dispose of it in `OnUnmount` to
-stop the browser listening too.
+re-renders; the component unmounting drops it. Keep the subscription or the observer in a field and dispose of it in
+`OnUnmount` to drop its handlers sooner; `Disconnect()` an observer to stop the browser watching.
 
 ## Asking whether the browser has it
 
@@ -145,7 +163,8 @@ click itself.
 
 - **The DOM.** Nothing that returns or rewrites DOM nodes is generated: the render owns the page. Reach an element's
   own members through a [typed element ref](js-interop-runtime.md#element-refs) (`await _dialog.ShowModal()`).
-- **What needs a live object as an argument** — a member that takes a `Node`, or a callback that hands one back — is
+- **What needs a live object the C# side cannot name** — a member that takes a `Document` or a text node, a callback
+  that hands back a live object (an `IdleDeadline` to ask the time left of), or one whose result the browser reads — is
   not generated; the [typed browser API wrappers](browser-apis.md) cover those today.
 - **`Rask.Web` is not imported for you yet.** Its globals share names with some of the wrappers' types, so a file that
   uses them says `using Rask.Web;`.

@@ -65,6 +65,61 @@ public sealed class WebEventTests
     }
 
     [Fact]
+    public async Task An_observer_is_made_with_a_handler_that_gets_its_entries_as_data()
+    {
+        var browser = new FakeBrowser();
+        var widget = new Widget();
+        var card = ElementRef.New();
+
+        using (browser.Enter())
+        {
+            var observer = await widget.Observe();
+            await observer.Observe(card);
+        }
+
+        await Fire(browser.Calls[0].Args[2], """[[{"isIntersecting":true,"intersectionRatio":0.5},{"isIntersecting":false,"intersectionRatio":0}],{}]""");
+
+        Assert.Equal("""[["n","IntersectionObserver",[{"__raskArg__":0}]]]""", browser.Steps(0));
+        Assert.Equal(("""[["c","observe",[{"__raskArg__":0}]]]""", card), (browser.Steps(1), browser.Calls[1].Args[2]));
+        Assert.Equal([0.5], widget.Visible);
+    }
+
+    [Fact]
+    public async Task A_disposed_observer_no_longer_reaches_its_handler()
+    {
+        var browser = new FakeBrowser();
+        var widget = new Widget();
+        using (browser.Enter())
+        {
+            await using var observer = await widget.Observe();
+        }
+
+        await Fire(browser.Calls[0].Args[2], """[[{"isIntersecting":true,"intersectionRatio":1}]]""");
+
+        Assert.Empty(widget.Visible);
+        Assert.True(browser.Kept[0].Disposed);
+    }
+
+    [Fact]
+    public async Task A_lock_is_held_until_the_handler_it_runs_has_finished()
+    {
+        var browser = new FakeBrowser();
+        var widget = new Widget();
+        using (browser.Enter())
+        {
+            await widget.Sync();
+        }
+
+        var held = Fire(browser.Calls[0].Args[2], """[{"name":"sync","mode":"exclusive"}]""");
+        var heldWhileSyncing = !held.IsCompleted;
+        widget.Synced.SetResult();
+        await held;
+
+        Assert.Equal("""[["g","navigator"],["g","locks"],["c","request",["sync",{"__raskArg__":0}]]]""", browser.Steps(0));
+        Assert.Equal((true, "sync", LockMode.Exclusive), (heldWhileSyncing, widget.LockName, widget.Mode));
+    }
+
+    [Fact]
     public async Task A_handler_that_belongs_to_no_component_is_refused()
     {
         var browser = new FakeBrowser();
@@ -101,6 +156,24 @@ public sealed class WebEventTests
                 Query = e.Media;
             });
 
-        public ValueTask Locate() => Navigator.Geolocation.GetCurrentPosition(p => Latitude = p.Coords!.Latitude ?? 0);
+        public double[] Visible { get; private set; } = [];
+
+        public string? LockName { get; private set; }
+
+        public LockMode Mode { get; private set; }
+
+        public TaskCompletionSource Synced { get; } = new();
+
+        public ValueTask Locate() => Navigator.Geolocation.GetCurrentPosition(p => Latitude = p.Coords.Latitude);
+
+        public ValueTask<Types.IntersectionObserver> Observe() =>
+            IntersectionObserver.Create(entries => Visible = entries.Where(e => e.IsIntersecting).Select(e => e.IntersectionRatio).ToArray());
+
+        public ValueTask Sync() =>
+            Navigator.Locks.Request("sync", async lk =>
+            {
+                (LockName, Mode) = (lk?.Name, lk?.Mode ?? default);
+                await Synced.Task;
+            });
     }
 }

@@ -1445,6 +1445,15 @@ public abstract partial class SharedSmokeTests
             await Page.SetViewportSizeAsync(viewport.Width, viewport.Height);
         }
 
+        // Callbacks: an IntersectionObserver made with a C# handler gets its entries as data, and a lock is held until
+        // its async handler has finished.
+        await Page.Locator("#web-observe-out").ScrollIntoViewIfNeededAsync();
+        await Page.Locator("#web-observe").ClickAsync();
+        await Expect(Page.Locator("#web-observe-out")).ToContainTextAsync("In view", contains);
+        await Page.Locator("#web-lock").ClickAsync();
+        await Expect(Page.Locator("#web-lock-out")).ToHaveTextAsync("Holding rask-web-demo (Exclusive), then let it go",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
         // The Browser APIs guide co-mounts every typed wrapper as a LIVE demo on one page (the child
         // enumerable is materialised at render time so each demo's component instance is reconciled and
         // keeps its state across renders — see Component's IEnumerable<Component> indexer). Open the guide,

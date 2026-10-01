@@ -25,6 +25,7 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
     private readonly Dictionary<string, string?> _recordParents = new(StringComparer.Ordinal);
     private readonly SortedSet<string> _serializable = new(StringComparer.Ordinal);
     private readonly HashSet<string> _visiting = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _handedOver = HandedOver(root);
 
     // The types another assembly (Core) declares: named, never declared again.
     private readonly HashSet<string> _external = new(StringComparer.Ordinal);
@@ -42,9 +43,33 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
     // only one that is nothing but data is.
     private bool _onlyData;
 
-    // Whether an IDL name crosses as a value (an enum, a dictionary, data that serializes itself) rather than a live object.
+    // Whether an IDL name crosses as a value (an enum, a dictionary, data that serializes itself or a callback is handed)
+    // rather than a live object.
     public bool IsValue(string name) =>
-        _external.Contains(name) || _enums[name] is not null || _dictionaries[name] is not null || (_interfaces[name] is not null && ToJson(name));
+        _external.Contains(name) || _enums[name] is not null || _dictionaries[name] is not null || (_interfaces[name] is not null && IsData(name));
+
+    private bool IsData(string name) => ToJson(name) || _handedOver.Contains(name);
+
+    // Whether an argument of this IDL type is an element on the page, which C# names by its ElementRef: Node, Element, or
+    // an element's own interface (an observer's observe(target)).
+    public bool IsElement(string idl)
+    {
+        var name = idl.TrimEnd('?');
+        if (string.Equals(name, "Node", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        for (var n = name; n is not null && _interfaces[n] is { } i; n = i["parent"]?.AsString())
+        {
+            if (string.Equals(n, "Element", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     // Whether a C# type this mapped (bare or qualified) is one of MDN's enums: a value type, as a C# enum is.
     public bool IsEnum(string type) => _enums[type.Substring(type.LastIndexOf('.') + 1)] is not null;
@@ -139,7 +164,7 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         }
 
         var dictionary = _dictionaries[name];
-        var source = dictionary ?? (_interfaces[name] is { } value && ToJson(name) ? value : null);
+        var source = dictionary ?? (_interfaces[name] is { } value && IsData(name) ? value : null);
         if (source is null)
         {
             return null;
@@ -208,6 +233,68 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         var behaviour = _interfaces[name]?["constructors"] is not null || _interfaces[name]?["statics"] is not null;
         return json && !(_onlyData && (more || behaviour));
     }
+
+    // What a callback is handed that is only data — every member a read-only attribute, no events, nothing static
+    // (IntersectionObserverEntry, MutationRecord, a Lock) — and the same among its fields' types (ResizeObserverSize).
+    // It is read once, when the callback runs, so it crosses as a record, like DOMRect, wherever it appears.
+    private static HashSet<string> HandedOver(JsonNode root)
+    {
+        var interfaces = root["interfaces"]!;
+        var pending = new Queue<string>();
+        foreach (var callback in root["callbacks"]?.Members ?? new List<KeyValuePair<string, JsonNode>>())
+        {
+            foreach (var a in callback.Value["args"]?.Items ?? new List<JsonNode>())
+            {
+                pending.Enqueue(a["type"]!.AsString()!);
+            }
+        }
+
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        while (pending.Count > 0)
+        {
+            var name = ItemOf(pending.Dequeue());
+            if (result.Contains(name) || interfaces[name] is null || !OnlyData(interfaces, name))
+            {
+                continue;
+            }
+
+            result.Add(name);
+            for (var n = name; n is not null && interfaces[n] is { } i; n = i["parent"]?.AsString())
+            {
+                foreach (var m in i["members"]?.Items ?? new List<JsonNode>())
+                {
+                    pending.Enqueue(m["type"]!.AsString()!);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // `sequence<MutationRecord>?` → MutationRecord.
+    private static string ItemOf(string idl)
+    {
+        var bare = idl.TrimEnd('?');
+        var open = bare.IndexOf('<');
+        return open > 0 && bare.EndsWith(">", StringComparison.Ordinal) ? ItemOf(bare.Substring(open + 1, bare.Length - open - 2)) : bare;
+    }
+
+    private static bool OnlyData(JsonNode interfaces, string name)
+    {
+        for (var n = name; n is not null && interfaces[n] is { } i; n = i["parent"]?.AsString())
+        {
+            var behaviour = (i["members"]?.Items ?? new List<JsonNode>())
+                .Any(m => !string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal) || m["readonly"]?.AsBoolean() != true);
+            if (behaviour || i["events"] is not null || i["statics"] is not null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private bool IsValueType(string type) => type is "bool" or "int" or "long" or "double" || IsEnum(type);
 
     // typeof(string?) is not C#: a reference type is registered bare, a value type both ways.
     private void Serializable(string type)
@@ -299,17 +386,23 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 
         sb.AppendLine();
         sb.AppendLine("{");
+
+        // A dictionary is filled in by C#, so what it does not require is optional. An interface's data is the browser's,
+        // with every field it has, nullable exactly where MDN says: `rect.Width`, `entry.IsIntersecting`.
+        var browsers = _dictionaries[name] is null;
         foreach (var (property, type, json, required) in fields)
         {
             sb.Append("    /// <summary>MDN's <c>").Append(json).AppendLine("</c>.</summary>");
             sb.Append("    [JsonPropertyName(\"").Append(json).AppendLine("\")]");
-            if (!required)
+            var nullable = type.EndsWith("?", StringComparison.Ordinal);
+            if (!required && (!browsers || nullable))
             {
                 sb.AppendLine("    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]");
             }
 
-            var declared = required || type.EndsWith("?", StringComparison.Ordinal) ? type : type + "?";
-            sb.Append("    public ").Append(required ? "required " : "").Append(declared).Append(' ').Append(property).AppendLine(" { get; init; }");
+            var declared = required || browsers || nullable ? type : type + "?";
+            sb.Append("    public ").Append(required ? "required " : "").Append(declared).Append(' ').Append(property).Append(" { get; init; }");
+            sb.AppendLine(browsers && !nullable && !IsValueType(type) ? " = default!;" : "");
             sb.AppendLine();
         }
 

@@ -2614,8 +2614,6 @@ Rask.Web.Types.GamepadMappingType.XrStandard = 2 -> Rask.Web.Types.GamepadMappin
 Rask.Web.Types.Geolocation
 Rask.Web.Types.Geolocation.ClearWatch(int watchId) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.GeolocationPositionError
-Rask.Web.Types.GeolocationPositionError.Code.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.GeolocationPositionError.Message.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.GetNotificationOptions
 Rask.Web.Types.GetNotificationOptions.<Clone>$() -> Rask.Web.Types.GetNotificationOptions!
 Rask.Web.Types.GetNotificationOptions.Equals(Rask.Web.Types.GetNotificationOptions? other) -> bool
@@ -2926,11 +2924,6 @@ Rask.Web.Types.IntersectionObserver.RootMargin.get -> System.Threading.Tasks.Val
 Rask.Web.Types.IntersectionObserver.ScrollMargin.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.IntersectionObserver.Thresholds.get -> System.Threading.Tasks.ValueTask<double[]!>
 Rask.Web.Types.IntersectionObserverEntry
-Rask.Web.Types.IntersectionObserverEntry.BoundingClientRect.get -> System.Threading.Tasks.ValueTask<Rask.Core.DOMRectReadOnly!>
-Rask.Web.Types.IntersectionObserverEntry.IntersectionRatio.get -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.IntersectionObserverEntry.IntersectionRect.get -> System.Threading.Tasks.ValueTask<Rask.Core.DOMRectReadOnly!>
-Rask.Web.Types.IntersectionObserverEntry.IsIntersecting.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.IntersectionObserverEntry.RootBounds.get -> System.Threading.Tasks.ValueTask<Rask.Core.DOMRectReadOnly?>
 Rask.Web.Types.IterationCompositeOperation
 Rask.Web.Types.IterationCompositeOperation.Accumulate = 1 -> Rask.Web.Types.IterationCompositeOperation
 Rask.Web.Types.IterationCompositeOperation.Replace = 0 -> Rask.Web.Types.IterationCompositeOperation
@@ -3049,8 +3042,6 @@ Rask.Web.Types.Location.SetPort(string! value) -> System.Threading.Tasks.ValueTa
 Rask.Web.Types.Location.SetProtocol(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.Location.SetSearch(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.Lock
-Rask.Web.Types.Lock.Mode.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.LockMode>
-Rask.Web.Types.Lock.Name.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.LockInfo
 Rask.Web.Types.LockInfo.<Clone>$() -> Rask.Web.Types.LockInfo!
 Rask.Web.Types.LockInfo.ClientId.get -> string?
@@ -3173,13 +3164,9 @@ Rask.Web.Types.MediaDecodingType.File = 0 -> Rask.Web.Types.MediaDecodingType
 Rask.Web.Types.MediaDecodingType.MediaSource = 1 -> Rask.Web.Types.MediaDecodingType
 Rask.Web.Types.MediaDecodingType.Webrtc = 2 -> Rask.Web.Types.MediaDecodingType
 Rask.Web.Types.MediaDeviceInfo
-Rask.Web.Types.MediaDeviceInfo.DeviceId.get -> string?
 Rask.Web.Types.MediaDeviceInfo.DeviceId.init -> void
-Rask.Web.Types.MediaDeviceInfo.GroupId.get -> string?
 Rask.Web.Types.MediaDeviceInfo.GroupId.init -> void
-Rask.Web.Types.MediaDeviceInfo.Kind.get -> Rask.Web.Types.MediaDeviceKind?
 Rask.Web.Types.MediaDeviceInfo.Kind.init -> void
-Rask.Web.Types.MediaDeviceInfo.Label.get -> string?
 Rask.Web.Types.MediaDeviceInfo.Label.init -> void
 Rask.Web.Types.MediaDeviceInfo.MediaDeviceInfo() -> void
 Rask.Web.Types.MediaDeviceInfo.MediaDeviceInfo(Rask.Web.Types.MediaDeviceInfo! original) -> void
@@ -3723,12 +3710,6 @@ Rask.Web.Types.MutationObserverInit.MutationObserverInit() -> void
 Rask.Web.Types.MutationObserverInit.Subtree.get -> bool?
 Rask.Web.Types.MutationObserverInit.Subtree.init -> void
 Rask.Web.Types.MutationRecord
-Rask.Web.Types.MutationRecord.AddedNodes.get -> Rask.Web.Types.NodeList!
-Rask.Web.Types.MutationRecord.AttributeName.get -> System.Threading.Tasks.ValueTask<string?>
-Rask.Web.Types.MutationRecord.AttributeNamespace.get -> System.Threading.Tasks.ValueTask<string?>
-Rask.Web.Types.MutationRecord.OldValue.get -> System.Threading.Tasks.ValueTask<string?>
-Rask.Web.Types.MutationRecord.RemovedNodes.get -> Rask.Web.Types.NodeList!
-Rask.Web.Types.MutationRecord.Type.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.NamedNodeMap
 Rask.Web.Types.NamedNodeMap.Length.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.Navigation
@@ -4230,9 +4211,7 @@ Rask.Web.Types.Performance.Measure(string! measureName, string! startOrMeasureOp
 Rask.Web.Types.Performance.Measure(string! measureName, string! startOrMeasureOptions, string! endMark) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
 Rask.Web.Types.Performance.SetResourceTimingBufferSize(int maxSize) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.PerformanceEntry
-Rask.Web.Types.PerformanceEntry.EntryType.get -> string?
 Rask.Web.Types.PerformanceEntry.EntryType.init -> void
-Rask.Web.Types.PerformanceEntry.Name.get -> string?
 Rask.Web.Types.PerformanceEntry.Name.init -> void
 Rask.Web.Types.PerformanceEntry.PerformanceEntry() -> void
 Rask.Web.Types.PerformanceEntry.PerformanceEntry(Rask.Web.Types.PerformanceEntry! original) -> void
@@ -4851,9 +4830,7 @@ Rask.Web.Types.RTCSessionDescription
 Rask.Web.Types.RTCSessionDescription.<Clone>$() -> Rask.Web.Types.RTCSessionDescription!
 Rask.Web.Types.RTCSessionDescription.Equals(Rask.Web.Types.RTCSessionDescription? other) -> bool
 Rask.Web.Types.RTCSessionDescription.RTCSessionDescription() -> void
-Rask.Web.Types.RTCSessionDescription.Sdp.get -> string?
 Rask.Web.Types.RTCSessionDescription.Sdp.init -> void
-Rask.Web.Types.RTCSessionDescription.Type.get -> Rask.Web.Types.RTCSdpType?
 Rask.Web.Types.RTCSessionDescription.Type.init -> void
 Rask.Web.Types.RTCSessionDescriptionInit
 Rask.Web.Types.RTCSessionDescriptionInit.<Clone>$() -> Rask.Web.Types.RTCSessionDescriptionInit!
@@ -4992,7 +4969,6 @@ Rask.Web.Types.ResizeObserverBoxOptions.BorderBox = 0 -> Rask.Web.Types.ResizeOb
 Rask.Web.Types.ResizeObserverBoxOptions.ContentBox = 1 -> Rask.Web.Types.ResizeObserverBoxOptions
 Rask.Web.Types.ResizeObserverBoxOptions.DevicePixelContentBox = 2 -> Rask.Web.Types.ResizeObserverBoxOptions
 Rask.Web.Types.ResizeObserverEntry
-Rask.Web.Types.ResizeObserverEntry.ContentRect.get -> System.Threading.Tasks.ValueTask<Rask.Core.DOMRectReadOnly!>
 Rask.Web.Types.ResizeObserverOptions
 Rask.Web.Types.ResizeObserverOptions.<Clone>$() -> Rask.Web.Types.ResizeObserverOptions!
 Rask.Web.Types.ResizeObserverOptions.Box.get -> Rask.Web.Types.ResizeObserverBoxOptions?
@@ -5000,8 +4976,6 @@ Rask.Web.Types.ResizeObserverOptions.Box.init -> void
 Rask.Web.Types.ResizeObserverOptions.Equals(Rask.Web.Types.ResizeObserverOptions? other) -> bool
 Rask.Web.Types.ResizeObserverOptions.ResizeObserverOptions() -> void
 Rask.Web.Types.ResizeObserverSize
-Rask.Web.Types.ResizeObserverSize.BlockSize.get -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.ResizeObserverSize.InlineSize.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.Response
 Rask.Web.Types.Response.Blob() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Blob!>
 Rask.Web.Types.Response.BodyUsed.get -> System.Threading.Tasks.ValueTask<bool>
@@ -9272,8 +9246,6 @@ Rask.Web.Types.CompressionStream.Writable.get -> Rask.Web.Types.WritableStream!
 Rask.Web.Types.CountQueuingStrategy
 Rask.Web.Types.CountQueuingStrategy.HighWaterMark.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.DOMException
-Rask.Web.Types.DOMException.Message.get -> System.Threading.Tasks.ValueTask<string!>
-Rask.Web.Types.DOMException.Name.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.DecompressionStream
 Rask.Web.Types.DecompressionStream.Readable.get -> Rask.Web.Types.ReadableStream!
 Rask.Web.Types.DecompressionStream.Writable.get -> Rask.Web.Types.WritableStream!
@@ -9284,9 +9256,6 @@ Rask.Web.Types.EventListenerOptions.Capture.init -> void
 Rask.Web.Types.EventListenerOptions.EventListenerOptions() -> void
 Rask.Web.Types.EventListenerOptions.EventListenerOptions(Rask.Web.Types.EventListenerOptions! original) -> void
 Rask.Web.Types.EventTarget
-Rask.Web.Types.FileReader.Error.get -> Rask.Web.Types.DOMException!
-Rask.Web.Types.IDBRequest.Error.get -> Rask.Web.Types.DOMException!
-Rask.Web.Types.IDBTransaction.Error.get -> Rask.Web.Types.DOMException!
 Rask.Web.Types.Origin
 Rask.Web.Types.Origin.Opaque.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.Performance.Mark(string! markName) -> Rask.Web.Types.PerformanceMark!
@@ -9589,7 +9558,6 @@ Rask.Web.CompressionStream
 Rask.Web.CountQueuingStrategy
 Rask.Web.Credential
 Rask.Web.CustomElementRegistry
-Rask.Web.DOMException
 Rask.Web.DOMMatrix
 Rask.Web.DOMMatrixReadOnly
 Rask.Web.DOMParser
@@ -9686,9 +9654,6 @@ static Rask.Web.CompressionStream.Create(Rask.Web.Types.CompressionFormat format
 static Rask.Web.CountQueuingStrategy.Create(Rask.Web.Types.QueuingStrategyInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CountQueuingStrategy!>
 static Rask.Web.Credential.IsConditionalMediationAvailable() -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.CustomElementRegistry.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CustomElementRegistry!>
-static Rask.Web.DOMException.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException!>
-static Rask.Web.DOMException.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException!>
-static Rask.Web.DOMException.Create(string! message, string! name) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException!>
 static Rask.Web.DOMMatrix.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrix!>
 static Rask.Web.DOMMatrix.Create(double[]! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrix!>
 static Rask.Web.DOMMatrix.Create(string! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMMatrix!>
@@ -10030,7 +9995,6 @@ Rask.Web.Types.Geolocation.WatchPosition(System.Action<Rask.Web.Types.Geolocatio
 Rask.Web.Types.Geolocation.WatchPosition(System.Func<Rask.Web.Types.GeolocationPosition!, System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.GeolocationCoordinates
 Rask.Web.Types.GeolocationCoordinates.<Clone>$() -> Rask.Web.Types.GeolocationCoordinates!
-Rask.Web.Types.GeolocationCoordinates.Accuracy.get -> double?
 Rask.Web.Types.GeolocationCoordinates.Accuracy.init -> void
 Rask.Web.Types.GeolocationCoordinates.Altitude.get -> double?
 Rask.Web.Types.GeolocationCoordinates.Altitude.init -> void
@@ -10040,15 +10004,12 @@ Rask.Web.Types.GeolocationCoordinates.Equals(Rask.Web.Types.GeolocationCoordinat
 Rask.Web.Types.GeolocationCoordinates.GeolocationCoordinates() -> void
 Rask.Web.Types.GeolocationCoordinates.Heading.get -> double?
 Rask.Web.Types.GeolocationCoordinates.Heading.init -> void
-Rask.Web.Types.GeolocationCoordinates.Latitude.get -> double?
 Rask.Web.Types.GeolocationCoordinates.Latitude.init -> void
-Rask.Web.Types.GeolocationCoordinates.Longitude.get -> double?
 Rask.Web.Types.GeolocationCoordinates.Longitude.init -> void
 Rask.Web.Types.GeolocationCoordinates.Speed.get -> double?
 Rask.Web.Types.GeolocationCoordinates.Speed.init -> void
 Rask.Web.Types.GeolocationPosition
 Rask.Web.Types.GeolocationPosition.<Clone>$() -> Rask.Web.Types.GeolocationPosition!
-Rask.Web.Types.GeolocationPosition.Coords.get -> Rask.Web.Types.GeolocationCoordinates?
 Rask.Web.Types.GeolocationPosition.Coords.init -> void
 Rask.Web.Types.GeolocationPosition.Equals(Rask.Web.Types.GeolocationPosition? other) -> bool
 Rask.Web.Types.GeolocationPosition.GeolocationPosition() -> void
@@ -11022,7 +10983,6 @@ Rask.Web.Types.DocumentTimelineOptions.Equals(Rask.Web.Types.DocumentTimelineOpt
 Rask.Web.Types.DocumentTimelineOptions.OriginTime.get -> double?
 Rask.Web.Types.DocumentTimelineOptions.OriginTime.init -> void
 Rask.Web.Types.Gamepad.Timestamp.get -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.GeolocationPosition.Timestamp.get -> long?
 Rask.Web.Types.GeolocationPosition.Timestamp.init -> void
 Rask.Web.Types.Headers.Append(string! name, string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.Headers.Delete(string! name) -> System.Threading.Tasks.ValueTask
@@ -11031,7 +10991,6 @@ Rask.Web.Types.Headers.GetSetCookie() -> System.Threading.Tasks.ValueTask<string
 Rask.Web.Types.Headers.Has(string! name) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.Headers.Set(string! name, string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.IdleDeadline.TimeRemaining() -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.IntersectionObserverEntry.Time.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.MIDIOutput.Send(int[]! data, double timestamp) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.MediaRecorderOptions.VideoKeyFrameIntervalDuration.get -> double?
 Rask.Web.Types.MediaRecorderOptions.VideoKeyFrameIntervalDuration.init -> void
@@ -11045,9 +11004,7 @@ Rask.Web.Types.Performance.Measure(string! measureName, Rask.Web.Types.Performan
 Rask.Web.Types.Performance.Measure(string! measureName, Rask.Web.Types.PerformanceMeasureOptions! startOrMeasureOptions, string! endMark) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceMeasure!>
 Rask.Web.Types.Performance.Now() -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.Performance.TimeOrigin.get -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.PerformanceEntry.Duration.get -> double?
 Rask.Web.Types.PerformanceEntry.Duration.init -> void
-Rask.Web.Types.PerformanceEntry.StartTime.get -> double?
 Rask.Web.Types.PerformanceEntry.StartTime.init -> void
 Rask.Web.Types.PerformanceMarkOptions
 Rask.Web.Types.PerformanceMarkOptions.<Clone>$() -> Rask.Web.Types.PerformanceMarkOptions!
@@ -11182,7 +11139,6 @@ Rask.Web.IdentityCredentialError
 Rask.Web.IdentityProvider
 Rask.Web.IdleDetector
 Rask.Web.InputDeviceCapabilities
-Rask.Web.IntersectionObserverEntry
 Rask.Web.LanguageDetector
 Rask.Web.LanguageModel
 Rask.Web.LaunchQueue
@@ -11550,27 +11506,17 @@ Rask.Web.Types.ConnectionType.Wifi = 7 -> Rask.Web.Types.ConnectionType
 Rask.Web.Types.ConnectionType.Wimax = 8 -> Rask.Web.Types.ConnectionType
 Rask.Web.Types.ContactAddress
 Rask.Web.Types.ContactAddress.<Clone>$() -> Rask.Web.Types.ContactAddress!
-Rask.Web.Types.ContactAddress.AddressLine.get -> string![]?
 Rask.Web.Types.ContactAddress.AddressLine.init -> void
-Rask.Web.Types.ContactAddress.City.get -> string?
 Rask.Web.Types.ContactAddress.City.init -> void
 Rask.Web.Types.ContactAddress.ContactAddress() -> void
-Rask.Web.Types.ContactAddress.Country.get -> string?
 Rask.Web.Types.ContactAddress.Country.init -> void
-Rask.Web.Types.ContactAddress.DependentLocality.get -> string?
 Rask.Web.Types.ContactAddress.DependentLocality.init -> void
 Rask.Web.Types.ContactAddress.Equals(Rask.Web.Types.ContactAddress? other) -> bool
-Rask.Web.Types.ContactAddress.Organization.get -> string?
 Rask.Web.Types.ContactAddress.Organization.init -> void
-Rask.Web.Types.ContactAddress.Phone.get -> string?
 Rask.Web.Types.ContactAddress.Phone.init -> void
-Rask.Web.Types.ContactAddress.PostalCode.get -> string?
 Rask.Web.Types.ContactAddress.PostalCode.init -> void
-Rask.Web.Types.ContactAddress.Recipient.get -> string?
 Rask.Web.Types.ContactAddress.Recipient.init -> void
-Rask.Web.Types.ContactAddress.Region.get -> string?
 Rask.Web.Types.ContactAddress.Region.init -> void
-Rask.Web.Types.ContactAddress.SortingCode.get -> string?
 Rask.Web.Types.ContactAddress.SortingCode.init -> void
 Rask.Web.Types.ContactInfo
 Rask.Web.Types.ContactInfo.<Clone>$() -> Rask.Web.Types.ContactInfo!
@@ -12032,35 +11978,13 @@ Rask.Web.Types.InputDeviceCapabilitiesInit.PointerMovementScrolls.init -> void
 Rask.Web.Types.InteractionContentfulPaint
 Rask.Web.Types.InteractionContentfulPaint.Equals(Rask.Web.Types.InteractionContentfulPaint? other) -> bool
 Rask.Web.Types.InteractionContentfulPaint.InteractionContentfulPaint() -> void
-Rask.Web.Types.InteractionContentfulPaint.InteractionId.get -> long?
 Rask.Web.Types.InteractionContentfulPaint.InteractionId.init -> void
-Rask.Web.Types.InteractionContentfulPaint.LargestContentfulPaint.get -> Rask.Web.Types.LargestContentfulPaint?
 Rask.Web.Types.InteractionContentfulPaint.LargestContentfulPaint.init -> void
-Rask.Web.Types.InteractionContentfulPaint.PaintTime.get -> double?
 Rask.Web.Types.InteractionContentfulPaint.PaintTime.init -> void
 Rask.Web.Types.InteractionContentfulPaint.PresentationTime.get -> double?
 Rask.Web.Types.InteractionContentfulPaint.PresentationTime.init -> void
 Rask.Web.Types.IntersectionObserver.Delay.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.IntersectionObserver.TrackVisibility.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.IntersectionObserverEntry.IsVisible.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.IntersectionObserverEntryInit
-Rask.Web.Types.IntersectionObserverEntryInit.<Clone>$() -> Rask.Web.Types.IntersectionObserverEntryInit!
-Rask.Web.Types.IntersectionObserverEntryInit.BoundingClientRect.get -> Rask.Web.Types.DOMRectInit!
-Rask.Web.Types.IntersectionObserverEntryInit.BoundingClientRect.init -> void
-Rask.Web.Types.IntersectionObserverEntryInit.Equals(Rask.Web.Types.IntersectionObserverEntryInit? other) -> bool
-Rask.Web.Types.IntersectionObserverEntryInit.IntersectionObserverEntryInit() -> void
-Rask.Web.Types.IntersectionObserverEntryInit.IntersectionRatio.get -> double
-Rask.Web.Types.IntersectionObserverEntryInit.IntersectionRatio.init -> void
-Rask.Web.Types.IntersectionObserverEntryInit.IntersectionRect.get -> Rask.Web.Types.DOMRectInit!
-Rask.Web.Types.IntersectionObserverEntryInit.IntersectionRect.init -> void
-Rask.Web.Types.IntersectionObserverEntryInit.IsIntersecting.get -> bool
-Rask.Web.Types.IntersectionObserverEntryInit.IsIntersecting.init -> void
-Rask.Web.Types.IntersectionObserverEntryInit.IsVisible.get -> bool
-Rask.Web.Types.IntersectionObserverEntryInit.IsVisible.init -> void
-Rask.Web.Types.IntersectionObserverEntryInit.RootBounds.get -> Rask.Web.Types.DOMRectInit?
-Rask.Web.Types.IntersectionObserverEntryInit.RootBounds.init -> void
-Rask.Web.Types.IntersectionObserverEntryInit.Time.get -> double
-Rask.Web.Types.IntersectionObserverEntryInit.Time.init -> void
 Rask.Web.Types.IsInputPendingOptions
 Rask.Web.Types.IsInputPendingOptions.<Clone>$() -> Rask.Web.Types.IsInputPendingOptions!
 Rask.Web.Types.IsInputPendingOptions.Equals(Rask.Web.Types.IsInputPendingOptions? other) -> bool
@@ -12174,23 +12098,15 @@ Rask.Web.Types.LanguageModelTool.Name.get -> string!
 Rask.Web.Types.LanguageModelTool.Name.init -> void
 Rask.Web.Types.LargestContentfulPaint
 Rask.Web.Types.LargestContentfulPaint.Equals(Rask.Web.Types.LargestContentfulPaint? other) -> bool
-Rask.Web.Types.LargestContentfulPaint.Id.get -> string?
 Rask.Web.Types.LargestContentfulPaint.Id.init -> void
 Rask.Web.Types.LargestContentfulPaint.LargestContentfulPaint() -> void
-Rask.Web.Types.LargestContentfulPaint.LoadTime.get -> double?
 Rask.Web.Types.LargestContentfulPaint.LoadTime.init -> void
-Rask.Web.Types.LargestContentfulPaint.PaintTime.get -> double?
 Rask.Web.Types.LargestContentfulPaint.PaintTime.init -> void
 Rask.Web.Types.LargestContentfulPaint.PresentationTime.get -> double?
 Rask.Web.Types.LargestContentfulPaint.PresentationTime.init -> void
-Rask.Web.Types.LargestContentfulPaint.RenderTime.get -> double?
 Rask.Web.Types.LargestContentfulPaint.RenderTime.init -> void
-Rask.Web.Types.LargestContentfulPaint.Size.get -> int?
 Rask.Web.Types.LargestContentfulPaint.Size.init -> void
-Rask.Web.Types.LargestContentfulPaint.Url.get -> string?
 Rask.Web.Types.LargestContentfulPaint.Url.init -> void
-Rask.Web.Types.LaunchParams
-Rask.Web.Types.LaunchParams.TargetURL.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Web.Types.LaunchQueue
 Rask.Web.Types.LayoutShiftAttribution
 Rask.Web.Types.LayoutShiftAttribution.CurrentRect.get -> System.Threading.Tasks.ValueTask<Rask.Core.DOMRectReadOnly!>
@@ -12445,7 +12361,6 @@ Rask.Web.Types.PaymentManager.SetUserHint(string! value) -> System.Threading.Tas
 Rask.Web.Types.PaymentManager.UserHint.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.PaymentResponse.ShippingAddress.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ContactAddress?>
 Rask.Web.Types.Performance.MeasureUserAgentSpecificMemory() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MemoryMeasurement!>
-Rask.Web.Types.PerformanceEntry.NavigationId.get -> long?
 Rask.Web.Types.PerformanceEntry.NavigationId.init -> void
 Rask.Web.Types.PerformancePreference
 Rask.Web.Types.PerformancePreference.Auto = 0 -> Rask.Web.Types.PerformancePreference
@@ -12548,11 +12463,8 @@ Rask.Web.Types.PressureRecord
 Rask.Web.Types.PressureRecord.<Clone>$() -> Rask.Web.Types.PressureRecord!
 Rask.Web.Types.PressureRecord.Equals(Rask.Web.Types.PressureRecord? other) -> bool
 Rask.Web.Types.PressureRecord.PressureRecord() -> void
-Rask.Web.Types.PressureRecord.Source.get -> Rask.Web.Types.PressureSource?
 Rask.Web.Types.PressureRecord.Source.init -> void
-Rask.Web.Types.PressureRecord.State.get -> Rask.Web.Types.PressureState?
 Rask.Web.Types.PressureRecord.State.init -> void
-Rask.Web.Types.PressureRecord.Time.get -> double?
 Rask.Web.Types.PressureRecord.Time.init -> void
 Rask.Web.Types.PressureSource
 Rask.Web.Types.PressureSource.Cpu = 0 -> Rask.Web.Types.PressureSource
@@ -13962,9 +13874,6 @@ override Rask.Web.Types.InteractionContentfulPaint.<Clone>$() -> Rask.Web.Types.
 override Rask.Web.Types.InteractionContentfulPaint.Equals(object? obj) -> bool
 override Rask.Web.Types.InteractionContentfulPaint.GetHashCode() -> int
 override Rask.Web.Types.InteractionContentfulPaint.ToString() -> string!
-override Rask.Web.Types.IntersectionObserverEntryInit.Equals(object? obj) -> bool
-override Rask.Web.Types.IntersectionObserverEntryInit.GetHashCode() -> int
-override Rask.Web.Types.IntersectionObserverEntryInit.ToString() -> string!
 override Rask.Web.Types.IsInputPendingOptions.Equals(object? obj) -> bool
 override Rask.Web.Types.IsInputPendingOptions.GetHashCode() -> int
 override Rask.Web.Types.IsInputPendingOptions.ToString() -> string!
@@ -14254,7 +14163,6 @@ static Rask.Web.IdentityProvider.GetUserInfo(Rask.Web.Types.IdentityProviderConf
 static Rask.Web.IdleDetector.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IdleDetector!>
 static Rask.Web.InputDeviceCapabilities.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.InputDeviceCapabilities!>
 static Rask.Web.InputDeviceCapabilities.Create(Rask.Web.Types.InputDeviceCapabilitiesInit! deviceInitDict) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.InputDeviceCapabilities!>
-static Rask.Web.IntersectionObserverEntry.Create(Rask.Web.Types.IntersectionObserverEntryInit! intersectionObserverEntryInit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IntersectionObserverEntry!>
 static Rask.Web.LanguageDetector.Availability() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Availability>
 static Rask.Web.LanguageDetector.Availability(Rask.Web.Types.LanguageDetectorCreateCoreOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Availability>
 static Rask.Web.LanguageDetector.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.LanguageDetector!>
@@ -14417,8 +14325,6 @@ static Rask.Web.Types.InputDeviceCapabilitiesInit.operator !=(Rask.Web.Types.Inp
 static Rask.Web.Types.InputDeviceCapabilitiesInit.operator ==(Rask.Web.Types.InputDeviceCapabilitiesInit? left, Rask.Web.Types.InputDeviceCapabilitiesInit? right) -> bool
 static Rask.Web.Types.InteractionContentfulPaint.operator !=(Rask.Web.Types.InteractionContentfulPaint? left, Rask.Web.Types.InteractionContentfulPaint? right) -> bool
 static Rask.Web.Types.InteractionContentfulPaint.operator ==(Rask.Web.Types.InteractionContentfulPaint? left, Rask.Web.Types.InteractionContentfulPaint? right) -> bool
-static Rask.Web.Types.IntersectionObserverEntryInit.operator !=(Rask.Web.Types.IntersectionObserverEntryInit? left, Rask.Web.Types.IntersectionObserverEntryInit? right) -> bool
-static Rask.Web.Types.IntersectionObserverEntryInit.operator ==(Rask.Web.Types.IntersectionObserverEntryInit? left, Rask.Web.Types.IntersectionObserverEntryInit? right) -> bool
 static Rask.Web.Types.IsInputPendingOptions.operator !=(Rask.Web.Types.IsInputPendingOptions? left, Rask.Web.Types.IsInputPendingOptions? right) -> bool
 static Rask.Web.Types.IsInputPendingOptions.operator ==(Rask.Web.Types.IsInputPendingOptions? left, Rask.Web.Types.IsInputPendingOptions? right) -> bool
 static Rask.Web.Types.LanguageDetectionResult.operator !=(Rask.Web.Types.LanguageDetectionResult? left, Rask.Web.Types.LanguageDetectionResult? right) -> bool
@@ -15109,3 +15015,331 @@ virtual Rask.Web.Types.ULongRange.<Clone>$() -> Rask.Web.Types.ULongRange!
 virtual Rask.Web.Types.ULongRange.EqualityContract.get -> System.Type!
 virtual Rask.Web.Types.ULongRange.Equals(Rask.Web.Types.ULongRange? other) -> bool
 virtual Rask.Web.Types.ULongRange.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Web.CropTarget
+Rask.Web.IntersectionObserver
+Rask.Web.MutationObserver
+Rask.Web.Observable
+Rask.Web.ReportingObserver
+Rask.Web.ResizeObserver
+Rask.Web.RestrictionTarget
+Rask.Web.Types.AudioContext.CreateMediaElementSource(Rask.Core.ElementRef! mediaElement) -> Rask.Web.Types.MediaElementAudioSourceNode!
+Rask.Web.Types.BarcodeDetector.Detect(Rask.Core.ElementRef! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DetectedBarcode![]!>
+Rask.Web.Types.CanvasRenderingContext2D.CreatePattern(Rask.Core.ElementRef! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.CanvasRenderingContext2D.DrawFocusIfNeeded(Rask.Core.ElementRef! element) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Core.ElementRef! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Core.ElementRef! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CanvasRenderingContext2D.DrawImage(Rask.Core.ElementRef! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CaptureController.ForwardWheel(Rask.Core.ElementRef? element) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CustomElementRegistry.Initialize(Rask.Core.ElementRef! root) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CustomElementRegistry.Upgrade(Rask.Core.ElementRef! root) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.DOMException.DOMException() -> void
+Rask.Web.Types.DOMException.DOMException(Rask.Web.Types.DOMException! original) -> void
+Rask.Web.Types.DOMException.Message.init -> void
+Rask.Web.Types.DOMException.Name.init -> void
+Rask.Web.Types.DataTransfer.SetDragImage(Rask.Core.ElementRef! image, int x, int y) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.DetectedBarcode
+Rask.Web.Types.DetectedBarcode.<Clone>$() -> Rask.Web.Types.DetectedBarcode!
+Rask.Web.Types.DetectedBarcode.BoundingBox.get -> Rask.Core.DOMRectReadOnly!
+Rask.Web.Types.DetectedBarcode.BoundingBox.init -> void
+Rask.Web.Types.DetectedBarcode.CornerPoints.get -> Rask.Web.Types.Point2D![]!
+Rask.Web.Types.DetectedBarcode.CornerPoints.init -> void
+Rask.Web.Types.DetectedBarcode.DetectedBarcode() -> void
+Rask.Web.Types.DetectedBarcode.Equals(Rask.Web.Types.DetectedBarcode? other) -> bool
+Rask.Web.Types.DetectedBarcode.Format.get -> Rask.Web.Types.BarcodeFormat
+Rask.Web.Types.DetectedBarcode.Format.init -> void
+Rask.Web.Types.DetectedBarcode.RawValue.get -> string!
+Rask.Web.Types.DetectedBarcode.RawValue.init -> void
+Rask.Web.Types.Document.CreateNodeIterator(Rask.Core.ElementRef! root) -> Rask.Web.Types.NodeIterator!
+Rask.Web.Types.Document.CreateNodeIterator(Rask.Core.ElementRef! root, int whatToShow) -> Rask.Web.Types.NodeIterator!
+Rask.Web.Types.Document.CreateTreeWalker(Rask.Core.ElementRef! root) -> Rask.Web.Types.TreeWalker!
+Rask.Web.Types.Document.CreateTreeWalker(Rask.Core.ElementRef! root, int whatToShow) -> Rask.Web.Types.TreeWalker!
+Rask.Web.Types.Document.Evaluate(string! expression, Rask.Core.ElementRef! contextNode) -> Rask.Web.Types.XPathResult!
+Rask.Web.Types.Document.MoveBefore(Rask.Core.ElementRef! node, Rask.Core.ElementRef? child) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Document.StartViewTransition(System.Action! callbackOptions) -> Rask.Web.Types.ViewTransition!
+Rask.Web.Types.Document.StartViewTransition(System.Func<System.Threading.Tasks.Task!>! callbackOptions) -> Rask.Web.Types.ViewTransition!
+Rask.Web.Types.ElementInternals.SetValidity(Rask.Web.Types.ValidityStateFlags! flags, string! message, Rask.Core.ElementRef! anchor) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileReader.Error.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException?>
+Rask.Web.Types.FileSystemDirectoryEntry.GetDirectory(string? path, Rask.Web.Types.FileSystemFlags! options, System.Action! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryEntry.GetDirectory(string? path, Rask.Web.Types.FileSystemFlags! options, System.Action! successCallback, System.Action<Rask.Web.Types.DOMException!>! errorCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryEntry.GetDirectory(string? path, Rask.Web.Types.FileSystemFlags! options, System.Func<System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryEntry.GetFile(string? path, Rask.Web.Types.FileSystemFlags! options, System.Action! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryEntry.GetFile(string? path, Rask.Web.Types.FileSystemFlags! options, System.Action! successCallback, System.Action<Rask.Web.Types.DOMException!>! errorCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryEntry.GetFile(string? path, Rask.Web.Types.FileSystemFlags! options, System.Func<System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryReader.ReadEntries(System.Action! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryReader.ReadEntries(System.Action! successCallback, System.Action<Rask.Web.Types.DOMException!>! errorCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemDirectoryReader.ReadEntries(System.Func<System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemEntry.GetParent(System.Action! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemEntry.GetParent(System.Action! successCallback, System.Action<Rask.Web.Types.DOMException!>! errorCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemEntry.GetParent(System.Func<System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemFileEntry.File(System.Action! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemFileEntry.File(System.Action! successCallback, System.Action<Rask.Web.Types.DOMException!>! errorCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FileSystemFileEntry.File(System.Func<System.Threading.Tasks.Task!>! successCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Geolocation.GetCurrentPosition(System.Action<Rask.Web.Types.GeolocationPosition!>! successCallback, System.Action<Rask.Web.Types.GeolocationPositionError!>? errorCallback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Geolocation.GetCurrentPosition(System.Action<Rask.Web.Types.GeolocationPosition!>! successCallback, System.Action<Rask.Web.Types.GeolocationPositionError!>? errorCallback, Rask.Web.Types.PositionOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Geolocation.WatchPosition(System.Action<Rask.Web.Types.GeolocationPosition!>! successCallback, System.Action<Rask.Web.Types.GeolocationPositionError!>? errorCallback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.Geolocation.WatchPosition(System.Action<Rask.Web.Types.GeolocationPosition!>! successCallback, System.Action<Rask.Web.Types.GeolocationPositionError!>? errorCallback, Rask.Web.Types.PositionOptions! options) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GeolocationPositionError.<Clone>$() -> Rask.Web.Types.GeolocationPositionError!
+Rask.Web.Types.GeolocationPositionError.Code.init -> void
+Rask.Web.Types.GeolocationPositionError.Equals(Rask.Web.Types.GeolocationPositionError? other) -> bool
+Rask.Web.Types.GeolocationPositionError.GeolocationPositionError() -> void
+Rask.Web.Types.GeolocationPositionError.Message.init -> void
+Rask.Web.Types.HTMLOptionsCollection.Add(Rask.Core.ElementRef! element) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.HTMLOptionsCollection.Add(Rask.Core.ElementRef! element, Rask.Core.ElementRef? before) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.HTMLOptionsCollection.Add(Rask.Core.ElementRef! element, int? before) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.IDBRequest.Error.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException?>
+Rask.Web.Types.IDBTransaction.Error.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DOMException?>
+Rask.Web.Types.IntersectionObserver.Observe(Rask.Core.ElementRef! target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.IntersectionObserver.TakeRecords() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IntersectionObserverEntry![]!>
+Rask.Web.Types.IntersectionObserver.Unobserve(Rask.Core.ElementRef! target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.IntersectionObserverEntry.<Clone>$() -> Rask.Web.Types.IntersectionObserverEntry!
+Rask.Web.Types.IntersectionObserverEntry.BoundingClientRect.init -> void
+Rask.Web.Types.IntersectionObserverEntry.Equals(Rask.Web.Types.IntersectionObserverEntry? other) -> bool
+Rask.Web.Types.IntersectionObserverEntry.IntersectionObserverEntry() -> void
+Rask.Web.Types.IntersectionObserverEntry.IntersectionRatio.init -> void
+Rask.Web.Types.IntersectionObserverEntry.IntersectionRect.init -> void
+Rask.Web.Types.IntersectionObserverEntry.IsIntersecting.init -> void
+Rask.Web.Types.IntersectionObserverEntry.IsVisible.init -> void
+Rask.Web.Types.IntersectionObserverEntry.RootBounds.get -> Rask.Core.DOMRectReadOnly?
+Rask.Web.Types.IntersectionObserverEntry.RootBounds.init -> void
+Rask.Web.Types.IntersectionObserverEntry.Time.init -> void
+Rask.Web.Types.Lock.<Clone>$() -> Rask.Web.Types.Lock!
+Rask.Web.Types.Lock.Equals(Rask.Web.Types.Lock? other) -> bool
+Rask.Web.Types.Lock.Lock() -> void
+Rask.Web.Types.Lock.Mode.init -> void
+Rask.Web.Types.Lock.Name.init -> void
+Rask.Web.Types.MutationObserver.Observe(Rask.Core.ElementRef! target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MutationObserver.Observe(Rask.Core.ElementRef! target, Rask.Web.Types.MutationObserverInit! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MutationObserver.TakeRecords() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MutationRecord![]!>
+Rask.Web.Types.MutationRecord.<Clone>$() -> Rask.Web.Types.MutationRecord!
+Rask.Web.Types.MutationRecord.AttributeName.get -> string?
+Rask.Web.Types.MutationRecord.AttributeName.init -> void
+Rask.Web.Types.MutationRecord.AttributeNamespace.get -> string?
+Rask.Web.Types.MutationRecord.AttributeNamespace.init -> void
+Rask.Web.Types.MutationRecord.Equals(Rask.Web.Types.MutationRecord? other) -> bool
+Rask.Web.Types.MutationRecord.MutationRecord() -> void
+Rask.Web.Types.MutationRecord.OldValue.get -> string?
+Rask.Web.Types.MutationRecord.OldValue.init -> void
+Rask.Web.Types.MutationRecord.Type.init -> void
+Rask.Web.Types.NavigationPrecommitController.AddHandler(System.Action! handler) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.NavigationPrecommitController.AddHandler(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Navigator.GetAutoplayPolicy(Rask.Core.ElementRef! element) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AutoplayPolicy>
+Rask.Web.Types.Observable.ForEach(System.Action! callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Observable.ForEach(System.Func<System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Observable.Inspect(System.Action! inspectorUnion) -> Rask.Web.Types.Observable!
+Rask.Web.Types.Observable.Inspect(System.Func<System.Threading.Tasks.Task!>! inspectorUnion) -> Rask.Web.Types.Observable!
+Rask.Web.Types.Observable.Subscribe(System.Action! observer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Observable.Subscribe(System.Func<System.Threading.Tasks.Task!>! observer) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.CreatePattern(Rask.Core.ElementRef! image, string! repetition) -> Rask.Web.Types.CanvasPattern!
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Core.ElementRef! image, double dx, double dy) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Core.ElementRef! image, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OffscreenCanvasRenderingContext2D.DrawImage(Rask.Core.ElementRef! image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.ComparePoint(Rask.Core.ElementRef! node, int offset) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.Range.InsertNode(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.IntersectsNode(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Range.IsPointInRange(Rask.Core.ElementRef! node, int offset) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Range.SelectNode(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SelectNodeContents(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SetEnd(Rask.Core.ElementRef! node, int offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SetEndAfter(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SetEndBefore(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SetStart(Rask.Core.ElementRef! node, int offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SetStartAfter(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SetStartBefore(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Range.SurroundContents(Rask.Core.ElementRef! newParent) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ResizeObserver.Observe(Rask.Core.ElementRef! target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ResizeObserver.Observe(Rask.Core.ElementRef! target, Rask.Web.Types.ResizeObserverOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ResizeObserver.Unobserve(Rask.Core.ElementRef! target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ResizeObserverEntry.<Clone>$() -> Rask.Web.Types.ResizeObserverEntry!
+Rask.Web.Types.ResizeObserverEntry.BorderBoxSize.init -> void
+Rask.Web.Types.ResizeObserverEntry.ContentBoxSize.init -> void
+Rask.Web.Types.ResizeObserverEntry.ContentRect.init -> void
+Rask.Web.Types.ResizeObserverEntry.DevicePixelContentBoxSize.init -> void
+Rask.Web.Types.ResizeObserverEntry.Equals(Rask.Web.Types.ResizeObserverEntry? other) -> bool
+Rask.Web.Types.ResizeObserverEntry.ResizeObserverEntry() -> void
+Rask.Web.Types.ResizeObserverSize.<Clone>$() -> Rask.Web.Types.ResizeObserverSize!
+Rask.Web.Types.ResizeObserverSize.BlockSize.init -> void
+Rask.Web.Types.ResizeObserverSize.Equals(Rask.Web.Types.ResizeObserverSize? other) -> bool
+Rask.Web.Types.ResizeObserverSize.InlineSize.init -> void
+Rask.Web.Types.ResizeObserverSize.ResizeObserverSize() -> void
+Rask.Web.Types.Selection.Collapse(Rask.Core.ElementRef? node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.Collapse(Rask.Core.ElementRef? node, int offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.ContainsNode(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Selection.ContainsNode(Rask.Core.ElementRef! node, bool allowPartialContainment) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Selection.Extend(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.Extend(Rask.Core.ElementRef! node, int offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.SelectAllChildren(Rask.Core.ElementRef! node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.SetBaseAndExtent(Rask.Core.ElementRef! anchorNode, int anchorOffset, Rask.Core.ElementRef! focusNode, int focusOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.SetPosition(Rask.Core.ElementRef? node) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Selection.SetPosition(Rask.Core.ElementRef? node, int offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.SensorErrorEvent.Error.get -> Rask.Web.Types.DOMException!
+Rask.Web.Types.SensorErrorEvent.Error.init -> void
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Core.ElementRef! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Core.ElementRef! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Core.ElementRef! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.CreateImageBitmap(Rask.Core.ElementRef! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+Rask.Web.Types.Window.GetComputedStyle(Rask.Core.ElementRef! elt) -> Rask.Web.Types.CSSStyleProperties!
+Rask.Web.Types.Window.GetComputedStyle(Rask.Core.ElementRef! elt, string? pseudoElt) -> Rask.Web.Types.CSSStyleProperties!
+Rask.Web.Types.Window.RequestIdleCallback(System.Action! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.Window.RequestIdleCallback(System.Action! callback, Rask.Web.Types.IdleRequestOptions! options) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.Window.RequestIdleCallback(System.Func<System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.Window.RequestIdleCallback(System.Func<System.Threading.Tasks.Task!>! callback, Rask.Web.Types.IdleRequestOptions! options) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.XMLSerializer.SerializeToString(Rask.Core.ElementRef! root) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.XPathEvaluator.Evaluate(string! expression, Rask.Core.ElementRef! contextNode) -> Rask.Web.Types.XPathResult!
+Rask.Web.Types.XPathExpression.Evaluate(Rask.Core.ElementRef! contextNode) -> Rask.Web.Types.XPathResult!
+Rask.Web.Types.XPathExpression.Evaluate(Rask.Core.ElementRef! contextNode, int type) -> Rask.Web.Types.XPathResult!
+Rask.Web.Types.XRSession.RequestAnimationFrame(System.Action<double>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.XRSession.RequestAnimationFrame(System.Func<double, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.VideoFrame
+override Rask.Web.Types.DOMException.Equals(object? obj) -> bool
+override Rask.Web.Types.DOMException.GetHashCode() -> int
+override Rask.Web.Types.DOMException.ToString() -> string!
+override Rask.Web.Types.DetectedBarcode.Equals(object? obj) -> bool
+override Rask.Web.Types.DetectedBarcode.GetHashCode() -> int
+override Rask.Web.Types.DetectedBarcode.ToString() -> string!
+override Rask.Web.Types.GeolocationPositionError.Equals(object? obj) -> bool
+override Rask.Web.Types.GeolocationPositionError.GetHashCode() -> int
+override Rask.Web.Types.GeolocationPositionError.ToString() -> string!
+override Rask.Web.Types.IntersectionObserverEntry.Equals(object? obj) -> bool
+override Rask.Web.Types.IntersectionObserverEntry.GetHashCode() -> int
+override Rask.Web.Types.IntersectionObserverEntry.ToString() -> string!
+override Rask.Web.Types.Lock.Equals(object? obj) -> bool
+override Rask.Web.Types.Lock.GetHashCode() -> int
+override Rask.Web.Types.Lock.ToString() -> string!
+override Rask.Web.Types.MutationRecord.Equals(object? obj) -> bool
+override Rask.Web.Types.MutationRecord.GetHashCode() -> int
+override Rask.Web.Types.MutationRecord.ToString() -> string!
+override Rask.Web.Types.ResizeObserverEntry.Equals(object? obj) -> bool
+override Rask.Web.Types.ResizeObserverEntry.GetHashCode() -> int
+override Rask.Web.Types.ResizeObserverEntry.ToString() -> string!
+override Rask.Web.Types.ResizeObserverSize.Equals(object? obj) -> bool
+override Rask.Web.Types.ResizeObserverSize.GetHashCode() -> int
+override Rask.Web.Types.ResizeObserverSize.ToString() -> string!
+static Rask.Web.CropTarget.FromElement(Rask.Core.ElementRef! element) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CropTarget!>
+static Rask.Web.CustomElements.Initialize(Rask.Core.ElementRef! root) -> System.Threading.Tasks.ValueTask
+static Rask.Web.CustomElements.Upgrade(Rask.Core.ElementRef! root) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Document.CreateNodeIterator(Rask.Core.ElementRef! root) -> Rask.Web.Types.NodeIterator!
+static Rask.Web.Document.CreateNodeIterator(Rask.Core.ElementRef! root, int whatToShow) -> Rask.Web.Types.NodeIterator!
+static Rask.Web.Document.CreateTreeWalker(Rask.Core.ElementRef! root) -> Rask.Web.Types.TreeWalker!
+static Rask.Web.Document.CreateTreeWalker(Rask.Core.ElementRef! root, int whatToShow) -> Rask.Web.Types.TreeWalker!
+static Rask.Web.Document.Evaluate(string! expression, Rask.Core.ElementRef! contextNode) -> Rask.Web.Types.XPathResult!
+static Rask.Web.Document.MoveBefore(Rask.Core.ElementRef! node, Rask.Core.ElementRef? child) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Document.StartViewTransition(System.Action! callbackOptions) -> Rask.Web.Types.ViewTransition!
+static Rask.Web.Document.StartViewTransition(System.Func<System.Threading.Tasks.Task!>! callbackOptions) -> Rask.Web.Types.ViewTransition!
+static Rask.Web.FormData.Create(Rask.Core.ElementRef! form) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FormData!>
+static Rask.Web.FormData.Create(Rask.Core.ElementRef! form, Rask.Core.ElementRef? submitter) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FormData!>
+static Rask.Web.IntersectionObserver.Create(System.Action<Rask.Web.Types.IntersectionObserverEntry![]!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IntersectionObserver!>
+static Rask.Web.IntersectionObserver.Create(System.Action<Rask.Web.Types.IntersectionObserverEntry![]!>! callback, Rask.Web.Types.IntersectionObserverInit! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IntersectionObserver!>
+static Rask.Web.IntersectionObserver.Create(System.Func<Rask.Web.Types.IntersectionObserverEntry![]!, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IntersectionObserver!>
+static Rask.Web.IntersectionObserver.Create(System.Func<Rask.Web.Types.IntersectionObserverEntry![]!, System.Threading.Tasks.Task!>! callback, Rask.Web.Types.IntersectionObserverInit! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IntersectionObserver!>
+static Rask.Web.MutationObserver.Create(System.Action<Rask.Web.Types.MutationRecord![]!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MutationObserver!>
+static Rask.Web.MutationObserver.Create(System.Func<Rask.Web.Types.MutationRecord![]!, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MutationObserver!>
+static Rask.Web.Navigator.GetAutoplayPolicy(Rask.Core.ElementRef! element) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AutoplayPolicy>
+static Rask.Web.Observable.Create(System.Action! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Observable!>
+static Rask.Web.Observable.Create(System.Func<System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Observable!>
+static Rask.Web.PasswordCredential.Create(Rask.Core.ElementRef! form) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PasswordCredential!>
+static Rask.Web.PerformanceObserver.Create(System.Action! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceObserver!>
+static Rask.Web.PerformanceObserver.Create(System.Func<System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PerformanceObserver!>
+static Rask.Web.PressureObserver.Create(System.Action<Rask.Web.Types.PressureRecord![]!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PressureObserver!>
+static Rask.Web.PressureObserver.Create(System.Func<Rask.Web.Types.PressureRecord![]!, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PressureObserver!>
+static Rask.Web.ReportingObserver.Create(System.Action<Rask.Web.Types.Report![]!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReportingObserver!>
+static Rask.Web.ReportingObserver.Create(System.Action<Rask.Web.Types.Report![]!>! callback, Rask.Web.Types.ReportingObserverOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReportingObserver!>
+static Rask.Web.ReportingObserver.Create(System.Func<Rask.Web.Types.Report![]!, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReportingObserver!>
+static Rask.Web.ReportingObserver.Create(System.Func<Rask.Web.Types.Report![]!, System.Threading.Tasks.Task!>! callback, Rask.Web.Types.ReportingObserverOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReportingObserver!>
+static Rask.Web.ResizeObserver.Create(System.Action<Rask.Web.Types.ResizeObserverEntry![]!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ResizeObserver!>
+static Rask.Web.ResizeObserver.Create(System.Func<Rask.Web.Types.ResizeObserverEntry![]!, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ResizeObserver!>
+static Rask.Web.RestrictionTarget.FromElement(Rask.Core.ElementRef! element) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RestrictionTarget!>
+static Rask.Web.Types.DOMException.operator !=(Rask.Web.Types.DOMException? left, Rask.Web.Types.DOMException? right) -> bool
+static Rask.Web.Types.DOMException.operator ==(Rask.Web.Types.DOMException? left, Rask.Web.Types.DOMException? right) -> bool
+static Rask.Web.Types.DetectedBarcode.operator !=(Rask.Web.Types.DetectedBarcode? left, Rask.Web.Types.DetectedBarcode? right) -> bool
+static Rask.Web.Types.DetectedBarcode.operator ==(Rask.Web.Types.DetectedBarcode? left, Rask.Web.Types.DetectedBarcode? right) -> bool
+static Rask.Web.Types.GeolocationPositionError.operator !=(Rask.Web.Types.GeolocationPositionError? left, Rask.Web.Types.GeolocationPositionError? right) -> bool
+static Rask.Web.Types.GeolocationPositionError.operator ==(Rask.Web.Types.GeolocationPositionError? left, Rask.Web.Types.GeolocationPositionError? right) -> bool
+static Rask.Web.Types.IntersectionObserverEntry.operator !=(Rask.Web.Types.IntersectionObserverEntry? left, Rask.Web.Types.IntersectionObserverEntry? right) -> bool
+static Rask.Web.Types.IntersectionObserverEntry.operator ==(Rask.Web.Types.IntersectionObserverEntry? left, Rask.Web.Types.IntersectionObserverEntry? right) -> bool
+static Rask.Web.Types.Lock.operator !=(Rask.Web.Types.Lock? left, Rask.Web.Types.Lock? right) -> bool
+static Rask.Web.Types.Lock.operator ==(Rask.Web.Types.Lock? left, Rask.Web.Types.Lock? right) -> bool
+static Rask.Web.Types.MutationRecord.operator !=(Rask.Web.Types.MutationRecord? left, Rask.Web.Types.MutationRecord? right) -> bool
+static Rask.Web.Types.MutationRecord.operator ==(Rask.Web.Types.MutationRecord? left, Rask.Web.Types.MutationRecord? right) -> bool
+static Rask.Web.Types.ResizeObserverEntry.operator !=(Rask.Web.Types.ResizeObserverEntry? left, Rask.Web.Types.ResizeObserverEntry? right) -> bool
+static Rask.Web.Types.ResizeObserverEntry.operator ==(Rask.Web.Types.ResizeObserverEntry? left, Rask.Web.Types.ResizeObserverEntry? right) -> bool
+static Rask.Web.Types.ResizeObserverSize.operator !=(Rask.Web.Types.ResizeObserverSize? left, Rask.Web.Types.ResizeObserverSize? right) -> bool
+static Rask.Web.Types.ResizeObserverSize.operator ==(Rask.Web.Types.ResizeObserverSize? left, Rask.Web.Types.ResizeObserverSize? right) -> bool
+static Rask.Web.VideoFrame.Create(Rask.Core.ElementRef! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.VideoFrame.Create(Rask.Core.ElementRef! image, Rask.Web.Types.VideoFrameInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Core.ElementRef! image) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Core.ElementRef! image, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Core.ElementRef! image, int sx, int sy, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.CreateImageBitmap(Rask.Core.ElementRef! image, int sx, int sy, int sw, int sh, Rask.Web.Types.ImageBitmapOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageBitmap!>
+static Rask.Web.Window.GetComputedStyle(Rask.Core.ElementRef! elt) -> Rask.Web.Types.CSSStyleProperties!
+static Rask.Web.Window.GetComputedStyle(Rask.Core.ElementRef! elt, string? pseudoElt) -> Rask.Web.Types.CSSStyleProperties!
+static Rask.Web.Window.RequestIdleCallback(System.Action! callback) -> System.Threading.Tasks.ValueTask<int>
+static Rask.Web.Window.RequestIdleCallback(System.Action! callback, Rask.Web.Types.IdleRequestOptions! options) -> System.Threading.Tasks.ValueTask<int>
+static Rask.Web.Window.RequestIdleCallback(System.Func<System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask<int>
+static Rask.Web.Window.RequestIdleCallback(System.Func<System.Threading.Tasks.Task!>! callback, Rask.Web.Types.IdleRequestOptions! options) -> System.Threading.Tasks.ValueTask<int>
+virtual Rask.Web.Types.DOMException.<Clone>$() -> Rask.Web.Types.DOMException!
+virtual Rask.Web.Types.DOMException.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.DOMException.Equals(Rask.Web.Types.DOMException? other) -> bool
+virtual Rask.Web.Types.DOMException.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Web.Types.LockManager.Request(string! name, System.Action<Rask.Web.Types.Lock?>! callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.LockManager.Request(string! name, System.Func<Rask.Web.Types.Lock?, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Observable.First() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Observable.Last() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Request.Json() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Response.Json() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ContactAddress.AddressLine.get -> string![]!
+Rask.Web.Types.ContactAddress.City.get -> string!
+Rask.Web.Types.ContactAddress.Country.get -> string!
+Rask.Web.Types.ContactAddress.DependentLocality.get -> string!
+Rask.Web.Types.ContactAddress.Organization.get -> string!
+Rask.Web.Types.ContactAddress.Phone.get -> string!
+Rask.Web.Types.ContactAddress.PostalCode.get -> string!
+Rask.Web.Types.ContactAddress.Recipient.get -> string!
+Rask.Web.Types.ContactAddress.Region.get -> string!
+Rask.Web.Types.ContactAddress.SortingCode.get -> string!
+Rask.Web.Types.DOMException.Message.get -> string!
+Rask.Web.Types.DOMException.Name.get -> string!
+Rask.Web.Types.GeolocationCoordinates.Accuracy.get -> double
+Rask.Web.Types.GeolocationCoordinates.Latitude.get -> double
+Rask.Web.Types.GeolocationCoordinates.Longitude.get -> double
+Rask.Web.Types.GeolocationPosition.Coords.get -> Rask.Web.Types.GeolocationCoordinates!
+Rask.Web.Types.GeolocationPosition.Timestamp.get -> long
+Rask.Web.Types.GeolocationPositionError.Code.get -> int
+Rask.Web.Types.GeolocationPositionError.Message.get -> string!
+Rask.Web.Types.InteractionContentfulPaint.InteractionId.get -> long
+Rask.Web.Types.InteractionContentfulPaint.LargestContentfulPaint.get -> Rask.Web.Types.LargestContentfulPaint!
+Rask.Web.Types.InteractionContentfulPaint.PaintTime.get -> double
+Rask.Web.Types.IntersectionObserverEntry.BoundingClientRect.get -> Rask.Core.DOMRectReadOnly!
+Rask.Web.Types.IntersectionObserverEntry.IntersectionRatio.get -> double
+Rask.Web.Types.IntersectionObserverEntry.IntersectionRect.get -> Rask.Core.DOMRectReadOnly!
+Rask.Web.Types.IntersectionObserverEntry.IsIntersecting.get -> bool
+Rask.Web.Types.IntersectionObserverEntry.IsVisible.get -> bool
+Rask.Web.Types.IntersectionObserverEntry.Time.get -> double
+Rask.Web.Types.LargestContentfulPaint.Id.get -> string!
+Rask.Web.Types.LargestContentfulPaint.LoadTime.get -> double
+Rask.Web.Types.LargestContentfulPaint.PaintTime.get -> double
+Rask.Web.Types.LargestContentfulPaint.RenderTime.get -> double
+Rask.Web.Types.LargestContentfulPaint.Size.get -> int
+Rask.Web.Types.LargestContentfulPaint.Url.get -> string!
+Rask.Web.Types.Lock.Mode.get -> Rask.Web.Types.LockMode
+Rask.Web.Types.Lock.Name.get -> string!
+Rask.Web.Types.MediaDeviceInfo.DeviceId.get -> string!
+Rask.Web.Types.MediaDeviceInfo.GroupId.get -> string!
+Rask.Web.Types.MediaDeviceInfo.Kind.get -> Rask.Web.Types.MediaDeviceKind
+Rask.Web.Types.MediaDeviceInfo.Label.get -> string!
+Rask.Web.Types.MutationRecord.Type.get -> string!
+Rask.Web.Types.PerformanceEntry.Duration.get -> double
+Rask.Web.Types.PerformanceEntry.EntryType.get -> string!
+Rask.Web.Types.PerformanceEntry.Name.get -> string!
+Rask.Web.Types.PerformanceEntry.NavigationId.get -> long
+Rask.Web.Types.PerformanceEntry.StartTime.get -> double
+Rask.Web.Types.PressureRecord.Source.get -> Rask.Web.Types.PressureSource
+Rask.Web.Types.PressureRecord.State.get -> Rask.Web.Types.PressureState
+Rask.Web.Types.PressureRecord.Time.get -> double
+Rask.Web.Types.RTCSessionDescription.Sdp.get -> string!
+Rask.Web.Types.RTCSessionDescription.Type.get -> Rask.Web.Types.RTCSdpType
+Rask.Web.Types.ResizeObserverEntry.BorderBoxSize.get -> Rask.Web.Types.ResizeObserverSize![]!
+Rask.Web.Types.ResizeObserverEntry.ContentBoxSize.get -> Rask.Web.Types.ResizeObserverSize![]!
+Rask.Web.Types.ResizeObserverEntry.ContentRect.get -> Rask.Core.DOMRectReadOnly!
+Rask.Web.Types.ResizeObserverEntry.DevicePixelContentBoxSize.get -> Rask.Web.Types.ResizeObserverSize![]!
+Rask.Web.Types.ResizeObserverSize.BlockSize.get -> double
+Rask.Web.Types.ResizeObserverSize.InlineSize.get -> double

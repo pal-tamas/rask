@@ -1205,3 +1205,11 @@ static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowDirectoryPicke
 static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowDirectoryPicker(Rask.Web.Types.DirectoryPickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
 static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowSaveFilePicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
 static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowSaveFilePicker(Rask.Web.Types.SaveFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask

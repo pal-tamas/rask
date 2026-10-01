@@ -4341,35 +4341,23 @@ Rask.Core.DOMPointInit.Z.init -> void
 Rask.Core.DOMPointReadOnly
 Rask.Core.DOMPointReadOnly.DOMPointReadOnly() -> void
 Rask.Core.DOMPointReadOnly.DOMPointReadOnly(Rask.Core.DOMPointReadOnly! original) -> void
-Rask.Core.DOMPointReadOnly.W.get -> double?
 Rask.Core.DOMPointReadOnly.W.init -> void
-Rask.Core.DOMPointReadOnly.X.get -> double?
 Rask.Core.DOMPointReadOnly.X.init -> void
-Rask.Core.DOMPointReadOnly.Y.get -> double?
 Rask.Core.DOMPointReadOnly.Y.init -> void
-Rask.Core.DOMPointReadOnly.Z.get -> double?
 Rask.Core.DOMPointReadOnly.Z.init -> void
 Rask.Core.DOMRect
 Rask.Core.DOMRect.DOMRect() -> void
 Rask.Core.DOMRect.Equals(Rask.Core.DOMRect? other) -> bool
 Rask.Core.DOMRectReadOnly
-Rask.Core.DOMRectReadOnly.Bottom.get -> double?
 Rask.Core.DOMRectReadOnly.Bottom.init -> void
 Rask.Core.DOMRectReadOnly.DOMRectReadOnly() -> void
 Rask.Core.DOMRectReadOnly.DOMRectReadOnly(Rask.Core.DOMRectReadOnly! original) -> void
-Rask.Core.DOMRectReadOnly.Height.get -> double?
 Rask.Core.DOMRectReadOnly.Height.init -> void
-Rask.Core.DOMRectReadOnly.Left.get -> double?
 Rask.Core.DOMRectReadOnly.Left.init -> void
-Rask.Core.DOMRectReadOnly.Right.get -> double?
 Rask.Core.DOMRectReadOnly.Right.init -> void
-Rask.Core.DOMRectReadOnly.Top.get -> double?
 Rask.Core.DOMRectReadOnly.Top.init -> void
-Rask.Core.DOMRectReadOnly.Width.get -> double?
 Rask.Core.DOMRectReadOnly.Width.init -> void
-Rask.Core.DOMRectReadOnly.X.get -> double?
 Rask.Core.DOMRectReadOnly.X.init -> void
-Rask.Core.DOMRectReadOnly.Y.get -> double?
 Rask.Core.DOMRectReadOnly.Y.init -> void
 Rask.Core.ElementRef<T>
 Rask.Core.ElementRef<T>.ElementRef() -> void
@@ -13979,3 +13967,15 @@ static Rask.Core.ElementRefMembers.get_Search(Rask.Core.IElementRef<Rask.Core.SV
 static Rask.Core.ElementRefMembers.get_Type(Rask.Core.IElementRef<Rask.Core.HTMLAreaElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Username(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_VirtualKeyboardPolicy(Rask.Core.IElementRef<Rask.Core.HTMLElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.DOMPointReadOnly.W.get -> double
+Rask.Core.DOMPointReadOnly.X.get -> double
+Rask.Core.DOMPointReadOnly.Y.get -> double
+Rask.Core.DOMPointReadOnly.Z.get -> double
+Rask.Core.DOMRectReadOnly.Bottom.get -> double
+Rask.Core.DOMRectReadOnly.Height.get -> double
+Rask.Core.DOMRectReadOnly.Left.get -> double
+Rask.Core.DOMRectReadOnly.Right.get -> double
+Rask.Core.DOMRectReadOnly.Top.get -> double
+Rask.Core.DOMRectReadOnly.Width.get -> double
+Rask.Core.DOMRectReadOnly.X.get -> double
+Rask.Core.DOMRectReadOnly.Y.get -> double

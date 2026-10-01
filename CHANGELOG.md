@@ -559,6 +559,24 @@ them until tagged releases begin.
     `Performance.GetEntriesByType(…)`). The device pickers that need the click (`Usb`/`Hid`/`Bluetooth.RequestDevice`,
     `EyeDropper.Open`, `Window.ShowOpenFilePicker`, …) are WebAssembly's, and a class's WebAssembly-only statics
     live in their own `{Class}WasmMembers` container.
+  - **Callbacks: observers, locks, and what a callback hands you as data.** A constructor or method that takes a
+    callback takes a C# handler, an element it takes is your `ElementRef`, and disposing of the object drops its
+    handlers:
+    ```csharp
+    await using var io = await IntersectionObserver.Create(entries =>
+        _visible = entries.Where(e => e.IsIntersecting).Select(e => e.IntersectionRatio).ToArray());
+    await io.Observe(_card);
+    await Navigator.Locks.Request("sync", async lk => await Sync());   // held until Sync() returns
+    ```
+    What a callback is handed that is only data (`IntersectionObserverEntry`, `ResizeObserverEntry`, `MutationRecord`,
+    `Lock`, `DOMException`, `GeolocationPositionError`) is a record under MDN's name, everywhere — **BREAKING:** its
+    `await entry.IsIntersecting` proxy members are now plain fields, and `DOMException.Create` is gone. A callback the
+    browser awaits runs at once, not queued behind the handler awaiting the browser. New with it: `ResizeObserver`,
+    `MutationObserver`, `ReportingObserver`, `PerformanceObserver`, `Window.RequestIdleCallback`,
+    `Window.GetComputedStyle(ElementRef)` and every other member taking an element.
+  - **BREAKING: a record the browser sends is typed as MDN types it.** `DOMRect`, `GeolocationPosition` and the other
+    records read from an interface have non-nullable fields where MDN's are: `rect.Width` (was `double?`),
+    `p.Coords.Latitude` (was `p.Coords!.Latitude ?? 0`). Dictionaries you fill in keep their optional fields.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

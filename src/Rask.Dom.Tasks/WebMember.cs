@@ -67,7 +67,7 @@ internal sealed class WebMember
 
     // `new X(…)` as X.Create(…): the new object, kept in the browser. `hidden` holds the parameter types of a base's
     // Create this one hides (EventTarget has a constructor too).
-    public static List<WebMember> ConstructorsOf(string iface, JsonNode data, DomValueTypes types, HashSet<string> hidden)
+    public static List<WebMember> ConstructorsOf(string iface, JsonNode data, DomValueTypes types, HashSet<string> hidden, JsonNode? callbacks)
     {
         var result = new List<WebMember>();
         var proxy = TypesNs + iface;
@@ -80,13 +80,13 @@ internal sealed class WebMember
                 continue;
             }
 
-            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => DomRefEmitter.Expand(prefix, types))
+            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks))
                 .Where(p => signatures.Add(string.Join(",", p.Select(x => x.Type))));
             foreach (var parameters in distinct)
             {
                 var typesOnly = string.Join(",", parameters.Select(p => p.Type));
                 var names = string.Join(", ", parameters.Select(p => p.Name));
-                var array = parameters.Count == 0 ? "" : ", new object?[] { " + names + " }";
+                var array = parameters.Count == 0 ? "" : ", new object?[] { " + string.Join(", ", parameters.Select(p => p.Arg)) + " }";
                 result.Add(new WebMember(ctor, $"MDN's <c>new {iface}()</c>: the new object, kept in the browser until you dispose of it.",
                     $"ValueTask<{proxy}>", "Create", string.Join(", ", parameters.Select(p => p.Type + " " + p.Name)), names,
                     $"global::Rask.Web.JsChain.Window.New(\"{iface}\"{array}).Keep(static c => new {proxy}(c))",
@@ -98,8 +98,9 @@ internal sealed class WebMember
     }
 
     // Every combination of the arguments' types that crosses the wire, each with how it goes into the call: a value
-    // as itself, a callback (an IDL callback whose arguments are values) as a C# handler handed over by JsChain.Callback.
-    // A method with one callback takes it sync or async; with more, each is an Action.
+    // as itself, an element as its ElementRef, a callback as a C# handler handed over by JsChain's Callback, or Awaited
+    // for one whose result the browser waits on. A method with one callback takes it sync or async; with more, each is
+    // an Action.
     internal static IEnumerable<List<(string Type, string Name, string Arg)>> Expand(List<JsonNode> args, DomValueTypes types, JsonNode? callbacks)
     {
         IEnumerable<List<(string Type, string Name, string Arg)>> combos = new[] { new List<(string Type, string Name, string Arg)>() };
@@ -113,44 +114,59 @@ internal sealed class WebMember
                 {
                     alternatives.Add((value, name));
                 }
+                else if (types.IsElement(t))
+                {
+                    alternatives.Add((ElementRef + (t.EndsWith("?", StringComparison.Ordinal) ? "?" : ""), name));
+                }
                 else
                 {
-                    alternatives.AddRange(Handlers(t, types, callbacks).Select(h => (h, $"global::Rask.Web.JsChain.Callback({name})")));
+                    alternatives.AddRange(Handlers(t, types, callbacks).Select(h => (h.Type, $"global::Rask.Web.JsChain.{h.Wrap}({name})")));
                 }
             }
 
             combos = combos.SelectMany(c => alternatives.Select(t => new List<(string Type, string Name, string Arg)>(c) { (t.Type, name, t.Arg) })).ToList();
         }
 
-        return combos.Where(c => !c.Any(p => p.Type.StartsWith("global::System.Func<", StringComparison.Ordinal))
-                                 || c.Count(p => p.Arg.StartsWith("global::Rask.Web.JsChain.Callback", StringComparison.Ordinal)) == 1);
+        return combos.Where(c => !c.Any(p => p.Type.StartsWith("global::System.Func<", StringComparison.Ordinal)) || c.Count(p => IsHandler(p.Arg)) == 1);
     }
 
-    // The C# handler types an IDL callback can be written as: Action<…> and Func<…, Task>, for one that returns nothing
-    // and whose arguments are values.
-    private static IEnumerable<string> Handlers(string idl, DomValueTypes types, JsonNode? callbacks)
+    private const string ElementRef = "global::Rask.Core.ElementRef";
+
+    private static bool IsHandler(string arg) =>
+        arg.StartsWith("global::Rask.Web.JsChain.Callback(", StringComparison.Ordinal) || arg.StartsWith("global::Rask.Web.JsChain.Awaited(", StringComparison.Ordinal);
+
+    // The C# handler types an IDL callback can be written as, Action<…> and Func<…, Task>, taking the leading arguments
+    // that cross the wire (an observer's entries, not the observer, which the caller already holds). One the browser
+    // waits on — a lock's, held until it returns — is Awaited; one whose result it reads (a predicate) is not written.
+    private static IEnumerable<(string Type, string Wrap)> Handlers(string idl, DomValueTypes types, JsonNode? callbacks)
     {
         var nullable = idl.EndsWith("?", StringComparison.Ordinal) ? "?" : "";
-        if (callbacks?[idl.TrimEnd('?')] is not { } callback || !string.Equals(callback["returns"]?.AsString(), "undefined", StringComparison.Ordinal))
+        if (callbacks?[idl.TrimEnd('?')] is not { } callback || Wrapper(callback["returns"]?.AsString()) is not { } wrap)
         {
             yield break;
         }
 
-        var args = callback["args"]?.Items ?? new List<JsonNode>();
-        var mapped = args.Select(x => types.CSharp(x["type"]!.AsString()!, returned: false)).ToList();
-        if (args.Count > 3 || mapped.Any(x => x is null) || args.Any(x => x["variadic"]?.AsBoolean() == true))
-        {
-            yield break;
-        }
-
-        yield return mapped.Count == 0 ? "global::System.Action" + nullable : $"global::System.Action<{string.Join(", ", mapped)}>{nullable}";
+        var mapped = (callback["args"]?.Items ?? new List<JsonNode>())
+            .TakeWhile(x => x["variadic"]?.AsBoolean() != true)
+            .Select(x => types.CSharp(x["type"]!.AsString()!, returned: false))
+            .TakeWhile(x => x is not null).Take(3).Select(x => x!).ToList();
+        yield return (mapped.Count == 0 ? "global::System.Action" + nullable : $"global::System.Action<{string.Join(", ", mapped)}>{nullable}", wrap);
         if (mapped.Count <= 1)
         {
-            yield return mapped.Count == 0
+            yield return (mapped.Count == 0
                 ? "global::System.Func<global::System.Threading.Tasks.Task>" + nullable
-                : $"global::System.Func<{mapped[0]}, global::System.Threading.Tasks.Task>{nullable}";
+                : $"global::System.Func<{mapped[0]}, global::System.Threading.Tasks.Task>{nullable}", wrap);
         }
     }
+
+    // Callback for a callback that returns nothing; Awaited for one whose promise the browser waits on. An `any` result
+    // may be read (Observable.map's mapper), so it is not written.
+    private static string? Wrapper(string? returns) => returns switch
+    {
+        "undefined" => "Callback",
+        "Promise<undefined>" or "Promise<any>" => "Awaited",
+        _ => null,
+    };
 
     // An interface's events, each as On{Event}(handler): sync or async, with the event or without it. The subscription
     // they return removes the listener when disposed of; so does the handler's component unmounting.
@@ -295,7 +311,8 @@ internal sealed class WebMember
                 $"new(Chain.Invoke(\"{idl}\"{args}))");
         }
 
-        if (types.CSharp(returns, returned: true) is not { } value)
+        // A promise of anything (a lock request's, settling with what its callback returned) is waited on, not read.
+        if ((string.Equals(returns, "Promise<any>", StringComparison.Ordinal) ? "void" : types.CSharp(returns, returned: true)) is not { } value)
         {
             return null;
         }

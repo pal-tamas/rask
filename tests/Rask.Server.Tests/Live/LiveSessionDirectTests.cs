@@ -3,6 +3,7 @@ using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Globalization;
 using Rask.Core.Live;
+using Rask.Core.ScopedAssets;
 
 namespace Rask.Server.Tests.Live;
 
@@ -113,6 +114,34 @@ public class LiveSessionDirectTests
 
         Assert.Equal(0, ranEarly);
         Assert.Equal(["handler", "callback"], order);
+    }
+
+    [Fact]
+    public async Task A_callback_the_browser_awaits_runs_while_the_handler_awaiting_the_browser_still_is()
+    {
+        // A lock's callback: the handler that asked for the lock awaits the browser, which awaits the callback, so
+        // queueing it behind that handler would wait forever.
+        var view = new BasicComponent();
+        using var session = NewSession(view);
+        var handler = new TaskCompletionSource();
+        session.EnqueueOnHandlerChain(async previous =>
+        {
+            await previous;
+            await handler.Task;
+        });
+        var ran = false;
+        var callback = ScopedScript.Handler(view, _ =>
+        {
+            ran = true;
+            return Task.CompletedTask;
+        }, awaited: true);
+
+        await ScopedScript.Invoke(callback.Id, default);
+        var ranBesideHandler = ran;
+        handler.SetResult();
+        await session.LastHandlerTask;
+
+        Assert.True(ranBesideHandler);
     }
 
     private static LiveSession NewSession(Component view)
