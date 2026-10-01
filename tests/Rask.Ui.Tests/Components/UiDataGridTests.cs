@@ -169,7 +169,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_controlled_page_shows_that_page()
     {
-        var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id).PageSize(2).Page(1).OnPageChange(_ => { })[c => [
+        var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id).PageSize(2).Page(1).OnPage(_ => { })[c => [
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
 
@@ -275,7 +275,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         // leading the provider's ORDER BY, each band would open twice.
         var html = Ui.DataGrid.Data(Interleaved.AsQueryable()).RowKey(p => p.Id)
             .Grouped(["category"])
-            .OnGroupedChange(_ => { })[c => [
+            .OnGroup(_ => { })[c => [
                 c.Field(p => p.Category).Title("Category").Groupable(true),
                 c.Field(p => p.Name).Title("Product"),
             ]].ToHtml();
@@ -422,7 +422,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Grouping_bands_the_rows_and_takes_the_grouped_column_out_of_the_table()
     {
-        var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id).Grouped(["category"]).OnGroupedChange(_ => { })[c => [
+        var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id).Grouped(["category"]).OnGroup(_ => { })[c => [
             c.Field(p => p.Category).Title("Category").Groupable(true),
             c.Field(p => p.Name).Title("Product"),
         ]].ToHtml();
@@ -438,7 +438,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id)
             .Grouped(["category"])
-            .OnGroupedChange(_ => { })
+            .OnGroup(_ => { })
             .ShowGroupedColumns(true)[c => [
                 c.Field(p => p.Category).Title("Category").Groupable(true),
                 c.Field(p => p.Name).Title("Product"),
@@ -452,7 +452,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id)
             .Grouped(["category"])
-            .OnGroupedChange(_ => { })
+            .OnGroup(_ => { })
             .GroupSubtotals(true)[c => [
                 c.Field(p => p.Category).Title("Category").Groupable(true),
                 c.Field(p => p.Price).Title("Price").Footer(rows => rows.Sum(r => r.Price)),
@@ -472,7 +472,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
         // this band start" index reports the outer total as the last inner band's — 30 here, not 38.
         var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id)
             .Grouped(["category", "name"])
-            .OnGroupedChange(_ => { })
+            .OnGroup(_ => { })
             .GroupSubtotals(true)[c => [
                 c.Field(p => p.Category).Title("Category").Groupable(true),
                 c.Field(p => p.Name).Title("Product").Groupable(true),
@@ -496,7 +496,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
 
         var html = Ui.DataGrid.Data(places).RowKey(p => p.County)
             .Grouped(["county", "town"])
-            .OnGroupedChange(_ => { })[c => [
+            .OnGroup(_ => { })[c => [
                 c.Field(p => p.County).Title("County").Groupable(true),
                 c.Field(p => p.Town).Title("Town").Groupable(true),
             ]].ToHtml();
@@ -525,7 +525,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id)
             .HiddenColumns(["price"])
-            .OnHiddenColumnsChange(_ => { })[c => [
+            .OnHide(_ => { })[c => [
                 c.Field(p => p.Name).Title("Product"),
                 c.Field(p => p.Price).Title("Price"),
             ]].ToHtml();
@@ -539,7 +539,7 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.DataGrid.Data(Catalog).RowKey(p => p.Id)
             .ColumnOrder(["price"])
-            .OnColumnOrderChange(_ => { })[c => [
+            .OnReorder(_ => { })[c => [
                 c.Field(p => p.Name).Title("Product"),
                 c.Field(p => p.Price).Title("Price"),
             ]].ToHtml();

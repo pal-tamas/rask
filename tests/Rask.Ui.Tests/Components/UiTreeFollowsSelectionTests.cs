@@ -90,9 +90,9 @@ public sealed partial class TreeSelectionHost : Component
             .Item(n => Span[n.Name])
             .Label("Files")
             .Expanded(_expanded)
-            .OnExpandedChange(keys => _expanded = keys)
+            .OnExpand(keys => _expanded = keys)
             .Selected(_selected)
-            .OnSelectionChange(keys => _selected = keys)[n => n.Kids]
+            .OnSelect(keys => _selected = keys)[n => n.Kids]
     ];
 }
 

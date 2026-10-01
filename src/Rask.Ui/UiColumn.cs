@@ -39,8 +39,8 @@ public sealed partial class UiColumn<T> : Component
     ///     <c>"category"</c>, and supplies each cell's value when <see cref="Value" /> says nothing else.
     /// </summary>
     /// <remarks>
-    ///     That token is what <see cref="UiDataGrid{T,TKey}.OnSortChange" />,
-    ///     <see cref="UiDataGrid{T,TKey}.OnGroupedChange" />, <see cref="UiDataGrid{T,TKey}.HiddenColumns" /> and
+    ///     That token is what <see cref="UiDataGrid{T,TKey}.OnSort" />,
+    ///     <see cref="UiDataGrid{T,TKey}.OnGroup" />, <see cref="UiDataGrid{T,TKey}.HiddenColumns" /> and
     ///     <see cref="UiDataGrid{T,TKey}.ColumnOrder" /> speak in. A column with no <c>Field</c> has no token,
     ///     so it can be shown but never sorted, grouped, hidden or reordered by name — which is right for
     ///     an actions column and wrong for anything else.

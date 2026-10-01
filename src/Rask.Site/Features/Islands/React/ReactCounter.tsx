@@ -10,15 +10,15 @@
 import { useEffect, useState } from 'react'
 import type { ReactCounterProps } from '@rask/ReactCounter.props'
 
-export default function ReactCounter({ step, caption, onTotalChanged, children }: ReactCounterProps) {
+export default function ReactCounter({ step, caption, onTotal, children }: ReactCounterProps) {
   // State React owns and C# never sees. Raising the step from C# must not reset it.
   const [total, setTotal] = useState(0)
 
   // The callback keeps its identity across updates, so this effect fires on a real change rather than
   // on every re-render — which is exactly what the runtime's handler cache buys.
   useEffect(() => {
-    onTotalChanged?.(total)
-  }, [total, onTotalChanged])
+    onTotal?.(total)
+  }, [total, onTotal])
 
   return (
     <div className="react-counter" data-testid="react-counter">

@@ -101,7 +101,7 @@ public sealed partial class IslandsDemo : Component
                     " of their own, their steps generated from the package's TypeScript."
                 ],
 
-                ReactCounter.Caption("Clicks since mount").Step(_step).OnTotalChanged(TotalChanged)[
+                ReactCounter.Caption("Clicks since mount").Step(_step).OnTotal(TotalChanged)[
                     "Pick a colour: ",
                     Colorful.HexColorPicker.Color(_color).OnChange(ColorChanged),
                     Colorful.HexColorInput.Color(_color).Prefixed(true).OnChange(ColorChanged)

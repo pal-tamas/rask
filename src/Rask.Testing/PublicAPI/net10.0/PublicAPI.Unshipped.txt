@@ -167,12 +167,12 @@ Rask.Testing.Page.Uncheck(string! label) -> System.Threading.Tasks.Task!
 static Rask.Testing.Page.Visit(string! url, System.IServiceProvider? services = null) -> Rask.Testing.Page!
 Rask.Testing.ClockFakes
 Rask.Testing.ClockFakes.extension(Rask.Clock!)
-Rask.Testing.FakeClock
-Rask.Testing.FakeClock.Advance(System.TimeSpan by) -> void
-Rask.Testing.FakeClock.Dispose() -> void
-Rask.Testing.FakeClock.Now.get -> System.DateTimeOffset
-static Rask.Testing.ClockFakes.Fake(System.DateTimeOffset at) -> Rask.Testing.FakeClock!
-static Rask.Testing.ClockFakes.extension(Rask.Clock!).Fake(System.DateTimeOffset at) -> Rask.Testing.FakeClock!
+Rask.Testing.ClockFake
+Rask.Testing.ClockFake.Advance(System.TimeSpan by) -> void
+Rask.Testing.ClockFake.Dispose() -> void
+Rask.Testing.ClockFake.Now.get -> System.DateTimeOffset
+static Rask.Testing.ClockFakes.Fake(System.DateTimeOffset at) -> Rask.Testing.ClockFake!
+static Rask.Testing.ClockFakes.extension(Rask.Clock!).Fake(System.DateTimeOffset at) -> Rask.Testing.ClockFake!
 Rask.Testing.TestDownloadSink.Stage(string! filename, System.IO.Stream! stream, string? contentType) -> void
 Rask.Testing.TestDownloadSink.Stage(string! filename, byte[]! bytes, string? contentType) -> void
 Rask.Testing.TestFile.ContentType.get -> string!

@@ -16,7 +16,7 @@ namespace Rask;
 ///     </para>
 ///     <para>
 ///         Expansion and selection are each controlled or the tree's own, one axis at a time: pass <see cref="Expanded" />
-///         with <see cref="OnExpandedChange" /> to hold that axis, or leave them unset and the tree remembers. This is the
+///         with <see cref="OnExpand" /> to hold that axis, or leave them unset and the tree remembers. This is the
 ///         grid's rule, and it is what lets a page control the half it cares about.
 ///     </para>
 ///     <para>
@@ -82,7 +82,7 @@ public sealed partial class UiTree<T, TKey> : Component
     public IReadOnlyList<TKey>? Expanded { get; set; }
 
     /// <summary>Raised with the whole expanded set after every expand or collapse.</summary>
-    public Callback<IReadOnlyList<TKey>> OnExpandedChange { get; set; }
+    public Callback<IReadOnlyList<TKey>> OnExpand { get; set; }
 
     /// <summary>
     ///     How deep the tree opens the first time it renders: 1 for the roots, 0 (the default) for none.
@@ -101,7 +101,7 @@ public sealed partial class UiTree<T, TKey> : Component
     public IReadOnlyList<TKey>? Selected { get; set; }
 
     /// <summary>Raised with the whole selection after every change.</summary>
-    public Callback<IReadOnlyList<TKey>> OnSelectionChange { get; set; }
+    public Callback<IReadOnlyList<TKey>> OnSelect { get; set; }
 
     /// <summary>A node's text for type-ahead. Unset and typing letters does nothing.</summary>
     public Fn<T, string>? NodeText { get; set; }
@@ -149,7 +149,7 @@ public sealed partial class UiTree<T, TKey> : Component
     }
 
     private Ui.TreeSelection Mode =>
-        Selection ?? (Selected is not null || OnSelectionChange.HasValue ? Ui.TreeSelection.One : Ui.TreeSelection.None);
+        Selection ?? (Selected is not null || OnSelect.HasValue ? Ui.TreeSelection.One : Ui.TreeSelection.None);
 
     private string Prefix => "uitree-" + _instance.ToString(CultureInfo.InvariantCulture);
 
@@ -515,7 +515,7 @@ public sealed partial class UiTree<T, TKey> : Component
             }
         }
 
-        return Raise(OnExpandedChange, (IReadOnlyList<TKey>)[.. next]);
+        return Raise(OnExpand, (IReadOnlyList<TKey>)[.. next]);
     }
 
     private bool IsSelected(TKey key) =>
@@ -577,7 +577,7 @@ public sealed partial class UiTree<T, TKey> : Component
             }
         }
 
-        return Raise(OnSelectionChange, next);
+        return Raise(OnSelect, next);
     }
 
     // ---- the cursor, ids and hover ---------------------------------------------------------------

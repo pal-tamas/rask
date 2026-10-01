@@ -14,13 +14,13 @@ export class LitBadge extends LitElement implements LitBadgeProps {
   // requires it true, and one project may hold both islands. This form works under either.
   @property({ type: Number }) step = 1
   @property({ type: String }) caption = ''
-  @property({ attribute: false }) onTotalChanged?: (total: number) => void
+  @property({ attribute: false }) onTotal?: (total: number) => void
 
   @state() private total = 0
 
   private add() {
     this.total += this.step
-    this.onTotalChanged?.(this.total)
+    this.onTotal?.(this.total)
   }
 
   render() {

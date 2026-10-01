@@ -6,7 +6,7 @@ import type { VueCounterProps } from '@rask/VueCounter.props'
 const props = defineProps<VueCounterProps>()
 const total = ref(0)
 
-watch(total, value => props.onTotalChanged?.(value))
+watch(total, value => props.onTotal?.(value))
 </script>
 
 <template>

@@ -190,6 +190,18 @@ them until tagged releases begin.
 
   One awaitable validation path: every rule, sync or async, runs through `await ctx.Validate()` /
   `await ctx.ValidateField(field)`, so a form that gains an async validator changes nothing at the call site.
+- **BREAKING: events drop the `Change` suffix.** An event is named for what happened, in one word —
+  `Ui.DataGrid.OnPage(p => …).OnSort(s => …).OnSelect(keys => …)`.
+
+  | Before | After |
+  | --- | --- |
+  | `Ui.Pagination.OnSelect` | `OnPage` |
+  | `Ui.DataGrid.OnPageChange` / `OnSortChange` / `OnSelectionChange` | `OnPage` / `OnSort` / `OnSelect` |
+  | `Ui.DataGrid.OnHiddenColumnsChange` / `OnColumnOrderChange` / `OnGroupedChange` | `OnHide` / `OnReorder` / `OnGroup` |
+  | `Ui.Tree.OnExpandedChange` / `OnSelectionChange` | `OnExpand` / `OnSelect` |
+  | DevTools `DevToolsRendersTab.OnFlashChange` | `OnFlash` |
+  | The island samples' `OnTotalChanged` (front-end prop `onTotalChanged`) | `OnTotal` (`onTotal`) |
+- **BREAKING: Rask.Testing's `FakeClock` is `ClockFake`**, like `ToastFake` and `MailFake`; `Clock.Fake(at:)` is unchanged.
 - **BREAKING: React, Vue, Svelte and the rest run as islands only.** The meta-framework templates
   (`nuxt`, `nextjs`, `sveltekit`, `solidstart`, `tanstack-start`, `analog`) and the `Rask.Meta.Hosting`
   package are removed, and so are the TypeScript SPA templates (`react`, `preact`, `vue`, `solid`,

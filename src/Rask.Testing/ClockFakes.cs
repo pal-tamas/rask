@@ -11,6 +11,6 @@ public static class ClockFakes
         ///     audit stamps all read it; move it on with <c>clock.Advance(2.Hours)</c>.
         /// </summary>
         /// <remarks>Scoped to the test's own flow, so tests running in parallel never see each other's time.</remarks>
-        public static FakeClock Fake(DateTimeOffset at) => new(at);
+        public static ClockFake Fake(DateTimeOffset at) => new(at);
     }
 }

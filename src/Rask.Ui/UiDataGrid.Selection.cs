@@ -59,7 +59,7 @@ public sealed partial class UiDataGrid<T, TKey>
             }
         }
 
-        return OnSelectionChange.Invoke(next.ToList()).AsTask();
+        return OnSelect.Invoke(next.ToList()).AsTask();
     }
 
     // A row's identity for the live diff. It is the row KEY now, never the index: an index makes two

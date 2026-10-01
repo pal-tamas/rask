@@ -382,7 +382,7 @@ public sealed partial class UiDataGrid<T, TKey>
                 : Ui.Pagination
                     .Pages(rows.Pages)
                     .Current(current)
-                    .OnSelect(page => _ = GoToPageAsync(page - 1, rows.Pages))
+                    .OnPage(page => _ = GoToPageAsync(page - 1, rows.Pages))
         ];
     }
 }

@@ -465,20 +465,20 @@ Rask.UiDataGrid<T, TKey>.Loading.get -> bool?
 Rask.UiDataGrid<T, TKey>.Loading.set -> void
 Rask.UiDataGrid<T, TKey>.MaxHeight.get -> string?
 Rask.UiDataGrid<T, TKey>.MaxHeight.set -> void
-Rask.UiDataGrid<T, TKey>.OnColumnOrderChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.UiDataGrid<T, TKey>.OnColumnOrderChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnGroupedChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.UiDataGrid<T, TKey>.OnGroupedChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnHiddenColumnsChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.UiDataGrid<T, TKey>.OnHiddenColumnsChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnPageChange.get -> Rask.Core.Callback<int>
-Rask.UiDataGrid<T, TKey>.OnPageChange.set -> void
+Rask.UiDataGrid<T, TKey>.OnReorder.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.UiDataGrid<T, TKey>.OnReorder.set -> void
+Rask.UiDataGrid<T, TKey>.OnGroup.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.UiDataGrid<T, TKey>.OnGroup.set -> void
+Rask.UiDataGrid<T, TKey>.OnHide.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.UiDataGrid<T, TKey>.OnHide.set -> void
+Rask.UiDataGrid<T, TKey>.OnPage.get -> Rask.Core.Callback<int>
+Rask.UiDataGrid<T, TKey>.OnPage.set -> void
 Rask.UiDataGrid<T, TKey>.OnRowClick.get -> Rask.Core.Callback<T>
 Rask.UiDataGrid<T, TKey>.OnRowClick.set -> void
-Rask.UiDataGrid<T, TKey>.OnSelectionChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
-Rask.UiDataGrid<T, TKey>.OnSelectionChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnSortChange.get -> Rask.Core.Callback<Rask.UiGridSort>
-Rask.UiDataGrid<T, TKey>.OnSortChange.set -> void
+Rask.UiDataGrid<T, TKey>.OnSelect.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
+Rask.UiDataGrid<T, TKey>.OnSelect.set -> void
+Rask.UiDataGrid<T, TKey>.OnSort.get -> Rask.Core.Callback<Rask.UiGridSort>
+Rask.UiDataGrid<T, TKey>.OnSort.set -> void
 Rask.UiDataGrid<T, TKey>.Page.get -> int?
 Rask.UiDataGrid<T, TKey>.Page.set -> void
 Rask.UiDataGrid<T, TKey>.PageHref.get -> Rask.Core.Fn<int, Rask.Core.Routing.RouteUrl>?
@@ -1349,8 +1349,8 @@ Rask.UiPagination.Current.get -> int
 Rask.UiPagination.Current.set -> void
 Rask.UiPagination.Href.get -> Rask.Core.Fn<int, Rask.Core.Routing.RouteUrl>?
 Rask.UiPagination.Href.set -> void
-Rask.UiPagination.OnSelect.get -> Rask.Core.Callback<int>
-Rask.UiPagination.OnSelect.set -> void
+Rask.UiPagination.OnPage.get -> Rask.Core.Callback<int>
+Rask.UiPagination.OnPage.set -> void
 Rask.UiPagination.Pages.get -> int
 Rask.UiPagination.Pages.set -> void
 Rask.UiPagination.UiPagination() -> void
@@ -1995,12 +1995,12 @@ Rask.UiTree<T, TKey>.NodeKey.get -> System.Func<T, TKey>!
 Rask.UiTree<T, TKey>.NodeKey.set -> void
 Rask.UiTree<T, TKey>.NodeText.get -> Rask.Core.Fn<T, string!>?
 Rask.UiTree<T, TKey>.NodeText.set -> void
-Rask.UiTree<T, TKey>.OnExpandedChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
-Rask.UiTree<T, TKey>.OnExpandedChange.set -> void
+Rask.UiTree<T, TKey>.OnExpand.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
+Rask.UiTree<T, TKey>.OnExpand.set -> void
 Rask.UiTree<T, TKey>.OnHover.get -> Rask.Core.Callback<T?>
 Rask.UiTree<T, TKey>.OnHover.set -> void
-Rask.UiTree<T, TKey>.OnSelectionChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
-Rask.UiTree<T, TKey>.OnSelectionChange.set -> void
+Rask.UiTree<T, TKey>.OnSelect.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
+Rask.UiTree<T, TKey>.OnSelect.set -> void
 Rask.UiTree<T, TKey>.Roots.get -> System.Collections.Generic.IEnumerable<T>?
 Rask.UiTree<T, TKey>.Roots.set -> void
 Rask.UiTree<T, TKey>.Selected.get -> System.Collections.Generic.IReadOnlyList<TKey>?
@@ -2708,27 +2708,27 @@ static RaskBuilderSettersRask_Ui.OnClose(this Rask.UiModal! __b, System.Func<Sys
 static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, Rask.Core.Callback<bool>? value) -> Rask.UiSidebar!
 static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Action<bool>? value) -> Rask.UiSidebar!
 static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.UiSidebar!
-static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, Rask.Core.Callback<string!>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Action<string!>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnDismiss(this Rask.UiToast! __b, Rask.Core.Callback? value) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.OnDismiss(this Rask.UiToast! __b, System.Action? value) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.OnDismiss(this Rask.UiToast! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiToast!
-static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!>? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Action<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!>? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiFileInput!
-static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<T?>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<T?>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T?, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
@@ -2750,9 +2750,9 @@ static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, Rask.Core.Callback<string?>? value) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Action<string?>? value) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.UiAccordion!
-static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<int>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<int>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<int>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<int>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<T>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<T>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
@@ -2765,21 +2765,21 @@ static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.UiSelect<T>! __b, System.
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, Rask.Core.Callback<string!>? value) -> Rask.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Action<string!>? value) -> Rask.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiCrumbSwitcher!
-static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, Rask.Core.Callback<int>? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Action<int>? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, Rask.Core.Callback<int>? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Action<int>? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, Rask.Core.Callback<string!>? value) -> Rask.UiTabGroup!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Action<string!>? value) -> Rask.UiTabGroup!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiTabGroup!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<Rask.UiGridSort>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<Rask.UiGridSort>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridSort, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<Rask.UiGridSort>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<Rask.UiGridSort>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridSort, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, Rask.Core.Callback<bool>? value) -> Rask.UiCollapse!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Action<bool>? value) -> Rask.UiCollapse!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.UiCollapse!
@@ -6006,18 +6006,18 @@ static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTextarea<T>! __b, Syste
 static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Action? value) -> Rask.UiSidebar!
 static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSidebar!
-static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Action? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiOtp!
-static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Action? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFileInput!
-static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Action? value) -> Rask.UiInput<T>!
@@ -6032,8 +6032,8 @@ static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.
 static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Action? value) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiAccordion!
-static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.UiSearch! __b, System.Action? value) -> Rask.UiSearch!
@@ -6042,16 +6042,16 @@ static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.UiSelect<T>! __b, System.
 static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.UiSelect<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Action? value) -> Rask.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCrumbSwitcher!
-static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Action? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Action? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Action? value) -> Rask.UiTabGroup!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTabGroup!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Action? value) -> Rask.UiCollapse!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiCollapse!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiContextMenu! __b, System.Action? value) -> Rask.UiContextMenu!
@@ -6396,19 +6396,11 @@ static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuItem! __b, System.Func<
 static RaskBuilderSettersRask_Ui.OnClose(this Rask.UiModal! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiSidebar!
 static RaskBuilderSettersRask_Ui.OnCollapse(this Rask.UiSidebar! __b, System.Func<bool, System.Threading.Tasks.ValueTask>? value) -> Rask.UiSidebar!
-static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnColumnOrderChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnDismiss(this Rask.UiToast! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiToast!
-static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpandedChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.IRaskFile!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.OnFiles(this Rask.UiFileInput! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiFileInput!
-static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroupedChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHiddenColumnsChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T?, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiInput<T>!
@@ -6423,8 +6415,6 @@ static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.
 static RaskBuilderSettersRask_Ui.OnMonth(this Rask.UiCalendarRange! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.OnOpen(this Rask.UiAccordion! __b, System.Func<string?, System.Threading.Tasks.ValueTask>? value) -> Rask.UiAccordion!
-static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPageChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.UiSearch! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiSearch!
@@ -6433,16 +6423,8 @@ static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.UiSelect<T>! __b, System.
 static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.UiSelect<T>! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiCrumbSwitcher! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCrumbSwitcher!
-static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiPagination! __b, System.Func<int, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTabGroup!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.UiTabGroup! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTabGroup!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelectionChange<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridSort, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSortChange<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCollapse!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiCollapse! __b, System.Func<bool, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCollapse!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiContextMenu! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiContextMenu!
@@ -6542,3 +6524,21 @@ static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMultiSelect<T>! __b, Sy
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiRadioGroup<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<int, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPagination!
+static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridSort, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!

@@ -7,7 +7,7 @@ export default function SolidCounter(props: SolidCounterProps) {
   const [total, setTotal] = createSignal(0)
 
   createEffect(() => {
-    props.onTotalChanged?.(total())
+    props.onTotal?.(total())
   })
 
   return (
