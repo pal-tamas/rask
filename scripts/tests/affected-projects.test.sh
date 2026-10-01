@@ -103,12 +103,12 @@ expect "a site page does not reach the CLI tests" \
 # directory comes back as MSB3202 ("project file was not found") — a build failure inside the gate
 # rather than a wrong answer, which is how this was caught.
 expect "a template file rebuilds the CLI that embeds it" \
-  "src/Rask.Templates/react/client/package.json" scoped "src/Rask.Cli/Rask.Cli.csproj"
+  "src/Rask.Templates/wasm-hosted/Program.cs" scoped "src/Rask.Cli/Rask.Cli.csproj"
 
 # ...and does not answer FULL, which is what "belongs to no project" would otherwise mean. Editing a
 # template is meant to be the cheap, ordinary way to change what `rask new` writes.
 expect "a template file does not force the whole solution" \
-  "src/Rask.Templates/react/client/package.json" absent "src/Rask.Core/Rask.Core.csproj"
+  "src/Rask.Templates/wasm-hosted/Program.cs" absent "src/Rask.Core/Rask.Core.csproj"
 
 # Rask.Core is underneath everything, so its fan-out is nearly the whole tree. Asserted so that a
 # future narrowing of the graph cannot quietly make the most load-bearing project in the repo cheap.
@@ -141,10 +141,6 @@ expect "the kit stylesheet reaches the site's contrast tests" \
   "src/Rask.Ui/Styles/ui.css" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
 expect "a precise glob keeps its extension filter" \
   "docs/installation.md" absent "tests/Rask.Blazor.Tests/Rask.Blazor.Tests.csproj"
-
-# A packed <None Include="..\..."/> is a build input like a linked Compile item.
-expect "the shared browser layer reaches the SPA host that packs it" \
-  "src/Rask.Core/Resources/browser/storage.ts" scoped "src/Rask.Spa.Hosting/Rask.Spa.Hosting.csproj"
 
 # The declarations must never be EVALUATED: MSBuild expands an item glob at every evaluation, and
 # "..\..\**\*.cs" would walk the whole repo — bin/, obj/, node_modules/ — on every build of the project.

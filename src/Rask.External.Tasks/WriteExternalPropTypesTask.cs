@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.Build.Framework;
-using Rask.Spa.Tasks;
 using Task = Microsoft.Build.Utilities.Task;
 
 namespace Rask.External.Tasks;

@@ -27,8 +27,7 @@ internal static class BatterySelection
     /// name because the two mean different things: one is "every flag the parser accepts", the other is
     /// "everything a bare <c>rask new</c> gives you". The default set is <c>template.SupportedFlags</c>
     /// intersected with this, so a template that cannot host a database gets the right answer without
-    /// anyone maintaining a per-template default list — the same reasoning that keeps
-    /// <see cref="TemplateCatalog"/> derived from <see cref="SpaFramework.All"/>.
+    /// anyone maintaining a per-template default list.
     ///
     /// <para>
     /// Styling is not a decision — Tailwind is built in — and neither is authentication any more: an app

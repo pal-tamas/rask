@@ -392,38 +392,9 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   (bypass with `git push --no-verify` or `RASK_SKIP_CLI_BUILD_E2E=1`). The gates are opted into by
   `RASK_CLI_BUILD_E2E=1`, which the script exports; without it every case reports **SKIPPED** rather than
   passing silently, so an un-run gate is always visible in the test output.
-- **The template gate builds every template, not the four that used to have one.**
-  `scripts/run-template-e2e.sh` scaffolds each of the fifteen templates through the same dispatch
-  `rask new` uses and builds what it wrote with `-warnaserror`. Before it existed only `server`, `wasm`
-  and `react` were ever scaffolded-and-built, plus `angular` for its Tailwind output — and **no meta
-  template was built by anything**: that lane's only gate publishes a hand-written stub csproj against
-  stand-in files, so a real Nuxt or SvelteKit app compiling was checked nowhere.
-
-  Two tiers, because the costs differ by two orders of magnitude. The default runs the C# half of all
-  fifteen and is what `run-all-gates.sh` includes. `--front-end` additionally runs each client's real
-  `npm ci`, `npm run lint`, `npm run format:check` and production build — four to six minutes per
-  template on a cold cache, so about an hour for the thirteen, which belongs to a release rather than
-  to every run of every gate. The lint run is there rather than in the unit gate for a specific reason:
-  a plugin's exported config name differs per plugin and per major, and a wrong one throws at ESLint
-  *startup*, which nothing that merely reads the config file can see.
-
-  `--front-end` also **drives** each app, which is the half a build cannot make: building proves the
-  code compiles and the bundler ran, not that the bundle loads or that the client can reach the host.
-  A SPA is driven in a browser until the starter's greeting appears — one assertion covering the
-  bundle loading, dispatching to `/_rask`, a C# handler answering, and the typed result reaching the
-  DOM. A meta app is asserted with **no browser at all**: the server-rendered markup arriving over
-  plain HTTP is proof that Node produced it and Kestrel forwarded, and a `/_rask` request that comes
-  back as a rendered *page* is this lane's characteristic failure — the forwarder shadowing a route
-  the host should have answered.
-
-  `--container` adds the meta **container boot**, and it is worth its cost for one reason: in
-  development the browser talks to the framework's own dev server directly, so Kestrel's forwarder,
-  its supervision of Node as a child, and the static roots it serves itself run at **deploy time and
-  nowhere else** (#946's Risk 1). The image is where the two toolchains meet — it carries a Node
-  runtime beside the .NET one and runs `npm ci` plus a production framework build inside itself —
-  which a local `dotnet run` cannot show, because a local run has the developer's own Node on PATH.
-  Nuxt only unless `RASK_META_CONTAINER_ALL=1`; the forwarder is shared, and the per-framework
-  differences are covered by the build gate.
+- **The template gate builds every template.** `scripts/run-template-e2e.sh` scaffolds `server`, `wasm`
+  and `wasm-hosted` through the same dispatch `rask new` uses and builds what it wrote with `-warnaserror`,
+  and `run-all-gates.sh` includes it.
 
   Opted into by `RASK_TEMPLATE_E2E=1`, which the script exports; without it every case reports
   **SKIPPED** rather than passing silently.
@@ -511,7 +482,8 @@ The standing rule is **the latest LTS** — Node, .NET, and the front-end toolch
 recommendation every new project inherits, so a maintenance-only pin hands users a runtime that has
 stopped getting security patches.
 
-**What updates itself.** `.github/dependabot.yml` covers NuGet and GitHub Actions weekly. Families
+**What updates itself.** `.github/dependabot.yml` covers NuGet, GitHub Actions and the site's npm
+front end weekly. Families
 that must move together are grouped (`microsoft-extensions`, `test-tooling`, `spectre-console`,
 `sqlitepclraw`); the three `Microsoft.CodeAnalysis.CSharp*` packages are ignored on purpose, because
 an analyzer referencing a newer Roslyn than the running `csc` is CS9057 and raises the compiler floor
@@ -519,8 +491,10 @@ for every downstream consumer.
 
 **What does not.** Several pins are invisible to Dependabot because they are not `PackageReference`s:
 `RaskEsbuildVersion` and `RaskTsgoVersion` (`Rask.Core.targets`), `RaskTailwindVersion`
-(`Rask.Tailwind.props`), the Node floors (`RaskSpaMinimumNode`, `RaskExternalMinimumNode`), the Node
-scaffold line (`NodeRequirement.ScaffoldLine`), and the npm caret ranges the SPA templates write. The
+(`Rask.Tailwind.props`), the islands' Node floor (`RaskExternalMinimumNode`), the Node scaffold line
+(`NodeRequirement.ScaffoldLine`), and the npm ranges `rask new --islands` writes, which live in
+`src/Rask.Templates/_islands/*/island.json` — not a `package.json`, so Dependabot cannot read them.
+Dependabot's npm entry watches only the site's own `src/Rask.Site/package.json`. The
 `check-dependency-updates` skill walks all of them.
 
 **What keeps the copies honest.** A version stated twice is a version that can drift, so the pairs that
@@ -528,9 +502,8 @@ matter most are asserted by an offline unit test rather than by a comment:
 
 | Test | Holds together |
 | --- | --- |
-| `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary); and the two build floors, `RaskSpaMinimumNode` vs. `RaskExternalMinimumNode` |
+| `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary) |
 | `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
-| `TailwindVersionPinTests` | `RaskTailwindVersion` vs. the SPA templates' caret range |
 | `ProjectGeneratorTests.Wasm_auth_framework_version_matches_the_repo_pin` | the WASM scaffold's framework version vs. `Directory.Packages.props` |
 | `TypeScriptCompilesTests`, `ResolveTypeScriptToolTaskTests` | read `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
@@ -538,8 +511,7 @@ They need no network and run in the ordinary unit gate — which `pre-commit` al
 `Directory.` path, so the gate that fires for a version bump is the one that checks it was complete.
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
-line elsewhere — `docs/spa.md`'s "Active LTS (24 'Krypton')", the `22.12` build-floor figures quoted in
-`docs/spa.md` and `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
+line elsewhere — the `22.12` build-floor figures quoted in `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
 still only prose. `lts-watch.yml`'s issue lists the files to change; treat that list, not this table, as
 the checklist when the line moves.
 

@@ -110,12 +110,7 @@ internal sealed partial class DevCommand(
         var environment = BuildEnvironment(
             target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable,
             target.IslandDevServerUrl,
-            once,
-            // Only when a front end was actually found, because this is what tells the host to STOP
-            // supervising. Without a client directory no dev server is started either, so handing the
-            // host a port would leave it forwarding into nothing — and would replace the supervisor's
-            // precise "no server entry at '…'" with a wall of connection failures.
-            target.ClientDirectory is null ? null : target.ClientDevServerUrl);
+            once);
 
         // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
         // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry
@@ -198,11 +193,10 @@ internal sealed partial class DevCommand(
             ? environment
             : Overlay(environment, [new(DevStatusEnvironmentVariable, status.Url)]);
 
-        // The bundler's dev server, beside the host. Its own token, so the host exiting takes it with it —
-        // a Vite left listening on 5173 after `rask dev` returns is picked up by the NEXT session, which
-        // then serves a stale client against a new server and looks like a Rask bug.
+        // The islands' Vite dev server, beside the host. Its own token, so the host exiting takes it with
+        // it — a Vite left listening after `rask dev` returns is picked up by the NEXT session, which then
+        // serves stale islands against a new server and looks like a Rask bug.
         using var clientTokens = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var client = StartClientDevServer(target, clientTokens.Token);
         var islands = once ? Task.CompletedTask : StartIslandDevServer(target, clientTokens.Token);
 
         var exit = status is null
@@ -215,17 +209,10 @@ internal sealed partial class DevCommand(
                 .ConfigureAwait(false);
 
         await clientTokens.CancelAsync().ConfigureAwait(false);
-        await client.ConfigureAwait(false);
         await islands.ConfigureAwait(false);
         await opening.ConfigureAwait(false);
         return exit;
     }
-
-    /// <summary>
-    ///     Where Vite listens by default, for a scaffold too old to have baked the real answer into its
-    ///     csproj. Not probed from the running bundler, which is not up yet when this is decided.
-    /// </summary>
-    internal const string ViteDevServerUrl = LocalDevServers.Vite;
 
     private void WriteBanner(
         DevTarget target,
@@ -275,11 +262,6 @@ internal sealed partial class DevCommand(
     {
         DevTemplateKind.Server => "server",
         DevTemplateKind.WasmHosted => "wasm-hosted",
-        DevTemplateKind.SpaHosted => "react",
-
-        // The framework's own name, because on this lane it is the thing that differs — six of them share
-        // one kind, and "meta" alone would leave the banner saying less than the csproj does.
-        DevTemplateKind.MetaHosted => target.MetaFramework ?? "meta",
         DevTemplateKind.WasmStandalone => "wasm",
         _ => "app"
     };

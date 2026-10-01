@@ -22,21 +22,6 @@ public sealed class ScaffoldFrameworkTests
     private const string Root = "/scaffold-root";
     private const string Version = "1.0.0";
 
-    public static TheoryData<string> SpaKeys
-    {
-        get
-        {
-            var data = new TheoryData<string>();
-
-            foreach (var framework in SpaFramework.All)
-            {
-                data.Add(framework.Key);
-            }
-
-            return data;
-        }
-    }
-
     [Fact]
     public void The_default_scaffold_is_the_committed_tree_unchanged()
     {
@@ -86,52 +71,6 @@ public sealed class ScaffoldFrameworkTests
 
         Assert.Contains(
             "<TargetFramework>net11.0-browser</TargetFramework>", Single(result, ".csproj"), StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [MemberData(nameof(SpaKeys))]
-    public void Every_front_end_template_carries_the_choice_into_its_host(string key)
-    {
-        Assert.True(SpaFramework.TryGet(key, out var framework));
-
-        var result = ProjectGenerator.GenerateSpa(
-            Root, "Shop", framework, new ServerBatteries(), Version, DotnetTarget.Preview);
-
-        Assert.DoesNotContain(result.Files.Where(f => f.Bytes is null), f => NamesTheDefault(f.Content));
-
-        // And it NAMES the version asked for. Absence on its own would be satisfied by a rewrite that
-        // deleted the element outright, which is a project that no longer builds at all.
-        Assert.Contains(
-            "<TargetFramework>net11.0</TargetFramework>", Single(result, ".csproj"), StringComparison.Ordinal);
-    }
-
-    public static TheoryData<string> MetaKeys
-    {
-        get
-        {
-            var data = new TheoryData<string>();
-
-            foreach (var template in MetaTemplate.All)
-            {
-                data.Add(template.Key);
-            }
-
-            return data;
-        }
-    }
-
-    [Theory]
-    [MemberData(nameof(MetaKeys))]
-    public void Every_meta_template_carries_the_choice_into_its_host(string key)
-    {
-        Assert.True(MetaTemplate.TryGet(key, out var meta));
-
-        var result = ProjectGenerator.GenerateMeta(
-            Root, "Shop", meta, new ServerBatteries { Docker = true }, Version, DotnetTarget.Preview);
-
-        Assert.DoesNotContain(result.Files.Where(f => f.Bytes is null), f => NamesTheDefault(f.Content));
-        Assert.Contains(
-            "<TargetFramework>net11.0</TargetFramework>", Single(result, ".csproj"), StringComparison.Ordinal);
     }
 
     [Fact]

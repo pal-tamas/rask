@@ -10,19 +10,14 @@ namespace Rask.Cli.Commands;
 internal static class NewArgumentChecks
 {
     /// <summary>
-    /// Whether <paramref name="templateKey"/> is one of the templates that pair a front end with an
-    /// ASP.NET host — the SPA lane, the meta lane, and <c>wasm-hosted</c>.
+    /// Whether <paramref name="templateKey"/> pairs a front end with an ASP.NET host — <c>wasm-hosted</c>.
     /// </summary>
     /// <remarks>
-    /// What they share is the thing this is asked about: the wire between the two halves is generated, so
-    /// CQRS is the template rather than a battery in it, and every one of these generators forces it back
-    /// on. Asking the tables the generators dispatch on, rather than a fourth list, is what keeps the
-    /// refusal and the generation agreeing.
+    /// The wire between its two halves is CQRS, so CQRS is the template rather than a battery in it, and
+    /// the generator forces it back on.
     /// </remarks>
     internal static bool IsFrontEndPlusHost(string templateKey) =>
-        string.Equals(templateKey, WasmHostedKey, StringComparison.Ordinal)
-        || SpaFramework.TryGet(templateKey, out _)
-        || MetaTemplate.TryGet(templateKey, out _);
+        string.Equals(templateKey, WasmHostedKey, StringComparison.Ordinal);
 
     /// <summary>Why the project name on this command line cannot be used as given, or null when it can.</summary>
     internal static string? NameArgumentError(ParsedArguments parsed)
@@ -70,21 +65,13 @@ internal static class NewArgumentChecks
             return $"Template '{template.Key}' has nothing to change for: {rejected}. It supports: {supported}.";
         }
 
-        // The generated contracts ARE the mediator's wire on the front-end-plus-host templates, so there is
-        // no project left without it. Refused rather than ignored, for the same reason --tailwind is below:
-        // a flag the CLI accepts and then disregards is the most expensive kind to discover.
-        //
-        // All three lanes, not only the SPA one. The meta generator forces CQRS back on just as the SPA one
-        // does, so a meta template used to accept the flag, keep the mediator it was asked to drop, and lose the
-        // database instead (#1106); wasm-hosted joined them when it became a template (#1103), and its client
-        // is C# over Rask.Cqrs.Client rather than generated TypeScript — the same wire, a different language.
+        // CQRS is the wire between wasm-hosted's two halves, so there is no project left without it. Refused
+        // rather than ignored, for the same reason --tailwind is below: a flag the CLI accepts and then
+        // disregards is the most expensive kind to discover.
         if (off.Contains("cqrs") && IsFrontEndPlusHost(template.Key))
         {
-            var wire = string.Equals(template.Key, WasmHostedKey, StringComparison.Ordinal)
-                ? "the browser half dispatches through it over Rask.Cqrs.Client"
-                : "the generated TypeScript client dispatches through it";
-            return $"Template '{template.Key}' can't drop CQRS — {wire}, so it is the template rather than a "
-                + "battery in it.";
+            return $"Template '{template.Key}' can't drop CQRS — the browser half dispatches through it over "
+                + "Rask.Cqrs.Client, so it is the template rather than a battery in it.";
         }
 
         return null;
@@ -96,15 +83,6 @@ internal static class NewArgumentChecks
         if (islands.Count == 0)
         {
             return null;
-        }
-
-        // Islands ride on a C# host: the SPA and meta templates ARE a front end already, and a second
-        // bundler inside one is not a shape this supports.
-        if (SpaFramework.TryGet(template.Key, out _) || MetaTemplate.TryGet(template.Key, out _))
-        {
-            return $"--islands is not available on --template {template.Key}: that template's whole "
-                + "client IS a front end. Islands put a front-end component inside a C# host — use "
-                + "the server or wasm template, or add a component to the client you already have.";
         }
 
         return IslandRuntimes.Refuse(islands);

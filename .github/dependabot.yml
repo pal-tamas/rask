@@ -75,22 +75,12 @@ updates:
         patterns:
           - "SQLitePCLRaw.*"
 
-  # The front-end dependencies every scaffolded app receives.
-  #
-  # Until the template trees were committed there was nothing here to watch: `rask new --template react`
-  # ran `npx create-vite@latest` at scaffold time, so the client's package.json existed only on the
-  # user's disk, after the fact, at whatever versions npm resolved that morning. No manifest, no
-  # review, no bump — the only front-end versions the repo stated at all were the Tailwind and daisyUI
-  # ranges, and three templates had silently drifted below the Tailwind pin before anyone could see it.
-  #
-  # The lockfiles matter as much as the manifests. With a range alone Dependabot can only act when a
-  # release falls OUTSIDE it, so every minor and patch update would stay invisible — which is the
-  # opposite of the point.
+  # The site's own front end (src/Rask.Site/package.json + its lockfile). It is the only npm
+  # manifest in the repo: the island versions a scaffold writes live in
+  # src/Rask.Templates/_islands/*/island.json, which Dependabot cannot read — the
+  # check-dependency-updates skill bumps those by hand.
   - package-ecosystem: npm
-    directories:
-      - "/src/Rask.Templates/*/client"
-      # The showcase's own front end, which had no coverage either.
-      - "/src/Rask.Site"
+    directory: "/src/Rask.Site"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -99,10 +89,8 @@ updates:
       prefix: build
       include: scope
     groups:
-      # One PR for the wave rather than one per dependency per template. Thirteen front ends times a
-      # week's worth of npm churn is a pull request list nobody reads, and the fifteen-PR flood is how
-      # a repository ends up turning Dependabot off.
-      template-front-ends:
+      # One PR for the wave rather than one per dependency.
+      site-front-end:
         patterns:
           - "*"
 

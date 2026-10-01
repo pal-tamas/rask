@@ -17,10 +17,8 @@ namespace Rask.TypeScript.Tasks.Tests;
 ///         stub.
 ///     </para>
 ///     <para>
-///         The repo already accepts a network-dependent unit test for exactly this reason —
-///         <c>Rask.Spa.Tasks.Tests.TypeScriptCompilesTests</c> fetches a compiler through
-///         <c>npx</c>. The difference is that this one cannot silently skip when a tool is absent:
-///         there is no <c>npx</c> to be missing, so it either resolves or it fails. An env-gated test
+///         So it is a network-dependent unit test, on purpose. Nor can it silently skip when a tool is
+///         absent: there is no <c>npx</c> to be missing, so it either resolves or it fails. An env-gated test
 ///         that reports SKIPPED is one of the documented ways a gate stops running.
 ///     </para>
 ///     <para>

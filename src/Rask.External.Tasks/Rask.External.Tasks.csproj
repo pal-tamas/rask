@@ -4,7 +4,7 @@
     <!--
       netstandard2.0 matches what MSBuild loads at build time: the task runs inside the MSBuild host
       process, which on Windows may still be full-framework MSBuild.exe. Same constraint, and same
-      reasoning, as Rask.Spa.Tasks and Rask.Wasm.Tasks.
+      reasoning, as Rask.Wasm.Tasks.
     -->
     <TargetFramework>netstandard2.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -56,20 +56,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.External.Tasks.Tests"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <!--
-      The PE-metadata reader, shared as SOURCE with Rask.Spa.Tasks rather than duplicated. Both task
-      assemblies lift generated TypeScript back out of a compiled assembly the same way, and the
-      reasoning that shapes it — read the metadata, never LOAD the assembly, because an MSBuild worker
-      that has already loaded one of that name throws and node reuse makes that roughly one build in
-      three (#650) — is not something to keep in step across two copies.
-
-      Linked rather than moved: it keeps its Rask.Spa.Tasks namespace, which is where it was written
-      and where its other caller lives.
-    -->
-    <Compile Include="..\Rask.Spa.Tasks\GeneratedTypeScript.cs" Link="Shared\GeneratedTypeScript.cs"/>
   </ItemGroup>
 
 </Project>

@@ -404,9 +404,61 @@ Server host bakes in the browser client), and it runs `MyApp.Server` on the aspn
 same port and TLS story as the server app above.
 
 **If you are starting today, you want the `wasm-hosted` template instead**
-([single-page apps](spa.md#a-rask-webassembly-app)): one project whose browser app lives in `Client/`, and
+([below](#serving-a-webassembly-app)): one project whose browser app lives in `Client/`, and
 `dotnet publish` emits its bundle into the server's `wwwroot`, where `RaskApp.Create(args).Serve()` serves it. That path
 *is* scaffolded, Dockerfile included.
+
+## Serving a WebAssembly app
+
+`rask new --template wasm-hosted` writes the browser app into `Client/`, inside the server's own project,
+and the server's whole `Program.cs` is:
+
+```csharp
+RaskApp.Create(args).Serve();
+```
+
+`Serve()` is `Run<App>()` without a server-rendered root: every battery, the endpoints the browser app
+dispatches to (`MapRaskCqrs`), the operator console at `/_rask`, and `MapRaskSpa()` last, answering every
+other path. A battery the app does without is still one line —
+`var app = RaskApp.Create(args); app.Configure(c => c.Jobs.Off()); app.Serve();`. The PWA belongs to the
+browser app (`host.UsePwa` in `Client/Program.cs`), so the server maps no manifest or service worker of its
+own: a route for `rask-sw.js` would answer before the bundle's file.
+
+`dotnet publish` copies the client's bundle into the host's `wwwroot`, where `MapRaskSpa` (from
+`Rask.Spa.Hosting`) finds it with no arguments and applies what a Rask WebAssembly publish guarantees:
+
+| Path | Cached for ever | A missing file |
+|---|---|---|
+| `/_rask/a/*` — scoped CSS and JavaScript, named by content hash | always | 404 |
+| `/_framework/*` — the runtime and your assemblies | only when the SDK fingerprinted the name | 404 |
+| anything else in `wwwroot` | never — it revalidates | the index document |
+
+`index.html` is never cached, a request whose `Accept` asks for something other than HTML gets a 404
+rather than the index document, and a precompressed `.br` or `.gz` sibling is served when the client
+accepts it. Runtime files are served with `application/wasm` and `application/octet-stream`, and
+`AddRaskSpaHost()` compresses both.
+
+By hand — a host that is not a `RaskApp`, or a client in a project of its own — reference the client
+project and map the API **before** the fallback, or the fallback answers the API call with HTML:
+
+```xml
+<ProjectReference Include="..\Shop.Client\Shop.Client.csproj"
+                  ReferenceOutputAssembly="false"
+                  SkipGetTargetFrameworkProperties="true"/>
+```
+
+```csharp
+builder.Services.AddRaskSpaHost();
+
+var app = builder.Build();
+app.MapRaskCqrs();   // your API first
+app.MapRaskSpa();
+```
+
+A host serves one client. `Rask:Spa:ImmutablePathPrefixes` adds cache-forever prefixes; the
+`ExcludeFromFallback` and `OnPrepareResponse` delegates are set in code, on `MapRaskSpa(configure: …)`.
+`rask dev` serves the client's build output rather than its publish, because a trimmed bundle turns hot
+reload off in the browser.
 
 ## Standalone WASM SPA (`--template wasm`)
 
