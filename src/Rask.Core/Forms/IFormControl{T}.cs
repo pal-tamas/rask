@@ -18,7 +18,7 @@ namespace Rask.Core.Forms;
 // they are recognized by the same name rule wherever they appear on an IFormControl<T>: bound mode
 // derives the checkbox state from the model and installs its own oninput write-back, so a control
 // reads neither.
-// `Validate<T>`/`ValidateAsync<T>` (this namespace) are the two shapes a rule can take; a control
+// `Validate<T>` and the async `Func<T, ValueTask<IEnumerable<string>>>` are the two shapes a rule can take; a control
 // declares ONE `Validator<T>` property that accepts either, and the generated step has an overload per
 // shape. OnChange and AfterBind are `Callback<T>` for the same reason, and OnChange is auto-wrapped
 // (AutoCallback) so invoking it re-renders the consumer.
@@ -128,10 +128,10 @@ public interface IFormControl<T> : IFormControl
     // Runs the post-bind hook with the freshly-bound value. `Invoke` hands back a completed ValueTask for a
     // synchronous hook and `AsTask()` makes that the cached completed task, so the sync path never
     // acquires a Task it did not need.
-    Task InvokeAfterBindAsync(T value) => AfterBind.Invoke(value).AsTask();
+    Task InvokeAfterBind(T value) => AfterBind.Invoke(value).AsTask();
 
     // Notifies the controlled-mode consumer of a new value, in whichever shape they wrote it.
-    Task InvokeOnChangeAsync(T value) => OnChange.Invoke(value).AsTask();
+    Task InvokeOnChange(T value) => OnChange.Invoke(value).AsTask();
 
     // Bridges a DOM string change to the typed OnChange — parse the raw value to T (identity
     // for string; enums / IParsable<T> round-trip via BindingHelpers.TryParseValue), then notify. Shared by
@@ -165,7 +165,7 @@ public interface IFormControl<T> : IFormControl
         {
             if (BindingHelpers.TryParseValue(typeof(T), raw, out var parsed) && parsed is T value)
             {
-                await InvokeOnChangeAsync(value).ConfigureAwait(false);
+                await InvokeOnChange(value).ConfigureAwait(false);
                 consumer?.StateHasChanged();
             }
         });

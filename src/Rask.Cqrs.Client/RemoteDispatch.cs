@@ -57,7 +57,7 @@ internal sealed class RemoteDispatch(
         request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
         request.Options.Set(StreamingResponse, true);
-        if (options.ConfigureRequestAsync is { } configure)
+        if (options.ConfigureRequest is { } configure)
         {
             await configure(request, cancellationToken).ConfigureAwait(false);
         }
@@ -156,7 +156,7 @@ internal sealed class RemoteDispatch(
         return response;
     }
 
-    public async Task<TResult> SendAsync<TResult>(
+    public async Task<TResult> Send<TResult>(
         RemoteContract contract,
         object message,
         CancellationToken cancellationToken)
@@ -185,7 +185,7 @@ internal sealed class RemoteDispatch(
         }
     }
 
-    public async Task SendAsync(RemoteContract contract, object message, CancellationToken cancellationToken)
+    public async Task Send(RemoteContract contract, object message, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contract);
         ArgumentNullException.ThrowIfNull(message);
@@ -230,7 +230,7 @@ internal sealed class RemoteDispatch(
             RemoteEndpointDefaults.RequestHeader,
             RemoteEndpointDefaults.RequestHeaderValue);
 
-        if (options.ConfigureRequestAsync is { } configure)
+        if (options.ConfigureRequest is { } configure)
         {
             await configure(request, cancellationToken).ConfigureAwait(false);
         }
@@ -529,7 +529,7 @@ internal sealed class RemoteDispatch(
     {
         using var request = ChunkRequest(uploadId, index, offset, file, buffer, count);
 
-        if (options.ConfigureRequestAsync is { } configure)
+        if (options.ConfigureRequest is { } configure)
         {
             await configure(request, cancellationToken).ConfigureAwait(false);
         }

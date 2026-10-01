@@ -27,13 +27,13 @@ public interface IRemoteDispatch
     /// <param name="contract">The message's wire contract.</param>
     /// <param name="message">The message instance.</param>
     /// <param name="cancellationToken">Cancels the call, aborting the request in flight.</param>
-    Task<TResult> SendAsync<TResult>(RemoteContract contract, object message, CancellationToken cancellationToken);
+    Task<TResult> Send<TResult>(RemoteContract contract, object message, CancellationToken cancellationToken);
 
     /// <summary>Sends a command that returns no value.</summary>
     /// <param name="contract">The message's wire contract.</param>
     /// <param name="message">The message instance.</param>
     /// <param name="cancellationToken">Cancels the call, aborting the request in flight.</param>
-    Task SendAsync(RemoteContract contract, object message, CancellationToken cancellationToken);
+    Task Send(RemoteContract contract, object message, CancellationToken cancellationToken);
 
     /// <summary>Sends a notification for the other side's handlers to react to.</summary>
     /// <param name="contract">The notification's wire contract.</param>

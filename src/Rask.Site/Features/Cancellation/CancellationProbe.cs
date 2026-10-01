@@ -22,7 +22,7 @@ public sealed partial class CancellationProbe : Component
         // Make the "running" pill visible BEFORE the long await — the framework's
         // post-await StateHasChanged only fires after the continuation resumes, so
         // without this the user would jump straight from "pending" to "completed".
-        await StateHasChangedAsync();
+        StateHasChanged();
 
         // Synchronous cancellation observer: fires the instant the framework calls
         // Cancel() on our lifetime CTS (inside DisposeComponentTree, before the loop's

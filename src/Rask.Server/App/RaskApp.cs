@@ -164,12 +164,6 @@ public sealed partial class RaskApp
         where TApp : Component
         => Build<TApp>(pathBase).Run();
 
-    /// <summary>The awaitable <see cref="Run{TApp}"/>.</summary>
-    public Task RunAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
-        string pathBase = "")
-        where TApp : Component
-        => Build<TApp>(pathBase).RunAsync();
-
     /// <summary>Builds the <see cref="WebApplication"/> and applies the pipeline, without running it.</summary>
     public WebApplication Build<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         string pathBase = "")
@@ -209,9 +203,6 @@ public sealed partial class RaskApp
     /// </para>
     /// </remarks>
     public void Serve() => BuildServe().Run();
-
-    /// <summary>The awaitable <see cref="Serve"/>.</summary>
-    public Task ServeAsync() => BuildServe().RunAsync();
 
     /// <summary>What <see cref="Serve"/> runs: the browser app's server, built and not yet started.</summary>
     internal WebApplication BuildServe()
@@ -344,7 +335,7 @@ public sealed partial class RaskApp
     {
         // Before anything opens the database: a restore that runs after the first query has already lost,
         // and the failure is a fresh empty database on a machine that was supposed to have recovered.
-        if (_options.RunBeforeDatabaseOpensAsync is { } restore)
+        if (_options.RunBeforeDatabaseOpens is { } restore)
         {
             restore(app.Services).GetAwaiter().GetResult();
         }

@@ -19,7 +19,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
         var m = new DiscoveredModel { Title = "" };
         var ctx = Render(m);
 
-        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Title is required.",
             ctx.GetValidationMessages(new FieldIdentifier(m, nameof(DiscoveredModel.Title))));
@@ -34,7 +34,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
         var m = new BothModel { Code = "" };
         var ctx = Render(m);
 
-        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         var messages = ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BothModel.Code)));
         Assert.Equal(["Code is required."], messages);
@@ -46,7 +46,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
         var m = new BothModel { Code = "abc", Quantity = 0 };
         var ctx = Render(m);
 
-        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BothModel.Code))));
         Assert.Contains("Quantity must be at least 1.",
@@ -59,7 +59,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
         var m = new AsyncModel { Name = "taken" };
         var ctx = Render(m);
 
-        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Name is already taken.",
             ctx.GetValidationMessages(new FieldIdentifier(m, nameof(AsyncModel.Name))));
@@ -83,14 +83,13 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_model_with_no_validator_leaves_Validate_synchronous()
     {
-        // A DiscoveredFieldValidator is an IAsyncFieldValidator, and one of those on the context makes
-        // the synchronous EditContext.Validate() throw. Registering it unconditionally would have made
-        // every form in every app pay that for a validator it does not have.
+        // A DiscoveredFieldValidator is an IAsyncFieldValidator, and one of those on the context takes
+        // every field check off the synchronous fast path. Registering it unconditionally would have
+        // made every form in every app pay that for a validator it does not have.
         var ctx = Render(new UnvalidatedModel { Anything = "" });
 
         Assert.False(ctx.HasAsyncValidators);
-        Assert.True(ctx.Validate());
-        await Task.CompletedTask;
+        Assert.True(await ctx.Validate(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -99,7 +98,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
         var m = new UnvalidatedModel { Anything = "" };
         var ctx = Render(m);
 
-        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.False(ctx.HasValidationMessages());
     }

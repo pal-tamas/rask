@@ -31,7 +31,7 @@ public interface IFormControl<T>
 ```
 
 **A rule and a hook are ONE property each, taking either shape.** `Validator<T>` accepts a synchronous
-`Validate<T>` or an asynchronous `ValidateAsync<T>`; `Callback<T>` accepts an `Action<T>` or a
+rule (`v => …`) or an asynchronous one (`async v => …`, which reads the field's token from `Current.Cancellation`); `Callback<T>` accepts an `Action<T>` or a
 `Func<T, Task>`. There is no `…Async` sibling to choose between, so there is no pair to set both halves
 of and no rule about which one wins.
 
@@ -163,11 +163,11 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
         {
             acc.Setter(value);
             await BindingHelpers.NotifyAndValidateFieldAsync(ctx, fid);   // commit: changed + touched + revalidate
-            await self.InvokeAfterBindAsync(value);                       // helper — runs AfterBind, either shape
+            await self.InvokeAfterBind(value);                       // helper — runs AfterBind, either shape
         }
         else
         {
-            await self.InvokeOnChangeAsync(value);                        // helper — runs OnChange
+            await self.InvokeOnChange(value);                        // helper — runs OnChange
         }
     }
 }
@@ -195,9 +195,9 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 |---|---|
 | `Validator` | `Validate?.Rule` — the single delegate the `EditContext` dispatches, whichever shape it is |
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
-| `InvokeAfterBindAsync(value)` | `await AfterBind.Invoke(v)` as a `Task` — one hook, either shape |
-| `InvokeOnChangeAsync(value)` | `await OnChange.Invoke(v)` as a `Task` — one handler, either shape |
-| `ControlledChangeHandler()` | an `Action<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
+| `InvokeAfterBind(value)` | `await AfterBind.Invoke(v)` as a `Task` — one hook, either shape |
+| `InvokeOnChange(value)` | `await OnChange.Invoke(v)` as a `Task` — one handler, either shape |
+| `ControlledChangeHandler()` | an `Action<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChange` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each
 time also clears a stale rule when the consumer drops `Validate`.
@@ -265,7 +265,7 @@ for state the control *itself* owns.
    `((IFormControl<T>)this).RegisterValidator(acc, ctx)`; read the current value from the accessor (bound) or
    `Value` (controlled).
 3. In your change handler: bound → `Setter` (or `SetCollectionMembership`) + `NotifyAndValidateFieldAsync` +
-   `InvokeAfterBindAsync`; controlled → `InvokeOnChangeAsync`.
+   `InvokeAfterBind`; controlled → `InvokeOnChange`.
 4. Surface messages with `Validation.Message.Template(…).For(Bind)` (bound mode).
 5. Unit-test both modes (drive the handler, assert the bound model / the emitted `OnChange` value); add an
    E2E if it has a showcase page. Construct via the chain, never `new` (RASK014).

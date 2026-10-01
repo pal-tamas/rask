@@ -90,13 +90,13 @@ public sealed class DashboardKitMarkupTests
 
     private sealed class SnapshotsOnlyProbe : IDashboardBackupProbe
     {
-        public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken) =>
+        public Task<BackupReplicationInfo?> Replication(CancellationToken cancellationToken) =>
             Task.FromResult<BackupReplicationInfo?>(null);
 
-        public Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<BackupSnapshotInfo>> Snapshots(CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<BackupSnapshotInfo>>([]);
 
-        public Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
+        public Task<BackupVerificationInfo?> Verification(CancellationToken cancellationToken) =>
             Task.FromResult<BackupVerificationInfo?>(null);
     }
 

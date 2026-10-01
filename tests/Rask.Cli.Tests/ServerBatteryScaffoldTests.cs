@@ -83,12 +83,12 @@ public sealed class ServerBatteryScaffoldTests
         // A passkey is another way in, so the sign-in page has to offer it beside the password, and the device
         // list is where one is added and taken away. Both go through IAuth, so the ceremony stays in Rask.Auth.
         var login = files["Features/Auth/LoginPage.cs"];
-        Assert.Contains("SignInWithPasskeyAsync", login, StringComparison.Ordinal);
+        Assert.Contains("SignInWithPasskey", login, StringComparison.Ordinal);
         Assert.Contains("Sign in with a passkey", login, StringComparison.Ordinal);
 
         var devices = files["Features/Auth/DevicesPage.cs"];
-        Assert.Contains("AddPasskeyAsync", devices, StringComparison.Ordinal);
-        Assert.Contains("RemovePasskeyAsync", devices, StringComparison.Ordinal);
+        Assert.Contains("AddPasskey", devices, StringComparison.Ordinal);
+        Assert.Contains("RemovePasskey", devices, StringComparison.Ordinal);
 
         // The support check is a browser call, so the API they inject it from must be in scope for both pages.
         Assert.Contains("global using Rask.Core.Browser;", files["GlobalUsings.cs"], StringComparison.Ordinal);

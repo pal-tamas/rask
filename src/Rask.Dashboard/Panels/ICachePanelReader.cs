@@ -9,21 +9,21 @@ public interface ICachePanelReader
     bool IsAvailable { get; }
 
     /// <summary>Entry count, total stored bytes, and how many are expired but not yet swept.</summary>
-    Task<CacheStats> StatsAsync(CancellationToken cancellationToken);
+    Task<CacheStats> Stats(CancellationToken cancellationToken);
 
     /// <summary>One page of keys, soonest to expire first.</summary>
-    Task<(IReadOnlyList<CacheKeyRow> Rows, int Total)> PageAsync(
+    Task<(IReadOnlyList<CacheKeyRow> Rows, int Total)> Page(
         string? search, int skip, int take, CancellationToken cancellationToken);
 
     /// <summary>
     /// Drops one key. Safe by nature — a cache miss is a recompute, not a lost fact — which is why this
     /// sits in the Safe action tier while flushing everything does not.
     /// </summary>
-    Task<int> EvictAsync(string key, CancellationToken cancellationToken);
+    Task<int> Evict(string key, CancellationToken cancellationToken);
 
     /// <summary>
     /// Drops every entry. Correctness-safe for the same reason, but a cold cache on a busy app means a
     /// stampede of recomputes, so it needs <see cref="RaskDashboardActions.Destructive"/>.
     /// </summary>
-    Task<int> FlushAsync(CancellationToken cancellationToken);
+    Task<int> Flush(CancellationToken cancellationToken);
 }

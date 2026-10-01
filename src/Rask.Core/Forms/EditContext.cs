@@ -61,36 +61,10 @@ public sealed class EditContext : IDisposable
     internal IEnumerable<FieldIdentifier> RegisteredFields => _states.Keys;
 
     /// <summary>
-    ///     Whether anything registered here validates asynchronously. When it does,
-    ///     <see cref="Validate()" /> refuses to run and <see cref="ValidateAsync" /> must be used instead.
+    ///     Whether anything registered here validates asynchronously — an <see cref="IAsyncFieldValidator" /> or
+    ///     an async inline <c>Validate</c> delegate. <see cref="Validate" /> awaits them either way.
     /// </summary>
     public bool HasAsyncValidators => _asyncValidators.Count > 0 || HasAsyncDelegateValidators;
-
-    // What made this context async. Without it the sync-validate refusal names the remedy but not the
-    // cause, so on a form carrying several validators you find the culprit by bisecting them.
-    private string DescribeAsyncValidators()
-    {
-        var named = new List<string>();
-        foreach (var v in _asyncValidators)
-        {
-            named.Add(v.GetType().Name);
-        }
-
-        if (_formDelegate is not null && DelegateValidator.IsAsync(_formDelegate))
-        {
-            named.Add("an async form-level Validate delegate");
-        }
-
-        foreach (var (field, reg) in _fieldDelegates)
-        {
-            if (DelegateValidator.IsAsync(reg.Validate))
-            {
-                named.Add($"an async Validate on '{field.FieldName}'");
-            }
-        }
-
-        return named.Count == 0 ? "none found — this is a framework bug" : string.Join(", ", named);
-    }
 
     /// <summary>
     ///     Whether any inline <c>Validate</c> delegate — on a field or on the form — is the asynchronous
@@ -210,8 +184,7 @@ public sealed class EditContext : IDisposable
 
     /// <summary>
     ///     Registers an asynchronous validator for the whole form. De-duplicated by runtime type, exactly
-    ///     as the synchronous overload is. Adding one makes <see cref="Validate()" /> throw — the form
-    ///     must be validated through <see cref="ValidateAsync" /> from then on.
+    ///     as the synchronous overload is. <see cref="Validate" /> awaits it after the synchronous rules.
     /// </summary>
     /// <param name="validator">The validator to add.</param>
     /// <exception cref="ArgumentNullException"><paramref name="validator" /> is <see langword="null" />.</exception>
@@ -436,7 +409,7 @@ public sealed class EditContext : IDisposable
 
     /// <summary>
     ///     Whether any field currently carries a validation message. Note this reports the messages
-    ///     produced by the last run — it does not validate. Call <see cref="Validate()" /> first to ask
+    ///     produced by the last run — it does not validate. Await <see cref="Validate" /> first to ask
     ///     whether the form is valid <em>now</em>.
     /// </summary>
     public bool HasValidationMessages()
@@ -546,93 +519,12 @@ public sealed class EditContext : IDisposable
     }
 
     /// <summary>
-    ///     Validates the whole form and reports whether it passed. Clears the existing messages first, so
-    ///     the messages afterwards are exactly this run's.
-    /// </summary>
-    /// <returns><see langword="true" /> when no field produced a message.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Any registered validator is asynchronous — the result could only be reported by guessing, so
-    ///     this refuses rather than return a wrong answer. Use <see cref="ValidateAsync" />. The message
-    ///     names which validators made the form async.
-    /// </exception>
-    public bool Validate()
-    {
-        if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
-        {
-            throw new InvalidOperationException(
-                $"This EditContext has async validators ({DescribeAsyncValidators()}), so it cannot be "
-                + "validated synchronously. Call ValidateAsync() instead of Validate().");
-        }
-
-        ClearAllMessages();
-
-        // Inline per-field delegates run first, then the form-level inline delegate,
-        // then attribute-driven validators (DataAnnotations, FluentValidation, …) in
-        // registration order. First-error-wins gates each later stage so a field stays
-        // tied to the first rule that flagged it.
-        InvokeSyncFieldDelegates();
-        InvokeSyncFormDelegate();
-
-        foreach (var v in _validators)
-        {
-            var pre = SnapshotMessageCounts();
-            v.Validate(this);
-            TrimGatedMessages(pre);
-        }
-
-        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-        return !HasValidationMessages();
-    }
-
-    /// <summary>
-    ///     Validates one field and reports whether it passed — what a control runs as the user leaves it,
-    ///     rather than re-checking the whole form on every keystroke.
-    /// </summary>
-    /// <param name="field">The field to validate.</param>
-    /// <returns><see langword="true" /> when the field produced no message.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Any registered validator is asynchronous. Use <see cref="ValidateFieldAsync" />.
-    /// </exception>
-    public bool ValidateField(FieldIdentifier field)
-    {
-        if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
-        {
-            throw new InvalidOperationException(
-                $"This EditContext has async validators ({DescribeAsyncValidators()}), so field "
-                + $"'{field.FieldName}' cannot be validated synchronously. Call "
-                + "ValidateFieldAsync(field) instead of ValidateField(field).");
-        }
-
-        ClearMessages(field);
-
-        // Inline field delegate first, then attribute-driven validators — short-circuit
-        // as soon as any stage has produced a message for the field (first-error-wins).
-        InvokeSyncFieldDelegate(field);
-
-        if (GetValidationMessages(field).Count == 0)
-        {
-            foreach (var v in _validators)
-            {
-                v.ValidateField(this, field);
-                if (GetValidationMessages(field).Count > 0)
-                {
-                    break;
-                }
-            }
-        }
-
-        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-        return GetValidationMessages(field).Count == 0;
-    }
-
-    /// <summary>
-    ///     Validates the whole form, awaiting any asynchronous rules, and reports whether it passed. Safe
-    ///     to use whether or not the form has async validators — unlike <see cref="Validate()" />, which
-    ///     refuses when it does, so this is the one to call if you are not sure.
+    ///     Validates the whole form, running every rule — synchronous and asynchronous — and reports whether
+    ///     it passed. Clears the existing messages first, so the messages afterwards are exactly this run's.
     /// </summary>
     /// <param name="cancellationToken">Cancels the in-flight validators.</param>
     /// <returns><see langword="true" /> when no field produced a message.</returns>
-    public async ValueTask<bool> ValidateAsync(CancellationToken cancellationToken = default)
+    public async ValueTask<bool> Validate(CancellationToken cancellationToken = default)
     {
         // Supersede every in-flight per-field run before we re-validate from scratch.
 #pragma warning disable S6966 // cancel synchronously: a superseded run must see it before this call returns
@@ -683,7 +575,7 @@ public sealed class EditContext : IDisposable
             var pre = SnapshotMessageCounts();
             try
             {
-                await v.ValidateAsync(this, cancellationToken).ConfigureAwait(false);
+                await v.Validate(this, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -708,7 +600,7 @@ public sealed class EditContext : IDisposable
     /// <param name="field">The field to validate.</param>
     /// <param name="cancellationToken">Cancels the in-flight validator.</param>
     /// <returns><see langword="true" /> when the field produced no message.</returns>
-    public async ValueTask<bool> ValidateFieldAsync(FieldIdentifier field,
+    public async ValueTask<bool> ValidateField(FieldIdentifier field,
         CancellationToken cancellationToken = default)
     {
         var state = GetOrCreate(field);
@@ -717,7 +609,7 @@ public sealed class EditContext : IDisposable
         // Note on the CTS lifecycle (looks racy, isn't): the live transports serialize handler
         // execution end to end — the Server WS dispatcher and the WASM session each hold their
         // lock across the whole awaited handler (which is where validation runs), so two
-        // ValidateFieldAsync calls for the same field never overlap. By the time a later call
+        // ValidateField calls for the same field never overlap. By the time a later call
         // reaches here, the earlier one has already nulled state.Cts (sync + finally paths), so
         // these Cancel/Dispose calls only ever touch a still-owned CTS — no double-dispose, no
         // ObjectDisposedException. Keep validation off background threads to preserve this.
@@ -862,7 +754,7 @@ public sealed class EditContext : IDisposable
         {
             try
             {
-                await v.ValidateFieldAsync(this, field, cts.Token).ConfigureAwait(false);
+                await v.ValidateField(this, field, cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -996,22 +888,6 @@ public sealed class EditContext : IDisposable
         }
 
         return s;
-    }
-
-    private void InvokeSyncFieldDelegates()
-    {
-        foreach (var pair in _fieldDelegates)
-        {
-            InvokeSyncFieldDelegate(pair.Key, pair.Value);
-        }
-    }
-
-    private void InvokeSyncFieldDelegate(FieldIdentifier field)
-    {
-        if (_fieldDelegates.TryGetValue(field, out var reg))
-        {
-            InvokeSyncFieldDelegate(field, reg);
-        }
     }
 
     private void InvokeSyncFieldDelegate(FieldIdentifier field, DelegateRegistration reg)

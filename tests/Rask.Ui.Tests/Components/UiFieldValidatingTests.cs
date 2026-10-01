@@ -31,9 +31,9 @@ public partial class UiFieldValidatingTests : global::Rask.Core.RaskMarkup
     /// <summary>A validator whose check never finishes, so the field stays mid-validation for the render.</summary>
     private sealed class NeverCompletingAsyncValidator : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask Validate(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct) =>
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field, CancellationToken ct) =>
             await new TaskCompletionSource().Task.ConfigureAwait(false);
     }
 
@@ -52,7 +52,7 @@ public partial class UiFieldValidatingTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("Checking", page.Html, StringComparison.Ordinal);
 
         var field = new FieldIdentifier(model, nameof(Model.Name));
-        _ = ctx.ValidateFieldAsync(field);
+        _ = ctx.ValidateField(field);
         Assert.True(ctx.IsValidating(field));
 
         return page.Render();

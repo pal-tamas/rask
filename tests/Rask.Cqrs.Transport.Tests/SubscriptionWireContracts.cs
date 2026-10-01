@@ -31,6 +31,6 @@ public sealed record WatchRoom(int Room) : ISubscription<RoomMessage>
 /// <summary>Room 1 is open; every other room is closed.</summary>
 public sealed class RoomPolicy : IWatchPolicy<WatchRoom>
 {
-    public Task<bool> CanWatchAsync(WatchRoom subscription, CancellationToken cancellationToken) =>
+    public Task<bool> CanWatch(WatchRoom subscription, CancellationToken cancellationToken) =>
         Task.FromResult(subscription.Room == 1);
 }

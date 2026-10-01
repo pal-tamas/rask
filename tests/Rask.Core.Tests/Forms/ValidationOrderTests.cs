@@ -14,7 +14,7 @@ namespace Rask.Core.Tests.Forms;
 public class ValidationOrderTests
 {
     [Fact]
-    public void A_full_validation_runs_inline_then_form_level_then_attribute_validators()
+    public async Task A_full_validation_runs_inline_then_form_level_then_attribute_validators()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -32,13 +32,13 @@ public class ValidationOrderTests
             return Array.Empty<string>();
         }));
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "inline-field", "inline-form", "attr" }, trace);
     }
 
     [Fact]
-    public void A_field_validation_runs_inline_then_attribute_validators()
+    public async Task A_field_validation_runs_inline_then_attribute_validators()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -51,7 +51,7 @@ public class ValidationOrderTests
             return Array.Empty<string>();
         }));
 
-        ctx.ValidateField(fid);
+        await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         // The form-level inline delegate must NOT fire on a per-field pass.
         Assert.Equal(new[] { "inline-field", "attr" }, trace);
@@ -77,7 +77,7 @@ public class ValidationOrderTests
             return Array.Empty<string>();
         }));
 
-        await ctx.ValidateAsync(TestContext.Current.CancellationToken);
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Equal(
             new[] { "inline-field", "inline-form", "attr-sync", "attr-async" },
@@ -99,7 +99,7 @@ public class ValidationOrderTests
             return Array.Empty<string>();
         }));
 
-        await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "inline-field", "attr-sync", "attr-async" }, trace);
     }
@@ -114,20 +114,20 @@ public class ValidationOrderTests
         ctx.AddValidator(new TracingValidator("attr-sync", trace));
         ctx.AddValidator(new TracingAsyncValidator("attr-async", trace));
         ctx.RegisterFieldValidator(fid,
-            (Func<string, CancellationToken, ValueTask<IEnumerable<string>>>)(async (_, _) =>
+            (Func<string, ValueTask<IEnumerable<string>>>)(async _ =>
             {
                 await Task.Yield();
                 trace.Add("inline-field");
                 return Array.Empty<string>();
             }));
 
-        await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "inline-field", "attr-sync", "attr-async" }, trace);
     }
 
     [Fact]
-    public void An_inline_error_suppresses_later_validators_for_the_same_field()
+    public async Task An_inline_error_suppresses_later_validators_for_the_same_field()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -136,14 +136,14 @@ public class ValidationOrderTests
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(_ => new[] { "inline-msg" }));
 
-        Assert.False(ctx.ValidateField(fid));
+        Assert.False(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
 
         // First-error-wins: only the inline error survives.
         Assert.Equal(new[] { "inline-msg" }, ctx.GetValidationMessages(fid));
     }
 
     [Fact]
-    public void A_clean_inline_rule_reengages_the_later_validator()
+    public async Task A_clean_inline_rule_reengages_the_later_validator()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -154,17 +154,17 @@ public class ValidationOrderTests
             (Func<string, IEnumerable<string>>)(_ =>
                 inlineHasError ? new[] { "inline-msg" } : Array.Empty<string>()));
 
-        Assert.False(ctx.ValidateField(fid));
+        Assert.False(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
         Assert.Equal(new[] { "inline-msg" }, ctx.GetValidationMessages(fid));
 
         // "Fix" the inline rule and re-validate — the downstream validator now runs.
         inlineHasError = false;
-        Assert.False(ctx.ValidateField(fid));
+        Assert.False(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
         Assert.Equal(new[] { "attr-msg" }, ctx.GetValidationMessages(fid));
     }
 
     [Fact]
-    public void An_inline_error_suppresses_later_validators_for_the_same_field_on_a_full_form_pass()
+    public async Task An_inline_error_suppresses_later_validators_for_the_same_field_on_a_full_form_pass()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -173,7 +173,7 @@ public class ValidationOrderTests
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(_ => new[] { "inline-msg" }));
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "inline-msg" }, ctx.GetValidationMessages(fid));
     }
@@ -189,7 +189,7 @@ public class ValidationOrderTests
         ctx.RegisterFieldValidator(fid,
             (Func<string, IEnumerable<string>>)(_ => new[] { "inline-msg" }));
 
-        Assert.False(await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken));
+        Assert.False(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
         Assert.Equal(new[] { "inline-msg" }, ctx.GetValidationMessages(fid));
     }
 
@@ -202,12 +202,12 @@ public class ValidationOrderTests
         ctx.AddValidator(new StaticMessageValidator("sync-attr"));
         ctx.AddValidator(new StaticAsyncMessageValidator("async-attr"));
 
-        Assert.False(await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken));
+        Assert.False(await ctx.ValidateField(fid, TestContext.Current.CancellationToken));
         Assert.Equal(new[] { "sync-attr" }, ctx.GetValidationMessages(fid));
     }
 
     [Fact]
-    public void Gating_is_per_field_so_other_fields_are_still_validated()
+    public async Task Gating_is_per_field_so_other_fields_are_still_validated()
     {
         // Inline delegate flags Name; the IFieldValidator wants to add to both Name AND
         // Email — only the Email message survives, Name stays tied to inline.
@@ -219,7 +219,7 @@ public class ValidationOrderTests
         ctx.RegisterFieldValidator(nameField,
             (Func<string, IEnumerable<string>>)(_ => new[] { "inline-name" }));
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { "inline-name" }, ctx.GetValidationMessages(nameField));
         Assert.Equal(new[] { "attr-email" }, ctx.GetValidationMessages(emailField));
@@ -242,13 +242,13 @@ public class ValidationOrderTests
 
     private sealed class StaticAsyncMessageValidator(string message) : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+        public ValueTask Validate(EditContext context, CancellationToken cancellationToken)
         {
             context.AddValidationMessage(new FieldIdentifier(context.Model, "Name"), message);
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken)
         {
             context.AddValidationMessage(field, message);
@@ -287,13 +287,13 @@ public class ValidationOrderTests
 
     private sealed class TracingAsyncValidator(string tag, List<string> trace) : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+        public ValueTask Validate(EditContext context, CancellationToken cancellationToken)
         {
             trace.Add(tag);
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken)
         {
             trace.Add(tag);

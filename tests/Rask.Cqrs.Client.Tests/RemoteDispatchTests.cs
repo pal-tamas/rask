@@ -70,7 +70,7 @@ public sealed class RemoteDispatchTests
     {
         // The token case: no ambient cookie, so the app puts its bearer token on every request.
         var handler = Handler(Json("""{"id":1,"name":"a"}"""));
-        var dispatcher = Dispatcher(handler, o => o.ConfigureRequestAsync = (request, _) =>
+        var dispatcher = Dispatcher(handler, o => o.ConfigureRequest = (request, _) =>
         {
             request.Headers.Add("Authorization", "Bearer token-123");
             return Task.CompletedTask;

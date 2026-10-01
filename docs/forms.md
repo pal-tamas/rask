@@ -261,7 +261,7 @@ Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
 ]
 ```
 
-Submit runs the full validator pipeline (`ValidateAsync`), marks every registered field touched,
+Submit runs the full validator pipeline (`Validate`), marks every registered field touched,
 then routes:
 
 - valid → `OnSubmit` (or, if unset, `OnAnySubmit` with the raw `FormData`),
@@ -314,7 +314,7 @@ _ctx.AddValidator(new SlowTitleValidator());
 
 Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
     Input.Bind(() => _model.Title),
-    Button.Type("button").OnClick(() => _ctx.ValidateAsync().AsTask())["Validate now"],
+    Button.Type("button").OnClick(() => _ctx.Validate().AsTask())["Validate now"],
     Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
 ]
 ```

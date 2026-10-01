@@ -7,7 +7,7 @@ namespace Rask.Site.Features;
 // the literal "explode" exercises the framework's exception fallback.
 public sealed class SlowTitleValidator : IAsyncFieldValidator
 {
-    public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+    public async ValueTask Validate(EditContext context, CancellationToken cancellationToken)
     {
         if (context.Model is TaskModel m)
         {
@@ -16,7 +16,7 @@ public sealed class SlowTitleValidator : IAsyncFieldValidator
         }
     }
 
-    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+    public async ValueTask ValidateField(EditContext context, FieldIdentifier field,
         CancellationToken cancellationToken)
     {
         if (context.Model is TaskModel m && field.FieldName is nameof(TaskModel.Title))

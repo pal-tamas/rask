@@ -17,7 +17,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     private string _status = "(idle)";
     private string _support = "(unchecked)";
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         try
         {
@@ -38,7 +38,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
             _support = "Support check failed: " + ex.Message;
         }
 
-        await StateHasChangedAsync();
+        StateHasChanged();
     }
 
     protected override Component? Render() =>

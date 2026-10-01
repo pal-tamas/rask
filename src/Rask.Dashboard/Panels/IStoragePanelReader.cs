@@ -9,9 +9,9 @@ public interface IStoragePanelReader
     bool IsAvailable { get; }
 
     /// <summary>File count, stored bytes, how many are public, usage per provider, and the sweep's settings.</summary>
-    Task<StorageStats> StatsAsync(CancellationToken cancellationToken);
+    Task<StorageStats> Stats(CancellationToken cancellationToken);
 
     /// <summary>One page of files, newest first, optionally filtered by a substring of the name.</summary>
-    Task<(IReadOnlyList<StoredFileRow> Rows, int Total)> PageAsync(
+    Task<(IReadOnlyList<StoredFileRow> Rows, int Total)> Page(
         string? search, int skip, int take, CancellationToken cancellationToken);
 }

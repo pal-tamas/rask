@@ -26,9 +26,9 @@ public interface IQueuePanel : IQueueActions
     int MaxAttempts { get; }
 
     /// <summary>The five counts, in one round-trip per count.</summary>
-    Task<QueueCounts> CountsAsync(CancellationToken cancellationToken);
+    Task<QueueCounts> Counts(CancellationToken cancellationToken);
 
     /// <summary>One page of rows, newest activity first, plus the total behind it for the pager.</summary>
-    Task<(IReadOnlyList<QueueRow> Rows, int Total)> PageAsync(
+    Task<(IReadOnlyList<QueueRow> Rows, int Total)> Page(
         QueueFilter filter, int skip, int take, CancellationToken cancellationToken);
 }

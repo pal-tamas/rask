@@ -6,7 +6,7 @@ public sealed class UniqueUsernameValidator : IAsyncFieldValidator
 {
     private static readonly HashSet<string> Taken = new(StringComparer.OrdinalIgnoreCase) { "admin", "taken", "root" };
 
-    public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+    public async ValueTask Validate(EditContext context, CancellationToken cancellationToken)
     {
         if (context.Model is SignupModel m)
         {
@@ -15,7 +15,7 @@ public sealed class UniqueUsernameValidator : IAsyncFieldValidator
         }
     }
 
-    public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+    public async ValueTask ValidateField(EditContext context, FieldIdentifier field,
         CancellationToken cancellationToken)
     {
         if (context.Model is SignupModel m && field.FieldName is nameof(SignupModel.Username))

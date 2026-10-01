@@ -3,9 +3,9 @@ using System.Diagnostics.CodeAnalysis;
 namespace Rask.Core.Forms;
 
 // Runtime shape-detector for the inline `Validate: Delegate?` callbacks on Form / Input /
-// Select / Textarea. Two supported shapes:
-//   sync   — Func<TValue, IEnumerable<string>>                                    (1 param)
-//   async  — Func<TValue, CancellationToken, ValueTask<IEnumerable<string>>>      (2 params)
+// Select / Textarea. Two supported shapes, both under the one name `Validate`:
+//   sync   — Validate<TValue> (TValue → IEnumerable<string>)
+//   async  — Func<TValue, ValueTask<IEnumerable<string>>>   (the field's token is Current.Cancellation)
 // The delegate is stored as `Delegate?` rather than two typed properties because the user
 // picked the single-prop call-site shape (see plan: scalable-bubbling-flame.md). Dispatch
 // uses DynamicInvoke — the same trim-suppression rationale as Form's OnSubmit (Form.cs).
@@ -31,7 +31,14 @@ internal static class DelegateValidator
     public static async ValueTask<IEnumerable<string>> InvokeAsync(
         Delegate d, object? value, CancellationToken cancellationToken)
     {
-        var result = d.DynamicInvoke(value, cancellationToken);
+        // The rule reads the field's token from the ambient scope; it starts inside it, so everything it
+        // awaits carries the token past this frame.
+        object? result;
+        using (Ambient.Enter(cancellationToken))
+        {
+            result = d.DynamicInvoke(value);
+        }
+
         switch (result)
         {
             case null:
@@ -45,8 +52,8 @@ internal static class DelegateValidator
         }
     }
 
-    // A delegate is async when it carries a second parameter (the CancellationToken).
-    // We don't introspect the return type — IL2070 is happier this way and the 2-param
-    // shape uniquely identifies the async overload in practice.
-    public static bool IsAsync(Delegate d) => d.Method.GetParameters().Length == 2;
+    // A delegate is async when it hands back an awaitable instead of the messages themselves.
+    public static bool IsAsync(Delegate d) =>
+        d.Method.ReturnType == typeof(ValueTask<IEnumerable<string>>)
+        || d.Method.ReturnType == typeof(Task<IEnumerable<string>>);
 }

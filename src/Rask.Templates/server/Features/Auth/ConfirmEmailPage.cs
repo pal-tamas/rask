@@ -84,7 +84,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
         _busy = true;
         try
         {
-            var result = await auth.ConfirmEmailAsync(UserId, Token);
+            var result = await auth.ConfirmEmail(UserId, Token);
             _error = result.Error;
             _confirmed = result.Succeeded;
         }

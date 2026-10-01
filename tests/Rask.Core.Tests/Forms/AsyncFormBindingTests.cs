@@ -180,7 +180,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         // Simulate an in-flight async validation by bumping PendingCount through ValidateFieldAsync.
         // (We don't await; we just observe the indicator's render against a forced pending state.)
         ctx.AddValidator(new NeverCompletingAsyncValidator());
-        _ = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        _ = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
         Assert.True(ctx.IsValidating(fid));
 
         var html = Page.Render(() => Form.Model(model).Context(ctx)[
@@ -212,9 +212,9 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
 
     private sealed class TaggingAsyncValidator(string fieldName, string message) : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask Validate(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct)
+        public ValueTask ValidateField(EditContext context, FieldIdentifier field, CancellationToken ct)
         {
             if (field.FieldName == fieldName)
             {
@@ -227,9 +227,9 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
 
     private sealed class RejectIfEqualsValidator(string reject, string message) : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask Validate(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct)
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field, CancellationToken ct)
         {
             await Task.Yield();
             if (context.Model is SignupModel m && string.Equals(m.Username, reject, StringComparison.OrdinalIgnoreCase))
@@ -244,9 +244,9 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         public TaskCompletionSource Started { get; } = new();
         public TaskCompletionSource Release { get; } = new();
 
-        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask Validate(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct)
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field, CancellationToken ct)
         {
             Started.TrySetResult();
             await Release.Task.ConfigureAwait(false);
@@ -255,17 +255,17 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
 
     private sealed class NeverCompletingAsyncValidator : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask Validate(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct) =>
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field, CancellationToken ct) =>
             await new TaskCompletionSource().Task.ConfigureAwait(false);
     }
 
     private sealed class DelayedRejectValidator(string reject, string message, int delayMs) : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask Validate(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field, CancellationToken ct)
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field, CancellationToken ct)
         {
             await Task.Delay(delayMs, ct).ConfigureAwait(false);
             if (context.Model is SignupModel m && string.Equals(m.Username, reject, StringComparison.OrdinalIgnoreCase))
