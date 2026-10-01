@@ -33,15 +33,15 @@ public class ClientRuntimeSeamBudgetTests
 
     [Theory]
     [MemberData(nameof(Runtimes))]
-    public void The_devtools_hooks_stay_within_their_budget(string entry, string flags)
+    public async Task The_devtools_hooks_stay_within_their_budget(string entry, string flags)
     {
         var esbuild = PinnedTools.Resolve("esbuild");
         var source = Path.Combine(PinnedTools.RepositoryRoot(), entry);
         var output = Directory.CreateTempSubdirectory("rask-seams-");
         try
         {
-            var shipped = Bundle(esbuild, source, flags, Path.Combine(output.FullName, "shipped.js"));
-            var stripped = Bundle(
+            var shipped = await Bundle(esbuild, source, flags, Path.Combine(output.FullName, "shipped.js"));
+            var stripped = await Bundle(
                 esbuild,
                 source,
                 flags + " --define:window.__raskDevtoolsHook=undefined",
@@ -77,9 +77,9 @@ public class ClientRuntimeSeamBudgetTests
         Assert.DoesNotContain("__raskDevtoolsHost", source, StringComparison.Ordinal);
     }
 
-    private static string Bundle(string esbuild, string source, string flags, string outfile)
+    private static async Task<string> Bundle(string esbuild, string source, string flags, string outfile)
     {
-        var (exitCode, log) = PinnedTools.Run(
+        var (exitCode, log) = await PinnedTools.Run(
             esbuild, $"\"{source}\" --bundle {flags} --minify --log-level=warning --outfile=\"{outfile}\"");
 
         Assert.True(exitCode == 0, $"esbuild could not bundle {source}:{Environment.NewLine}{log}");

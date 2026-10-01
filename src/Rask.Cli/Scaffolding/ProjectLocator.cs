@@ -32,6 +32,53 @@ internal static class ProjectLocator
         return $"Couldn't find a .csproj at or above '{startDirectory}'.";
     }
 
+    /// <summary>
+    /// The one <c>.csproj</c> a <c>--project</c> value names — a project file, or a directory holding exactly one —
+    /// or <c>null</c> when it can't be pinned down, as <see cref="Locate"/> treats ambiguity.
+    /// </summary>
+    public static string? ResolveCsproj(IFileSystem fileSystem, string projectPathOrDirectory)
+    {
+        if (projectPathOrDirectory.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            return fileSystem.FileExists(projectPathOrDirectory) ? projectPathOrDirectory : null;
+        }
+
+        try
+        {
+            var projects = fileSystem.ListFiles(projectPathOrDirectory, "*.csproj");
+            return projects.Count == 1 ? projects[0] : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The one <c>*.Server.csproj</c> directly below <paramref name="directory"/> — a wasm-hosted solution is a directory
+    /// OF projects ({name}.Client/, .Server/, .Shared/) with no csproj at its root, and the Server is the one that runs
+    /// and owns the database. Null when there is none, or more than one.
+    /// </summary>
+    public static string? ServerProjectOneLevelDown(IFileSystem fileSystem, string directory)
+    {
+        IReadOnlyList<string> projects;
+        try
+        {
+            projects = fileSystem.ListFilesRecursive(directory, "*.Server.csproj");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+
+        var root = Path.GetFullPath(directory);
+        var candidates = projects
+            .Where(p => string.Equals(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(p))), root, StringComparison.Ordinal))
+            .ToList();
+
+        return candidates.Count == 1 ? candidates[0] : null;
+    }
+
     public static ProjectContext? Locate(IFileSystem fileSystem, string startDirectory)
     {
         var directory = Path.GetFullPath(startDirectory);

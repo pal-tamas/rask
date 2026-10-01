@@ -21,7 +21,6 @@ namespace Rask.Generators;
 [Generator(LanguageNames.CSharp)]
 public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
 {
-
     private static readonly DiagnosticDescriptor Rask015 = new(
         "RASK015",
         "Orphan scoped-CSS file",
@@ -117,12 +116,14 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
 
         foreach (var css in cssFiles)
         {
-            if (string.IsNullOrWhiteSpace(css.Contents))
+            if (SingleMatch(spc, byDirAndName, css.Path) is not { } match)
             {
                 continue;
             }
 
-            if (SingleMatch(spc, byDirAndName, css.Path) is not { } match)
+            // Whitespace-only content is skipped AFTER pairing, like scoped JS, so an empty orphan still
+            // reports RASK015 rather than vanishing.
+            if (string.IsNullOrWhiteSpace(css.Contents))
             {
                 continue;
             }
@@ -159,14 +160,14 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
         var key = MakeKey(NormalizeDirectory(path), stem);
         if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask015, Location.None, path, stem));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask015, AssetPairing.SourceLocation(path), path, stem));
             return null;
         }
 
         if (matches.Count > 1)
         {
             var fqns = string.Join(", ", matches.Select(m => m.FullyQualifiedName));
-            spc.ReportDiagnostic(Diagnostic.Create(Rask016, Location.None, path, stem, fqns));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask016, AssetPairing.SourceLocation(path), path, stem, fqns));
             return null;
         }
 
@@ -214,7 +215,7 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
             sb.Append("        global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterCss(typeof(")
                 .Append(component.FullyQualifiedName)
                 .Append("), ");
-            AppendVerbatimStringLiteral(sb, css);
+            AssetPairing.AppendVerbatimStringLiteral(sb, css);
             sb.AppendLine(");");
         }
 
@@ -228,24 +229,6 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
     private static string NormalizeDirectory(string path) => AssetPairing.NormalizeDirectory(path);
 
     private static string MakeKey(string dir, string name) => AssetPairing.MakeKey(dir, name);
-
-    private static void AppendVerbatimStringLiteral(StringBuilder sb, string value)
-    {
-        sb.Append("@\"");
-        foreach (var ch in value)
-        {
-            if (ch == '"')
-            {
-                sb.Append("\"\"");
-            }
-            else
-            {
-                sb.Append(ch);
-            }
-        }
-
-        sb.Append('"');
-    }
 
     private readonly record struct ComponentInfo(string TypeName, string FullyQualifiedName, string FilePath);
 

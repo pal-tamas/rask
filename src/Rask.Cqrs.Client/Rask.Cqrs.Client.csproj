@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Rask.Client.Shared\ProblemDocument.cs" Link="Shared\ProblemDocument.cs"/>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <!-- For the file bridge: IRaskFile -> RemoteFile, and Download.File(FileDownload). The transport
          only ever ships inside a Rask app, so the dependency costs nothing a consumer did not already

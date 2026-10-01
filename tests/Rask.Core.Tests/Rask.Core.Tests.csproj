@@ -104,6 +104,7 @@
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\**\*.cs" />
     <RaskTestReads Include="..\..\src\Rask.Server\Resources\**" />
+    <RaskTestReads Include="..\..\src\Rask.Core\Resources\**" />
     <RaskTestReads Include="..\..\src\Rask.Wasm\Resources\**" />
     <RaskTestReads Include="..\..\src\Rask.Wasm\Browser\**" />
   </ItemGroup>

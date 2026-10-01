@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators.Blazor;
 
@@ -131,7 +132,7 @@ public sealed class BlazorGenerator : IIncrementalGenerator
     private static List<(INamedTypeSymbol Island, INamedTypeSymbol Hosted)> FindIslands(SourceProductionContext spc, Compilation compilation)
     {
         var islands = new List<(INamedTypeSymbol Island, INamedTypeSymbol Hosted)>();
-        foreach (var type in Types(compilation.Assembly.GlobalNamespace))
+        foreach (var type in SymbolWalk.AllTypes(compilation.Assembly.GlobalNamespace))
         {
             if (type.IsAbstract || type.TypeKind != TypeKind.Class)
             {
@@ -336,35 +337,4 @@ public sealed class BlazorGenerator : IIncrementalGenerator
 
     private static Location LocationOf(INamedTypeSymbol type) =>
         type.Locations.FirstOrDefault() ?? Location.None;
-
-    // Recursive, like ExternalGenerator.Types (#949). One hand-unrolled level of nesting found an island
-    // inside a container but not one inside a container inside a container — and the miss is silent: no
-    // generated part, so the chain steps for its [Parameter]s simply do not exist and the call site fails
-    // as CS1929 against an unrelated overload. Containers() already walked to arbitrary depth, so the
-    // intent was never one level.
-    private static IEnumerable<INamedTypeSymbol> Types(INamespaceOrTypeSymbol root)
-    {
-        foreach (var member in root.GetMembers())
-        {
-            switch (member)
-            {
-                case INamespaceSymbol ns:
-                    foreach (var nested in Types(ns))
-                    {
-                        yield return nested;
-                    }
-
-                    break;
-
-                case INamedTypeSymbol type:
-                    yield return type;
-                    foreach (var nested in Types(type))
-                    {
-                        yield return nested;
-                    }
-
-                    break;
-            }
-        }
-    }
 }

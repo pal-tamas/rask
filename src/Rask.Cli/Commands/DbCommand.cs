@@ -178,6 +178,14 @@ internal sealed partial class DbCommand(
         }
 
         var located = ProjectLocator.Locate(_fileSystem, _workingDirectory);
+
+        // A wasm-hosted solution's root holds no csproj of its own; its Server project owns the database, which
+        // is also the project `rask dev` runs from there.
+        if (located is null && ProjectLocator.ServerProjectOneLevelDown(_fileSystem, _workingDirectory) is { } server)
+        {
+            return Path.GetDirectoryName(server);
+        }
+
         if (located is null && !(remote && FileSubcommands.Contains(subcommand)))
         {
             Console.WriteErrorLine(
@@ -372,7 +380,7 @@ internal sealed partial class DbCommand(
         string csproj;
         try
         {
-            var resolved = ResolveCsproj(startupProject);
+            var resolved = ProjectLocator.ResolveCsproj(_fileSystem, startupProject);
             if (resolved is null || _fileSystem.ReadAllText(resolved).Contains("Microsoft.EntityFrameworkCore.Design", StringComparison.Ordinal))
             {
                 return;
@@ -392,19 +400,6 @@ internal sealed partial class DbCommand(
         {
             WriteWarning($"  Couldn't add it automatically — add it manually: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design");
         }
-    }
-
-    // Resolve a --project / --startup-project value (a .csproj path or a directory) to its csproj file,
-    // or null when it can't be pinned to exactly one — mirroring how ProjectLocator treats ambiguity.
-    private string? ResolveCsproj(string projectPathOrDirectory)
-    {
-        if (projectPathOrDirectory.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-        {
-            return _fileSystem.FileExists(projectPathOrDirectory) ? projectPathOrDirectory : null;
-        }
-
-        var projects = _fileSystem.ListFiles(projectPathOrDirectory, "*.csproj");
-        return projects.Count == 1 ? projects[0] : null;
     }
 
     private static bool ValidatePositional(string subcommand, string? name, out string? error)

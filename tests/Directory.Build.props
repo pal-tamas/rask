@@ -101,6 +101,9 @@
   <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/TestNamesReadAsSentences.cs"
              Link="Conventions/TestNamesReadAsSentences.cs" />
+    <!-- One way to run a process to completion: both streams read at once, and a timeout that kills the tree. -->
+    <Compile Include="$(MSBuildThisFileDirectory)Shared.TestFiles/TestProcess.cs"
+             Link="Shared/TestProcess.cs" />
   </ItemGroup>
 
 </Project>

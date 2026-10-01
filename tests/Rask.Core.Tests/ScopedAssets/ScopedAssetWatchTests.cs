@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 
 namespace Rask.Core.Tests.ScopedAssets;
@@ -73,27 +72,27 @@ public sealed class ScopedAssetWatchTests : IDisposable
     }
 
     [Fact]
-    public void A_scoped_stylesheet_and_module_are_both_watched()
+    public async Task A_scoped_stylesheet_and_module_are_both_watched()
     {
-        var watched = Watched();
+        var watched = await Watched();
 
         Assert.Contains("Features/Widget.css", watched);
         Assert.Contains("Features/Widget.ts", watched);
     }
 
     [Fact]
-    public void An_ambient_declaration_is_watched_because_the_compile_consumes_it()
+    public async Task An_ambient_declaration_is_watched_because_the_compile_consumes_it()
     {
         // A .d.ts is an Input to the scoped-TypeScript compile target and is handed to tsgo, so
         // editing one changes what the build produces. It was the one scoped input left out of the
         // watch list — found by writing this test, fixed in the same change.
-        Assert.Contains("Features/Widget.d.ts", Watched());
+        Assert.Contains("Features/Widget.d.ts", await Watched());
     }
 
     [Fact]
-    public void Nothing_under_a_build_output_or_a_package_directory_is_watched()
+    public async Task Nothing_under_a_build_output_or_a_package_directory_is_watched()
     {
-        var watched = Watched();
+        var watched = await Watched();
 
         Assert.DoesNotContain(watched, path => path.StartsWith("bin/", StringComparison.Ordinal));
         Assert.DoesNotContain(watched, path => path.StartsWith("obj/", StringComparison.Ordinal));
@@ -102,20 +101,20 @@ public sealed class ScopedAssetWatchTests : IDisposable
     }
 
     [Fact]
-    public void The_stylesheet_opt_out_takes_the_stylesheet_out_of_the_watch_list()
+    public async Task The_stylesheet_opt_out_takes_the_stylesheet_out_of_the_watch_list()
     {
         // RaskScopedCssAutoInclude=false means the app collects its own stylesheets, so watching
         // them on its behalf would be wrong — and would fire on files the build ignores.
-        var watched = Watched("-p:RaskScopedCssAutoInclude=false");
+        var watched = await Watched("-p:RaskScopedCssAutoInclude=false");
 
         Assert.DoesNotContain("Features/Widget.css", watched);
         Assert.Contains("Features/Widget.ts", watched);
     }
 
     [Fact]
-    public void The_module_opt_out_takes_both_the_module_and_its_declarations_out()
+    public async Task The_module_opt_out_takes_both_the_module_and_its_declarations_out()
     {
-        var watched = Watched("-p:RaskScopedTsAutoInclude=false");
+        var watched = await Watched("-p:RaskScopedTsAutoInclude=false");
 
         Assert.DoesNotContain("Features/Widget.ts", watched);
         Assert.DoesNotContain("Features/Widget.d.ts", watched);
@@ -123,23 +122,23 @@ public sealed class ScopedAssetWatchTests : IDisposable
     }
 
     [Fact]
-    public void The_packaged_globals_declaration_is_not_pushed_onto_an_app()
+    public async Task The_packaged_globals_declaration_is_not_pushed_onto_an_app()
     {
         // rask-globals.d.ts ships inside the package and cannot change under an app, so watching it
         // would only add a file that never fires. This is what the placement of its <Watch> guards.
         Assert.DoesNotContain(
-            Watched(), path => path.Contains("rask-globals", StringComparison.Ordinal));
+            await Watched(), path => path.Contains("rask-globals", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void SQLite_sidecar_files_are_outside_the_default_items_dotnet_watch_reacts_to()
+    public async Task SQLite_sidecar_files_are_outside_the_default_items_dotnet_watch_reacts_to()
     {
         // dotnet watch accepts a change anywhere in the project tree unless DefaultItemExcludes
         // matches it, and a file ADDED there re-evaluates the whole project. SQLite creates its -wal
         // and -shm on every start, so without the exclusion each `rask dev` start and restart set
         // off another evaluation. The None glob is **/* minus DefaultItemExcludes, so it is exactly
         // the set the watcher's exclusion globs leave standing.
-        var items = Evaluated("None");
+        var items = await Evaluated("None");
 
         Assert.DoesNotContain("app.db-wal", items);
         Assert.DoesNotContain("app.db-shm", items);
@@ -166,10 +165,10 @@ public sealed class ScopedAssetWatchTests : IDisposable
     }
 
     /// <summary>The <c>@(Watch)</c> item list MSBuild evaluates, as forward-slashed relative paths.</summary>
-    private IReadOnlyList<string> Watched(params string[] properties) => Evaluated("Watch", properties);
+    private Task<IReadOnlyList<string>> Watched(params string[] properties) => Evaluated("Watch", properties);
 
     /// <summary>An item list MSBuild evaluates for the probe, as forward-slashed relative paths.</summary>
-    private IReadOnlyList<string> Evaluated(string itemType, params string[] properties)
+    private async Task<IReadOnlyList<string>> Evaluated(string itemType, params string[] properties)
     {
         // -getItem: evaluates and prints; it runs no target, so this costs an evaluation rather than
         // a build. nodeReuse off because a persisted node would hold this temp directory open and
@@ -180,10 +179,10 @@ public sealed class ScopedAssetWatchTests : IDisposable
         };
         arguments.AddRange(properties);
 
-        var (exitCode, output) = Run("dotnet", arguments);
-        Assert.True(exitCode == 0, $"evaluating the probe project failed:\n{output}");
+        var result = await TestProcess.Run("dotnet", arguments, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.True(result.ExitCode == 0, $"evaluating the probe project failed:\n{result.Output}");
 
-        using var json = JsonDocument.Parse(output);
+        using var json = JsonDocument.Parse(result.Output);
         if (!json.RootElement.GetProperty("Items").TryGetProperty(itemType, out var items))
         {
             return [];
@@ -214,28 +213,5 @@ public sealed class ScopedAssetWatchTests : IDisposable
         var path = Path.Combine(_project, relativePath.Replace('/', Path.DirectorySeparatorChar));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content);
-    }
-
-    private static (int ExitCode, string Output) Run(string executable, IReadOnlyList<string> arguments)
-    {
-        var startInfo = new ProcessStartInfo(executable)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
-        foreach (var argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
-
-        using var process = Process.Start(startInfo)!;
-
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        return (process.ExitCode, stdout + stderr);
     }
 }

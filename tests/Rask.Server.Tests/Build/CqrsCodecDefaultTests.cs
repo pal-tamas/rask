@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.Server.Tests.Build;
 
@@ -18,41 +18,41 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
-    public void A_webassembly_client_in_Client_turns_the_codec_on()
+    public async Task A_webassembly_client_in_Client_turns_the_codec_on()
     {
         Write("Client/Program.cs", "// the browser half");
 
-        var codec = Evaluate();
+        var codec = await Evaluate();
 
         Assert.Equal("true", codec);
     }
 
     [Fact]
-    public void A_server_rendered_app_keeps_the_codec_off()
+    public async Task A_server_rendered_app_keeps_the_codec_off()
     {
         Write("Program.cs", "// no front end of its own");
 
-        var codec = Evaluate();
+        var codec = await Evaluate();
 
         Assert.Equal("false", codec);
     }
 
     [Fact]
-    public void A_package_json_in_client_does_not_turn_the_codec_on()
+    public async Task A_package_json_in_client_does_not_turn_the_codec_on()
     {
         Write("client/package.json", "{}");
 
-        var codec = Evaluate();
+        var codec = await Evaluate();
 
         Assert.Equal("false", codec);
     }
 
     [Fact]
-    public void An_explicit_setting_wins_over_the_client_convention()
+    public async Task An_explicit_setting_wins_over_the_client_convention()
     {
         Write("Client/Program.cs", "// the browser half");
 
-        var codec = Evaluate("<RaskCqrsCodec>false</RaskCqrsCodec>");
+        var codec = await Evaluate("<RaskCqrsCodec>false</RaskCqrsCodec>");
 
         Assert.Equal("false", codec);
     }
@@ -64,7 +64,7 @@ public sealed class CqrsCodecDefaultTests : IDisposable
         File.WriteAllText(full, content);
     }
 
-    private string Evaluate(string properties = "")
+    private async Task<string> Evaluate(string properties = "")
     {
         File.WriteAllText(Path.Combine(_dir, "Host.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
@@ -76,24 +76,13 @@ public sealed class CqrsCodecDefaultTests : IDisposable
             </Project>
             """);
 
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = _dir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        foreach (var argument in new[] { "msbuild", "Host.csproj", "-nologo", "-nodeReuse:false", "-getProperty:RaskCqrsCodec" })
-        {
-            psi.ArgumentList.Add(argument);
-        }
+        var result = await TestProcess.Run(
+            "dotnet",
+            ["msbuild", "Host.csproj", "-nologo", "-nodeReuse:false", "-getProperty:RaskCqrsCodec"],
+            _dir);
 
-        using var p = Process.Start(psi)!;
-        var stdout = p.StandardOutput.ReadToEnd();
-        var stderr = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-
-        Assert.True(p.ExitCode == 0, $"evaluation failed:\n{stdout}{stderr}");
-        return stdout.Trim();
+        Assert.True(result.ExitCode == 0, $"evaluation failed:\n{result.Output}");
+        return result.StandardOutput.Trim();
     }
 
     private static string SrcDir
