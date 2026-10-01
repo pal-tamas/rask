@@ -26,7 +26,9 @@ internal static class WebEmitter
         "Document.write", "Document.writeln", "Document.open", "Document.close", "Document.title=",
     };
 
-    public static IReadOnlyList<KeyValuePair<string, string>> Emit(string snapshotJson)
+    // Rask.Web's files, or with `wasm` Rask.Wasm's: the per-frame families whole, and the members only WebAssembly can
+    // run (WebHost) as extension members of the proxies and globals Rask.Web declares, beside the element refs' own.
+    public static IReadOnlyList<KeyValuePair<string, string>> Emit(string snapshotJson, bool wasm = false)
     {
         var root = DomEmitter.Parse(snapshotJson);
 
@@ -35,9 +37,42 @@ internal static class WebEmitter
         DomEmitter.Emit(snapshotJson, new Partials(), types);
         types.MarkExternal();
 
+        // The element-ref members only WebAssembly runs, from a pass of Core's own, which names Core's types as Core does.
+        var wasmRefs = new List<KeyValuePair<string, string>>();
+        if (wasm)
+        {
+            DomEmitter.Emit(snapshotJson, new Partials(), wasm: wasmRefs);
+        }
+
+        var payloads = new WebPayloads(root, types);
+        var model = Build(root, types, payloads);
+        var files = new List<KeyValuePair<string, string>>();
+        foreach (var name in model.ProxyNames.Where(n => WebHost.IsWasmInterface(n) == wasm).OrderBy(n => n, StringComparer.Ordinal))
+        {
+            var hasChildren = model.ProxyNames.Any(p => string.Equals(Base(model.Interfaces, model.ProxyNames, p), name, StringComparison.Ordinal));
+            var members = model.Members[name].Where(m => wasm || !m.Wasm).ToList();
+            files.Add(new KeyValuePair<string, string>(
+                name + ".g.cs", Proxy(name, model.Interfaces[name]!, Base(model.Interfaces, model.ProxyNames, name), hasChildren, members)));
+        }
+
+        if (wasm)
+        {
+            files.Add(new KeyValuePair<string, string>("WasmMembers.g.cs", WasmMembers(model)));
+            files.AddRange(wasmRefs);
+            return files;
+        }
+
+        files.Add(new KeyValuePair<string, string>("WebEvents.g.cs", payloads.Declarations()));
+        files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(model)));
+        files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext")));
+        return files;
+    }
+
+    // Every proxy's members, statics and constructors, bases first so a derived one never declares a name again.
+    private static Model Build(JsonNode root, DomValueTypes types, WebPayloads payloads)
+    {
         var interfaces = root["interfaces"]!;
         var proxies = Proxies(root, types);
-        var payloads = new WebPayloads(root, types);
         var members = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
         var extras = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
         foreach (var name in proxies.OrderBy(n => Depth(interfaces, n)).ThenBy(n => n, StringComparer.Ordinal))
@@ -60,17 +95,7 @@ internal static class WebEmitter
             }
         }
 
-        var files = new List<KeyValuePair<string, string>>();
-        foreach (var name in proxies.OrderBy(n => n, StringComparer.Ordinal))
-        {
-            var hasChildren = proxies.Any(p => string.Equals(Base(interfaces, proxies, p), name, StringComparison.Ordinal));
-            files.Add(new KeyValuePair<string, string>(name + ".g.cs", Proxy(name, interfaces[name]!, Base(interfaces, proxies, name), hasChildren, members[name])));
-        }
-
-        files.Add(new KeyValuePair<string, string>("WebEvents.g.cs", payloads.Declarations()));
-        files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(new Model(interfaces, proxies, members, extras))));
-        files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext")));
-        return files;
+        return new Model(interfaces, proxies, members, extras);
     }
 
     // The interfaces that become live proxies: the web ones that are not values, not DOM nodes, since Rask owns the DOM,
@@ -172,20 +197,34 @@ internal static class WebEmitter
     // Everything in Rask.Web, the namespace a file imports: Window's members as statics on `Window`, each object window
     // holds (navigator, localStorage) as a global named for the property, and each interface's statics and
     // constructors on a class of its name — URL.CanParse(…), BroadcastChannel.Create(…) — merged into the global where
-    // one has that name (Document).
+    // one has that name (Document). Each is a sealed class, not a static one, so Rask.Wasm can extend it.
     private static string Globals(Model model)
     {
-        var sb = new StringBuilder();
-        DomValueTypes.Header(sb);
-        sb.AppendLine("using System.Threading.Tasks;");
-        sb.AppendLine();
-        sb.AppendLine("namespace Rask.Web;");
-        sb.AppendLine();
+        var sb = Open("Rask.Web");
         var written = new HashSet<string>(StringComparer.Ordinal);
-        if (model.ProxyNames.Contains("Window"))
+        foreach (var (name, idl, type, chain) in GlobalList(model))
         {
-            Global(sb, model, "Window", "window", "Window", "global::Rask.Web.JsChain.Window");
-            written.Add("Window");
+            Global(sb, model, name, idl, type, chain);
+            written.Add(name);
+        }
+
+        foreach (var name in model.Extras.Keys.Where(n => model.Extras[n].Count > 0 && !written.Contains(n) && !WebHost.IsWasmInterface(n))
+                     .OrderBy(n => n, StringComparer.Ordinal))
+        {
+            Facade(sb, model, name, model.Extras[name].Where(m => !m.Wasm));
+        }
+
+        return sb.ToString();
+    }
+
+    // The globals: window itself, and each object it holds by a property.
+    private static List<(string Name, string Idl, string Type, string Chain)> GlobalList(Model model)
+    {
+        var result = new List<(string Name, string Idl, string Type, string Chain)>();
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        if (model.ProxyNames.Contains("Window") && names.Add("Window"))
+        {
+            result.Add(("Window", "window", "Window", "global::Rask.Web.JsChain.Window"));
         }
 
         foreach (var a in model.Interfaces["Window"]?["members"]?.Items ?? new List<JsonNode>())
@@ -193,65 +232,166 @@ internal static class WebEmitter
             var type = a["type"]?.AsString()?.TrimEnd('?');
             var name = DomRefEmitter.Pascal(a["name"]!.AsString()!);
             if (string.Equals(a["kind"]?.AsString(), "attribute", StringComparison.Ordinal) && type is not null && model.ProxyNames.Contains(type)
-                && written.Add(name))
+                && names.Add(name))
             {
+                if (WebHost.IsWasmInterface(type))
+                {
+                    throw new DomEmitException($"window.{a["name"]!.AsString()} holds a {type}, which only WebAssembly runs: give Rask.Wasm its global.");
+                }
+
                 var idl = a["name"]!.AsString()!;
-                Global(sb, model, name, idl, type, $"global::Rask.Web.JsChain.Window.Get(\"{idl}\")");
+                result.Add((name, idl, type, $"global::Rask.Web.JsChain.Window.Get(\"{idl}\")"));
             }
         }
 
-        foreach (var name in model.Extras.Keys.Where(n => model.Extras[n].Count > 0 && !written.Contains(n)).OrderBy(n => n, StringComparer.Ordinal))
-        {
-            DomEmitter.Doc(sb, "", $"MDN's <c>{name}</c> class: its constructors, as Create, and its static members.", model.Interfaces[name]!);
-            sb.Append("public static class ").AppendLine(name);
-            sb.AppendLine("{");
-            Facade(sb, model.Extras[name], new HashSet<string>(StringComparer.Ordinal));
-            sb.AppendLine("}");
-            sb.AppendLine();
-        }
+        return result;
+    }
 
-        return sb.ToString();
+    private static StringBuilder Open(string ns)
+    {
+        var sb = new StringBuilder();
+        DomValueTypes.Header(sb);
+        sb.AppendLine("using System.Threading.Tasks;");
+        sb.AppendLine();
+        sb.Append("namespace ").Append(ns).AppendLine(";");
+        sb.AppendLine();
+        return sb;
     }
 
     private static void Global(StringBuilder sb, Model model, string name, string idl, string type, string chain)
     {
         DomEmitter.Doc(sb, "", $"The browser's <c>{idl}</c> (MDN's <c>{type}</c>): its members, run in one round trip each.", model.Interfaces[type]!);
-        sb.Append("public static class ").AppendLine(name);
-        sb.AppendLine("{");
-        sb.Append("    private static ").Append(TypesNs).Append(type).Append(" Instance => new(").Append(chain).AppendLine(");");
+        OpenClass(sb, name);
+        sb.Append("    internal static ").Append(TypesNs).Append(type).Append(" Instance => new(").Append(chain).AppendLine(");");
         sb.AppendLine();
         sb.AppendLine("    /// <summary>Whether this browser has it.</summary>");
         sb.AppendLine("    public static ValueTask<bool> IsSupported => Instance.IsSupported;");
         sb.AppendLine();
         sb.AppendLine("    /// <summary>A test's stand-in for it, for the rest of the test's flow, until disposed of.</summary>");
         sb.Append("    public static global::Rask.Web.WebFake<").Append(TypesNs).Append(type).AppendLine("> Fake() => Instance.Fake();");
-        var seen = new HashSet<string>(StringComparer.Ordinal) { "IsSupported", "Fake" };
-        for (var t = type; t is not null; t = Base(model.Interfaces, model.ProxyNames, t))
+        var members = GlobalMembers(model, type);
+        foreach (var m in members.Where(m => !m.Wasm))
         {
-            foreach (var m in model.Members[t].Where(m => seen.Add(m.Signature)))
-            {
-                sb.AppendLine();
-                m.WriteStatic(sb);
-            }
+            sb.AppendLine();
+            m.WriteStatic(sb);
         }
 
         // The interface of the global's name brings its statics and constructors (Document.Create()).
         if (model.Extras.TryGetValue(name, out var extras))
         {
-            Facade(sb, extras, new HashSet<string>(seen.Select(x => x.Split('(')[0]), StringComparer.Ordinal));
+            WriteFacade(sb, FacadeOf(extras, members).Where(m => !m.Wasm));
         }
 
         sb.AppendLine("}");
         sb.AppendLine();
     }
 
-    // Statics and constructors, less any whose name a delegated member of the same class already holds.
-    private static void Facade(StringBuilder sb, List<WebMember> extras, HashSet<string> taken)
+    private static void OpenClass(StringBuilder sb, string name)
     {
-        foreach (var m in extras.Where(m => !taken.Contains(m.Name)))
+        sb.Append("public sealed class ").AppendLine(name);
+        sb.AppendLine("{");
+        sb.Append("    private ").Append(name).AppendLine("()");
+        sb.AppendLine("    {");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    // A global's instance members, its type's and its bases', each overload once.
+    private static List<WebMember> GlobalMembers(Model model, string type)
+    {
+        var result = new List<WebMember>();
+        var seen = new HashSet<string>(StringComparer.Ordinal) { "IsSupported", "Fake" };
+        for (var t = type; t is not null; t = Base(model.Interfaces, model.ProxyNames, t))
+        {
+            result.AddRange(model.Members[t].Where(m => seen.Add(m.Signature)));
+        }
+
+        return result;
+    }
+
+    // Statics and constructors, less any whose name a delegated member of the same class already holds.
+    private static IEnumerable<WebMember> FacadeOf(List<WebMember> extras, List<WebMember> members)
+    {
+        var taken = new HashSet<string>(members.Select(m => m.Name), StringComparer.Ordinal) { "IsSupported", "Fake" };
+        return extras.Where(m => !taken.Contains(m.Name));
+    }
+
+    private static void Facade(StringBuilder sb, Model model, string name, IEnumerable<WebMember> extras)
+    {
+        DomEmitter.Doc(sb, "", $"MDN's <c>{name}</c> class: its constructors, as Create, and its static members.", model.Interfaces[name]!);
+        OpenClass(sb, name);
+        WriteFacade(sb, extras);
+        sb.AppendLine("}");
+        sb.AppendLine();
+    }
+
+    private static void WriteFacade(StringBuilder sb, IEnumerable<WebMember> extras)
+    {
+        foreach (var m in extras)
         {
             sb.AppendLine();
             m.WriteFacade(sb);
         }
+    }
+
+    // Rask.Wasm's side: the per-frame families' own classes, and in one static class the members only WebAssembly runs,
+    // as extension members: instance ones on Rask.Web's proxies, static ones on its globals and classes.
+    private static string WasmMembers(Model model)
+    {
+        var sb = Open("Rask.Web");
+        foreach (var name in model.Extras.Keys.Where(n => model.Extras[n].Count > 0 && WebHost.IsWasmInterface(n)).OrderBy(n => n, StringComparer.Ordinal))
+        {
+            Facade(sb, model, name, model.Extras[name]);
+        }
+
+        sb.AppendLine("/// <summary>The web API members only WebAssembly can run: each needs the user's click in progress, generated from MDN.</summary>");
+        sb.AppendLine("public static class WasmMembers");
+        sb.AppendLine("{");
+        foreach (var name in model.ProxyNames.Where(n => !WebHost.IsWasmInterface(n)).OrderBy(n => n, StringComparer.Ordinal))
+        {
+            Extension(sb, TypesNs + name + " self", model.Members[name].Where(m => m.Wasm), m => m.WriteExtension(sb, "self"));
+        }
+
+        var globals = GlobalList(model);
+        foreach (var (name, _, type, _) in globals)
+        {
+            var members = GlobalMembers(model, type);
+            var extras = model.Extras.TryGetValue(name, out var e) ? FacadeOf(e, members) : Enumerable.Empty<WebMember>();
+            Extension(sb, "global::Rask.Web." + name, members.Where(m => m.Wasm), m => m.WriteStatic(sb, "        ", $"global::Rask.Web.{name}.Instance"));
+            Extension(sb, "global::Rask.Web." + name, extras.Where(m => m.Wasm), m => m.WriteFacade(sb, "        "));
+        }
+
+        foreach (var name in model.Extras.Keys.Where(n => !WebHost.IsWasmInterface(n) && !globals.Any(g => string.Equals(g.Name, n, StringComparison.Ordinal)))
+                     .OrderBy(n => n, StringComparer.Ordinal))
+        {
+            Extension(sb, "global::Rask.Web." + name, model.Extras[name].Where(m => m.Wasm), m => m.WriteFacade(sb, "        "));
+        }
+
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    private static void Extension(StringBuilder sb, string receiver, IEnumerable<WebMember> members, Action<WebMember> write)
+    {
+        var list = members.ToList();
+        if (list.Count == 0)
+        {
+            return;
+        }
+
+        sb.Append("    extension(").Append(receiver).AppendLine(")");
+        sb.AppendLine("    {");
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.AppendLine();
+            }
+
+            write(list[i]);
+        }
+
+        sb.AppendLine("    }");
+        sb.AppendLine();
     }
 }

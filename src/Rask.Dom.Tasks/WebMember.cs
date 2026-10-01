@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Rask.Generators.Json;
 
 namespace Rask.Core.Dom.Build;
@@ -44,6 +45,9 @@ internal sealed class WebMember
     }
 
     public string Name { get; }
+
+    // Whether only WebAssembly can run it (WebHost): Rask.Wasm declares it, as an extension member, and Rask.Web does not.
+    public bool Wasm { get; private set; }
 
     // The parameter types alone: how a derived Create is told apart from, or hides, a base's.
     public string ParameterTypes { get; }
@@ -180,7 +184,11 @@ internal sealed class WebMember
     }
 
     private WebMember AsStatic(string root) =>
-        new(_data, _summary, _returns, Name, _parameters, _arguments, _body.Replace("Chain.", root + "."), "static ", ParameterTypes);
+        new(_data, _summary, _returns, Name, _parameters, _arguments, Rechain(root + "."), "static ", ParameterTypes) { Wasm = Wasm };
+
+    // The body over another chain: the member's own `Chain.`, never the JsChain.Callback(…) inside its arguments.
+    private string Rechain(string replacement) =>
+        Regex.Replace(_body, @"(?<![\w.:])Chain\.", replacement, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     public static List<WebMember> Of(
         string iface, JsonNode data, DomValueTypes types, HashSet<string> proxies, HashSet<string> taken, HashSet<string> denied, JsonNode? callbacks = null)
@@ -198,6 +206,11 @@ internal sealed class WebMember
             var added = string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal)
                 ? Operation(m, idl, types, proxies, callbacks)
                 : Attribute(m, idl, types, proxies, denied.Contains(iface + "." + idl + "="));
+            foreach (var x in added)
+            {
+                x.Wasm = WebHost.IsWasmMember(iface, idl) || WebHost.Mentions(x._returns + " " + x._parameters);
+            }
+
             result.AddRange(added.Where(x => !taken.Contains(x.Name)));
             taken.UnionWith(added.Select(x => x.Name));
         }
@@ -293,41 +306,39 @@ internal sealed class WebMember
             : new WebMember(m, summary, $"ValueTask<{value}>", method, declared, names, $"Chain.Call<{value}>(\"{idl}\"{args})", parameterTypes: typesOnly);
     }
 
-    public void WriteInstance(StringBuilder sb)
+    public void WriteInstance(StringBuilder sb) => Write(sb, "    ", "public " + _modifiers, _body);
+
+    // An instance member only WebAssembly runs, in Rask.Wasm: an extension member of the proxy, over its chain.
+    public void WriteExtension(StringBuilder sb, string receiver) => Write(sb, "        ", "public ", Rechain(receiver + ".Chain."));
+
+    // A static or constructor on its class in Rask.Web, no base to hide there, so plainly static; or, indented, inside
+    // Rask.Wasm's static extension of that class.
+    public void WriteFacade(StringBuilder sb, string indent = "    ") => Write(sb, indent, "public static ", _body);
+
+    private void Write(StringBuilder sb, string indent, string modifiers, string body)
     {
-        DomEmitter.Doc(sb, "    ", _summary, _data);
-        sb.Append("    public ").Append(_modifiers).Append(_returns).Append(' ').Append(Name);
+        DomEmitter.Doc(sb, indent, _summary, _data);
+        sb.Append(indent).Append(modifiers).Append(_returns).Append(' ').Append(Name);
         if (_parameters is not null)
         {
             sb.Append('(').Append(_parameters).Append(')');
         }
 
-        sb.Append(" => ").Append(_body).AppendLine(";");
+        sb.Append(" => ").Append(body).AppendLine(";");
     }
 
-    // A static or constructor on its class in Rask.Web: no base to hide there, so plainly static.
-    public void WriteFacade(StringBuilder sb)
+    // A global's member, forwarded to the global's instance: `instance` is the class's own Instance, or, from Rask.Wasm's
+    // static extension of the global, the global's by name.
+    public void WriteStatic(StringBuilder sb, string indent = "    ", string instance = "Instance")
     {
-        DomEmitter.Doc(sb, "    ", _summary, _data);
-        sb.Append("    public static ").Append(_returns).Append(' ').Append(Name);
+        DomEmitter.Doc(sb, indent, _summary, _data);
+        sb.Append(indent).Append("public static ").Append(_returns).Append(' ').Append(Name);
         if (_parameters is not null)
         {
             sb.Append('(').Append(_parameters).Append(')');
         }
 
-        sb.Append(" => ").Append(_body).AppendLine(";");
-    }
-
-    public void WriteStatic(StringBuilder sb)
-    {
-        DomEmitter.Doc(sb, "    ", _summary, _data);
-        sb.Append("    public static ").Append(_returns).Append(' ').Append(Name);
-        if (_parameters is not null)
-        {
-            sb.Append('(').Append(_parameters).Append(')');
-        }
-
-        sb.Append(" => Instance.").Append(Name);
+        sb.Append(" => ").Append(instance).Append('.').Append(Name);
         if (_parameters is not null)
         {
             sb.Append('(').Append(_arguments).Append(')');

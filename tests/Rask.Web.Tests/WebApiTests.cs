@@ -70,16 +70,18 @@ public sealed class WebApiTests
     [Fact]
     public async Task Options_and_enums_cross_in_MDNs_own_shape()
     {
-        var browser = new FakeBrowser().Answers("\"hidden\"");
+        var browser = new FakeBrowser().Answers("true", "\"hidden\"");
 
+        bool canShare;
         DocumentVisibilityState state;
         using (browser.Enter())
         {
-            await Navigator.Share(new ShareData { Title = "Rask", Url = "https://rask.sh" });
+            canShare = await Navigator.CanShare(new ShareData { Title = "Rask", Url = "https://rask.sh" });
             state = await Document.VisibilityState;
         }
 
-        Assert.Equal("""[["g","navigator"],["c","share",[{"title":"Rask","url":"https://rask.sh"}]]]""", browser.Steps(0));
+        Assert.Equal("""[["g","navigator"],["c","canShare",[{"title":"Rask","url":"https://rask.sh"}]]]""", browser.Steps(0));
+        Assert.True(canShare);
         Assert.Equal(DocumentVisibilityState.Hidden, state);
     }
 
