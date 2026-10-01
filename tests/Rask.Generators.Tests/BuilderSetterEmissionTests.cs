@@ -415,7 +415,7 @@ public class BuilderSetterEmissionTests
         // The slot is ONE `Validator<int>`, so the step is one name with three overloads: the carrier
         // itself, and one per shape a rule can take. Both shapes are asserted, because a step that
         // emitted only the synchronous one would compile, pass every other test, and simply have no way
-        // to say `.Validate(async (v, ct) => …)`.
+        // to say `.Validate(async v => …)`.
         Assert.Contains(
             "Validate(this global::Demo.Widget __b, "
             + "global::Rask.Core.Validator<int>? value) "
@@ -423,7 +423,7 @@ public class BuilderSetterEmissionTests
             + "return __b; }",
             output,
             StringComparison.Ordinal);
-        foreach (var shape in new[] { "global::Rask.Core.Forms.Validate<int>", "global::Rask.Core.Forms.ValidateAsync<int>" })
+        foreach (var shape in new[] { "global::Rask.Core.Forms.Validate<int>", "global::System.Func<int, global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>>" })
         {
             Assert.Contains(
                 "Validate(this global::Demo.Widget __b, "

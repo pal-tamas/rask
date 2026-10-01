@@ -4,9 +4,9 @@ namespace Rask.Site.Features;
 
 public sealed partial class InlineAsyncValidateDemo : Component
 {
-    // Showcases the typed async Validate overload: a bare `async (v, ct) => …` lambda binds
-    // directly to Func<TProp, CancellationToken, ValueTask<IEnumerable<string>>> on the Input,
-    // and a bare `async (m, ct) => …` lambda binds the same shape on Form — both with no cast.
+    // Showcases the async Validate overload: a method group or a bare `async m => …` lambda binds
+    // the asynchronous rule on the Input and on the Form alike — no cast, no …Async sibling. The
+    // field's token is Current.Cancellation.
     // The 250ms delay drives the latest-wins cancellation path (rapid typing supersedes the
     // prior in-flight run), and the kit field shows "Checking…" for the pending state on its own.
     private static readonly HashSet<string> TakenCodes =
@@ -26,23 +26,23 @@ public sealed partial class InlineAsyncValidateDemo : Component
         return Ui.Alert.Error.Soft.Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]];
     }
 
-    private static async ValueTask<IEnumerable<string>> CheckCodeAsync(string code, CancellationToken ct)
+    private static async ValueTask<IEnumerable<string>> CheckCodeAsync(string code)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
             return Array.Empty<string>();
         }
 
-        await Task.Delay(250, ct).ConfigureAwait(false);
+        await Task.Delay(250, Current.Cancellation).ConfigureAwait(false);
         return TakenCodes.Contains(code) ? new[] { $"\"{code}\" is reserved." } : Array.Empty<string>();
     }
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnSubmit(m => _submission = $"Redeemed: {m.Code}").Class("flex flex-col gap-3").Validate(async (m, ct) =>
+        Form.Model(_model).OnSubmit(m => _submission = $"Redeemed: {m.Code}").Class("flex flex-col gap-3").Validate(async m =>
             {
                 await Task.Yield();
-                ct.ThrowIfCancellationRequested();
+                Current.Cancellation.ThrowIfCancellationRequested();
                 return string.IsNullOrWhiteSpace(m.Code)
                     ? ["Code is required."]
                     : [];

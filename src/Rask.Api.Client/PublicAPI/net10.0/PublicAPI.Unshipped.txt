@@ -4,8 +4,8 @@ Rask.Api.Client.ApiClientOptions
 Rask.Api.Client.ApiClientOptions.ApiClientOptions() -> void
 Rask.Api.Client.ApiClientOptions.BaseAddress.get -> System.Uri?
 Rask.Api.Client.ApiClientOptions.BaseAddress.set -> void
-Rask.Api.Client.ApiClientOptions.ConfigureRequestAsync.get -> System.Func<System.Net.Http.HttpRequestMessage!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
-Rask.Api.Client.ApiClientOptions.ConfigureRequestAsync.set -> void
+Rask.Api.Client.ApiClientOptions.ConfigureRequest.get -> System.Func<System.Net.Http.HttpRequestMessage!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
+Rask.Api.Client.ApiClientOptions.ConfigureRequest.set -> void
 Rask.Api.Client.ApiClientOptions.Timeout.get -> System.TimeSpan
 Rask.Api.Client.ApiClientOptions.Timeout.set -> void
 Rask.Api.Client.ApiClientRegistration
@@ -29,7 +29,7 @@ Rask.Api.Client.ApiException.StatusCode.get -> int?
 Rask.Api.Client.ApiUri
 Rask.Api.Client.RaskApiClientServiceCollectionExtensions
 override Rask.Api.Client.ApiClientRegistration.GetHashCode() -> int
-static Rask.Api.Client.ApiCall.SendAsync(System.Net.Http.HttpClient! http, Rask.Api.Client.ApiClientOptions! options, System.Net.Http.HttpMethod! method, string! path, byte[]? body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]?>!
+static Rask.Api.Client.ApiCall.Send(System.Net.Http.HttpClient! http, Rask.Api.Client.ApiClientOptions! options, System.Net.Http.HttpMethod! method, string! path, byte[]? body, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]?>!
 static Rask.Api.Client.ApiClientRegistration.operator !=(Rask.Api.Client.ApiClientRegistration left, Rask.Api.Client.ApiClientRegistration right) -> bool
 static Rask.Api.Client.ApiClientRegistration.operator ==(Rask.Api.Client.ApiClientRegistration left, Rask.Api.Client.ApiClientRegistration right) -> bool
 static Rask.Api.Client.ApiClientRegistry.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Api.Client.ApiClientRegistration>!

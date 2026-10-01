@@ -89,7 +89,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
     public async Task The_async_inline_Validate_overload_runs_through_ValidateFieldAsync()
     {
         // Drives the async `Validate: (v, ct) => …` overload — a one-line lambda binds straight
-        // to Func<string, CancellationToken, ValueTask<IEnumerable<string>>> with no cast. The
+        // to Func<string, ValueTask<IEnumerable<string>>> with no cast. The
         // dispatch goes through DelegateValidator.InvokeAsync because IsAsync(d) sees the two
         // parameters; messages land via EditContext.ValidateFieldAsync.
         var p = new Person { Name = "" };
@@ -97,10 +97,10 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
-                .Validate(async (v, ct) =>
+                .Validate(async v =>
                 {
                     await Task.Yield();
-                    ct.ThrowIfCancellationRequested();
+                    Current.Cancellation.ThrowIfCancellationRequested();
                     return v.Length < 3 ? new[] { "async-too-short" } : Array.Empty<string>();
                 }),
             Test.EditContextProbe(ctx => captured = ctx)
@@ -108,7 +108,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 
         Assert.NotNull(captured);
 
-        await captured!.ValidateFieldAsync(new FieldIdentifier(p, nameof(Person.Name)), TestContext.Current.CancellationToken);
+        await captured!.ValidateField(new FieldIdentifier(p, nameof(Person.Name)), TestContext.Current.CancellationToken);
 
         Assert.Contains("async-too-short",
             captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
@@ -125,10 +125,10 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
-                .Validate(async (v, ct) =>
+                .Validate(async v =>
                 {
                     await Task.Yield();
-                    ct.ThrowIfCancellationRequested();
+                    Current.Cancellation.ThrowIfCancellationRequested();
                     return Array.Empty<string>();
                 }),
             Test.EditContextProbe(ctx => captured = ctx)
@@ -138,7 +138,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
-        await captured!.ValidateFieldAsync(new FieldIdentifier(p, nameof(Person.Name)), cts.Token);
+        await captured!.ValidateField(new FieldIdentifier(p, nameof(Person.Name)), cts.Token);
 
         // OCE bubbled — no generic message added; no success messages either.
         Assert.Empty(captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));

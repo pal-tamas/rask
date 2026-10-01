@@ -18,7 +18,7 @@ namespace Rask.Core.Browser;
 ///     <code>
 ///     private readonly ElementRef _sentinel = ElementRef.New();
 ///     protected override Component? Render() => Div(Ref: _sentinel)[ ... ];
-///     protected override async Task OnFirstRendered()
+///     protected override async Task OnFirstRender()
 ///     {
 ///         _obs = await observer.ObserveAsync(_sentinel, e => { if (e.IsIntersecting) LoadMore(); return Task.CompletedTask; });
 ///     }

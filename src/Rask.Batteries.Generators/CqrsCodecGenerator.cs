@@ -598,8 +598,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         if (contract.Kind is not (RemoteKind.Notification or RemoteKind.Subscription))
         {
             var send = contract.Kind == RemoteKind.VoidCommand
-                ? $"Remote(provider).SendAsync({field}, message, cancellationToken)"
-                : $"Remote(provider).SendAsync<{contract.ResultFqn}>({field}, message, cancellationToken)";
+                ? $"Remote(provider).Send({field}, message, cancellationToken)"
+                : $"Remote(provider).Send<{contract.ResultFqn}>({field}, message, cancellationToken)";
             entry.AppendLine(
                 $"            Invoker = static (provider, message, cancellationToken) => {send},");
         }

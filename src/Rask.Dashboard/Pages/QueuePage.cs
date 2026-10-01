@@ -40,7 +40,7 @@ public sealed partial class QueuePage(
         Enum.TryParse<QueueFilter>(Show, ignoreCase: true, out var parsed) ? parsed : QueueFilter.Outstanding;
 
     /// <inheritdoc />
-    protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
+    protected override async Task<object?> Load(CancellationToken cancellationToken)
     {
         _panel = queues.FirstOrDefault(q =>
             string.Equals(q.Slug, Queue, StringComparison.OrdinalIgnoreCase) && q.IsAvailable);
@@ -52,16 +52,16 @@ public sealed partial class QueuePage(
             return null;
         }
 
-        _counts = await _panel.CountsAsync(cancellationToken).ConfigureAwait(false);
+        _counts = await _panel.Counts(cancellationToken).ConfigureAwait(false);
         (_rows, _total) = await _panel
-            .PageAsync(Filter, _page * options.PageSize, options.PageSize, cancellationToken)
+            .Page(Filter, _page * options.PageSize, options.PageSize, cancellationToken)
             .ConfigureAwait(false);
 
         if (_rows.Count == 0 && _page > DashboardParts.LastPageIndex(_total, options.PageSize))
         {
             _page = DashboardParts.LastPageIndex(_total, options.PageSize);
             (_rows, _total) = await _panel
-                .PageAsync(Filter, _page * options.PageSize, options.PageSize, cancellationToken)
+                .Page(Filter, _page * options.PageSize, options.PageSize, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -100,7 +100,7 @@ public sealed partial class QueuePage(
             ConfirmPrompt(),
             CountTiles(),
             RowsGrid(),
-            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(Resume),
             DetailSheet(),
             ResultToast(),
         ];
@@ -284,7 +284,7 @@ public sealed partial class QueuePage(
                 .Variant(Ui.Variant.Outline)
                 .OnClick(() => RunAsync(
                     $"Retry all {_counts.Failed} dead letters?",
-                    async ct => $"Re-queued {await _panel!.RetryAllAsync(ct).ConfigureAwait(false)}."))[
+                    async ct => $"Re-queued {await _panel!.RetryAll(ct).ConfigureAwait(false)}."))[
                 Ui.Icon.Name(Ui.IconName.Retry),
                 "Retry all failed"
             ];
@@ -296,7 +296,7 @@ public sealed partial class QueuePage(
                 .Key("purge")
                 .OnClick(() => RunAsync(
                     "Delete processed rows older than 7 days? Outstanding work and dead letters are kept.",
-                    async ct => $"Purged {await _panel!.PurgeProcessedAsync(TimeSpan.FromDays(7), ct).ConfigureAwait(false)}."))[
+                    async ct => $"Purged {await _panel!.PurgeProcessed(TimeSpan.FromDays(7), ct).ConfigureAwait(false)}."))[
                 "Purge processed"
             ];
         }
@@ -313,7 +313,7 @@ public sealed partial class QueuePage(
                 .Size(Ui.Size.Sm)
                 .OnClick(() => RunAsync(
                     null,   // retrying one dead letter is reversible enough not to need a confirmation
-                    async ct => await _panel!.RetryAsync(row.Id, ct).ConfigureAwait(false) > 0
+                    async ct => await _panel!.Retry(row.Id, ct).ConfigureAwait(false) > 0
                         ? $"Re-queued #{row.Id}."
                         : $"#{row.Id} was already picked up."))["Retry"];
         }
@@ -327,7 +327,7 @@ public sealed partial class QueuePage(
                 .Size(Ui.Size.Sm)
                 .OnClick(() => RunAsync(
                     $"Delete #{row.Id}? The work is discarded and cannot be recovered.",
-                    async ct => await _panel!.DeleteAsync(row.Id, ct).ConfigureAwait(false) > 0
+                    async ct => await _panel!.Delete(row.Id, ct).ConfigureAwait(false) > 0
                         ? $"Deleted #{row.Id}."
                         : $"#{row.Id} had already completed and was left alone."))["Delete"];
         }
@@ -370,8 +370,8 @@ public sealed partial class QueuePage(
 
         _page = 0;
         _expanded = null;
-        await LoadAsync(CancellationToken).ConfigureAwait(false);
-        await StateHasChangedAsync().ConfigureAwait(false);
+        await Load(CancellationToken).ConfigureAwait(false);
+        StateHasChanged();
     }
 
     // The question, in the flow, where it cannot be missed. The two answers share one cell of the alert, so
@@ -421,7 +421,7 @@ public sealed partial class QueuePage(
     {
         _page = Math.Max(0, page);
         _expanded = null;
-        await LoadAsync(CancellationToken).ConfigureAwait(false);
-        await StateHasChangedAsync().ConfigureAwait(false);
+        await Load(CancellationToken).ConfigureAwait(false);
+        StateHasChanged();
     }
 }

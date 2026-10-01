@@ -3049,70 +3049,48 @@ static RaskBuilderSettersRask_Ui.Type<T>(this Rask.UiInput<T>! __b, Rask.Core.In
 static RaskBuilderSettersRask_Ui.Underline(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Url(this Rask.UiMockupBrowser! __b, string? value) -> Rask.UiMockupBrowser!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendar! __b, Rask.Core.Forms.Validate<System.DateOnly>? value) -> Rask.UiCalendar!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendar! __b, Rask.Core.Forms.ValidateAsync<System.DateOnly>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendar! __b, Rask.Core.Validator<System.DateOnly>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarMultiple! __b, Rask.Core.Forms.Validate<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiCalendarMultiple!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarMultiple! __b, Rask.Core.Forms.ValidateAsync<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarMultiple! __b, Rask.Core.Validator<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarRange! __b, Rask.Core.Forms.Validate<Rask.UiDateRange>? value) -> Rask.UiCalendarRange!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarRange! __b, Rask.Core.Forms.ValidateAsync<Rask.UiDateRange>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarRange! __b, Rask.Core.Validator<Rask.UiDateRange>? value) -> Rask.UiCalendarRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCheckbox! __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.UiCheckbox!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCheckbox! __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCheckbox! __b, Rask.Core.Validator<bool>? value) -> Rask.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePicker! __b, Rask.Core.Forms.Validate<System.DateOnly>? value) -> Rask.UiDatePicker!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePicker! __b, Rask.Core.Forms.ValidateAsync<System.DateOnly>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePicker! __b, Rask.Core.Validator<System.DateOnly>? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerMultiple! __b, Rask.Core.Forms.Validate<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerMultiple! __b, Rask.Core.Forms.ValidateAsync<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerMultiple! __b, Rask.Core.Validator<System.Collections.Generic.ICollection<System.DateOnly>!>? value) -> Rask.UiDatePickerMultiple!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerRange! __b, Rask.Core.Forms.Validate<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerRange! __b, Rask.Core.Forms.ValidateAsync<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerRange! __b, Rask.Core.Validator<Rask.UiDateRange>? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFileInput! __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.UiFileInput!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFileInput! __b, Rask.Core.Forms.ValidateAsync<string!>? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFileInput! __b, Rask.Core.Validator<string!>? value) -> Rask.UiFileInput!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiMenuCheckbox! __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.UiMenuCheckbox!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiMenuCheckbox! __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.UiMenuCheckbox!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiMenuCheckbox! __b, Rask.Core.Validator<bool>? value) -> Rask.UiMenuCheckbox!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiOtp! __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.UiOtp!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiOtp! __b, Rask.Core.Forms.ValidateAsync<string!>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiOtp! __b, Rask.Core.Validator<string!>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRadio! __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.UiRadio!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRadio! __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.UiRadio!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRadio! __b, Rask.Core.Validator<bool>? value) -> Rask.UiRadio!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRange! __b, Rask.Core.Forms.Validate<double>? value) -> Rask.UiRange!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRange! __b, Rask.Core.Forms.ValidateAsync<double>? value) -> Rask.UiRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRange! __b, Rask.Core.Validator<double>? value) -> Rask.UiRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRating! __b, Rask.Core.Forms.Validate<int>? value) -> Rask.UiRating!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRating! __b, Rask.Core.Forms.ValidateAsync<int>? value) -> Rask.UiRating!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRating! __b, Rask.Core.Validator<int>? value) -> Rask.UiRating!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiToggle! __b, Rask.Core.Forms.Validate<bool>? value) -> Rask.UiToggle!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiToggle! __b, Rask.Core.Forms.ValidateAsync<bool>? value) -> Rask.UiToggle!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiToggle! __b, Rask.Core.Validator<bool>? value) -> Rask.UiToggle!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiCheckboxGroup<T>! __b, Rask.Core.Forms.Validate<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiCheckboxGroup<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiCheckboxGroup<T>! __b, Rask.Core.Forms.ValidateAsync<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiCheckboxGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiCheckboxGroup<T>! __b, Rask.Core.Validator<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiCheckboxGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiFilter<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiFilter<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiFilter<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.UiFilter<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiFilter<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiFilter<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiInput<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiInput<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiInput<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiInput<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMenuRadioGroup<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiMenuRadioGroup<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMenuRadioGroup<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.UiMenuRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMenuRadioGroup<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiMenuRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMultiSelect<T>! __b, Rask.Core.Forms.Validate<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiMultiSelect<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMultiSelect<T>! __b, Rask.Core.Forms.ValidateAsync<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMultiSelect<T>! __b, Rask.Core.Validator<System.Collections.Generic.ICollection<T>!>? value) -> Rask.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiRadioGroup<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiRadioGroup<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiRadioGroup<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiRadioGroup<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiSelect<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiCountdown! __b, int value) -> Rask.UiCountdown!
 static RaskBuilderSettersRask_Ui.Value(this Rask.UiCrumbSwitcher! __b, string! value) -> Rask.UiCrumbSwitcher!
@@ -6542,3 +6520,25 @@ static RaskBuilderSettersRask_Ui.Vertical(this Rask.UiTimeline! __b) -> Rask.UiT
 static RaskBuilderSettersRask_Ui.Wide(this Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Wide(this Rask.UiMegamenu! __b) -> Rask.UiMegamenu!
 static RaskBuilderSettersRask_Ui.Zebra<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCheckbox! __b, System.Func<bool, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePicker! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiDatePickerMultiple!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatePickerRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiFileInput! __b, System.Func<string!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiFileInput!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiMenuCheckbox! __b, System.Func<bool, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiMenuCheckbox!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiOtp! __b, System.Func<string!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRadio! __b, System.Func<bool, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiRadio!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRange! __b, System.Func<double, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiRange!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiRating! __b, System.Func<int, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiRating!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiToggle! __b, System.Func<bool, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiToggle!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiCheckboxGroup<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCheckboxGroup<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiFilter<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiInput<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMenuRadioGroup<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiMenuRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMultiSelect<T>! __b, System.Func<System.Collections.Generic.ICollection<T>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiMultiSelect<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiRadioGroup<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiTextarea<T>!

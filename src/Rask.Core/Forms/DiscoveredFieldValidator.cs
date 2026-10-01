@@ -14,14 +14,14 @@ internal sealed class DiscoveredFieldValidator : IAsyncFieldValidator
         _services = services;
     }
 
-    public ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken) =>
+    public ValueTask Validate(EditContext context, CancellationToken cancellationToken) =>
         RaskValidation.Resolve(_modelType, _services) is { } validator
-            ? validator.ValidateAsync(context, cancellationToken)
+            ? validator.Validate(context, cancellationToken)
             : default;
 
-    public ValueTask ValidateFieldAsync(
+    public ValueTask ValidateField(
         EditContext context, FieldIdentifier field, CancellationToken cancellationToken) =>
         RaskValidation.Resolve(_modelType, _services) is { } validator
-            ? validator.ValidateFieldAsync(context, field, cancellationToken)
+            ? validator.ValidateField(context, field, cancellationToken)
             : default;
 }

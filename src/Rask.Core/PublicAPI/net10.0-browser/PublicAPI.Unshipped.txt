@@ -30,18 +30,18 @@ Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPri
 Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.ClaimsPrincipalExtensions
 Rask.Core.Authentication.IAuth
-Rask.Core.Authentication.IAuth.AddPasskeyAsync(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.RegisterAsync<TUser>(string! email, string! password, System.Action<TUser!>! apply, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.ResetPasswordAsync(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.SendPasswordResetAsync(string! email) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.IAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.IAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuth.AddPasskey(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.ConfirmEmail(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.Register(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.Register<TUser>(string! email, string! password, System.Action<TUser!>! apply, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.RemovePasskey(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.ResetPassword(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.SendPasswordReset(string! email) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignIn(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignInWithPasskey(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignOut(string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuth.SignOutEverywhere(string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuth.SignOutOtherDevices() -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn
 Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
@@ -1325,7 +1325,6 @@ Rask.Core.Component.GetEnumerator() -> System.Collections.Generic.IEnumerator<Ra
 Rask.Core.Component.Key.get -> object?
 Rask.Core.Component.Key.set -> void
 Rask.Core.Component.StateHasChanged() -> void
-Rask.Core.Component.StateHasChangedAsync() -> System.Threading.Tasks.Task!
 Rask.Core.Component.ToHtml() -> string!
 Rask.Core.Component.this[System.Collections.Generic.IEnumerable<Rask.Core.Component?>! children].get -> Rask.Core.Component!
 Rask.Core.Component.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Component!
@@ -1783,10 +1782,8 @@ Rask.Core.Forms.EditContext.RegisterFieldValidator(Rask.Core.Forms.FieldIdentifi
 Rask.Core.Forms.EditContext.RegisterFormValidator(System.Delegate? validate) -> void
 Rask.Core.Forms.EditContext.ShouldShowValidatingIndicator(Rask.Core.Forms.FieldIdentifier field) -> bool
 Rask.Core.Forms.EditContext.TouchAllRegisteredFields() -> void
-Rask.Core.Forms.EditContext.Validate() -> bool
-Rask.Core.Forms.EditContext.ValidateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Forms.EditContext.ValidateField(Rask.Core.Forms.FieldIdentifier field) -> bool
-Rask.Core.Forms.EditContext.ValidateFieldAsync(Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Forms.EditContext.Validate(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.Forms.EditContext.ValidateField(Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Forms.EditContext.ValidatingStickyMs.get -> int
 Rask.Core.Forms.EditContext.ValidatingStickyMs.set -> void
 Rask.Core.Forms.EditContextScope
@@ -1814,8 +1811,8 @@ Rask.Core.Forms.FieldIdentifier.FieldIdentifier(object! model, string! fieldName
 Rask.Core.Forms.FieldIdentifier.FieldName.get -> string!
 Rask.Core.Forms.FieldIdentifier.Model.get -> object!
 Rask.Core.Forms.IAsyncFieldValidator
-Rask.Core.Forms.IAsyncFieldValidator.ValidateAsync(Rask.Core.Forms.EditContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-Rask.Core.Forms.IAsyncFieldValidator.ValidateFieldAsync(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Rask.Core.Forms.IAsyncFieldValidator.Validate(Rask.Core.Forms.EditContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Rask.Core.Forms.IAsyncFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Rask.Core.Forms.IBrowserFileBackend
 Rask.Core.Forms.IBrowserFileBackend.Create(System.Text.Json.JsonElement metadata) -> Rask.Core.Forms.IRaskFile!
 Rask.Core.Forms.IBrowserFileBackend.Release(System.Collections.Generic.IEnumerable<Rask.Core.Forms.IRaskFile!>! files) -> void
@@ -1829,8 +1826,8 @@ Rask.Core.Forms.IFormControl<T>.AfterBind.set -> void
 Rask.Core.Forms.IFormControl<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.Core.Forms.IFormControl<T>.Bind.set -> void
 Rask.Core.Forms.IFormControl<T>.ControlledChangeHandler() -> System.Delegate?
-Rask.Core.Forms.IFormControl<T>.InvokeAfterBindAsync(T value) -> System.Threading.Tasks.Task!
-Rask.Core.Forms.IFormControl<T>.InvokeOnChangeAsync(T value) -> System.Threading.Tasks.Task!
+Rask.Core.Forms.IFormControl<T>.InvokeAfterBind(T value) -> System.Threading.Tasks.Task!
+Rask.Core.Forms.IFormControl<T>.InvokeOnChange(T value) -> System.Threading.Tasks.Task!
 Rask.Core.Forms.IFormControl<T>.OnChange.get -> Rask.Core.Callback<T>
 Rask.Core.Forms.IFormControl<T>.OnChange.set -> void
 Rask.Core.Forms.IFormControl<T>.RegisterValidator(Rask.Core.Forms.ExpressionAccessor.Accessor! accessor, Rask.Core.Forms.EditContext? context) -> void
@@ -1844,7 +1841,6 @@ Rask.Core.Forms.RaskBinding
 Rask.Core.Forms.IRaskFile
 Rask.Core.Forms.RaskValidation
 Rask.Core.Forms.Validate<T>
-Rask.Core.Forms.ValidateAsync<T>
 Rask.Core.Forms.ValidationEntry
 Rask.Core.Forms.ValidationEntry.Deconstruct(out string! Field, out string! Message) -> void
 Rask.Core.Forms.ValidationEntry.Equals(Rask.Core.Forms.ValidationEntry other) -> bool
@@ -2351,7 +2347,6 @@ Rask.Core.Validator<T>.Invoke(T value, System.Threading.CancellationToken cancel
 Rask.Core.Validator<T>.Rule.get -> System.Delegate?
 Rask.Core.Validator<T>.Validator() -> void
 Rask.Core.Validator<T>.Validator(Rask.Core.Forms.Validate<T>! rule) -> void
-Rask.Core.Validator<T>.Validator(Rask.Core.Forms.ValidateAsync<T>! rule) -> void
 Rask.Core.Virtualization.ItemsProviderRequest
 Rask.Core.Virtualization.ItemsProviderRequest.<Clone>$() -> Rask.Core.Virtualization.ItemsProviderRequest!
 Rask.Core.Virtualization.ItemsProviderRequest.CancellationToken.get -> System.Threading.CancellationToken
@@ -3200,7 +3195,6 @@ virtual Rask.Core.Component.TagName.get -> string?
 virtual Rask.Core.Component.WriteAttributes(System.Text.StringBuilder! sb) -> void
 virtual Rask.Core.Element.ResolveClass() -> string?
 virtual Rask.Core.Forms.Validate<T>.Invoke(T value) -> System.Collections.Generic.IEnumerable<string!>!
-virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>
 ~override Rask.Core.Browser.AnimationId.Equals(object obj) -> bool
 ~override Rask.Core.Browser.AnimationId.ToString() -> string
 ~override Rask.Core.Browser.MediaStreamId.Equals(object obj) -> bool
@@ -3296,7 +3290,7 @@ static Rask.Core.Components.FormSubmit.operator !=(Rask.Core.Components.FormSubm
 static Rask.Core.Components.FormSubmit.operator ==(Rask.Core.Components.FormSubmit left, Rask.Core.Components.FormSubmit right) -> bool
 static RaskBuilderSettersRask_Core.get_Exact(Rask.Core.Components.NavLink! __b) -> Rask.Core.Components.NavLink!
 static RaskBuilderSettersRask_Core.get_Prefix(Rask.Core.Components.NavLink! __b) -> Rask.Core.Components.NavLink!
-virtual Rask.Core.Component.OnFirstRendered() -> System.Threading.Tasks.Task!
+virtual Rask.Core.Component.OnFirstRender() -> System.Threading.Tasks.Task!
 virtual Rask.Core.Component.OnMount() -> System.Threading.Tasks.Task!
 virtual Rask.Core.Component.OnRendered() -> System.Threading.Tasks.Task!
 virtual Rask.Core.Component.OnUnmount() -> System.Threading.Tasks.Task!
@@ -12402,16 +12396,12 @@ static RaskBuilderSettersRask_Core.UnicodeBidi(this Rask.Core.SVGUseElement! __b
 static RaskBuilderSettersRask_Core.UnicodeBidi(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
 static RaskBuilderSettersRask_Core.UseMap(this Rask.Core.HTMLImageElement! __b, string? value) -> Rask.Core.HTMLImageElement!
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.Validator<T>? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLSelectElement<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.HTMLSelectElement<T>!
-static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLSelectElement<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.HTMLSelectElement<T>!
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLSelectElement<T>! __b, Rask.Core.Validator<T>? value) -> Rask.Core.HTMLSelectElement<T>!
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.Core.HTMLTextAreaElement<T>!
-static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.Forms.ValidateAsync<T>? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.Validator<T>? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Validate<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.Forms.Validate<TModel>? value) -> Rask.Core.HTMLFormElement<TModel>!
-static RaskBuilderSettersRask_Core.Validate<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.Forms.ValidateAsync<TModel>? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Validate<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.Validator<TModel>? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Value(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.Value(this Rask.Core.HTMLDataElement! __b, string? value) -> Rask.Core.HTMLDataElement!
@@ -13884,3 +13874,21 @@ Rask.AuthorizeSteps.extension(Rask.Core.Components.Authorize!).Role(string! role
 Rask.AuthorizeSteps.extension(Rask.Core.Components.Authorize!).Roles(string! role, params string![]! more) -> Rask.Core.Components.Authorize!
 static Rask.AuthorizeSteps.Role(this Rask.Core.Components.Authorize! gate, string! role) -> Rask.Core.Components.Authorize!
 static Rask.AuthorizeSteps.Roles(this Rask.Core.Components.Authorize! gate, string! role, params string![]! more) -> Rask.Core.Components.Authorize!
+Rask.Core.Auth
+static Rask.Core.Auth.AddPasskey(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.ConfirmEmail(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.Register(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.Register<TUser>(string! email, string! password, System.Action<TUser!>! apply, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.RemovePasskey(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.ResetPassword(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.SendPasswordReset(string! email) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.SignIn(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.SignInWithPasskey(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.SignOut(string? returnUrl = null) -> System.Threading.Tasks.Task!
+static Rask.Core.Auth.SignOutEverywhere(string? returnUrl = null) -> System.Threading.Tasks.Task!
+static Rask.Core.Auth.SignOutOtherDevices() -> System.Threading.Tasks.Task!
+Rask.Core.Validator<T>.Validator(System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>! rule) -> void
+static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLInputElement<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.Core.HTMLInputElement<T>!
+static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLSelectElement<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.Core.HTMLSelectElement<T>!
+static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskBuilderSettersRask_Core.Validate<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, System.Func<TModel, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.Core.HTMLFormElement<TModel>!

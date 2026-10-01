@@ -506,7 +506,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             sb.Append("                static (s, n) => ((global::Rask.Cqrs.ISubscription<")
                 .Append(subscription.NotificationFqn).Append(">)s).Matches((")
                 .Append(subscription.NotificationFqn).AppendLine(")n),");
-            sb.Append("                static (sp, s, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
+            sb.Append("                static (sp, s, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatch<")
                 .Append(subscription.SubscriptionFqn).Append(">(sp, (")
                 .Append(subscription.SubscriptionFqn).AppendLine(")s, ct))),");
         }

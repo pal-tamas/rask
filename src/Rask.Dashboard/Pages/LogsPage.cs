@@ -86,7 +86,7 @@ public sealed partial class LogsPage(
     }
 
     /// <inheritdoc />
-    protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
+    protected override async Task<object?> Load(CancellationToken cancellationToken)
     {
         // Subscribed here rather than in Mount because PollingPanel owns Mount: the live tail
         // still pushes, so a log line shows up immediately instead of on the next poll.
@@ -164,7 +164,7 @@ public sealed partial class LogsPage(
             Ui.Header.Title("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
             DashboardError.Message(LoadError),
             IsHistory ? HistoryBody(now) : LiveBody(now),
-            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(Resume),
         ];
     }
 

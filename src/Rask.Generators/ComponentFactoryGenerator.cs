@@ -1534,6 +1534,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // this shape the lambda still compiled, as an Action that dropped the ValueTask unawaited.
     private const string ValueTaskFqn = "global::System.Threading.Tasks.ValueTask";
 
+    // What an asynchronous validation rule hands back: the messages, once the check completes.
+    private const string ValidationTaskFqn =
+        "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>";
+
     /// <summary>
     ///     The delegate shapes a carrier-typed property accepts, or empty when the type is not a carrier.
     /// </summary>
@@ -1562,8 +1566,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             ? new List<string>()
             : SplitGenericArguments(bare.Substring(open + 1, bare.Length - open - 2));
 
-        // `Callback` is the sync/async pair: one name, two overloads. `Validator` is the same shape over
-        // the framework's own named delegates. `Fn` returns a value and so has no async twin — its last
+        // `Callback` is the sync/async pair: one name, two overloads. `Validator` is the same pair for a
+        // rule: the sync one and the async one, whose token is ambient. `Fn` returns a
+        // value and so has no async twin — its last
         // type argument is the return type, which is why it takes one overload rather than two.
         // A Callback<T> also takes a handler that ignores its argument — a parameterless OnClick lambda
         // beside one that reads the event's ClientX — stored as it is, so that form allocates nothing.
@@ -1584,7 +1589,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             ],
             ValidatorFqn when args.Count == 1 => [
                 Generic("global::Rask.Core.Forms.Validate", args),
-                Generic("global::Rask.Core.Forms.ValidateAsync", args),
+                Generic("global::System.Func", [.. args, ValidationTaskFqn]),
             ],
             FnFqn when args.Count > 0 => [Generic("global::System.Func", args)],
             _ => [],
@@ -5445,7 +5450,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         // The hooks are exactly the virtual Task-returning methods Component declares — OnMount, OnUpdated,
-        // OnFirstRendered, OnRendered, OnUnmount. By SHAPE, not by name: the hooks used to share an `On` prefix, and
+        // OnFirstRender, OnRendered, OnUnmount. By SHAPE, not by name: the hooks used to share an `On` prefix, and
         // when they lost it a name test quietly matched nothing, so no component was reported as having a
         // lifecycle and a handle-less render skipped every Mount.
         var hooks = new HashSet<string>(StringComparer.Ordinal);

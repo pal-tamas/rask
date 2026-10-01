@@ -210,7 +210,7 @@ a probe:
 public sealed class BackupProbe(LitestreamStatus? litestream = null, ISqliteSnapshotStore? snapshots = null)
     : IDashboardBackupProbe
 {
-    public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken ct)
+    public Task<BackupReplicationInfo?> Replication(CancellationToken ct)
     {
         if (litestream is null)
         {
@@ -222,7 +222,7 @@ public sealed class BackupProbe(LitestreamStatus? litestream = null, ISqliteSnap
             new(s.IsReplicating, s.LastStartedAt, s.RestartCount, s.LastError));
     }
 
-    public async Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken ct) =>
+    public async Task<IReadOnlyList<BackupSnapshotInfo>> Snapshots(CancellationToken ct) =>
         snapshots is null
             ? []
             : [.. (await snapshots.ListAsync(ct)).Select(s => new BackupSnapshotInfo(s.Name, s.SizeBytes, s.CreatedAt))];

@@ -12,7 +12,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip) : Compon
     private readonly ElementRef _video = ElementRef.New();
     private string _status = "(idle)";
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         try
         {
@@ -26,7 +26,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip) : Compon
             _status = "Setup failed: " + ex.Message;
         }
 
-        await StateHasChangedAsync();
+        StateHasChanged();
     }
 
     protected override Component? Render() =>

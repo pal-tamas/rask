@@ -17,7 +17,7 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
     private double _height;
     private bool _wide = true;
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         if (_observation is not null)
 

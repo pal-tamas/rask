@@ -52,7 +52,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
 
         // Completes immediately but takes the async path (an async validator is registered),
         // so the finally arms the 100ms sticky timer.
-        await ctx.ValidateFieldAsync(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
+        await ctx.ValidateField(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
 
         // Counted from the dispose, not from the arm: under a loaded gate the 100ms timer can legitimately
         // fire before Dispose is reached, and that render is not the one this test is about.
@@ -98,7 +98,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedAsyncValidator(gate));
 
         // Start validation; it parks inside the gated async validator's await.
-        var validation = ctx.ValidateFieldAsync(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
+        var validation = ctx.ValidateField(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
         await Task.Yield();
 
         ctx.Dispose();          // form unmounts mid-validation
@@ -117,9 +117,9 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
 
     private sealed class NoOpAsyncValidator : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken) => default;
+        public ValueTask Validate(EditContext context, CancellationToken cancellationToken) => default;
 
-        public ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken) => default;
     }
 
@@ -127,9 +127,9 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
     // while a field validation is mid-await and then release it.
     private sealed class GatedAsyncValidator(TaskCompletionSource gate) : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken) => default;
+        public ValueTask Validate(EditContext context, CancellationToken cancellationToken) => default;
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken) =>
             await gate.Task.ConfigureAwait(false);
     }

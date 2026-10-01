@@ -17,7 +17,7 @@ internal sealed class SystemPanel<TContext>(
 
     public bool HasBackupProbe => _backup is not null;
 
-    public async Task<DatabaseInfo> DatabaseAsync(CancellationToken cancellationToken)
+    public async Task<DatabaseInfo> Database(CancellationToken cancellationToken)
     {
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
@@ -57,7 +57,7 @@ internal sealed class SystemPanel<TContext>(
     /// <see cref="JobsOptions.RecurringJobs"/>, so it shows what the app declares even for a job that has
     /// never run yet — a table-only view would silently omit exactly the one that is failing to fire.
     /// </summary>
-    public async Task<IReadOnlyList<RecurringJobRow>> RecurringJobsAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<RecurringJobRow>> RecurringJobs(CancellationToken cancellationToken)
     {
         if (_jobOptions is null || _jobOptions.RecurringJobs.Count == 0)
         {
@@ -81,14 +81,14 @@ internal sealed class SystemPanel<TContext>(
             new RecurringJobRow(r.Name, r.Schedule?.ToString() ?? "", state.GetValueOrDefault(r.Name)))];
     }
 
-    public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken) =>
-        _backup?.ReplicationAsync(cancellationToken) ?? Task.FromResult<BackupReplicationInfo?>(null);
+    public Task<BackupReplicationInfo?> Replication(CancellationToken cancellationToken) =>
+        _backup?.Replication(cancellationToken) ?? Task.FromResult<BackupReplicationInfo?>(null);
 
-    public Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken) =>
-        _backup?.SnapshotsAsync(cancellationToken) ?? Task.FromResult<IReadOnlyList<BackupSnapshotInfo>>([]);
+    public Task<IReadOnlyList<BackupSnapshotInfo>> Snapshots(CancellationToken cancellationToken) =>
+        _backup?.Snapshots(cancellationToken) ?? Task.FromResult<IReadOnlyList<BackupSnapshotInfo>>([]);
 
-    public Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
-        _backup?.VerificationAsync(cancellationToken) ?? Task.FromResult<BackupVerificationInfo?>(null);
+    public Task<BackupVerificationInfo?> Verification(CancellationToken cancellationToken) =>
+        _backup?.Verification(cancellationToken) ?? Task.FromResult<BackupVerificationInfo?>(null);
 
     private static async Task<string?> ScalarAsync(DbConnection connection, string sql, CancellationToken cancellationToken)
     {

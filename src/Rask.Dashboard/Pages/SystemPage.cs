@@ -26,13 +26,13 @@ public sealed partial class SystemPage(
     protected override RaskDashboardOptions Options => options;
 
     /// <inheritdoc />
-    protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
+    protected override async Task<object?> Load(CancellationToken cancellationToken)
     {
-        _database = await system.DatabaseAsync(cancellationToken).ConfigureAwait(false);
-        _recurring = await system.RecurringJobsAsync(cancellationToken).ConfigureAwait(false);
-        _replication = await system.ReplicationAsync(cancellationToken).ConfigureAwait(false);
-        _verification = await system.VerificationAsync(cancellationToken).ConfigureAwait(false);
-        _snapshots = await system.SnapshotsAsync(cancellationToken).ConfigureAwait(false);
+        _database = await system.Database(cancellationToken).ConfigureAwait(false);
+        _recurring = await system.RecurringJobs(cancellationToken).ConfigureAwait(false);
+        _replication = await system.Replication(cancellationToken).ConfigureAwait(false);
+        _verification = await system.Verification(cancellationToken).ConfigureAwait(false);
+        _snapshots = await system.Snapshots(cancellationToken).ConfigureAwait(false);
 
         return string.Join('|',
             [$"{_database?.SizeBytes}:{_database?.JournalMode}:{_database?.ForeignKeys}",
@@ -57,7 +57,7 @@ public sealed partial class SystemPage(
             DatabaseCard(),
             BackupCards(now),
             RecurringCard(now),
-            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(Resume),
         ];
     }
 

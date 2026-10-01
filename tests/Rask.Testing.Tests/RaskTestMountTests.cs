@@ -15,7 +15,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
 
         protected override async Task OnMount() => Calls.Add(nameof(OnMount));
 
-        protected override async Task OnFirstRendered() => Calls.Add(nameof(OnFirstRendered));
+        protected override async Task OnFirstRender() => Calls.Add(nameof(OnFirstRender));
 
         protected override async Task OnRendered() => Calls.Add(nameof(OnRendered));
 
@@ -48,19 +48,19 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         page.Render();
 
         Assert.Single(probe.Calls, c => c == "OnMount");
-        Assert.Single(probe.Calls, c => c == "OnFirstRendered");
+        Assert.Single(probe.Calls, c => c == "OnFirstRender");
     }
 
     [Fact]
     public void A_rendered_component_reaches_the_alive_walk_so_the_after_render_hooks_fire()
     {
         // Mounting is only half of it: adoption is what puts the component in the root's child map, which
-        // is what CollectAlive walks. Without it the component is invisible to OnFirstRendered, OnRendered and OnUnmount.
+        // is what CollectAlive walks. Without it the component is invisible to OnFirstRender, OnRendered and OnUnmount.
         var probe = new Probe();
 
         Page.Render(probe);
 
-        Assert.Equal(["OnMount", "OnFirstRendered", "OnRendered"], probe.Calls);
+        Assert.Equal(["OnMount", "OnFirstRender", "OnRendered"], probe.Calls);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         private string _label = "before";
 
-        protected override Task OnFirstRendered()
+        protected override Task OnFirstRender()
         {
             // Note this is NOT Mount: state set there needs no signal at all, because Mount runs
             // before this component's own Render() in the same walk and is therefore already in the first

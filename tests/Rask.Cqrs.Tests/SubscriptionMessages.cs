@@ -36,10 +36,10 @@ public sealed class Keyholder
 // Registered by the generator, like a handler. One class may admit several subscriptions.
 public sealed class DoorPolicy(Keyholder keys) : IWatchPolicy<WatchDoor>, IWatchPolicy<WatchPaint>
 {
-    public Task<bool> CanWatchAsync(WatchDoor subscription, CancellationToken cancellationToken) =>
+    public Task<bool> CanWatch(WatchDoor subscription, CancellationToken cancellationToken) =>
         Task.FromResult(keys.Allowed.Contains(subscription.DoorId));
 
-    public Task<bool> CanWatchAsync(WatchPaint subscription, CancellationToken cancellationToken) =>
+    public Task<bool> CanWatch(WatchPaint subscription, CancellationToken cancellationToken) =>
         Task.FromResult(true);
 }
 

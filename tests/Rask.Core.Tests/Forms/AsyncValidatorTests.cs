@@ -12,7 +12,7 @@ public class AsyncValidatorTests
         var fid = new FieldIdentifier(m, "Name");
         ctx.AddValidator(new DelayedValidator(20, "Name", "bad"));
 
-        var ok = await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var ok = await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         Assert.False(ok);
         Assert.Equal(new[] { "bad" }, ctx.GetValidationMessages(fid));
@@ -42,8 +42,8 @@ public class AsyncValidatorTests
         };
         ctx.AddValidator(validator);
 
-        var first = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
-        var second = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var first = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
+        var second = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         secondGate.SetResult();
         await second;
@@ -66,7 +66,7 @@ public class AsyncValidatorTests
         var stateChanges = 0;
         ctx.ValidationStateChanged += (_, _) => stateChanges++;
 
-        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var task = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         Assert.True(ctx.IsValidating(fid));
         Assert.True(ctx.IsValidatingAny);
@@ -77,17 +77,6 @@ public class AsyncValidatorTests
         Assert.False(ctx.IsValidating(fid));
         Assert.False(ctx.IsValidatingAny);
         Assert.True(stateChanges >= 2);
-    }
-
-    [Fact]
-    public void A_sync_Validate_throws_when_an_async_validator_is_registered()
-    {
-        var m = new Model();
-        var ctx = new EditContext(m);
-        ctx.AddValidator(new GatedValidator((_, _, _) => Task.CompletedTask));
-
-        Assert.Throws<InvalidOperationException>(() => ctx.Validate());
-        Assert.Throws<InvalidOperationException>(() => ctx.ValidateField(new FieldIdentifier(m, "Name")));
     }
 
     [Fact]
@@ -111,8 +100,8 @@ public class AsyncValidatorTests
             }
         }));
 
-        var fieldTask = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
-        var formTask = ctx.ValidateAsync(TestContext.Current.CancellationToken);
+        var fieldTask = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
+        var formTask = ctx.Validate(TestContext.Current.CancellationToken);
 
         fieldGate.SetResult();
         await fieldTask;
@@ -129,7 +118,7 @@ public class AsyncValidatorTests
         var fid = new FieldIdentifier(m, "Name");
         ctx.AddValidator(new GatedValidator((_, _, _) => throw new HttpRequestException("boom")));
 
-        var ok = await ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var ok = await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         Assert.False(ok);
         Assert.Equal(new[] { "Validation could not be completed." }, ctx.GetValidationMessages(fid));
@@ -154,13 +143,13 @@ public class AsyncValidatorTests
 
     private sealed class DelayedValidator(int delayMs, string addMessageOnField, string message) : IAsyncFieldValidator
     {
-        public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+        public async ValueTask Validate(EditContext context, CancellationToken cancellationToken)
         {
             await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
             context.AddValidationMessage(new FieldIdentifier(context.Model, addMessageOnField), message);
         }
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken)
         {
             await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
@@ -177,7 +166,7 @@ public class AsyncValidatorTests
 
         public Action<int, FieldIdentifier, EditContext>? OnFinish { get; set; }
 
-        public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+        public async ValueTask Validate(EditContext context, CancellationToken cancellationToken)
         {
             var n = Interlocked.Increment(ref _callCount);
             var userTask = wait(n, default, cancellationToken);
@@ -187,7 +176,7 @@ public class AsyncValidatorTests
             await userTask.ConfigureAwait(false);
         }
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken)
         {
             var n = Interlocked.Increment(ref _callCount);

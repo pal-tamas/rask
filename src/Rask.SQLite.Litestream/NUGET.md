@@ -34,7 +34,7 @@ builder.Services.AddDbContextFactory<AppDb>((sp, o) => o.UseRaskSqlite(sp));
 var app = builder.Build();
 
 // Restore from the replica BEFORE opening the DB (no-op if the file already exists locally).
-await app.Services.RestoreSqliteFromLitestreamAsync();
+await app.Services.RestoreSqliteFromLitestream();
 
 // ... EnsureCreated / migrate / seed, then app.Run();
 ```

@@ -255,7 +255,7 @@ public sealed class ApiValidationTests
                 Quantity = 1,
             });
             context.AddValidator(validator!);
-            await context.ValidateAsync(TestContext.Current.CancellationToken);
+            await context.Validate(TestContext.Current.CancellationToken);
 
             var fromForm = context.GetValidationEntries()
                 .Where(entry => entry.Field == nameof(Order.Reference))

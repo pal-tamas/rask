@@ -75,7 +75,7 @@ public sealed class RaskDatabaseProviderTests
         // A replica configured means RaskApp restores from it before the database opens; this test is about
         // what gets WIRED, so the restore step is stood down with the knob an app uses for the same purpose.
         var settings = new Dictionary<string, string?> { ["Rask:Litestream:ReplicaUrl"] = "s3://bucket/app" };
-        var built = Build(settings, app => app.Configure(c => c.RunBeforeDatabaseOpensAsync = _ => Task.CompletedTask));
+        var built = Build(settings, app => app.Configure(c => c.RunBeforeDatabaseOpens = _ => Task.CompletedTask));
 
         using var db = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
 

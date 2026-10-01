@@ -13,12 +13,12 @@ namespace Rask.ValidationTests;
 public class CustomAttributeTests
 {
     [Fact]
-    public void A_custom_attribute_adds_its_message_when_the_value_is_invalid()
+    public async Task A_custom_attribute_adds_its_message_when_the_value_is_invalid()
     {
         var m = new Account { Password = "weak" };
         var ctx = RegisterValidator(m);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains(
             "8+ chars, letters and digits.",
@@ -26,24 +26,24 @@ public class CustomAttributeTests
     }
 
     [Fact]
-    public void A_custom_attribute_adds_no_message_when_the_value_is_valid()
+    public async Task A_custom_attribute_adds_no_message_when_the_value_is_valid()
     {
         var m = new Account { Username = "alice", Password = "Strong1Pass", ConfirmPassword = "Strong1Pass" };
         var ctx = RegisterValidator(m);
 
-        Assert.True(ctx.Validate());
+        Assert.True(await ctx.Validate(TestContext.Current.CancellationToken));
         Assert.False(ctx.HasValidationMessages());
     }
 
     [Fact]
-    public void A_custom_attribute_reads_the_sibling_value_off_the_object_instance()
+    public async Task A_custom_attribute_reads_the_sibling_value_off_the_object_instance()
     {
         // MatchesProperty reads ValidationContext.ObjectInstance to fetch the sibling Password
         // value and compare. With mismatched values the rule must fire on ConfirmPassword.
         var m = new Account { Username = "alice", Password = "Strong1Pass", ConfirmPassword = "Different1" };
         var ctx = RegisterValidator(m);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains(
             "Passwords don't match.",
@@ -53,18 +53,18 @@ public class CustomAttributeTests
         m.ConfirmPassword = m.Password;
         var ctx2 = RegisterValidator(m);
 
-        Assert.True(ctx2.Validate());
+        Assert.True(await ctx2.Validate(TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public void A_custom_attribute_lands_its_result_on_the_member_name_when_one_field_is_validated()
+    public async Task A_custom_attribute_lands_its_result_on_the_member_name_when_one_field_is_validated()
     {
         // ValidateField sets ValidationContext.MemberName so the attribute can decide which
         // field its result lands on. Assert the message lands on ConfirmPassword only.
         var m = new Account { Username = "alice", Password = "Strong1Pass", ConfirmPassword = "Different1" };
         var ctx = RegisterValidator(m);
 
-        ctx.ValidateField(new FieldIdentifier(m, nameof(Account.ConfirmPassword)));
+        await ctx.ValidateField(new FieldIdentifier(m, nameof(Account.ConfirmPassword)), TestContext.Current.CancellationToken);
 
         Assert.NotEmpty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(Account.ConfirmPassword))));
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(Account.Password))));
@@ -72,7 +72,7 @@ public class CustomAttributeTests
     }
 
     [Fact]
-    public void A_custom_attribute_can_resolve_services_through_the_validation_context()
+    public async Task A_custom_attribute_can_resolve_services_through_the_validation_context()
     {
         // [Banned] resolves IBannedWords from ValidationContext.GetService — proves the
         // render-scoped IServiceProvider flows through ValidationContext construction. The
@@ -83,7 +83,7 @@ public class CustomAttributeTests
         var m = new Account { Username = "admin", Password = "Strong1Pass", ConfirmPassword = "Strong1Pass" };
         var ctx = RegisterValidator(m, sp);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains(
             "\"admin\" isn't available.",
@@ -91,7 +91,7 @@ public class CustomAttributeTests
     }
 
     [Fact]
-    public void With_no_service_provider_validation_still_runs_and_the_attribute_gets_null_services()
+    public async Task With_no_service_provider_validation_still_runs_and_the_attribute_gets_null_services()
     {
         // Outside a live context, GetService returns null. The Banned attribute is defensive
         // (returns Success when the service is missing) so the form must validate as if the
@@ -99,7 +99,7 @@ public class CustomAttributeTests
         var m = new Account { Username = "admin", Password = "Strong1Pass", ConfirmPassword = "Strong1Pass" };
         var ctx = RegisterValidator(m);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(Account.Username))));
     }

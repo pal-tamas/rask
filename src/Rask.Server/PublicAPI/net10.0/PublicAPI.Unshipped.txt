@@ -101,9 +101,7 @@ Rask.RaskApp.Configure(System.Action<Rask.RaskAppOptions!>! configure) -> Rask.R
 Rask.RaskApp.Environment.get -> Microsoft.AspNetCore.Hosting.IWebHostEnvironment!
 Rask.RaskApp.MapEndpoints(System.Action<Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!>! map) -> Rask.RaskApp!
 Rask.RaskApp.Run<TApp>(string! pathBase = "") -> void
-Rask.RaskApp.RunAsync<TApp>(string! pathBase = "") -> System.Threading.Tasks.Task!
 Rask.RaskApp.Serve() -> void
-Rask.RaskApp.ServeAsync() -> System.Threading.Tasks.Task!
 Rask.RaskApp.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.RaskAppDbContext
 Rask.RaskAppDbContext.RaskAppDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<Rask.RaskAppDbContext!>! options) -> void
@@ -132,8 +130,8 @@ Rask.RaskAppOptions.Outbox.get -> Rask.Battery<Rask.Outbox.OutboxOptions!>!
 Rask.RaskAppOptions.Push.get -> Rask.Battery<Rask.WebPush.WebPushOptions!>!
 Rask.RaskAppOptions.Pwa.get -> Rask.Battery<Rask.Core.Browser.WebAppManifest!>!
 Rask.RaskAppOptions.RaskAppOptions() -> void
-Rask.RaskAppOptions.RunBeforeDatabaseOpensAsync.get -> System.Func<System.IServiceProvider!, System.Threading.Tasks.Task!>?
-Rask.RaskAppOptions.RunBeforeDatabaseOpensAsync.set -> void
+Rask.RaskAppOptions.RunBeforeDatabaseOpens.get -> System.Func<System.IServiceProvider!, System.Threading.Tasks.Task!>?
+Rask.RaskAppOptions.RunBeforeDatabaseOpens.set -> void
 Rask.RaskAppOptions.Snapshots.get -> Rask.Battery<Rask.SQLite.Snapshots.SqliteSnapshotOptions!>!
 Rask.RaskAppOptions.Storage.get -> Rask.Battery<Rask.Storage.StorageOptions!>!
 Rask.RaskAppOptions.Validation.get -> Rask.Battery!

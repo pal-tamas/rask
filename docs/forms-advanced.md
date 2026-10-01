@@ -120,7 +120,7 @@ Ui.CheckboxGroup.Value(_interests).Options(interests).Label("Interests").OnChang
   (§9). `Ui.RadioGroup` renders the option equal to the current value `checked` and sets the bound
   property on select; `Ui.CheckboxGroup` mutates the bound collection (membership by
   `EqualityComparer<T>.Default`). Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` +
-  `ValidateFieldAsync`, so DataAnnotations / FluentValidation rules apply.
+  `ValidateField`, so DataAnnotations / FluentValidation rules apply.
 - `Options` is a list of `(Value, Text)` pairs — the value bound and the words shown.
   `OptionDescription` adds a line under an option, `OptionDisabled` greys one out, and `Layout` picks the
   look (a list, cards, pills, buttons or one segmented strip) while keeping a real

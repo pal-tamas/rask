@@ -30,23 +30,23 @@ public sealed partial class StoragePage(
     protected override RaskDashboardOptions Options => options;
 
     /// <inheritdoc />
-    protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
+    protected override async Task<object?> Load(CancellationToken cancellationToken)
     {
         if (!storage.IsAvailable)
         {
             return null;
         }
 
-        _stats = await storage.StatsAsync(cancellationToken).ConfigureAwait(false);
+        _stats = await storage.Stats(cancellationToken).ConfigureAwait(false);
         (_rows, _total) = await storage
-            .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
+            .Page(Search, _page * options.PageSize, options.PageSize, cancellationToken)
             .ConfigureAwait(false);
 
         if (_rows.Count == 0 && _page > DashboardParts.LastPageIndex(_total, options.PageSize))
         {
             _page = DashboardParts.LastPageIndex(_total, options.PageSize);
             (_rows, _total) = await storage
-                .PageAsync(Search, _page * options.PageSize, options.PageSize, cancellationToken)
+                .Page(Search, _page * options.PageSize, options.PageSize, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -89,7 +89,7 @@ public sealed partial class StoragePage(
             ],
             ProviderGrid(),
             FileGrid(now),
-            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(Resume),
         ];
     }
 
@@ -157,7 +157,7 @@ public sealed partial class StoragePage(
     private async Task GoAsync(int page)
     {
         _page = Math.Max(0, page);
-        await LoadAsync(CancellationToken).ConfigureAwait(false);
-        await StateHasChangedAsync().ConfigureAwait(false);
+        await Load(CancellationToken).ConfigureAwait(false);
+        StateHasChanged();
     }
 }

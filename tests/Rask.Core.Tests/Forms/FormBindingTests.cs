@@ -86,16 +86,16 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task The_async_form_Validate_overload_adds_a_form_level_message()
     {
         // Drives Form<TModel>'s async Validate overload: the lambda binds to
-        // Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>> with no cast,
+        // Func<TModel, ValueTask<IEnumerable<string>>> with no cast,
         // and the async messages attach to FieldIdentifier(Model, "") — exactly where
         // Validation.Summary / form-scoped readers look.
         var p = new Person { Name = "Ada", Age = 30 };
         EditContext? captured = null;
 
-        var page = Page.Render(() => Form.Model(p).Validate(async (m, ct) =>
+        var page = Page.Render(() => Form.Model(p).Validate(async m =>
             {
                 await Task.Yield();
-                ct.ThrowIfCancellationRequested();
+                Current.Cancellation.ThrowIfCancellationRequested();
                 return string.IsNullOrEmpty(m.Name)
                     ? new[] { "async-form-rule" }
                     : Array.Empty<string>();
@@ -108,7 +108,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
 
         // Force the name to be blank so the async rule produces a message.
         p.Name = "";
-        await captured!.ValidateAsync(TestContext.Current.CancellationToken);
+        await captured!.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("async-form-rule",
             captured.GetValidationMessages(new FieldIdentifier(p, string.Empty)));

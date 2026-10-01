@@ -46,7 +46,7 @@ endpoints, the options, the roles and the emails are the same code.
 public sealed partial class SignIn(IAuth auth) : Component
 {
     private async Task SubmitAsync(Credentials c) =>
-        await auth.SignInAsync(c.Email, c.Password, returnUrl: "/");
+        await auth.SignIn(c.Email, c.Password, returnUrl: "/");
 }
 
 public sealed partial class Header(IUserProvider users) : Component
@@ -57,6 +57,10 @@ public sealed partial class Header(IUserProvider users) : Component
             .Authorized(user => Span[$"Hi, {user.Identity?.Name}"]);
 }
 ```
+
+With nothing injected, the static `Auth` does the same from any handler, render or request:
+`await Auth.SignIn(c.Email, c.Password)`, `await Auth.SignOut()`. Outside any work in progress (a constructor, a
+background thread) it throws and says to inject `IAuth` there instead.
 
 To do without it, write `app.Configure(c => c.Auth.Off())` in `Program.cs` (a hand-wired host drops its
 `AddRaskAuth` line instead). Bringing your own store or an external provider
@@ -183,11 +187,11 @@ await User.Update(id, u => u.GrantRole("editor"));
 
 Other aggregates refer to a user by id — `public Guid OwnerId { get; private set; }` — rather than holding one.
 
-**Set your own columns while registering.** `IAuth.RegisterAsync` takes a lambda that runs on the new user
+**Set your own columns while registering.** `IAuth.Register` takes a lambda that runs on the new user
 before it is saved, in the same insert; the scaffolded register page uses it for the display name:
 
 ```csharp
-await auth.RegisterAsync(model.Email, model.Password, (User user) => user.Rename(model.DisplayName), ReturnUrl);
+await auth.Register(model.Email, model.Password, (User user) => user.Rename(model.DisplayName), ReturnUrl);
 ```
 
 **Nothing has to name it.** A source generator finds the one `Authenticatable` in your project, so
@@ -208,8 +212,8 @@ the rows of sessions that ended or expired more than a day ago, once an hour and
 var devices = await Session.Where(s => s.UserId == me)
                                 .OrderByDescending(s => s.LastSeenAt);
 
-await auth.SignOutOtherDevicesAsync();   // every session but this one
-await auth.SignOutEverywhereAsync();     // this one too
+await auth.SignOutOtherDevices();   // every session but this one
+await auth.SignOutEverywhere();     // this one too
 ```
 
 The scaffolded `/devices` page lists them and has the button. An ended session stops working on that device's
@@ -255,9 +259,9 @@ your email" is only said after the right password — so no answer tells anybody
 the sign-in starts the same `Session` row, shows up on the same device list, and the account keeps its password.
 
 ```csharp
-await auth.AddPasskeyAsync("MacBook");                          // signed in; runs the browser ceremony
-await auth.SignInWithPasskeyAsync(remember: true, returnUrl);   // discoverable — nothing is typed
-await auth.RemovePasskeyAsync(passkeyId);
+await auth.AddPasskey("MacBook");                          // signed in; runs the browser ceremony
+await auth.SignInWithPasskey(remember: true, returnUrl);   // discoverable — nothing is typed
+await auth.RemovePasskey(passkeyId);
 
 var keys = await Passkey.Where(p => p.UserId == me);   // list them like sessions
 ```
@@ -307,7 +311,7 @@ app.Configure(c => c.Auth.Configure(o => o.Passkeys = false));
 | Piece | What it is |
 |---|---|
 | `Passkey` | One registered credential: the account, the credential id, the public key, what the person called it, and when it was last used. Rask adds and removes them; read them like sessions. |
-| `IAuth` | The flows: `RegisterAsync` / `SignInAsync` / `SignOutAsync`, `SignOutOtherDevicesAsync` / `SignOutEverywhereAsync`, `AddPasskeyAsync` / `SignInWithPasskeyAsync` / `RemovePasskeyAsync`, plus `SendPasswordResetAsync` / `ResetPasswordAsync` / `ConfirmEmailAsync`. The same injected type on every host — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
+| `IAuth` | The flows: `Register` / `SignIn` / `SignOut`, `SignOutOtherDevices` / `SignOutEverywhere`, `AddPasskey` / `SignInWithPasskey` / `RemovePasskey`, plus `SendPasswordReset` / `ResetPassword` / `ConfirmEmail`. The same injected type on every host, or the static `Auth` facade with nothing injected (`await Auth.SignIn(email, password)`) — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
 | `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Current` (Rask.Data) | The signed-in user with nothing injected — `Current.UserId` / `RequiredUserId` / `Principal` — for code with no constructor to inject into, like a `Product.Create(…)` factory. Set for a live session, every HTTP request and a background job (which runs for the user who enqueued it). See [data.md](data.md#the-current-user--current). |

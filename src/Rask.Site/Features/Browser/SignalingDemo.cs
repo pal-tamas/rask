@@ -66,7 +66,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
         }
 
         _joining = true;
-        await StateHasChangedAsync();
+        StateHasChanged();
 
         // A host that doesn't map the relay refuses the socket. Say so plainly rather than failing
         // silently — the showcase's WASM host serves static files and has no relay to offer.
@@ -77,7 +77,7 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
         catch (Exception ex) when (ex is JSException or InvalidOperationException)
         {
             _unavailable = true;
-            await StateHasChangedAsync();
+            StateHasChanged();
         }
     }
 

@@ -471,7 +471,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         var model = new SignupModel { Username = "admin" };
         var ctx = new EditContext(model);
 
-        await v.ValidateAsync(ctx, CancellationToken.None);
+        await v.Validate(ctx, CancellationToken.None);
 
         var messages = ctx.GetValidationMessages(new FieldIdentifier(model, "Username")).ToList();
         Assert.Contains(messages, m => m.Contains("already taken"));
@@ -484,7 +484,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         var model = new SignupModel { Username = "pat" };
         var ctx = new EditContext(model);
 
-        await v.ValidateAsync(ctx, CancellationToken.None);
+        await v.Validate(ctx, CancellationToken.None);
 
         var messages = ctx.GetValidationMessages(new FieldIdentifier(model, "Username")).ToList();
         Assert.Empty(messages);
@@ -497,7 +497,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         var model = new SignupModel { Username = "" };
         var ctx = new EditContext(model);
 
-        var validation = v.ValidateAsync(ctx, CancellationToken.None);
+        var validation = v.Validate(ctx, CancellationToken.None);
 
         // Completed on return means the 400 ms delay was never awaited — see the SlowTitleValidator twin below.
         Assert.True(validation.IsCompletedSuccessfully, "empty input should short-circuit before the 400ms delay");
@@ -511,7 +511,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(new SignupModel { Username = "explode" });
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await v.ValidateAsync(ctx, CancellationToken.None));
+            await v.Validate(ctx, CancellationToken.None));
     }
 
     [Fact]
@@ -521,7 +521,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         var model = new TaskModel { Title = "duplicate" };
         var ctx = new EditContext(model);
 
-        await v.ValidateAsync(ctx, CancellationToken.None);
+        await v.Validate(ctx, CancellationToken.None);
 
         var messages = ctx.GetValidationMessages(new FieldIdentifier(model, "Title")).ToList();
         Assert.Contains(messages, m => m.Contains("already used"));
@@ -533,7 +533,7 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         var v = new SlowTitleValidator();
         var ctx = new EditContext(new TaskModel { Title = "" });
 
-        var validation = v.ValidateAsync(ctx, CancellationToken.None);
+        var validation = v.Validate(ctx, CancellationToken.None);
 
         // Completed on return means the 600 ms delay was never awaited — the short circuit itself, with no
         // wall-clock bound to miss on a loaded machine (the < 200 ms this used to assert did).

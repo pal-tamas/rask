@@ -48,7 +48,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
 
     private async Task SubmitAsync(ForgotPasswordModel model)
     {
-        var result = await auth.SendPasswordResetAsync(model.Email);
+        var result = await auth.SendPasswordReset(model.Email);
         _error = result.Error;
         _sent = result.Succeeded;
     }
