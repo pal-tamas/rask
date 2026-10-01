@@ -190,7 +190,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Address.PostalCode)
-                .Validate(async (v, ct) =>
+                .Validate(async v =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
                     {
@@ -202,7 +202,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
                         return new[] { "Postal code must be 5 digits." };
                     }
 
-                    await Task.Delay(50, ct).ConfigureAwait(false);
+                    await Task.Delay(50, Current.Cancellation).ConfigureAwait(false);
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
             Validation.Message.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
@@ -241,7 +241,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Address.PostalCode)
-                .Validate(async (v, ct) =>
+                .Validate(async v =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
                     {
@@ -253,7 +253,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
                         return new[] { "Postal code must be 5 digits." };
                     }
 
-                    await Task.Delay(20, ct).ConfigureAwait(false);
+                    await Task.Delay(20, Current.Cancellation).ConfigureAwait(false);
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
             Validation.Message.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
@@ -283,7 +283,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     {
         // Mirrors the showcase submit path: fill nested+root fields with valid values, then
         // simulate submit. The submit bridge calls ctx.TouchAllRegisteredFields() and
-        // ctx.ValidateAsync() — every async per-field validator must run on the form's
+        // ctx.Validate() — every async per-field validator must run on the form's
         // EditContext (not a stray sub-object context) for OnSubmit to fire.
         var m = new StorefrontModel { CustomerName = "", Address = new StorefrontAddress { PostalCode = "" } };
         string? submitted = null;
@@ -292,14 +292,14 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => m.CustomerName)
                 .Validate(v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : Array.Empty<string>()),
             Input.Bind(() => m.Address.PostalCode)
-                .Validate(async (v, ct) =>
+                .Validate(async v =>
                 {
                     if (string.IsNullOrWhiteSpace(v))
                     {
                         return new[] { "Postal required" };
                     }
 
-                    await Task.Delay(20, ct).ConfigureAwait(false);
+                    await Task.Delay(20, Current.Cancellation).ConfigureAwait(false);
                     return Array.Empty<string>();
                 })
         ]);

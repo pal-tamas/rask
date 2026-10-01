@@ -30,7 +30,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
 
     // The support check is JavaScript, so it waits for a browser to exist: on the first render this page is HTML
     // on its way out, with nothing to ask.
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         _passkeysSupported = await webAuthn.IsSupportedAsync();
         StateHasChanged();
@@ -68,7 +68,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
 
     private async Task SubmitAsync(SignInModel model)
     {
-        var result = await auth.SignInAsync(model.Email, model.Password, model.Remember, ReturnUrl);
+        var result = await auth.SignIn(model.Email, model.Password, model.Remember, ReturnUrl);
         _error = result.Error;
     }
 
@@ -76,7 +76,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
     // the visitor picks is the one that signs in.
     private async Task PasskeyAsync()
     {
-        var result = await auth.SignInWithPasskeyAsync(_model.Remember, ReturnUrl);
+        var result = await auth.SignInWithPasskey(_model.Remember, ReturnUrl);
         _error = result.Error;
     }
 }

@@ -4,6 +4,6 @@ namespace Rask.Site.Features;
 // (await Order.Where(o => o.Number == watch.Number).First())?.CustomerId == Current.UserId. With no policy at all, nobody may.
 public sealed class WatchingOrders : IWatchPolicy<WatchOrder>
 {
-    public Task<bool> CanWatchAsync(WatchOrder subscription, CancellationToken cancellationToken) =>
+    public Task<bool> CanWatch(WatchOrder subscription, CancellationToken cancellationToken) =>
         Task.FromResult(true);
 }

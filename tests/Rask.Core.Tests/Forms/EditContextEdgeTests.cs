@@ -18,12 +18,12 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void Validating_an_unregistered_field_does_not_throw_and_adds_no_messages()
+    public async Task Validating_an_unregistered_field_does_not_throw_and_adds_no_messages()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Missing");
 
-        var ok = ctx.ValidateField(fid);
+        var ok = await ctx.ValidateField(fid, TestContext.Current.CancellationToken);
 
         Assert.True(ok);
         Assert.Empty(ctx.GetValidationMessages(fid));

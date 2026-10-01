@@ -8,7 +8,7 @@ namespace Rask.Api.Tests;
 /// <remarks>
 ///     The failure these guard against is not a 404 — it is a request that reaches a <b>different
 ///     endpoint than the one the caller named</b>, carrying whatever credentials
-///     <c>ApiClientOptions.ConfigureRequestAsync</c> just attached. Escaping alone does not achieve
+///     <c>ApiClientOptions.ConfigureRequest</c> just attached. Escaping alone does not achieve
 ///     that: <c>.</c> and <c>..</c> are unreserved, so <see cref="Uri.EscapeDataString(string)" />
 ///     leaves them intact and <see cref="HttpClient" /> then resolves them away against its base
 ///     address.

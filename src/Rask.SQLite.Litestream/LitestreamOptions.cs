@@ -32,7 +32,7 @@ public sealed class LitestreamOptions
     public string? ConfigPath { get; set; }
 
     /// <summary>
-    /// Whether <see cref="LitestreamStartupExtensions.RestoreSqliteFromLitestreamAsync"/> restores the
+    /// Whether <see cref="LitestreamStartupExtensions.RestoreSqliteFromLitestream"/> restores the
     /// database from its replica when the local file is missing (a fresh container/host). Defaults to
     /// <see langword="true"/>. Restore never overwrites an existing local database.
     /// </summary>

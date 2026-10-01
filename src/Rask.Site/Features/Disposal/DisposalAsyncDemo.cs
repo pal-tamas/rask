@@ -61,6 +61,6 @@ public sealed partial class DisposalAsyncDemo : Component
     private async Task DeferredRerenderAsync()
     {
         await Task.Delay(50);
-        await StateHasChangedAsync();
+        StateHasChanged();
     }
 }

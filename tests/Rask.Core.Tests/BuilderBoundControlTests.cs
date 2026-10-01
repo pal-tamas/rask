@@ -7,7 +7,7 @@ namespace Rask.Core.Tests;
 // A property cannot be generic, so `Input<T>` / `Select<T>` / `Textarea<T>` get a static METHOD entry
 // whose single argument (the bind expression) is what infers T. The generated factory needed THREE
 // overloads per control for exactly one reason — `Validate` had to be a required, correctly-typed
-// parameter, and sync `Validate<T>` cannot share a parameter with async `ValidateAsync<T>` without
+// parameter, and sync `Validate<T>` cannot share a parameter with async rule without
 // losing inference. On this surface that fan-out collapses: one entry, and the validator is a setter.
 public sealed partial class BoundForm : global::Rask.Core.RaskMarkup
 {
@@ -61,11 +61,57 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
         var async = Input.Bind(() => model.Name).Validate(CheckAsync);
 
         Assert.Same((Validate<string>)global::Rask.Core.Tests.BoundBuilderProbe.NonEmpty, sync.Validate?.Rule);
-        Assert.IsType<ValidateAsync<string>>(async.Validate?.Rule);
+        Assert.IsType<Func<string, ValueTask<IEnumerable<string>>>>(async.Validate?.Rule);
         return;
 
-        static ValueTask<IEnumerable<string>> CheckAsync(string value, CancellationToken ct) =>
+        static ValueTask<IEnumerable<string>> CheckAsync(string value) =>
             new(Array.Empty<string>());
+    }
+
+    [Fact]
+    public void A_plain_lambda_picks_the_synchronous_Validate()
+    {
+        var model = new BoundForm();
+
+        var input = Input.Bind(() => model.Name).Validate(v => v.Length > 0 ? [] : ["required"]);
+
+        Assert.IsType<Validate<string>>(input.Validate?.Rule);
+    }
+
+    [Fact]
+    public void An_async_lambda_picks_the_asynchronous_Validate()
+    {
+        var model = new BoundForm();
+
+        var input = Input.Bind(() => model.Name).Validate(async v =>
+        {
+            await Task.Yield();
+            return v.Length > 0 ? [] : ["required"];
+        });
+
+        Assert.IsType<Func<string, ValueTask<IEnumerable<string>>>>(input.Validate?.Rule);
+    }
+
+    [Fact]
+    public async Task An_async_lambda_rule_runs_through_the_edit_context_and_sees_the_fields_token()
+    {
+        var model = new BoundForm();
+        var ctx = new Rask.Core.Forms.EditContext(model);
+        var field = new FieldIdentifier(model, nameof(BoundForm.Name));
+        var seen = CancellationToken.None;
+        var input = Input.Bind(() => model.Name).Validate(async v =>
+        {
+            seen = Ambient.CancellationToken;
+            await Task.Yield();
+            return v.Length > 0 ? [] : ["required"];
+        });
+        ctx.RegisterFieldValidator(field, input.Validate?.Rule, () => model.Name);
+
+        var ok = await ctx.ValidateField(field, TestContext.Current.CancellationToken);
+
+        Assert.False(ok);
+        Assert.Equal(["required"], ctx.GetValidationMessages(field));
+        Assert.True(seen.CanBeCanceled);
     }
 
     // A validator is not an event callback and AfterBind is a post-bind hook, so neither may be

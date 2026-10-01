@@ -439,7 +439,7 @@ public sealed class ApiClientGenerator : IIncrementalGenerator
                     EndpointSkipped, site, declaredBy,
                     $"parameter '{parameter.Name}' binds from a request header, which a generated client "
                     + "cannot send. Pass it as a route or query value, or set it for every call with "
-                    + "ApiClientOptions.ConfigureRequestAsync"));
+                    + "ApiClientOptions.ConfigureRequest"));
                 return false;
             }
 

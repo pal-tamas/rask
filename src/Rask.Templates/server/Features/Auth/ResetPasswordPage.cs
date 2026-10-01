@@ -75,7 +75,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
             return;
         }
 
-        var result = await auth.ResetPasswordAsync(UserId!, Token!, model.Password);
+        var result = await auth.ResetPassword(UserId!, Token!, model.Password);
         _error = result.Error;
         _done = result.Succeeded;
     }

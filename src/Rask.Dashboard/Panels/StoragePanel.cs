@@ -17,7 +17,7 @@ internal sealed class StoragePanel<TContext>(
 
     public bool IsAvailable => _available ??= IsRegistered() && IsMapped();
 
-    public async Task<StorageStats> StatsAsync(CancellationToken cancellationToken)
+    public async Task<StorageStats> Stats(CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {
@@ -45,7 +45,7 @@ internal sealed class StoragePanel<TContext>(
             OrphanGracePeriod: options.OrphanGracePeriod);
     }
 
-    public async Task<(IReadOnlyList<StoredFileRow> Rows, int Total)> PageAsync(
+    public async Task<(IReadOnlyList<StoredFileRow> Rows, int Total)> Page(
         string? search, int skip, int take, CancellationToken cancellationToken)
     {
         if (!IsAvailable)

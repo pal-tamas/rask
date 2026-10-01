@@ -20,7 +20,7 @@ internal sealed class CachePanel<TContext>(
     public bool IsAvailable => _options is not null && IsMapped();
 
     /// <summary>Entry count, total stored bytes, and how many are expired but not yet swept.</summary>
-    public async Task<CacheStats> StatsAsync(CancellationToken cancellationToken)
+    public async Task<CacheStats> Stats(CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {
@@ -40,7 +40,7 @@ internal sealed class CachePanel<TContext>(
     }
 
     /// <summary>One page of keys, soonest to expire first — the ones about to vanish are the interesting ones.</summary>
-    public async Task<(IReadOnlyList<CacheKeyRow> Rows, int Total)> PageAsync(
+    public async Task<(IReadOnlyList<CacheKeyRow> Rows, int Total)> Page(
         string? search, int skip, int take, CancellationToken cancellationToken)
     {
         if (!IsAvailable)
@@ -69,7 +69,7 @@ internal sealed class CachePanel<TContext>(
     }
 
     /// <inheritdoc/>
-    public async Task<int> EvictAsync(string key, CancellationToken cancellationToken)
+    public async Task<int> Evict(string key, CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {
@@ -85,7 +85,7 @@ internal sealed class CachePanel<TContext>(
     }
 
     /// <inheritdoc/>
-    public async Task<int> FlushAsync(CancellationToken cancellationToken)
+    public async Task<int> Flush(CancellationToken cancellationToken)
     {
         if (!IsAvailable)
         {

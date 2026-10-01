@@ -177,7 +177,7 @@ public static class BindingHelpers
 
         ctx.NotifyFieldChanged(field);
         ctx.NotifyFieldTouched(field);
-        await ctx.ValidateFieldAsync(field).ConfigureAwait(false);
+        await ctx.ValidateField(field).ConfigureAwait(false);
     }
 
     // Collapses a bound control's typed AfterBind callback into a
@@ -226,14 +226,7 @@ public static class BindingHelpers
             // without needing a blur to trigger the change event.
             if (ctx is not null && (validateOnSet || ctx.IsTouched(fid)))
             {
-                if (ctx.HasAsyncValidators)
-                {
-                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
-                }
-                else
-                {
-                    ctx.ValidateField(fid);
-                }
+                await ctx.ValidateField(fid).ConfigureAwait(false);
             }
         };
 
@@ -257,14 +250,7 @@ public static class BindingHelpers
             ctx?.NotifyFieldTouched(fid);
             if (ctx is not null)
             {
-                if (ctx.HasAsyncValidators)
-                {
-                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
-                }
-                else
-                {
-                    ctx.ValidateField(fid);
-                }
+                await ctx.ValidateField(fid).ConfigureAwait(false);
             }
         };
 
@@ -299,14 +285,7 @@ public static class BindingHelpers
             ctx?.NotifyFieldTouched(fid);
             if (ctx is not null)
             {
-                if (ctx.HasAsyncValidators)
-                {
-                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
-                }
-                else
-                {
-                    ctx.ValidateField(fid);
-                }
+                await ctx.ValidateField(fid).ConfigureAwait(false);
             }
         };
 
@@ -423,14 +402,7 @@ public static class BindingHelpers
             ctx?.NotifyFieldTouched(fid);
             if (ctx is not null)
             {
-                if (ctx.HasAsyncValidators)
-                {
-                    await ctx.ValidateFieldAsync(fid).ConfigureAwait(false);
-                }
-                else
-                {
-                    ctx.ValidateField(fid);
-                }
+                await ctx.ValidateField(fid).ConfigureAwait(false);
             }
         };
 

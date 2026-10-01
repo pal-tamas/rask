@@ -19,7 +19,7 @@ public sealed class StoragePageTests
         await files.Save(new MemoryStream(new byte[100]), "a.bin", TestContext.Current.CancellationToken);
         await files.Save(new MemoryStream(new byte[50]), "b.bin", TestContext.Current.CancellationToken).Public();
 
-        var stats = await h.Get<IStoragePanelReader>().StatsAsync(CancellationToken.None);
+        var stats = await h.Get<IStoragePanelReader>().Stats(CancellationToken.None);
 
         Assert.Equal(2, stats.Files);
         Assert.Equal(150, stats.Bytes);
@@ -35,7 +35,7 @@ public sealed class StoragePageTests
         // SUM over no rows is NULL in SQL; the per-provider grouping has to come back empty, not throw.
         await using var h = new DashboardHarness(Batteries.Storage);
 
-        var stats = await h.Get<IStoragePanelReader>().StatsAsync(CancellationToken.None);
+        var stats = await h.Get<IStoragePanelReader>().Stats(CancellationToken.None);
 
         Assert.Equal(0, stats.Files);
         Assert.Equal(0, stats.Bytes);
@@ -54,8 +54,8 @@ public sealed class StoragePageTests
         await files.Save(new MemoryStream("three"u8.ToArray()), "invoice-2.txt", TestContext.Current.CancellationToken);
 
         var reader = h.Get<IStoragePanelReader>();
-        var (all, total) = await reader.PageAsync(null, 0, 10, CancellationToken.None);
-        var (matching, matched) = await reader.PageAsync("invoice", 0, 10, CancellationToken.None);
+        var (all, total) = await reader.Page(null, 0, 10, CancellationToken.None);
+        var (matching, matched) = await reader.Page("invoice", 0, 10, CancellationToken.None);
 
         Assert.Equal(3, total);
         Assert.Equal(["invoice-2.txt", "photo.txt", "invoice-1.txt"], all.Select(r => r.Name));
@@ -78,7 +78,7 @@ public sealed class StoragePageTests
         var storage = h.Get<IStoragePanelReader>();
 
         Assert.False(storage.IsAvailable);
-        Assert.Equal(0, (await storage.PageAsync(null, 0, 10, CancellationToken.None)).Total);
+        Assert.Equal(0, (await storage.Page(null, 0, 10, CancellationToken.None)).Total);
     }
 
     [Fact]

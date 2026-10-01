@@ -12,7 +12,7 @@ public static class LitestreamStartupExtensions
     /// (schema creation, migrations, first query). No-op — and never a clobber — when the database
     /// already exists locally. Returns <see langword="true"/> if a restore was attempted.
     /// </summary>
-    public static async Task<bool> RestoreSqliteFromLitestreamAsync(
+    public static async Task<bool> RestoreSqliteFromLitestream(
         this IServiceProvider services,
         CancellationToken cancellationToken = default)
     {
@@ -20,7 +20,7 @@ public static class LitestreamStartupExtensions
 
         var restorer = services.GetService<LitestreamRestorer>()
             ?? throw new InvalidOperationException(
-                "Call AddRaskSqliteLitestream(...) before RestoreSqliteFromLitestreamAsync().");
+                "Call AddRaskSqliteLitestream(...) before RestoreSqliteFromLitestream().");
 
         return await restorer.RestoreAsync(cancellationToken).ConfigureAwait(false);
     }

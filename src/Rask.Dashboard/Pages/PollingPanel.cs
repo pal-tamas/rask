@@ -12,7 +12,7 @@ namespace Rask.Dashboard.Pages;
 ///     the loop itself would never return and the page would never mount.
 ///   </item>
 ///   <item>
-///     <b>Compare before re-rendering.</b> <see cref="LoadAsync" /> returns a value compared with the
+///     <b>Compare before re-rendering.</b> <see cref="Load" /> returns a value compared with the
 ///     previous one, so an unchanged reading produces no <c>StateHasChanged</c> — an idle system generates
 ///     no diff and no WebSocket traffic at all.
 ///   </item>
@@ -39,7 +39,7 @@ public abstract partial class PollingPanel : Component
     /// Reads the panel's data into fields and returns a value used purely for change detection — return a
     /// value type or record whose equality means "the screen would look the same".
     /// </summary>
-    protected abstract Task<object?> LoadAsync(CancellationToken cancellationToken);
+    protected abstract Task<object?> Load(CancellationToken cancellationToken);
 
     /// <summary><c>true</c> once the loop has stopped and the Resume affordance should show.</summary>
     protected bool IsParked { get; private set; }
@@ -64,7 +64,7 @@ public abstract partial class PollingPanel : Component
     }
 
     /// <summary>Restarts the loop after it parked.</summary>
-    protected Task ResumeAsync()
+    protected Task Resume()
     {
         if (IsParked)
         {
@@ -113,7 +113,7 @@ public abstract partial class PollingPanel : Component
                 if (DateTimeOffset.UtcNow >= deadline)
                 {
                     IsParked = true;
-                    await StateHasChangedAsync().ConfigureAwait(false);
+                    StateHasChanged();
                     return;
                 }
             }
@@ -133,7 +133,7 @@ public abstract partial class PollingPanel : Component
         string? error;
         try
         {
-            current = await LoadAsync(cancellationToken).ConfigureAwait(false);
+            current = await Load(cancellationToken).ConfigureAwait(false);
             error = null;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -159,7 +159,7 @@ public abstract partial class PollingPanel : Component
 
         _previous = reading;
         LoadError = error;
-        await StateHasChangedAsync().ConfigureAwait(false);
+        StateHasChanged();
         return true;
     }
 }

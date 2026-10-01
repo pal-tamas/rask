@@ -46,12 +46,12 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validating_adds_a_message_for_each_offending_member()
+    public async Task Validating_adds_a_message_for_each_offending_member()
     {
         var p = new Person { Name = "", Age = 0, Code = "" };
         var ctx = RegisterValidator(p);
 
-        var ok = ctx.Validate();
+        var ok = await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.False(ok);
         Assert.NotEmpty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
@@ -59,29 +59,29 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validating_an_all_valid_model_returns_true()
+    public async Task Validating_an_all_valid_model_returns_true()
     {
         var p = new Person { Name = "Ada", Age = 30, Code = "ABC" };
         var ctx = RegisterValidator(p);
 
-        Assert.True(ctx.Validate());
+        Assert.True(await ctx.Validate(TestContext.Current.CancellationToken));
         Assert.False(ctx.HasValidationMessages());
     }
 
     [Fact]
-    public void Validating_one_field_validates_only_that_field()
+    public async Task Validating_one_field_validates_only_that_field()
     {
         var p = new Person { Name = "", Age = 999, Code = "" };
         var ctx = RegisterValidator(p);
 
-        ctx.ValidateField(new FieldIdentifier(p, "Age"));
+        await ctx.ValidateField(new FieldIdentifier(p, "Age"), TestContext.Current.CancellationToken);
 
         Assert.NotEmpty(ctx.GetValidationMessages(new FieldIdentifier(p, "Age")));
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
 
     [Fact]
-    public void A_form_level_IValidatableObject_error_attaches_to_the_empty_field()
+    public async Task A_form_level_IValidatableObject_error_attaches_to_the_empty_field()
     {
         // Model.Validate returns a ValidationResult with empty MemberNames — should land on
         // FieldIdentifier(model, "") so Validation.Summary picks it up as a form-level error.
@@ -93,14 +93,14 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         };
         var ctx = RegisterValidator(m);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Booking spans a blackout window.",
             ctx.GetValidationMessages(new FieldIdentifier(m, string.Empty)));
     }
 
     [Fact]
-    public void A_per_field_IValidatableObject_error_attaches_to_the_named_field()
+    public async Task A_per_field_IValidatableObject_error_attaches_to_the_named_field()
     {
         // Model.Validate returns a ValidationResult with MemberNames = ["Departure"] — should
         // land on that field's messages.
@@ -112,14 +112,14 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         };
         var ctx = RegisterValidator(m);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Departure cannot be in the past.",
             ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Departure))));
     }
 
     [Fact]
-    public void IValidatableObject_runs_even_when_attribute_validation_fails()
+    public async Task IValidatableObject_runs_even_when_attribute_validation_fails()
     {
         // ASP.NET Core parity: BCL's TryValidateObject silences IValidatableObject as soon as
         // any attribute fails. Here Name is empty (Required fails) AND the model raises a
@@ -133,7 +133,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         };
         var ctx = RegisterValidator(m);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Name is required.",
             ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Name))));
@@ -142,7 +142,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validating_one_field_surfaces_the_IValidatableObject_cross_field_error_on_it()
+    public async Task Validating_one_field_surfaces_the_IValidatableObject_cross_field_error_on_it()
     {
         // Re-validating Departure on its own should surface the IValidatableObject result
         // whose MemberNames include Departure.
@@ -154,14 +154,14 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         };
         var ctx = RegisterValidator(m);
 
-        ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Departure)));
+        await ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Departure)), TestContext.Current.CancellationToken);
 
         Assert.Contains("Departure cannot be in the past.",
             ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Departure))));
     }
 
     [Fact]
-    public void Validating_one_field_ignores_IValidatableObject_errors_for_other_fields()
+    public async Task Validating_one_field_ignores_IValidatableObject_errors_for_other_fields()
     {
         // Re-validating Name must NOT pull in Departure's IValidatableObject error, and a
         // form-level (empty MemberNames) error must not attach to Name either.
@@ -174,7 +174,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         };
         var ctx = RegisterValidator(m);
 
-        ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Name)));
+        await ctx.ValidateField(new FieldIdentifier(m, nameof(BookingModel.Name)), TestContext.Current.CancellationToken);
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Name))));
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(m, nameof(BookingModel.Departure))));
@@ -182,7 +182,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Registering_the_validator_is_idempotent_across_multiple_renders()
+    public async Task Registering_the_validator_is_idempotent_across_multiple_renders()
     {
         var p = new Person { Name = "" };
         var ctx = new EditContext(p);
@@ -198,26 +198,26 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
             Test.EditContextProbe(_ => { })
         ]);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Single(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
 
     [Fact]
-    public void AutoValidate_false_takes_the_form_out_of_validation()
+    public async Task AutoValidate_false_takes_the_form_out_of_validation()
     {
         // Nothing declared means nothing to delete when you want out, so the opt-out is the only thing
         // an author writes — and it has to actually stop the pass, not just stop reporting it.
         var p = new Person { Name = "" };
         var ctx = WithoutAutoValidation(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
 
     [Fact]
-    public void The_global_RaskValidation_AutoValidate_false_takes_every_form_out_of_validation()
+    public async Task The_global_RaskValidation_AutoValidate_false_takes_every_form_out_of_validation()
     {
         var p = new Person { Name = "" };
 
@@ -226,7 +226,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         {
             var ctx = RegisterValidator(p);
 
-            ctx.Validate();
+            await ctx.Validate(TestContext.Current.CancellationToken);
 
             Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
         }

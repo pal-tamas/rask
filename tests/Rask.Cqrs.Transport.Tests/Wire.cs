@@ -127,7 +127,7 @@ internal sealed class Wire : IAsyncDisposable
             // The credential hook, used for what it is for: the server authenticates from a header, so a
             // test states the identity it means and the transport carries it on every request — chunk
             // requests included, which is what an upload session's owner is derived from.
-            ConfigureRequestAsync = (request, _) =>
+            ConfigureRequest = (request, _) =>
             {
                 if (user is not null)
                 {

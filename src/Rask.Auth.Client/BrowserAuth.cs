@@ -24,7 +24,7 @@ public sealed class BrowserAuth(
     AuthClientOptions options) : IAuth
 {
     /// <inheritdoc />
-    public Task<AuthResult> RegisterAsync(
+    public Task<AuthResult> Register(
         string email, string password, string? returnUrl = null, string? firstRunToken = null) =>
         PostAsync(
             AuthApi.Register,
@@ -33,7 +33,7 @@ public sealed class BrowserAuth(
             returnUrl);
 
     /// <inheritdoc />
-    public Task<AuthResult> SignInAsync(
+    public Task<AuthResult> SignIn(
         string email, string password, bool remember = false, string? returnUrl = null) =>
         PostAsync(
             AuthApi.Login,
@@ -42,7 +42,7 @@ public sealed class BrowserAuth(
             returnUrl);
 
     /// <inheritdoc />
-    public async Task SignOutAsync(string? returnUrl = null)
+    public async Task SignOut(string? returnUrl = null)
     {
         using var request = Request(AuthApi.Logout);
         await http.SendAsync(request).ConfigureAwait(false);
@@ -52,14 +52,14 @@ public sealed class BrowserAuth(
     }
 
     /// <inheritdoc />
-    public async Task SignOutOtherDevicesAsync()
+    public async Task SignOutOtherDevices()
     {
         using var request = Request(AuthApi.LogoutOtherDevices);
         await http.SendAsync(request).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task SignOutEverywhereAsync(string? returnUrl = null)
+    public async Task SignOutEverywhere(string? returnUrl = null)
     {
         using var request = Request(AuthApi.LogoutEverywhere);
         await http.SendAsync(request).ConfigureAwait(false);
@@ -69,28 +69,28 @@ public sealed class BrowserAuth(
     }
 
     /// <inheritdoc />
-    public Task<AuthResult> SendPasswordResetAsync(string email) =>
+    public Task<AuthResult> SendPasswordReset(string email) =>
         ExchangeAsync(
             AuthApi.ForgotPassword,
             new ForgotPasswordRequest(email),
             AuthJsonContext.Default.ForgotPasswordRequest);
 
     /// <inheritdoc />
-    public Task<AuthResult> ResetPasswordAsync(string userId, string token, string password) =>
+    public Task<AuthResult> ResetPassword(string userId, string token, string password) =>
         ExchangeAsync(
             AuthApi.ResetPassword,
             new ResetPasswordRequest(userId, token, password),
             AuthJsonContext.Default.ResetPasswordRequest);
 
     /// <inheritdoc />
-    public Task<AuthResult> ConfirmEmailAsync(string userId, string token) =>
+    public Task<AuthResult> ConfirmEmail(string userId, string token) =>
         ExchangeAsync(
             AuthApi.ConfirmEmail,
             new ConfirmEmailRequest(userId, token),
             AuthJsonContext.Default.ConfirmEmailRequest);
 
     /// <inheritdoc />
-    public async Task<AuthResult> AddPasskeyAsync(string? name = null)
+    public async Task<AuthResult> AddPasskey(string? name = null)
     {
         // Two requests, not one: the challenge has to reach the authenticator before anything can be signed. It comes
         // back sealed, so the server keeps nothing between them.
@@ -140,7 +140,7 @@ public sealed class BrowserAuth(
     }
 
     /// <inheritdoc />
-    public async Task<AuthResult> SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null)
+    public async Task<AuthResult> SignInWithPasskey(bool remember = false, string? returnUrl = null)
     {
         if (await AskAsync(AuthApi.PasskeyLoginOptions, AuthJsonContext.Default.PasskeyRequestChallenge)
                 .ConfigureAwait(false) is not { } challenge)
@@ -181,7 +181,7 @@ public sealed class BrowserAuth(
     }
 
     /// <inheritdoc />
-    public Task<AuthResult> RemovePasskeyAsync(Guid id) =>
+    public Task<AuthResult> RemovePasskey(Guid id) =>
         ExchangeAsync(
             AuthApi.PasskeyRemove,
             new RemovePasskeyRequest(id.ToString()),
