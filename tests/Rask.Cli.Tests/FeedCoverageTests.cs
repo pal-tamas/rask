@@ -90,7 +90,7 @@ public sealed class FeedCoverageTests
         // itself: every flag `rask new` understands must be switched on here, or a new battery gets
         // added, references a package nobody packs, and every build gate keeps passing without ever
         // restoring it.
-        var uncovered = NewCommand.FeatureFlags
+        var uncovered = BatterySelection.FeatureFlags
             .Where(flag => typeof(ServerBatteries)
                 .GetProperty(flag, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
                 ?.GetValue(batteries) is not true)

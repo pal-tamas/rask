@@ -53,6 +53,19 @@ them until tagged releases begin.
   copied between the island, package-island and batteries generators are `CodeText` and a shared
   `Identifiers`. Every generated file is byte-for-byte what it was.
 
+- **`rask deploy`, `rask new` and `rask dev` are split by what each part does.** The 1,500-line deploy command is now
+  the command itself, its planning and its blue-green rollout as partial files, plus three small types
+  unit-tested on their own: `DockerCommands` (every `docker` argument list), `CaddyRouting` (which color
+  serves each domain) and `DeployEnvironment` (env keys, the env file and secret masking). `rask new` keeps
+  its wizard, output, post-scaffold steps and npm scaffold in partial files, with `BatterySelection` and
+  `NewArgumentChecks` as their own types; `rask dev` builds its `dotnet watch` command line in
+  `DotnetWatchInvocation`. Nothing any of the three does has changed.
+
+- **The WebAssembly prerender is split by what each part does.** `WasmPrerender` keeps its public surface and
+  the page loop; repairing the publish output's compressed siblings and endpoint manifest is
+  `PublishedAssetRepair`, writing `sitemap.xml` and `robots.txt` is `SitemapWriter`, and reading a page's own
+  last-modified date, canonical URL and noindex is `PrerenderedPageMetadata`. The published site is unchanged.
+
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
   and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are

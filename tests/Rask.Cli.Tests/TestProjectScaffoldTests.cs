@@ -124,7 +124,7 @@ public sealed class TestProjectScaffoldTests
     [Fact]
     public void The_next_steps_mention_dotnet_test_only_when_there_are_tests()
     {
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+        var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, []);
 
         var with = ProjectGenerator.GenerateServer(Root, "Shop", batteries, Version);
         var without = ProjectGenerator.GenerateServer(Root, "Shop", batteries with { Tests = false }, Version);
@@ -176,13 +176,13 @@ public sealed class TestProjectScaffoldTests
     private static Dictionary<string, string> Server(string[] off)
     {
         _ = TemplateCatalog.TryGet("server", out var template);
-        return Relative(ProjectGenerator.GenerateServer(Root, "Shop", NewCommand.ToBatteries(template, off), Version));
+        return Relative(ProjectGenerator.GenerateServer(Root, "Shop", BatterySelection.ToBatteries(template, off), Version));
     }
 
     private static Dictionary<string, string> Wasm(string[] off)
     {
         _ = TemplateCatalog.TryGet("wasm", out var template);
-        var batteries = NewCommand.ToBatteries(template, off);
+        var batteries = BatterySelection.ToBatteries(template, off);
         return Relative(ProjectGenerator.GenerateWasm(Root, "Shop", batteries.Pwa, batteries.Docker, Version, batteries));
     }
 

@@ -77,7 +77,7 @@ public sealed class DevSpaHostedTests
     [Fact]
     public void The_production_bundle_is_skipped_during_a_dev_session()
     {
-        var args = DevCommand.BuildDotnetArguments(
+        var args = DotnetWatchInvocation.BuildDotnetArguments(
             "/app/Shop/Shop.csproj", once: false, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.SpaHosted);
 
@@ -93,7 +93,7 @@ public sealed class DevSpaHostedTests
     {
         // --once is deliberately a plain `dotnet run` with no watching and no dev server beside it, so the
         // app has to serve a real bundle or there is nothing to look at.
-        var args = DevCommand.BuildDotnetArguments(
+        var args = DotnetWatchInvocation.BuildDotnetArguments(
             "/app/Shop/Shop.csproj", once: true, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.SpaHosted);
 

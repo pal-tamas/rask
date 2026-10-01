@@ -151,7 +151,7 @@ public sealed class SpaTemplateTests
         Assert.True(TemplateCatalog.TryGet("react", out var template));
 
         var program = Content(
-            ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, NewCommand.ToBatteries(template, []), "1.2.3"),
+            ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, BatterySelection.ToBatteries(template, []), "1.2.3"),
             "/Program.cs");
 
         Assert.DoesNotContain(".Off();", program, StringComparison.Ordinal);
@@ -166,7 +166,7 @@ public sealed class SpaTemplateTests
 
         var program = Content(
             ProjectGenerator.GenerateSpa(
-                Root, "Shop", SpaFramework.React, NewCommand.ToBatteries(template, ["pwa"]), "1.2.3"),
+                Root, "Shop", SpaFramework.React, BatterySelection.ToBatteries(template, ["pwa"]), "1.2.3"),
             "/Program.cs");
 
         // The PWA is the client's own manifest and worker, so what the host turns off without it is push.
