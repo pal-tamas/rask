@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
@@ -313,39 +312,17 @@ internal static class CliBuildE2E
     internal static async Task<(int Exit, string Output)> RunProcess(
         string fileName, IReadOnlyList<string> arguments, string workingDirectory)
     {
-        var psi = new ProcessStartInfo(fileName)
-        {
-            WorkingDirectory = workingDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
-        foreach (var argument in arguments)
-        {
-            psi.ArgumentList.Add(argument);
-        }
-
-        psi.Environment["CI"] = "true";
-
-        using var process = Process.Start(psi)!;
-        var stdout = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        return (process.ExitCode, stdout + stderr);
+        var result = await TestProcess.Run(
+            fileName, arguments, workingDirectory, new Dictionary<string, string?> { ["CI"] = "true" }, LongStepTimeout);
+        return (result.ExitCode, result.Output);
     }
+
+    // A nine-package pack or a scaffold's first restore+build runs for minutes on a loaded machine; the ceiling is
+    // there to turn a hang into a red, not to race a slow but working build.
+    internal static readonly TimeSpan LongStepTimeout = TimeSpan.FromMinutes(30);
 
     internal static async Task<(int Exit, string Output)> RunDotnet(string arguments)
     {
-        var psi = new ProcessStartInfo("dotnet", arguments)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        psi.Environment["CI"] = "true";
-
         // Node reuse is what makes the wasm-hosted cases fail intermittently, and only ever on a repeated
         // run (#650). A worker node kept alive from an earlier run has already loaded Rask.Wasm.Tasks.dll
         // via Assembly.LoadFrom from *that* run's temp directory; the next run's publish reuses the node,
@@ -355,14 +332,12 @@ internal static class CliBuildE2E
         // but these projects are generated into a temp directory outside it, so it has to be set here.
         // An environment variable rather than -nodeReuse:false on the command line: the wasm-hosted build
         // shells out to a nested `dotnet publish`, and the variable is inherited where a flag is not.
-        psi.Environment["MSBUILDDISABLENODEREUSE"] = "1";
-
-        using var process = Process.Start(psi)!;
-        var stdout = await process.StandardOutput.ReadToEndAsync();
-        var stderr = await process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        return (process.ExitCode, stdout + stderr);
+        var result = await TestProcess.Run(
+            "dotnet",
+            arguments,
+            environment: new Dictionary<string, string?> { ["CI"] = "true", ["MSBUILDDISABLENODEREUSE"] = "1" },
+            timeout: LongStepTimeout);
+        return (result.ExitCode, result.Output);
     }
 
     /// <summary>

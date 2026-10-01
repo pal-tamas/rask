@@ -29,7 +29,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
     [InlineData("-p:Configuration=Debug", "")]
     [InlineData("-p:Configuration=Release -p:RaskScopedTsRemoveComments=false", "")]
     [InlineData("-p:Configuration=Debug -p:RaskScopedTsRemoveComments=true", " --removeComments")]
-    public void The_compiler_argument_follows_the_configuration_and_the_override(string properties, string expected)
+    public async Task The_compiler_argument_follows_the_configuration_and_the_override(string properties, string expected)
     {
         var directory = Directory.CreateTempSubdirectory("rask-ts-comments-");
         try
@@ -37,7 +37,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
             var probe = Path.Combine(directory.FullName, "probe.proj");
             File.WriteAllText(probe, $"""<Project><Import Project="{_targets}"/></Project>""");
 
-            var (exitCode, output) = PinnedTools.Run(
+            var (exitCode, output) = await PinnedTools.Run(
                 Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
                 $"msbuild \"{probe}\" {properties} -getProperty:_RaskScopedTsRemoveCommentsArg");
 
@@ -88,7 +88,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
     [InlineData("-p:Configuration=Release", "false")]
     [InlineData("-p:Configuration=Release -p:RaskScopedTsSourceMap=true", "true")]
     [InlineData("-p:Configuration=Debug -p:RaskScopedTsSourceMap=false", "false")]
-    public void Source_maps_are_Debug_only_and_overridable(string properties, string expected)
+    public async Task Source_maps_are_Debug_only_and_overridable(string properties, string expected)
     {
         // #1073: a map is for a developer's debugger; a Release bundle a visitor downloads carries none.
         var directory = Directory.CreateTempSubdirectory("rask-ts-sourcemap-");
@@ -97,7 +97,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
             var probe = Path.Combine(directory.FullName, "probe.proj");
             File.WriteAllText(probe, $"""<Project><Import Project="{_targets}"/></Project>""");
 
-            var (exitCode, output) = PinnedTools.Run(
+            var (exitCode, output) = await PinnedTools.Run(
                 Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
                 $"msbuild \"{probe}\" {properties} -getProperty:RaskScopedTsSourceMap");
 

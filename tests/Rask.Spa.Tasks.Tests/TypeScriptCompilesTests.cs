@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using System.Xml.Linq;
 using Microsoft.Build.Framework;
+using Rask.TestFiles;
 using Rask.TypeScript.Tasks;
 
 namespace Rask.Spa.Tasks.Tests;
@@ -113,7 +113,7 @@ public class TypeScriptCompilesTests : IDisposable
     });
 
     [Fact]
-    public void The_generated_TypeScript_compiles_against_the_client()
+    public async Task The_generated_TypeScript_compiles_against_the_client()
     {
         var (command, prefix) = Compiler();
 
@@ -131,12 +131,14 @@ public class TypeScriptCompilesTests : IDisposable
         // installed into the scratch directory, and it is the one client file with nothing generated
         // about it. The scaffolded template's own `npm run build` type-checks it, against the version
         // that template actually pins — which is a better check than a version chosen here.
-        var (exitCode, output) = Run(
+        var result = await TestProcess.Run(
             command,
             prefix + "--noEmit --strict --target es2022 --module esnext --moduleResolution bundler "
-            + "--lib es2022,dom --skipLibCheck client.ts contracts.ts messages.ts usage.check.ts");
+            + "--lib es2022,dom --skipLibCheck client.ts contracts.ts messages.ts usage.check.ts",
+            _directory,
+            cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(exitCode == 0, output);
+        Assert.True(result.ExitCode == 0, result.Output);
     }
 
     /// <summary>The compiler to run, and anything that has to precede its own arguments.</summary>
@@ -267,19 +269,5 @@ public class TypeScriptCompilesTests : IDisposable
 
         Assert.NotNull(directory);
         return Path.Combine(directory!, "src", "Rask.Spa.Hosting", "client");
-    }
-
-    private (int ExitCode, string Output) Run(string command, string arguments)
-    {
-        using var process = Process.Start(new ProcessStartInfo(command, arguments)
-        {
-            WorkingDirectory = _directory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        })!;
-
-        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        return (process.ExitCode, output);
     }
 }

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.Server.Tests.Build;
 
@@ -18,31 +18,31 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
-    public void A_typescript_front_end_in_client_turns_the_codec_on()
+    public async Task A_typescript_front_end_in_client_turns_the_codec_on()
     {
         Write("client/package.json", "{}");
 
-        var codec = Evaluate();
+        var codec = await Evaluate();
 
         Assert.Equal("true", codec);
     }
 
     [Fact]
-    public void A_server_rendered_app_keeps_the_codec_off()
+    public async Task A_server_rendered_app_keeps_the_codec_off()
     {
         Write("Program.cs", "// no front end of its own");
 
-        var codec = Evaluate();
+        var codec = await Evaluate();
 
         Assert.Equal("false", codec);
     }
 
     [Fact]
-    public void A_meta_framework_host_is_not_taken_for_a_typescript_front_end()
+    public async Task A_meta_framework_host_is_not_taken_for_a_typescript_front_end()
     {
         Write("client/package.json", "{}");
 
-        var codec = Evaluate("<RaskMetaFramework>nuxt</RaskMetaFramework>");
+        var codec = await Evaluate("<RaskMetaFramework>nuxt</RaskMetaFramework>");
 
         Assert.Equal("false", codec);
     }
@@ -54,7 +54,7 @@ public sealed class CqrsCodecDefaultTests : IDisposable
         File.WriteAllText(full, content);
     }
 
-    private string Evaluate(string properties = "")
+    private async Task<string> Evaluate(string properties = "")
     {
         File.WriteAllText(Path.Combine(_dir, "Host.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
@@ -66,24 +66,14 @@ public sealed class CqrsCodecDefaultTests : IDisposable
             </Project>
             """);
 
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = _dir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        foreach (var argument in new[] { "msbuild", "Host.csproj", "-nologo", "-nodeReuse:false", "-getProperty:RaskCqrsCodec" })
-        {
-            psi.ArgumentList.Add(argument);
-        }
+        var result = await TestProcess.Run(
+            "dotnet",
+            ["msbuild", "Host.csproj", "-nologo", "-nodeReuse:false", "-getProperty:RaskCqrsCodec"],
+            _dir,
+            cancellationToken: TestContext.Current.CancellationToken);
 
-        using var p = Process.Start(psi)!;
-        var stdout = p.StandardOutput.ReadToEnd();
-        var stderr = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-
-        Assert.True(p.ExitCode == 0, $"evaluation failed:\n{stdout}{stderr}");
-        return stdout.Trim();
+        Assert.True(result.ExitCode == 0, $"evaluation failed:\n{result.Output}");
+        return result.StandardOutput.Trim();
     }
 
     private static string SrcDir

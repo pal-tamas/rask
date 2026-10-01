@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Diagnostics;
 using System.Xml.Linq;
 using Microsoft.Build.Framework;
 
@@ -37,7 +36,7 @@ public class ResolveTypeScriptToolTaskTests
     private static readonly Lazy<(string Esbuild, string Tsgo)> Pins = new(ReadPinnedVersions);
 
     [Fact]
-    public void Resolving_esbuild_fetches_a_binary_that_runs()
+    public async Task Resolving_esbuild_fetches_a_binary_that_runs()
     {
         var path = Resolve("esbuild", Pins.Value.Esbuild);
 
@@ -45,18 +44,18 @@ public class ResolveTypeScriptToolTaskTests
 
         // --version rather than a transpile: this asserts the download is the right architecture and
         // is executable, which is the part the resolver is responsible for.
-        var reported = Run(path, "--version");
+        var reported = await Run(path, "--version");
 
         Assert.Equal(Pins.Value.Esbuild, reported.Trim());
     }
 
     [Fact]
-    public void Resolving_tsgo_fetches_a_compiler_that_runs()
+    public async Task Resolving_tsgo_fetches_a_compiler_that_runs()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
 
         Assert.True(File.Exists(path), $"the resolver reported '{path}', which is not there");
-        Assert.Contains("Version", Run(path, "--version"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Version", await Run(path, "--version"), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -106,14 +105,14 @@ public class ResolveTypeScriptToolTaskTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void Esbuild_strips_types_but_hoists_the_exports()
+    public async Task Esbuild_strips_types_but_hoists_the_exports()
     {
         var path = Resolve("esbuild", Pins.Value.Esbuild);
         using var source = new TempFile(
             ".ts",
             "export function width(el: HTMLElement | null): number { return el ? 1 : 0; }");
 
-        var js = Run(path, $"\"{source.Path}\" --format=esm");
+        var js = await Run(path, $"\"{source.Path}\" --format=esm");
 
         Assert.DoesNotContain("HTMLElement", js, StringComparison.Ordinal);
         Assert.Contains("function width(el)", js, StringComparison.Ordinal);
@@ -148,7 +147,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void Esbuild_drops_a_module_whose_import_is_unreferenced()
+    public async Task Esbuild_drops_a_module_whose_import_is_unreferenced()
     {
         var path = Resolve("esbuild", Pins.Value.Esbuild);
         using var directory = new TempDirectory();
@@ -173,8 +172,8 @@ public class ResolveTypeScriptToolTaskTests
                                 console.log(pill());
                                 """);
 
-        var withoutReference = Run(path, $"\"{unused}\" --bundle --format=esm --target=es2020");
-        var withReference = Run(path, $"\"{used}\" --bundle --format=esm --target=es2020");
+        var withoutReference = await Run(path, $"\"{unused}\" --bundle --format=esm --target=es2020");
+        var withReference = await Run(path, $"\"{used}\" --bundle --format=esm --target=es2020");
 
         // The side effect is gone with it — this is the part that breaks at runtime, in the browser,
         // with nothing to read in any build log.
@@ -198,7 +197,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     stay in the same capture group whether or not the modifier is present.
     /// </remarks>
     [Fact]
-    public void The_tsgo_emit_preserves_the_inline_export_form()
+    public async Task The_tsgo_emit_preserves_the_inline_export_form()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
         using var source = new TempFile(
@@ -209,7 +208,7 @@ public class ResolveTypeScriptToolTaskTests
             """);
         using var output = new TempDirectory();
 
-        Run(path, $"\"{source.Path}\" --outDir \"{output.Path}\" --target es2020 --module esnext --noCheck");
+        await Run(path, $"\"{source.Path}\" --outDir \"{output.Path}\" --target es2020 --module esnext --noCheck");
 
         var js = File.ReadAllText(
             Path.Combine(output.Path, Path.GetFileNameWithoutExtension(source.Path) + ".js"));
@@ -228,7 +227,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     their own lines and inside a body here, so both the stripping and the survival are checked.
     /// </remarks>
     [Fact]
-    public void The_tsgo_emit_with_removeComments_preserves_the_inline_export_form()
+    public async Task The_tsgo_emit_with_removeComments_preserves_the_inline_export_form()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
         using var source = new TempFile(
@@ -244,7 +243,7 @@ public class ResolveTypeScriptToolTaskTests
             """);
         using var output = new TempDirectory();
 
-        Run(path, $"\"{source.Path}\" --outDir \"{output.Path}\" --target es2020 --module esnext --noCheck --removeComments");
+        await Run(path, $"\"{source.Path}\" --outDir \"{output.Path}\" --target es2020 --module esnext --noCheck --removeComments");
 
         var js = File.ReadAllText(
             Path.Combine(output.Path, Path.GetFileNameWithoutExtension(source.Path) + ".js"));
@@ -264,12 +263,12 @@ public class ResolveTypeScriptToolTaskTests
     ///     one. Without it the migration would deliver TypeScript's syntax and none of its guarantee.
     /// </remarks>
     [Fact]
-    public void Tsgo_rejects_a_type_error()
+    public async Task Tsgo_rejects_a_type_error()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
         using var source = new TempFile(".ts", "export function n(): number { return \"not a number\"; }");
 
-        var (exitCode, output) = RunRaw(path, $"--noEmit \"{source.Path}\"");
+        var (exitCode, output) = await PinnedTools.Run(path, $"--noEmit \"{source.Path}\"");
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("not assignable", output, StringComparison.OrdinalIgnoreCase);
@@ -438,37 +437,13 @@ public class ResolveTypeScriptToolTaskTests
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
     /// <summary>Run and require success, returning what it printed.</summary>
-    private static string Run(string executable, string arguments)
+    private static async Task<string> Run(string executable, string arguments)
     {
-        var (exitCode, output) = RunRaw(executable, arguments);
+        var (exitCode, output) = await PinnedTools.Run(executable, arguments);
 
         Assert.True(exitCode == 0, $"'{executable} {arguments}' exited {exitCode}: {output}");
 
         return output;
-    }
-
-    /// <summary>
-    ///     Run and report, for the cases where a non-zero exit is the thing being asserted.
-    /// </summary>
-    /// <remarks>
-    ///     Both streams are combined because these tools do not agree on which one a diagnostic
-    ///     belongs on, and a test that reads only stdout passes vacuously when the message went to
-    ///     stderr.
-    /// </remarks>
-    private static (int ExitCode, string Output) RunRaw(string executable, string arguments)
-    {
-        using var process = Process.Start(new ProcessStartInfo(executable, arguments)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        })!;
-
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        return (process.ExitCode, stdout + stderr);
     }
 
     /// <summary>A temporary source file that removes itself.</summary>

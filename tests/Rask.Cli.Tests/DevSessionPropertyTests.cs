@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Rask.Cli.Commands;
 using Rask.Hosting.Shared;
@@ -89,34 +88,16 @@ public sealed class DevSessionPropertyTests
                  </Project>
                  """);
 
-            var info = new ProcessStartInfo("dotnet")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                WorkingDirectory = directory.FullName,
-            };
-            info.ArgumentList.Add("msbuild");
-            info.ArgumentList.Add(project);
-            info.ArgumentList.Add("-nologo");
-            foreach (var property in Properties)
-            {
-                info.ArgumentList.Add($"-getProperty:{property}");
-            }
+            var result = await TestProcess.Run(
+                "dotnet",
+                ["msbuild", project, "-nologo", .. Properties.Select(property => $"-getProperty:{property}"), .. extra],
+                directory.FullName);
 
-            foreach (var argument in extra)
-            {
-                info.ArgumentList.Add(argument);
-            }
+            Assert.True(
+                result.ExitCode == 0,
+                $"dotnet msbuild failed ({result.ExitCode}):{Environment.NewLine}{result.Output}");
 
-            using var process = Process.Start(info)!;
-            var output = await process.StandardOutput.ReadToEndAsync();
-            var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            Assert.True(process.ExitCode == 0, $"dotnet msbuild failed ({process.ExitCode}):{Environment.NewLine}{output}{error}");
-
-            using var json = JsonDocument.Parse(output);
+            using var json = JsonDocument.Parse(result.StandardOutput);
             return json.RootElement.GetProperty("Properties").EnumerateObject()
                 .ToDictionary(p => p.Name, p => p.Value.GetString() ?? string.Empty, StringComparer.Ordinal);
         }

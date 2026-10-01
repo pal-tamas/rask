@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.Meta.Hosting.Tests;
 
@@ -39,35 +39,20 @@ public sealed class NodeProbeTests
 
         try
         {
-            var (exit, output) = await RunWithoutNode(systemPath, $"msbuild \"{project}\" -t:_RaskMetaProbeNode -nologo -warnaserror");
+            var result = await TestProcess.Run(
+                Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
+                $"msbuild \"{project}\" -t:_RaskMetaProbeNode -nologo -warnaserror",
+                environment: new Dictionary<string, string?> { ["PATH"] = systemPath },
+                cancellationToken: TestContext.Current.CancellationToken);
 
-            Assert.NotEqual(0, exit);
-            Assert.Contains("RASKMETA003", output, StringComparison.Ordinal);
-            Assert.DoesNotContain("MSB3073", output, StringComparison.Ordinal);
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains("RASKMETA003", result.Output, StringComparison.Ordinal);
+            Assert.DoesNotContain("MSB3073", result.Output, StringComparison.Ordinal);
         }
         finally
         {
             Directory.Delete(temp, recursive: true);
         }
-    }
-
-    private static async Task<(int Exit, string Output)> RunWithoutNode(string path, string arguments)
-    {
-        var dotnet = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet";
-        var start = new ProcessStartInfo(dotnet, arguments)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-        start.Environment["PATH"] = path;
-
-        using var process = Process.Start(start)!;
-        var stdout = process.StandardOutput.ReadToEndAsync(TestContext.Current.CancellationToken);
-        var stderr = process.StandardError.ReadToEndAsync(TestContext.Current.CancellationToken);
-        await process.WaitForExitAsync(TestContext.Current.CancellationToken);
-
-        return (process.ExitCode, await stdout + await stderr);
     }
 
     private static string RepoRoot()

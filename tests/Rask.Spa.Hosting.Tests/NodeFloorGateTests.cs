@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.Spa.Hosting.Tests;
 
@@ -127,22 +127,8 @@ public sealed class NodeFloorGateTests
 
     private static async Task<(int Exit, string Output)> Run(string file, string arguments)
     {
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo(file, arguments)
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-            },
-        };
-
-        process.Start();
-        var stdout = process.StandardOutput.ReadToEndAsync();
-        var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-
-        return (process.ExitCode, await stdout + await stderr);
+        var result = await TestProcess.Run(file, arguments);
+        return (result.ExitCode, result.Output);
     }
 
     private static string RepoRoot()
