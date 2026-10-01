@@ -22,7 +22,7 @@ public sealed class RemoteContract
     public required RemoteMessageKind Kind { get; init; }
 
     /// <summary>
-    ///     The result's CLR type — <see cref="Unit" /> for a void command or a notification.
+    ///     The result's CLR type — <see cref="Unit" /> for a void command or an event.
     /// </summary>
     public required Type ResultType { get; init; }
 
@@ -86,9 +86,9 @@ public sealed class RemoteContract
 
     /// <summary>
     ///     True when the record itself carries <c>[Authorize]</c> or <c>[AllowAnonymous]</c>, which is what opens a
-    ///     notification subscribed to <em>by type</em> to remote subscribers. An <see cref="ISubscription{TNotification}" />
+    ///     event subscribed to <em>by type</em> to remote subscribers. An <see cref="ISubscription{TEvent}" />
     ///     record is guarded by its <see cref="IWatchPolicy{TSubscription}" /> instead and needs no declaration; a
-    ///     notification that declares nothing stays closed to bare subscribers, so no auth event is ever one browser
+    ///     event that declares nothing stays closed to bare subscribers, so no auth event is ever one browser
     ///     request away.
     /// </summary>
     public bool SubscribeDeclared { get; init; }

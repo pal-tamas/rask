@@ -531,12 +531,8 @@ internal static class RaskBatteryWiring
 
         WireLogStore<TContext>(services, options, provider);
 
-        // The outbox first, so a reader meets durable delivery before the things that use it. Order is not
-        // load-bearing — see OutboxDeliveryHandoverTests, which pins that both ways round work.
-        if (options.Outbox.Enabled)
-        {
-            services.AddRaskOutbox<TContext>(o => options.Outbox.Apply(o));
-        }
+        // The outbox follows Data: a handler chooses durability, so it is on whenever there is a database to write to.
+        services.AddRaskOutbox<TContext>(o => options.Outbox.Apply(o));
 
         if (options.Jobs.Enabled)
         {

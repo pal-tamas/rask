@@ -13860,6 +13860,9 @@ Rask.AuthorizeSteps.extension(Rask.Core.Components.Authorize!).Role(string! role
 Rask.AuthorizeSteps.extension(Rask.Core.Components.Authorize!).Roles(string! role, params string![]! more) -> Rask.Core.Components.Authorize!
 static Rask.AuthorizeSteps.Role(this Rask.Core.Components.Authorize! gate, string! role) -> Rask.Core.Components.Authorize!
 static Rask.AuthorizeSteps.Roles(this Rask.Core.Components.Authorize! gate, string! role, params string![]! more) -> Rask.Core.Components.Authorize!
+Rask.Settings<TOptions>
+Rask.Settings<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Settings<TOptions!>!
+Rask.Settings<TOptions>.Settings() -> void
 Rask.Core.Download
 Rask.Core.Go
 Rask.Core.GoTo

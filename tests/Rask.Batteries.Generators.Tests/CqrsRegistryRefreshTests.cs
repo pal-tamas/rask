@@ -28,8 +28,8 @@ public class CqrsRegistryRefreshTests
             public Task Handle(Ping command) => Task.CompletedTask;
         }
 
-        public sealed record Pinged : INotification;
-        public sealed class PingedHandler : INotificationHandler<Pinged>
+        public sealed record Pinged : IEvent;
+        public sealed class PingedHandler : IEventHandler<Pinged>
         {
             public Task Handle(Pinged notification) => Task.CompletedTask;
         }
@@ -65,11 +65,11 @@ public class CqrsRegistryRefreshTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "global::Rask.Cqrs.CqrsRegistry.ReplaceNotifications(typeof(__RaskCqrsRegistry), ",
+            "global::Rask.Cqrs.CqrsRegistry.ReplaceEvents(typeof(__RaskCqrsRegistry), ",
             source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("CqrsRegistry.RegisterRequest(", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("CqrsRegistry.RegisterNotification(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CqrsRegistry.RegisterEvent(", source, StringComparison.Ordinal);
     }
 
     [Fact]

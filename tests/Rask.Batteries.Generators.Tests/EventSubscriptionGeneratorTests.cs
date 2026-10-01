@@ -1,6 +1,6 @@
 namespace Rask.Batteries.Generators.Tests;
 
-public sealed class NotificationSubscriptionGeneratorTests
+public sealed class EventSubscriptionGeneratorTests
 {
     private const string Preamble = """
         using System;
@@ -9,7 +9,7 @@ public sealed class NotificationSubscriptionGeneratorTests
         using Rask.Cqrs;
         namespace Demo;
 
-        public sealed record OrderShipped(Guid OrderId, string Status) : INotification;
+        public sealed record OrderShipped(Guid OrderId, string Status) : IEvent;
         """;
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class NotificationSubscriptionGeneratorTests
     public void An_assembly_that_declares_no_subscription_installs_no_subscription_table()
     {
         var run = CqrsGeneratorFixture.Run(Preamble + """
-            public sealed class OrderShippedHandler : INotificationHandler<OrderShipped>
+            public sealed class OrderShippedHandler : IEventHandler<OrderShipped>
             {
                 public Task Handle(OrderShipped n) => Task.CompletedTask;
             }
@@ -95,7 +95,7 @@ public sealed class NotificationSubscriptionGeneratorTests
     }
 
     [Fact]
-    public void A_subscription_record_crosses_the_wire_as_its_own_contract_carrying_the_notification()
+    public void A_subscription_record_crosses_the_wire_as_its_own_contract_carrying_the_event()
     {
         var run = CodecRun("Rask.Cqrs.Client", """
             public sealed record WatchOrder(Guid OrderId) : ISubscription<OrderShipped>
@@ -116,14 +116,14 @@ public sealed class NotificationSubscriptionGeneratorTests
     }
 
     [Fact]
-    public void A_notification_record_s_own_authorization_opens_it_to_remote_subscribers()
+    public void A_event_record_s_own_authorization_opens_it_to_remote_subscribers()
     {
         var run = CodecRun("Rask.Cqrs.Client", """
             [Authorize(Roles = "admin")]
-            public sealed record OrderPlaced(Guid OrderId) : INotification;
+            public sealed record OrderPlaced(Guid OrderId) : IEvent;
             [AllowAnonymous]
-            public sealed record StatusChanged(string Status) : INotification;
-            public sealed record Unannounced(Guid Id) : INotification;
+            public sealed record StatusChanged(string Status) : IEvent;
+            public sealed record Unannounced(Guid Id) : IEvent;
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
@@ -137,9 +137,9 @@ public sealed class NotificationSubscriptionGeneratorTests
     public void A_handler_s_authorization_governs_publishing_but_says_nothing_about_subscribing()
     {
         var run = CodecRun("Rask.Cqrs.Client", """
-            public sealed record OrderPlaced(Guid OrderId) : INotification;
+            public sealed record OrderPlaced(Guid OrderId) : IEvent;
             [AllowAnonymous]
-            public sealed class OrderPlacedHandler : INotificationHandler<OrderPlaced>
+            public sealed class OrderPlacedHandler : IEventHandler<OrderPlaced>
             {
                 public Task Handle(OrderPlaced n) => Task.CompletedTask;
             }

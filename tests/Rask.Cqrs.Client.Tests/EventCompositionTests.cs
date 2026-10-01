@@ -4,14 +4,14 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Cqrs.Client.Tests;
 
 /// <summary>
-///     Notifications are the one message kind a client does not simply hand to the server. They fan out,
-///     so a client's own reactors — a badge, a toast — must still run, and the notification must also
+///     Events are the one message kind a client does not simply hand to the server. They fan out,
+///     so a client's own reactors — a badge, a toast — must still run, and the event must also
 ///     travel. Both halves, and exactly once each.
 /// </summary>
-public sealed class NotificationCompositionTests
+public sealed class EventCompositionTests
 {
     [Fact]
-    public async Task A_published_notification_runs_the_clients_own_handler_and_still_travels()
+    public async Task A_published_event_runs_the_clients_own_handler_and_still_travels()
     {
         var handler = new CountingHandler();
         var dispatcher = Dispatcher(handler);
@@ -23,7 +23,7 @@ public sealed class NotificationCompositionTests
     }
 
     [Fact]
-    public async Task Registering_the_client_twice_does_not_send_a_notification_twice()
+    public async Task Registering_the_client_twice_does_not_send_a_event_twice()
     {
         // The re-registration guard is per ServiceCollection, but the invoker registry it installs into
         // is static and process-wide. A second registration — a test, a rebuilt container, a host that

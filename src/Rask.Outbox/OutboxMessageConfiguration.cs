@@ -11,6 +11,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
+        builder.Property(x => x.Handler).HasMaxLength(1024);
         builder.Property(x => x.Payload).IsRequired();
         // Drives the "oldest unprocessed first" poll query. ClaimedUntil stays out of it: in a healthy
         // outbox almost every candidate row is unclaimed, so it costs nothing as a residual filter, and a

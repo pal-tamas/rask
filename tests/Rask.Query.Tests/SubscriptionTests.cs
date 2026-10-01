@@ -6,14 +6,14 @@ using Rask.Testing;
 
 namespace Rask.Querying.Tests;
 
-public sealed record OrderPlaced(int Number) : INotification;
+public sealed record OrderPlaced(int Number) : IEvent;
 
 public sealed record WatchOrder(int Number) : ISubscription<OrderPlaced>
 {
     public bool Matches(OrderPlaced placed) => placed.Number == Number;
 }
 
-public sealed record PriceTicked(decimal Price) : INotification;
+public sealed record PriceTicked(decimal Price) : IEvent;
 
 /// <summary>
 ///     <see cref="Subscription{T}" />: declared where a query is, read the same way, fed by every publish — and closed

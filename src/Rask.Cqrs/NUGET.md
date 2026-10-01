@@ -1,7 +1,7 @@
 # Rask.Cqrs
 
 **Source-generated, reflection-free CQRS / mediator for .NET.** Structure your app as queries,
-commands and notifications, and dispatch them through a single injectable interface — with every
+commands and events, and dispatch them through a single injectable interface — with every
 handler wired at **compile time**, so there is no runtime reflection and no assembly scanning. It
 publishes clean under the WASM/AOT trimmer.
 
@@ -36,7 +36,7 @@ builder.Services.AddRaskCqrs();
 var user = await dispatcher.Query(new GetUser(42));   // returns User
 ```
 
-`ICommand` / `ICommand<TResult>` dispatch the same way; `INotification` fans out to every handler
+`ICommand` / `ICommand<TResult>` dispatch the same way; `IEvent` fans out to every handler
 via `PublishAsync` — and to every open subscription, tRPC-style:
 
 ```csharp

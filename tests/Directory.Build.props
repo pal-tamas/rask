@@ -26,10 +26,9 @@
 
   <!--
     The ONE .NET version a test run builds and runs on. Test projects name it as
-    <TargetFramework>$(RaskTestTarget)</TargetFramework> rather than listing every version, so a run is one
-    version at a time: the unit gate keeps the primary (LTS) target, and scripts/run-unit-net11-local.sh sets
-    RaskTestTarget=net11.0 in the environment of that one command — MSBuild reads an environment variable as a
-    property, and the condition below yields to it — to run the same suite on .NET 11.
+    <TargetFramework>$(RaskTestTarget)</TargetFramework> rather than writing it out, so the suite follows the
+    primary (LTS) target, and one environment variable would rerun it on another version — MSBuild reads
+    an environment variable as a property, and the condition below yields to it.
 
     A property of its own rather than -p:TargetFramework: a global TargetFramework flows into every project a
     test references, including the netstandard2.0 generators and tasks, which do not have that framework.

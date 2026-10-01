@@ -357,7 +357,7 @@ balancer a page on the other server still catches up on its next refetch rather 
 ## Subscriptions
 
 A query asks; a subscription is told. `QueryClient.Subscribe<T>()` is declared where a query is and read the same way, and
-every notification published afterwards — by a command, a job, another server — lands in it and re-renders the component:
+every event published afterwards — by a command, a job, another server — lands in it and re-renders the component:
 
 ```csharp
 var orders  = QueryClient.Query(new GetOrders(Page));

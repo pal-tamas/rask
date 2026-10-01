@@ -167,9 +167,9 @@ internal sealed class Wire : IAsyncDisposable
         await contract.Invoker!(_clientServices, message, cancellationToken);
     }
 
-    /// <summary>The notification shape: no invoker is generated, so a transport publishes directly.</summary>
-    public Task Publish(object notification, CancellationToken cancellationToken = default) =>
-        Transport.Publish(Contract(notification), notification, cancellationToken);
+    /// <summary>The event shape: no invoker is generated, so a transport publishes directly.</summary>
+    public Task Publish(object e, CancellationToken cancellationToken = default) =>
+        Transport.Publish(Contract(e), e, cancellationToken);
 
     public static RemoteContract Contract(object message)
     {

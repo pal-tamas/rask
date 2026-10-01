@@ -2,7 +2,7 @@
 
 A component subscribes to an event the way it queries data: `QueryClient.Subscribe<OrderPlaced>()` in `Render`, and
 every `OrderPlaced` published afterwards — by a command handler, a background job, a domain event after a save, another
-server — lands in it and re-renders it. It is what tRPC calls a subscription, built on the CQRS notification Rask already
+server — lands in it and re-renders it. It is what tRPC calls a subscription, built on the CQRS event Rask already
 has, so one record reaches both the code that reacts to it and the screens that show it.
 
 > Included in [`Rask.Server`](../README.md) and [`Rask.Wasm`](../README.md), with [CQRS](cqrs.md) and [Rask.Query](query.md). In a separate
@@ -11,10 +11,10 @@ has, so one record reaches both the code that reacts to it and the screens that 
 
 ## The whole of it
 
-The event is an ordinary notification:
+The event is an ordinary event:
 
 ```csharp
-public sealed record OrderPlaced(Guid Id, string Customer, decimal Total) : INotification;
+public sealed record OrderPlaced(Guid Id, string Customer, decimal Total) : IEvent;
 ```
 
 Publish it where it happens, through the dispatcher you already use:
@@ -50,7 +50,7 @@ That is all. There is no subscription to dispose, no `OnMount` and no `StateHasC
 - **It lives as long as the component.** The subscription closes when the component that read it unmounts — the visitor
   navigates away, the tab closes, the session ends.
 - **Each value re-renders the component**, exactly as a query's result does when it lands.
-- **Publishing still runs the handlers.** `PublishAsync` hands the notification to its `INotificationHandler`s *and* to
+- **Publishing still runs the handlers.** `PublishAsync` hands the event to its `IEventHandler`s *and* to
   every open subscription, so adding a screen never changes what the server does.
 
 Try it: the buttons publish, and the two boards — which know nothing about the buttons or each other — each receive every
@@ -98,10 +98,10 @@ server render that value is in `Data` before the first paint.
 ## An event about one thing
 
 Most events are about one record: this order shipped, this user's export is ready. The event stays plain; what to watch
-is its own record — a **subscription**, the fourth message shape beside a query, a command and a notification:
+is its own record — a **subscription**, the fourth message shape beside a query, a command and an event:
 
 ```csharp
-public sealed record OrderShipped(Guid OrderId, string Status) : INotification;
+public sealed record OrderShipped(Guid OrderId, string Status) : IEvent;
 
 public sealed record WatchOrder(Guid OrderId) : ISubscription<OrderShipped>
 {
@@ -111,8 +111,8 @@ public sealed record WatchOrder(Guid OrderId) : ISubscription<OrderShipped>
 var shipped = QueryClient.Subscribe(new WatchOrder(Id));   // only this order's
 ```
 
-`Matches` says which notifications are its own. It runs for each published notification of the type, on the publisher's
-thread, so it reads the notification and nothing else: no database, no service, no `await`. Anything it can ask —
+`Matches` says which events are its own. It runs for each published event of the type, on the publisher's
+thread, so it reads the event and nothing else: no database, no service, no `await`. Anything it can ask —
 "orders over £100", "either of these two rooms" — is a subscription, not just an id.
 
 Who may open it is a **watch policy**, and *that* is where the database goes:
@@ -157,7 +157,7 @@ refetched once, so whatever was published meanwhile is not lost.
 
 ## A stream that is a function
 
-Data that does not arrive as a notification — a price feed, a third-party stream — is a function returning an
+Data that does not arrive as an event — a price feed, a third-party stream — is a function returning an
 `IAsyncEnumerable<T>`, opened for an input and reopened when a render passes a different one:
 
 ```csharp
@@ -169,7 +169,7 @@ out, `Status` is `Ended`; when it throws, the subscription reopens it.
 
 ## Publishing from anywhere
 
-Everything that publishes a notification reaches subscribers, because they are the same notification:
+Everything that publishes an event reaches subscribers, because they are the same event:
 
 - **A command handler** or any code with `IDispatcher` — `dispatcher.Publish(new OrderShipped(id, "Shipped"))`.
 - **A background job or a hosted service** — `Notify.Send(new ReportReady(id), ct)`, with nothing injected, so progress
@@ -219,15 +219,15 @@ server, and **closed unless opened**:
 | What is asked for | A remote subscriber |
 |---|---|
 | an `ISubscription<T>` record | may open it when its `IWatchPolicy<T>` says so; authenticated by default |
-| a notification carrying `[Authorize]` / `[Authorize(Roles = "admin")]` itself | may watch the type when signed in / in the role |
-| a notification carrying `[AllowAnonymous]` itself | may watch the type signed out |
-| a notification that declares nothing | may not — `404`, the same as a name that does not exist |
+| an event carrying `[Authorize]` / `[Authorize(Roles = "admin")]` itself | may watch the type when signed in / in the role |
+| an event carrying `[AllowAnonymous]` itself | may watch the type signed out |
+| an event that declares nothing | may not — `404`, the same as a name that does not exist |
 
-The last row is deliberate: an app's auth events and domain events are notifications too, and none of them should be one
-browser request away. A handler's `[Authorize]` still decides who may *publish* a notification from the browser; the
+The last row is deliberate: an app's auth events and domain events are events too, and none of them should be one
+browser request away. A handler's `[Authorize]` still decides who may *publish* an event from the browser; the
 record's own decides who may *subscribe* to it. In an app that turned the endpoint's authentication off entirely
 (`Rask:Cqrs:Server:RequireAuthenticatedUser` false — for an app with no accounts), a bare `[Authorize]` has nobody to
-require, so it only opens the notification; name a role or a policy to mean more than that.
+require, so it only opens the event; name a role or a policy to mean more than that.
 
 **Admitted once, at the open.** The policy runs when the stream opens, so a stream already running keeps delivering until
 it drops — signing out elsewhere does not cut it mid-flight, and the next reconnect is refused. Where a revocation must
@@ -238,11 +238,11 @@ A reverse proxy that buffers responses would hold every event back, so the strea
 
 ## How values are delivered
 
-- **Latest first.** A new subscription gets the most recent notification it matches, then every one after. Only a type
+- **Latest first.** A new subscription gets the most recent event it matches, then every one after. Only a type
   somebody has subscribed to is remembered, so a domain event nobody watches is never held, and at most 4,096 are kept
   across the whole feed, oldest out first — so a subscription opened long after a quiet event may find nothing to replay.
 - **In order.** Values arrive in the order they were published, and a replay racing a new publish never lands after it.
-- **Never holding the publisher up.** `PublishAsync` hands the notification over and returns; it does not wait for any page
+- **Never holding the publisher up.** `PublishAsync` hands the event over and returns; it does not wait for any page
   to render.
 - **Bounded behind a slow reader.** A subscriber more than 256 values behind loses the oldest of them. A subscription shows
   the latest state, so the middle of a burst costs nothing on screen.
@@ -259,7 +259,7 @@ the event stream's keep-alive is `Rask:Cqrs:Server:EventKeepAlive` (`00:00:15`).
 - **Not a queue.** Beyond the one replayed value, delivery is at most once, to the subscriptions open when it is published.
   When a page needs the current state rather than the latest change, query it, and patch the query with `.Into`.
 - **Not the first thing to reach for.** Most "real-time" in an ordinary application is not an event at all — it is a
-  list that should not go stale. That needs no notification, no subscription record and no watch policy:
+  list that should not go stale. That needs no event, no subscription record and no watch policy:
   a query that reads orders refetches when anyone writes one — `[Live(typeof(Order))]` on the query message, or a
   key that already names the entity — and the query's own authorization says who may see it. See [live queries](query.md#staying-fresh). Subscriptions are for what is
   genuinely an event — a chat message, a price tick, job progress, "your export is ready" — where there is no query to
@@ -278,15 +278,15 @@ that must reach every visitor in the database the pages already read.
 
 ## Coming from `IBroadcast`
 
-`IBroadcast` and `Topic<T>` are gone; a notification does what a topic did, and more.
+`IBroadcast` and `Topic<T>` are gone; an event does what a topic did, and more.
 
 | Before | Now |
 |---|---|
-| `public static readonly Topic<OrderPlaced> Orders = new("orders", AppJson.Default.OrderPlaced);` | `public sealed record OrderPlaced(…) : INotification;` — the record is the topic |
+| `public static readonly Topic<OrderPlaced> Orders = new("orders", AppJson.Default.OrderPlaced);` | `public sealed record OrderPlaced(…) : IEvent;` — the record is the topic |
 | `await broadcast.PublishAsync(Topics.Orders, order, ct);` | `await dispatcher.Publish(order, ct);` |
 | `broadcast.Subscribe(this, Topics.Orders, o => _orders.Insert(0, o));` in `OnMount` | `var orders = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render` |
 | one tab only in a WebAssembly app | a wasm-hosted app subscribes on the server |
 
-→ Related: [Rask.Query](query.md) for queries and commands · [CQRS](cqrs.md) for notifications and their handlers ·
+→ Related: [Rask.Query](query.md) for queries and commands · [CQRS](cqrs.md) for events and their handlers ·
 [scaling](scaling.md) for running more than one server · [composition](composition-callbacks-context.md) for
 parent–child communication on one page

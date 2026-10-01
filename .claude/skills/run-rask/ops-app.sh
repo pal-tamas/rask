@@ -40,10 +40,9 @@ echo "==> Building the CLI"
 dotnet build "$root/src/Rask.Cli" -c Debug -m:1 -v:q --nologo >/dev/null
 
 # The built assembly, not `dotnet run --project`: the db calls below run with the working directory
-# INSIDE the scaffolded app, which now ships a global.json pinning its own .NET band. `dotnet run`
-# evaluates the project even under --no-build, and this repository's RaskRequireSdk11 InitialTargets
-# then fails that evaluation on the scaffold's 10.0.x SDK (RASKSDK001) — so the migration never runs
-# and the app starts against a database with no tables. Running the assembly touches no MSBuild.
+# INSIDE the scaffolded app, which ships a global.json pinning its own .NET band. `dotnet run`
+# evaluates the project even under --no-build, against whatever SDK that directory resolves; running
+# the assembly touches no MSBuild, so the migration cannot fail on the framework's own build.
 cli="$(ls -1 "$root"/src/Rask.Cli/bin/Debug/*/Rask.Cli.dll 2>/dev/null | head -1)"
 if [ -z "$cli" ]; then
   echo "The CLI build produced no Rask.Cli.dll under src/Rask.Cli/bin/Debug." >&2

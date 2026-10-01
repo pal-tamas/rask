@@ -41,7 +41,7 @@ public sealed record ArchiveTodo(int Id) : ICommand;
 
 public sealed record AddTodo(string Title, Priority Priority) : ICommand<int>;
 
-public sealed record TodoArchived(int Id, DateTimeOffset At) : INotification;
+public sealed record TodoArchived(int Id, DateTimeOffset At) : IEvent;
 
 public sealed record UploadAttachment(int TodoId, IRaskFile File, IRaskFile? Extra) : ICommand<string>;
 

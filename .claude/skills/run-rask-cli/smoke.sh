@@ -22,13 +22,10 @@ trap cleanup EXIT
 
 # The built assembly, run directly — NOT `dotnet run --project`.
 #
-# `dotnet run` evaluates the project even under --no-build, and this repository declares
-# RaskRequireSdk11 as an InitialTargets (Directory.Build.targets), so that evaluation resolves an SDK
-# against the CURRENT DIRECTORY. Nearly every check below runs inside a scaffolded app, and a scaffold
-# now ships a global.json pinning its own .NET band — a 10.0.x SDK. The repository then refuses to
-# evaluate at all (RASKSDK001), and seven checks fail reporting an error about the FRAMEWORK's build
-# rather than anything about the tool's behaviour. Running the assembly needs no SDK resolution and no
-# MSBuild, so the driver tests the tool from wherever it likes.
+# `dotnet run` evaluates the project even under --no-build, resolving an SDK against the CURRENT
+# DIRECTORY — and nearly every check below runs inside a scaffolded app, which ships a global.json of
+# its own. Running the assembly needs no SDK resolution and no MSBuild, so the driver tests the tool
+# from wherever it likes, and a failure is about the tool rather than about the framework's build.
 rask() { dotnet "$CLI_DLL" "$@"; }
 
 # check <name> <expected-exit> <grep-pattern|-> -- <rask args...>   (runs in the current dir)

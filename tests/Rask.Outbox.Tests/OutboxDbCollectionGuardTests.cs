@@ -15,5 +15,5 @@ public sealed class OutboxDbCollectionGuardTests
             // its lookup under a lock and installs it in a single volatile store, so a reader observes
             // either the whole old map or the whole new one — concurrent use is the design, not a race.
             "OutboxSerializerRegistryTests",
-            "OutboxSerializerRegistryReplaceTests");
+            "OutboxSerializerRegistryAliasTests");
 }

@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING: .NET 11 support is gone; Rask ships for .NET 10, the LTS release.** Every package carries
+  `lib/net10.0` (and `net10.0-browser` where it has a browser face) and nothing else, and
+  `rask new --framework` is removed with it — a scaffold targets `net10.0`:
+  ```bash
+  rask new Shop --framework net11.0   # was
+  rask new Shop                       # now
+  ```
+  The repository pins its SDK to the 10.0 band in a root `global.json`, so the editor, the terminal and CI
+  compile with the same compiler and analyzers and the build no longer needs the .NET 11 SDK (`RASKSDK001`
+  is gone). `scripts/run-unit-net11-local.sh` and its row in `run-all-gates.sh` went with the second target.
+
 ### Changed
 
 - **A write takes no token, and a role gate takes a word.** `Product.Create`, `Update`, `Delete`, `Save`, `Find` and
@@ -70,6 +83,63 @@ them until tagged releases begin.
   handler ran detached from the render and its exception went unobserved. An `async` lambda still binds to the
   `Task` overload it always did.
 
+- **Rask.Cqrs says "event", not "notification".** You raise an event on an aggregate and publish one through the
+  dispatcher, so the thing a handler reacts to is now called that too:
+
+  ```csharp
+  public sealed record OrderPlaced(Guid Id) : IEvent;                        // was INotification
+
+  public sealed class LogSale : IEventHandler<OrderPlaced>                   // was INotificationHandler<OrderPlaced>
+  {
+      public Task Handle(OrderPlaced e) => …;
+  }
+  ```
+
+  | Before | After |
+  |---|---|
+  | `INotification` | `IEvent` |
+  | `INotificationHandler<TNotification>` | `IEventHandler<TEvent>` |
+  | `NotificationPublishStrategy`, `CqrsOptions.NotificationPublishStrategy` | `EventPublishStrategy`, `CqrsOptions.EventPublishStrategy` |
+  | `CqrsOptions.StopOnFirstNotificationException` | `CqrsOptions.StopOnFirstEventException` |
+  | `NotificationDispatch` | `EventDispatch` |
+  | `CqrsRegistry.NotificationInvoker` / `FindNotificationInvoker` / `RegisterNotification` / `ReplaceNotifications` | `EventInvoker` / `FindEventInvoker` / `RegisterEvent` / `ReplaceEvents` |
+  | `RemoteMessageKind.Notification`, `SubscriptionRegistration.NotificationType` | `RemoteMessageKind.Event`, `SubscriptionRegistration.EventType` |
+  | TypeScript contract kind `'notification'` | `'event'` |
+
+  `IDispatcher.Publish` keeps its name. The browser's `Notification` API (`INotifications`, `Rask.Web`) is a
+  different thing and is unchanged.
+- **Each handler chooses whether it is durable.** An event is a plain `IEvent`; `IEventHandler<T>` runs in memory
+  straight after the commit, and `IDurableHandler<T>` runs through the transactional outbox, with its row written
+  in the same transaction as the change that raised the event:
+
+  ```csharp
+  [LocalOnly]
+  public sealed record OrderPlaced(Guid Id) : IEvent;                          // was : IOutboxEvent
+
+  public sealed class RefreshDashboard : IEventHandler<OrderPlaced> { … }      // in memory, at once
+  public sealed class SendReceipt : IDurableHandler<OrderPlaced> { … }         // outbox: atomic, retried
+  ```
+
+  Before, one event went one way for the whole app. With the outbox on, a plain `INotification` raised on an
+  aggregate was **never delivered**, and nothing reported it. Now:
+  - Each durable handler is its own outbox row, so a failing one is retried alone.
+  - A bare `dispatcher.Publish(e)` stores its durable rows in a transaction of its own.
+  - A save wakes the processor at once, instead of it waiting for the next `PollInterval` (5s).
+  - Without an outbox (a browser app, or `Rask.Cqrs` on its own), a durable handler runs in memory.
+
+  **The outbox follows the data battery**, since the handler is now the switch. Removed:
+  - `IOutboxEvent`, `c.Outbox.Off()`, `rask new --no-outbox`
+  - `RaskDataOptions` with `DispatchDomainEventsInProcess`, and `AddRaskData(configure)`
+  - `IDomainEventDeliveryOwner`
+  - `OutboxSerializerRegistry.Replace`
+
+  `c.Outbox.Configure(o => …)` and `Rask:Outbox` still set the options.
+
+  **Upgrading:**
+  1. Declare events `: IEvent`, and give each handler that must not be lost `IDurableHandler<T>`.
+  2. Mark each domain event `[LocalOnly]`. `IOutboxEvent` did that for you: events travel from a browser like any
+     message, so an unmarked `OrderPlaced` could be published by a signed-in user.
+  3. Add the outbox's new `Handler` column: `rask db add AddOutboxHandler && rask db update`.
 - **BREAKING: navigate with `Go` and hand over files with `Download`; nothing is injected.** The router's
   `Navigator` service is gone from the public API, which frees `Navigator` for MDN's own global in `Rask.Web`:
   ```csharp
@@ -188,8 +258,18 @@ them until tagged releases begin.
 
 - **`EditContext` runs every inline `Validate` rule through one path.** The field and form rules had four
   copies of the same "run it, record its messages, turn a throw into *Validation could not be completed.*"
-  code; they are two now, and the class is split into partial files — state and queries, sync validation,
-  async validation, and the sticky validating indicator. A form validates exactly as it did.
+  code; they are two now, and the class is split into partial files — state and queries, the rule runners
+  and first-error gating, validation, and the sticky validating indicator. A form validates exactly as it did.
+
+- **`Component` is split by what each part does.** The base class every component derives from was 3,300
+  lines in one file; it keeps its identity, shell and render members (480 lines), and its conversions,
+  children, global attributes, lifecycle, disposal, live render, root render, clean-subtree cache, handlers
+  and live state are partial files of their own. Nothing in them changed.
+
+- **`Ui.DataGrid` is split by what each part does.** `UiDataGrid` (1,600 lines) keeps its props, its state
+  and the column factory; querying and paging the rows, resolving columns, the sort/page/group/column
+  handlers, selection, rendering the table, the group bands and the column chooser are partial files of their
+  own. A grid renders and behaves exactly as it did.
 
 - **The source generators are split by what each part does.** `RoutesGenerator` (1,900 lines) is now
   partial files for its diagnostics, reading pages from symbols, the `Routes` class tree, the route registry,

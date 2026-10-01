@@ -15,7 +15,7 @@ That installs the `rask` CLI **and the dependencies the CLI actually shells out 
 [`rask doctor`](cli.md) so you can see the result. Everything lands in your home directory: no
 `sudo`, no elevated prompt, no distro package manager, and nothing written outside `$HOME`.
 
-Already have the .NET 10 or 11 SDK and want only the tool? `dotnet tool install -g Rask.Cli` is still the
+Already have the .NET 10 SDK and want only the tool? `dotnet tool install -g Rask.Cli` is still the
 whole story — the script exists for the case where you don't.
 
 ## What it installs
@@ -25,7 +25,7 @@ whole story — the script exists for the case where you don't.
 | **Always** | **.NET SDK** into `~/.dotnet` | `rask` is a `net10.0` [global tool](https://learn.microsoft.com/dotnet/core/tools/global-tools), and every command shells out to `dotnet` | any SDK 10 or newer satisfies it. One **outside `$HOME`** is left alone; the one in `~/.dotnet` is this installer's own, so re-running brings it to the latest patch |
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
 | **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | installed if missing; `rask db` updates it when it is older than the EF Core runtime the app uses, rather than letting every command open with a version notice |
-| **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser` or `net11.0-browser`) — the `wasm` and `wasm-hosted` templates | left alone |
+| **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser`) — the `wasm` and `wasm-hosted` templates | left alone |
 | **Always** | **Node.js LTS** into `~/.local/share/rask/node` | [islands](islands.md) (`rask new --islands react\|vue\|svelte\|…`): their build bundles them, and `rask dev` serves them from Vite. Only at build time — a published app does not run Node. | left alone if `node --version` is ≥ 24.15 (the Active LTS line) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 
@@ -84,16 +84,8 @@ Every path is overridable from the environment, on both scripts:
 | `RASK_INSTALL_PACKAGE` | `Rask.Cli` | `Rask.Cli` |
 
 `RASK_INSTALL_DOTNET_QUALITY` is passed to Microsoft's `dotnet-install` only when you set it, because a
-released channel needs no quality and an empty one is an argument error. It is how you install an SDK
-whose channel has not shipped yet — before .NET 11 is generally available, that is:
-
-```bash
-RASK_INSTALL_DOTNET_CHANNEL=11.0 RASK_INSTALL_DOTNET_MAJOR=11 RASK_INSTALL_DOTNET_QUALITY=preview \
-  sh rask.sh
-```
-
-Rask itself ships for .NET 10 and .NET 11, so this only decides which SDK the installer fetches — and
-`rask new` still scaffolds for .NET 10 unless you pass `--framework net11.0`.
+released channel needs no quality and an empty one is an argument error. Rask ships for .NET 10, the LTS
+release, and that is what `rask new` scaffolds, so the defaults are the ones to keep.
 
 ### Which shell profile it writes
 
@@ -210,7 +202,7 @@ machine goes through one wrapper, and that wrapper prints instead of running.
 Nothing here is magic, and the manual path stays supported:
 
 ```bash
-# 1. the .NET 10 or 11 SDK — https://dot.net
+# 1. the .NET 10 SDK — https://dot.net
 # 2. the tool
 dotnet tool install -g Rask.Cli
 # 3. what your project needs

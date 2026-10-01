@@ -177,7 +177,7 @@ public sealed class OutboxRetentionTests : IDisposable
     private OutboxMessage Message(
         DateTime? occurredAt = null, DateTime? processedAt = null, int attempts = 0, string? error = null)
     {
-        var message = OutboxMessage.For("Some.Event", "{}", occurredAt ?? _clock.GetUtcNow().UtcDateTime);
+        var message = OutboxMessage.For("Some.Event", "{}", "Some.Handler:Some.Event", occurredAt ?? _clock.GetUtcNow().UtcDateTime);
 
         if (processedAt is { } published)
         {

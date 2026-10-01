@@ -68,9 +68,9 @@ public sealed class WireTests
     }
 
     [Fact]
-    public async Task A_notification_is_accepted_rather_than_answered()
+    public async Task A_event_is_accepted_rather_than_answered()
     {
-        // 202, not 204: a notification is fanned out, so "accepted" is the honest word for what the
+        // 202, not 204: an event is fanned out, so "accepted" is the honest word for what the
         // server did with it. The client must be happy with either — it reads no body.
         await using var wire = Wire.Connect();
 

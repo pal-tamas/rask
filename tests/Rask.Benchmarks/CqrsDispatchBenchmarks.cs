@@ -46,14 +46,14 @@ public sealed class BenchCreateHandler : ICommandHandler<BenchCreate, int>
         Task.FromResult(command.Name.Length);
 }
 
-public sealed record BenchPinged(int Value) : INotification;
+public sealed record BenchPinged(int Value) : IEvent;
 
-public sealed class BenchPingedA : INotificationHandler<BenchPinged>
+public sealed class BenchPingedA : IEventHandler<BenchPinged>
 {
     public Task Handle(BenchPinged notification) => Task.CompletedTask;
 }
 
-public sealed class BenchPingedB : INotificationHandler<BenchPinged>
+public sealed class BenchPingedB : IEventHandler<BenchPinged>
 {
     public Task Handle(BenchPinged notification) => Task.CompletedTask;
 }

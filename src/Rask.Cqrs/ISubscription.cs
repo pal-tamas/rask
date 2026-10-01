@@ -1,7 +1,7 @@
 namespace Rask.Cqrs;
 
 /// <summary>
-///     Asks for the <typeparamref name="TNotification" />s about one thing — this order, this user's export — and says
+///     Asks for the <typeparamref name="TEvent" />s about one thing — this order, this user's export — and says
 ///     which those are. The fourth message shape, beside <see cref="IQuery{TResult}" /> and <see cref="ICommand" />.
 /// </summary>
 /// <remarks>
@@ -26,16 +26,16 @@ namespace Rask.Cqrs;
 ///         <c>QueryClient.Subscribe&lt;OrderPlaced&gt;()</c> watches the type itself.
 ///     </para>
 /// </remarks>
-/// <typeparam name="TNotification">The notification this subscription carries.</typeparam>
-public interface ISubscription<in TNotification>
-    where TNotification : INotification
+/// <typeparam name="TEvent">The event this subscription carries.</typeparam>
+public interface ISubscription<in TEvent>
+    where TEvent : IEvent
 {
-    /// <summary>Whether <paramref name="notification" /> is one of the ones this subscription asked for.</summary>
+    /// <summary>Whether <paramref name="e" /> is one of the ones this subscription asked for.</summary>
     /// <remarks>
-    ///     Runs for each published notification of the type, on the publisher's thread, so it reads the notification and
+    ///     Runs for each published event of the type, on the publisher's thread, so it reads the event and
     ///     nothing else: no database, no service, no await. What the subscriber is <em>allowed</em> to see is the policy's
     ///     business, and it is decided once, when the subscription opens.
     /// </remarks>
-    /// <param name="notification">The notification just published.</param>
-    bool Matches(TNotification notification);
+    /// <param name="e">The event just published.</param>
+    bool Matches(TEvent e);
 }

@@ -285,7 +285,7 @@ public static class QueryClient
     // ---- subscriptions ------------------------------------------------------------------------------
 
     /// <summary>
-    ///     A live view of every <typeparamref name="TNotification" /> published — starting with the last one. Inside
+    ///     A live view of every <typeparamref name="TEvent" /> published — starting with the last one. Inside
     ///     <c>Render</c> the same call returns the same subscription every render.
     /// </summary>
     /// <remarks>
@@ -295,17 +295,17 @@ public static class QueryClient
     ///     A notification reaches a subscription wherever it was published — a command handler, a background job, a
     ///     domain event after a save.
     /// </remarks>
-    /// <typeparam name="TNotification">The notification to watch.</typeparam>
+    /// <typeparam name="TEvent">The notification to watch.</typeparam>
     /// <param name="callerFile">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
     /// <param name="callerLine">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
-    public static Subscription<TNotification> Subscribe<TNotification>(
+    public static Subscription<TEvent> Subscribe<TEvent>(
         [CallerFilePath] string callerFile = "",
         [CallerLineNumber] int callerLine = 0)
-        where TNotification : INotification =>
-        Slotted<TNotification>(null, callerFile, callerLine);
+        where TEvent : IEvent =>
+        Slotted<TEvent>(null, callerFile, callerLine);
 
     /// <summary>
-    ///     A live view of the <typeparamref name="TNotification" />s <paramref name="subscription" /> asks for —
+    ///     A live view of the <typeparamref name="TEvent" />s <paramref name="subscription" /> asks for —
     ///     starting with the last matching one. Inside <c>Render</c> the same call returns the same subscription every
     ///     render, re-pointed when the record changes.
     /// </summary>
@@ -315,24 +315,24 @@ public static class QueryClient
     ///     </code>
     ///     Two records that are equal are the same subscription, so building one per render costs nothing.
     /// </remarks>
-    /// <typeparam name="TNotification">The notification the subscription carries.</typeparam>
+    /// <typeparam name="TEvent">The notification the subscription carries.</typeparam>
     /// <param name="subscription">What to watch.</param>
     /// <param name="callerFile">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
     /// <param name="callerLine">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
-    public static Subscription<TNotification> Subscribe<TNotification>(
-        ISubscription<TNotification> subscription,
+    public static Subscription<TEvent> Subscribe<TEvent>(
+        ISubscription<TEvent> subscription,
         [CallerFilePath] string callerFile = "",
         [CallerLineNumber] int callerLine = 0)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
         ArgumentNullException.ThrowIfNull(subscription);
-        return Slotted<TNotification>(subscription, callerFile, callerLine);
+        return Slotted<TEvent>(subscription, callerFile, callerLine);
     }
 
-    /// <inheritdoc cref="IQueryClient.Subscribe{TNotification}(Func{ISubscription{TNotification}})" />
-    public static Subscription<TNotification> Subscribe<TNotification>(
-        Func<ISubscription<TNotification>?> subscription)
-        where TNotification : INotification =>
+    /// <inheritdoc cref="IQueryClient.Subscribe{TEvent}(Func{ISubscription{TEvent}})" />
+    public static Subscription<TEvent> Subscribe<TEvent>(
+        Func<ISubscription<TEvent>?> subscription)
+        where TEvent : IEvent =>
         Current().Subscribe(subscription);
 
     /// <summary>
@@ -456,42 +456,42 @@ public static class QueryClient
     }
 
     // One subscription per call site, re-pointed when what it watches changes.
-    private static Subscription<TNotification> Slotted<TNotification>(
+    private static Subscription<TEvent> Slotted<TEvent>(
         object? subscription,
         string callerFile,
         int callerLine)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
         var client = Current();
         if (RenderSlots.For(callerFile, callerLine, key: null) is not { } slot)
         {
-            return New<TNotification>(client, subscription);
+            return New<TEvent>(client, subscription);
         }
 
-        if (slot.Handle is Subscription<TNotification> existing)
+        if (slot.Handle is Subscription<TEvent> existing)
         {
             if (!Equals(slot.Last, subscription))
             {
-                existing.Repoint(client.NotificationTarget<TNotification>(subscription));
+                existing.Repoint(client.NotificationTarget<TEvent>(subscription));
                 slot.Last = subscription;
             }
 
             return existing;
         }
 
-        var created = New<TNotification>(client, subscription);
+        var created = New<TEvent>(client, subscription);
         slot.Handle = created;
         slot.Last = subscription;
         return created;
     }
 
-    private static Subscription<TNotification> New<TNotification>(
+    private static Subscription<TEvent> New<TEvent>(
         SessionQueryClient client,
         object? subscription)
-        where TNotification : INotification =>
-        subscription is ISubscription<TNotification> record
+        where TEvent : IEvent =>
+        subscription is ISubscription<TEvent> record
             ? client.Subscribe(record)
-            : client.Subscribe<TNotification>();
+            : client.Subscribe<TEvent>();
 
     /// <summary>The session's cache, or a failure that says where to call from instead.</summary>
     private static SessionQueryClient Current()

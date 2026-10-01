@@ -53,10 +53,10 @@ public class Battery
 public sealed class Battery<TOptions> : Battery
     where TOptions : class
 {
-    private readonly List<Action<TOptions>> _configure = [];
+    private readonly Settings<TOptions> _settings = new();
 
     /// <summary>Whether the app configured this battery in code at all.</summary>
-    internal bool IsConfigured => _configure.Count > 0;
+    internal bool IsConfigured => _settings.IsConfigured;
 
     /// <summary>Configures this battery. Call it as often as you like; each call adds to the last.</summary>
     /// <example>
@@ -66,17 +66,10 @@ public sealed class Battery<TOptions> : Battery
     /// </example>
     public Battery<TOptions> Configure(Action<TOptions> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
-        _configure.Add(configure);
+        _settings.Configure(configure);
         return this;
     }
 
     /// <summary>Replays everything recorded onto the battery's real options instance.</summary>
-    internal void Apply(TOptions options)
-    {
-        foreach (var configure in _configure)
-        {
-            configure(options);
-        }
-    }
+    internal void Apply(TOptions options) => _settings.Apply(options);
 }
