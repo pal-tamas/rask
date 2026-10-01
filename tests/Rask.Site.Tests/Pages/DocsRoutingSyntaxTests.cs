@@ -63,7 +63,7 @@ public sealed partial class DocsRoutingSyntaxTests
     private static partial Regex ParentOverrideRegex();
 
     // Only a base list — ": Page" after a type name. `Page` is also an ordinary property name on the data
-    // grid ("Set `Page` with `OnPageChange`"), and matching the bare word would fail on those.
+    // grid ("Set `Page` with `OnPage`"), and matching the bare word would fail on those.
     [GeneratedRegex(@"class\s+\w+\s*:\s*Page\b")]
     private static partial Regex PageBaseRegex();
 

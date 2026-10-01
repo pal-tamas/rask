@@ -63,10 +63,10 @@ public sealed partial class UiKitTreeDemo : Component
                         .Item(f => Span[f.Name])
                         .Label("Files, held by the page")
                         .Expanded(_open)
-                        .OnExpandedChange(keys => _open = keys)
+                        .OnExpand(keys => _open = keys)
                         .Selection(Ui.TreeSelection.Many)
                         .Selected(_picked)
-                        .OnSelectionChange(keys => _picked = keys)[f => f.Children]
+                        .OnSelect(keys => _picked = keys)[f => f.Children]
                 ],
                 P.Data(Testid("ui-tree-controlled-state")).Class("text-xs text-ui-muted")[
                     $"open: {string.Join(", ", _open)} · selected: "

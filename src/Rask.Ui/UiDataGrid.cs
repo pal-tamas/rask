@@ -40,7 +40,7 @@ namespace Rask;
 /// <para>
 /// <b>Every state axis is controlled or uncontrolled, one axis at a time.</b> Say nothing and the grid
 /// holds its own sort, page, selection, grouping and column layout in fields and redraws through the
-/// live diff. Name the state and its change callback — <c>Page</c> with <c>OnPageChange</c> — and that
+/// live diff. Name the state and its change callback — <c>Page</c> with <c>OnPage</c> — and that
 /// axis belongs to the page instead, while the others carry on holding their own.
 /// </para>
 /// <para>
@@ -112,7 +112,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public IReadOnlyList<TKey>? Selected { get; set; }
 
     /// <summary>Called with the selection after the reader changed it.</summary>
-    public Callback<IReadOnlyList<TKey>> OnSelectionChange { get; set; }
+    public Callback<IReadOnlyList<TKey>> OnSelect { get; set; }
 
     /// <summary>The rows, in memory or as a query.</summary>
     /// <remarks>
@@ -149,12 +149,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public int? Page { get; set; }
 
     /// <summary>Called with the page the reader asked for.</summary>
-    public Callback<int> OnPageChange { get; set; }
+    public Callback<int> OnPage { get; set; }
 
     /// <summary>Makes each page in the pager a link, from its page number counted from zero.</summary>
     /// <remarks>
     ///     For a grid whose page lives in the URL — <c>?page=2</c> — so a page can be shared, bookmarked and
-    ///     reached with the back button. The link does the navigating, so <see cref="OnPageChange" /> is not
+    ///     reached with the back button. The link does the navigating, so <see cref="OnPage" /> is not
     ///     called: the new page arrives as <see cref="Page" /> on the render that follows. Counted from zero
     ///     like <see cref="Page" />, whatever the URL itself counts from.
     /// </remarks>
@@ -180,7 +180,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public bool? SortDescending { get; set; }
 
     /// <summary>Called with the sort the reader asked for.</summary>
-    public Callback<UiGridSort> OnSortChange { get; set; }
+    public Callback<UiGridSort> OnSort { get; set; }
 
 
     /// <summary>Shades alternate rows.</summary>
@@ -255,7 +255,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public IReadOnlyList<string>? HiddenColumns { get; set; }
 
     /// <summary>Called with the hidden columns after the reader changed them.</summary>
-    public Callback<IReadOnlyList<string>> OnHiddenColumnsChange { get; set; }
+    public Callback<IReadOnlyList<string>> OnHide { get; set; }
 
 
     /// <summary>The column order, by field token. Setting it hands that axis over.</summary>
@@ -263,14 +263,14 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public IReadOnlyList<string>? ColumnOrder { get; set; }
 
     /// <summary>Called with the column order after the reader changed it.</summary>
-    public Callback<IReadOnlyList<string>> OnColumnOrderChange { get; set; }
+    public Callback<IReadOnlyList<string>> OnReorder { get; set; }
 
 
     /// <summary>The columns grouped by, outermost first. Setting it hands that axis over.</summary>
     public IReadOnlyList<string>? Grouped { get; set; }
 
     /// <summary>Called with the grouping after the reader changed it.</summary>
-    public Callback<IReadOnlyList<string>> OnGroupedChange { get; set; }
+    public Callback<IReadOnlyList<string>> OnGroup { get; set; }
 
 
     /// <summary>Shows the panel that groups, ungroups and reorders the grouping.</summary>
@@ -342,16 +342,16 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private bool PageControlled => Page is not null;
 
     private bool SortControlled =>
-        Sort is not null || OnSortChange.HasValue;
+        Sort is not null || OnSort.HasValue;
 
     private bool GroupControlled =>
-        Grouped is not null || OnGroupedChange.HasValue;
+        Grouped is not null || OnGroup.HasValue;
 
     private bool HideControlled =>
-        HiddenColumns is not null || OnHiddenColumnsChange.HasValue;
+        HiddenColumns is not null || OnHide.HasValue;
 
     private bool OrderControlled =>
-        ColumnOrder is not null || OnColumnOrderChange.HasValue;
+        ColumnOrder is not null || OnReorder.HasValue;
 
     private int CurrentPage => Page ?? _page;
 
@@ -370,7 +370,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private bool Expandable => Detail is not null;
 
-    private bool SelectionEnabled => Selected is not null || OnSelectionChange.HasValue;
+    private bool SelectionEnabled => Selected is not null || OnSelect.HasValue;
 
     private bool Busy => Loading is true;
 
@@ -441,7 +441,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             _page = 0;
         }
 
-        await Raise(OnSortChange, new UiGridSort(field, descending))
+        await Raise(OnSort, new UiGridSort(field, descending))
             .ConfigureAwait(false);
         await FetchAsync().ConfigureAwait(false);
     }
@@ -459,7 +459,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             _page = target;
         }
 
-        await Raise(OnPageChange, target).ConfigureAwait(false);
+        await Raise(OnPage, target).ConfigureAwait(false);
         await FetchAsync().ConfigureAwait(false);
     }
 
@@ -490,7 +490,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             _page = 0;
         }
 
-        return Raise(OnGroupedChange, next);
+        return Raise(OnGroup, next);
     }
 
     private Task SetHiddenAsync(IReadOnlyList<string> next)
@@ -501,7 +501,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             _hidden.AddRange(next);
         }
 
-        return Raise(OnHiddenColumnsChange, next);
+        return Raise(OnHide, next);
     }
 
     private Task SetOrderAsync(IReadOnlyList<string> next)
@@ -512,7 +512,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             _order.AddRange(next);
         }
 
-        return Raise(OnColumnOrderChange, next);
+        return Raise(OnReorder, next);
     }
 
     private Task ToggleHiddenAsync(string token)
@@ -868,7 +868,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             }
         }
 
-        return OnSelectionChange.Invoke(next.ToList()).AsTask();
+        return OnSelect.Invoke(next.ToList()).AsTask();
     }
 
     // A row's identity for the live diff. It is the row KEY now, never the index: an index makes two
@@ -1575,7 +1575,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 : Ui.Pagination
                     .Pages(rows.Pages)
                     .Current(current)
-                    .OnSelect(page => _ = GoToPageAsync(page - 1, rows.Pages))
+                    .OnPage(page => _ = GoToPageAsync(page - 1, rows.Pages))
         ];
     }
 }

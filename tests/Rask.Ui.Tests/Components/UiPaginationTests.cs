@@ -10,7 +10,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Pages_are_buttons_when_the_choice_is_reported()
     {
-        var html = Ui.Pagination.Pages(3).Current(2).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(3).Current(2).OnPage(_ => { }).ToHtml();
 
         Assert.Equal(3, Count(html, "<button"));
         Assert.DoesNotContain("<a ", html, StringComparison.Ordinal);
@@ -51,7 +51,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         // The client cancels the default action of a click it dispatches, so a page that was both would stop
         // navigating the moment a handler was attached to it.
-        var html = Ui.Pagination.Pages(3).Current(1).OnSelect(_ => { }).Href(page => $"/logs?page={page}").ToHtml();
+        var html = Ui.Pagination.Pages(3).Current(1).OnPage(_ => { }).Href(page => $"/logs?page={page}").ToHtml();
 
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
         Assert.Equal(2, Count(html, "<a "));
@@ -62,7 +62,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         // A join is one unbreakable row. Forty numbered buttons in it made the console's log history wider than a
         // phone; the window keeps the first, the last and the neighbours of the current page.
-        var html = Ui.Pagination.Pages(20).Current(10).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(20).Current(10).OnPage(_ => { }).ToHtml();
 
         Assert.Equal(7, Count(html, "join-item btn"));
         // The encoder writes the ellipsis as a character reference, so that is what is counted.
@@ -84,7 +84,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [InlineData(20, "1 … 17 18 19 20")]
     public void The_window_slides_against_either_end(int current, string expected)
     {
-        var html = Ui.Pagination.Pages(20).Current(current).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(20).Current(current).OnPage(_ => { }).ToHtml();
         var drawn = Regex.Matches(html, ">([0-9]+|&#x2026;|…)<")
             .Select(m => m.Groups[1].Value == "&#x2026;" ? "…" : m.Groups[1].Value);
 
@@ -94,7 +94,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Seven_pages_or_fewer_draw_every_page()
     {
-        var html = Ui.Pagination.Pages(7).Current(4).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(7).Current(4).OnPage(_ => { }).ToHtml();
 
         Assert.Equal(7, Count(html, "join-item btn"));
         Assert.DoesNotContain("&#x2026;", html, StringComparison.Ordinal);

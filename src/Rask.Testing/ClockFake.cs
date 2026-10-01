@@ -1,12 +1,12 @@
 namespace Rask.Testing;
 
 /// <summary>A frozen clock a test moves by hand. Dispose it — <c>using var</c> — to put real time back.</summary>
-public sealed class FakeClock : IDisposable
+public sealed class ClockFake : IDisposable
 {
     private readonly Frozen _time;
     private readonly IDisposable _scope;
 
-    internal FakeClock(DateTimeOffset at)
+    internal ClockFake(DateTimeOffset at)
     {
         _time = new Frozen(at);
         _scope = AmbientClock.Use(_time);

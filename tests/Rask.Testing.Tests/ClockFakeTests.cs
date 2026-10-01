@@ -1,7 +1,7 @@
 namespace Rask.Testing.Tests;
 
 // One frozen clock, read everywhere the app reads time — so a test moves all of it with one line.
-public sealed class FakeClockTests
+public sealed class ClockFakeTests
 {
     private static readonly DateTimeOffset Monday9am = new(2026, 9, 21, 9, 0, 0, TimeSpan.Zero);
 

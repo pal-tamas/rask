@@ -94,7 +94,7 @@ counts in what it was told. A grid whose parent pages for it but leaves `TotalCo
 pager that always claims to be one page long.
 
 **A page that lives in the URL.** `PageHref` turns the pager's pages into links, so a page can be shared,
-bookmarked and reached with the back button. The link does the navigating, so `OnPageChange` is not
+bookmarked and reached with the back button. The link does the navigating, so `OnPage` is not
 called — the page arrives back as `Page`, read from the query string:
 
 ```csharp
@@ -117,19 +117,19 @@ page instead — while every other axis carries on holding its own.
 
 ```csharp
 Ui.DataGrid.Data(_page).RowKey(p => p.Id)
-    .Sort(_sort).SortDescending(_desc).OnSortChange(s => { _sort = s.Field; _desc = s.Descending; })
-    .TotalCount(_total).Page(_page).OnPageChange(async p => await LoadAsync(p))
+    .Sort(_sort).SortDescending(_desc).OnSort(s => { _sort = s.Field; _desc = s.Descending; })
+    .TotalCount(_total).Page(_page).OnPage(async p => await LoadAsync(p))
     [c => [ … ]]
 ```
 
 | Axis | State | Callback |
 | --- | --- | --- |
-| Sort | `Sort`, `SortDescending` | `OnSortChange` |
-| Page | `Page` | `OnPageChange` |
-| Selection | `Selected` | `OnSelectionChange` |
-| Grouping | `Grouped` | `OnGroupedChange` |
-| Hidden columns | `HiddenColumns` | `OnHiddenColumnsChange` |
-| Column order | `ColumnOrder` | `OnColumnOrderChange` |
+| Sort | `Sort`, `SortDescending` | `OnSort` |
+| Page | `Page` | `OnPage` |
+| Selection | `Selected` | `OnSelect` |
+| Grouping | `Grouped` | `OnGroup` |
+| Hidden columns | `HiddenColumns` | `OnHide` |
+| Column order | `ColumnOrder` | `OnReorder` |
 
 Each callback is one property taking a synchronous or an asynchronous handler — there is no `…Async` twin.
 
@@ -142,7 +142,7 @@ only way back to the order the source itself chose.
 Ui.DataGrid.Data(_products)
     .RowKey(p => p.Id)                       // the grid is UiDataGrid<Product, int>
     .Selected(_selected)                     // IReadOnlyList<int>
-    .OnSelectionChange(keys => _selected = keys)
+    .OnSelect(keys => _selected = keys)
     [c => [ … ]]
 ```
 

@@ -2,13 +2,13 @@
 import { useEffect, useState } from 'react'
 import type { ReactCounterProps } from '@rask/ReactCounter.props'
 
-export default function ReactCounter({ step, caption, onTotalChanged }: ReactCounterProps) {
+export default function ReactCounter({ step, caption, onTotal }: ReactCounterProps) {
   // State the front end owns and C# never sees. Raising the step from C# must not reset it.
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    onTotalChanged?.(total)
-  }, [total, onTotalChanged])
+    onTotal?.(total)
+  }, [total, onTotal])
 
   return (
     <div className="island-counter" data-testid="react-counter">

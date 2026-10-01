@@ -108,7 +108,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
         IReadOnlyList<int>? reported = null;
 
         var page = Page.Render(Ui.DataGrid.Data(Squad).RowKey(r => r.Id)
-            .OnSelectionChange(keys => reported = keys)[c => [
+            .OnSelect(keys => reported = keys)[c => [
                 c.Field(r => r.Name).Title("Name"),
             ]]);
 
@@ -126,7 +126,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(Ui.DataGrid.Data(Squad).RowKey(r => r.Id)
             .PageSize(2)
-            .OnSelectionChange(keys => reported = keys)[c => [
+            .OnSelect(keys => reported = keys)[c => [
                 c.Field(r => r.Name).Title("Name"),
             ]]);
 
@@ -142,7 +142,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
         // The strategy that owns the ticked set is rebuilt by the RowKey step on every render. Reusing it
         // rather than replacing it is the whole reason an uncontrolled selection is remembered at all.
         var page = Page.Render(Ui.DataGrid.Data(Squad).RowKey(r => r.Id)
-            .OnSelectionChange(_ => { })[c => [
+            .OnSelect(_ => { })[c => [
                 c.Field(r => r.Name).Title("Name"),
             ]]);
 

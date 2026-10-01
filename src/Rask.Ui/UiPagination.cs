@@ -12,7 +12,7 @@ namespace Rask;
 /// action, and letting it be pressed re-navigates to where the reader already is.
 /// </para>
 /// <para>
-/// <b>Buttons or links.</b> With <see cref="OnSelect" /> each page is a button that reports the choice, and the
+/// <b>Buttons or links.</b> With <see cref="OnPage" /> each page is a button that reports the choice, and the
 /// page decides what to show. With <see cref="Href" /> each page is a link to where that page lives, which is
 /// what paging should be wherever the page is in the URL: shareable, bookmarkable, reachable with the back
 /// button, and working before the runtime has booted. Given both, the link wins — the client cancels the
@@ -34,7 +34,7 @@ public sealed partial class UiPagination : Component
 
     public required int Current { get; set; }
 
-    public Callback<int> OnSelect { get; set; }
+    public Callback<int> OnPage { get; set; }
 
     /// <summary>Where each page lives, from its number counted from one. Makes every page a link.</summary>
     public Fn<int, RouteUrl>? Href { get; set; }
@@ -109,9 +109,9 @@ public sealed partial class UiPagination : Component
             .Class(UiClass.Compose("join-item btn", page == Current ? "btn-active" : ""))
             .Disabled(page == Current);
 
-        if (OnSelect.HasValue && page != Current)
+        if (OnPage.HasValue && page != Current)
         {
-            button = button.OnClick(() => OnSelect.Invoke(page).AsTask());
+            button = button.OnClick(() => OnPage.Invoke(page).AsTask());
         }
 
         return button[page.ToString(System.Globalization.CultureInfo.InvariantCulture)];

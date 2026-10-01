@@ -148,13 +148,13 @@ internal sealed partial class DevToolsTreeTab : Component
                 // Both held here, so a pick can open the picked node's ancestors and select it in one render — which is
                 // also what moves the tree's cursor to it, and so scrolls it into view.
                 .Expanded([.. _expanded])
-                .OnExpandedChange(keys =>
+                .OnExpand(keys =>
                 {
                     _expanded.Clear();
                     _expanded.UnionWith(keys);
                 })
                 .Selected(_selected is { } selected ? [selected] : [])
-                .OnSelectionChange(keys => _selected = keys.Count > 0 ? keys[0] : null)
+                .OnSelect(keys => _selected = keys.Count > 0 ? keys[0] : null)
                 .ItemSize(RowHeight)
                 .Height(320)[n => n.Children];
 
