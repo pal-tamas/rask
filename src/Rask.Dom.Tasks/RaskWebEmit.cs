@@ -15,12 +15,15 @@ public sealed class RaskWebEmit : Task
 
     [Required] public string OutputDirectory { get; set; } = "";
 
+    // Rask.Wasm's files instead: what only WebAssembly can run, as extensions of what Rask.Web declares.
+    public bool Wasm { get; set; }
+
     public override bool Execute()
     {
         IReadOnlyList<KeyValuePair<string, string>> files;
         try
         {
-            files = WebEmitter.Emit(File.ReadAllText(Snapshot));
+            files = WebEmitter.Emit(File.ReadAllText(Snapshot), Wasm);
         }
         catch (DomEmitException e)
         {

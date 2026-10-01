@@ -101,7 +101,30 @@ From an event handler or `OnRendered`, where the page is live — on the server 
 socket, in WebAssembly in-process. A call made anywhere else throws, saying so. Browser-gated members (clipboard,
 geolocation) can still be refused; that arrives as a `JSException` from the awaited call.
 
-Every member's doc comment carries its browser support and links to MDN and the spec, straight from MDN's data.
+Every member's doc comment carries its browser support and links to MDN and the spec, straight from MDN's data, and
+says so when it only exists on an HTTPS page (or localhost): MDN's `[SecureContext]`.
+
+### What only WebAssembly runs
+
+Two kinds of member are generated into `Rask.Wasm` alone, as extensions of the same types, so in a WebAssembly app
+they read like any other and in a server app they do not compile:
+
+- **A call the browser allows only during the user's click** — `Navigator.Share(…)`,
+  `Notification.RequestPermission()`, `MediaDevices.GetDisplayMedia(…)`, `ScreenOrientation.Lock(…)`,
+  `PaymentRequest.Show()`, and on element refs `RequestFullscreen()`, `RequestPointerLock()` and `ShowPicker()`.
+  On the server host the click's frame crosses the socket first, the browser lets the
+  click go, and the call would fail with `NotAllowedError`. The IDL does not mark these; the list is Rask's
+  (`src/Rask.Dom.Tasks/WebHost.cs`).
+- **A family driven every frame** — WebGL (and its extension objects), WebGPU and audio worklets, where a round trip
+  per call is no way to draw.
+
+```csharp
+await Navigator.Share(new ShareData { Title = "Rask", Url = "https://rask.sh" });  // WebAssembly: runs in the click
+                                                                                    // Server: does not compile
+```
+
+On the server host, share from markup instead: `Shareable` and the `Trigger.*` components run the call inside the
+click itself.
 
 <!-- demo:web-apis -->
 

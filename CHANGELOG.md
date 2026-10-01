@@ -326,7 +326,14 @@ them until tagged releases begin.
     `clipboard.Returns(c => c.ReadText(), "pasted")`, `clipboard.Calls`, `Raise("change", e)` — for the test's own flow;
     nothing reaches a browser.
   - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
-    members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
+    members are on the class (`await URL.CanParse(link)`, `await Notification.Permission`).
+  - **What only WebAssembly can run is in `Rask.Wasm` alone,** as extensions of the same types: a call the browser
+    allows only during the user's click (`Navigator.Share(…)`, `Notification.RequestPermission()`,
+    `MediaDevices.GetDisplayMedia(…)`, `ScreenOrientation.Lock(…)`, `PaymentRequest.Show()`), and the families driven
+    every frame (WebGL and its extension objects, WebGPU, audio worklets). In a WebAssembly app they read like any
+    other member; in a server app, where the click would be over before the call arrived, they do not compile.
+    The globals are sealed classes, no longer static ones, so they can be extended.
+  - A member that exists only on an HTTPS page (or localhost), MDN's `[SecureContext]`, says so in its doc comment.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,
@@ -346,6 +353,9 @@ them until tagged releases begin.
     `ScrollIntoViewAsync(js)` → `ScrollIntoView(new ScrollIntoViewOptions { Behavior = ScrollBehavior.Smooth,
     Block = ScrollLogicalPosition.Nearest })` (it used to default to that), each on a ref typed to the element.
   - A typed ref put on an element of another type throws there, naming both.
+  - `RequestFullscreen()`, `RequestPointerLock()` and `ShowPicker()` need the user's click
+    in progress, so they come from `Rask.Wasm` only; on the server host use `Trigger.Fullscreen` /
+    `Trigger.PictureInPicture`, which run in the click.
 - **BREAKING: the SVG elements are generated from MDN as well.** The 40 hand-written SVG types are gone; every
   SVG element MDN lists as shipping in two engines is generated from the same snapshot. The chain is unchanged
   (`Svg`, `Circle`, `SvgPath`, `SvgText`, `SvgA`, `SvgTitle`…). What changes:

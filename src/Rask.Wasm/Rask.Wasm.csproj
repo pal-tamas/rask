@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Rask.Wasm</RootNamespace>
+    <!-- Rask.Web.targets writes what only WebAssembly runs of MDN's web APIs (imported below). -->
+    <RaskWebWasm>true</RaskWebWasm>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <PackageId>Rask.Wasm</PackageId>
@@ -55,6 +57,13 @@
     <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <!-- The kit is on both hosts: this is markup, and the browser is where the surfaces that need it most run. -->
     <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!--
+      Every web API from MDN. What only WebAssembly can run (a call that needs the user's click in progress, the
+      per-frame WebGL/WebGPU/audio-worklet families) is generated HERE, as extensions of Rask.Web's own types, so a
+      server app calling one is a compile error rather than a NotAllowedError in the browser (Rask.Web.targets).
+    -->
+    <ProjectReference Include="..\Rask.Web\Rask.Web.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <ProjectReference Include="..\Rask.Dom.Tasks\Rask.Dom.Tasks.csproj" ReferenceOutputAssembly="false" PrivateAssets="all"/>
     <!-- The request validators the mediator runs, on both hosts: the same rules a Form applies, again at dispatch. -->
     <Compile Include="..\Rask.Hosting.Shared\Batteries\*.cs" Link="Shared\Batteries\%(Filename)%(Extension)"/>
     <!--
@@ -252,5 +261,7 @@
   <!-- Tailwind's build integration, packed beside this package's own targets and imported from them. The core's
        integration and the analyzers arrive through the `Rask` dependency. -->
   <Import Project="..\RaskTailwindBuildPack.targets"/>
+
+  <Import Project="..\Rask.Web\Rask.Web.targets"/>
 
 </Project>

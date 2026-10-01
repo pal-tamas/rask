@@ -33,6 +33,7 @@ internal static class CliBuildE2E
         "Rask.SqlServer",                   // and sqlserver
         "Rask.Server",                      // server template: the host and every battery, RaskApp included
         "Rask.Wasm",                        // the wasm template, and wasm-hosted's browser half
+        "Rask.Web",                         // Rask.Wasm depends on it: MDN's web APIs, its WASM-only ones extending them
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Wire",                        // Rask.Cqrs depends on it: the wire primitives its codecs call
         "Rask.Api",                         // API hosting + the client generator (server half)
