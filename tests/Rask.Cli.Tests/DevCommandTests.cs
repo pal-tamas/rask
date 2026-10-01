@@ -424,7 +424,6 @@ public sealed class DevCommandTests
             // how the command line and the scaffolded build task would start to disagree.
             Assert.DoesNotContain(args, a =>
                 a.StartsWith("--property:RaskSpaBuild", StringComparison.Ordinal)
-                || a.StartsWith("--property:RaskMetaBuild", StringComparison.Ordinal)
                 || a.StartsWith("--property:RaskExternalDevServer", StringComparison.Ordinal));
         }
     }

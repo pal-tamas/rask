@@ -12,350 +12,7 @@
   </PropertyGroup>
 
   <!--
-    Rask.Spa.Hosting build integration: run the front end's own toolchain, then hand the result to the
-    ASP.NET host.
-
-      1. Resolve the client directory (an explicit property, or the `client` folder convention).
-      2. Probe for node, and say what to install if it isn't there.
-      3. `npm ci` — its own target with its own up-to-date check, because it is the expensive one.
-      4. `npm run build` — incremental against the client's sources.
-      5. Bake the dist path as assembly metadata so `app.MapRaskSpa()` resolves with no arguments.
-      6. On publish, copy the bundle next to the app: a baked absolute path belongs to the machine that
-         built it, and inside a `rask deploy` container it names a directory that does not exist.
-
-    A Rask WebAssembly client referenced as a project takes the same path with `dotnet publish` in place
-    of the bundler; that half is at the end of this file.
-
-    Everything below no-ops when no client is resolved, because this file is imported into EVERY
-    project of every consumer.
-
-    TWO MSBuild rules shape all of this, and both were learned by breaking them here:
-
-      * Item-list references are illegal in a property Condition (MSB4099).
-      * Properties are evaluated in an EARLIER PASS than items, so a property that reads @(SomeItem)
-        at evaluation time reads nothing at all. Silently: it produces an empty string, not an error.
-
-    Together those rule out an item-based declaration, because the derived paths have to be plain
-    properties: they feed the Inputs/Outputs of the targets below, and a target's Inputs cannot depend
-    on something an earlier target computed (its Condition is evaluated before its DependsOnTargets
-    even run). One client per host means per-item metadata bought nothing over properties anyway.
-  -->
-
-  <PropertyGroup>
-    <!-- An explicit directory wins, resolved against the project rather than the working directory. -->
-    <_RaskSpaDir Condition="'$(RaskSpaClientDir)' != ''"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskSpaClientDir)'))</_RaskSpaDir>
-
-    <!--
-      Otherwise the convention: a `client` folder inside the host project. One project owns both
-      halves, which is also what the meta framework lane does — a front end is not a second .NET
-      project, and naming the host `.Server` only ever distinguished it from the sibling this replaces.
-
-      Lower case, and the same word the meta lane uses. A JavaScript front end is named the way the
-      JavaScript ecosystem names directories; `Client` with a capital is reserved for the WASM lane's
-      `{name}.Client`, which is a C# project and follows .NET's convention instead. The two lanes
-      used to differ here — meta was forced to lower case because half its scaffolders derive an npm
-      package name from the target directory and reject capitals — and one word spelled two ways was
-      never worth the paragraph it took to explain.
-
-      `Client` is still accepted below, so a project scaffolded before this change keeps building.
-      Worth being explicit about why that fallback earns its place on a pre-1.0 framework: on
-      macOS and Windows the rename is invisible, and on Linux, without it, the convention would simply
-      stop matching — no error, no dev server, the front end quietly absent from the publish.
-
-      The package.json check is what makes this safe to evaluate in every project of every solution,
-      and it carries more weight now than it did: the old rule looked only at projects named
-      `*.Server`, and this one considers every project. A directory called `client` is not rare; a
-      directory called `client` holding a package.json, inside a project that also references this
-      package, is.
-
-      RaskMetaFramework is the one thing that makes it rare enough. A meta framework host puts its
-      front end in exactly this shape — one project, a folder inside it, a package.json — and now in a
-      directory of exactly the same name, so without this condition this lane would claim a project it
-      has no business in. (That was already true on a case-insensitive filesystem, where the meta
-      lane's `client` and this convention's `Client` were the same directory; it is simply true
-      everywhere now.) The two are mutually exclusive by construction: a project either serves a
-      static bundle or fronts a framework's own node server. Six meta-framework hosts in this repo were
-      exactly that case, and they are why this condition exists rather than being a hypothetical; the
-      lane it protects is still shipped, so the condition outlives the apps that found it.
-    -->
-    <_RaskSpaConventionDir Condition="'$(_RaskSpaDir)' == '' AND '$(RaskMetaFramework)' == ''"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/client'))</_RaskSpaConventionDir>
-
-    <_RaskSpaLegacyConventionDir Condition="'$(_RaskSpaDir)' == '' AND '$(RaskMetaFramework)' == ''"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/Client'))</_RaskSpaLegacyConventionDir>
-
-    <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND Exists('$(_RaskSpaConventionDir)/package.json')"
-    >$(_RaskSpaConventionDir)</_RaskSpaDir>
-
-    <_RaskSpaDir Condition="'$(_RaskSpaDir)' == '' AND Exists('$(_RaskSpaLegacyConventionDir)/package.json')"
-    >$(_RaskSpaLegacyConventionDir)</_RaskSpaDir>
-
-    <_RaskSpaDist Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaDistDir)</_RaskSpaDist>
-
-    <!-- The front end's own App.css and vite.config.ts are not scoped assets. A host that also carries
-         Rask.Core (any battery brings it) would otherwise pair them with components and fail on RASK015/017. -->
-    <RaskScopedSourceExclude Condition="'$(_RaskSpaDir)' != ''"
-    >$(RaskScopedSourceExclude);$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)/', '$(_RaskSpaDir)'))/**</RaskScopedSourceExclude>
-
-    <!-- `npm ci` needs the lockfile; a client that has never installed does not have one yet. -->
-    <_RaskSpaInstallCmd Condition="'$(_RaskSpaDir)' != '' AND Exists('$(_RaskSpaDir)/package-lock.json')"
-    >$(RaskSpaInstallCommand)</_RaskSpaInstallCmd>
-    <_RaskSpaInstallCmd Condition="'$(_RaskSpaDir)' != '' AND '$(_RaskSpaInstallCmd)' == ''"
-    >$(RaskSpaFirstInstallCommand)</_RaskSpaInstallCmd>
-
-    <!-- Whether any of the work below actually happens. Design-time builds are excluded: an IDE
-         reloading the project must never shell out to npm. -->
-    <_RaskSpaDoBuild
-      Condition="'$(_RaskSpaDir)' != '' AND '$(RaskSpaBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true'"
-    >true</_RaskSpaDoBuild>
-
-    <!--
-      The generated contracts, on the other hand, are written whenever a client is resolved — including
-      under RaskSpaBuild=false. `rask dev` runs the bundler itself, and its dev server still has to
-      compile against contracts that match the server it is talking to.
-    -->
-    <RaskEmitTypeScript Condition="'$(RaskEmitTypeScript)' == '' AND '$(_RaskSpaDir)' != ''">true</RaskEmitTypeScript>
-
-    <_RaskSpaGenerated Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaGeneratedDir)</_RaskSpaGenerated>
-
-    <_RaskSpaTsConfig Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaTypeScriptConfig)</_RaskSpaTsConfig>
-  </PropertyGroup>
-
-  <UsingTask TaskName="Rask.Spa.Tasks.WriteGeneratedTypeScriptTask"
-             AssemblyFile="$(MSBuildThisFileDirectory)Rask.Spa.Tasks.dll"/>
-
-  <!--
-    The client sources the bundler's output depends on.
-
-    This has to be an ItemGroup: a target's Inputs attribute does NOT expand wildcards, it treats the
-    pattern as a literal filename, decides it "does not exist", and rebuilds every single time. Item
-    globs do expand, so the list lives here and the target references @(_RaskSpaInput).
-
-    The globs are NARROW on purpose. A `**/*` over the client directory would enumerate node_modules —
-    tens of thousands of files — on every evaluation, which costs far more than the build it is trying
-    to skip.
-  -->
-  <ItemGroup Condition="'$(_RaskSpaDir)' != ''">
-    <_RaskSpaInput Include="$(_RaskSpaDir)/*.json;$(_RaskSpaDir)/*.ts;$(_RaskSpaDir)/*.js;$(_RaskSpaDir)/*.mjs;$(_RaskSpaDir)/*.html;$(_RaskSpaDir)/src/**/*;$(_RaskSpaDir)/public/**/*"
-                   Exclude="$(_RaskSpaDir)/$(RaskSpaDistDir)/**/*"/>
-    <_RaskSpaInstallInput Include="$(_RaskSpaDir)/package.json;$(_RaskSpaDir)/package-lock.json"/>
-  </ItemGroup>
-
-  <!--
-    Only fires for an EXPLICIT declaration. A convention match that finds no package.json is not an
-    error — it is the overwhelmingly common case of a project that simply has no front end — but a
-    directory somebody named by hand and got wrong is worth saying out loud.
-  -->
-  <Target Name="_RaskSpaValidate" BeforeTargets="BeforeBuild" Condition="'$(RaskSpaClientDir)' != ''">
-    <Error Condition="!Exists('$(_RaskSpaDir)/package.json')"
-           Code="RASKSPA003"
-           Text="Rask.Spa.Hosting: RaskSpaClientDir points at '$(_RaskSpaDir)', which has no package.json. Point it at the front-end project directory."/>
-  </Target>
-
-  <!--
-    What this package supports is a TypeScript single-page app, and this is where that is enforced
-    rather than merely documented.
-
-    The contracts below are emitted as TypeScript. A JavaScript client can import them — Vite
-    transpiles a .ts file whatever the project is — and would get exactly nothing out of them: no
-    inferred result type, no compile error when a C# property is renamed, no 405-shaped refusal when a
-    command is handed to raskQuery. The wire would simply be wrong at runtime, which is the one failure
-    this whole pipeline exists to prevent. Half a guarantee reads like a whole one, so it is refused.
-
-    Gated on RaskEmitTypeScript, not on a client merely existing, because that is the honest line:
-    MapRaskSpa serves a built bundle with no opinion about what produced it, so turning the contracts
-    off leaves this package a static-file host for any front end at all.
-  -->
-  <Target Name="_RaskSpaRequireTypeScript" BeforeTargets="BeforeBuild"
-          Condition="'$(_RaskSpaDir)' != '' AND '$(RaskEmitTypeScript)' == 'true' AND '$(DesignTimeBuild)' != 'true'">
-    <Error Condition="!Exists('$(_RaskSpaTsConfig)')"
-           Code="RASKSPA004"
-           Text="Rask.Spa.Hosting: '$([System.IO.Path]::GetFileName('$(_RaskSpaDir)'))' has no $(RaskSpaTypeScriptConfig), and Rask generates TypeScript contracts into it. Rask supports TypeScript single-page app clients: scaffold the client from its framework's TypeScript template (`npm create vite@latest -- --template react-ts`), or point RaskSpaTypeScriptConfig at the config it does have. To serve this bundle without the generated contracts, set RaskEmitTypeScript=false — then nothing is generated and any front end will do."/>
-  </Target>
-
-  <!--
-    Node is required only when a build is actually going to run, and the up-to-date checks below mean
-    that is not every build. Probing here rather than letting `npm` fail turns "command not found" into
-    a sentence naming what to install.
-  -->
-  <Target Name="_RaskSpaProbeNode" Condition="'$(_RaskSpaDoBuild)' == 'true'">
-    <Exec Command="node --version" ContinueOnError="true" IgnoreExitCode="true"
-          StandardOutputImportance="low" StandardErrorImportance="low" ConsoleToMSBuild="true">
-      <Output TaskParameter="ExitCode" PropertyName="_RaskSpaNodeExit"/>
-      <Output TaskParameter="ConsoleOutput" PropertyName="_RaskSpaNodeVersion"/>
-    </Exec>
-    <Error Condition="'$(_RaskSpaNodeExit)' != '0'"
-           Code="RASKSPA001"
-           Text="Rask.Spa.Hosting: building $([System.IO.Path]::GetFileName('$(_RaskSpaDir)')) needs Node.js, but 'node --version' did not run. Install Node.js $(RaskSpaMinimumNode) or newer from https://nodejs.org (macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your distro's nodejs package), then build again. To build the server WITHOUT the front end — the API still works and the site serves a 'nothing built yet' page — pass -p:RaskSpaBuild=false."/>
-
-    <!--
-      The floor, actually enforced.
-
-      RaskSpaMinimumNode was documented as a floor long before anything compared against it: it was
-      interpolated into the message above and read nowhere else, and _RaskSpaNodeVersion was captured
-      and dropped. So a too-old Node reached `vite` and failed with the engines error this probe exists
-      to prevent, and setting RaskSpaMinimumNode insisted on nothing at all.
-
-      Skipped rather than failed when the probe prints something this cannot parse (a nightly build
-      carries a prerelease suffix): a build that works today should not start failing over a version
-      string this package could not read, and npm still gets its say.
-    -->
-    <PropertyGroup Condition="'$(_RaskSpaNodeExit)' == '0'">
-      <_RaskSpaNodeFound>$(_RaskSpaNodeVersion.Trim().TrimStart('v'))</_RaskSpaNodeFound>
-      <_RaskSpaNodeComparable>$([System.Text.RegularExpressions.Regex]::IsMatch($(_RaskSpaNodeFound), '^[0-9]+\.[0-9]+\.[0-9]+$'))</_RaskSpaNodeComparable>
-    </PropertyGroup>
-    <Error Condition="'$(_RaskSpaNodeComparable)' == 'true' AND $([MSBuild]::VersionLessThan('$(_RaskSpaNodeFound)', '$(RaskSpaMinimumNode)'))"
-           Code="RASKSPA005"
-           Text="Rask.Spa.Hosting: building $([System.IO.Path]::GetFileName('$(_RaskSpaDir)')) needs Node.js $(RaskSpaMinimumNode) or newer, but 'node --version' reported $(_RaskSpaNodeFound). Install the current LTS (nvm install --lts &amp;&amp; nvm alias default 'lts/*', or https://nodejs.org; macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS), then build again. Set RaskSpaMinimumNode if you want a different bar, or pass -p:RaskSpaBuild=false to build the server WITHOUT the front end."/>
-  </Target>
-
-  <!--
-    Its own target with its own stamp, because `npm ci` deletes node_modules and costs tens of seconds:
-    it must not re-run for a source edit. node_modules/.package-lock.json is npm's own install marker
-    and is the honest output to compare against.
-  -->
-  <Target Name="_RaskSpaInstallDeps"
-          DependsOnTargets="_RaskSpaProbeNode"
-          Condition="'$(_RaskSpaDoBuild)' == 'true'"
-          Inputs="@(_RaskSpaInstallInput)"
-          Outputs="$(_RaskSpaDir)/node_modules/.package-lock.json">
-    <Message Importance="high" Text="Rask.Spa.Hosting: $(_RaskSpaInstallCmd) in $(_RaskSpaDir)"/>
-    <!-- IgnoreStandardErrorWarningFormat: npm writes deprecation notices and audit summaries to stderr
-         as a matter of course, and Exec turns any stderr line into MSB3077 even when the command
-         exited 0. The exit code is the only honest signal here. -->
-    <Exec Command="$(_RaskSpaInstallCmd)" WorkingDirectory="$(_RaskSpaDir)"
-          IgnoreStandardErrorWarningFormat="true"/>
-  </Target>
-
-  <!--
-    Lifts the contracts the CQRS generator produced out of the compiled assembly and into the client's
-    sources.
-
-    AFTER the compile, necessarily: the constants it reads do not exist until Roslyn has run. And
-    BEFORE the bundler, necessarily: the files it writes are what the front end imports. That pair is
-    the whole reason the client build below moved off BeforeBuild — a bundler run that preceded the
-    compile would type-check the previous build's contracts, pass, and then break on the wire.
-  -->
-  <Target Name="_RaskSpaEmitTypeScript"
-          AfterTargets="CoreCompile"
-          DependsOnTargets="ResolveProjectReferences"
-          Condition="'$(RaskEmitTypeScript)' == 'true' AND '$(_RaskSpaGenerated)' != '' AND '$(DesignTimeBuild)' != 'true'">
-    <WriteGeneratedTypeScriptTask AssemblyPath="@(IntermediateAssembly)" OutputDirectory="$(_RaskSpaGenerated)"/>
-
-    <!--
-      The dispatcher rides alongside, refreshed from the package on every build. That is what keeps the
-      client wire-locked to the server: the generated messages import from './client', and upgrading
-      Rask.Spa.Hosting has to upgrade both halves together or the pair drifts. SkipUnchangedFiles for
-      the same reason the generated files are written only when they differ — the bundler is watching.
-    -->
-    <ItemGroup>
-      <_RaskSpaClientSource Include="$(MSBuildThisFileDirectory)../client/*.ts"/>
-    </ItemGroup>
-    <Copy SourceFiles="@(_RaskSpaClientSource)" DestinationFolder="$(_RaskSpaGenerated)" SkipUnchangedFiles="true"/>
-
-    <!--
-      The browser layer, into src/rask/browser/. The same modules Rask's own Server and WASM clients
-      bundle, so a quirk fixed in one place is fixed for C# and TypeScript callers at once:
-
-          import { getCurrentPosition } from "./rask/browser/geolocation";
-
-      Refreshed from the package on every build for the same reason client.ts is — the alternative is
-      a file scaffolded once into a directory the scaffolder gitignores, which is how push.ts came to
-      vanish on a fresh clone (#957).
-
-      An empty glob makes the Copy a no-op, which is what happens when this target runs against the
-      repository layout rather than an installed package.
-    -->
-    <ItemGroup>
-      <_RaskSpaBrowserSource Include="$(MSBuildThisFileDirectory)../client/browser/*.ts"/>
-    </ItemGroup>
-    <Copy SourceFiles="@(_RaskSpaBrowserSource)"
-          DestinationFolder="$(_RaskSpaGenerated)/browser"
-          SkipUnchangedFiles="true"/>
-
-    <!--
-      The same `@rask/*` alias the meta lane writes, so both TypeScript lanes are imported the same
-      way. It matters less here — this lane's generated directory is always src/rask, so a relative
-      path would at least be stable — but two conventions for one thing is worse than either, and a
-      developer moving between a Rask SPA and a Rask meta app should not have to relearn the import.
-
-      WriteOnlyWhenDifferent for the same reason the copy above skips unchanged files: this lands in
-      the bundler's watched tree, and rewriting it every build would retrigger the client build.
-    -->
-    <WriteLinesToFile
-      File="$(_RaskSpaGenerated)/tsconfig.rask.json"
-      Overwrite="true"
-      WriteOnlyWhenDifferent="true"
-      Lines="{&quot;compilerOptions&quot;:{&quot;paths&quot;:{&quot;@rask/*&quot;:[&quot;./*&quot;]}}}"
-      Condition="'@(_RaskSpaBrowserSource)' != ''"/>
-  </Target>
-
-  <!--
-    dist/index.html is listed first among the Outputs so that deleting dist by hand forces a rebuild
-    even though the stamp file survives.
-  -->
-  <Target Name="_RaskSpaBuildClient"
-          AfterTargets="CoreCompile"
-          DependsOnTargets="_RaskSpaInstallDeps;_RaskSpaEmitTypeScript"
-          Condition="'$(_RaskSpaDoBuild)' == 'true'"
-          Inputs="@(_RaskSpaInput)"
-          Outputs="$(_RaskSpaDist)/index.html;$(IntermediateOutputPath)rask-spa.build.stamp">
-    <Message Importance="high" Text="Rask.Spa.Hosting: $(RaskSpaBuildCommand) in $(_RaskSpaDir) ($(Configuration))"/>
-    <Exec Command="$(RaskSpaBuildCommand)" WorkingDirectory="$(_RaskSpaDir)"
-          IgnoreStandardErrorWarningFormat="true"/>
-    <Error Condition="!Exists('$(_RaskSpaDist)/index.html')"
-           Code="RASKSPA002"
-           Text="Rask.Spa.Hosting: '$(RaskSpaBuildCommand)' finished but '$(_RaskSpaDist)/index.html' is not there. Set RaskSpaDistDir to the bundler's real output directory (Angular nests it: dist/&lt;app&gt;/browser)."/>
-    <!-- BeforeBuild runs before the SDK has created obj/, so the stamp has nowhere to land yet. -->
-    <MakeDir Directories="$(IntermediateOutputPath)"/>
-    <Touch Files="$(IntermediateOutputPath)rask-spa.build.stamp" AlwaysCreate="true"/>
-  </Target>
-
-  <!--
-    Baked whenever a client is resolved, not only when it was built: `rask dev` skips the build, but the
-    running host still wants the dev-server URL to name in its "nothing built yet" page.
-  -->
-  <Target Name="_RaskSpaSetMetadata" BeforeTargets="GetAssemblyAttributes" Condition="'$(_RaskSpaDir)' != ''">
-    <ItemGroup>
-      <AssemblyMetadata Include="Rask.SpaDistDir" Value="$(_RaskSpaDist)"/>
-      <AssemblyMetadata Include="Rask.SpaClientDir" Value="$(_RaskSpaDir)"/>
-      <AssemblyMetadata Include="Rask.SpaDevServerUrl" Value="$(RaskSpaDevServerUrl)"
-                        Condition="'$(RaskSpaDevServerUrl)' != ''"/>
-      <!-- A dev-session build (VS Code's F5 task), so the app starts the bundler's dev server itself when no
-           `rask dev` is doing it. Only when set; same key and rule as Rask.Core.targets. -->
-      <AssemblyMetadata Include="Rask.DevSession" Value="true" Condition="'$(RaskDevSession)' == 'true'"/>
-    </ItemGroup>
-  </Target>
-
-  <!--
-    Publish-time only. Copying hundreds of bundle files into bin on every F5 would be pure waste, and at
-    runtime the baked path is right there on the developer's own disk. It is the published app that
-    needs its own copy, because the baked path names the build machine.
-  -->
-  <Target Name="_RaskSpaCollectPublishAssets"
-          AfterTargets="ComputeFilesToPublish"
-          DependsOnTargets="_RaskSpaBuildClient"
-          Condition="'$(_RaskSpaDist)' != '' AND Exists('$(_RaskSpaDist)')">
-    <ItemGroup>
-      <_RaskSpaDistFile Include="$(_RaskSpaDist)/**/*"/>
-      <!--
-        ResolvedFileToPublish, added AFTER ComputeFilesToPublish. Contributing ContentWithTargetPath
-        before it looks equivalent and silently publishes nothing: that item is derived from Content
-        during AssignTargetPaths, which has already run by then, so the entries are simply never
-        consumed. ResolvedFileToPublish is the list the publish copy actually walks.
-      -->
-      <ResolvedFileToPublish Include="@(_RaskSpaDistFile)">
-        <RelativePath>$(RaskSpaPublishDir)/%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      </ResolvedFileToPublish>
-    </ItemGroup>
-    <Message Importance="high"
-             Text="Rask.Spa.Hosting: publishing @(_RaskSpaDistFile->Count()) file(s) from $(_RaskSpaDist) into $(RaskSpaPublishDir)/"/>
-  </Target>
-
-  <!--
-    A Rask WebAssembly client in its own project, served by this host:
+    Rask.Spa.Hosting build integration: a Rask WebAssembly client in its own project, served by this host:
 
         <ProjectReference Include="..\Shop.Client\Shop.Client.csproj"
                           ReferenceOutputAssembly="false"
@@ -368,10 +25,14 @@
     everything after it no-ops when it finds nothing. The client's framework is asked of MSBuild once one
     client is found (below).
 
-    Then the bundler lane's steps, with a .NET publish in place of `npm run build`:
+    Then:
       1. `dotnet publish` the client before this project builds.
       2. Bake its publish/wwwroot as Rask.SpaDistDir, so `app.MapRaskSpa()` resolves with no arguments.
+         The path is absolute and belongs to the build machine, which is why step 3 exists.
       3. On publish, copy the bundle into this app's RaskSpaPublishDir, where MapRaskSpa looks first.
+
+    Everything no-ops when no client is found, because this file is imported into EVERY project of every
+    consumer.
 
     RaskSpaBuild=false, which a dev session sets, skips the publish and bakes the client's build-output
     manifest instead. That is a precondition for WebAssembly hot reload, not an optimisation: a published
@@ -398,9 +59,6 @@
     <Error Condition="'@(_RaskSpaWasmClient->Count())' &gt; '1'"
            Code="RASKSPA006"
            Text="Rask.Spa.Hosting: a host serves one WebAssembly client, and this project references @(_RaskSpaWasmClient->Count()): @(_RaskSpaWasmClient). Serve each from its own host."/>
-    <Error Condition="'@(_RaskSpaWasmClient->Count())' == '1' AND '$(_RaskSpaDir)' != ''"
-           Code="RASKSPA007"
-           Text="Rask.Spa.Hosting: this project has two clients, the WebAssembly project @(_RaskSpaWasmClient) and the front end in $(_RaskSpaDir). MapRaskSpa serves one app per host: remove one, or serve it from its own host."/>
 
     <!--
       The client's framework, asked of MSBuild rather than read off the file: the bundle and manifest paths
@@ -471,6 +129,8 @@
            served by a build that published. -->
       <AssemblyMetadata Include="Rask.SpaDevManifest" Value="$(_RaskSpaWasmDevManifest)"
                         Condition="'$(RaskSpaBuild)' == 'false'"/>
+      <!-- A dev-session build (VS Code's F5 task). Only when set; same key and rule as Rask.Core.targets. -->
+      <AssemblyMetadata Include="Rask.DevSession" Value="true" Condition="'$(RaskDevSession)' == 'true'"/>
     </ItemGroup>
   </Target>
 

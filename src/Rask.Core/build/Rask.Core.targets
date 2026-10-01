@@ -108,8 +108,8 @@
     A dev-session build says so in the assembly, so the running app can tell an editor-launched dev session
     (VS Code's F5 builds with RaskDevSession=true, then runs the app under the debugger) from a plain build.
     Baked ONLY when the property is set — a leftover from an earlier build must never make an ordinary run
-    behave like a dev session, the same rule Rask.SpaDevManifest follows. Rask.Spa.Hosting and
-    Rask.Meta.Hosting bake the same key, because their apps do not import this file.
+    behave like a dev session, the same rule Rask.SpaDevManifest follows. Rask.Spa.Hosting bakes the same
+    key, because its apps need not import this file.
   -->
   <Target Name="_RaskDevSessionMetadata" BeforeTargets="GetAssemblyAttributes" Condition=" '$(RaskDevSession)' == 'true' ">
     <ItemGroup>

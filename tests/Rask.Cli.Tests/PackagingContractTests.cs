@@ -731,9 +731,9 @@ public sealed class PackagingContractTests
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Four packages register an MSBuild task from an assembly sitting next to their own
-    ///         <c>.targets</c>: <c>Rask.TypeScript.Tasks.dll</c>, <c>Rask.Tailwind.Tasks.dll</c>,
-    ///         <c>Rask.Wasm.Tasks.dll</c>, <c>Rask.Spa.Tasks.dll</c>. Every one is gitignored and
+    ///         Packages register MSBuild tasks from an assembly sitting next to their own
+    ///         <c>.targets</c> — <c>Rask.TypeScript.Tasks.dll</c>, <c>Rask.Tailwind.Tasks.dll</c>,
+    ///         <c>Rask.Wasm.Tasks.dll</c> among them. Every one is gitignored and
     ///         generated — copied there by a <c>CopyTaskAssemblyTo...</c> target on a
     ///         <c>ReferenceOutputAssembly="false"</c> project reference, an edge honoured at
     ///         <c>ResolveProjectReferences</c>. A target that runs before that edge — anything hanging off

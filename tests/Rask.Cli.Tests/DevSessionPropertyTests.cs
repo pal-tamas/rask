@@ -20,7 +20,7 @@ namespace Rask.Cli.Tests;
 public sealed class DevSessionPropertyTests
 {
     private static readonly string[] Properties =
-        ["RaskSpaBuild", "RaskMetaBuild", "RaskExternalDevServer"];
+        ["RaskSpaBuild", "RaskExternalDevServer"];
 
     [Fact]
     public async Task A_dev_session_flips_every_package_property()
@@ -28,7 +28,6 @@ public sealed class DevSessionPropertyTests
         var values = await Evaluate($"-p:{DevCommand.DevSessionProperty}=true");
 
         Assert.Equal("false", values["RaskSpaBuild"]);
-        Assert.Equal("false", values["RaskMetaBuild"]);
         Assert.Equal("true", values["RaskExternalDevServer"]);
     }
 
@@ -38,7 +37,6 @@ public sealed class DevSessionPropertyTests
         var values = await Evaluate();
 
         Assert.Equal("true", values["RaskSpaBuild"]);
-        Assert.Equal("true", values["RaskMetaBuild"]);
         Assert.Equal("false", values["RaskExternalDevServer"]);
     }
 
@@ -49,22 +47,19 @@ public sealed class DevSessionPropertyTests
         var values = await Evaluate(
             $"-p:{DevCommand.DevSessionProperty}=true",
             "-p:RaskSpaBuild=true",
-            "-p:RaskMetaBuild=true",
             "-p:RaskExternalDevServer=false");
 
         Assert.Equal("true", values["RaskSpaBuild"]);
-        Assert.Equal("true", values["RaskMetaBuild"]);
         Assert.Equal("false", values["RaskExternalDevServer"]);
     }
 
     [Theory]
     [InlineData("src/Rask.Core/build/Rask.Core.targets")]
     [InlineData("src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.targets")]
-    [InlineData("src/Rask.Meta.Hosting/build/Rask.Meta.Hosting.targets")]
     public void Each_host_lane_bakes_the_key_the_app_reads(string targets)
     {
-        // Three files because the three kinds of app import different ones (a React or meta host never
-        // imports Rask.Core.targets). The key is the runtime's constant, so a rename cannot leave one behind.
+        // Two files because the two kinds of app import different ones. The key is the runtime's constant,
+        // so a rename cannot leave one behind.
         var text = File.ReadAllText(Path.Combine(RepoRoot(), targets));
 
         Assert.Contains($"<AssemblyMetadata Include=\"{EditorDevSession.MetadataKey}\" Value=\"true\"", text, StringComparison.Ordinal);
@@ -84,7 +79,6 @@ public sealed class DevSessionPropertyTests
                 $"""
                  <Project>
                    <Import Project="{Path.Combine(root, "src", "Rask.Spa.Hosting", "build", "Rask.Spa.Hosting.props")}" />
-                   <Import Project="{Path.Combine(root, "src", "Rask.Meta.Hosting", "build", "Rask.Meta.Hosting.props")}" />
                    <Import Project="{Path.Combine(root, "src", "Rask.External", "build", "Rask.External.props")}" />
                  </Project>
                  """);

@@ -417,6 +417,6 @@ Two things worth repeating as shapes, both found here:
 ## See also
 
 - [Live pages](render-modes.md) — how a Server page renders, waits for its data and sets its status
-- [Single-page apps](spa.md#a-rask-webassembly-app) — serving a WebAssembly app from an ASP.NET host
+- [Serving a WebAssembly app](deployment.md#serving-a-webassembly-app) — from an ASP.NET host
 - [Mobile & PWA](pwa.md) — the rest of the standalone-WASM deployment story
 - [Deployment](deployment.md) — publishing the bundle

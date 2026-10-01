@@ -13,10 +13,7 @@ internal sealed partial class NewCommand
         // rask new MyApp → ./MyApp/ ; --output overrides the destination directory.
         var targetDirectory = Scaffold.TargetDirectory(_workingDirectory, output, name);
 
-        // build() is pure (in-memory strings), so it's safe to run before the existence check — we need its
-        // RestoreTarget to know what to guard/restore. Single-project templates restore {name}.csproj at the
-        // root; a multi-project template — a front-end one, whose client sits beside an ASP.NET host — has
-        // no root csproj and restores its {name}.slnx instead.
+        // build() is pure (in-memory strings), so it's safe to run before the existence check.
         var version = ResolvePackageVersion(CliMetadata.Version);
         var result = build(targetDirectory, version);
 
@@ -27,27 +24,13 @@ internal sealed partial class NewCommand
             return 0;
         }
 
-        var restoreTarget = result.RestoreTarget is { } relative
-            ? Path.Combine(targetDirectory, relative)
-            : Path.Combine(targetDirectory, name + ".csproj");
+        var restoreTarget = Path.Combine(targetDirectory, name + ".csproj");
         if (!force && await RefuseToOverwriteAsync(targetDirectory, restoreTarget, result).ConfigureAwait(false))
         {
             return 1;
         }
 
         WriteHeading($"Creating {template.DisplayName} '{name}'…");
-
-        // Before our own files, because ours are an overlay on top of what these produce — a vite.config
-        // the scaffolder just wrote, an App component we replace. Anything they leave behind stays.
-        foreach (var external in result.ExternalScaffolds)
-        {
-            if (await RunExternalScaffoldAsync(external, targetDirectory, cancellationToken).ConfigureAwait(false) is
-                { } failure)
-            {
-                return failure;
-            }
-        }
-
         WriteScaffoldFiles(result);
 
         var (restoreFailed, buildFailed) = await RestoreAndBuildAsync(
@@ -71,19 +54,9 @@ internal sealed partial class NewCommand
     private void WriteDryRunPlan(TemplateInfo template, string name, ScaffoldResult result)
     {
         WriteHeading($"Would create {template.DisplayName} '{name}':");
-        foreach (var external in result.ExternalScaffolds)
-        {
-            WriteDryRun("run", external.Command + " " + string.Join(" ", external.Arguments));
-        }
-
         foreach (var file in result.Files)
         {
             WriteDryRun("write", Path.GetRelativePath(_workingDirectory, file.Path));
-        }
-
-        foreach (var patch in result.Patches)
-        {
-            WriteDryRun("patch", Path.GetRelativePath(_workingDirectory, patch.Path) + " — " + patch.Description);
         }
     }
 
@@ -133,9 +106,8 @@ internal sealed partial class NewCommand
                 _fileSystem.CreateDirectory(directory);
             }
 
-            // Bytes for a file that is not text. The templates carry a PNG and two .ico favicons the
-            // front-end creators ship, and writing one of those through WriteAllText re-encodes it as
-            // UTF-8: the scaffold succeeds, the build succeeds, and the favicon is quietly corrupt.
+            // Bytes for a file that is not text. Writing a PNG or an .ico through WriteAllText re-encodes it
+            // as UTF-8: the scaffold succeeds, the build succeeds, and the image is quietly corrupt.
             if (file.Bytes is { } bytes)
             {
                 _fileSystem.WriteAllBytes(file.Path, bytes);
@@ -150,11 +122,6 @@ internal sealed partial class NewCommand
             }
 
             WriteCreated(Path.GetRelativePath(_workingDirectory, file.Path));
-        }
-
-        foreach (var patch in result.Patches)
-        {
-            ApplyPatch(patch);
         }
     }
 

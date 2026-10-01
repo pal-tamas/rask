@@ -17,7 +17,7 @@ project, with no flag to pass, nothing to turn on, and nothing to turn off.
 **And a daisyUI project.** [daisyUI](ui-kit.md) is a Tailwind plugin — component classes like `btn`,
 `card` and `navbar` on top of the utilities — and it arrives the same way: already there, no npm,
 nothing to install. It is what the scaffolded starter page is written in, on every template `rask new`
-can emit, so a project looks the same whether its front end is C#, React or Nuxt.
+can emit, so a project looks the same whether it runs on the server or in WebAssembly.
 
 It works on every template. On `wasm` the stylesheet belongs to the **browser**
 project — Tailwind scans the tree it runs in, and the components whose classes it is looking for are
@@ -160,26 +160,7 @@ way to skip the stylesheet:
 - **The download failed.** Not fatal on its own — a machine that cannot reach GitHub releases can often
   still reach a registry mirror, so the build says so and tries npm.
 
-## Front-end templates
-
-The [TypeScript templates](spa.md) get Tailwind too, and there it works the way that ecosystem
-expects: `@tailwindcss/vite` in the client's own `package.json` and Vite config, not the standalone
-binary. That project already has Node, a bundler and a dev server with HMR — routing its CSS through
-MSBuild instead would be strictly worse. The C# side of the solution is untouched.
-
-```bash
-rask new Shop --template react
-```
-
-The generated global stylesheet **replaces** create-vite's starter CSS rather than sitting beside it,
-because leaving it in would fight Tailwind's own reset. It carries a `@layer base` as well as the
-import: part of the file being replaced styles the placeholder page the template overlaid away, but
-the rest styles `body`, `h1` and `p` **by tag**, and those tags are what the starter still renders.
-Import alone and preflight leaves the page as unstyled text. See
-[Styling](spa.md#styling) for what that layer contains and how to move it into your own markup.
-
 ## See also
 
 - [The `rask` CLI](cli.md) — `rask new`, and which template supports which flag.
-- [TypeScript front ends](spa.md) — the SPA templates and their build.
 - [Scoped CSS and JS](js-interop.md) — the per-component styling Tailwind sits beside, not instead of.

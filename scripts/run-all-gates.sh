@@ -42,12 +42,9 @@ gates=(
   # The rask.sh data demo in a real browser: published as pages.yml publishes it (native-linked, under /demos/data/).
   "data demo E2E|scripts/run-data-demo-e2e-local.sh|"
   "CLI build|scripts/run-cli-build-e2e.sh|RASK_CLI_BUILD_E2E=1"
-  # Every template scaffolded and built. Not --front-end here: that tier installs and builds
-  # thirteen front ends and takes about an hour, which belongs to a release rather than to a run
-  # of every gate. Run it by hand with `scripts/run-template-e2e.sh --front-end`.
+  # Every template (server, wasm, wasm-hosted) scaffolded and built.
   "templates|scripts/run-template-e2e.sh|RASK_TEMPLATE_E2E=1"
   "watch hot reload|scripts/run-watch-e2e.sh|RASK_WATCH_E2E=1"
-  "meta publish|scripts/run-meta-publish-e2e.sh|RASK_META_PUBLISH_E2E=1"
   "deploy|scripts/run-deploy-e2e-local.sh|RASK_DEPLOY_E2E=1"
   "storage providers|scripts/run-storage-providers-local.sh|RASK_STORAGE_PROVIDERS=1"
   "installer|scripts/run-install-e2e-local.sh|RASK_INSTALL_E2E=1"

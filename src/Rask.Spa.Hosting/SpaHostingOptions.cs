@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.StaticFiles;
 namespace Rask.Spa.Hosting;
 
 /// <summary>
-///     Configures <see cref="RaskSpaEndpointExtensions.MapRaskSpa" />. Every default is the one a
-///     Vite-built app wants; each property is a deliberate departure from it.
+///     Configures <see cref="RaskSpaEndpointExtensions.MapRaskSpa" />. Every default serves a Rask
+///     WebAssembly publish as it is; each property is a deliberate departure from it.
 /// </summary>
 public sealed class SpaHostingOptions
 {
@@ -55,12 +55,6 @@ public sealed class SpaHostingOptions
     ///     file — so the fallback has to be narrower than "everything".
     /// </remarks>
     public Func<HttpContext, bool>? ExcludeFromFallback { get; set; }
-
-    /// <summary>
-    ///     Where the bundler's dev server is listening, named in the message shown in Development when
-    ///     no build output exists. Baked from the client's configuration by the build targets.
-    /// </summary>
-    public string? DevServerUrl { get; set; }
 
     /// <summary>
     ///     Runs after this package has set the content type and cache headers, so an app can override

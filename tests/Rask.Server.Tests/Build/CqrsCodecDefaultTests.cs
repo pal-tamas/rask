@@ -3,9 +3,9 @@ using System.Diagnostics;
 namespace Rask.Server.Tests.Build;
 
 /// <summary>
-///     Whether <c>Rask.Server.targets</c> turns the CQRS wire codec on — and with it the TypeScript contracts — by
-///     what the project serves: a front end in <c>client/</c> dispatches over the wire, a server-rendered app never
-///     does. Evaluation only, so no build and no node.
+///     Whether <c>Rask.Server.targets</c> turns the CQRS wire codec on by what the project serves: a WebAssembly
+///     client in <c>Client/</c> dispatches over the wire, a server-rendered app never does. Evaluation only, so no
+///     build.
 /// </summary>
 public sealed class CqrsCodecDefaultTests : IDisposable
 {
@@ -18,9 +18,9 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
-    public void A_typescript_front_end_in_client_turns_the_codec_on()
+    public void A_webassembly_client_in_Client_turns_the_codec_on()
     {
-        Write("client/package.json", "{}");
+        Write("Client/Program.cs", "// the browser half");
 
         var codec = Evaluate();
 
@@ -38,11 +38,21 @@ public sealed class CqrsCodecDefaultTests : IDisposable
     }
 
     [Fact]
-    public void A_meta_framework_host_is_not_taken_for_a_typescript_front_end()
+    public void A_package_json_in_client_does_not_turn_the_codec_on()
     {
         Write("client/package.json", "{}");
 
-        var codec = Evaluate("<RaskMetaFramework>nuxt</RaskMetaFramework>");
+        var codec = Evaluate();
+
+        Assert.Equal("false", codec);
+    }
+
+    [Fact]
+    public void An_explicit_setting_wins_over_the_client_convention()
+    {
+        Write("Client/Program.cs", "// the browser half");
+
+        var codec = Evaluate("<RaskCqrsCodec>false</RaskCqrsCodec>");
 
         Assert.Equal("false", codec);
     }

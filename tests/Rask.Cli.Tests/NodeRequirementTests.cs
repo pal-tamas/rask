@@ -9,24 +9,29 @@ namespace Rask.Cli.Tests;
 public sealed class NodeRequirementTests
 {
     /// <summary>
-    ///     <see cref="NodeRequirement.BuildFloor" /> mirrors <c>RaskSpaMinimumNode</c>; the props file is
+    ///     <see cref="NodeRequirement.BuildFloor" /> mirrors <c>RaskExternalMinimumNode</c>; the props file is
     ///     the enforcing copy.
     /// </summary>
     /// <remarks>
-    ///     Asserted against the SHIPPED props rather than a constant repeated in the test, because a copy
-    ///     of a number in a test is a third place for it to be wrong. The build floor is enforced by
-    ///     MSBuild as RASKSPA005 and by nothing in the CLI, so if these two disagree the CLI tells people
-    ///     to install a Node that the build then rejects — or, worse, accepts one it will not.
+    ///     <para>
+    ///         Asserted against the SHIPPED props rather than a constant repeated in the test, because a copy
+    ///         of a number in a test is a third place for it to be wrong. The build floor is enforced by
+    ///         MSBuild as RASKISLAND001 and by nothing in the CLI, so if these two disagree the CLI tells
+    ///         people to install a Node that the build then rejects — or, worse, accepts one it will not.
+    ///     </para>
+    ///     <para>
+    ///         22.12.0 because the islands build runs vite, whose <c>^20.19.0 || &gt;=22.12.0</c> has a hole
+    ///         a single numeric floor cannot express; 22.12.0 is the lowest version with none beneath it.
+    ///     </para>
     /// </remarks>
     [Fact]
     public void The_build_floor_is_the_one_the_props_file_enforces()
     {
-        var props = File.ReadAllText(Path.Combine(
-            RepositoryRoot(), "src", "Rask.Spa.Hosting", "build", "Rask.Spa.Hosting.props"));
+        var props = RepoPins.Text("src/Rask.External/build/Rask.External.props");
 
-        var declared = Regex.Match(props, @"<RaskSpaMinimumNode[^>]*>([0-9.]+)</RaskSpaMinimumNode>");
-        Assert.True(declared.Success, "RaskSpaMinimumNode is no longer declared in Rask.Spa.Hosting.props");
+        var declared = Regex.Match(props, @"<RaskExternalMinimumNode[^>]*>([0-9.]+)</RaskExternalMinimumNode>");
 
+        Assert.True(declared.Success, "RaskExternalMinimumNode is no longer declared in Rask.External.props");
         Assert.Equal(NodeRequirement.BuildFloor, Version.Parse(declared.Groups[1].Value));
     }
 
@@ -39,18 +44,18 @@ public sealed class NodeRequirementTests
         Assert.True(
             NodeRequirement.ScaffoldLine > NodeRequirement.BuildFloor,
             $"the scaffold line ({NodeRequirement.ScaffoldLine}) must exceed the build floor "
-            + $"({NodeRequirement.BuildFloor}) — an app builds on less than it takes to scaffold one.");
+            + $"({NodeRequirement.BuildFloor}) — the installers put the LTS line on a machine, not the bare floor.");
     }
 
     /// <summary>
-    ///     It also has to clear the floor the Angular CLI enforces for itself, which is what #886 hit.
+    ///     It also has to clear the floor Angular's tooling enforces for itself, which is what #886 hit.
     /// </summary>
     [Fact]
     public void The_scaffold_line_clears_the_angular_cli_floor()
     {
-        // Angular's CLI refuses below ^22.22.3 || ^24.15.0 || >=26.0.0. A machine on the 24 line has to
-        // be at 24.15.0 to satisfy it, which is exactly the version that turned the CLI build gate red
-        // on a box running 24.14.0.
+        // An Angular island installs @angular/build, which refuses below ^22.22.3 || ^24.15.0 || >=26.0.0.
+        // A machine on the 24 line has to be at 24.15.0 to satisfy it, which is exactly the version that
+        // turned the CLI build gate red on a box running 24.14.0.
         Assert.True(NodeRequirement.ScaffoldLine >= new Version(24, 15, 0));
     }
 
@@ -79,45 +84,17 @@ public sealed class NodeRequirementTests
         Assert.Null(NodeRequirement.Parse(reported));
 
     /// <summary>
-    ///     The islands build floor is the SPA build floor. Both run vite, so both take vite's answer.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         <c>RaskExternalMinimumNode</c> spent its whole life declared and unread — the property was
-    ///         set, its comment promised a probe, and <c>Rask.External.targets</c> referenced it nowhere, so
-    ///         an old Node went straight to <c>npm</c> and failed inside vite with the engines error the
-    ///         probe existed to replace. Now that <c>_RaskExternalProbeNode</c> enforces it as
-    ///         RASKISLAND001, the number matters, and two files stating it is two places to get it wrong.
-    ///     </para>
-    ///     <para>
-    ///         They must agree because they are the same requirement: vite's
-    ///         <c>^20.19.0 || &gt;=22.12.0</c>, whose disjoint shape a single numeric floor cannot express.
-    ///         22.12.0 is the lowest version with no hole beneath it.
-    ///     </para>
-    /// </remarks>
-    [Fact]
-    public void The_islands_floor_matches_the_spa_floor()
-    {
-        var islands = Regex.Match(
-            RepoPins.Text("src/Rask.External/build/Rask.External.props"),
-            @"<RaskExternalMinimumNode[^>]*>([0-9.]+)</RaskExternalMinimumNode>");
-        Assert.True(islands.Success, "RaskExternalMinimumNode is no longer declared in Rask.External.props");
-
-        Assert.Equal(NodeRequirement.BuildFloor, Version.Parse(islands.Groups[1].Value));
-    }
-
-    /// <summary>
     ///     Both installers leave an existing Node alone at exactly the scaffold line, not at some other
     ///     number that happens to be near it.
     /// </summary>
     /// <remarks>
     ///     <para>
     ///         <c>RASK_INSTALL_NODE_MIN</c> decides whether <c>rask.sh</c> installs Node or keeps the one
-    ///         already on the box, and the thing that Node must be able to do is SCAFFOLD — so it is the
-    ///         scaffold line, not the build floor. The two installers state it independently, in two
+    ///         already on the box, and that Node must build every island runtime, Angular's included — so it
+    ///         is the scaffold line, not the build floor. The two installers state it independently, in two
     ///         languages, and <c>rask.ps1</c>'s comment says it mirrors <c>rask.sh</c>. Nothing checked that
     ///         it does, so a bump applied to one and forgotten on the other would leave Windows users on a
-    ///         Node that installs cleanly and then cannot run <c>rask new --template angular</c>.
+    ///         Node that installs cleanly and then cannot build an Angular island.
     ///     </para>
     ///     <para>
     ///         Note what is deliberately NOT asserted here: the several places that quote Angular's own
@@ -182,17 +159,5 @@ public sealed class NodeRequirementTests
         Assert.Equal(
             NodeRequirement.ScaffoldLine.Major,
             int.Parse(summarised[0].Groups[1].Value, CultureInfo.InvariantCulture));
-    }
-
-    private static string RepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Rask.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        Assert.NotNull(directory);
-        return directory!.FullName;
     }
 }

@@ -15,7 +15,7 @@ public sealed class ScaffoldIgnoresSecretsTests
 {
     private const string Root = "/tmp/app";
 
-    public static TheoryData<string> Apps() => ["server", "wasm", "wasm-hosted", "react"];
+    public static TheoryData<string> Apps() => ["server", "wasm", "wasm-hosted"];
 
     [Theory]
     [MemberData(nameof(Apps))]
@@ -47,8 +47,7 @@ public sealed class ScaffoldIgnoresSecretsTests
         {
             "server" => ProjectGenerator.GenerateServer(Root, "Shop", (BatterySelection.BatteriesOf([]) with { Docker = true }), "1.2.3"),
             "wasm" => ProjectGenerator.GenerateWasm(Root, "Shop", pwa: false, docker: true, "1.2.3"),
-            "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "Shop", (BatterySelection.BatteriesOf([]) with { Docker = true }), "1.2.3"),
-            _ => ProjectGenerator.GenerateSpa(Root, "Shop", SpaFramework.React, new ServerBatteries { Docker = true }, "1.2.3"),
+            _ => ProjectGenerator.GenerateWasmHosted(Root, "Shop", (BatterySelection.BatteriesOf([]) with { Docker = true }), "1.2.3"),
         };
 
         return result.Files.ToDictionary(

@@ -41,6 +41,15 @@ them until tagged releases begin.
 
   One awaitable validation path: every rule, sync or async, runs through `await ctx.Validate()` /
   `await ctx.ValidateField(field)`, so a form that gains an async validator changes nothing at the call site.
+- **BREAKING: React, Vue, Svelte and the rest run as islands only.** The meta-framework templates
+  (`nuxt`, `nextjs`, `sveltekit`, `solidstart`, `tanstack-start`, `analog`) and the `Rask.Meta.Hosting`
+  package are removed, and so are the TypeScript SPA templates (`react`, `preact`, `vue`, `solid`,
+  `svelte`, `lit`, `angular`). Those frameworks run as [islands](docs/islands.md) inside Rask pages —
+  `rask new Shop --islands react` — and `rask new --template` keeps `server`, `wasm` and `wasm-hosted`.
+  `Rask.Spa.Hosting` now only hosts a Rask WebAssembly client (`RaskApp.Create(args).Serve()`, or
+  `MapRaskSpa()` by hand); the generated TypeScript CQRS client and `Rask.Spa.Tasks` are gone. To migrate,
+  keep an existing SPA or meta-framework app on the previous Rask version, or move its front end into
+  islands.
 - **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
   its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
 
