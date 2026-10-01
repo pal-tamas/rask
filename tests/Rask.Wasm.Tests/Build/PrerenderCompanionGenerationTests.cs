@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.Wasm.Tests.Build;
 
@@ -72,42 +72,42 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void The_apps_own_global_usings_reach_the_companion()
+    public async Task The_apps_own_global_usings_reach_the_companion()
     {
         // The bug this file was added for. The companion compiles the app's SOURCES, so a source leaning
         // on a global using the csproj declares does not compile without it — and the resulting CS0103
         // points at the source, not at the missing using.
-        var project = Generate();
+        var project = await Generate();
 
         Assert.Contains("<Using Include=\"Fixture.Widgets\" />", project, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_static_using_stays_static()
+    public async Task A_static_using_stays_static()
     {
         // Carrying the item but dropping the metadata is worse than dropping the item: `using X` and
         // `using static X` are different usings, so the companion would compile a subtly different
         // program and fail somewhere that says nothing about this.
         Assert.Contains(
-            "<Using Include=\"Fixture.Helpers\" Static=\"true\" />", Generate(), StringComparison.Ordinal);
+            "<Using Include=\"Fixture.Helpers\" Static=\"true\" />", await Generate(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void An_aliased_using_keeps_its_alias()
+    public async Task An_aliased_using_keeps_its_alias()
     {
         Assert.Contains(
             "<Using Include=\"System.Collections.Generic\" Alias=\"Coll\" />",
-            Generate(),
+            await Generate(),
             StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Each_using_is_emitted_exactly_once()
+    public async Task Each_using_is_emitted_exactly_once()
     {
         // Three emission lines partition the set by metadata. Getting the conditions wrong the other way
         // duplicates an item rather than dropping it, which is a build error in the companion — but one
         // that names the generated file, not the app, so it is worth pinning here instead.
-        var project = Generate();
+        var project = await Generate();
 
         Assert.Equal(1, Occurrences(project, "Include=\"Fixture.Widgets\""));
         Assert.Equal(1, Occurrences(project, "Include=\"Fixture.Helpers\""));
@@ -115,28 +115,28 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void An_embedded_resource_keeps_its_logical_name()
+    public async Task An_embedded_resource_keeps_its_logical_name()
     {
         // A resource is found by NAME at runtime. The companion is a different assembly in a different
         // directory, so re-globbing the file is not enough — the name has to travel with it, or the
         // lookup fails with "not found in any registered assembly" on a file that is plainly embedded.
-        var project = Generate();
+        var project = await Generate();
 
         Assert.Contains("<EmbeddedResource Include=\"", project, StringComparison.Ordinal);
         Assert.Contains("LogicalName=\"raksrc/Demo.cs\"", project, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_resource_with_no_logical_name_is_linked_back_to_the_apps_layout()
+    public async Task A_resource_with_no_logical_name_is_linked_back_to_the_apps_layout()
     {
         // Without a LogicalName the SDK computes the manifest name from RootNamespace plus the path
         // RELATIVE TO THE PROJECT — and the companion's project directory is the app's obj/, so the
         // computed name would differ. Link pins it back to where the app has the file.
-        Assert.Contains("Link=\"Features/Notes.txt\"", Generate().Replace('\\', '/'), StringComparison.Ordinal);
+        Assert.Contains("Link=\"Features/Notes.txt\"", (await Generate()).Replace('\\', '/'), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_public_API_gate_does_not_cover_the_companion()
+    public async Task The_public_API_gate_does_not_cover_the_companion()
     {
         // The gate in Directory.Build.targets covers every project under src/, and the companion is
         // GENERATED into the app's obj/ — which is under src/. It can never carry a baseline, because
@@ -146,25 +146,25 @@ public class PrerenderCompanionGenerationTests : IDisposable
         // so a warm one hides it — which is exactly why it is pinned here and not left to the gate.
         Assert.Contains(
             "<RaskPublicApiTracked>false</RaskPublicApiTracked>",
-            Generate(),
+            await Generate(),
             StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_SDKs_own_resource_glob_is_off()
+    public async Task The_SDKs_own_resource_glob_is_off()
     {
         // The companion's project directory sits inside the app's obj/. Left on, the SDK's default
         // EmbeddedResource glob would sweep up whatever a previous build left there and embed it.
         Assert.Contains(
             "<EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>",
-            Generate(),
+            await Generate(),
             StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData("net10.0-browser", "net10.0")]
     [InlineData("net11.0-browser", "net11.0")]
-    public void The_companion_is_the_apps_desktop_twin(string app, string companion)
+    public async Task The_companion_is_the_apps_desktop_twin(string app, string companion)
     {
         // The companion carries the app's own package references, so it must restore the same .NET
         // version of every one of them the app was compiled against. It was a literal net10.0, which
@@ -175,30 +175,30 @@ public class PrerenderCompanionGenerationTests : IDisposable
             $"<TargetFramework>{app}</TargetFramework>",
             StringComparison.Ordinal));
 
-        Assert.Contains($"<TargetFramework>{companion}</TargetFramework>", Generate(), StringComparison.Ordinal);
+        Assert.Contains($"<TargetFramework>{companion}</TargetFramework>", await Generate(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_companion_does_not_build_the_apps_islands()
+    public async Task The_companion_does_not_build_the_apps_islands()
     {
         // The companion compiles the app's C#, so it sees every island declared there, but Rask.External
         // globs for their front-end files from the companion's own directory inside obj/ and finds none.
         // Left on, the prop-types step warned RASKISLAND004 for every island on every prerendered publish,
         // about chunks the app's own build had just bundled (#1068).
-        var project = Generate();
+        var project = await Generate();
 
         Assert.Contains("<RaskExternalPropTypes>false</RaskExternalPropTypes>", project, StringComparison.Ordinal);
         Assert.Contains("<RaskExternalBuild>false</RaskExternalBuild>", project, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_package_islands_snapshot_reaches_the_companion()
+    public async Task A_package_islands_snapshot_reaches_the_companion()
     {
         // A package island's chain steps are generated from the `{Island}.props.json` beside its class, and Rask.External
         // globs for those from the companion's own directory inside obj/, where none lives. Without the app's snapshots
         // the island compiled with no steps and the prerendered publish failed on its first one as CS1929 — the way this
         // repo's own islands page did, with a green build and a red publish.
-        var project = Generate().Replace('\\', '/');
+        var project = (await Generate()).Replace('\\', '/');
 
         Assert.Contains("<AdditionalFiles Include=\"", project, StringComparison.Ordinal);
         Assert.Contains("/**/*.props.json\" />", project, StringComparison.Ordinal);
@@ -206,26 +206,26 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void The_apps_scoped_stylesheets_reach_the_companion()
+    public async Task The_apps_scoped_stylesheets_reach_the_companion()
     {
         // The prerender renders through the scoped-asset registry, and the generator fills it only from the
         // .css AdditionalFiles it is handed. Missing, every page published with no data-r-* attributes and no
         // bundle <link>, and its scoped chrome painted unstyled until the runtime took over — a reflow on
         // every refresh. Carried as the app resolved them, and only the stylesheets: the app's other
         // AdditionalFiles are not the companion's business here.
-        var project = Generate().Replace('\\', '/');
+        var project = (await Generate()).Replace('\\', '/');
 
         Assert.Equal(1, Occurrences(project, "Features/Demo.css\" />"));
         Assert.DoesNotContain("Other.json", project, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_companions_own_scoped_globs_are_off_and_TypeScript_is_rooted_at_the_app()
+    public async Task The_companions_own_scoped_globs_are_off_and_TypeScript_is_rooted_at_the_app()
     {
         // Rask.Core.targets globs scoped .css and .ts from the COMPANION's directory, inside obj/, where no
         // component lives. Off, and the TypeScript named from the app instead — rooted there, because tsgo's
         // output tree and the AdditionalFiles transform both follow %(RecursiveDir) from that root.
-        var project = Generate().Replace('\\', '/');
+        var project = (await Generate()).Replace('\\', '/');
         // Matched on the app directory's NAME: MSBuild spells a temp path through its resolved form (/private/var
         // on macOS), so the absolute prefix is not the one this test created it under.
         var app = "[^\"<]*/" + System.Text.RegularExpressions.Regex.Escape(Path.GetFileName(_dir));
@@ -238,7 +238,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void An_app_that_opts_out_of_scoped_TypeScript_gets_none_in_the_companion()
+    public async Task An_app_that_opts_out_of_scoped_TypeScript_gets_none_in_the_companion()
     {
         var csproj = Path.Combine(_dir, "App.csproj");
         File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
@@ -246,16 +246,16 @@ public class PrerenderCompanionGenerationTests : IDisposable
             "<RaskPrerender>true</RaskPrerender><RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>",
             StringComparison.Ordinal));
 
-        Assert.DoesNotContain("<_RaskScopedTs Include=", Generate(), StringComparison.Ordinal);
+        Assert.DoesNotContain("<_RaskScopedTs Include=", await Generate(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Each_resource_is_emitted_exactly_once()
+    public async Task Each_resource_is_emitted_exactly_once()
     {
         // Two emission lines partition the set on whether the item names itself. A condition wrong the
         // other way emits both twice, which the companion then fails to build on — naming the generated
         // file rather than the app.
-        var project = Generate();
+        var project = await Generate();
 
         Assert.Equal(1, Occurrences(project, "Demo.cs\" LogicalName="));
         Assert.Equal(1, Occurrences(project.Replace('\\', '/'), "Link=\"Features/Notes.txt\""));
@@ -274,30 +274,18 @@ public class PrerenderCompanionGenerationTests : IDisposable
         return count;
     }
 
-    private string Generate()
+    private async Task<string> Generate()
     {
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = _dir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        psi.ArgumentList.Add("msbuild");
-        psi.ArgumentList.Add("App.csproj");
-        psi.ArgumentList.Add("-t:RaskGeneratePrerenderCompanion");
-        psi.ArgumentList.Add("-nologo");
-        psi.ArgumentList.Add("-v:quiet");
-        psi.ArgumentList.Add("-nodeReuse:false");
+        var result = await TestProcess.Run(
+            "dotnet",
+            ["msbuild", "App.csproj", "-t:RaskGeneratePrerenderCompanion", "-nologo", "-v:quiet", "-nodeReuse:false"],
+            _dir,
+            cancellationToken: TestContext.Current.CancellationToken);
 
-        using var p = Process.Start(psi)!;
-        var stdout = p.StandardOutput.ReadToEnd();
-        var stderr = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-
-        Assert.True(p.ExitCode == 0, $"generation failed:\n{stdout}\n{stderr}");
+        Assert.True(result.ExitCode == 0, $"generation failed:\n{result.StandardOutput}\n{result.StandardError}");
 
         var generated = Path.Combine(_dir, "obj", "rask-prerender", "App.Prerender.csproj");
-        Assert.True(File.Exists(generated), $"no companion was generated:\n{stdout}");
+        Assert.True(File.Exists(generated), $"no companion was generated:\n{result.StandardOutput}");
         return File.ReadAllText(generated);
     }
 

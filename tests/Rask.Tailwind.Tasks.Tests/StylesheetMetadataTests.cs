@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.Tailwind.Tasks.Tests;
 
@@ -17,28 +17,28 @@ public sealed class StylesheetMetadataTests : IDisposable
     }
 
     [Fact]
-    public void A_project_with_a_stylesheet_announces_where_it_is_served()
+    public async Task A_project_with_a_stylesheet_announces_where_it_is_served()
     {
         Directory.CreateDirectory(Path.Combine(_dir, "Styles"));
         File.WriteAllText(Path.Combine(_dir, "Styles", "app.css"), "@import \"tailwindcss\";");
 
-        var metadata = AssemblyMetadata();
+        var metadata = await AssemblyMetadata();
 
         Assert.Contains("\"Identity\": \"Rask.Stylesheet\"", metadata, StringComparison.Ordinal);
         Assert.Contains("\"Value\": \"css/app.css\"", metadata, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_project_without_one_announces_nothing()
+    public async Task A_project_without_one_announces_nothing()
     {
         Directory.CreateDirectory(_dir);
 
-        var metadata = AssemblyMetadata();
+        var metadata = await AssemblyMetadata();
 
         Assert.DoesNotContain("Rask.Stylesheet", metadata, StringComparison.Ordinal);
     }
 
-    private string AssemblyMetadata()
+    private async Task<string> AssemblyMetadata()
     {
         var build = Path.Combine(SrcDir, "Rask.Tailwind", "build");
         File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
@@ -51,28 +51,14 @@ public sealed class StylesheetMetadataTests : IDisposable
             </Project>
             """);
 
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = _dir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        foreach (var argument in new[]
-                 {
-                     "msbuild", "App.csproj", "-nologo", "-nodeReuse:false", "-restore",
-                     "-t:GetAssemblyAttributes", "-getItem:AssemblyMetadata",
-                 })
-        {
-            psi.ArgumentList.Add(argument);
-        }
+        var result = await TestProcess.Run(
+            "dotnet",
+            ["msbuild", "App.csproj", "-nologo", "-nodeReuse:false", "-restore", "-t:GetAssemblyAttributes", "-getItem:AssemblyMetadata"],
+            _dir,
+            cancellationToken: TestContext.Current.CancellationToken);
 
-        using var p = Process.Start(psi)!;
-        var stdout = p.StandardOutput.ReadToEnd();
-        var stderr = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-
-        Assert.True(p.ExitCode == 0, $"the build failed:\n{stdout}{stderr}");
-        return stdout;
+        Assert.True(result.ExitCode == 0, $"the build failed:\n{result.Output}");
+        return result.StandardOutput;
     }
 
     private static string SrcDir

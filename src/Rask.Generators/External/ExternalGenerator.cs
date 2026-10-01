@@ -205,7 +205,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         var islands = new List<ComponentModel>();
         var byName = new Dictionary<string, ComponentModel>(StringComparer.Ordinal);
 
-        foreach (var type in Types(compilation.Assembly.GlobalNamespace))
+        foreach (var type in SymbolWalk.AllTypes(compilation.Assembly.GlobalNamespace))
         {
             if (spc.CancellationToken.IsCancellationRequested)
             {
@@ -276,7 +276,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     private static List<(INamedTypeSymbol Type, PackageDeclaration Read)> ReadDeclarations(Compilation compilation)
     {
         var declarations = new List<(INamedTypeSymbol Type, PackageDeclaration Read)>();
-        foreach (var candidate in Types(compilation.Assembly.GlobalNamespace))
+        foreach (var candidate in SymbolWalk.AllTypes(compilation.Assembly.GlobalNamespace))
         {
             if (PackageDeclarations.Read(candidate) is { } declaration)
             {
@@ -295,7 +295,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         var paired = new List<(IslandFacts Facts, PropsSnapshot Snapshot)>();
         if (snapshots.Count > 0)
         {
-            foreach (var candidate in Types(compilation.Assembly.GlobalNamespace))
+            foreach (var candidate in SymbolWalk.AllTypes(compilation.Assembly.GlobalNamespace))
             {
                 if (PackageIslandProps.Facts(candidate) is { } facts
                     && PackageIslandProps.Find(snapshots, facts) is { } snapshot)
@@ -531,32 +531,6 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         _ => null,
     };
 
-    /// <summary>Every named type in the assembly, nested types included.</summary>
-    private static IEnumerable<INamedTypeSymbol> Types(INamespaceOrTypeSymbol root)
-    {
-        foreach (var member in root.GetMembers())
-        {
-            switch (member)
-            {
-                case INamespaceSymbol ns:
-                    foreach (var nested in Types(ns))
-                    {
-                        yield return nested;
-                    }
-
-                    break;
-
-                case INamedTypeSymbol type:
-                    yield return type;
-                    foreach (var nested in Types(type))
-                    {
-                        yield return nested;
-                    }
-
-                    break;
-            }
-        }
-    }
 
     private static bool Inherits(INamedTypeSymbol type, INamedTypeSymbol target)
     {
