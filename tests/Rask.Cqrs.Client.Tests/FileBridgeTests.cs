@@ -1,4 +1,5 @@
 using System.Text;
+using Rask.Core;
 using Rask.Core.Routing;
 
 namespace Rask.Cqrs.Client.Tests;
@@ -18,7 +19,7 @@ public class FileBridgeTests
 
         using (navigator.EnterHandler())
         {
-            navigator.Download(download);
+            Download.File(download);
         }
 
         var staged = Assert.Single(sink.Staged);
@@ -40,7 +41,7 @@ public class FileBridgeTests
 
         using (navigator.EnterHandler())
         {
-            navigator.Download(download);
+            Download.File(download);
         }
 
         var staged = Assert.Single(sink.Staged);
@@ -51,12 +52,11 @@ public class FileBridgeTests
     [Fact]
     public void Download_outside_an_event_handler_throws()
     {
-        // Inherited from Navigator deliberately: a browser only starts a save in response to something
+        // Inherited from Download.File deliberately: a browser only starts a save in response to something
         // the user did, so a download staged during a render would be silently dropped.
-        var navigator = new Navigator(new RouteState(), new RecordingSink());
         var download = FileDownload.FromBytes("report.csv", "text/csv", [1]);
 
-        Assert.Throws<InvalidOperationException>(() => navigator.Download(download));
+        Assert.Throws<InvalidOperationException>(() => Download.File(download));
     }
 
     private sealed record Staged(string Filename, byte[]? Bytes, Stream? Stream, string? ContentType);

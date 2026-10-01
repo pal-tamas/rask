@@ -1,4 +1,4 @@
-using Rask.Core.Routing;
+using Rask.Core;
 using Rask.Wire;
 
 namespace Rask.Cqrs.Client;
@@ -24,23 +24,24 @@ namespace Rask.Cqrs.Client;
 /// </remarks>
 public static class FileBridgeExtensions
 {
-    /// <summary>
-    ///     Saves a file a message answered with to the user's disk.
-    /// </summary>
-    /// <param name="navigator">The injected <see cref="Navigator" />.</param>
-    /// <param name="download">The file the handler returned.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="navigator" /> or <paramref name="download" /> is null.</exception>
-    /// <remarks>
-    ///     Must be called from inside an event handler, like every other
-    ///     <see cref="Navigator.Download(string, Stream, string?)" /> call: a browser only starts a save
-    ///     in response to something the user did. The stream is handed over rather than read, so a large
-    ///     export never lands in memory on its way through.
-    /// </remarks>
-    public static void Download(this Navigator navigator, FileDownload download)
+    extension(Download)
     {
-        ArgumentNullException.ThrowIfNull(navigator);
-        ArgumentNullException.ThrowIfNull(download);
+        /// <summary>
+        ///     Saves a file a message answered with to the user's disk: <c>Download.File(await dispatcher.SendAsync(…))</c>.
+        /// </summary>
+        /// <param name="download">The file the handler returned.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="download" /> is null.</exception>
+        /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
+        /// <remarks>
+        ///     From an event handler, like every <c>Download.File</c>: a browser only starts a save in response to
+        ///     something the user did. The stream is handed over rather than read, so a large export never lands in
+        ///     memory on its way through.
+        /// </remarks>
+        public static void File(FileDownload download)
+        {
+            ArgumentNullException.ThrowIfNull(download);
 
-        navigator.Download(download.FileName, download.OpenReadStream(), download.ContentType);
+            Download.File(download.FileName, download.OpenReadStream(), download.ContentType);
+        }
     }
 }

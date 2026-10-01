@@ -34,10 +34,9 @@ public class RouteNavigationHelperTests
         Assert.Contains("public static global::Rask.Core.Routing.RouteUrl Url(int Id, string? Sort = null)", output);
         Assert.Contains("=> global::TestAssembly.Routes.ProductPage(Id, Sort);", output);
 
-        // Go adds the history flag and routes through the ambient navigator.
-        Assert.Contains("public static void Go(int Id, string? Sort = null, bool replace = false)", output);
-        Assert.Contains("global::Rask.Core.Routing.Navigator.RequireCurrent().NavigateTo(global::TestAssembly.Routes.ProductPage(Id, Sort), replace);",
-            output);
+        // Go goes there through the public Go facade and hands back its step (.Replacing()).
+        Assert.Contains("public static global::Rask.Core.GoTo Go(int Id, string? Sort = null)", output);
+        Assert.Contains("=> global::Rask.Core.Go.To(global::TestAssembly.Routes.ProductPage(Id, Sort));", output);
     }
 
     [Fact]
@@ -121,10 +120,9 @@ public class RouteNavigationHelperTests
     }
 
     [Fact]
-    public void A_param_named_replace_drops_the_history_flag_from_Go()
+    public void A_param_named_replace_is_an_ordinary_parameter_of_Go()
     {
-        // The page's own parameter wins; Go loses the convenience flag rather than silently binding
-        // the caller's `replace:` argument to the route parameter.
+        // Replacing is a step after Go, not a flag in it, so a route parameter of that name collides with nothing.
         var src = """
                   using Rask.Core;
                   using Rask.Core.Routing;
@@ -140,7 +138,6 @@ public class RouteNavigationHelperTests
         var run = GeneratorDriverFixture.RunRoutes(src);
         var output = run.GeneratedSource("Routes.g.cs");
 
-        Assert.Contains("public static void Go(string Replace)", output);
-        Assert.DoesNotContain("bool replace = false", output);
+        Assert.Contains("public static global::Rask.Core.GoTo Go(string Replace)", output);
     }
 }

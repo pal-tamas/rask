@@ -13,9 +13,8 @@ public sealed class DownloadPageTests
     {
         // Render DownloadDemo directly — its standalone /download page was folded into
         // docs/http-and-files.md, where the demo is embedded as a live sample.
-        var nav = new Navigator(new RouteState { Path = "/" }, new CapturingDownloadSink());
 
-        var html = Page.Render(new DownloadDemo(nav), TestServices.Default()).Html;
+        var html = Page.Render(new DownloadDemo(), TestServices.Default()).Html;
 
         Assert.Contains("download-report", html);
         Assert.Contains("Generated 0 time(s)", html);
@@ -27,7 +26,7 @@ public sealed class DownloadPageTests
         var sink = new CapturingDownloadSink();
         var routeState = new RouteState { Path = "/download" };
         var nav = new Navigator(routeState, sink);
-        var page = new DownloadDemo(nav);
+        var page = new DownloadDemo();
         var mi = typeof(DownloadDemo).GetMethod("DownloadReport",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
 
@@ -48,7 +47,7 @@ public sealed class DownloadPageTests
         var sink = new CapturingDownloadSink();
         var routeState = new RouteState { Path = "/download" };
         var nav = new Navigator(routeState, sink);
-        var page = new DownloadDemo(nav);
+        var page = new DownloadDemo();
         var mi = typeof(DownloadDemo).GetMethod("DownloadReport",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
 

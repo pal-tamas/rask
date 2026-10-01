@@ -23,7 +23,7 @@ namespace Rask.Core.Http;
 ///         sees immediately.
 ///     </para>
 ///     <para>
-///         Redirects are NOT here. <c>Navigator.NavigateTo</c> already expresses "the user belongs
+///         Redirects are NOT here. <c>Go.To</c> already expresses "the user belongs
 ///         somewhere else", and during the initial render the host turns it into a real
 ///         <c>302</c> — so navigation stays one concept rather than two that differ by where they
 ///         are called from.

@@ -4,7 +4,7 @@ namespace Rask.Core.Messaging;
 ///     Transient, consumed-once user messages — a flash-message pattern. Registered
 ///     <b>scoped</b> per session (a Server WebSocket session or a WASM app instance); because a
 ///     client-side navigation does not recreate the session, a message queued before
-///     <c>Navigator.NavigateTo(...)</c> survives the navigation and is shown once on the destination.
+///     <c>Go.To(...)</c> survives the navigation and is shown once on the destination.
 ///     <para>
 ///         Producers inject <see cref="IToaster" /> and call <see cref="Success" /> / <see cref="Error" />
 ///         / … (or <see cref="Add" />). A single <c>ToastOutlet</c> mounted in the app layout subscribes

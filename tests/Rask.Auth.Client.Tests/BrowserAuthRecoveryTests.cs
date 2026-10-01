@@ -23,24 +23,23 @@ public sealed class BrowserAuthRecoveryTests
     public async Task Asking_for_a_reset_posts_to_forgot_password()
     {
         var handler = new StubHandler(HttpStatusCode.Accepted);
-        var auth = Auth(handler, out _, out var route);
+        var auth = Auth(handler, out _);
 
         var result = await auth.SendPasswordReset("owner@example.com");
 
         Assert.True(result.Succeeded);
         Assert.Equal("/api/auth/forgot-password", handler.LastPath);
         Assert.Contains("owner@example.com", handler.LastBody, StringComparison.Ordinal);
-        // Nowhere to go: the visitor stays on the page to read "check your email". A navigation here
-        // would also THROW — Navigator refuses to run outside an event handler — so this pins that the
-        // recovery calls really do stop at the response.
-        Assert.Equal("/", route.Path);
+        // Nowhere to go: the visitor stays on the page to read "check your email". A navigation here would
+        // THROW — Go.To refuses to run outside an event handler — so reaching this pins that the recovery
+        // calls really do stop at the response.
     }
 
     [Fact]
     public async Task Resetting_posts_the_id_the_token_and_the_password()
     {
         var handler = new StubHandler(HttpStatusCode.NoContent);
-        var auth = Auth(handler, out var users, out _);
+        var auth = Auth(handler, out var users);
 
         var result = await auth.ResetPassword("u1", "tok", "Password2longer");
 
@@ -56,7 +55,7 @@ public sealed class BrowserAuthRecoveryTests
     public async Task Confirming_posts_to_confirm_email()
     {
         var handler = new StubHandler(HttpStatusCode.NoContent);
-        var auth = Auth(handler, out _, out _);
+        var auth = Auth(handler, out _);
 
         var result = await auth.ConfirmEmail("u1", "tok");
 
@@ -68,7 +67,7 @@ public sealed class BrowserAuthRecoveryTests
     public async Task Every_recovery_call_carries_the_CSRF_header()
     {
         var handler = new StubHandler(HttpStatusCode.NoContent);
-        var auth = Auth(handler, out _, out _);
+        var auth = Auth(handler, out _);
 
         await auth.ConfirmEmail("u1", "tok");
 
@@ -82,7 +81,7 @@ public sealed class BrowserAuthRecoveryTests
     {
         var handler = new StubHandler(
             HttpStatusCode.BadRequest, """{"error":"InvalidToken","message":null}""");
-        var auth = Auth(handler, out _, out _);
+        var auth = Auth(handler, out _);
 
         var result = await auth.ResetPassword("u1", "stale", "Password2longer");
 
@@ -97,7 +96,7 @@ public sealed class BrowserAuthRecoveryTests
     {
         var handler = new StubHandler(
             HttpStatusCode.ServiceUnavailable, """{"error":"MailNotConfigured","message":"no smtp"}""");
-        var auth = Auth(handler, out _, out _);
+        var auth = Auth(handler, out _);
 
         var result = await auth.SendPasswordReset("owner@example.com");
 
@@ -109,7 +108,7 @@ public sealed class BrowserAuthRecoveryTests
     public async Task The_configured_prefix_is_honoured()
     {
         var handler = new StubHandler(HttpStatusCode.NoContent);
-        var auth = Auth(handler, out _, out _, new AuthClientOptions { Prefix = "/internal/auth" });
+        var auth = Auth(handler, out _, new AuthClientOptions { Prefix = "/internal/auth" });
 
         await auth.ConfirmEmail("u1", "tok");
 
@@ -126,7 +125,7 @@ public sealed class BrowserAuthRecoveryTests
             {"state":"s","challenge":"AAAA","relyingPartyId":"localhost","relyingPartyName":"Test",
              "userId":"AAAA","userName":"a@b.c","userDisplayName":"A","excludeCredentials":[],"timeoutMs":1000}
             """);
-        var auth = Auth(handler, out var users, out var route);
+        var auth = Auth(handler, out var users);
 
         var result = await auth.AddPasskey("Laptop");
 
@@ -136,14 +135,13 @@ public sealed class BrowserAuthRecoveryTests
         // visitor stayed where they were.
         Assert.Equal("/api/auth/passkeys/register-options", handler.LastPath);
         Assert.Equal(0, users.Refreshes);
-        Assert.Equal("/", route.Path);
     }
 
     [Fact]
     public async Task Removing_a_passkey_posts_its_id()
     {
         var handler = new StubHandler(HttpStatusCode.NoContent);
-        var auth = Auth(handler, out _, out _);
+        var auth = Auth(handler, out _);
         var id = Guid.NewGuid();
 
         Assert.True((await auth.RemovePasskey(id)).Succeeded);
@@ -154,16 +152,13 @@ public sealed class BrowserAuthRecoveryTests
     private static BrowserAuth Auth(
         StubHandler handler,
         out SpyUserProvider users,
-        out RouteState route,
         AuthClientOptions? options = null)
     {
         users = new SpyUserProvider();
-        route = new RouteState();
 
         return new BrowserAuth(
             new HttpClient(handler) { BaseAddress = new Uri("https://localhost") },
             users,
-            new Navigator(route),
             new StubWebAuthn(),
             options ?? new AuthClientOptions());
     }

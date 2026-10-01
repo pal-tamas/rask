@@ -326,12 +326,6 @@ public sealed partial class RoutesGenerator
     private static void EmitNavigationExtension(StringBuilder sb, Candidate c,
         List<ResolvedPathParam> orderedPath, List<RoutePropInfo> queryProps, string helperFqn)
     {
-        // A route or query param literally named "replace" would collide with Go's history flag. The
-        // page's own parameter wins and Go simply loses the flag for that page — a shadowed, silently
-        // mis-bound argument is far worse than a missing convenience.
-        var replaceFree = orderedPath.All(p => !string.Equals(p.Prop.Name, "replace", StringComparison.OrdinalIgnoreCase))
-                          && queryProps.All(p => !string.Equals(p.Name, "replace", StringComparison.OrdinalIgnoreCase));
-
         // Must not be more visible than the page itself: the receiver type is part of a static extension
         // member's signature, so a public container over an internal page is CS0051.
         sb.Append(c.IsPubliclyVisible ? "public" : "internal").Append(" static class __RaskNav_")
@@ -348,23 +342,14 @@ public sealed partial class RoutesGenerator
         sb.AppendLine(");");
         sb.AppendLine();
 
-        sb.Append("        public static void Go(");
+        // Go returns the facade's step, so a page replaces the history entry the way a path does:
+        // ProductPage.Go(42).Replacing(). Through the public Go facade: this lands in the app's assembly.
+        sb.Append("        public static global::Rask.Core.GoTo Go(");
         AppendSignature(sb, orderedPath, queryProps);
-        if (replaceFree)
-        {
-            if (orderedPath.Count > 0 || queryProps.Count > 0)
-            {
-                sb.Append(", ");
-            }
-
-            sb.Append("bool replace = false");
-        }
-
         sb.Append(')').AppendLine();
-        sb.Append("            => global::Rask.Core.Routing.Navigator.RequireCurrent().NavigateTo(")
-            .Append(helperFqn).Append('(');
+        sb.Append("            => global::Rask.Core.Go.To(").Append(helperFqn).Append('(');
         AppendArguments(sb, orderedPath, queryProps);
-        sb.Append(')').Append(replaceFree ? ", replace" : string.Empty).AppendLine(");");
+        sb.AppendLine("));");
 
         sb.AppendLine("    }");
         sb.AppendLine("}");

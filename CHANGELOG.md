@@ -66,6 +66,24 @@ them until tagged releases begin.
   2. Mark each domain event `[LocalOnly]`. `IOutboxEvent` did that for you: events travel from a browser like any
      message, so an unmarked `OrderPlaced` could be published by a signed-in user.
   3. Add the outbox's new `Handler` column: `rask db add AddOutboxHandler && rask db update`.
+- **BREAKING: navigate with `Go` and hand over files with `Download`; nothing is injected.** The router's
+  `Navigator` service is gone from the public API, which frees `Navigator` for MDN's own global in `Rask.Web`:
+  ```csharp
+  public sealed partial class ProductsPage(Navigator nav) : Component   // was
+  public sealed partial class ProductsPage : Component                  // now
+
+  nav.NavigateTo("/products/42");          →  Go.To("/products/42");
+  nav.NavigateTo("/login", replace: true); →  Go.To("/login").Replacing();
+  UserPage.Go(42, replace: true);          →  UserPage.Go(42).Replacing();
+  nav.SetQuery("page", "2");               →  Go.With("page", "2");
+  nav.RemoveQuery("page");                 →  Go.Without("page");
+  nav.ClearQuery();                        →  Go.Without();
+  nav.Download("report.csv", bytes);       →  Download.File("report.csv", bytes);
+  navigator.Download(fileDownload);        →  Download.File(fileDownload);        // Rask.Cqrs.Client
+  ```
+  The rules are the ones the navigator had: from an event handler (or a page's initial render, which the Server
+  host still answers with a `302`). In Rask.Testing, `TestRoute.NavigatorFor` is gone: a page under test
+  navigates over the `RouteState` and stages into the `IDownloadSink` it was given, with nothing else to build.
 - **BREAKING: the last `…Async` suffixes go, and signing in needs nothing injected.** A new static `Auth`
   (namespace `Rask.Core`) mirrors `IAuth` — `await Auth.SignIn(email, password)` from any handler, render or
   request; outside any work in progress it throws and says to inject `IAuth` there instead (code under a

@@ -316,7 +316,7 @@ public static partial class DemoRegistry
                 .Result(UploadDemo),
             ["data-download"] = () => CodeSample
                 .Files(["DownloadDemo.cs"])
-                .Notes("Navigator.Download must be called from an event handler — outside that scope it throws, "
+                .Notes("Download.File must be called from an event handler — outside that scope it throws, "
                 + "because there's no live render round-trip to attach the download to. The handler can do "
                 + "other state changes too (here, bump a counter); both ship in the same render.")
                 .Result(DownloadDemo),
