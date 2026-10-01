@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Text.Json;
+using Rask.TestFiles;
 
 namespace Rask.Wasm.Tests.JsInteropRuntime;
 
@@ -26,9 +26,9 @@ public sealed class BootFailureReportingTests
 {
     /// <summary>The commonest real failure, and the one the issue was opened for.</summary>
     [Fact]
-    public void A_runtime_that_will_not_load_says_so_on_the_page_instead_of_spinning()
+    public async Task A_runtime_that_will_not_load_says_so_on_the_page_instead_of_spinning()
     {
-        var result = RunFixture("runtime-fails");
+        var result = await RunFixture("runtime-fails");
 
         Assert.True(result.GetProperty("bootErrorAttributeSet").GetBoolean(),
             "A failed boot left no [data-rask-boot-error] on the page. That attribute is what lets an E2E "
@@ -62,9 +62,9 @@ public sealed class BootFailureReportingTests
     ///     guess about how slow the network is.
     /// </summary>
     [Fact]
-    public void An_app_that_starts_but_never_renders_is_reported_rather_than_left_spinning()
+    public async Task An_app_that_starts_but_never_renders_is_reported_rather_than_left_spinning()
     {
-        var result = RunFixture("never-painted");
+        var result = await RunFixture("never-painted");
 
         Assert.True(result.GetProperty("bootErrorAttributeSet").GetBoolean(),
             "The app finished starting without ever painting and the page still showed the splash screen.");
@@ -86,9 +86,9 @@ public sealed class BootFailureReportingTests
     ///     browser gate caught it; this test could not, because it was asking the same wrong question.
     /// </remarks>
     [Fact]
-    public void Once_the_app_has_painted_the_boot_surface_stays_silent()
+    public async Task Once_the_app_has_painted_the_boot_surface_stays_silent()
     {
-        var result = RunFixture("already-painted");
+        var result = await RunFixture("already-painted");
 
         Assert.False(result.GetProperty("bootErrorAttributeSet").GetBoolean(),
             "The boot surface painted an error over an app that had already mounted.");
@@ -103,9 +103,9 @@ public sealed class BootFailureReportingTests
     ///     it. Asserted on the success path so it cannot be satisfied by the failure path alone.
     /// </summary>
     [Fact]
-    public void The_global_failure_handlers_are_installed_before_the_first_await()
+    public async Task The_global_failure_handlers_are_installed_before_the_first_await()
     {
-        var result = RunFixture("already-painted");
+        var result = await RunFixture("already-painted");
 
         Assert.True(result.GetProperty("unhandledRejectionHandlerRegistered").GetBoolean());
         Assert.True(result.GetProperty("errorHandlerRegistered").GetBoolean());
@@ -116,7 +116,7 @@ public sealed class BootFailureReportingTests
             + "to and their failures go back to being console-only.");
     }
 
-    private static JsonElement RunFixture(string scenario)
+    private static async Task<JsonElement> RunFixture(string scenario)
     {
         var node = ResolveNode();
         Assert.SkipWhen(node is null, "node is not on PATH, so the JS-driven boot fixture cannot run.");
@@ -127,21 +127,14 @@ public sealed class BootFailureReportingTests
         Assert.True(File.Exists(fixtureScript), $"Fixture script missing: {fixtureScript}");
         Assert.True(File.Exists(mainJs), $"Boot script missing: {mainJs}");
 
-        var psi = new ProcessStartInfo(node!, $"\"{fixtureScript}\" \"{mainJs}\" {scenario}")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+        var run = await TestProcess.Run(
+            node!, $"\"{fixtureScript}\" \"{mainJs}\" {scenario}", timeout: TimeSpan.FromSeconds(30),
+            cancellationToken: TestContext.Current.CancellationToken);
+        var stdout = run.StandardOutput;
+        var stderr = run.StandardError;
 
-        using var proc = Process.Start(psi)!;
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit(30_000);
-
-        Assert.True(proc.ExitCode == 0,
-            $"Fixture exited with code {proc.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
+        Assert.True(run.ExitCode == 0,
+            $"Fixture exited with code {run.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
 
         var jsonLine = stdout
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

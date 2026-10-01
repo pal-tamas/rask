@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 
 namespace Rask.Hosting.Shared;
@@ -60,14 +59,7 @@ internal sealed class PrecompressedFileMiddleware
             return _next(context);
         }
 
-        var accept = context.Request.Headers.AcceptEncoding;
-        if (accept.Count == 0)
-        {
-            return _next(context);
-        }
-
-        // Prefer brotli — denser, and any modern browser that supports gzip also supports br.
-        var encoding = SelectEncoding(accept);
+        var encoding = ContentEncodingNegotiation.Negotiate(context.Request);
         if (encoding is null)
         {
             return _next(context);
@@ -87,43 +79,5 @@ internal sealed class PrecompressedFileMiddleware
         context.Response.Headers.ContentEncoding = encoding;
         context.Response.Headers[HeaderNames.Vary] = HeaderNames.AcceptEncoding;
         return _next(context);
-    }
-
-    private static string? SelectEncoding(StringValues acceptHeader)
-    {
-        // Header parsing is intentionally minimal: a substring contains-check is enough for
-        // the common "gzip, deflate, br" / "br;q=1.0, gzip;q=0.9" shapes. Doesn't honor
-        // q=0 explicit refusals — pathological case for a framework-asset host.
-        var preferBr = false;
-        var preferGz = false;
-        foreach (var header in acceptHeader)
-        {
-            if (header is null)
-            {
-                continue;
-            }
-
-            if (!preferBr && header.Contains("br", StringComparison.OrdinalIgnoreCase))
-            {
-                preferBr = true;
-            }
-
-            if (!preferGz && header.Contains("gzip", StringComparison.OrdinalIgnoreCase))
-            {
-                preferGz = true;
-            }
-        }
-
-        if (preferBr)
-        {
-            return "br";
-        }
-
-        if (preferGz)
-        {
-            return "gzip";
-        }
-
-        return null;
     }
 }

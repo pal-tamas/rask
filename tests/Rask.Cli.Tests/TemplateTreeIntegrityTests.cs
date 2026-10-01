@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Rask.Cli.Scaffolding;
 using Rask.Cli.Templates;
+using Rask.TestFiles;
 
 namespace Rask.Cli.Tests;
 
@@ -28,7 +28,7 @@ public sealed class TemplateTreeIntegrityTests
     }
 
     [Fact]
-    public void Every_template_file_is_tracked()
+    public async Task Every_template_file_is_tracked()
     {
         // The templates are payload, and the repository's own ignore rules reach into them. Two
         // separate mechanisms have already dropped files here with no error of any kind:
@@ -50,7 +50,12 @@ public sealed class TemplateTreeIntegrityTests
 
         Assert.NotEmpty(onDisk);
 
-        var tracked = Vcs("ls-files --cached --others --exclude-standard -- src/Rask.Templates")
+        var listing = await TestProcess.Run(
+            "git",
+            ["ls-files", "--cached", "--others", "--exclude-standard", "--", "src/Rask.Templates"],
+            RepoRoot,
+            cancellationToken: TestContext.Current.CancellationToken);
+        var tracked = listing.StandardOutput
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToHashSet(StringComparer.Ordinal);
 
@@ -118,19 +123,5 @@ public sealed class TemplateTreeIntegrityTests
             missing.Length == 0,
             $"These template trees have no {TemplateMaterializer.ManifestFile}, so nothing records "
             + $"which files a battery owns:\n  {string.Join("\n  ", missing)}");
-    }
-
-    private static string Vcs(string arguments)
-    {
-        using var process = Process.Start(new ProcessStartInfo("git", arguments)
-        {
-            WorkingDirectory = RepoRoot,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        })!;
-
-        var output = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
-        return output;
     }
 }

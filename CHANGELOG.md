@@ -691,6 +691,36 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask db` works from a wasm-hosted solution's root.** It stopped with "Run this inside a project, or pass
+  --project" where `rask dev` already ran the Server project. It now targets that `.Server` project too:
+
+  ```bash
+  cd shop && rask db add Init   # was: rask db add Init --project Shop.Server
+  ```
+- **A server page's first `Rask.*` call waits for a slow scoped script.** On a cold load, a call from
+  `OnRendered` to a component's scoped TypeScript could fault with "Could not find 'Rask.X' on target" when the
+  script took longer than 5 seconds to execute. The WASM runtime already waited for the script's own load event,
+  with a 30-second backstop for same-origin assets; the server runtime now shares that gate with it.
+- **A `[JsonPropertyName]` with a line break no longer breaks the build.** The CQRS codec and the read-model
+  generator escaped only `\` and `"`, so such a name ended the generated string literal (CS1010). They, and the API
+  client generator's route literals, now use Roslyn's own escaping, and a route's `<` or `&` no longer malforms
+  the client's doc comment.
+- **A CQRS message nested two types deep crosses the wire.** The codec generator looked one level into a
+  container type, so `Orders.Returns.Refund` silently got no contract. It now walks every depth, like
+  the island, Blazor and validator generators — all four share one walker.
+- **An orphan scoped-CSS file is reported at the file.** RASK015 and RASK016 carried no location, so the error had
+  nothing to click; they now point at the `.css`, as scoped TypeScript's RASK017/018 already did. An empty orphan
+  `.css` is reported too, rather than skipped before it was paired.
+- **A remote dispatch failure reads the whole problem document.** When a server's problem document held an object
+  or array where Rask.Cqrs.Client expected a string, the reader lost its place: `detail` and the field `errors`
+  after it went missing, or the read threw. It now shares Rask.Api.Client's reader, which steps over such values.
+- **A server dispatch stops at its render budget.** A dispatch renders at most three times and warns that the rest
+  were dropped; on the server they were not — the dispatch's drain rendered the next one anyway, so a component that
+  kept asking for renders kept getting them. The server now drops them as the WASM runtime already did, and both
+  share one drain.
+- **A client that refuses brotli is not sent brotli.** The SPA host's precompressed files looked for `br` anywhere
+  in `Accept-Encoding`, so `br;q=0` still got the `.br` file. It now reads quality values as the page document
+  already did; the page, the scoped assets and the SPA host share one reading of the header.
 - **A design-time build compiles scoped TypeScript too, so `dotnet format` and an IDE reload see its generated calls.**
   They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
   with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time

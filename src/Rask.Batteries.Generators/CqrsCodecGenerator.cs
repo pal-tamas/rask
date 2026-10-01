@@ -161,7 +161,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var assembly in MessageAssemblies(compilation))
         {
-            foreach (var type in Types(assembly.GlobalNamespace))
+            foreach (var type in SymbolWalk.AllTypes(assembly.GlobalNamespace))
             {
                 if (type.TypeKind != TypeKind.Class && type.TypeKind != TypeKind.Struct)
                 {
@@ -205,7 +205,7 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
         foreach (var assembly in MessageAssemblies(compilation))
         {
-            foreach (var type in Types(assembly.GlobalNamespace))
+            foreach (var type in SymbolWalk.AllTypes(assembly.GlobalNamespace))
             {
                 if (type.IsAbstract || type.TypeKind != TypeKind.Class)
                 {
@@ -293,32 +293,6 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         assemblies.AddRange(compilation.SourceModule.ReferencedAssemblySymbols
             .Where(reference => reference.Modules.Any(m => m.ReferencedAssemblies.Any(a => a.Name is CqrsAssembly))));
         return assemblies;
-    }
-
-    private static IEnumerable<INamedTypeSymbol> Types(INamespaceSymbol ns)
-    {
-        foreach (var member in ns.GetMembers())
-        {
-            switch (member)
-            {
-                case INamespaceSymbol nested:
-                    foreach (var type in Types(nested))
-                    {
-                        yield return type;
-                    }
-
-                    break;
-
-                case INamedTypeSymbol type:
-                    yield return type;
-                    foreach (var nestedType in type.GetTypeMembers())
-                    {
-                        yield return nestedType;
-                    }
-
-                    break;
-            }
-        }
     }
 
     // [LocalOnly] on the message, or on any interface it implements. The interface form is what lets one

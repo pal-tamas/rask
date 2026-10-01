@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.External.Tasks.Tests;
 
@@ -280,7 +280,7 @@ public class ExternalBuildPlanTests
     }
 
     [Fact]
-    public void The_generated_config_parses_as_javascript()
+    public async Task The_generated_config_parses_as_javascript()
     {
         // The assertion that catches what string assertions cannot: a brace escaped wrong, a trailing
         // comma in the wrong place, an interpolation that swallowed a delimiter.
@@ -309,18 +309,11 @@ public class ExternalBuildPlanTests
 
         try
         {
-            var psi = new ProcessStartInfo(node, $"--check \"{path}\"")
-            {
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+            var check = await TestProcess.Run(
+                node, $"--check \"{path}\"", timeout: TimeSpan.FromSeconds(30),
+                cancellationToken: TestContext.Current.CancellationToken);
 
-            using var proc = Process.Start(psi)!;
-            var stderr = proc.StandardError.ReadToEnd();
-            proc.WaitForExit(30_000);
-
-            Assert.True(proc.ExitCode == 0, $"generated vite config does not parse:\n{stderr}\n\n{config}");
+            Assert.True(check.ExitCode == 0, $"generated vite config does not parse:\n{check.StandardError}\n\n{config}");
         }
         finally
         {

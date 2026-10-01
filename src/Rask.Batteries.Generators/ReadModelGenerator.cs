@@ -431,7 +431,10 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         s.AppendLine("            ]),");
     }
 
-    private static string Literal(string value) => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+    // Roslyn's own escaping: a table or column name can come from the user's mapping attributes, and a hand escape
+    // that knew only \ and " let a line break end the literal (CS1010).
+    private static string Literal(string value) =>
+        Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
     // One file per face, named after the type it reads so a stack trace or a "go to generated" lands
     // somewhere recognisable. The global:: prefix and the dots go, because a hint name is a file name.

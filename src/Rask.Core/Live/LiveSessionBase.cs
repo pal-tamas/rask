@@ -309,6 +309,26 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(true);
 
+    // A StateHasChanged can land after the coalescing loop has settled but while the scope is still held — during the
+    // noop guard, the frame emit, or the commit. The in-scope branch parks it in _pendingRenderInScope, and nothing
+    // acted on it: the NEXT dispatch's coalescing loop opens by clearing the flag, so the request was discarded, not
+    // deferred (#986). This is the dispatch side of that handoff, run after the scope is cleared.
+    //
+    // A PUBLISH render, not a plain one: a plain render bypasses the noop guard and pushes the frame even when the
+    // HTML is byte-identical, forcing the client to morph identical markup and stripping DOM state JS applied since
+    // the last frame. Budget exhaustion inside the loop clears the flag itself, so a component that requests a
+    // render from every Render() cannot spin through here.
+    internal Task DrainRenderRequestedAfterScope()
+    {
+        if (!_pendingRenderInScope)
+        {
+            return Task.CompletedTask;
+        }
+
+        _pendingRenderInScope = false;
+        return RequestPublishRenderAsync();
+    }
+
     Task IRenderHandle.RenderInScopeAsync() => RenderInScopeCoreAsync();
 
     protected abstract Task RequestRenderInternalAsync(bool publishOnly);

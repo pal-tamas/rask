@@ -368,22 +368,6 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
     }
 
-    /// <summary>
-    ///     Renders a request that arrived while the scope was held but after its render had settled. The request side
-    ///     of this handoff is the re-read in <see cref="RequestRenderInternalAsync" />; this is the dispatch side, run
-    ///     after the scope is cleared. The WASM session carries the same drain (#986).
-    /// </summary>
-    internal Task DrainRenderRequestedAfterScope()
-    {
-        if (!_pendingRenderInScope)
-        {
-            return Task.CompletedTask;
-        }
-
-        _pendingRenderInScope = false;
-        return RequestPublishRenderAsync();
-    }
-
     private readonly Lock _handlerChainGate = new();
 
     /// <summary>
@@ -1013,6 +997,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
                 "a third in-dispatch render was queued and dropped. Inspect any handlers " +
                 "that re-trigger StateHasChanged in OnRendered / dispose callbacks " +
                 "during this dispatch.");
+
+            // Consume it: reported and dropped ON PURPOSE, as WasmLiveSession does. Leaving it set handed it to
+            // DrainRenderRequestedAfterScope, which rendered it anyway — the runaway the budget exists to stop.
+            _pendingRenderInScope = false;
         }
     }
 

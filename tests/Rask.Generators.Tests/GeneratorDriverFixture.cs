@@ -156,7 +156,9 @@ internal static class GeneratorDriverFixture
 
     private static GeneratorRun Run(string source, IIncrementalGenerator generator)
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
+        // A real path, as in GeneratorHarness: `file`-local types are scoped by syntax-tree path.
+        var syntaxTree = CSharpSyntaxTree.ParseText(
+            source, new CSharpParseOptions(LanguageVersion.Latest), path: "Source.cs");
         var references = BuildReferences();
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
@@ -357,49 +359,5 @@ internal static class GeneratorDriverFixture
 
         public override SourceText GetText(CancellationToken cancellationToken = default) =>
             SourceText.From(_contents);
-    }
-}
-
-internal sealed record GeneratorRun(GeneratorDriverRunResult RunResult, CSharpCompilation Compilation)
-{
-    public IEnumerable<Diagnostic> Diagnostics =>
-        RunResult.Diagnostics.Concat(RunResult.Results.SelectMany(r => r.Diagnostics));
-
-    /// <summary>
-    ///     Compile-error diagnostics (CS####, severity Error) of the input compilation WITH all
-    ///     generated sources added back in. Empty ⇒ the generated code is valid C# that compiles
-    ///     against the user's sources — the strongest check that no emitted identifier/literal is
-    ///     malformed.
-    /// </summary>
-    public IReadOnlyList<Diagnostic> GeneratedCompileErrors()
-    {
-        var generated = RunResult.Results
-            .SelectMany(r => r.GeneratedSources)
-            .Select(s => CSharpSyntaxTree.ParseText(s.SourceText, new CSharpParseOptions(LanguageVersion.Latest)))
-            .ToArray();
-
-        return Compilation.AddSyntaxTrees(generated)
-            .GetDiagnostics()
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
-            .ToList();
-    }
-
-    public string GeneratedSource(string hintNameContains)
-    {
-        foreach (var result in RunResult.Results)
-        {
-            foreach (var src in result.GeneratedSources)
-            {
-                if (src.HintName.Contains(hintNameContains, StringComparison.Ordinal))
-                {
-                    return src.SourceText.ToString();
-                }
-            }
-        }
-
-        var available = string.Join(", ",
-            RunResult.Results.SelectMany(r => r.GeneratedSources).Select(s => s.HintName));
-        throw new InvalidOperationException(
-            $"No generated source found containing '{hintNameContains}'. Available: [{available}]");
     }
 }

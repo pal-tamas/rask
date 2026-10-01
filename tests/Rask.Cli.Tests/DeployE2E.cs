@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
@@ -34,31 +33,13 @@ internal static class DeployE2E
         IReadOnlyDictionary<string, string>? environment = null,
         CancellationToken cancellationToken = default)
     {
-        var info = new ProcessStartInfo(fileName)
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        foreach (var argument in arguments)
-        {
-            info.ArgumentList.Add(argument);
-        }
-
-        if (environment is not null)
-        {
-            foreach (var (key, value) in environment)
-            {
-                info.Environment[key] = value;
-            }
-        }
-
-        using var process = Process.Start(info)!;
-        var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-        return (process.ExitCode, await stdout.ConfigureAwait(false) + await stderr.ConfigureAwait(false));
+        var result = await TestProcess.Run(
+            fileName,
+            arguments,
+            environment: environment?.ToDictionary(pair => pair.Key, pair => (string?)pair.Value),
+            timeout: CliBuildE2E.LongStepTimeout,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        return (result.ExitCode, result.Output);
     }
 
     /// <summary>A TCP port nothing is listening on, for the fake VPS's published sshd.</summary>
@@ -136,28 +117,15 @@ internal sealed class EnvScopedProcessRunner(
         // lookup itself, before the child's environment applies — so prefixing PATH is not enough to
         // redirect Rask's own ssh calls. Substituting the absolute path of the shim is. (Docker's
         // ssh:// transport looks ssh up in its own environment, which the PATH entry below does cover.)
-        var info = new ProcessStartInfo(executables.TryGetValue(fileName, out var resolved) ? resolved : fileName)
-        {
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
-        };
-
-        foreach (var argument in arguments)
-        {
-            info.ArgumentList.Add(argument);
-        }
-
-        foreach (var (key, value) in environment)
-        {
-            info.Environment[key] = value;
-        }
-
-        using var process = Process.Start(info)!;
-        var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-        return (process.ExitCode, (await stdout.ConfigureAwait(false), await stderr.ConfigureAwait(false)));
+        // No deadline of its own: this stands in for the real runner, which has none, so the deploy command's own
+        // token is what ends a call — a cold image build on the fake host can outlast any fixed limit.
+        var result = await TestProcess.Run(
+            executables.TryGetValue(fileName, out var resolved) ? resolved : fileName,
+            arguments,
+            workingDirectory ?? Environment.CurrentDirectory,
+            environment.ToDictionary(pair => pair.Key, pair => (string?)pair.Value),
+            Timeout.InfiniteTimeSpan,
+            cancellationToken).ConfigureAwait(false);
+        return (result.ExitCode, (result.StandardOutput, result.StandardError));
     }
 }

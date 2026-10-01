@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Xml.Linq;
 using Microsoft.Build.Framework;
 
@@ -59,20 +58,10 @@ internal static class PinnedTools
     ///     Runs <paramref name="executable" /> and returns its exit code with stdout and stderr combined, because
     ///     these tools do not agree on which stream a diagnostic belongs on.
     /// </summary>
-    public static (int ExitCode, string Output) Run(string executable, string arguments)
+    public static async Task<(int ExitCode, string Output)> Run(string executable, string arguments)
     {
-        using var process = Process.Start(new ProcessStartInfo(executable, arguments)
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        })!;
-
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        return (process.ExitCode, stdout + stderr);
+        var result = await TestProcess.Run(executable, arguments, cancellationToken: TestContext.Current.CancellationToken);
+        return (result.ExitCode, result.Output);
     }
 
     /// <summary>A build engine that keeps errors and discards the rest.</summary>

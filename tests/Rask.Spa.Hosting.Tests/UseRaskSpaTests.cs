@@ -170,6 +170,21 @@ public class MapRaskSpaTests
     }
 
     [Fact]
+    public async Task A_client_that_refuses_brotli_gets_the_uncompressed_file()
+    {
+        using var dist = new FakeDistDirectory(withPrecompressed: true);
+        await using var host = await SpaTestServer.CreateAsync(dist.Path);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/assets/index-DkK9xYz1.js");
+        request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("br", 0));
+        var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
+
+        // q=0 is a refusal (RFC 9110 §12.4.2), not a weak preference.
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Empty(response.Content.Headers.ContentEncoding);
+    }
+
+    [Fact]
     public async Task Development_without_a_build_says_where_the_app_actually_is()
     {
         await using var host = await SpaTestServer.CreateAsync(distPath: null, environment: "Development");

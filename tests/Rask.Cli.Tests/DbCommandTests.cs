@@ -181,6 +181,26 @@ public sealed class DbCommandTests
     }
 
     [Fact]
+    public async Task A_wasm_hosted_solution_root_targets_its_server_project_like_rask_dev()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var fileSystem = new FakeFileSystem();
+        fileSystem.Seed("/shop/Shop.Server/Shop.Server.csproj",
+            "<Project><ItemGroup><PackageReference Include=\"Microsoft.EntityFrameworkCore.Design\" /></ItemGroup></Project>");
+        fileSystem.Seed("/shop/Shop.Client/Shop.Client.csproj", "<Project />");
+        fileSystem.Seed("/shop/Shop.Shared/Shop.Shared.csproj", "<Project />");
+        var command = new DbCommand(console, fileSystem, runner, "/shop");
+
+        var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal(
+            ["ef", "migrations", "list", "--project", "/shop/Shop.Server", "--startup-project", "/shop/Shop.Server"],
+            runner.LastRun!.Arguments);
+    }
+
+    [Fact]
     public async Task Missing_project_fails_with_guidance()
     {
         var console = new StringConsole();
