@@ -3288,7 +3288,7 @@ public static partial class RaskEndpointExtensions
         // Negotiate br/gzip. The asset is immutable + content-addressed, so each compressed
         // representation is built once and cached (ScopedAssetCompression). The compressed path sets
         // Content-Encoding + an encoding-suffixed ETag; identity keeps Range support.
-        var encoding = ScopedAssetCompression.Negotiate(ctx.Request.Headers.AcceptEncoding.ToString());
+        var encoding = ContentEncodingNegotiation.Negotiate(ctx.Request);
         if (encoding is not null
             && ScopedAssetCompression.GetEncoded(hash, kind, encoding) is { } enc)
         {
@@ -3355,7 +3355,7 @@ public static partial class RaskEndpointExtensions
 
         // The publish bakes .br/.gz siblings next to each asset; one that matches the negotiated
         // encoding goes out verbatim, with no request-time CPU.
-        var encoding = ScopedAssetCompression.Negotiate(ctx.Request.Headers.AcceptEncoding.ToString());
+        var encoding = ContentEncodingNegotiation.Negotiate(ctx.Request);
         var suffix = encoding switch
         {
             "br" => ".br",

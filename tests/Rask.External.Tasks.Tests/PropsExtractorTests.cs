@@ -1,8 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
-using Microsoft.Build.Utilities;
+using Rask.TestFiles;
 using Rask.TypeScript.Tasks;
+using TaskItem = Microsoft.Build.Utilities.TaskItem;
 
 namespace Rask.External.Tasks.Tests;
 
@@ -31,11 +32,11 @@ public sealed class PropsExtractorTests : IDisposable
     public void Dispose() => Directory.Delete(_project, recursive: true);
 
     [Fact]
-    public void Each_island_is_written_exactly_as_its_committed_snapshot()
+    public async Task Each_island_is_written_exactly_as_its_committed_snapshot()
     {
         var typescript = Toolchain();
 
-        var output = Extract(
+        var output = await Extract(
             typescript,
             Island("FixtureButton", "fixture-button"),
             Island("Badge", "fixture-button#Badge"),
@@ -76,11 +77,11 @@ public sealed class PropsExtractorTests : IDisposable
     }
 
     [Fact]
-    public void A_missing_package_or_export_fails_only_its_own_island()
+    public async Task A_missing_package_or_export_fails_only_its_own_island()
     {
         var typescript = Toolchain();
 
-        var output = Extract(
+        var output = await Extract(
             typescript,
             Island("FixtureButton", "fixture-button"),
             Island("Absent", "not-installed"),
@@ -95,11 +96,11 @@ public sealed class PropsExtractorTests : IDisposable
     }
 
     [Fact]
-    public void What_cannot_be_mounted_as_a_lit_or_angular_island_is_refused_by_name()
+    public async Task What_cannot_be_mounted_as_a_lit_or_angular_island_is_refused_by_name()
     {
         var typescript = Toolchain();
 
-        var output = Extract(
+        var output = await Extract(
             typescript,
             Island("FxTooltip", "fixture-angular#FxTooltip", "angular"),
             Island("FxLegacy", "fixture-angular#FxLegacy", "angular"),
@@ -125,22 +126,22 @@ public sealed class PropsExtractorTests : IDisposable
     }
 
     [Fact]
-    public void The_snapshot_does_not_depend_on_the_order_the_islands_are_listed_in()
+    public async Task The_snapshot_does_not_depend_on_the_order_the_islands_are_listed_in()
     {
         var typescript = Toolchain();
 
         var forwards = File.ReadAllText(Path.Combine(
-            Extract(typescript, Island("FixtureButton", "fixture-button"), Island("Badge", "fixture-button#Badge")),
+            await Extract(typescript, Island("FixtureButton", "fixture-button"), Island("Badge", "fixture-button#Badge")),
             "FixtureButton.props.json"));
         var backwards = File.ReadAllText(Path.Combine(
-            Extract(typescript, Island("Badge", "fixture-button#Badge"), Island("FixtureButton", "fixture-button")),
+            await Extract(typescript, Island("Badge", "fixture-button#Badge"), Island("FixtureButton", "fixture-button")),
             "FixtureButton.props.json"));
 
         Assert.Equal(forwards, backwards);
     }
 
     /// <summary>Runs the extractor over <paramref name="islands" /> in a fresh output directory, returning it.</summary>
-    private string Extract(string typescript, params TaskItem[] islands)
+    private async Task<string> Extract(string typescript, params TaskItem[] islands)
     {
         var modules = Path.Combine(_project, "node_modules");
         if (!Directory.Exists(modules))
@@ -166,19 +167,10 @@ public sealed class PropsExtractorTests : IDisposable
         var extractor = Path.Combine(RepoRoot(), "src", "Rask.External", "build", "rask-extract-props.mjs");
         Assert.True(File.Exists(extractor), $"'{extractor}' was not bundled; building Rask.External writes it.");
 
-        using var node = Process.Start(new ProcessStartInfo("node")
-        {
-            ArgumentList = { extractor, request },
-            WorkingDirectory = _project,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        })!;
-
-        var stderr = node.StandardError.ReadToEndAsync();
-        var stdout = node.StandardOutput.ReadToEndAsync();
-        Assert.True(node.WaitForExit(120_000), "the extractor did not finish within two minutes");
-        Assert.True(node.ExitCode == 0, $"the extractor exited {node.ExitCode}: {stdout.Result}{stderr.Result}");
+        var node = await TestProcess.Run(
+            "node", [extractor, request], _project, timeout: TimeSpan.FromMinutes(2),
+            cancellationToken: TestContext.Current.CancellationToken);
+        Assert.True(node.ExitCode == 0, $"the extractor exited {node.ExitCode}: {node.Output}");
 
         return output;
     }

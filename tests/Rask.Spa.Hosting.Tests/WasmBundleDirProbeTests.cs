@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Rask.TestFiles;
 
 namespace Rask.Spa.Hosting.Tests;
 
@@ -31,45 +31,45 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     }
 
     [Fact]
-    public void The_bundle_dir_names_the_clients_declared_framework()
+    public async Task The_bundle_dir_names_the_clients_declared_framework()
     {
         WriteClient("<TargetFramework>net10.0-browser</TargetFramework>");
 
-        Assert.EndsWith("/bin/Debug/net10.0-browser/publish/wwwroot", Probe(), StringComparison.Ordinal);
+        Assert.EndsWith("/bin/Debug/net10.0-browser/publish/wwwroot", await Probe(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_bundle_dir_names_a_framework_the_client_inherits_rather_than_declares()
+    public async Task The_bundle_dir_names_a_framework_the_client_inherits_rather_than_declares()
     {
         // The case the old probe could not see: no <TargetFramework> element in the csproj at all. The
         // version is deliberately not the one it used to assume, so its fallback cannot pass this.
         WriteClient(string.Empty, inheritedFramework: "net11.0-browser");
 
-        Assert.EndsWith("/bin/Debug/net11.0-browser/publish/wwwroot", Probe(), StringComparison.Ordinal);
+        Assert.EndsWith("/bin/Debug/net11.0-browser/publish/wwwroot", await Probe(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_client_with_several_frameworks_is_refused_rather_than_guessed()
+    public async Task A_client_with_several_frameworks_is_refused_rather_than_guessed()
     {
         // A bundle is published for ONE framework. Picking one of several would bake a path that is right
         // or wrong depending on which the publish happened to build.
         WriteClient("<TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>");
 
-        var (exit, output) = Run();
+        var result = await Run();
 
-        Assert.True(exit != 0, $"a client with two frameworks must fail the probe:\n{output}");
-        Assert.Contains("must build for exactly one framework", output, StringComparison.Ordinal);
+        Assert.True(result.ExitCode != 0, $"a client with two frameworks must fail the probe:\n{result.Output}");
+        Assert.Contains("must build for exactly one framework", result.Output, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_client_with_one_framework_written_as_a_list_is_served()
+    public async Task A_client_with_one_framework_written_as_a_list_is_served()
     {
         // One framework spelled as a list is still one framework. MSBuild reports HasSingleTargetFramework
         // false for any <TargetFrameworks> project, so a probe that trusted the flag refused this client —
         // one the old XmlPeek fallback had served correctly — over a problem that was not there.
         WriteClient("<TargetFrameworks>net10.0-browser</TargetFrameworks>");
 
-        Assert.EndsWith("/bin/Debug/net10.0-browser/publish/wwwroot", Probe(), StringComparison.Ordinal);
+        Assert.EndsWith("/bin/Debug/net10.0-browser/publish/wwwroot", await Probe(), StringComparison.Ordinal);
     }
 
     private void WriteClient(string frameworkElement, string? inheritedFramework = null)
@@ -112,39 +112,20 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     }
 
     // The baked bundle directory, with separators normalized so the assertion reads the same everywhere.
-    private string Probe()
+    private async Task<string> Probe()
     {
-        var (exit, output) = Run("-getProperty:_RaskSpaWasmDist");
+        var result = await Run("-getProperty:_RaskSpaWasmDist");
 
-        Assert.True(exit == 0, $"the bundle-dir probe failed:\n{output}");
-        return output.Trim().Replace('\\', '/');
+        Assert.True(result.ExitCode == 0, $"the bundle-dir probe failed:\n{result.Output}");
+        return result.Output.Trim().Replace('\\', '/');
     }
 
-    private (int Exit, string Output) Run(params string[] extra)
-    {
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = Path.Combine(_dir, "Host"),
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        psi.ArgumentList.Add("msbuild");
-        psi.ArgumentList.Add("Host.csproj");
-        psi.ArgumentList.Add("-t:_RaskSpaComputeWasmClient");
-        psi.ArgumentList.Add("-nologo");
-        psi.ArgumentList.Add("-nodeReuse:false");
-        foreach (var argument in extra)
-        {
-            psi.ArgumentList.Add(argument);
-        }
-
-        using var p = Process.Start(psi)!;
-        var stdout = p.StandardOutput.ReadToEnd();
-        var stderr = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-
-        return (p.ExitCode, stdout + stderr);
-    }
+    private Task<TestProcessResult> Run(params string[] extra) =>
+        TestProcess.Run(
+            "dotnet",
+            ["msbuild", "Host.csproj", "-t:_RaskSpaComputeWasmClient", "-nologo", "-nodeReuse:false", .. extra],
+            Path.Combine(_dir, "Host"),
+            cancellationToken: TestContext.Current.CancellationToken);
 
     private static string SrcDir
     {

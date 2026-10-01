@@ -250,14 +250,14 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         var key = MakeKey(NormalizeDirectory(sourcePath), stem);
         if (!byDirAndName.TryGetValue(key, out var matches) || matches.Count == 0)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask017, SourceLocation(sourcePath), sourcePath, stem));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask017, AssetPairing.SourceLocation(sourcePath), sourcePath, stem));
             return null;
         }
 
         if (matches.Count > 1)
         {
             var fqns = string.Join(", ", matches.Select(m => m.FullyQualifiedName));
-            spc.ReportDiagnostic(Diagnostic.Create(Rask018, SourceLocation(sourcePath), sourcePath, stem, fqns));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask018, AssetPairing.SourceLocation(sourcePath), sourcePath, stem, fqns));
             return null;
         }
 
@@ -339,7 +339,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                 collisionGroup.Select(p => p.Component.FullyQualifiedName));
             spc.ReportDiagnostic(Diagnostic.Create(
                 Rask020,
-                SourceLocation(collisionGroup.First().SourcePath),
+                AssetPairing.SourceLocation(collisionGroup.First().SourcePath),
                 collisionGroup.Key,
                 fqns));
         }
@@ -364,7 +364,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             sb.Append("        global::Rask.Core.ScopedAssets.ScopedAssetRegistry.RegisterJs(typeof(")
                 .Append(pair.Component.FullyQualifiedName)
                 .Append("), ");
-            AppendVerbatimStringLiteral(sb, pair.Js);
+            AssetPairing.AppendVerbatimStringLiteral(sb, pair.Js);
             sb.AppendLine(");");
         }
 
@@ -422,21 +422,9 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
                 continue;
             }
 
-            spc.ReportDiagnostic(Diagnostic.Create(Rask054, SourceLocation(path), path, stem));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask054, AssetPairing.SourceLocation(path), path, stem));
         }
     }
-
-    /// <summary>
-    ///     A location in a file that is not part of the compilation.
-    /// </summary>
-    /// <remarks>
-    ///     The alternative is <c>Location.None</c>, which is what these diagnostics used while they
-    ///     described a file csc had open. Now that the file handed to csc is generated output in
-    ///     <c>obj/</c>, "no location" would leave an error about <c>Counter.ts</c> with nothing to
-    ///     click and nothing to blame.
-    /// </remarks>
-    private static Location SourceLocation(string path) =>
-        Location.Create(path, new TextSpan(0, 0), new LinePositionSpan(default, default));
 
     /// <summary>
     ///     The directory of <paramref name="path" />, in a form the two sides of the pairing agree on.
@@ -465,24 +453,6 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     private static string NormalizeDirectory(string path) => AssetPairing.NormalizeDirectory(path);
 
     private static string MakeKey(string dir, string name) => AssetPairing.MakeKey(dir, name);
-
-    private static void AppendVerbatimStringLiteral(StringBuilder sb, string value)
-    {
-        sb.Append("@\"");
-        foreach (var ch in value)
-        {
-            if (ch == '"')
-            {
-                sb.Append("\"\"");
-            }
-            else
-            {
-                sb.Append(ch);
-            }
-        }
-
-        sb.Append('"');
-    }
 
     /// <summary>A component class the pairing can match a scoped asset against.</summary>
     /// <param name="TypeName">The simple type name, which is what a file name pairs with.</param>

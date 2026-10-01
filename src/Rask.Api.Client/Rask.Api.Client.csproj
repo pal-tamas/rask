@@ -23,6 +23,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
     <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
+    <Compile Include="..\Rask.Client.Shared\ProblemDocument.cs" Link="Shared\ProblemDocument.cs"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Api.Client;` to downstream consumers. -->

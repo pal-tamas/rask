@@ -46,6 +46,7 @@
     <Compile Include="..\Rask.Generators.Shared\RegistryGeneratorBase.cs" Link="Shared\RegistryGeneratorBase.cs"/>
     <Compile Include="..\Rask.Generators.Shared\SymbolRegistration.cs" Link="Shared\SymbolRegistration.cs"/>
     <Compile Include="..\Rask.Generators.Shared\SymbolLocation.cs" Link="Shared\SymbolLocation.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\SymbolWalk.cs" Link="Shared\SymbolWalk.cs"/>
     <Compile Include="..\Rask.Generators.Shared\DiagnosticHelp.cs" Link="Shared\DiagnosticHelp.cs"/>
     <Compile Include="..\Rask.Generators.Shared\IsExternalInit.cs" Link="Shared\IsExternalInit.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireShape.cs" Link="Shared\WireShape.cs"/>
