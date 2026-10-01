@@ -126,13 +126,13 @@ public sealed partial class StatusThenThrowApp(IPageResponse response) : Compone
     protected override Component? Render() => throw new InvalidOperationException("boom");
 }
 
-public sealed partial class RedirectApp(Navigator navigator) : Component
+public sealed partial class RedirectApp : Component
 {
     protected override Component? HeadAssets => Title["redirect"];
 
     protected override Task OnMount()
     {
-        navigator.NavigateTo("/somewhere-else");
+        Go.To("/somewhere-else");
         return Task.CompletedTask;
     }
 

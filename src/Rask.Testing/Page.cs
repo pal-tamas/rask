@@ -31,7 +31,7 @@ public partial class Page : IRenderHandle
     internal Page(Component root, IServiceProvider services)
     {
         _root = root;
-        _services = services;
+        _services = Navigating.Over(services);
 
         // Before the first render: LiveRenderContext snapshots the root's handle when it begins, and
         // GetOrCreate/AdoptChild hand that same handle down to the component under test — so it renders
@@ -400,12 +400,10 @@ public partial class Page : IRenderHandle
 
         using (doc)
         {
-            // Enter the Navigator's handler scope for the dispatch, exactly as a live session does.
-            // Without it, Navigator.NavigateTo / Download / SetQuery all refuse — "can only be used from
-            // event handlers" — which was true of the harness and not of the component: a page that
-            // navigates or exports on click could not be unit-tested at all, only through Playwright.
-            // No Navigator registered (the common case for a leaf component) means nothing to scope.
-            using var scope = (_services.GetService(typeof(Navigator)) as Navigator)?.EnterHandler();
+            // Enter the navigator's handler scope for the dispatch, exactly as a live session does: Go.To,
+            // Go.With and Download.File work only inside one, so a page that navigates or exports on click is
+            // unit-testable here, not only through Playwright.
+            using var scope = ((Navigator)_services.GetService(typeof(Navigator))!).EnterHandler();
 
             return await _root.TryInvokeHandlerAsync(handlerId, doc.RootElement, _services, _root.LifetimeTokenInternal)
                 .ConfigureAwait(false);

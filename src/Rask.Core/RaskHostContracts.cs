@@ -41,7 +41,7 @@ public static class RaskHostContracts
     /// </summary>
     public static IReadOnlyList<Type> HostServices { get; } =
     [
-        // Routing. Navigator additionally needs IDownloadSink below for Navigator.Download to work.
+        // Routing. Navigator additionally needs IDownloadSink below for Download.File to work.
         typeof(RouteState),
         typeof(Navigator),
         typeof(IPageResponse),
@@ -52,7 +52,7 @@ public static class RaskHostContracts
         // Sign-in/out. The two hosts mean very different things by it (a cookie the server sets, or a POST
         // to a logout endpoint) — which is exactly why each must supply one.
         typeof(IAuthSignIn),
-        // File input (<input type=file> -> IRaskFile) and Navigator.Download.
+        // File input (<input type=file> -> IRaskFile) and Download.File.
         typeof(IBrowserFileBackend),
         typeof(IDownloadSink),
         // The interop runtime every Core browser wrapper is built on.

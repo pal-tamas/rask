@@ -3,7 +3,6 @@ Rask.Wasm.Authentication.WasmAuthSignIn
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.get -> string!
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.init -> void
 Rask.Wasm.Authentication.WasmAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
-Rask.Wasm.Authentication.WasmAuthSignIn.WasmAuthSignIn(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! userProvider, Rask.Core.Routing.Navigator! navigator) -> void
 Rask.Wasm.Browser.BackgroundSync
 Rask.Wasm.Browser.BackgroundSync.BackgroundSync(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Wasm.Browser.BackgroundSync.GetPendingTagsAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
@@ -897,3 +896,4 @@ Rask.Web.Types.WEBGL_lose_context
 Rask.Web.Types.WEBGL_lose_context.LoseContext() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WEBGL_lose_context.RestoreContext() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WEBGL_multi_draw
+Rask.Wasm.Authentication.WasmAuthSignIn.WasmAuthSignIn(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! userProvider) -> void

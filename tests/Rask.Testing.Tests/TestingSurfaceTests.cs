@@ -65,24 +65,21 @@ public class TestingSurfaceTests
         Assert.Contains("click", error.Message, StringComparison.Ordinal);
     }
 
-    // ---- a download sink, so Navigator.Download stops throwing in a unit test ----
+    // ---- a download sink, so Download.File stops throwing in a unit test ----
 
-    private sealed class ExportPage(Navigator navigator) : Component
+    private sealed class ExportPage : Component
     {
         protected override Component? Render() =>
             Button
                 .Id("export")
-                .OnClick(() =>
-                navigator.Download("orders.csv", "Id,Total\n1,9.99"u8.ToArray(), "text/csv"))["Export"];
+                .OnClick(() => Download.File("orders.csv", "Id,Total\n1,9.99"u8.ToArray(), "text/csv"))["Export"];
     }
 
     [Fact]
     public async Task TestDownloadSink_records_what_the_component_staged()
     {
         var downloads = new TestDownloadSink();
-        var navigator = TestRoute.NavigatorFor(TestRoute.At("/orders"), downloads);
-        var services = new ServiceCollection().AddSingleton(navigator).BuildServiceProvider();
-        var page = Page.Render(new ExportPage(navigator), services);
+        var page = Page.Render(new ExportPage(), TestServiceProvider.With<IDownloadSink>(downloads));
 
         await page.On("#export").Click();
 

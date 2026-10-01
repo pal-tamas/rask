@@ -122,7 +122,7 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
 
 ### Fakes for the things a component needs
 
-- **`TestDownloadSink`** — an `IDownloadSink` that records what a component staged. `Navigator.Download`
+- **`TestDownloadSink`** — an `IDownloadSink` that records what a component staged. `Download.File`
   refuses to run without one and tells you to "register a fake"; this is that fake. Assert on
   `.Staged` (`FileName`, `ContentType`, `Bytes`, `.Text`).
 - **`TestFileBackend`** — an `IBrowserFileBackend` serving files a test staged in memory, so an `OnFiles`

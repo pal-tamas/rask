@@ -86,7 +86,7 @@ saved. Nothing is injected: `Jobs` reaches the queue of the work it runs in, and
 `SendOrderReceipt` lives in `Features/Shared/`, so the page also needs `using Shop.Features.Shared;`:
 
 ```csharp
-public sealed partial class CreateOrder(Navigator navigator) : Component
+public sealed partial class CreateOrder : Component
 {
     // … the fields and Render() are unchanged …
 
@@ -96,7 +96,7 @@ public sealed partial class CreateOrder(Navigator navigator) : Component
         {
             var order = await Order.Create(model, cancellationToken: CancellationToken);
             await Jobs.Enqueue(new SendOrderReceipt(order.Id));   // ← enqueue
-            navigator.NavigateTo(Routes.OrdersPage());
+            Routes.OrdersPage().Go();
         }
         catch (Exception)
         {

@@ -1,19 +1,18 @@
-using Rask.Core.Routing;
 
 namespace Rask.Site.Features;
 
-// Navigator is a scoped service injected through the ctor. It mutates the route only from
-// event-handler code — a button click here changes the path, a select changes just the query.
-public sealed partial class NavigatorDemo(Navigator nav) : Component
+// Go moves the user from event-handler code, with nothing injected — a button click here changes the
+// path (Go.To), a select changes just the query (Go.With).
+public sealed partial class NavigatorDemo : Component
 {
     protected override Component? Render() =>
         Div.Class("flex gap-2 flex-col")[
             Button
-                .OnClick(() => nav.NavigateTo("/dashboard"))["Open dashboard"],
+                .OnClick(() => Go.To("/dashboard"))["Open dashboard"],
 
             // Or update just the query, keeping the same path:
             Select.Of<string>()
-                .OnChange(v => nav.SetQuery("sort", v))[
+                .OnChange(v => Go.With("sort", v))[
                 Option.Value("asc")["Sort ascending"],
                 Option.Value("desc")["Sort descending"]
             ]

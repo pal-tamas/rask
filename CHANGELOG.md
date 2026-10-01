@@ -9,6 +9,24 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: navigate with `Go` and hand over files with `Download`; nothing is injected.** The router's
+  `Navigator` service is gone from the public API, which frees `Navigator` for MDN's own global in `Rask.Web`:
+  ```csharp
+  public sealed partial class ProductsPage(Navigator nav) : Component   // was
+  public sealed partial class ProductsPage : Component                  // now
+
+  nav.NavigateTo("/products/42");          →  Go.To("/products/42");
+  nav.NavigateTo("/login", replace: true); →  Go.To("/login").Replacing();
+  UserPage.Go(42, replace: true);          →  UserPage.Go(42).Replacing();
+  nav.SetQuery("page", "2");               →  Go.With("page", "2");
+  nav.RemoveQuery("page");                 →  Go.Without("page");
+  nav.ClearQuery();                        →  Go.Without();
+  nav.Download("report.csv", bytes);       →  Download.File("report.csv", bytes);
+  navigator.Download(fileDownload);        →  Download.File(fileDownload);        // Rask.Cqrs.Client
+  ```
+  The rules are the ones the navigator had: from an event handler (or a page's initial render, which the Server
+  host still answers with a `302`). In Rask.Testing, `TestRoute.NavigatorFor` is gone: a page under test
+  navigates over the `RouteState` and stages into the `IDownloadSink` it was given, with nothing else to build.
 - **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
   its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
 

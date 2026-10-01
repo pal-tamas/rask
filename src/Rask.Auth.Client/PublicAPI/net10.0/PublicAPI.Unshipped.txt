@@ -21,7 +21,7 @@ static Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions.AddRaskAuthCli
 Rask.Auth.Client.BrowserAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Auth.Client.BrowserAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!
 Rask.Auth.Client.BrowserAuth.AddPasskeyAsync(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Routing.Navigator! navigator, Rask.Core.Browser.IWebAuthn! webAuthn, Rask.Auth.Client.AuthClientOptions! options) -> void
 Rask.Auth.Client.BrowserAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.HttpUserProvider.Changed -> System.EventHandler?
+Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Browser.IWebAuthn! webAuthn, Rask.Auth.Client.AuthClientOptions! options) -> void

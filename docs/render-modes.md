@@ -199,14 +199,14 @@ unchanged on both hosts.
 
 ### Redirecting on load
 
-Use `Navigator`, the same API you would call from a handler:
+Use `Go.To`, the same call you would make from a handler:
 
 ```csharp
 protected override async Task OnMount()
 {
     if (!_tenant.IsProvisioned)
     {
-        navigator.NavigateTo("/onboarding");
+        Go.To("/onboarding");
     }
 }
 ```

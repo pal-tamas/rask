@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Dashboard.Panels;
 using Rask.Storage;
@@ -14,8 +15,7 @@ namespace Rask.Dashboard.Pages;
 public sealed partial class StoragePage(
     IStoragePanelReader storage,
     RaskDashboardOptions options,
-    TimeProvider timeProvider,
-    Navigator navigator) : PollingPanel
+    TimeProvider timeProvider) : PollingPanel
 {
     private StorageStats _stats = StorageStats.Empty;
     private IReadOnlyList<StoredFileRow> _rows = [];
@@ -121,7 +121,7 @@ public sealed partial class StoragePage(
         // Navigate rather than reload, so the address bar carries the search (#936).
         Search = string.IsNullOrWhiteSpace(value) ? null : value;
         _page = 0;
-        navigator.NavigateTo(Routes.StoragePage(Search: Search));
+        Go.To(Routes.StoragePage(Search: Search));
         return Task.CompletedTask;
     }
 

@@ -2,11 +2,10 @@ using Rask.Core.Routing;
 
 namespace Rask.Site.Features;
 
-// The Navigator query-mutation widget promoted out of the former NavigatorPage so the Routing guide can
-// host it live. Every button mutates the CURRENT URL's query through the scoped Navigator service and the
-// component re-renders to reflect it — watch the address bar. Scoped to query mutation (SetQuery /
-// RemoveQuery / ClearQuery) so it stays on the guide page rather than navigating away.
-public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) : Component
+// The query widget the Routing guide hosts live. Every button changes the CURRENT URL's query with
+// Go.With / Go.Without, and the component re-renders to reflect it — watch the address bar. Query changes
+// only, so it stays on the guide page rather than navigating away.
+public sealed partial class NavigatorQueryDemo(RouteState route) : Component
 {
     protected override Component? Render() =>
         Div[
@@ -29,19 +28,19 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
             Div.Class("flex-wrap")[
                 Ui.Button.Primary.Outline
                     .Id("nav-set-page1")
-                    .OnClick(() => nav.SetQuery("page", "1"))["SetQuery page=1"],
+                    .OnClick(() => Go.With("page", "1"))["Go.With page=1"],
                 Ui.Button.Primary.Outline
                     .Id("nav-set-page2")
-                    .OnClick(() => nav.SetQuery("page", "2"))["SetQuery page=2"],
+                    .OnClick(() => Go.With("page", "2"))["Go.With page=2"],
                 Ui.Button.Primary.Outline
                     .Id("nav-set-sort")
-                    .OnClick(() => nav.SetQuery("sort", "asc"))["SetQuery sort=asc"],
+                    .OnClick(() => Go.With("sort", "asc"))["Go.With sort=asc"],
                 Ui.Button.Outline
                     .Id("nav-remove-page")
-                    .OnClick(() => nav.RemoveQuery("page"))["RemoveQuery page"],
+                    .OnClick(() => Go.Without("page"))["Go.Without page"],
                 Ui.Button.Error.Outline
                     .Id("nav-clear")
-                    .OnClick(() => nav.ClearQuery())["ClearQuery"]
+                    .OnClick(() => Go.Without())["Go.Without()"]
             ]
         ];
 

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
 
@@ -11,7 +12,7 @@ namespace Rask.Wasm.Authentication;
 ///     Sign-in is not supported here: WASM apps validate credentials by POSTing them to a server
 ///     endpoint that varies per app. Use <see cref="HttpClient" /> directly from the LoginPage.
 /// </summary>
-public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, Navigator navigator) : IAuthSignIn
+public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider) : IAuthSignIn
 {
     /// <summary>
     ///     The server endpoint that sign-out posts to, so the server can clear the auth cookie. Defaults to
@@ -50,6 +51,6 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, 
         // Open-redirect guard: returnUrl is whatever the caller passed (often a login/query value
         // that can be attacker-influenced), and NavigateTo can leave the origin. Collapse anything
         // non-local to "/" at this boundary — the same LocalUrl rule the server sign-in path applies.
-        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
+        Go.To(LocalUrl.Sanitize(returnUrl));
     }
 }

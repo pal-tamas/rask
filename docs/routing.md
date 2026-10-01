@@ -101,9 +101,9 @@ NavLink.Href(UserPage.Url(Id: 42))["View user"];
 Button.OnClick(() => UserPage.Go(42))["View user"];
 ```
 
-`Go` takes a trailing `replace` flag (`UserPage.Go(42, replace: true)`) to overwrite the current history entry
-instead of pushing a new one, and it navigates through the ambient `Navigator.Current` — so, like `Navigator`
-itself, it may only be called **from an event handler**.
+`Go` hands back a step that overwrites the current history entry instead of pushing a new one
+(`UserPage.Go(42).Replacing()`). Like [`Go.To`](#programmatic-navigation--go), it may only be called **from an
+event handler**.
 
 > **`NavLink`, not `A`, for anywhere in your own app — and never a `target` on one.** The runtime intercepts
 > clicks on `a[data-rask-nav]`, which `NavLink` writes — as do the kit's `Ui.Button.Href` and `Ui.Link.Href`
@@ -140,10 +140,10 @@ itself, it may only be called **from an event handler**.
 > default); below that they are not emitted and the older `Routes.SomePage(...)` formatter is what you use.
 
 `RouteUrl` is a small `readonly record struct` carrying `Path` and an optional `QueryString`. It converts implicitly
-to and from `string`, so you can pass it straight to `NavLink`, `Navigator.NavigateTo`, or anywhere a path string is
+to and from `string`, so you can pass it straight to `NavLink`, `Go.To`, or anywhere a path string is
 expected.
 
-`Url` returns that `RouteUrl` rather than a plain string on purpose: `Navigator.NavigateTo` has a path-only overload
+`Url` returns that `RouteUrl` rather than a plain string on purpose: `Go.To` has a path-only overload
 that **clears the query string**, so handing it a string would silently drop `?sort=asc`. When you do want the
 string, the implicit conversion (or `.ToString()`) gives it to you.
 
@@ -215,7 +215,7 @@ changes value. See [lifecycle.md](lifecycle.md).
 
 A worked example: the **data table** at `/table` holds *all* of its UI state — the search filter,
 the sort column and direction, the current page and page size — in `[QueryParam]` properties, and writes each
-header click and pager button back through `Navigator.SetQuery`. Because the state lives in the URL, it's
+header click and pager button back through `Go.With`. Because the state lives in the URL, it's
 shareable and bookmarkable, and browser back/forward replay it for free. The source (the whole page, verbatim):
 
 ## Nested routes — `[ParentRoute]` + `Outlet`
@@ -252,28 +252,28 @@ way: every page declares `[ParentRoute(typeof(ShowcaseLayout))]` and the layout 
 `Outlet` must be called inside a `Router` render tree (it throws otherwise). A `[ParentRoute]` cycle raises
 [RASK007](diagnostics.md#rask007).
 
-## Programmatic navigation — `Navigator`
+## Programmatic navigation — `Go`
 
-`Navigator` is the scoped service for imperative navigation and query mutation. Inject it through the **constructor**
-like any other framework service:
+`Go` moves the user from code, with nothing injected — a typed route goes on its own (`Routes.UserPage(42).Go()`),
+and a path you only have as text goes through `Go.To`:
 
 ```csharp
-public sealed partial class ProductsPage(Navigator nav) : Component
+public sealed partial class ProductsPage : Component
 {
     protected override Component? Render() =>
-        Button.OnClick(() => nav.NavigateTo("/dashboard"))["Open dashboard"];
+        Button.OnClick(() => Go.To("/dashboard"))["Open dashboard"];
 }
 ```
 
-**Event-handler only.** Every `Navigator` method throws `InvalidOperationException` if called outside an event
+**Event-handler only.** `Go.To`, `Go.With` and `Go.Without` throw `InvalidOperationException` if called outside an event
 handler — calling it during `Render()` or the initial GET would mid-render the page out from under itself. Navigate
 from button clicks, form submits, or lifecycle hooks that ran in response to an event. Navigation that must happen on
 load belongs in a redirect/route, not in `Render()`.
 
-`Navigator` mutates the shared `RouteState`; after the handler returns, the live runtime pushes (or replaces) the
+`Go` changes the session's `RouteState`; after the handler returns, the live runtime pushes (or replaces) the
 resulting URL into browser history.
 
-Try it — every button mutates this page's own query string through the scoped `Navigator`; watch the address bar and
+Try it — every button changes this page's own query string with `Go.With` / `Go.Without`; watch the address bar and
 the readout update over the live diff:
 
 <!-- demo:routing-navigator -->
@@ -281,48 +281,48 @@ the readout update over the live diff:
 ### Methods
 
 ```csharp
-// Path navigation — CLEARS any existing query string:
-nav.NavigateTo("/users/42");
-nav.NavigateTo(Routes.UserPage(Id: 42));     // type-safe RouteUrl overload
+// Somewhere else — CLEARS any existing query string:
+Go.To("/users/42");
+Routes.UserPage(Id: 42).Go();               // type-safe, the same as Go.To(Routes.UserPage(Id: 42))
 
-// Path + a complete new query in one step (REPLACES the whole query):
-nav.NavigateTo("/users/ada",
-    new[] { KeyValuePair.Create<string, string?>("tab", "profile") });
+// A path with a complete new query in one step (REPLACES the whole query):
+Go.To("/users/ada", [KeyValuePair.Create<string, string?>("tab", "profile")]);
 
-// Single-param mutations on the CURRENT path (path unchanged):
-nav.SetQuery("page", "2");                  // set/update; null value removes the key
-nav.SetQuery(                               // several at once
+// This page, with its query changed (path unchanged):
+Go.With("page", "2");                       // set/update; a null value removes the key
+Go.With(                                    // several at once
     KeyValuePair.Create<string, string?>("page", "2"),
     KeyValuePair.Create<string, string?>("sort", "asc"));
-nav.RemoveQuery("page");                    // remove one key (missing key = no-op)
-nav.ClearQuery();                           // drop all query params, keep the path
+Go.Without("page");                         // remove one key (missing key = no-op)
+Go.Without();                               // drop the whole query, keep the path
 ```
 
 Key behaviours:
 
-- `NavigateTo(path)` and `NavigateTo(RouteUrl)` **clear the query** unless the `RouteUrl` itself carries one. To navigate
-  to a path and keep params, use the `NavigateTo(path, query)` overload or follow up with `SetQuery`.
-- `NavigateTo(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
+- `Go.To(path)` and `Go.To(RouteUrl)` **clear the query** unless the `RouteUrl` itself carries one. To go
+  to a path and keep params, use the `Go.To(path, query)` overload or follow up with `Go.With`.
+- `Go.To(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
   dropped; repeated keys concatenate into a multi-value param.
-- `SetQuery` / `RemoveQuery` / `ClearQuery` operate on the **current** path and leave it unchanged — they're for
+- `Go.With` / `Go.Without` operate on the **current** path and leave it unchanged — they're for
   partial query updates (`?page=2&sort=asc`).
 
-### The `replace` flag
+### Replacing the history entry
 
-`NavigateTo(...)` overloads take an optional `replace` parameter (default `false`). `true` replaces the current history
-entry instead of pushing a new one, so it adds no extra Back-button stop:
+`Go.To(…)` and a route's `.Go()` push a new history entry. Follow either with `.Replacing()` to replace the current
+one instead, so it adds no extra Back-button stop:
 
 ```csharp
-nav.NavigateTo("/login", replace: true);   // redirect without a back-stack entry
+Go.To("/login").Replacing();               // redirect without a back-stack entry
+Routes.LoginPage().Go().Replacing();
 ```
 
-`Navigator` also exposes `Download(...)` for pushing files to the browser (same event-handler-only rule); that lives in
-the Files section of the README.
+Files go to the browser with `Download.File(…)`, under the same event-handler-only rule — see
+[HTTP & files](http-and-files.md#downloading-files).
 
 ### Scroll position on navigation
 
-Forward navigation — a `NavLink` click or `NavigateTo(...)` that **pushes** a history entry — scrolls the window back to
-the top of the new page, matching how a server-rendered page load behaves. `replace: true` navigations and the browser's
+Forward navigation — a `NavLink` click or `Go.To(...)` that **pushes** a history entry — scrolls the window back to
+the top of the new page, matching how a server-rendered page load behaves. `.Replacing()` navigations and the browser's
 Back/Forward buttons do **not** force a scroll reset: the browser's native scroll restoration owns those, so returning to
 a page restores where you were. If a `NavLink`'s `Href` includes a `#fragment` that matches an element on the destination
 page, the runtime scrolls to that element (and keeps the fragment in the address bar) instead of jumping to the top. This
@@ -399,7 +399,7 @@ paths, so it stays `200`. And a page that matches a real route but finds no data
 is not a routing fact at all: say so with `IPageResponse.SetStatus(404)`, described in
 [Live pages](render-modes.md#status-codes).
 
-**Redirecting on load.** `Navigator.NavigateTo` works during a page's initial render, and the Server
+**Redirecting on load.** `Go.To` works during a page's initial render, and the Server
 host turns it into a real `302` before rendering a body:
 
 ```csharp
@@ -407,7 +407,7 @@ protected override async Task OnMount()
 {
     if (!_tenant.IsProvisioned)
     {
-        navigator.NavigateTo("/onboarding");
+        Go.To("/onboarding");
     }
 }
 ```

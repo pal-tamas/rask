@@ -557,7 +557,7 @@ Rask generates a type-safe route helper — `Routes.<Page>()` — for every page
 (see [Routing → type-safe URLs](routing.md)). Using the raw path string for internal navigation bypasses
 that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
 whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
-passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink.Href(…)`,
+passed to internal navigation — `Go.To("…")` or any `RouteUrl` slot (`NavLink.Href(…)`,
 `Ui.NavItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
 the path maps to a generated parameterless route helper.
 
@@ -571,11 +571,11 @@ It deliberately leaves alone:
 ```csharp
 [Route("todos")] public sealed partial class TodosPage : Component { /* … */ }
 
-nav.NavigateTo("/todos");            // ✗ RASK033 — use Routes.TodosPage()
+Go.To("/todos");                    // ✗ RASK033 — use Routes.TodosPage()
 NavLink.Href("/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
 
 Routes.TodosPage().Go();             // ✓ type-safe; a renamed route is a compile error
-nav.NavigateTo("/todos/new");        // ✓ secondary template — no helper, left alone
+Go.To("/todos/new");                // ✓ secondary template — no helper, left alone
 A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
 ```
 

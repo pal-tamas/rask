@@ -167,9 +167,9 @@ mistake, the rule notes the ID.
   types must be `string` or `IParsable<T>` (**RASK011** otherwise), and must match a route constraint
   (`{id:int}`) when present. Link with the generated, refactor-proof `Routes.Page(...)` builder, not
   hand-written paths. See [routing](routing.md).
-- **Navigate from event handlers only.** Every `Navigator` method throws if called during `Render()`
-  or the initial GET — it would mid-render the page out from under itself. Load-time redirects belong
-  in a route guard, not `Render()`. See [routing → Navigator](routing.md#programmatic-navigation--navigator).
+- **Navigate from event handlers only.** `Go.To`, `Go.With` and a route's `.Go()` throw if called during `Render()`
+  — it would mid-render the page out from under itself. Load-time redirects belong in `OnMount` or a route
+  guard, not `Render()`. See [routing → Go](routing.md#programmatic-navigation--go).
 - **Put the right work in the right hook.** `OnMount` for a one-time load; `OnUpdated`
   to reload when a route/query param changes; `OnFirstRendered` / `OnRendered` for post-paint side effects (it's
   loop-safe — a re-render elsewhere won't refire it). Each `await` auto-re-renders, so mutate state

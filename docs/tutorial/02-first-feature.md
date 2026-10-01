@@ -105,7 +105,7 @@ just pages.
 namespace Shop.Features.Products;
 
 [Route("/products/new")]
-public sealed partial class CreateProduct(Navigator navigator) : Component
+public sealed partial class CreateProduct : Component
 {
     private readonly ProductModel _model = new();
 
@@ -124,7 +124,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.Create(model, cancellationToken: ct);
-                    navigator.NavigateTo(Routes.ProductsPage());
+                    Routes.ProductsPage().Go();
                 }, CancellationToken))[
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
@@ -173,7 +173,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Shop.Features.Products;
 
 [Route("/products/{id:guid}/edit")]
-public sealed partial class UpdateProduct(Navigator navigator) : Component
+public sealed partial class UpdateProduct : Component
 {
     // Loaded for this page alone: a zero GcTime drops it the moment you leave, so a later visit always
     // starts from the database, and the form can edit what was loaded in place.
@@ -226,7 +226,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
                 Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.Update(Id, model, cancellationToken: ct);
-                    navigator.NavigateTo(Routes.ProductsPage());
+                    Routes.ProductsPage().Go();
                 }, CancellationToken))[
                     Ui.Input.Bind(() => _model.Name).Label("Name"),
                     Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")

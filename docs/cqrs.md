@@ -295,7 +295,7 @@ public sealed record AttachReceipt(int OrderId, IRaskFile File) : ICommand;
 await dispatcher.Send(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.
-navigator.Download(await dispatcher.Query(new ExportOrders(year)));
+Download.File(await dispatcher.Query(new ExportOrders(year)));
 ```
 
 The handler receives a `IRaskFile` too, and reads it exactly as it would in-process:
