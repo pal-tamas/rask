@@ -21,12 +21,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Which web APIs only WebAssembly runs: the list the emitter keeps, checked against what it generated (WasmOnlyTests). -->
+    <Compile Include="..\..\src\Rask.Dom.Tasks\WebHost.cs" Link="Shared\WebHost.cs"/>
+  </ItemGroup>
+
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.Core\Dom\mdn.snapshot.json"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Web"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Web\Rask.Web.csproj"/>
+    <!-- What only WebAssembly runs is Rask.Wasm's (WasmOnlyTests). -->
+    <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
   </ItemGroup>
 
 </Project>

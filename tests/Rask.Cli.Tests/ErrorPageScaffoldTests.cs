@@ -13,7 +13,7 @@ public sealed class ErrorPageScaffoldTests
     private const string Version = "9.9.9";
 
     private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
+        ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,

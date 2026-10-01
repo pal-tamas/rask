@@ -66,6 +66,7 @@
     "vitest": "$vitest",
     "esbuild": "^0.28.1",
     "qs": "^6.16.0",
+    "webpack-dev-middleware": "^7.4.6",
     "sockjs": {
       "uuid": "^11.1.1"
     }

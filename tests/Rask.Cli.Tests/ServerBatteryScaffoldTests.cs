@@ -15,7 +15,7 @@ public sealed class ServerBatteryScaffoldTests
 
     // Flags in, files out — the same path `rask new` takes, so the flag names are under test too.
     private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
+        ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,
@@ -23,7 +23,7 @@ public sealed class ServerBatteryScaffoldTests
 
     /// <summary>The same, on the wasm-hosted template — the host that serves a browser app.</summary>
     private static Dictionary<string, string> GenerateHosted(params string[] flags) =>
-        ProjectGenerator.GenerateWasmHosted(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
+        ProjectGenerator.GenerateWasmHosted(Root, "App", BatterySelection.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,
@@ -277,7 +277,7 @@ public sealed class ServerBatteryScaffoldTests
     public void The_next_steps_no_longer_tell_you_to_migrate_before_the_first_run()
     {
         var next = ProjectGenerator.GenerateServer(
-            Root, "App", NewCommand.BatteriesOf(["jobs"]), Version).Notes ?? "";
+            Root, "App", BatterySelection.BatteriesOf(["jobs"]), Version).Notes ?? "";
 
         Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
         Assert.DoesNotContain("exit on a missing table", next, StringComparison.Ordinal);
@@ -289,7 +289,7 @@ public sealed class ServerBatteryScaffoldTests
         // What the reader is told to do first is what they will do. Pointing them at a DbSet teaches the
         // one workflow this data layer exists to remove.
         var next = ProjectGenerator.GenerateServer(
-            Root, "App", NewCommand.BatteriesOf(["jobs"]), Version).Notes ?? "";
+            Root, "App", BatterySelection.BatteriesOf(["jobs"]), Version).Notes ?? "";
 
         Assert.Contains("Aggregate<Guid>", next, StringComparison.Ordinal);
         Assert.DoesNotContain("Add a DbSet", next, StringComparison.Ordinal);

@@ -54,10 +54,13 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
         // so the finally arms the 100ms sticky timer.
         await ctx.ValidateField(new FieldIdentifier(model, "Name"), TestContext.Current.CancellationToken);
 
+        // Counted from the dispose, not from the arm: under a loaded gate the 100ms timer can legitimately
+        // fire before Dispose is reached, and that render is not the one this test is about.
+        var beforeDispose = Volatile.Read(ref renderRequests);
         ctx.Dispose(); // must dispose the armed timer before it fires
         await Task.Delay(250, TestContext.Current.CancellationToken); // well past the sticky window
 
-        Assert.Equal(0, renderRequests);
+        Assert.Equal(beforeDispose, Volatile.Read(ref renderRequests));
         Assert.True(ctx.IsDisposed);
     }
 

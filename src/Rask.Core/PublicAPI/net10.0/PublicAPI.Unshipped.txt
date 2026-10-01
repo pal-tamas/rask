@@ -4456,10 +4456,6 @@ Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).NamespaceURI.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Prefix.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ReleasePointerCapture(int pointerId) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestFullscreen() -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestFullscreen(Rask.Core.FullscreenOptions! options) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestPointerLock() -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestPointerLock(Rask.Core.PointerLockOptions! options) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Role.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll() -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
@@ -4640,10 +4636,6 @@ static Rask.Core.ElementRefMembers.HasAttributes(this Rask.Core.IElementRef<Rask
 static Rask.Core.ElementRefMembers.HasPointerCapture(this Rask.Core.IElementRef<Rask.Core.Element!>! element, int pointerId) -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Core.ElementRefMembers.Matches(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! selectors) -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Core.ElementRefMembers.ReleasePointerCapture(this Rask.Core.IElementRef<Rask.Core.Element!>! element, int pointerId) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.RequestFullscreen(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.RequestFullscreen(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.FullscreenOptions! options) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.RequestPointerLock(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.RequestPointerLock(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.PointerLockOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask
@@ -4986,7 +4978,6 @@ Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputE
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).SetSelectionRange(int start, int end, string! direction) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).SetSelectionStart(int? value) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).SetValueAsNumber(double value) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).ShowPicker() -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).Size.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).Src.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).Step.get -> System.Threading.Tasks.ValueTask<string!>
@@ -5139,7 +5130,6 @@ Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelect
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).SetCustomValidity(string! error) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).SetLength(int value) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).SetSelectedIndex(int value) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).ShowPicker() -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).Size.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).Type.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).ValidationMessage.get -> System.Threading.Tasks.ValueTask<string!>
@@ -7111,8 +7101,6 @@ static Rask.Core.ElementRefMembers.SetValueAsNumber(this Rask.Core.IElementRef<R
 static Rask.Core.ElementRefMembers.SetVolume(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element, double value) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.Show(this Rask.Core.IElementRef<Rask.Core.HTMLDialogElement!>! element) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.ShowModal(this Rask.Core.IElementRef<Rask.Core.HTMLDialogElement!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ShowPicker(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ShowPicker(this Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>! element) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.ShowPopover(this Rask.Core.IElementRef<Rask.Core.HTMLElement!>! element) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.StepDown(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.StepDown(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element, int n) -> System.Threading.Tasks.ValueTask

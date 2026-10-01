@@ -14,7 +14,7 @@ public sealed class SqliteScaffoldTests
     private const string Version = "9.9.9";
 
     private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
+        ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(flags), Version).Files
             .ToDictionary(
                 f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
                 f => f.Content,
@@ -47,7 +47,7 @@ public sealed class SqliteScaffoldTests
     [Fact]
     public void The_next_steps_name_the_database_file_the_migration_lands_in()
     {
-        var next = ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(["data"]), Version).Notes;
+        var next = ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(["data"]), Version).Notes;
 
         Assert.NotNull(next);
         Assert.Contains("rask db add <Name>", next, StringComparison.Ordinal);
