@@ -60,7 +60,7 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
     private async Task SubmitAsync(RegisterModel model)
     {
         // Your own columns are set on the new User before it is saved, in the same insert.
-        var result = await auth.RegisterAsync(
+        var result = await auth.Register(
             model.Email,
             model.Password,
             (User user) => user.Rename(model.DisplayName),

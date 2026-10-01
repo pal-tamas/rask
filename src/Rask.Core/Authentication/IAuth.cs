@@ -27,7 +27,7 @@ namespace Rask.Core.Authentication;
 /// {
 ///     private async Task SubmitAsync(Credentials c)
 ///     {
-///         var result = await auth.SignInAsync(c.Email, c.Password, returnUrl: "/");
+///         var result = await auth.SignIn(c.Email, c.Password, returnUrl: "/");
 ///         if (!result.Succeeded) { _error = result.Error; }
 ///     }
 /// }
@@ -44,7 +44,7 @@ public interface IAuth
     /// The first-run token, required only while no account exists yet. Ignored once the instance has
     /// been claimed.
     /// </param>
-    Task<AuthResult> RegisterAsync(
+    Task<AuthResult> Register(
         string email, string password, string? returnUrl = null, string? firstRunToken = null);
 
     /// <summary>Creates an account, sets the app's own columns on it, and signs it in.</summary>
@@ -55,7 +55,7 @@ public interface IAuth
     /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
     /// <param name="firstRunToken">The first-run token, required only while no account exists yet.</param>
     /// <exception cref="NotSupportedException">The host cannot run code on the new user, such as a browser client.</exception>
-    Task<AuthResult> RegisterAsync<TUser>(
+    Task<AuthResult> Register<TUser>(
         string email,
         string password,
         Action<TUser> apply,
@@ -67,23 +67,23 @@ public interface IAuth
             + "User.Update once the user is signed in.");
 
     /// <summary>Ends every other session of the signed-in user, leaving this one signed in.</summary>
-    Task SignOutOtherDevicesAsync();
+    Task SignOutOtherDevices();
 
     /// <summary>Ends every session of the signed-in user, this one included.</summary>
     /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
-    Task SignOutEverywhereAsync(string? returnUrl = null);
+    Task SignOutEverywhere(string? returnUrl = null);
 
     /// <summary>Signs an existing account in.</summary>
     /// <param name="email">The email address.</param>
     /// <param name="password">The password.</param>
     /// <param name="remember">Whether the session should outlive the browser session.</param>
     /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
-    Task<AuthResult> SignInAsync(
+    Task<AuthResult> SignIn(
         string email, string password, bool remember = false, string? returnUrl = null);
 
     /// <summary>Signs the current visitor out.</summary>
     /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
-    Task SignOutAsync(string? returnUrl = null);
+    Task SignOut(string? returnUrl = null);
 
     /// <summary>Emails a password-reset link to <paramref name="email" />, if an account has it.</summary>
     /// <remarks>
@@ -91,18 +91,18 @@ public interface IAuth
     /// register of who has an account here, which is exactly what an attacker with a list of addresses
     /// wants. The page says "if that address has an account, a link is on its way" either way.
     /// </remarks>
-    Task<AuthResult> SendPasswordResetAsync(string email);
+    Task<AuthResult> SendPasswordReset(string email);
 
     /// <summary>Sets a new password using a token from a reset email.</summary>
     /// <param name="userId">The account id the link carried.</param>
     /// <param name="token">The reset token the link carried.</param>
     /// <param name="password">The new password.</param>
-    Task<AuthResult> ResetPasswordAsync(string userId, string token, string password);
+    Task<AuthResult> ResetPassword(string userId, string token, string password);
 
     /// <summary>Confirms an email address using a token from a confirmation email.</summary>
     /// <param name="userId">The account id the link carried.</param>
     /// <param name="token">The confirmation token the link carried.</param>
-    Task<AuthResult> ConfirmEmailAsync(string userId, string token);
+    Task<AuthResult> ConfirmEmail(string userId, string token);
 
     /// <summary>
     /// Adds a passkey to the signed-in account: Touch ID, Windows Hello, a phone, or a security key.
@@ -115,17 +115,17 @@ public interface IAuth
     /// </para>
     /// <para>
     /// A passkey is an extra way in, never a replacement: the account keeps its password, and
-    /// <see cref="RemovePasskeyAsync" /> takes one away again.
+    /// <see cref="RemovePasskey" /> takes one away again.
     /// </para>
     /// <example>
     /// <code>
-    /// Button.OnClick(() => auth.AddPasskeyAsync("MacBook"))["Add a passkey"]
+    /// Button.OnClick(() => auth.AddPasskey("MacBook"))["Add a passkey"]
     /// </code>
     /// </example>
     /// </remarks>
     /// <param name="name">What to call it in the account's device list. Defaults to "Passkey".</param>
     /// <exception cref="NotSupportedException">The host cannot run a passkey ceremony.</exception>
-    Task<AuthResult> AddPasskeyAsync(string? name = null) =>
+    Task<AuthResult> AddPasskey(string? name = null) =>
         throw new NotSupportedException(
             "This host cannot run a passkey ceremony. Passkeys need a browser: use the Server or WebAssembly host.");
 
@@ -138,14 +138,14 @@ public interface IAuth
     /// <param name="remember">Whether the session should outlive the browser session.</param>
     /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
     /// <exception cref="NotSupportedException">The host cannot run a passkey ceremony.</exception>
-    Task<AuthResult> SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) =>
+    Task<AuthResult> SignInWithPasskey(bool remember = false, string? returnUrl = null) =>
         throw new NotSupportedException(
             "This host cannot run a passkey ceremony. Passkeys need a browser: use the Server or WebAssembly host.");
 
     /// <summary>Removes one of the signed-in account's passkeys. It stops signing anybody in at once.</summary>
     /// <param name="id">The passkey's id.</param>
     /// <exception cref="NotSupportedException">The host cannot run a passkey ceremony.</exception>
-    Task<AuthResult> RemovePasskeyAsync(Guid id) =>
+    Task<AuthResult> RemovePasskey(Guid id) =>
         throw new NotSupportedException(
             "This host cannot run a passkey ceremony. Passkeys need a browser: use the Server or WebAssembly host.");
 }

@@ -67,8 +67,8 @@ public sealed partial class EditContext : IDisposable
     private FieldIdentifier FormField => new(Model, string.Empty);
 
     /// <summary>
-    ///     Whether anything registered here validates asynchronously. When it does,
-    ///     <see cref="Validate()" /> refuses to run and <see cref="ValidateAsync" /> must be used instead.
+    ///     Whether anything registered here validates asynchronously — an <see cref="IAsyncFieldValidator" /> or
+    ///     an async inline <c>Validate</c> delegate. <see cref="Validate" /> awaits them either way.
     /// </summary>
     public bool HasAsyncValidators => _asyncValidators.Count > 0 || HasAsyncDelegateValidators;
 
@@ -190,8 +190,7 @@ public sealed partial class EditContext : IDisposable
 
     /// <summary>
     ///     Registers an asynchronous validator for the whole form. De-duplicated by runtime type, exactly
-    ///     as the synchronous overload is. Adding one makes <see cref="Validate()" /> throw — the form
-    ///     must be validated through <see cref="ValidateAsync" /> from then on.
+    ///     as the synchronous overload is. <see cref="Validate" /> awaits it after the synchronous rules.
     /// </summary>
     /// <param name="validator">The validator to add.</param>
     /// <exception cref="ArgumentNullException"><paramref name="validator" /> is <see langword="null" />.</exception>
@@ -416,7 +415,7 @@ public sealed partial class EditContext : IDisposable
 
     /// <summary>
     ///     Whether any field currently carries a validation message. Note this reports the messages
-    ///     produced by the last run — it does not validate. Call <see cref="Validate()" /> first to ask
+    ///     produced by the last run — it does not validate. Await <see cref="Validate" /> first to ask
     ///     whether the form is valid <em>now</em>.
     /// </summary>
     public bool HasValidationMessages()

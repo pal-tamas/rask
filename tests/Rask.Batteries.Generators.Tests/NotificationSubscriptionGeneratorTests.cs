@@ -32,7 +32,7 @@ public sealed class NotificationSubscriptionGeneratorTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "CqrsRegistry.CanWatchAsync<global::Demo.WatchOrder>(sp, (global::Demo.WatchOrder)s, ct)",
+            "CqrsRegistry.CanWatch<global::Demo.WatchOrder>(sp, (global::Demo.WatchOrder)s, ct)",
             source,
             StringComparison.Ordinal);
     }
@@ -69,7 +69,7 @@ public sealed class NotificationSubscriptionGeneratorTests
 
             public sealed class WatchingOrders : IWatchPolicy<WatchOrder>
             {
-                public Task<bool> CanWatchAsync(WatchOrder s, CancellationToken ct) => Task.FromResult(true);
+                public Task<bool> CanWatch(WatchOrder s, CancellationToken ct) => Task.FromResult(true);
             }
             """);
 

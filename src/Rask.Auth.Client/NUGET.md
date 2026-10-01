@@ -16,7 +16,7 @@ exactly the code it would use on the Server host:
 public sealed class LoginForm(IAuth auth) : Component
 {
     private async Task SubmitAsync(Credentials c) =>
-        await auth.SignInAsync(c.Email, c.Password, returnUrl: "/");
+        await auth.SignIn(c.Email, c.Password, returnUrl: "/");
 }
 
 public sealed class Header(IUserProvider users) : Component

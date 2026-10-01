@@ -136,7 +136,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ]);
 
         // Kick off validation so PendingCount > 0.
-        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var task = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("class=\"validating-indicator\"", html);
@@ -170,7 +170,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
                 .For(() => p.Name)
         ]);
 
-        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var task = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
         var validatingHtml = view.RenderAsLiveRoot();
         Assert.Contains("validating-indicator", validatingHtml);
 
@@ -202,7 +202,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
                 .For(() => p.Name)
         ]);
 
-        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var task = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
         view.RenderAsLiveRoot();
         gate.SetResult();
         await task;
@@ -229,7 +229,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
                 .For(() => p.Name)
         ]);
 
-        var task = ctx.ValidateFieldAsync(fid, TestContext.Current.CancellationToken);
+        var task = ctx.ValidateField(fid, TestContext.Current.CancellationToken);
         view.RenderAsLiveRoot();
         gate.SetResult();
         await task;
@@ -246,10 +246,10 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
 
     private sealed class GatedValidator(Task wait) : IAsyncFieldValidator
     {
-        public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+        public async ValueTask Validate(EditContext context, CancellationToken cancellationToken)
             => await wait.ConfigureAwait(false);
 
-        public async ValueTask ValidateFieldAsync(EditContext context, FieldIdentifier field,
+        public async ValueTask ValidateField(EditContext context, FieldIdentifier field,
             CancellationToken cancellationToken)
             => await wait.ConfigureAwait(false);
     }

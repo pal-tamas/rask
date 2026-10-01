@@ -13,7 +13,7 @@ the current user or gate a page does not change between hosts.
 public sealed class LoginForm(IAuth auth) : Component
 {
     private async Task SubmitAsync(Credentials c) =>
-        await auth.SignInAsync(c.Email, c.Password, returnUrl: "/");
+        await auth.SignIn(c.Email, c.Password, returnUrl: "/");
 }
 
 // reading who is signed in — unchanged, and the same everywhere

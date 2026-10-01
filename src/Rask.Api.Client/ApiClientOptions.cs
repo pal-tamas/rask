@@ -21,7 +21,7 @@ public sealed class ApiClientOptions
     ///     Attaching a token to the client makes it ambient state shared by everything that resolves the
     ///     same client; attaching it here scopes it to the call being made.
     /// </remarks>
-    public Func<HttpRequestMessage, CancellationToken, Task>? ConfigureRequestAsync { get; set; }
+    public Func<HttpRequestMessage, CancellationToken, Task>? ConfigureRequest { get; set; }
 
     /// <summary>
     ///     How long one call may take. Applied per attempt.

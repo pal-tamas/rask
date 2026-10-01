@@ -46,9 +46,9 @@ public sealed partial class AsyncValidationApp : Component
     private sealed class DelayedRejectValidator(string reject, string message, int delayMs)
         : IAsyncFieldValidator
     {
-        public ValueTask ValidateAsync(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask Validate(EditContext context, CancellationToken ct) => ValueTask.CompletedTask;
 
-        public async ValueTask ValidateFieldAsync(
+        public async ValueTask ValidateField(
             EditContext context, FieldIdentifier field, CancellationToken ct)
         {
             await Task.Delay(delayMs, ct).ConfigureAwait(false);

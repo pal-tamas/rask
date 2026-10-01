@@ -1,8 +1,8 @@
 #nullable enable
 Rask.FluentValidationFieldValidator
 Rask.FluentValidationFieldValidator.FluentValidationFieldValidator(FluentValidation.IValidator! validator) -> void
-Rask.FluentValidationFieldValidator.ValidateAsync(Rask.Core.Forms.EditContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-Rask.FluentValidationFieldValidator.ValidateFieldAsync(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Rask.FluentValidationFieldValidator.Validate(Rask.Core.Forms.EditContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Rask.FluentValidationFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Rask.RaskValidators
 RaskBuilderSettersRask_Validation_FluentValidation
 static Rask.RaskValidators.Find(System.Type! modelType) -> System.Func<System.IServiceProvider?, object!>?

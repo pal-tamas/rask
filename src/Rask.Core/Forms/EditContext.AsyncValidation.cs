@@ -3,13 +3,12 @@ namespace Rask.Core.Forms;
 public sealed partial class EditContext
 {
     /// <summary>
-    ///     Validates the whole form, awaiting any asynchronous rules, and reports whether it passed. Safe
-    ///     to use whether or not the form has async validators — unlike <see cref="Validate()" />, which
-    ///     refuses when it does, so this is the one to call if you are not sure.
+    ///     Validates the whole form, running every rule — synchronous and asynchronous — and reports whether
+    ///     it passed. Clears the existing messages first, so the messages afterwards are exactly this run's.
     /// </summary>
     /// <param name="cancellationToken">Cancels the in-flight validators.</param>
     /// <returns><see langword="true" /> when no field produced a message.</returns>
-    public async ValueTask<bool> ValidateAsync(CancellationToken cancellationToken = default)
+    public async ValueTask<bool> Validate(CancellationToken cancellationToken = default)
     {
         // Supersede every in-flight per-field run before we re-validate from scratch.
 #pragma warning disable S6966 // cancel synchronously: a superseded run must see it before this call returns
@@ -60,7 +59,7 @@ public sealed partial class EditContext
             var pre = SnapshotMessageCounts();
             try
             {
-                await v.ValidateAsync(this, cancellationToken).ConfigureAwait(false);
+                await v.Validate(this, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -84,7 +83,7 @@ public sealed partial class EditContext
     /// <param name="field">The field to validate.</param>
     /// <param name="cancellationToken">Cancels the in-flight validator.</param>
     /// <returns><see langword="true" /> when the field produced no message.</returns>
-    public async ValueTask<bool> ValidateFieldAsync(FieldIdentifier field,
+    public async ValueTask<bool> ValidateField(FieldIdentifier field,
         CancellationToken cancellationToken = default)
     {
         var state = GetOrCreate(field);
@@ -93,7 +92,7 @@ public sealed partial class EditContext
         // Note on the CTS lifecycle (looks racy, isn't): the live transports serialize handler
         // execution end to end — the Server WS dispatcher and the WASM session each hold their
         // lock across the whole awaited handler (which is where validation runs), so two
-        // ValidateFieldAsync calls for the same field never overlap. By the time a later call
+        // ValidateField calls for the same field never overlap. By the time a later call
         // reaches here, the earlier one has already nulled state.Cts (sync + finally paths), so
         // these Cancel/Dispose calls only ever touch a still-owned CTS — no double-dispose, no
         // ObjectDisposedException. Keep validation off background threads to preserve this.
@@ -220,7 +219,7 @@ public sealed partial class EditContext
         {
             try
             {
-                await v.ValidateFieldAsync(this, field, cts.Token).ConfigureAwait(false);
+                await v.ValidateField(this, field, cts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

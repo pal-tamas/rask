@@ -15,7 +15,7 @@ public static class LitestreamServiceCollectionExtensions
     /// least a <see cref="LitestreamOptions.ReplicaUrl"/> (or a <see cref="LitestreamOptions.ConfigPath"/>) is
     /// required, and <see cref="LitestreamOptions.DatabasePath"/> defaults to the file named by
     /// <c>Rask:ConnectionStrings:App</c>. Call
-    /// <see cref="LitestreamStartupExtensions.RestoreSqliteFromLitestreamAsync"/> after
+    /// <see cref="LitestreamStartupExtensions.RestoreSqliteFromLitestream"/> after
     /// <c>Build()</c> and before opening the database to restore on a fresh host. Idempotent.
     /// <para>
     /// Also registers <see cref="LitestreamStatus"/>, a singleton reporting whether replication is currently

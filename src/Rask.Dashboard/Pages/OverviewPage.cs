@@ -18,12 +18,12 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     protected override RaskDashboardOptions Options => options;
 
     /// <inheritdoc />
-    protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
+    protected override async Task<object?> Load(CancellationToken cancellationToken)
     {
         _queues.Clear();
         foreach (var queue in queues.Where(q => q.IsAvailable).OrderBy(q => q.Title, StringComparer.Ordinal))
         {
-            _queues.Add((queue, await queue.CountsAsync(cancellationToken).ConfigureAwait(false)));
+            _queues.Add((queue, await queue.Counts(cancellationToken).ConfigureAwait(false)));
         }
 
         // The comparison key is every number on screen, flattened — a value tuple of a list would compare
@@ -54,7 +54,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
             DashboardError.Message(LoadError),
             FailureBanner(),
             Ui.Grid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
-            DashboardParked.Parked(IsParked).Resume(ResumeAsync),
+            DashboardParked.Parked(IsParked).Resume(Resume),
         ];
     }
 

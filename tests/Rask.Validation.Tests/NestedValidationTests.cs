@@ -10,12 +10,12 @@ namespace Rask.ValidationTests;
 public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void A_sub_object_property_error_lands_on_the_sub_instance_field()
+    public async Task A_sub_object_property_error_lands_on_the_sub_instance_field()
     {
         var p = new Person { Address = new Address { Street = "" } };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         // The Required error must land on the Address instance, NOT on the root Person.
         Assert.Contains("Street required", ctx.GetValidationMessages(new FieldIdentifier(p.Address, "Street")));
@@ -23,7 +23,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_deep_chain_error_lands_on_the_terminal_owner()
+    public async Task A_deep_chain_error_lands_on_the_terminal_owner()
     {
         var p = new Person
         {
@@ -31,14 +31,14 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Code required",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address!.Postal!.Country!, "Code")));
     }
 
     [Fact]
-    public void Each_list_item_error_lands_on_its_own_instance()
+    public async Task Each_list_item_error_lands_on_its_own_instance()
     {
         var alpha = new LineItem { Name = "", Quantity = 0 };
         var beta = new LineItem { Name = "beta", Quantity = -1 };
@@ -46,7 +46,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Items = new List<LineItem> { alpha, beta, gamma } };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(alpha, "Name")));
         Assert.Contains("Quantity must be positive",
@@ -58,12 +58,12 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Array_items_are_walked()
+    public async Task Array_items_are_walked()
     {
         var p = new Person { Tags = new[] { new Tag { Label = "" }, new Tag { Label = "ok" } } };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Label required",
             ctx.GetValidationMessages(new FieldIdentifier(p.Tags![0], "Label")));
@@ -71,7 +71,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Dictionary_values_are_walked()
+    public async Task Dictionary_values_are_walked()
     {
         var p = new Person
         {
@@ -83,7 +83,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Host required",
             ctx.GetValidationMessages(new FieldIdentifier(p.Settings!["smtp"], "Host")));
@@ -92,7 +92,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_cycle_in_the_model_does_not_loop_forever()
+    public async Task A_cycle_in_the_model_does_not_loop_forever()
     {
         // Manager points back at p — the walker must visit each node once.
         var manager = new Person { Name = "Boss" };
@@ -100,38 +100,38 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         manager.Manager = p;
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
 
     [Fact]
-    public void A_null_sub_object_is_skipped_cleanly()
+    public async Task A_null_sub_object_is_skipped_cleanly()
     {
         var p = new Person { Name = "Ada", Address = null };
         var ctx = RegisterValidator(p);
 
-        var ok = ctx.Validate();
+        var ok = await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.True(ok);
         Assert.False(ctx.HasValidationMessages());
     }
 
     [Fact]
-    public void A_null_list_item_is_skipped_cleanly()
+    public async Task A_null_list_item_is_skipped_cleanly()
     {
         var alpha = new LineItem { Name = "alpha", Quantity = 1 };
         var p = new Person { Items = new List<LineItem> { alpha, null!, new() { Name = "gamma", Quantity = 2 } } };
         var ctx = RegisterValidator(p);
 
-        var ok = ctx.Validate();
+        var ok = await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.True(ok);
         Assert.False(ctx.HasValidationMessages());
     }
 
     [Fact]
-    public void A_sub_object_IValidatableObject_routes_its_per_field_messages()
+    public async Task A_sub_object_IValidatableObject_routes_its_per_field_messages()
     {
         var p = new Person
         {
@@ -143,7 +143,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         // The IValidatableObject rule on Country emits a per-field error tied to Code.
         Assert.Contains("Code must be 2 letters",
@@ -151,7 +151,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_sub_object_IValidatableObject_form_level_error_lands_on_its_owners_empty_field()
+    public async Task A_sub_object_IValidatableObject_form_level_error_lands_on_its_owners_empty_field()
     {
         var p = new Person
         {
@@ -163,7 +163,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         // Form-level (empty MemberNames) errors from a sub-object's IValidatableObject attach
         // to that sub-object's (instance, "") slot — they still surface in ValidationSummary
@@ -173,7 +173,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validating_a_nested_field_touches_only_that_field()
+    public async Task Validating_a_nested_field_touches_only_that_field()
     {
         // Per-field validation at any depth must update only the (owner, name) slot — no
         // bleed onto root, no bleed onto sibling fields of the same owner.
@@ -184,7 +184,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         };
         var ctx = RegisterValidator(p);
 
-        ctx.ValidateField(new FieldIdentifier(p.Address!, "Street"));
+        await ctx.ValidateField(new FieldIdentifier(p.Address!, "Street"), TestContext.Current.CancellationToken);
 
         Assert.Contains("Street required",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address!, "Street")));
@@ -194,27 +194,27 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validating_a_list_item_field_touches_only_that_item()
+    public async Task Validating_a_list_item_field_touches_only_that_item()
     {
         var alpha = new LineItem { Name = "", Quantity = 0 };
         var beta = new LineItem { Name = "", Quantity = 0 };
         var p = new Person { Items = new List<LineItem> { alpha, beta } };
         var ctx = RegisterValidator(p);
 
-        ctx.ValidateField(new FieldIdentifier(beta, "Name"));
+        await ctx.ValidateField(new FieldIdentifier(beta, "Name"), TestContext.Current.CancellationToken);
 
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(beta, "Name")));
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(alpha, "Name")));
     }
 
     [Fact]
-    public void A_replaced_record_is_validated_as_the_new_instance()
+    public async Task A_replaced_record_is_validated_as_the_new_instance()
     {
         var first = new LineRecord("", 0);
         var p = new RecordPerson { Items = new List<LineRecord> { first } };
         var ctx = RegisterValidator(p);
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(first, "Name")));
 
@@ -224,7 +224,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         var replaced = first with { Name = "ok" };
         p.Items[0] = replaced;
 
-        ctx.Validate();
+        await ctx.Validate(TestContext.Current.CancellationToken);
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(replaced, "Name")));
         // The discarded record's slot has been cleared too.

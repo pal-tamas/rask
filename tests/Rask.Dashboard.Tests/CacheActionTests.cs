@@ -15,7 +15,7 @@ public sealed class CacheActionTests
         await using var h = new DashboardHarness(Batteries.Cache);
         await SeedAsync(h, "a", "b", "c");
 
-        Assert.Equal(1, await h.Get<ICachePanelReader>().EvictAsync("b", CancellationToken.None));
+        Assert.Equal(1, await h.Get<ICachePanelReader>().Evict("b", CancellationToken.None));
 
         await using var db = h.NewContext();
 
@@ -27,7 +27,7 @@ public sealed class CacheActionTests
     {
         await using var h = new DashboardHarness(Batteries.Cache);
 
-        Assert.Equal(0, await h.Get<ICachePanelReader>().EvictAsync("nope", CancellationToken.None));
+        Assert.Equal(0, await h.Get<ICachePanelReader>().Evict("nope", CancellationToken.None));
     }
 
     [Fact]
@@ -36,8 +36,8 @@ public sealed class CacheActionTests
         await using var h = new DashboardHarness(Batteries.Cache);
         await SeedAsync(h, "a", "b", "c");
 
-        Assert.Equal(3, await h.Get<ICachePanelReader>().FlushAsync(CancellationToken.None));
-        Assert.Equal(0, (await h.Get<ICachePanelReader>().StatsAsync(CancellationToken.None)).Entries);
+        Assert.Equal(3, await h.Get<ICachePanelReader>().Flush(CancellationToken.None));
+        Assert.Equal(0, (await h.Get<ICachePanelReader>().Stats(CancellationToken.None)).Entries);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class CacheActionTests
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        var stats = await h.Get<ICachePanelReader>().StatsAsync(CancellationToken.None);
+        var stats = await h.Get<ICachePanelReader>().Stats(CancellationToken.None);
 
         Assert.Equal(2, stats.Entries);
         Assert.Equal(15, stats.Bytes);
@@ -69,7 +69,7 @@ public sealed class CacheActionTests
         // SUM over no rows is NULL in SQL; a plain Sum() would throw on the nullable-to-long conversion.
         await using var h = new DashboardHarness(Batteries.Cache);
 
-        Assert.Equal(0, (await h.Get<ICachePanelReader>().StatsAsync(CancellationToken.None)).Bytes);
+        Assert.Equal(0, (await h.Get<ICachePanelReader>().Stats(CancellationToken.None)).Bytes);
     }
 
     [Fact]
@@ -79,8 +79,8 @@ public sealed class CacheActionTests
         var cache = h.Get<ICachePanelReader>();
 
         Assert.False(cache.IsAvailable);
-        Assert.Equal(0, await cache.EvictAsync("a", CancellationToken.None));
-        Assert.Equal(0, await cache.FlushAsync(CancellationToken.None));
+        Assert.Equal(0, await cache.Evict("a", CancellationToken.None));
+        Assert.Equal(0, await cache.Flush(CancellationToken.None));
     }
 
     private static async Task SeedAsync(DashboardHarness harness, params string[] keys)

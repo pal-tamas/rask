@@ -41,7 +41,7 @@ public sealed class FluentValidationFieldValidator : IAsyncFieldValidator
     /// </summary>
     /// <param name="context">The context being validated.</param>
     /// <param name="cancellationToken">Cancels the in-flight run.</param>
-    public async ValueTask ValidateAsync(EditContext context, CancellationToken cancellationToken)
+    public async ValueTask Validate(EditContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -60,7 +60,7 @@ public sealed class FluentValidationFieldValidator : IAsyncFieldValidator
     /// <param name="context">The context being validated.</param>
     /// <param name="field">The field to validate.</param>
     /// <param name="cancellationToken">Cancels the in-flight run.</param>
-    public async ValueTask ValidateFieldAsync(
+    public async ValueTask ValidateField(
         EditContext context, FieldIdentifier field, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);

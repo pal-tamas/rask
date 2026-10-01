@@ -2,112 +2,6 @@ namespace Rask.Core.Forms;
 
 public sealed partial class EditContext
 {
-    // What made this context async. Without it the sync-validate refusal names the remedy but not the
-    // cause, so on a form carrying several validators you find the culprit by bisecting them.
-    private string DescribeAsyncValidators()
-    {
-        var named = new List<string>();
-        foreach (var v in _asyncValidators)
-        {
-            named.Add(v.GetType().Name);
-        }
-
-        if (_formDelegate is not null && DelegateValidator.IsAsync(_formDelegate))
-        {
-            named.Add("an async form-level Validate delegate");
-        }
-
-        foreach (var (field, reg) in _fieldDelegates)
-        {
-            if (DelegateValidator.IsAsync(reg.Validate))
-            {
-                named.Add($"an async Validate on '{field.FieldName}'");
-            }
-        }
-
-        return named.Count == 0 ? "none found — this is a framework bug" : string.Join(", ", named);
-    }
-
-    /// <summary>
-    ///     Validates the whole form and reports whether it passed. Clears the existing messages first, so
-    ///     the messages afterwards are exactly this run's.
-    /// </summary>
-    /// <returns><see langword="true" /> when no field produced a message.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Any registered validator is asynchronous — the result could only be reported by guessing, so
-    ///     this refuses rather than return a wrong answer. Use <see cref="ValidateAsync" />. The message
-    ///     names which validators made the form async.
-    /// </exception>
-    public bool Validate()
-    {
-        if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
-        {
-            throw new InvalidOperationException(
-                $"This EditContext has async validators ({DescribeAsyncValidators()}), so it cannot be "
-                + "validated synchronously. Call ValidateAsync() instead of Validate().");
-        }
-
-        ClearAllMessages();
-
-        // Inline per-field delegates run first, then the form-level inline delegate,
-        // then attribute-driven validators (DataAnnotations, FluentValidation, …) in
-        // registration order. First-error-wins gates each later stage so a field stays
-        // tied to the first rule that flagged it.
-        InvokeSyncFieldDelegates();
-        InvokeSyncFormDelegate();
-
-        foreach (var v in _validators)
-        {
-            var pre = SnapshotMessageCounts();
-            v.Validate(this);
-            TrimGatedMessages(pre);
-        }
-
-        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-        return !HasValidationMessages();
-    }
-
-    /// <summary>
-    ///     Validates one field and reports whether it passed — what a control runs as the user leaves it,
-    ///     rather than re-checking the whole form on every keystroke.
-    /// </summary>
-    /// <param name="field">The field to validate.</param>
-    /// <returns><see langword="true" /> when the field produced no message.</returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Any registered validator is asynchronous. Use <see cref="ValidateFieldAsync" />.
-    /// </exception>
-    public bool ValidateField(FieldIdentifier field)
-    {
-        if (_asyncValidators.Count > 0 || HasAsyncDelegateValidators)
-        {
-            throw new InvalidOperationException(
-                $"This EditContext has async validators ({DescribeAsyncValidators()}), so field "
-                + $"'{field.FieldName}' cannot be validated synchronously. Call "
-                + "ValidateFieldAsync(field) instead of ValidateField(field).");
-        }
-
-        ClearMessages(field);
-
-        // Inline field delegate first, then attribute-driven validators — short-circuit
-        // as soon as any stage has produced a message for the field (first-error-wins).
-        InvokeSyncFieldDelegate(field);
-
-        if (GetValidationMessages(field).Count == 0)
-        {
-            foreach (var v in _validators)
-            {
-                v.ValidateField(this, field);
-                if (GetValidationMessages(field).Count > 0)
-                {
-                    break;
-                }
-            }
-        }
-
-        ValidationStateChanged?.Invoke(this, EventArgs.Empty);
-        return GetValidationMessages(field).Count == 0;
-    }
-
     // First-error-wins: skip sync IFieldValidators once the field already has a message from an earlier stage.
     private void RunSyncFieldValidators(FieldIdentifier field, FieldState state)
     {
@@ -160,32 +54,8 @@ public sealed partial class EditContext
         }
     }
 
-    private void InvokeSyncFieldDelegates()
-    {
-        foreach (var pair in _fieldDelegates)
-        {
-            InvokeSyncFieldDelegate(pair.Key, pair.Value);
-        }
-    }
-
-    private void InvokeSyncFieldDelegate(FieldIdentifier field)
-    {
-        if (_fieldDelegates.TryGetValue(field, out var reg))
-        {
-            InvokeSyncFieldDelegate(field, reg);
-        }
-    }
-
     private void InvokeSyncFieldDelegate(FieldIdentifier field, DelegateRegistration reg) =>
         RunValidator(field, reg.Validate, reg.ValueGetter);
-
-    private void InvokeSyncFormDelegate()
-    {
-        if (_formDelegate is not null)
-        {
-            RunValidator(FormField, _formDelegate, () => Model);
-        }
-    }
 
     private ValueTask InvokeFieldDelegateAsync(
         FieldIdentifier field, DelegateRegistration reg, CancellationToken cancellationToken) =>

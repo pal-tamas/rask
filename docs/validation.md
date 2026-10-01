@@ -51,11 +51,10 @@ beside the app, or register them explicitly:
 RaskValidators.Register(typeof(Order), _ => new OrderValidator());
 ```
 
-**A discovered validator makes the form validate asynchronously.** FluentValidation runs async, so
-`EditContext.Validate()` — the synchronous overload — throws once a validator exists for the model, and
-`ValidateAsync()` must be used instead. This is not new behaviour for a context with async validators;
-what is new is that writing an `AbstractValidator<T>` is now enough to put one there. The exception
-names the validator that made the context async.
+**A discovered validator makes the form validate asynchronously.** FluentValidation runs async, so a
+model with a validator is checked through the awaitable `EditContext.Validate()` / `ValidateField(field)` —
+the only ones there are: every rule, synchronous or asynchronous, runs through them, so writing an
+`AbstractValidator<T>` changes nothing at the call site.
 
 ## Requests
 

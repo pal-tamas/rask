@@ -88,13 +88,13 @@ public sealed class SystemPageBackupTests
     private sealed class FakeBackupProbe(BackupVerificationInfo? verification, bool replicating = true)
         : IDashboardBackupProbe
     {
-        public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken) =>
+        public Task<BackupReplicationInfo?> Replication(CancellationToken cancellationToken) =>
             Task.FromResult<BackupReplicationInfo?>(new BackupReplicationInfo(replicating, Now.AddDays(-3), 0, null));
 
-        public Task<IReadOnlyList<BackupSnapshotInfo>> SnapshotsAsync(CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<BackupSnapshotInfo>> Snapshots(CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<BackupSnapshotInfo>>([]);
 
-        public Task<BackupVerificationInfo?> VerificationAsync(CancellationToken cancellationToken) =>
+        public Task<BackupVerificationInfo?> Verification(CancellationToken cancellationToken) =>
             Task.FromResult(verification);
     }
 }

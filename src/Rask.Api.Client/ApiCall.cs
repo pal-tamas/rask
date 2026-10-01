@@ -30,7 +30,7 @@ public static class ApiCall
     /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>The response body, or null for a 204 or an empty answer.</returns>
     /// <exception cref="ApiException">The call failed, or the answer was not a success status.</exception>
-    public static async Task<byte[]?> SendAsync(
+    public static async Task<byte[]?> Send(
         HttpClient http,
         ApiClientOptions options,
         HttpMethod method,
@@ -50,9 +50,9 @@ public static class ApiCall
 
         using var request = CreateRequest(method, uri, body);
 
-        if (options.ConfigureRequestAsync is not null)
+        if (options.ConfigureRequest is not null)
         {
-            await options.ConfigureRequestAsync(request, cancellationToken).ConfigureAwait(false);
+            await options.ConfigureRequest(request, cancellationToken).ConfigureAwait(false);
         }
 
         // The timeout is applied per attempt here rather than on the HttpClient, because on the path

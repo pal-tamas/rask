@@ -14,7 +14,7 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
     private IAsyncDisposable? _watch;
     private string _status = "(idle)";
 
-    protected override async Task OnFirstRendered()
+    protected override async Task OnFirstRender()
     {
         if (_watch is not null)
 
@@ -27,7 +27,7 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
         if (!await gamepad.IsSupportedAsync())
         {
             _status = "Gamepad API not supported";
-            await StateHasChangedAsync();
+            StateHasChanged();
             return;
         }
 
@@ -46,7 +46,7 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
             StateHasChanged();
             return Task.CompletedTask;
         });
-        await StateHasChangedAsync();
+        StateHasChanged();
     }
 
     protected override Component? Render() =>

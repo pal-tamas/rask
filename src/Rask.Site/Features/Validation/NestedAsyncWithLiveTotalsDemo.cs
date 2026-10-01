@@ -36,8 +36,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
     private static Component FieldError(IReadOnlyList<string> msgs) =>
         [.. msgs.Select((m, i) => Div.Key(i).Class("text-danger text-sm mt-1")[m])];
 
-    private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(
-        string code, CancellationToken ct)
+    private static async ValueTask<IEnumerable<string>> ValidatePostalAsync(string code)
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -54,7 +53,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
         // the inline async-validator path runs inside HandlerSyncContext, and a captured
         // continuation here would race the outer InvokeWithRenderingAsync mid-await render
         // (concurrent WebSocket.SendAsync calls deadlock on the same socket).
-        await Task.Delay(300, ct).ConfigureAwait(false);
+        await Task.Delay(300, Current.Cancellation).ConfigureAwait(false);
         return UndeliverableZips.Contains(code)
             ? new[] { "We don't ship to this area." }
             : Array.Empty<string>();
