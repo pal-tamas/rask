@@ -23,8 +23,17 @@ public sealed class DebuggerBreakOnFaultTests
 {
     private static readonly string _repoRoot = LocateRepoRoot();
 
-    private static string ComponentSource =>
-        File.ReadAllText(Path.Combine(_repoRoot, "src", "Rask.Core", "Component.cs"));
+    // Component is split into partial files (Component.cs, Component.Handlers.cs, …), so its source is all of them.
+    private static string ComponentSource
+    {
+        get
+        {
+            var core = Path.Combine(_repoRoot, "src", "Rask.Core");
+            var parts = Directory.GetFiles(core, "Component.*.cs").Order(StringComparer.Ordinal)
+                .Prepend(Path.Combine(core, "Component.cs"));
+            return string.Join('\n', parts.Select(File.ReadAllText));
+        }
+    }
 
     [Fact]
     public void The_handler_dispatch_leaves_the_stop_to_the_debugger()
@@ -65,7 +74,7 @@ public sealed class DebuggerBreakOnFaultTests
     private static string Before(string source, string marker)
     {
         var at = source.IndexOf(marker, StringComparison.Ordinal);
-        Assert.True(at > 0, $"'{marker}' is gone from Component.cs");
+        Assert.True(at > 0, $"'{marker}' is gone from Component's source");
 
         return source[Math.Max(0, at - 400)..at];
     }

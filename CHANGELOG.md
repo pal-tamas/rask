@@ -112,6 +112,11 @@ them until tagged releases begin.
   code; they are two now, and the class is split into partial files — state and queries, the rule runners
   and first-error gating, validation, and the sticky validating indicator. A form validates exactly as it did.
 
+- **`Component` is split by what each part does.** The base class every component derives from was 3,300
+  lines in one file; it keeps its identity, shell and render members (480 lines), and its conversions,
+  children, global attributes, lifecycle, disposal, live render, root render, clean-subtree cache, handlers
+  and live state are partial files of their own. Nothing in them changed.
+
 - **`Ui.DataGrid` is split by what each part does.** `UiDataGrid` (1,600 lines) keeps its props, its state
   and the column factory; querying and paging the rows, resolving columns, the sort/page/group/column
   handlers, selection, rendering the table, the group bands and the column chooser are partial files of their
