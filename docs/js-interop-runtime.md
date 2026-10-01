@@ -194,9 +194,11 @@ public sealed partial class RefDemo : Component
 - **Only members whose values cross the wire are there.** A member that takes or returns a live object (a
   `Node`, a `MediaStream`) is left out; a ref still hands the element to your own TypeScript for those.
 - **A typed ref on the wrong element throws** where it is put: an `ElementRef<HTMLVideoElement>` on a `Div`.
-- **A member a browser only allows during a click** (`RequestFullscreen()`, an input's `ShowPicker()`) works on
-  WASM, where the handler runs in the click. On the Server host the call reaches the browser after the click
-  has ended, so the browser refuses it and the call throws a `JSException`.
+- **A member a browser only allows during a click** (`RequestFullscreen()`, `RequestPointerLock()`, an input's
+  `ShowPicker()`) is generated into `Rask.Wasm` alone, where the handler
+  runs in the click. On the Server host the call would reach the browser after the click has ended and be
+  refused, so there it does not compile; `Trigger.Fullscreen` and `Trigger.PictureInPicture` run it in the click
+  from markup instead.
 
 A ref still serializes as `{"__raskRef__":"id"}`, and both clients revive it to the live DOM element, so it
 passes to `IJSRuntime` or to your scoped TypeScript as the element itself:

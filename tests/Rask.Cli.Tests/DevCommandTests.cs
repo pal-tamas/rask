@@ -463,14 +463,14 @@ public sealed class DevCommandTests
         bool nonInteractive = false,
         IReadOnlyList<string>? passthrough = null,
         DevTemplateKind kind = DevTemplateKind.Server) =>
-        DevCommand.BuildDotnetArguments(project, once, noHotReload, launchProfile, nonInteractive, passthrough ?? [], kind);
+        DotnetWatchInvocation.BuildDotnetArguments(project, once, noHotReload, launchProfile, nonInteractive, passthrough ?? [], kind);
 
     private static IReadOnlyDictionary<string, string> Env(
         DevTemplateKind kind = DevTemplateKind.Server,
         bool restartOnRudeEdit = true,
         string? urls = null,
         Func<string, string?>? readEnv = null) =>
-        DevCommand.BuildEnvironment(kind, restartOnRudeEdit, urls, readEnv ?? (_ => null));
+        DotnetWatchInvocation.BuildEnvironment(kind, restartOnRudeEdit, urls, readEnv ?? (_ => null));
 
     private static FakeFileSystem SeededServer(bool launchBrowser = false)
     {

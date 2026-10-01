@@ -20,7 +20,9 @@ var wide = await mql.Matches;
 - **MDN's names, no `Async` suffix,** and each member's doc comment gives its browser support and links to MDN and the
   spec. `IsSupported` asks the browser whether it has one: `await Navigator.Clipboard.IsSupported`.
 - **Both hosts.** On the server host each chain runs over the page's socket; in WebAssembly, in-process. Call it from
-  an event handler or `OnRendered`, where the page is live.
+  an event handler or `OnRendered`, where the page is live. What only WebAssembly can run — a call that needs the
+  user's click in progress (`Navigator.Share`, `Notification.RequestPermission`), WebGL, WebGPU — comes with
+  `Rask.Wasm`, so a server app cannot call it by mistake.
 - **The DOM stays Rask's.** Nothing that returns or rewrites DOM nodes is generated; use an element ref for an
   element's own members.
 

@@ -99,7 +99,7 @@ public class DevIslandsTests
     [Fact]
     public void A_dev_session_with_islands_skips_the_production_bundle()
     {
-        var args = DevCommand.BuildDotnetArguments(
+        var args = DotnetWatchInvocation.BuildDotnetArguments(
             "/app/App.csproj", once: false, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server);
 
@@ -116,7 +116,7 @@ public class DevIslandsTests
     {
         // --once is deliberately a plain `dotnet run` with nothing beside it, so the app has to serve a
         // real bundle or there is nothing to look at.
-        var args = DevCommand.BuildDotnetArguments(
+        var args = DotnetWatchInvocation.BuildDotnetArguments(
             "/app/App.csproj", once: true, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.Server);
 
@@ -126,7 +126,7 @@ public class DevIslandsTests
     [Fact]
     public void The_dev_server_url_reaches_the_app_through_the_environment()
     {
-        var env = DevCommand.BuildEnvironment(
+        var env = DotnetWatchInvocation.BuildEnvironment(
             DevTemplateKind.Server, restartOnRudeEdit: false, urls: null, readEnv: _ => null,
             islandDevServerUrl: "http://localhost:5174");
 
@@ -142,7 +142,7 @@ public class DevIslandsTests
         // What must suppress it is `once`, and nothing else: the property is already withheld there, so
         // stamping the page anyway would leave it importing @vite/client from a port nothing is
         // listening on, and a stale dev.json from an earlier session could point it somewhere worse.
-        var env = DevCommand.BuildEnvironment(
+        var env = DotnetWatchInvocation.BuildEnvironment(
             DevTemplateKind.Server, restartOnRudeEdit: false, urls: null, readEnv: _ => null,
             islandDevServerUrl: "http://localhost:5174", once: true);
 
@@ -152,7 +152,7 @@ public class DevIslandsTests
     [Fact]
     public void A_run_without_islands_sets_no_dev_server_variable()
     {
-        var env = DevCommand.BuildEnvironment(
+        var env = DotnetWatchInvocation.BuildEnvironment(
             DevTemplateKind.Server, restartOnRudeEdit: false, urls: null, readEnv: _ => null);
 
         Assert.False(env.ContainsKey("RASK_ISLANDS_DEV"));

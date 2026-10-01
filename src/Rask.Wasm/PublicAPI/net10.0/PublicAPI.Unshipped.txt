@@ -531,3 +531,369 @@ Rask.WasmHostBuilderExtensions
 static Rask.WasmHostBuilderExtensions.Configure(this Rask.Wasm.WasmHostBuilder! host, System.Action<Rask.RaskWasmOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!
 Rask.RaskWasmOptions.Ui.get -> Rask.Battery!
 Rask.RaskWasmOptions.Toasts.get -> Rask.ToastOptions!
+Rask.Core.WasmElementRefMembers
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!)
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestFullscreen() -> System.Threading.Tasks.ValueTask
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestFullscreen(Rask.Core.FullscreenOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestPointerLock() -> System.Threading.Tasks.ValueTask
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).RequestPointerLock(Rask.Core.PointerLockOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!)
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).ShowPicker() -> System.Threading.Tasks.ValueTask
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!)
+Rask.Core.WasmElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).ShowPicker() -> System.Threading.Tasks.ValueTask
+Rask.Web.GPUInternalError
+Rask.Web.GPUOutOfMemoryError
+Rask.Web.GPUPipelineError
+Rask.Web.GPUValidationError
+Rask.Web.Types.AudioWorklet
+Rask.Web.Types.AudioWorkletNode
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action<Rask.Web.Types.ErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<Rask.Web.Types.ErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.Parameters.get -> Rask.Web.Types.AudioParamMap!
+Rask.Web.Types.AudioWorkletNode.Port.get -> Rask.Web.Types.MessagePort!
+Rask.Web.Types.GPU
+Rask.Web.Types.GPU.GetPreferredCanvasFormat() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUTextureFormat>
+Rask.Web.Types.GPU.RequestAdapter() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUAdapter!>
+Rask.Web.Types.GPU.RequestAdapter(Rask.Web.Types.GPURequestAdapterOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUAdapter!>
+Rask.Web.Types.GPU.WgslLanguageFeatures.get -> Rask.Web.Types.WGSLLanguageFeatures!
+Rask.Web.Types.GPUAdapter
+Rask.Web.Types.GPUAdapter.Features.get -> Rask.Web.Types.GPUSupportedFeatures!
+Rask.Web.Types.GPUAdapter.Info.get -> Rask.Web.Types.GPUAdapterInfo!
+Rask.Web.Types.GPUAdapter.Limits.get -> Rask.Web.Types.GPUSupportedLimits!
+Rask.Web.Types.GPUAdapter.RequestDevice() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUDevice!>
+Rask.Web.Types.GPUAdapter.RequestDevice(Rask.Web.Types.GPUDeviceDescriptor! descriptor) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUDevice!>
+Rask.Web.Types.GPUAdapterInfo
+Rask.Web.Types.GPUAdapterInfo.Architecture.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUAdapterInfo.Description.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUAdapterInfo.Device.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUAdapterInfo.IsFallbackAdapter.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.GPUAdapterInfo.Vendor.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUBindGroup
+Rask.Web.Types.GPUBindGroup.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUBindGroup.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBindGroupLayout
+Rask.Web.Types.GPUBindGroupLayout.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUBindGroupLayout.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer
+Rask.Web.Types.GPUBuffer.Destroy() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUBuffer.MapState.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUBufferMapState>
+Rask.Web.Types.GPUBuffer.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer.Unmap() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCanvasContext
+Rask.Web.Types.GPUCanvasContext.Configure(Rask.Web.Types.GPUCanvasConfiguration! configuration) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCanvasContext.GetConfiguration() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUCanvasConfiguration?>
+Rask.Web.Types.GPUCanvasContext.GetCurrentTexture() -> Rask.Web.Types.GPUTexture!
+Rask.Web.Types.GPUCanvasContext.Unconfigure() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandBuffer
+Rask.Web.Types.GPUCommandBuffer.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUCommandBuffer.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder
+Rask.Web.Types.GPUCommandEncoder.BeginComputePass() -> Rask.Web.Types.GPUComputePassEncoder!
+Rask.Web.Types.GPUCommandEncoder.BeginComputePass(Rask.Web.Types.GPUComputePassDescriptor! descriptor) -> Rask.Web.Types.GPUComputePassEncoder!
+Rask.Web.Types.GPUCommandEncoder.BeginRenderPass(Rask.Web.Types.GPURenderPassDescriptor! descriptor) -> Rask.Web.Types.GPURenderPassEncoder!
+Rask.Web.Types.GPUCommandEncoder.Finish() -> Rask.Web.Types.GPUCommandBuffer!
+Rask.Web.Types.GPUCommandEncoder.Finish(Rask.Web.Types.GPUCommandBufferDescriptor! descriptor) -> Rask.Web.Types.GPUCommandBuffer!
+Rask.Web.Types.GPUCommandEncoder.InsertDebugMarker(string! markerLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUCommandEncoder.PopDebugGroup() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.PushDebugGroup(string! groupLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCompilationInfo
+Rask.Web.Types.GPUCompilationMessage
+Rask.Web.Types.GPUCompilationMessage.Length.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUCompilationMessage.LineNum.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUCompilationMessage.LinePos.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUCompilationMessage.Message.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUCompilationMessage.Offset.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUCompilationMessage.Type.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUCompilationMessageType>
+Rask.Web.Types.GPUComputePassEncoder
+Rask.Web.Types.GPUComputePassEncoder.End() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.InsertDebugMarker(string! markerLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUComputePassEncoder.PopDebugGroup() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.PushDebugGroup(string! groupLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePipeline
+Rask.Web.Types.GPUComputePipeline.GetBindGroupLayout(int index) -> Rask.Web.Types.GPUBindGroupLayout!
+Rask.Web.Types.GPUComputePipeline.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUComputePipeline.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUDevice
+Rask.Web.Types.GPUDevice.AdapterInfo.get -> Rask.Web.Types.GPUAdapterInfo!
+Rask.Web.Types.GPUDevice.CreateBindGroup(Rask.Web.Types.GPUBindGroupDescriptor! descriptor) -> Rask.Web.Types.GPUBindGroup!
+Rask.Web.Types.GPUDevice.CreateBindGroupLayout(Rask.Web.Types.GPUBindGroupLayoutDescriptor! descriptor) -> Rask.Web.Types.GPUBindGroupLayout!
+Rask.Web.Types.GPUDevice.CreateBuffer(Rask.Web.Types.GPUBufferDescriptor! descriptor) -> Rask.Web.Types.GPUBuffer!
+Rask.Web.Types.GPUDevice.CreateCommandEncoder() -> Rask.Web.Types.GPUCommandEncoder!
+Rask.Web.Types.GPUDevice.CreateCommandEncoder(Rask.Web.Types.GPUCommandEncoderDescriptor! descriptor) -> Rask.Web.Types.GPUCommandEncoder!
+Rask.Web.Types.GPUDevice.CreateComputePipeline(Rask.Web.Types.GPUComputePipelineDescriptor! descriptor) -> Rask.Web.Types.GPUComputePipeline!
+Rask.Web.Types.GPUDevice.CreateComputePipelineAsync(Rask.Web.Types.GPUComputePipelineDescriptor! descriptor) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUComputePipeline!>
+Rask.Web.Types.GPUDevice.CreatePipelineLayout(Rask.Web.Types.GPUPipelineLayoutDescriptor! descriptor) -> Rask.Web.Types.GPUPipelineLayout!
+Rask.Web.Types.GPUDevice.CreateQuerySet(Rask.Web.Types.GPUQuerySetDescriptor! descriptor) -> Rask.Web.Types.GPUQuerySet!
+Rask.Web.Types.GPUDevice.CreateRenderBundleEncoder(Rask.Web.Types.GPURenderBundleEncoderDescriptor! descriptor) -> Rask.Web.Types.GPURenderBundleEncoder!
+Rask.Web.Types.GPUDevice.CreateRenderPipeline(Rask.Web.Types.GPURenderPipelineDescriptor! descriptor) -> Rask.Web.Types.GPURenderPipeline!
+Rask.Web.Types.GPUDevice.CreateRenderPipelineAsync(Rask.Web.Types.GPURenderPipelineDescriptor! descriptor) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPURenderPipeline!>
+Rask.Web.Types.GPUDevice.CreateSampler() -> Rask.Web.Types.GPUSampler!
+Rask.Web.Types.GPUDevice.CreateSampler(Rask.Web.Types.GPUSamplerDescriptor! descriptor) -> Rask.Web.Types.GPUSampler!
+Rask.Web.Types.GPUDevice.CreateShaderModule(Rask.Web.Types.GPUShaderModuleDescriptor! descriptor) -> Rask.Web.Types.GPUShaderModule!
+Rask.Web.Types.GPUDevice.CreateTexture(Rask.Web.Types.GPUTextureDescriptor! descriptor) -> Rask.Web.Types.GPUTexture!
+Rask.Web.Types.GPUDevice.Destroy() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUDevice.Features.get -> Rask.Web.Types.GPUSupportedFeatures!
+Rask.Web.Types.GPUDevice.ImportExternalTexture(Rask.Web.Types.GPUExternalTextureDescriptor! descriptor) -> Rask.Web.Types.GPUExternalTexture!
+Rask.Web.Types.GPUDevice.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUDevice.Limits.get -> Rask.Web.Types.GPUSupportedLimits!
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action<Rask.Web.Types.GPUUncapturedErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<Rask.Web.Types.GPUUncapturedErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.PushErrorScope(Rask.Web.Types.GPUErrorFilter filter) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUDevice.Queue.get -> Rask.Web.Types.GPUQueue!
+Rask.Web.Types.GPUDevice.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUDeviceLostInfo
+Rask.Web.Types.GPUDeviceLostInfo.Message.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUDeviceLostInfo.Reason.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUDeviceLostReason>
+Rask.Web.Types.GPUExternalTexture
+Rask.Web.Types.GPUExternalTexture.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUExternalTexture.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUInternalError
+Rask.Web.Types.GPUOutOfMemoryError
+Rask.Web.Types.GPUPipelineError
+Rask.Web.Types.GPUPipelineError.Reason.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUPipelineErrorReason>
+Rask.Web.Types.GPUPipelineLayout
+Rask.Web.Types.GPUPipelineLayout.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUPipelineLayout.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQuerySet
+Rask.Web.Types.GPUQuerySet.Destroy() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQuerySet.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUQuerySet.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQuerySet.Type.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUQueryType>
+Rask.Web.Types.GPUQueue
+Rask.Web.Types.GPUQueue.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUQueue.OnSubmittedWorkDone() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQueue.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundle
+Rask.Web.Types.GPURenderBundle.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPURenderBundle.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder
+Rask.Web.Types.GPURenderBundleEncoder.Finish() -> Rask.Web.Types.GPURenderBundle!
+Rask.Web.Types.GPURenderBundleEncoder.Finish(Rask.Web.Types.GPURenderBundleDescriptor! descriptor) -> Rask.Web.Types.GPURenderBundle!
+Rask.Web.Types.GPURenderBundleEncoder.InsertDebugMarker(string! markerLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPURenderBundleEncoder.PopDebugGroup() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.PushDebugGroup(string! groupLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder
+Rask.Web.Types.GPURenderPassEncoder.End() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.EndOcclusionQuery() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.InsertDebugMarker(string! markerLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPURenderPassEncoder.PopDebugGroup() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.PushDebugGroup(string! groupLabel) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetViewport(double x, double y, double width, double height, double minDepth, double maxDepth) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPipeline
+Rask.Web.Types.GPURenderPipeline.GetBindGroupLayout(int index) -> Rask.Web.Types.GPUBindGroupLayout!
+Rask.Web.Types.GPURenderPipeline.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPURenderPipeline.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUSampler
+Rask.Web.Types.GPUSampler.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUSampler.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUShaderModule
+Rask.Web.Types.GPUShaderModule.GetCompilationInfo() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUCompilationInfo!>
+Rask.Web.Types.GPUShaderModule.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUShaderModule.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUSupportedFeatures
+Rask.Web.Types.GPUSupportedLimits
+Rask.Web.Types.GPUSupportedLimits.MaxBindGroups.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxBindGroupsPlusVertexBuffers.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxBindingsPerBindGroup.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxBufferSize.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUSupportedLimits.MaxColorAttachmentBytesPerSample.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxColorAttachments.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxComputeInvocationsPerWorkgroup.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxComputeWorkgroupSizeX.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxComputeWorkgroupSizeY.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxComputeWorkgroupSizeZ.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxComputeWorkgroupStorageSize.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxComputeWorkgroupsPerDimension.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxDynamicStorageBuffersPerPipelineLayout.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxDynamicUniformBuffersPerPipelineLayout.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxInterStageShaderVariables.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxSampledTexturesPerShaderStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxSamplersPerShaderStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxStorageBufferBindingSize.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUSupportedLimits.MaxStorageBuffersInFragmentStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxStorageBuffersInVertexStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxStorageBuffersPerShaderStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxStorageTexturesInFragmentStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxStorageTexturesInVertexStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxStorageTexturesPerShaderStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxTextureArrayLayers.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxTextureDimension1D.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxTextureDimension2D.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxTextureDimension3D.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxUniformBufferBindingSize.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUSupportedLimits.MaxUniformBuffersPerShaderStage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxVertexAttributes.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxVertexBufferArrayStride.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MaxVertexBuffers.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MinStorageBufferOffsetAlignment.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUSupportedLimits.MinUniformBufferOffsetAlignment.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUTexture
+Rask.Web.Types.GPUTexture.CreateView() -> Rask.Web.Types.GPUTextureView!
+Rask.Web.Types.GPUTexture.CreateView(Rask.Web.Types.GPUTextureViewDescriptor! descriptor) -> Rask.Web.Types.GPUTextureView!
+Rask.Web.Types.GPUTexture.Destroy() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUTexture.Dimension.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUTextureDimension>
+Rask.Web.Types.GPUTexture.Format.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUTextureFormat>
+Rask.Web.Types.GPUTexture.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUTexture.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUTextureView
+Rask.Web.Types.GPUTextureView.Label.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUTextureView.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUValidationError
+Rask.Web.Types.WebGL2RenderingContext
+Rask.Web.Types.WebGL2RenderingContext.CreateBuffer() -> Rask.Web.Types.WebGLBuffer!
+Rask.Web.Types.WebGL2RenderingContext.CreateFramebuffer() -> Rask.Web.Types.WebGLFramebuffer!
+Rask.Web.Types.WebGL2RenderingContext.CreateProgram() -> Rask.Web.Types.WebGLProgram!
+Rask.Web.Types.WebGL2RenderingContext.CreateQuery() -> Rask.Web.Types.WebGLQuery!
+Rask.Web.Types.WebGL2RenderingContext.CreateRenderbuffer() -> Rask.Web.Types.WebGLRenderbuffer!
+Rask.Web.Types.WebGL2RenderingContext.CreateSampler() -> Rask.Web.Types.WebGLSampler!
+Rask.Web.Types.WebGL2RenderingContext.CreateTexture() -> Rask.Web.Types.WebGLTexture!
+Rask.Web.Types.WebGL2RenderingContext.CreateTransformFeedback() -> Rask.Web.Types.WebGLTransformFeedback!
+Rask.Web.Types.WebGL2RenderingContext.CreateVertexArray() -> Rask.Web.Types.WebGLVertexArrayObject!
+Rask.Web.Types.WebGL2RenderingContext.DrawingBufferColorSpace.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PredefinedColorSpace>
+Rask.Web.Types.WebGL2RenderingContext.EndTransformFeedback() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Finish() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Flush() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.GetContextAttributes() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebGLContextAttributes?>
+Rask.Web.Types.WebGL2RenderingContext.GetSupportedExtensions() -> System.Threading.Tasks.ValueTask<string![]?>
+Rask.Web.Types.WebGL2RenderingContext.IsContextLost() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.PauseTransformFeedback() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ResumeTransformFeedback() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.SetDrawingBufferColorSpace(Rask.Web.Types.PredefinedColorSpace value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.SetUnpackColorSpace(Rask.Web.Types.PredefinedColorSpace value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.UnpackColorSpace.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PredefinedColorSpace>
+Rask.Web.Types.WebGLActiveInfo
+Rask.Web.Types.WebGLActiveInfo.Name.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.WebGLBuffer
+Rask.Web.Types.WebGLFramebuffer
+Rask.Web.Types.WebGLProgram
+Rask.Web.Types.WebGLQuery
+Rask.Web.Types.WebGLRenderbuffer
+Rask.Web.Types.WebGLRenderingContext
+Rask.Web.Types.WebGLRenderingContext.CreateBuffer() -> Rask.Web.Types.WebGLBuffer!
+Rask.Web.Types.WebGLRenderingContext.CreateFramebuffer() -> Rask.Web.Types.WebGLFramebuffer!
+Rask.Web.Types.WebGLRenderingContext.CreateProgram() -> Rask.Web.Types.WebGLProgram!
+Rask.Web.Types.WebGLRenderingContext.CreateRenderbuffer() -> Rask.Web.Types.WebGLRenderbuffer!
+Rask.Web.Types.WebGLRenderingContext.CreateTexture() -> Rask.Web.Types.WebGLTexture!
+Rask.Web.Types.WebGLRenderingContext.DrawingBufferColorSpace.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PredefinedColorSpace>
+Rask.Web.Types.WebGLRenderingContext.Finish() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Flush() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.GetContextAttributes() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WebGLContextAttributes?>
+Rask.Web.Types.WebGLRenderingContext.GetSupportedExtensions() -> System.Threading.Tasks.ValueTask<string![]?>
+Rask.Web.Types.WebGLRenderingContext.IsContextLost() -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.SetDrawingBufferColorSpace(Rask.Web.Types.PredefinedColorSpace value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.SetUnpackColorSpace(Rask.Web.Types.PredefinedColorSpace value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.UnpackColorSpace.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PredefinedColorSpace>
+Rask.Web.Types.WebGLSampler
+Rask.Web.Types.WebGLShader
+Rask.Web.Types.WebGLShaderPrecisionFormat
+Rask.Web.Types.WebGLSync
+Rask.Web.Types.WebGLTexture
+Rask.Web.Types.WebGLTransformFeedback
+Rask.Web.Types.WebGLUniformLocation
+Rask.Web.Types.WebGLVertexArrayObject
+Rask.Web.Types.WebGLVertexArrayObjectOES
+Rask.Web.WasmMembers
+Rask.Web.WasmMembers.extension(Rask.Web.Document!)
+Rask.Web.WasmMembers.extension(Rask.Web.Navigator!)
+Rask.Web.WasmMembers.extension(Rask.Web.Notification!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.BaseAudioContext!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.BaseAudioContext!).AudioWorklet.get -> Rask.Web.Types.AudioWorklet!
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Document!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Document!).RequestStorageAccess() -> System.Threading.Tasks.ValueTask
+Rask.Web.WasmMembers.extension(Rask.Web.Types.MediaDevices!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.MediaDevices!).GetDisplayMedia() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.MediaDevices!).GetDisplayMedia(Rask.Web.Types.DisplayMediaStreamOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Navigator!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Navigator!).Gpu.get -> Rask.Web.Types.GPU!
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Navigator!).Share() -> System.Threading.Tasks.ValueTask
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Navigator!).Share(Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.WasmMembers.extension(Rask.Web.Types.PaymentRequest!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.PaymentRequest!).Show() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PaymentResponse!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.ScreenOrientation!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.ScreenOrientation!).Lock(Rask.Web.Types.OrientationLockType orientation) -> System.Threading.Tasks.ValueTask
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Serial!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Serial!).RequestPort() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SerialPort!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Serial!).RequestPort(Rask.Web.Types.SerialPortRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SerialPort!>
+static Rask.Core.WasmElementRefMembers.RequestFullscreen(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
+static Rask.Core.WasmElementRefMembers.RequestFullscreen(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.FullscreenOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Core.WasmElementRefMembers.RequestPointerLock(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
+static Rask.Core.WasmElementRefMembers.RequestPointerLock(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.PointerLockOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Core.WasmElementRefMembers.ShowPicker(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element) -> System.Threading.Tasks.ValueTask
+static Rask.Core.WasmElementRefMembers.ShowPicker(this Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>! element) -> System.Threading.Tasks.ValueTask
+static Rask.Web.GPUInternalError.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUInternalError!>
+static Rask.Web.GPUOutOfMemoryError.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUOutOfMemoryError!>
+static Rask.Web.GPUPipelineError.Create(string! message, Rask.Web.Types.GPUPipelineErrorInit! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUPipelineError!>
+static Rask.Web.GPUValidationError.Create(string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUValidationError!>
+static Rask.Web.WasmMembers.GetDisplayMedia(this Rask.Web.Types.MediaDevices! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
+static Rask.Web.WasmMembers.GetDisplayMedia(this Rask.Web.Types.MediaDevices! self, Rask.Web.Types.DisplayMediaStreamOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
+static Rask.Web.WasmMembers.Lock(this Rask.Web.Types.ScreenOrientation! self, Rask.Web.Types.OrientationLockType orientation) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
+static Rask.Web.WasmMembers.RequestPort(this Rask.Web.Types.Serial! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SerialPort!>
+static Rask.Web.WasmMembers.RequestPort(this Rask.Web.Types.Serial! self, Rask.Web.Types.SerialPortRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SerialPort!>
+static Rask.Web.WasmMembers.RequestStorageAccess() -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.RequestStorageAccess(this Rask.Web.Types.Document! self) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.Share() -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.Share(Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.Share(this Rask.Web.Types.Navigator! self) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.Share(this Rask.Web.Types.Navigator! self, Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.Show(this Rask.Web.Types.PaymentRequest! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PaymentResponse!>
+static Rask.Web.WasmMembers.extension(Rask.Web.Document!).RequestStorageAccess() -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.extension(Rask.Web.Navigator!).Gpu.get -> Rask.Web.Types.GPU!
+static Rask.Web.WasmMembers.extension(Rask.Web.Navigator!).Share() -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.extension(Rask.Web.Navigator!).Share(Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WasmMembers.extension(Rask.Web.Notification!).RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
+static Rask.Web.WasmMembers.get_AudioWorklet(Rask.Web.Types.BaseAudioContext! self) -> Rask.Web.Types.AudioWorklet!
+static Rask.Web.WasmMembers.get_Gpu() -> Rask.Web.Types.GPU!
+static Rask.Web.WasmMembers.get_Gpu(Rask.Web.Types.Navigator! self) -> Rask.Web.Types.GPU!
+Rask.Web.Types.ANGLE_instanced_arrays
+Rask.Web.Types.EXT_blend_minmax
+Rask.Web.Types.EXT_color_buffer_float
+Rask.Web.Types.EXT_color_buffer_half_float
+Rask.Web.Types.EXT_float_blend
+Rask.Web.Types.EXT_frag_depth
+Rask.Web.Types.EXT_sRGB
+Rask.Web.Types.EXT_shader_texture_lod
+Rask.Web.Types.EXT_texture_compression_bptc
+Rask.Web.Types.EXT_texture_compression_rgtc
+Rask.Web.Types.EXT_texture_filter_anisotropic
+Rask.Web.Types.EXT_texture_norm16
+Rask.Web.Types.KHR_parallel_shader_compile
+Rask.Web.Types.OES_draw_buffers_indexed
+Rask.Web.Types.OES_element_index_uint
+Rask.Web.Types.OES_fbo_render_mipmap
+Rask.Web.Types.OES_standard_derivatives
+Rask.Web.Types.OES_texture_float
+Rask.Web.Types.OES_texture_float_linear
+Rask.Web.Types.OES_texture_half_float
+Rask.Web.Types.OES_texture_half_float_linear
+Rask.Web.Types.OES_vertex_array_object
+Rask.Web.Types.OES_vertex_array_object.CreateVertexArrayOES() -> Rask.Web.Types.WebGLVertexArrayObjectOES!
+Rask.Web.Types.WEBGL_color_buffer_float
+Rask.Web.Types.WEBGL_compressed_texture_astc
+Rask.Web.Types.WEBGL_compressed_texture_astc.GetSupportedProfiles() -> System.Threading.Tasks.ValueTask<string![]!>
+Rask.Web.Types.WEBGL_compressed_texture_etc
+Rask.Web.Types.WEBGL_compressed_texture_etc1
+Rask.Web.Types.WEBGL_compressed_texture_pvrtc
+Rask.Web.Types.WEBGL_compressed_texture_s3tc
+Rask.Web.Types.WEBGL_compressed_texture_s3tc_srgb
+Rask.Web.Types.WEBGL_debug_renderer_info
+Rask.Web.Types.WEBGL_debug_shaders
+Rask.Web.Types.WEBGL_depth_texture
+Rask.Web.Types.WEBGL_draw_buffers
+Rask.Web.Types.WEBGL_lose_context
+Rask.Web.Types.WEBGL_lose_context.LoseContext() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_lose_context.RestoreContext() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_multi_draw

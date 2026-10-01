@@ -80,7 +80,7 @@ public sealed class TemplateCatalogTests
         // A template may support fewer flags than `rask new` declares, but never more: a supported flag
         // that isn't in FeatureFlags can never be requested, so it is dead weight that reads as a feature.
         // `litestream` sat here unreachable until this guard was added.
-        var declared = new HashSet<string>(Commands.NewCommand.FeatureFlags, StringComparer.Ordinal);
+        var declared = new HashSet<string>(Commands.BatterySelection.FeatureFlags, StringComparer.Ordinal);
 
         var unreachable = TemplateCatalog.All
             .SelectMany(template => template.SupportedFlags.Select(flag => $"{template.Key}: {flag}"))

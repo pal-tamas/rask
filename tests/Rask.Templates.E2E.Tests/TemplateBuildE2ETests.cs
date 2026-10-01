@@ -107,7 +107,7 @@ public sealed class TemplateBuildE2ETests
         // Every supported flag on. The WebAssembly-client variant used to be an extra parameter here,
         // because it was a flag on the server template; it is the `wasm-hosted` KEY now (#1103), so it
         // arrives through the theory data like every other template and this dispatch has one axis fewer.
-        var batteries = NewCommand.ToBatteries(template, []);
+        var batteries = BatterySelection.ToBatteries(template, []);
 
         if (SpaFramework.TryGet(key, out var spa))
         {

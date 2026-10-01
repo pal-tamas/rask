@@ -116,7 +116,7 @@ public sealed class DevMetaHostedTests
     [Fact]
     public void The_production_front_end_build_is_skipped_during_a_dev_session()
     {
-        var args = DevCommand.BuildDotnetArguments(
+        var args = DotnetWatchInvocation.BuildDotnetArguments(
             "/app/Shop/Shop.csproj", once: false, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.MetaHosted);
 
@@ -131,7 +131,7 @@ public sealed class DevMetaHostedTests
     {
         // --once is a plain `dotnet run` with no dev server beside it, so the host has to serve a real
         // build or there is nothing to look at.
-        var args = DevCommand.BuildDotnetArguments(
+        var args = DotnetWatchInvocation.BuildDotnetArguments(
             "/app/Shop/Shop.csproj", once: true, noHotReload: false, launchProfile: null,
             nonInteractive: false, passthrough: [], kind: DevTemplateKind.MetaHosted);
 
@@ -141,7 +141,7 @@ public sealed class DevMetaHostedTests
     [Fact]
     public void The_host_is_told_where_the_dev_server_is()
     {
-        var env = DevCommand.BuildEnvironment(
+        var env = DotnetWatchInvocation.BuildEnvironment(
             DevTemplateKind.MetaHosted, restartOnRudeEdit: true, urls: null, readEnv: _ => null,
             islandDevServerUrl: null, once: false, metaDevServerUrl: "http://localhost:3000");
 
@@ -153,7 +153,7 @@ public sealed class DevMetaHostedTests
     [Fact]
     public void Only_this_lane_is_told_that()
     {
-        var env = DevCommand.BuildEnvironment(
+        var env = DotnetWatchInvocation.BuildEnvironment(
             DevTemplateKind.SpaHosted, restartOnRudeEdit: true, urls: null, readEnv: _ => null,
             islandDevServerUrl: null, once: false, metaDevServerUrl: "http://localhost:3000");
 
@@ -163,7 +163,7 @@ public sealed class DevMetaHostedTests
     [Fact]
     public void Running_once_leaves_the_host_supervising_its_own_front_end()
     {
-        var env = DevCommand.BuildEnvironment(
+        var env = DotnetWatchInvocation.BuildEnvironment(
             DevTemplateKind.MetaHosted, restartOnRudeEdit: false, urls: null, readEnv: _ => null,
             islandDevServerUrl: null, once: true, metaDevServerUrl: "http://localhost:3000");
 

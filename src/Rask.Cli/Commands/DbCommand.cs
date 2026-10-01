@@ -424,7 +424,7 @@ internal sealed partial class DbCommand(
 
     /// <summary>
     /// Build the <c>dotnet ef …</c> argument list. Pure and deterministic, so it is unit-tested directly
-    /// (like <see cref="DevCommand.BuildDotnetArguments"/>).
+    /// (like <see cref="DotnetWatchInvocation.BuildDotnetArguments"/>).
     /// </summary>
     internal static IReadOnlyList<string> BuildEfArguments(
         string subcommand,
