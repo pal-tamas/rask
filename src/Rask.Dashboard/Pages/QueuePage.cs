@@ -154,7 +154,7 @@ public sealed partial class QueuePage(
             .PageSize(options.PageSize)
             .Page(_page)
             .TotalCount(_total)
-            .OnPageChange(GoAsync)
+            .OnPage(GoAsync)
             .RowTone(r => IsDead(r) ? Ui.Tone.Error : null)
             .Empty(Ui.Empty
                 .Title($"Nothing {slice}")

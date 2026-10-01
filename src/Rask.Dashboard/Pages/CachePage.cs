@@ -117,7 +117,7 @@ public sealed partial class CachePage(
             .PageSize(options.PageSize)
             .Page(_page)
             .TotalCount(_total)
-            .OnPageChange(GoAsync)
+            .OnPage(GoAsync)
             // An expired key still reads until the sweep takes it; a neutral tint says it is on its way out.
             .RowTone(r => r.ExpiresAt <= now ? Ui.Tone.Neutral : null)
             .Toolbar(Ui.Search

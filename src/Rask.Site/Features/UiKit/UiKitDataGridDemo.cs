@@ -71,7 +71,7 @@ public sealed partial class UiKitDataGridDemo : Component
                     .RowKey(r => r.Id)
                     .Label("Packages to publish")
                     .Selected(_selected)
-                    .OnSelectionChange(keys => _selected = keys)[c => [
+                    .OnSelect(keys => _selected = keys)[c => [
                         c.Field(r => r.Name).Title("Package"),
                         c.Field(r => r.Shipped).Title("Shipped").Class("text-right"),
                     ]],
@@ -116,10 +116,10 @@ public sealed partial class UiKitDataGridDemo : Component
                     .Label("Packages, paged by the page")
                     .PageSize(3)
                     .Page(_page)
-                    .OnPageChange(page => _page = page)
+                    .OnPage(page => _page = page)
                     .Sort(_sort)
                     .SortDescending(_descending)
-                    .OnSortChange(sort => { _sort = sort.Field; _descending = sort.Descending; })[c => [
+                    .OnSort(sort => { _sort = sort.Field; _descending = sort.Descending; })[c => [
                         c.Field(r => r.Name).Title("Package").Sortable(true),
                         c.Field(r => r.Downloads).Title("Downloads").Sortable(true).Class("text-right"),
                     ]],

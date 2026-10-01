@@ -6,7 +6,7 @@
   let total = $state(0)
 
   $effect(() => {
-    props.onTotalChanged?.(total)
+    props.onTotal?.(total)
   })
 </script>
 

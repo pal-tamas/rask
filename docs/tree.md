@@ -35,7 +35,7 @@ Ui.Tree.Roots(_nodes)
     .Item(n => Span[n.Name])
     .Label("Report")
     .Expanded(_open)                       // the page holds expansion
-    .OnExpandedChange(keys => _open = keys)
+    .OnExpand(keys => _open = keys)
     .Selection(Ui.TreeSelection.Many)   // and the tree holds the selection
     [n => n.Children]
 ```
@@ -52,13 +52,13 @@ open, and `ExpandDepth` is ignored there.
 
 `Selection(Ui.TreeSelection.None | Single | Multiple)`. `None` is a tree for reading and opening;
 `Single` replaces the selection with the node the reader picks; `Multiple` toggles it. Passing
-`Selected` or `OnSelectionChange` without naming a mode means `Single`, because a tree handed a
+`Selected` or `OnSelect` without naming a mode means `Single`, because a tree handed a
 selection it ignores is a silent no-op — `Selection(Ui.TreeSelection.None)` still turns it off.
 
 Keys reach the callback as a list of `TKey`, the whole selection each time:
 
 ```csharp
-.Selected(_picked).OnSelectionChange(keys => _picked = keys)
+.Selected(_picked).OnSelect(keys => _picked = keys)
 ```
 
 When the page changes a controlled `Selected` itself (a search result, a link to a node), the keyboard

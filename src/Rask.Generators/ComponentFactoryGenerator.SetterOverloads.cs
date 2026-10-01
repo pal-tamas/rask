@@ -788,7 +788,7 @@ public sealed partial class ComponentFactoryGenerator
     // The GRID's row key is the one guarantee that really was lost, and it is worth being honest about:
     // `GridBuild<T, TKey>` opened carrying NoKey and declared the selection steps only over a pinned one,
     // so a grid that never said what identifies a row was not a grid whose selection was rejected — it
-    // was one where selection was not offered. `Selected` and `OnSelectionChange` are now ordinary
+    // was one where selection was not offered. `Selected` and `OnSelect` are now ordinary
     // extensions on UiDataGrid<TRow>, reachable before any RowKey step, and SelectionOf fabricates a
     // strategy with no selector installed when they are.
     //

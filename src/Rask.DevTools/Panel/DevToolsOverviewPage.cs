@@ -53,7 +53,7 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
         {
             DevToolsTabIds.Tree => DevToolsTreeTab.Key(session + "-tree").Feed(feed).Reveal(_reveal),
             DevToolsTabIds.Renders => DevToolsRendersTab.Key(session + "-renders").Feed(feed).Flash(_flash)
-                .OnFlashChange(on => _flash = on),
+                .OnFlash(on => _flash = on),
             DevToolsTabIds.Perf => DevToolsPerfTab.Key(session + "-perf").Feed(feed),
             DevToolsTabIds.Errors => DevToolsErrorsTab.Key(session + "-errors")
                 .PageErrors(feed.Errors)

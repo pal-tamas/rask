@@ -37,7 +37,7 @@ public sealed partial class UiDataGrid<T, TKey>
             _page = 0;
         }
 
-        await Raise(OnSortChange, new UiGridSort(field, descending))
+        await Raise(OnSort, new UiGridSort(field, descending))
             .ConfigureAwait(false);
         await FetchAsync().ConfigureAwait(false);
     }
@@ -55,7 +55,7 @@ public sealed partial class UiDataGrid<T, TKey>
             _page = target;
         }
 
-        await Raise(OnPageChange, target).ConfigureAwait(false);
+        await Raise(OnPage, target).ConfigureAwait(false);
         await FetchAsync().ConfigureAwait(false);
     }
 
@@ -86,7 +86,7 @@ public sealed partial class UiDataGrid<T, TKey>
             _page = 0;
         }
 
-        return Raise(OnGroupedChange, next);
+        return Raise(OnGroup, next);
     }
 
     private Task SetHiddenAsync(IReadOnlyList<string> next)
@@ -97,7 +97,7 @@ public sealed partial class UiDataGrid<T, TKey>
             _hidden.AddRange(next);
         }
 
-        return Raise(OnHiddenColumnsChange, next);
+        return Raise(OnHide, next);
     }
 
     private Task SetOrderAsync(IReadOnlyList<string> next)
@@ -108,7 +108,7 @@ public sealed partial class UiDataGrid<T, TKey>
             _order.AddRange(next);
         }
 
-        return Raise(OnColumnOrderChange, next);
+        return Raise(OnReorder, next);
     }
 
     private Task ToggleHiddenAsync(string token)

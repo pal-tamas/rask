@@ -18,12 +18,12 @@ import type { AngularCounterProps } from '@rask/AngularCounter.props'
 export default class AngularCounter implements AngularCounterProps {
   @Input() step = 1
   @Input() caption = ''
-  @Input() onTotalChanged?: (total: number) => void
+  @Input() onTotal?: (total: number) => void
 
   readonly total = signal(0)
 
   add() {
     this.total.update(t => t + this.step)
-    this.onTotalChanged?.(this.total())
+    this.onTotal?.(this.total())
   }
 }

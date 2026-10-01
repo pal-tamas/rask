@@ -121,7 +121,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Enter_selects_one_node_at_a_time()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Page.Render(Tree().Selection(Ui.TreeSelection.One).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.One).OnSelect(picked.Add));
 
         await KeyAsync(page, "Enter");
         await KeyAsync(page, "ArrowDown");
@@ -135,7 +135,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Space_toggles_when_more_than_one_may_be_selected()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Many).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Many).OnSelect(picked.Add));
 
         await KeyAsync(page, " ");
         await KeyAsync(page, "ArrowDown");
@@ -194,7 +194,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Clicking_the_twisty_only_opens_the_node()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Page.Render(Tree().Selection(Ui.TreeSelection.One).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.One).OnSelect(picked.Add));
 
         // Every row has a twisty, so it is addressed by position: the first one belongs to the first root.
         await page.Invoke(page.FindAll(".ui-tree-toggle")[0].Attributes["data-rask-on-click"]!);
@@ -218,7 +218,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_controlled_tree_reports_and_waits_to_be_told()
     {
         var reported = new List<IReadOnlyList<string>>();
-        var page = Page.Render(Tree().Expanded([]).OnExpandedChange(reported.Add));
+        var page = Page.Render(Tree().Expanded([]).OnExpand(reported.Add));
 
         await KeyAsync(page, "ArrowRight");
 

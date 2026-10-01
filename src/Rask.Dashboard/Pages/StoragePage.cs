@@ -135,7 +135,7 @@ public sealed partial class StoragePage(
             .PageSize(options.PageSize)
             .Page(_page)
             .TotalCount(_total)
-            .OnPageChange(GoAsync)
+            .OnPage(GoAsync)
             .Toolbar(Ui.Search
                 .Placeholder("Search file names")
                 .AccessibleLabel("Search stored files")
