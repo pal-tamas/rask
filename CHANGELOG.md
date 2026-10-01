@@ -66,6 +66,11 @@ them until tagged releases begin.
   `PublishedAssetRepair`, writing `sitemap.xml` and `robots.txt` is `SitemapWriter`, and reading a page's own
   last-modified date, canonical URL and noindex is `PrerenderedPageMetadata`. The published site is unchanged.
 
+- **`EditContext` runs every inline `Validate` rule through one path.** The field and form rules had four
+  copies of the same "run it, record its messages, turn a throw into *Validation could not be completed.*"
+  code; they are two now, and the class is split into partial files — state and queries, sync validation,
+  async validation, and the sticky validating indicator. A form validates exactly as it did.
+
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
   and viewport is gone — Rask writes both), links use `Routes.UserPage(Id: 42)`, and `Router`/`Outlet` are
