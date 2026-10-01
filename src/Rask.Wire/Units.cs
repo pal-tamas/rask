@@ -19,7 +19,9 @@ namespace Rask;
 ///         analyzer points out <c>2.Hour</c>.
 ///     </para>
 /// </remarks>
+#pragma warning disable CA1708 // The .NET 10 SDK's analyzer reads the extension blocks below as members sharing one name.
 public static class Units
+#pragma warning restore CA1708
 {
     extension(int value)
     {

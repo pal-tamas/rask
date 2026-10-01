@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING: .NET 11 support is gone; Rask ships for .NET 10, the LTS release.** Every package carries
+  `lib/net10.0` (and `net10.0-browser` where it has a browser face) and nothing else, and
+  `rask new --framework` is removed with it — a scaffold targets `net10.0`:
+  ```bash
+  rask new Shop --framework net11.0   # was
+  rask new Shop                       # now
+  ```
+  The repository pins its SDK to the 10.0 band in a root `global.json`, so the editor, the terminal and CI
+  compile with the same compiler and analyzers and the build no longer needs the .NET 11 SDK (`RASKSDK001`
+  is gone). `scripts/run-unit-net11-local.sh` and its row in `run-all-gates.sh` went with the second target.
+
 ### Changed
 
 - **Rask.Cqrs says "event", not "notification".** You raise an event on an aggregate and publish one through the

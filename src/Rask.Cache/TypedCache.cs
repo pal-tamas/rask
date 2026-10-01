@@ -47,9 +47,7 @@ internal sealed class TypedCache(IDistributedCache store, IOptions<CacheOptions>
     {
         try
         {
-#pragma warning disable CA2263 // GetTypeInfo<T>() is .NET 11 only, and this line also builds for net10.0
             return (JsonTypeInfo<T>)_json.GetTypeInfo(typeof(T));
-#pragma warning restore CA2263
         }
         catch (Exception e) when (e is NotSupportedException or InvalidOperationException)
         {

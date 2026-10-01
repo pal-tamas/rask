@@ -9,7 +9,7 @@
     <PackageId>Rask.WebPush</PackageId>
     <Title>Rask.WebPush — Web Push on your own database and keys</Title>
     <Description>Server-side Web Push for Rask: the browsers that subscribed, kept on the app's own database, and a send that reaches them — Push.Send(message) for everyone, .To(userId) for one person's devices — dropping subscriptions the push service says are gone. Signs VAPID (RFC&#160;8292) and encrypts (RFC&#160;8291 aes128gcm) with in-box System.Security.Cryptography, and maps the subscribe endpoints a WebAssembly client or SPA posts to. Push.Fake() for tests.</Description>
-    <PackageTags>web-push push-notifications vapid rfc8291 rfc8292 aes128gcm notifications pwa dotnet net10 net11</PackageTags>
+    <PackageTags>web-push push-notifications vapid rfc8291 rfc8292 aes128gcm notifications pwa dotnet net10</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
