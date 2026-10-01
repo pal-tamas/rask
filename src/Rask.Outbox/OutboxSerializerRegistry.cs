@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Rask.Cqrs;
 
@@ -5,130 +6,44 @@ namespace Rask.Outbox;
 
 /// <summary>
 /// Maps a persisted <see cref="OutboxMessage.Type"/> name back to its CLR type so the
-/// <see cref="OutboxProcessor{TContext}"/> can deserialize + publish it. Populated at module load by the
-/// <c>Rask.Outbox</c> source generator (one registration per <see cref="IOutboxEvent"/> type it finds), so
-/// there is no runtime <c>Type.GetType</c> / assembly scanning.
+/// <see cref="OutboxProcessor{TContext}"/> can deserialize + run it. Every event with an
+/// <see cref="IDurableHandler{TEvent}"/> is known already — the Rask.Cqrs source generator records it beside the
+/// handler — so there is no runtime <c>Type.GetType</c> / assembly scanning. <see cref="RegisterEvent"/> adds a name
+/// by hand: the old name of a renamed event, whose stored rows still carry it.
 /// </summary>
 public static class OutboxSerializerRegistry
 {
-    private static readonly Lock _lock = new();
-
-    // Registrations made directly rather than by a generated initializer. Kept apart from the generated
-    // groups so a refresh can replace a group's contribution without dropping these.
-    private static readonly Dictionary<string, Type> _manual = new(StringComparer.Ordinal);
-
-    // One entry per contributing assembly, keyed by that assembly's generated registry type. Replace
-    // swaps a group wholesale, which is what makes a rename drop the old name instead of keeping both.
-    private static readonly List<(object Key, (string TypeName, Type Type)[] Items)> _groups = new();
-
-    // The flattened lookup Deserialize reads. Rebuilt under the lock and installed in a single store, so
-    // a reader observes either the complete old map or the complete new one, never a half-built one.
-    private static volatile Dictionary<string, Type> _types =
-        new Dictionary<string, Type>(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, Type> _manual = new(StringComparer.Ordinal);
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Registers an event type by name.</summary>
+    /// <summary>Registers an event type by name — the old name of a renamed event, so its stored rows still run.</summary>
+    /// <param name="typeName">The name stored rows carry.</param>
+    /// <param name="type">The event type to read them as.</param>
     public static void RegisterEvent(string typeName, Type type)
     {
         ArgumentNullException.ThrowIfNull(typeName);
         ArgumentNullException.ThrowIfNull(type);
-        lock (_lock)
-        {
-            _manual[typeName] = type;
-            Rebuild();
-        }
+        _manual[typeName] = type;
     }
 
-    /// <summary>
-    ///     Installs <paramref name="registrations" /> as the complete set owned by
-    ///     <paramref name="groupKey" />, replacing any set previously registered under that key.
-    ///     Generated per-assembly initializers call this (passing their own
-    ///     <c>typeof(__RaskOutboxRegistry)</c>), so re-running one under hot reload swaps that assembly's
-    ///     events — picking up added, renamed and deleted ones — while leaving every other contributor
-    ///     and any direct <see cref="RegisterEvent" /> call untouched.
-    ///     <para>
-    ///         Upserting instead would make a rename additive: the old name would keep resolving to a
-    ///         type no longer produced until the process restarted.
-    ///     </para>
-    ///     <para>
-    ///         The key is compared by reference and is never used for reflection, so it attracts no
-    ///         trimmer analysis.
-    ///     </para>
-    /// </summary>
-    public static void Replace(object groupKey, IEnumerable<(string TypeName, Type Type)> registrations)
+    /// <summary>Serializes an event for storage, returning its stored type name and JSON payload.</summary>
+    /// <param name="e">The event.</param>
+    public static (string Type, string Payload) Serialize(IEvent e)
     {
-        ArgumentNullException.ThrowIfNull(groupKey);
-        ArgumentNullException.ThrowIfNull(registrations);
-
-        var items = registrations as (string TypeName, Type Type)[] ?? registrations.ToArray();
-        lock (_lock)
-        {
-            for (var i = 0; i < _groups.Count; i++)
-            {
-                if (!ReferenceEquals(_groups[i].Key, groupKey))
-                {
-                    continue;
-                }
-
-                // An unrelated hot reload re-runs every RefreshAll(); skip the rebuild when this
-                // contributor's events are unchanged.
-                if (_groups[i].Items.AsSpan().SequenceEqual(items))
-                {
-                    return;
-                }
-
-                _groups[i] = (groupKey, items);
-                Rebuild();
-                return;
-            }
-
-            _groups.Add((groupKey, items));
-            Rebuild();
-        }
+        ArgumentNullException.ThrowIfNull(e);
+        var type = e.GetType();
+        return (CqrsRegistry.NameOf(type), JsonSerializer.Serialize(e, type, Json));
     }
 
-    // Caller holds _lock. Manual registrations are applied last so an explicit one is never clobbered by
-    // a generated refresh.
-    private static void Rebuild()
-    {
-        var map = new Dictionary<string, Type>(StringComparer.Ordinal);
-        foreach (var (_, items) in _groups)
-        {
-            foreach (var (typeName, type) in items)
-            {
-                map[typeName] = type;
-            }
-        }
-
-        foreach (var (typeName, type) in _manual)
-        {
-            map[typeName] = type;
-        }
-
-        _types = map;
-    }
-
-    /// <summary>Serializes an outbox event to its stored (type-name, JSON-payload) pair.</summary>
-    public static (string Type, string Payload) Serialize(IOutboxEvent domainEvent)
-    {
-        ArgumentNullException.ThrowIfNull(domainEvent);
-        var type = domainEvent.GetType();
-        return (TypeName(type), JsonSerializer.Serialize(domainEvent, type, Json));
-    }
-
-    // Match the name the source generator registers (Roslyn's ToDisplayString is dot-separated even for a
-    // nested type) — Type.FullName uses '+' between a nesting type and its nested type, so normalize it,
-    // otherwise a nested IOutboxEvent would be stored under a name the registry never has and never publish.
-    internal static string TypeName(Type type) => (type.FullName ?? type.Name).Replace('+', '.');
-
-    /// <summary>Rehydrates a stored event, or <c>null</c> if its type isn't registered.</summary>
-    public static INotification? Deserialize(string typeName, string payload)
+    /// <summary>Reads a stored event back, or <c>null</c> when no type is known by <paramref name="typeName"/>.</summary>
+    /// <param name="typeName">The stored type name.</param>
+    /// <param name="payload">The stored JSON.</param>
+    public static IEvent? Deserialize(string typeName, string payload)
     {
         ArgumentNullException.ThrowIfNull(typeName);
         ArgumentNullException.ThrowIfNull(payload);
-        return _types.TryGetValue(typeName, out var type)
-            ? JsonSerializer.Deserialize(payload, type, Json) as INotification
-            : null;
+        var type = _manual.TryGetValue(typeName, out var manual) ? manual : CqrsRegistry.FindDurableEvent(typeName);
+        return type is null ? null : JsonSerializer.Deserialize(payload, type, Json) as IEvent;
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Rask.Batteries;
+using Rask.Cqrs;
 using Rask.Data;
 using Rask.Hosting.Shared;
 
@@ -21,12 +22,9 @@ public static class RaskOutboxServiceCollectionExtensions
     /// and then <paramref name="configure"/>, so code wins. Idempotent.
     /// </summary>
     /// <remarks>
-    /// This call is all it takes to hand domain-event delivery to the outbox: it registers an
-    /// <see cref="IDomainEventDeliveryOwner"/>, which makes Rask.Data's in-process publisher stand down.
-    /// No second argument on <c>AddRaskData</c>, and no ordering requirement between the two calls — the
-    /// handover is resolved when the container is built. Setting
-    /// <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/> to <c>true</c> overrides it, which
-    /// re-creates the double-delivery this prevents.
+    /// Every <c>IDurableHandler</c> then runs from here: its event is stored in the same transaction as the change
+    /// that raised it (or in its own, when published straight through the dispatcher), and run after the commit,
+    /// retried until it succeeds. <c>IEventHandler</c>s keep running in memory; each handler chooses.
     /// </remarks>
     /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the outbox table.</typeparam>
     public static IServiceCollection AddRaskOutbox<TContext>(this IServiceCollection services, Action<OutboxOptions>? configure = null)
@@ -35,22 +33,26 @@ public static class RaskOutboxServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         // Validated when the host starts, the way AddRaskJobs/AddRaskMail/AddRaskCache are. Without it a value
-        // like PollInterval = Zero throws out of `new PeriodicTimer(...)` on the background thread, which
-        // (BackgroundServiceExceptionBehavior.StopHost) tears the host down at an unrelated moment.
+        // like PollInterval = Zero would spin the processor against the database, and a negative one would throw
+        // on the background thread, tearing the host down at an unrelated moment.
         services.AddRaskOptions<OutboxOptions>("Rask:Outbox", static (section, o) => section.Bind(o), configure, validate: null);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<OutboxOptions>, OutboxOptionsValidator>());
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<OutboxMetrics>();
 
-        // Take ownership of domain-event delivery. Rask.Data's DomainEventInterceptor reads this from the
-        // BUILT container, so it holds whether this call comes before or after AddRaskData — the ordering
-        // that used to decide, silently and wrongly, whether the outbox ever received anything.
-        services.TryAddSingleton<IDomainEventDeliveryOwner, OutboxDeliveryOwner>();
+        // Rask.Data clears the raised events after the save; without it they would be stored again on the next one.
+        services.AddRaskData();
 
-        if (!services.Any(static d => d.ImplementationType == typeof(OutboxInterceptor)))
+        // The signal is the idempotency marker too: a second call finds it and adds no second interceptor.
+        if (!services.Any(static d => d.ServiceType == typeof(OutboxSignal)))
         {
-            services.AddSingleton<ISaveChangesInterceptor, OutboxInterceptor>();
+            services.AddSingleton(static _ => new OutboxSignal());
+            services.AddSingleton<ISaveChangesInterceptor>(static sp =>
+                new OutboxInterceptor(sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<OutboxSignal>()));
         }
+
+        // Where a bare dispatcher.Publish stores an event for its durable handlers.
+        services.TryAddSingleton<IDurableEventStore, OutboxEventStore<TContext>>();
 
         // Before the processor, so an app whose model never mapped OutboxMessage fails the boot with the
         // line to type rather than on the first domain event. The processor itself tolerates a missing

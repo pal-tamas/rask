@@ -7,4 +7,4 @@ namespace Rask.Auth;
 /// <param name="PasskeyId">The removed passkey's id.</param>
 /// <param name="Name">What the user called it.</param>
 [LocalOnly]
-public sealed record PasskeyRemoved(Guid UserId, Guid PasskeyId, string Name) : INotification;
+public sealed record PasskeyRemoved(Guid UserId, Guid PasskeyId, string Name) : IEvent;

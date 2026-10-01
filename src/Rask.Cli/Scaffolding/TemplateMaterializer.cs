@@ -250,7 +250,6 @@ internal static class TemplateMaterializer
         Add(batteries.Mail, "mail");
         Add(batteries.Cache, "cache");
         Add(batteries.Storage, "storage");
-        Add(batteries.Outbox, "outbox");
         Add(batteries.Push, "push");
         Add(batteries.Snapshots, "snapshots");
         Add(batteries.Logs, "logs");

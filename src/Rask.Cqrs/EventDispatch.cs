@@ -3,24 +3,24 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Cqrs;
 
 /// <summary>
-/// Fan-out helper the source-generated notification invokers call. Public only so generated code can
+/// Fan-out helper the source-generated event invokers call. Public only so generated code can
 /// reach it; you do not use it directly.
 /// </summary>
-public static class NotificationDispatch
+public static class EventDispatch
 {
-    /// <summary>Runs every handler for a notification using the configured <see cref="NotificationPublishStrategy"/>.</summary>
-    public static async Task PublishAll<TNotification>(
+    /// <summary>Runs every handler for an event using the configured <see cref="EventPublishStrategy"/>.</summary>
+    public static async Task PublishAll<TEvent>(
         IServiceProvider provider,
-        TNotification notification,
-        IEnumerable<INotificationHandler<TNotification>> handlers,
+        TEvent e,
+        IEnumerable<IEventHandler<TEvent>> handlers,
         CancellationToken cancellationToken)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
         var options = provider.GetService<CqrsExecutionOptions>() ?? CqrsExecutionOptions.Default;
 
-        if (options.PublishStrategy == NotificationPublishStrategy.WhenAll)
+        if (options.PublishStrategy == EventPublishStrategy.WhenAll)
         {
-            await Task.WhenAll(handlers.Select(h => h.Handle(notification))).ConfigureAwait(false);
+            await Task.WhenAll(handlers.Select(h => h.Handle(e))).ConfigureAwait(false);
             return;
         }
 
@@ -29,7 +29,7 @@ public static class NotificationDispatch
         {
             try
             {
-                await handler.Handle(notification).ConfigureAwait(false);
+                await handler.Handle(e).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

@@ -280,7 +280,6 @@ failing: the files on disk are correct either way.
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
 | `--no-cache` | Leave out the database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. |
 | `--no-storage` | Leave out [file storage](file-storage.md) for uploads — a `StoredFile` row per file on the database, the bytes on disk (or in S3 or Azure, by configuration), and the routes that serve public and temporary links. |
-| `--no-outbox` | Leave out the transactional outbox for durable domain-event delivery. With it on, the outbox claims delivery and the in-process publisher stands down, so events aren't delivered twice. |
 | `--no-push` | Leave out server-sent [Web Push](webpush.md) (`c.Push.Off()`): the subscriber table, `Push.Send(…)`, and the `/_rask/push/key`, `/_rask/push/subscribe` and `/_rask/push/unsubscribe` endpoints. The PWA stays. |
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
@@ -607,11 +606,11 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | A scoped `.css` / `.ts` sibling | ✅ Applied live; the bundle URL changes and the `<link>` is swapped. |
 | Deleting a scoped `.css` | ✅ The rules disappear from the page. |
 | A `[Route]` template | ✅ The route table is rebuilt. |
-| A CQRS command/query/notification handler body | ✅ The next dispatch runs the new code. |
-| A job or outbox event type's body | ✅ Applied live. |
+| A CQRS command/query/event handler body | ✅ The next dispatch runs the new code. |
+| A job type's or durable handler's body | ✅ Applied live. |
 | **Adding or removing a type** — a new component, page, handler, job | ⚠️ Rude edit → the app restarts, and the browser reloads itself. |
 | **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |
-| Renaming a job or outbox event type | ✅ Applied. The old name stops resolving too. |
+| Renaming a job type | ✅ Applied. The old name stops resolving too. |
 | An island's `.tsx` / `.vue` / `.svelte` | ✅ Hot-replaced by its own framework — see below. |
 
 **Islands hot-reload too, on a second dev server.** When the project has islands, `rask dev` starts

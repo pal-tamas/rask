@@ -27,12 +27,12 @@ public class HotReloadPhaseTests
         var called = new List<string>();
         using (RefreshTargets.Arm(
                    () => called.Add("css"), () => called.Add("js"),
-                   () => called.Add("cqrs"), () => called.Add("jobs"), () => called.Add("outbox")))
+                   () => called.Add("cqrs"), () => called.Add("jobs")))
         {
             await RunPhasesAndWaitForAppliedAsync();
         }
 
-        Assert.Equal(["css", "js", "cqrs", "jobs", "outbox"], called);
+        Assert.Equal(["css", "js", "cqrs", "jobs"], called);
     }
 
     [Fact]
@@ -64,8 +64,7 @@ public class HotReloadPhaseTests
                 "__RaskRoutesRegistry",
                 "__RaskCqrsRegistry",
                 "__RaskValidatorRegistry",
-                "Rask.Background.Generated.__RaskJobsRegistry",
-                "Rask.Outbox.Generated.__RaskOutboxRegistry"
+                "Rask.Background.Generated.__RaskJobsRegistry"
             ],
             RaskHotReload.RefreshTargetTypeNames);
     }

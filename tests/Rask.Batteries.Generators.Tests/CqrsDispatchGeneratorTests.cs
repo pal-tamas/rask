@@ -30,6 +30,24 @@ public sealed class CqrsDispatchGeneratorTests
     }
 
     [Fact]
+    public void A_durable_handler_is_recorded_beside_its_event_and_kept_out_of_the_in_memory_fan_out()
+    {
+        var run = CqrsGeneratorFixture.Run(Preamble + """
+            public sealed record Placed(int Id) : IEvent;
+            public sealed class Receipt : IDurableHandler<Placed>
+            {
+                public Task Handle(Placed e) => Task.CompletedTask;
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        var source = run.GeneratedSource("__RaskCqrsRegistry");
+        Assert.Contains("ReplaceDurableHandlers(typeof(__RaskCqrsRegistry)", source);
+        Assert.Contains("(typeof(global::Demo.Placed), typeof(global::Demo.Receipt), __Durable_0)", source);
+        Assert.DoesNotContain("(typeof(global::Demo.Placed), __Notify_", source);
+    }
+
+    [Fact]
     public void Emits_unit_result_for_a_void_command()
     {
         var run = CqrsGeneratorFixture.Run(Preamble + """
@@ -50,12 +68,12 @@ public sealed class CqrsDispatchGeneratorTests
     public void Emits_notification_fanout()
     {
         var run = CqrsGeneratorFixture.Run(Preamble + """
-            public sealed record Ping : INotification;
-            public sealed class PingA : INotificationHandler<Ping>
+            public sealed record Ping : IEvent;
+            public sealed class PingA : IEventHandler<Ping>
             {
                 public Task Handle(Ping n) => Task.CompletedTask;
             }
-            public sealed class PingB : INotificationHandler<Ping>
+            public sealed class PingB : IEventHandler<Ping>
             {
                 public Task Handle(Ping n) => Task.CompletedTask;
             }
@@ -64,7 +82,7 @@ public sealed class CqrsDispatchGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         var source = run.GeneratedSource("__RaskCqrsRegistry");
         Assert.Contains("(typeof(global::Demo.Ping), __Notify_", source);
-        Assert.Contains("NotificationDispatch.PublishAll", source);
+        Assert.Contains("EventDispatch.PublishAll", source);
         Assert.Contains("TryAddEnumerable", source);
     }
 

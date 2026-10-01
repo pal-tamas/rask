@@ -129,7 +129,7 @@ public sealed class AuthHarness : IAsyncDisposable
 
         // The interceptors a scaffolded app runs, so an ended session is soft-deleted exactly as it is there. Domain
         // events are not dispatched: nothing here has a dispatcher, and no test asserts on delivery.
-        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+        services.AddRaskData();
 
         // Pooling off, for the reason InstanceClaimStoreTests.PoolingOff gives (#1087).
         services.AddDbContextFactory<AuthDbContext>((sp, o) => o

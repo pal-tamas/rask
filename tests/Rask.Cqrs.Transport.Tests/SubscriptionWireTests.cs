@@ -59,7 +59,7 @@ public sealed class SubscriptionWireTests
     }
 
     [Fact]
-    public async Task A_new_subscription_starts_with_the_last_notification_published()
+    public async Task A_new_subscription_starts_with_the_last_event_published()
     {
         await using var wire = Wire.Connect();
         await using (await OpenAsync<Announced>(wire))
@@ -74,7 +74,7 @@ public sealed class SubscriptionWireTests
     }
 
     [Fact]
-    public async Task A_notification_that_declares_nothing_answers_404()
+    public async Task A_event_that_declares_nothing_answers_404()
     {
         await using var wire = Wire.Connect();
 
@@ -84,7 +84,7 @@ public sealed class SubscriptionWireTests
     }
 
     [Fact]
-    public async Task A_signed_out_caller_gets_401_unless_the_notification_allows_anonymous()
+    public async Task A_signed_out_caller_gets_401_unless_the_event_allows_anonymous()
     {
         await using var wire = Wire.Connect(user: null);
 
@@ -142,7 +142,7 @@ public sealed class SubscriptionWireTests
     // Opens the subscription and returns once the server has admitted it — the "ready" event — so a publish after this
     // is one the stream is already listening for.
     private static async Task<Stream<T>> OpenAsync<T>(Wire wire, ISubscription<T>? subscription = null)
-        where T : INotification
+        where T : IEvent
     {
         var stop = new CancellationTokenSource();
         var admitted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -162,7 +162,7 @@ public sealed class SubscriptionWireTests
     }
 
     // A value of the type, only to find its contract by.
-    private static INotification Sample<T>() => typeof(T).Name switch
+    private static IEvent Sample<T>() => typeof(T).Name switch
     {
         nameof(Announced) => new Announced(""),
         nameof(AdminNotice) => new AdminNotice(""),
@@ -172,7 +172,7 @@ public sealed class SubscriptionWireTests
         _ => throw new ArgumentOutOfRangeException(nameof(T)),
     };
 
-    private sealed class Stream<T>(IAsyncEnumerator<INotification> enumerator, Task<bool> first, CancellationTokenSource stop)
+    private sealed class Stream<T>(IAsyncEnumerator<IEvent> enumerator, Task<bool> first, CancellationTokenSource stop)
         : IAsyncDisposable
     {
         private Task<bool> _next = first;

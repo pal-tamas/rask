@@ -489,7 +489,6 @@ public sealed class ProjectGeneratorTests
         Mail = true,
         Cache = true,
         Storage = true,
-        Outbox = true,
         Push = true,
         Snapshots = true,
         Logs = true,

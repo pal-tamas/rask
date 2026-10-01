@@ -20,6 +20,7 @@ public sealed partial class OutboxProcessor<TContext>(
     OutboxOptions options,
     TimeProvider timeProvider,
     OutboxMetrics metrics,
+    OutboxSignal signal,
     ILogger<OutboxProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
@@ -132,14 +133,19 @@ public sealed partial class OutboxProcessor<TContext>(
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(options.PollInterval);
         try
         {
-            do
+            // A save that wrote rows wakes this at once; the poll is the safety net for everything else. An app with
+            // no durable handler has nothing to drain, so it never touches the database — not even to open it.
+            while (true)
             {
-                await RunCycleAsync(stoppingToken).ConfigureAwait(false);
+                if (CqrsRegistry.HasDurableHandlers)
+                {
+                    await RunCycleAsync(stoppingToken).ConfigureAwait(false);
+                }
+
+                await signal.Wait(options.PollInterval, stoppingToken).ConfigureAwait(false);
             }
-            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException)
         {
@@ -169,7 +175,13 @@ public sealed partial class OutboxProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            if (IsMissingLeaseColumn(ex))
+            if (IsMissingColumn(ex, nameof(OutboxMessage.Handler)))
+            {
+                HandlerColumnMissing(logger, ex, "outbox.md#upgrading");
+                return;
+            }
+
+            if (IsMissingColumn(ex, nameof(OutboxMessage.ClaimToken), nameof(OutboxMessage.ClaimedUntil)))
             {
                 // The generic message would send someone reading a stack trace instead of running two
                 // commands. This failure is also invisible without it: the exception is swallowed here,
@@ -196,8 +208,6 @@ public sealed partial class OutboxProcessor<TContext>(
 
         var scope = scopeFactory.CreateAsyncScope();
         await using var batchScope = scope.ConfigureAwait(false);
-        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
-
         // The in-flight message gets a bounded grace after SIGTERM instead of being cancelled mid-call.
         // The host token ARMS a deadline on this source rather than cancelling it, so user code keeps a
         // live token for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream
@@ -219,7 +229,7 @@ public sealed partial class OutboxProcessor<TContext>(
                 break;
             }
 
-            if (!await PublishAsync(dispatcher, message, graceToken, cancellationToken).ConfigureAwait(false))
+            if (!await PublishAsync(scope.ServiceProvider, message, graceToken, cancellationToken).ConfigureAwait(false))
             {
                 break; // leave this and the rest for the next run
             }
@@ -228,12 +238,12 @@ public sealed partial class OutboxProcessor<TContext>(
         }
     }
 
-    /// <summary>Publishes one claimed message, recording its outcome on the row. False when shutdown cut it off.</summary>
+    /// <summary>Runs one claimed message, recording its outcome on the row. False when shutdown cut it off.</summary>
     private async Task<bool> PublishAsync(
-        IDispatcher dispatcher, OutboxMessage message, CancellationToken graceToken, CancellationToken cancellationToken)
+        IServiceProvider provider, OutboxMessage message, CancellationToken graceToken, CancellationToken cancellationToken)
     {
-        var notification = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
-        if (notification is null)
+        var e = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
+        if (e is null)
         {
             // An unregistered type is a failure like any other, and counts toward the dead letter it
             // will become — a renamed event that nobody re-registered is the most ordinary way a
@@ -251,7 +261,8 @@ public sealed partial class OutboxProcessor<TContext>(
             // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
             using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
 
-            await dispatcher.Publish(notification, graceToken).ConfigureAwait(false);
+            using var cancellation = Ambient.Enter(graceToken);
+            await Run(provider, message.Handler, e, graceToken).ConfigureAwait(false);
             message.Published(timeProvider.GetUtcNow().UtcDateTime);
             message.Release();
             metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -285,6 +296,36 @@ public sealed partial class OutboxProcessor<TContext>(
         }
 
         return true;
+    }
+
+    // A row runs the ONE durable handler it was written for. A handler that has since been renamed or deleted is a
+    // failure like an unknown type, on its way to the dead letter where the dashboard shows it.
+    private static Task Run(IServiceProvider provider, string? handler, IEvent e, CancellationToken cancellationToken)
+    {
+        if (handler is not null)
+        {
+            var invoker = CqrsRegistry.FindDurableHandler(handler)
+                ?? throw new InvalidOperationException(
+                    $"No durable handler '{handler}'. It was renamed or deleted after this event was stored.");
+            return invoker(provider, e, cancellationToken);
+        }
+
+        return RunEveryHandler(provider, e, cancellationToken);
+    }
+
+    // A row stored before handlers chose durability names none: it runs every handler of its event, as it did then.
+    private static async Task RunEveryHandler(IServiceProvider provider, IEvent e, CancellationToken cancellationToken)
+    {
+        var type = e.GetType();
+        if (CqrsRegistry.FindEventInvoker(type) is { } inMemory)
+        {
+            await inMemory(provider, e, cancellationToken).ConfigureAwait(false);
+        }
+
+        foreach (var durable in CqrsRegistry.DurableHandlersOf(type))
+        {
+            await CqrsRegistry.FindDurableHandler(durable)!(provider, e, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private void Fail(OutboxMessage message, string error)
@@ -335,13 +376,12 @@ public sealed partial class OutboxProcessor<TContext>(
     /// error code for "no such column". A false positive costs a wrong-but-adjacent log line; a false
     /// negative is just the generic message, so erring toward matching is safe here.
     /// </remarks>
-    private static bool IsMissingLeaseColumn(Exception exception)
+    private static bool IsMissingColumn(Exception exception, params string[] columns)
     {
         for (var e = exception; e is not null; e = e.InnerException)
         {
             if (e is System.Data.Common.DbException
-                && (e.Message.Contains(nameof(OutboxMessage.ClaimToken), StringComparison.OrdinalIgnoreCase)
-                    || e.Message.Contains(nameof(OutboxMessage.ClaimedUntil), StringComparison.OrdinalIgnoreCase)))
+                && columns.Any(column => e.Message.Contains(column, StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }
@@ -430,6 +470,12 @@ public sealed partial class OutboxProcessor<TContext>(
         Message = "Rask.Outbox added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
             + "Run: rask db add AddOutboxLeases && rask db update. See docs/{Doc}.")]
     private static partial void LeaseColumnsMissing(ILogger logger, Exception exception, string doc);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Outbox added a Handler column (one row per durable handler) that this database does not have. "
+            + "Run: rask db add AddOutboxHandler && rask db update. See docs/{Doc}.")]
+    private static partial void HandlerColumnMissing(ILogger logger, Exception exception, string doc);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Outbox processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);

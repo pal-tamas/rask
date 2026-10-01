@@ -75,7 +75,6 @@ public sealed class FeedCoverageTests
             Mail = true,
             Cache = true,
             Storage = true,
-            Outbox = true,
             Push = true,
             Snapshots = true,
             Logs = true,

@@ -8,7 +8,7 @@ wiring differs. This guide walks the three, each with a live demo.
 - [Fetching data with `HttpClient`](#fetching-data-with-httpclient) — register a DI'd client, fetch in `OnMount`
 - [Uploading files](#uploading-files) — a typed file picker and `IRaskFile` metadata
 - [Keeping an upload](#keeping-an-upload) — where the bytes go once the handler returns
-- [Downloading files](#downloading-files) — stage bytes with `Navigator.Download`
+- [Downloading files](#downloading-files) — hand the browser a file with `Download.File`
 
 For **server-side persistence** (EF Core + SQLite, `IDbContextFactory`, vertical slices), see the
 [Data access](data-access.md) guide — this one is about data and file *transfer*.
@@ -76,7 +76,7 @@ your own authorization check. It runs on the server: a WebAssembly page uploads 
 
 ## Downloading files
 
-`Navigator.Download` stages bytes (or a stream) on the active session: on the Server they're served from
+`Download.File` stages bytes (or a stream) on the active session: on the Server they're served from
 `/_rask/download/{sid}/{token}`; on WASM the bytes stay on the .NET side and the render carries only a short
 token, which the page trades for the bytes through a JS-to-.NET call when it starts the download. The
 component code is the same. It must be called from an **event handler** — outside that scope it throws, because there's no live

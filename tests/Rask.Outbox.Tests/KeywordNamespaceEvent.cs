@@ -9,9 +9,9 @@ namespace Rask.Outbox.Tests.@event;
 // name the runtime never produces: Deserialize returned null, the processor recorded "No registered
 // outbox event type", and the message burned an attempt on every poll until it hit MaxAttempts.
 //
-// The generator registers this assembly's IOutboxEvent types at module load, so these tests exercise the
+// The generator records this assembly's durable handlers and their events at module load, so these tests exercise the
 // real generated registry, not a stand-in.
-public sealed record KeywordEvent(int N) : IOutboxEvent;
+public sealed record KeywordEvent(int N) : IEvent;
 
 /// <summary>Thread-safe sink — the handler runs on the outbox processor's background thread.</summary>
 public sealed class KeywordRecorder
@@ -29,7 +29,7 @@ public sealed class KeywordRecorder
     }
 }
 
-public sealed class KeywordEventHandler(KeywordRecorder recorder) : INotificationHandler<KeywordEvent>
+public sealed class KeywordEventHandler(KeywordRecorder recorder) : IDurableHandler<KeywordEvent>
 {
     public Task Handle(KeywordEvent notification)
     {

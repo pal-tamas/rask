@@ -9,20 +9,20 @@ namespace Rask.Cqrs.Server;
 
 /// <summary>
 ///     Serves a remote subscription: <c>GET {prefix}/events/{name}?m={json}</c>, answered with a
-///     <c>text/event-stream</c> of the notification's generated JSON for as long as the client stays connected.
+///     <c>text/event-stream</c> of the event's generated JSON for as long as the client stays connected.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Closed unless opened.</b> Two names answer here: an <see cref="ISubscription{TNotification}" /> record,
+///         <b>Closed unless opened.</b> Two names answer here: an <see cref="ISubscription{TEvent}" /> record,
 ///         whose <see cref="IWatchPolicy{TSubscription}" /> decides per subscription — it arrives as <c>?m=</c>, the
-///         same JSON a query's message travels as — and a notification whose own record declares <c>[Authorize]</c> /
+///         same JSON a query's message travels as — and an event whose own record declares <c>[Authorize]</c> /
 ///         <c>[AllowAnonymous]</c>, watched by type. Anything else answers 404, the same as a name that does not exist,
 ///         so an app's auth and domain events are never one request away.
 ///     </para>
 ///     <para>
 ///         <b>Authenticated by default,</b> exactly like a request: only a record marked <c>[AllowAnonymous]</c> lets a
 ///         signed-out caller subscribe, and that check comes before the name is judged, so nobody can enumerate the
-///         notifications an app has.
+///         events an app has.
 ///     </para>
 ///     <para>
 ///         The first event is <c>ready</c>, written once the policy has admitted the subscription; the client reads it
@@ -30,7 +30,7 @@ namespace Rask.Cqrs.Server;
 ///         stream, and tells the server promptly when the client has gone.
 ///     </para>
 /// </remarks>
-internal static class NotificationStream
+internal static class EventStream
 {
     private static readonly byte[] ReadyFrame =
         Encoding.UTF8.GetBytes($"event: {RemoteEndpointDefaults.ReadyEvent}\ndata:\n\n");
@@ -54,7 +54,7 @@ internal static class NotificationStream
         var contract = Servable(context.Request.RouteValues["name"] as string);
 
         // Before the name is judged, as for a request: a 404 for an unknown name and a 401 for a known one would let
-        // a signed-out caller map the app's notifications one guess at a time.
+        // a signed-out caller map the app's events one guess at a time.
         if (options.RequireAuthenticatedUser
             && contract?.SubscribeAnonymously != true
             && context.User.Identity?.IsAuthenticated != true)
@@ -64,11 +64,11 @@ internal static class NotificationStream
             return;
         }
 
-        // A subscription record is opened by its policy; a bare notification only by what its own record declares.
+        // A subscription record is opened by its policy; a bare event only by what its own record declares.
         if (contract is null
-            || (contract.Kind == RemoteMessageKind.Notification && !contract.SubscribeDeclared))
+            || (contract.Kind == RemoteMessageKind.Event && !contract.SubscribeDeclared))
         {
-            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown notification", null)
+            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown event", null)
                 .ConfigureAwait(false);
             return;
         }
@@ -91,18 +91,18 @@ internal static class NotificationStream
         await StreamAsync(context, dispatcher, contract, subscription, options).ConfigureAwait(false);
     }
 
-    // A subscription's result codec is what writes each delivered notification, so one without it is not
+    // A subscription's result codec is what writes each delivered event, so one without it is not
     // servable — the same 404 as a name nobody registered.
     private static RemoteContract? Servable(string? name) =>
         !string.IsNullOrEmpty(name)
         && RemoteContractRegistry.TryGet(name, out var found)
         && found is { CarriesFiles: false }
-        && (found.Kind == RemoteMessageKind.Notification
+        && (found.Kind == RemoteMessageKind.Event
             || (found.Kind == RemoteMessageKind.Subscription && found.WriteResult is not null))
             ? found
             : null;
 
-    // What the caller watches: the decoded subscription record, or nothing for a bare notification. Not valid once
+    // What the caller watches: the decoded subscription record, or nothing for a bare event. Not valid once
     // the refusal has been written.
     private static async Task<(bool Valid, object? Subscription)> SubscriptionAsync(
         HttpContext context,
@@ -127,7 +127,7 @@ internal static class NotificationStream
         {
             subscription = string.IsNullOrEmpty(encoded)
                 ? null
-                : NotificationWire.DecodeMessage(contract, Encoding.UTF8.GetBytes(encoded));
+                : EventWire.DecodeMessage(contract, Encoding.UTF8.GetBytes(encoded));
         }
         catch (JsonException)
         {
@@ -156,10 +156,10 @@ internal static class NotificationStream
     {
         var aborted = context.RequestAborted;
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var notifications = dispatcher
+        var events = dispatcher
             .Watch(contract.MessageType, subscription, () => ready.TrySetResult(), aborted)
             .GetAsyncEnumerator(aborted);
-        var step = new Step(notifications);
+        var step = new Step(events);
         try
         {
             await WriteAsync(context, contract, step, ready.Task, options.EventKeepAlive).ConfigureAwait(false);
@@ -171,7 +171,7 @@ internal static class NotificationStream
             // Only draining: the step's outcome was already handled, or no longer matters.
             await ((Task)step.Next).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-            await notifications.DisposeAsync().ConfigureAwait(false);
+            await events.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -212,7 +212,7 @@ internal static class NotificationStream
         }
     }
 
-    // Whether the subscription was admitted — and if so, whether a replayed notification is already waiting. Null
+    // Whether the subscription was admitted — and if so, whether a replayed event is already waiting. Null
     // once there is nothing to stream, the refusal written if there was one.
     private static async Task<bool?> AdmittedAsync(HttpContext context, Step step, Task ready)
     {
@@ -220,7 +220,7 @@ internal static class NotificationStream
         {
             // The policy runs inside the first step, before anything is listening — so a refusal is still a status
             // code rather than a stream that closes for no reason.
-            // Admitted is either signal: "connected", or a first notification — the replay comes before "connected".
+            // Admitted is either signal: "connected", or a first event — the replay comes before "connected".
             await Task.WhenAny(ready, step.Next).ConfigureAwait(false);
             if (!step.Next.IsCompleted)
             {
@@ -275,7 +275,7 @@ internal static class NotificationStream
 
             // The codec writes compact JSON — a string's newlines are escaped — so one event is one data line.
             await response.Body.WriteAsync(DataPrefix, aborted).ConfigureAwait(false);
-            await response.Body.WriteAsync(NotificationWire.EncodeEvent(contract, step.Current), aborted)
+            await response.Body.WriteAsync(EventWire.EncodeEvent(contract, step.Current), aborted)
                 .ConfigureAwait(false);
             await response.Body.WriteAsync(FrameEnd, aborted).ConfigureAwait(false);
             await response.Body.FlushAsync(aborted).ConfigureAwait(false);
@@ -285,12 +285,12 @@ internal static class NotificationStream
     }
 
     // The enumerator and its one pending step, so the caller can drain whatever step the writer left in flight.
-    private sealed class Step(IAsyncEnumerator<INotification> notifications)
+    private sealed class Step(IAsyncEnumerator<IEvent> events)
     {
-        public Task<bool> Next { get; private set; } = notifications.MoveNextAsync().AsTask();
+        public Task<bool> Next { get; private set; } = events.MoveNextAsync().AsTask();
 
-        public INotification Current => notifications.Current;
+        public IEvent Current => events.Current;
 
-        public void Advance() => Next = notifications.MoveNextAsync().AsTask();
+        public void Advance() => Next = events.MoveNextAsync().AsTask();
     }
 }

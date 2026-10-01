@@ -44,7 +44,7 @@ public static class CqrsServiceCollectionExtensions
         services.TryAddTransient<LocalDispatcher>();
         services.TryAddTransient<IDispatcher>(static sp => sp.GetRequiredService<LocalDispatcher>());
 
-        AddNotifications(services, options);
+        AddEvents(services, options);
 
         // Apply the generated handler registrations (populated by [ModuleInitializer]s at module load).
         CqrsRegistry.ApplyRegistrations(services, options.HandlerLifetime);
@@ -54,21 +54,21 @@ public static class CqrsServiceCollectionExtensions
         return services;
     }
 
-    private static void AddNotifications(IServiceCollection services, CqrsOptions options)
+    private static void AddEvents(IServiceCollection services, CqrsOptions options)
     {
         // One feed per container — the process on a server, the tab in a browser — so every dispatcher, whatever scope
         // resolved it, publishes into the same subscriptions.
         var execution = new CqrsExecutionOptions
         {
-            PublishStrategy = options.NotificationPublishStrategy,
-            StopOnFirstException = options.StopOnFirstNotificationException,
+            PublishStrategy = options.EventPublishStrategy,
+            StopOnFirstException = options.StopOnFirstEventException,
             ReplayCapacity = options.ReplayCapacity,
             SubscriptionBuffer = options.SubscriptionBuffer,
             SubscriptionReconnectDelay = options.SubscriptionReconnectDelay,
             SubscriptionReconnectCeiling = options.SubscriptionReconnectCeiling,
         };
 
-        services.TryAddSingleton(new NotificationFeed(execution));
+        services.TryAddSingleton(new EventFeed(execution));
 
         services.TryAddSingleton(execution);
 
@@ -119,15 +119,15 @@ public static class CqrsServiceCollectionExtensions
             options.HandlerLifetime = ParseName<ServiceLifetime>(lifetime, nameof(CqrsOptions.HandlerLifetime));
         }
 
-        if (section[nameof(CqrsOptions.NotificationPublishStrategy)] is { Length: > 0 } strategy)
+        if (section[nameof(CqrsOptions.EventPublishStrategy)] is { Length: > 0 } strategy)
         {
-            options.NotificationPublishStrategy =
-                ParseName<NotificationPublishStrategy>(strategy, nameof(CqrsOptions.NotificationPublishStrategy));
+            options.EventPublishStrategy =
+                ParseName<EventPublishStrategy>(strategy, nameof(CqrsOptions.EventPublishStrategy));
         }
 
-        if (section[nameof(CqrsOptions.StopOnFirstNotificationException)] is { Length: > 0 } stop)
+        if (section[nameof(CqrsOptions.StopOnFirstEventException)] is { Length: > 0 } stop)
         {
-            options.StopOnFirstNotificationException = ParseBool(stop, nameof(CqrsOptions.StopOnFirstNotificationException));
+            options.StopOnFirstEventException = ParseBool(stop, nameof(CqrsOptions.StopOnFirstEventException));
         }
 
         if (section[nameof(CqrsOptions.ValidateRequests)] is { Length: > 0 } validate)

@@ -7,7 +7,7 @@ namespace Rask.Site.Features;
 // nested catch-all would only answer inside /docs — every unknown URL at the site root would match
 // nothing and render an empty document, which is worse than a 404 because nothing says so.
 [NotFound]
-public sealed partial class NotFoundPage(Navigator nav, RouteState route) : Component
+public sealed partial class NotFoundPage(RouteState route) : Component
 {
     // No canonical, and noindex. This one component answers EVERY unknown URL on the site, so a
     // canonical would point thousands of addresses at one page — and a 404 that a crawler indexes is a
@@ -29,7 +29,7 @@ public sealed partial class NotFoundPage(Navigator nav, RouteState route) : Comp
                 .Title("Page not found")
                 .Lead($"No route is registered for {route.Path}."),
             Div.Class("flex gap-2 flex-wrap items-center mt-3")[
-                Ui.Button.Primary.OnClick(() => nav.NavigateTo(Routes.GuidesIndexPage()))[Ui.Icon.Name(Ui.IconName.Home), "Back to guides"]
+                Ui.Button.Primary.OnClick(() => Go.To(Routes.GuidesIndexPage()))[Ui.Icon.Name(Ui.IconName.Home), "Back to guides"]
             ]
         ];
 }

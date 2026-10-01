@@ -9,7 +9,7 @@ namespace Rask.Generators.Tests;
 public class InternalRouteStringAnalyzerTests
 {
     [Fact]
-    public async Task NavigateTo_with_a_string_literal_matching_a_route_reports_RASK033()
+    public async Task Go_To_with_a_string_literal_matching_a_route_reports_RASK033()
     {
         var src = """
                   using Rask.Core;
@@ -21,7 +21,7 @@ public class InternalRouteStringAnalyzerTests
 
                   public sealed class Menu
                   {
-                      public void Go(Navigator nav) => nav.NavigateTo("/todos");
+                      public void Open() => Go.To("/todos");
                   }
                   """;
 
@@ -56,7 +56,7 @@ public class InternalRouteStringAnalyzerTests
     }
 
     [Fact]
-    public async Task NavigateTo_a_path_composed_with_its_parent_route_reports_RASK033()
+    public async Task Go_To_a_path_composed_with_its_parent_route_reports_RASK033()
     {
         // The suggested URL composes the [ParentRoute] chain: Layout "/" + Page "todos" → "/todos".
         var src = """
@@ -73,7 +73,7 @@ public class InternalRouteStringAnalyzerTests
 
                   public sealed class Menu
                   {
-                      public void Go(Navigator nav) => nav.NavigateTo("/todos");
+                      public void Open() => Go.To("/todos");
                   }
                   """;
 
@@ -98,7 +98,7 @@ public class InternalRouteStringAnalyzerTests
 
                   public sealed class Menu
                   {
-                      public void Go(Navigator nav) => nav.NavigateTo("/todos/new");
+                      public void Open() => Go.To("/todos/new");
                   }
                   """;
 
@@ -119,7 +119,7 @@ public class InternalRouteStringAnalyzerTests
 
                   public sealed class Menu
                   {
-                      public void Go(Navigator nav) => nav.NavigateTo("/users/42");
+                      public void Open() => Go.To("/users/42");
                   }
                   """;
 
@@ -139,7 +139,7 @@ public class InternalRouteStringAnalyzerTests
 
                   public sealed class Menu
                   {
-                      public void Go(Navigator nav) => nav.NavigateTo("https://example.com/todos");
+                      public void Open() => Go.To("https://example.com/todos");
                   }
                   """;
 
@@ -159,7 +159,7 @@ public class InternalRouteStringAnalyzerTests
 
                   public sealed class Menu
                   {
-                      public void Go(Navigator nav) => nav.NavigateTo("/not-a-route");
+                      public void Open() => Go.To("/not-a-route");
                   }
                   """;
 

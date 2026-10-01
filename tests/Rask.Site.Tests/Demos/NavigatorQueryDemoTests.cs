@@ -44,7 +44,7 @@ public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMark
         var routeState = new RouteState { Path = "/guides/routing" };
         var nav = new Navigator(routeState);
 
-        TestNavigator.RunHandler(nav, () => nav.SetQuery("page", "1"));
+        TestNavigator.RunHandler(nav, () => Go.With("page", "1"));
 
         Assert.True(routeState.Query.ContainsKey("page"));
     }
@@ -58,7 +58,7 @@ public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMark
         var routeState = new RouteState { Path = "/guides/routing", Query = initial };
         var nav = new Navigator(routeState);
 
-        TestNavigator.RunHandler(nav, () => nav.RemoveQuery("page"));
+        TestNavigator.RunHandler(nav, () => Go.Without("page"));
 
         Assert.False(routeState.Query.ContainsKey("page"));
     }
@@ -74,7 +74,7 @@ public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMark
         var routeState = new RouteState { Path = "/guides/routing", Query = initial };
         var nav = new Navigator(routeState);
 
-        TestNavigator.RunHandler(nav, () => nav.ClearQuery());
+        TestNavigator.RunHandler(nav, () => Go.Without());
 
         Assert.Equal(0, routeState.Query.Count);
     }

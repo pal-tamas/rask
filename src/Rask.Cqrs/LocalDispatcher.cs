@@ -23,7 +23,7 @@ internal sealed class LocalDispatcher : IDispatcher
         provider.GetService<NotifyRoot>();
     }
 
-    private NotificationFeed? _feed;
+    private EventFeed? _feed;
     private CqrsExecutionOptions? _subscriptions;
     private IRemoteSubscriptions? _remote;
     private bool _remoteResolved;
@@ -60,83 +60,106 @@ internal sealed class LocalDispatcher : IDispatcher
         return await ((Task<TResult>)invoker(provider, command, cancellationToken)).ConfigureAwait(false);
     }
 
-    public async Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
-        where TNotification : INotification
+    public async Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
+        where TEvent : IEvent
     {
-        ArgumentNullException.ThrowIfNull(notification);
+        ArgumentNullException.ThrowIfNull(e);
 
         // Use the runtime type so a base-typed reference still reaches the right handlers and subscribers.
-        var type = notification.GetType();
+        var type = e.GetType();
 
         // Subscribers first: the event has happened, and a screen should not wait on a slow handler to show it. On a
-        // client whose notifications travel to the server, this tab's subscriptions are open ON the server, and hear
+        // client whose events travel to the server, this tab's subscriptions are open ON the server, and hear
         // this one when the server does — delivering it here too would show it twice.
         if (!TravelsToServer(type) && Feed is { } feed)
         {
-            feed.Publish(notification);
-        }
-
-        // A notification with no handlers has no generated invoker, and reaches only its subscribers.
-        var invoker = CqrsRegistry.GetNotificationInvoker(type);
-        if (invoker is null)
-        {
-            return;
+            feed.Publish(e);
         }
 
         using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
-        await invoker(provider, notification, cancellationToken).ConfigureAwait(false);
+
+        // Durable first, so an in-memory handler that throws cannot cost the ones that must not be lost.
+        var durable = CqrsRegistry.DurableHandlersOf(type);
+        var runDurableHere = durable.Count > 0 && !DurableEvents.Take(e) && !await Stored(e, durable, cancellationToken).ConfigureAwait(false);
+
+        // An event with no handlers has no generated invoker, and reaches only its subscribers.
+        if (CqrsRegistry.GetEventInvoker(type) is { } invoker)
+        {
+            await invoker(provider, e, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (runDurableHere)
+        {
+            foreach (var handler in durable)
+            {
+                await CqrsRegistry.FindDurableHandler(handler)!(provider, e, cancellationToken).ConfigureAwait(false);
+            }
+        }
     }
 
-    public IAsyncEnumerable<TNotification> Subscribe<TNotification>(CancellationToken cancellationToken = default)
-        where TNotification : INotification =>
-        Subscribed<TNotification>(subscription: null, cancellationToken);
+    // Hands the event's durable handlers to the store (the outbox), false when there is none: a browser app, or
+    // Rask.Cqrs on its own, has nowhere durable to put them, so they run here like any other handler.
+    private async Task<bool> Stored(IEvent e, IReadOnlyList<string> durable, CancellationToken cancellationToken)
+    {
+        if (provider.GetService<IDurableEventStore>() is not { } store)
+        {
+            return false;
+        }
 
-    public IAsyncEnumerable<TNotification> Subscribe<TNotification>(
-        ISubscription<TNotification> subscription,
+        await store.Store(e, durable, cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    public IAsyncEnumerable<TEvent> Subscribe<TEvent>(CancellationToken cancellationToken = default)
+        where TEvent : IEvent =>
+        Subscribed<TEvent>(subscription: null, cancellationToken);
+
+    public IAsyncEnumerable<TEvent> Subscribe<TEvent>(
+        ISubscription<TEvent> subscription,
         CancellationToken cancellationToken = default)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
         ArgumentNullException.ThrowIfNull(subscription);
-        return Subscribed<TNotification>(subscription, cancellationToken);
+        return Subscribed<TEvent>(subscription, cancellationToken);
     }
 
     // An iterator, not a cast over Watch: [EnumeratorCancellation] is what carries a token handed to
     // GetAsyncEnumerator into the watch, and a plain wrapper would drop it — leaving a subscription nobody can end.
-    private async IAsyncEnumerable<TNotification> Subscribed<TNotification>(
-        ISubscription<TNotification>? subscription,
+    private async IAsyncEnumerable<TEvent> Subscribed<TEvent>(
+        ISubscription<TEvent>? subscription,
         [EnumeratorCancellation] CancellationToken cancellationToken)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
-        await foreach (var notification in
-                       Watch(typeof(TNotification), subscription, connected: null, cancellationToken)
+        await foreach (var e in
+                       Watch(typeof(TEvent), subscription, connected: null, cancellationToken)
                            .ConfigureAwait(false))
         {
-            yield return (TNotification)notification;
+            yield return (TEvent)e;
         }
     }
 
     /// <summary>
-    ///     The notifications <paramref name="subscription" /> asked for — or every one of
-    ///     <paramref name="notificationType" /> when it is null — from the server when this is a client of one, else from
+    ///     The events <paramref name="subscription" /> asked for — or every one of
+    ///     <paramref name="eventType" /> when it is null — from the server when this is a client of one, else from
     ///     this container's feed. The watch policy admits it first, and it starts with the most recent one published.
     ///     <paramref name="connected" /> runs once the subscription is open.
     /// </summary>
-    internal async IAsyncEnumerable<INotification> Watch(
-        Type notificationType,
+    internal async IAsyncEnumerable<IEvent> Watch(
+        Type eventType,
         object? subscription,
         Action? connected,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var registration = subscription is null ? null : Registration(subscription.GetType());
-        var type = registration?.NotificationType ?? notificationType;
+        var type = registration?.EventType ?? eventType;
 
         if (Remote is { } remote && ContractFor(subscription, type) is { } contract)
         {
             // The server admits or refuses it, with the signed-in user's policy; the browser's opinion is worth nothing.
-            await foreach (var notification in remote.Subscribe(contract, subscription, connected, cancellationToken)
+            await foreach (var e in remote.Subscribe(contract, subscription, connected, cancellationToken)
                                .ConfigureAwait(false))
             {
-                yield return notification;
+                yield return e;
             }
 
             yield break;
@@ -151,7 +174,7 @@ internal sealed class LocalDispatcher : IDispatcher
         }
 
         var feed = Feed ?? throw new InvalidOperationException("Subscribing needs AddRaskCqrs() at startup.");
-        var channel = Channel.CreateBounded<INotification>(new BoundedChannelOptions(Subscriptions.SubscriptionBuffer)
+        var channel = Channel.CreateBounded<IEvent>(new BoundedChannelOptions(Subscriptions.SubscriptionBuffer)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true,
@@ -159,9 +182,9 @@ internal sealed class LocalDispatcher : IDispatcher
 
         var matches = subscription is null || registration is null
             ? null
-            : new Func<INotification, bool>(notification => registration.Matches(subscription, notification));
+            : new Func<IEvent, bool>(e => registration.Matches(subscription, e));
 
-        using var listening = feed.Listen(type, matches, notification => channel.Writer.TryWrite(notification));
+        using var listening = feed.Listen(type, matches, e => channel.Writer.TryWrite(e));
 
         // The replay first, then "connected": whoever renders on connected already holds the latest value, so a
         // page's first paint shows it rather than an empty live state.
@@ -172,17 +195,17 @@ internal sealed class LocalDispatcher : IDispatcher
 
         connected?.Invoke();
 
-        await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+        await foreach (var e in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
-            yield return notification;
+            yield return e;
         }
     }
 
-    // What this subscription crosses the wire as: its own contract when it is a record, else the notification's.
-    private static RemoteContract? ContractFor(object? subscription, Type notificationType) =>
+    // What this subscription crosses the wire as: its own contract when it is a record, else the event's.
+    private static RemoteContract? ContractFor(object? subscription, Type eventType) =>
         subscription is null
-            ? NotificationWire.ContractFor(notificationType)
-            : NotificationWire.SubscriptionContractFor(subscription.GetType());
+            ? EventWire.ContractFor(eventType)
+            : EventWire.SubscriptionContractFor(subscription.GetType());
 
     private static SubscriptionRegistration Registration(Type subscriptionType) =>
         CqrsRegistry.FindSubscription(subscriptionType)
@@ -190,7 +213,7 @@ internal sealed class LocalDispatcher : IDispatcher
             $"{subscriptionType.Name} is not registered as a subscription. The Rask.Cqrs generator records every "
             + "ISubscription<T> in the assembly that declares it — check that assembly references Rask.Cqrs.");
 
-    private NotificationFeed? Feed => _feed ??= provider.GetService<NotificationFeed>();
+    private EventFeed? Feed => _feed ??= provider.GetService<EventFeed>();
 
     /// <summary>The subscription knobs from <c>Rask:Cqrs</c>, or their defaults outside a configured container.</summary>
     internal CqrsExecutionOptions Subscriptions =>
@@ -210,5 +233,5 @@ internal sealed class LocalDispatcher : IDispatcher
         }
     }
 
-    private bool TravelsToServer(Type type) => Remote is not null && NotificationWire.ContractFor(type) is not null;
+    private bool TravelsToServer(Type type) => Remote is not null && EventWire.ContractFor(type) is not null;
 }

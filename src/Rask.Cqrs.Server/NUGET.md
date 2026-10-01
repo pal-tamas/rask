@@ -8,7 +8,7 @@ DTO plumbing, no per-message routes.
 - **Two endpoints, not one per message.** One GET and one POST resolve a message by name against the
   source-generated allow-list. A query is a GET and can be cached; a command is a POST, so it is **405 on
   GET** and cannot be triggered by a URL, a prefetch or a link scanner. A subscription is served as
-  server-sent events, admitted by the notification's watch policy.
+  server-sent events, admitted by the event's watch policy.
 - **Fails closed.** Authenticated by default — `[AllowAnonymous]` on the handler is the only way past, and
   `[Authorize]` policies and roles are enforced. An anonymous caller cannot enumerate your messages, both
   verbs require a header no cross-site markup can set, and handler exceptions become RFC 9457

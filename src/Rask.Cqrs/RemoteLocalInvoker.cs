@@ -7,7 +7,7 @@ namespace Rask.Cqrs;
 /// <param name="provider">The request's service scope.</param>
 /// <param name="message">The decoded message.</param>
 /// <param name="cancellationToken">Cancels the handler; the endpoint passes the request's abort token.</param>
-/// <returns>The handler's result, or null for a void command or a notification.</returns>
+/// <returns>The handler's result, or null for a void command or an event.</returns>
 public delegate Task<object?> RemoteLocalInvoker(
     IServiceProvider provider,
     object message,

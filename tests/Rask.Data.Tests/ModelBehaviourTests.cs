@@ -89,7 +89,7 @@ public sealed class Shipment : Aggregate<Guid>
         new() { Id = Guid.NewGuid(), OrderId = orderId, Dispatched = dispatched };
 }
 
-public sealed record OrderCancelled(Guid Id) : INotification;
+public sealed record OrderCancelled(Guid Id) : IEvent;
 
 // Half of these tests construct no database at all, which is the point: behaviour that only changes the
 // model is a plain object, so it is tested like one. The half that reads the database gets a real one in

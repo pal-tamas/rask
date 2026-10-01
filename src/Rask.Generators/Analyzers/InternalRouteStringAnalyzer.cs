@@ -10,7 +10,7 @@ namespace Rask.Generators.Analyzers;
 
 // RASK033 — prefer the generated type-safe route URL over a hardcoded path for INTERNAL navigation.
 // Rask emits a `Routes.<Page>()` RouteUrl factory for every page's primary [Route] (see RoutesGenerator).
-// Passing the raw path string to internal navigation — `Navigator.NavigateTo("/todos")` or a `RouteUrl`
+// Passing the raw path string to internal navigation — `Go.To("/todos")` or a `RouteUrl`
 // slot like `NavLink(Href: "/todos")` / `BsNavItem.Href("/todos")` (string → RouteUrl implicit conversion)
 // — bypasses that safety: a renamed or removed [Route] leaves a dead link that still compiles.
 //
@@ -24,7 +24,7 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
 {
     private const string RouteAttrFullName = "Rask.Core.Routing.RouteAttribute";
     private const string ParentRouteAttrFullName = "Rask.Core.Routing.ParentRouteAttribute";
-    private const string NavigatorFullName = "Rask.Core.Routing.Navigator";
+    private const string GoFullName = "Rask.Core.Go";
     private const string RouteUrlFullName = "Rask.Core.Routing.RouteUrl";
     private const string RaskCoreAssembly = "Rask.Core";
 
@@ -37,7 +37,7 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true,
         "Rask generates a type-safe route helper ('Routes.<Page>()') for every page's primary [Route]. "
-        + "Passing the raw path string to internal navigation (Navigator.NavigateTo, or a RouteUrl Href/To "
+        + "Passing the raw path string to internal navigation (Go.To, or a RouteUrl Href/To "
         + "slot) bypasses that safety: a renamed or removed route leaves a dead link that still compiles. "
         + "Only internal paths that map to a parameterless route helper are flagged; external URLs "
         + "(RouteUrl.External) and parameterised/secondary routes are left alone.",
@@ -52,17 +52,17 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(static start =>
         {
-            // Rask.Core defines Navigator/RouteUrl and navigates with strings internally; never flag it.
+            // Rask.Core defines Go/RouteUrl and navigates with strings internally; never flag it.
             if (string.Equals(start.Compilation.AssemblyName, RaskCoreAssembly, StringComparison.Ordinal))
             {
                 return;
             }
 
-            var navigator = start.Compilation.GetTypeByMetadataName(NavigatorFullName);
+            var go = start.Compilation.GetTypeByMetadataName(GoFullName);
             var routeUrl = start.Compilation.GetTypeByMetadataName(RouteUrlFullName);
             var routeAttr = start.Compilation.GetTypeByMetadataName(RouteAttrFullName);
             var parentAttr = start.Compilation.GetTypeByMetadataName(ParentRouteAttrFullName);
-            if (navigator is null || routeUrl is null || routeAttr is null)
+            if (go is null || routeUrl is null || routeAttr is null)
             {
                 return;
             }
@@ -74,7 +74,7 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            start.RegisterOperationAction(ctx => AnalyzeInvocation(ctx, navigator, map), OperationKind.Invocation);
+            start.RegisterOperationAction(ctx => AnalyzeInvocation(ctx, go, map), OperationKind.Invocation);
             start.RegisterOperationAction(ctx => AnalyzeConversion(ctx, routeUrl, map), OperationKind.Conversion);
         });
     }
@@ -82,18 +82,18 @@ public sealed class InternalRouteStringAnalyzer : DiagnosticAnalyzer
     // --- navigation sinks -----------------------------------------------------------------------
 
     private static void AnalyzeInvocation(
-        OperationAnalysisContext context, INamedTypeSymbol navigator, IReadOnlyDictionary<string, string> map)
+        OperationAnalysisContext context, INamedTypeSymbol go, IReadOnlyDictionary<string, string> map)
     {
         var inv = (IInvocationOperation)context.Operation;
         var method = inv.TargetMethod;
-        if (!string.Equals(method.Name, "NavigateTo", StringComparison.Ordinal)
-            || !SymbolEqualityComparer.Default.Equals(method.ContainingType, navigator))
+        if (!string.Equals(method.Name, "To", StringComparison.Ordinal)
+            || !SymbolEqualityComparer.Default.Equals(method.ContainingType, go))
         {
             return;
         }
 
-        // NavigateTo(string path, …) / NavigateTo(string path, query, …) — flag the path argument. The
-        // NavigateTo(RouteUrl, …) overload has no string param and is covered by AnalyzeConversion instead.
+        // Go.To(string path) / Go.To(string path, query) — flag the path argument. The
+        // Go.To(RouteUrl) overload has no string param and is covered by AnalyzeConversion instead.
         foreach (var arg in inv.Arguments)
         {
             if (arg.Parameter?.Type.SpecialType == SpecialType.System_String)

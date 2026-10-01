@@ -516,7 +516,7 @@ files are on disk it says so, because that is the one state in which no backup c
 
 ## See also
 
-- [HTTP & files](http-and-files.md) — the file picker and `IRaskFile`, and `Navigator.Download` for bytes you
+- [HTTP & files](http-and-files.md) — the file picker and `IRaskFile`, and `Download.File` for bytes you
   generate on the fly.
 - [Forms](forms.md#file-inputs) — file inputs inside a form.
 - [Configuration](configuration.md#file-uploads--raskuploads) — the server's own upload limits.

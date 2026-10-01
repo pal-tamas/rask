@@ -1,11 +1,11 @@
 namespace Rask.Cqrs;
 
-/// <summary>The runtime snapshot of the notification-fan-out knobs from <see cref="CqrsOptions"/>.</summary>
+/// <summary>The runtime snapshot of the event-fan-out knobs from <see cref="CqrsOptions"/>.</summary>
 internal sealed class CqrsExecutionOptions
 {
     internal static readonly CqrsExecutionOptions Default = new();
 
-    public NotificationPublishStrategy PublishStrategy { get; init; } = NotificationPublishStrategy.Sequential;
+    public EventPublishStrategy PublishStrategy { get; init; } = EventPublishStrategy.Sequential;
 
     public bool StopOnFirstException { get; init; } = true;
 

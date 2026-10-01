@@ -1,7 +1,7 @@
 # CQRS (`Rask.Cqrs`)
 
 `Rask.Cqrs` is an opt-in, **source-generated** CQRS/mediator. You define messages — queries, commands
-and notifications — and their handlers, then dispatch through `IDispatcher`. The generator wires every
+and events — and their handlers, then dispatch through `IDispatcher`. The generator wires every
 handler at compile time, so dispatch does **no runtime reflection and no assembly scanning**. That is
 the whole point: it publishes clean under the WASM/AOT trimmer, where a reflection-based mediator
 cannot. It is standalone — it depends only on `Microsoft.Extensions.DependencyInjection.Abstractions`
@@ -25,7 +25,7 @@ and works in any .NET app, not just Rask.
 | `IQuery<TResult>` | read, no side effects | `IQueryHandler<TQuery, TResult>` | `TResult` |
 | `ICommand` | write, no value | `ICommandHandler<TCommand>` | — |
 | `ICommand<TResult>` | write, returns a value | `ICommandHandler<TCommand, TResult>` | `TResult` |
-| `INotification` | event, fanned out to many | `INotificationHandler<TNotification>` | — |
+| `IEvent` | event, fanned out to many | `IEventHandler<TEvent>` | — |
 
 ```csharp
 public sealed record GetCounterState : IQuery<CounterState>;
@@ -69,13 +69,13 @@ public sealed partial class CounterView(IDispatcher dispatcher) : Component
 }
 ```
 
-## Notifications
+## Events
 
-A command handler can publish an `INotification`; every registered `INotificationHandler` runs. Choose
-`Sequential` (default) or `WhenAll` fan-out via `CqrsOptions.NotificationPublishStrategy`. Handlers are
-matched by the notification's **concrete runtime type** (a handler declared against a base type is not
+A command handler can publish an `IEvent`; every registered `IEventHandler` runs. Choose
+`Sequential` (default) or `WhenAll` fan-out via `CqrsOptions.EventPublishStrategy`. Handlers are
+matched by the event's **concrete runtime type** (a handler declared against a base type is not
 invoked for a derived one — see Limitations), their run order is deterministic but not the declaration
-order, so don't depend on it, and a notification with no handlers reaches only its subscribers
+order, so don't depend on it, and an event with no handlers reaches only its subscribers
 ([below](#subscribing)).
 
 ```csharp
@@ -91,9 +91,23 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
 }
 ```
 
+### Durable handlers
+
+A handler that must not be lost implements `IDurableHandler<T>` instead. It is written to the
+[outbox](outbox.md) and runs from there after the commit, retried until it succeeds; each handler of the event chooses:
+
+```csharp
+public sealed class RefreshDashboard : IEventHandler<OrderPlaced> { … }   // in memory, at once
+public sealed class SendReceipt : IDurableHandler<OrderPlaced> { … }      // outbox: atomic, retried
+```
+
+Raised on an aggregate, the event's durable rows commit in the save's own transaction; published through the
+dispatcher, they are stored in a transaction of their own. With no outbox (a browser app, or `Rask.Cqrs` on its own)
+a durable handler runs in memory like any other.
+
 ### Subscribing
 
-A notification is also what a screen subscribes to. `PublishAsync` runs its handlers and hands it to every open
+An event is also what a screen subscribes to. `PublishAsync` runs its handlers and hands it to every open
 subscription — a component's `QueryClient.Subscribe<T>()`, or `Subscribe` anywhere else:
 
 ```csharp
@@ -101,7 +115,7 @@ await foreach (var incremented in dispatcher.Subscribe<CounterIncremented>(ct))
     Console.WriteLine(incremented.Value);
 ```
 
-An `ISubscription<T>` record says which notifications one page wants, admitted by its own `IWatchPolicy<T>`.
+An `ISubscription<T>` record says which events one page wants, admitted by its own `IWatchPolicy<T>`.
 See [subscriptions](subscriptions.md).
 
 ## Pipeline behaviors (decorators)
@@ -129,15 +143,15 @@ public sealed class DispatchLogBehavior<TRequest, TResult>(CqrsCounterStore stor
 builder.Services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(DispatchLogBehavior<,>)));
 ```
 
-Behaviors are code. The dispatcher's plain switches — `HandlerLifetime`, `NotificationPublishStrategy`,
-`StopOnFirstNotificationException`, `ValidateRequests` — can also be set in `Rask:Cqrs` in
+Behaviors are code. The dispatcher's plain switches — `HandlerLifetime`, `EventPublishStrategy`,
+`StopOnFirstEventException`, `ValidateRequests` — can also be set in `Rask:Cqrs` in
 `appsettings.json`, and the callback runs after them. Unlike every other Rask section, `Rask:Cqrs` is read
 while `AddRaskCqrs` itself runs, because those switches decide which services get registered; it comes from
 the host builder's configuration, so a container that is not a host reads none.
 
 ## It all fits together
 
-The demo below is one vertical slice — the query, the result-command, the notification the command
+The demo below is one vertical slice — the query, the result-command, the event the command
 publishes, and the logging behavior above — all dispatched reflection-free. Click **Increment** to
 watch the pipeline log build up.
 
@@ -208,8 +222,8 @@ reference the browser app needs and the server must not have.
 > environment like code.
 
 **A client is a pure client.** Every request message it dispatches travels; a stray client-side handler
-can never quietly intercept one. Notifications are the deliberate exception — they fan out, so a
-client's own handlers still run *and* the notification travels.
+can never quietly intercept one. Events are the deliberate exception — they fan out, so a
+client's own handlers still run *and* the event travels.
 
 **Two projects instead of one works the same way, with one extra line.** Where a bundle and its host are
 separate projects, the message records have to reach both compilations — link the file rather than
@@ -264,8 +278,9 @@ Failure to *arrive* is the one thing remote dispatch adds to the in-process call
 ### `[LocalOnly]`
 
 Keeps a message off the wire entirely, and on an **interface** covers a whole family. This matters more
-than it looks: `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
-outbox event in the app would become an internet-reachable endpoint.
+than it looks: `IJob` derives from `ICommand`, so without it every job payload in the app would become an
+internet-reachable endpoint. Mark a **domain event** `[LocalOnly]` too: an event travels from a browser like any
+message, so an unmarked `OrderPlaced` could be published for an order nobody placed, and its handlers would run.
 
 It is also **how a client keeps a message in-process.** "A client is a pure client" is not a figure of
 speech — `AddRaskCqrsClient()` replaces the invoker for *every* request message it has a contract for, so
@@ -293,7 +308,7 @@ public sealed record AttachReceipt(int OrderId, IRaskFile File) : ICommand;
 await dispatcher.Send(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.
-navigator.Download(await dispatcher.Query(new ExportOrders(year)));
+Download.File(await dispatcher.Query(new ExportOrders(year)));
 ```
 
 The handler receives a `IRaskFile` too, and reads it exactly as it would in-process:
@@ -376,8 +391,8 @@ trim-safe:
 - **One handler per query/command, app-wide.** RASK028 catches duplicates within a compilation. Two
   handlers for the *same* request type in *different* assemblies aren't diagnosed (no whole-program
   view) — keep each query/command's handler unique across the whole app.
-- **Notifications match the concrete published type.** There is no base-type/polymorphic fan-out
-  (that would need runtime type-hierarchy reflection). Declare a handler for the exact `INotification`
+- **Events match the concrete published type.** There is no base-type/polymorphic fan-out
+  (that would need runtime type-hierarchy reflection). Declare a handler for the exact `IEvent`
   type you publish.
 
 ## Trimming

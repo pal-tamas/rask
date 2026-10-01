@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Cqrs;
 
 /// <summary>
-///     Queries, commands and notifications, with nothing injected — from a handler, a render, a request, a job:
+///     Queries, commands and events, with nothing injected — from a handler, a render, a request, a job:
 /// </summary>
 /// <remarks>
 ///     <code>
@@ -31,10 +31,10 @@ public static class Dispatcher
     public static Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) =>
         Resolve().Send(command, cancellationToken);
 
-    /// <summary>Publishes <paramref name="notification" /> to every handler of it.</summary>
-    public static Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
-        where TNotification : INotification =>
-        Resolve().Publish(notification, cancellationToken);
+    /// <summary>Publishes <paramref name="e" /> to every handler of it.</summary>
+    public static Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
+        where TEvent : IEvent =>
+        Resolve().Publish(e, cancellationToken);
 
     private static IDispatcher Resolve()
     {

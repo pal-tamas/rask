@@ -33,10 +33,6 @@
     <!-- AddRaskData<TContext> registers a startup check refusing a HasNonOverlappingRange rule the provider
          would silently ignore; it runs as an IHostedService, like the batteries' model checks. -->
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
-    <!-- RaskDataOptions binds Rask:Data. -->
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
-    <PackageReference Include="Microsoft.Extensions.Options"/>
   </ItemGroup>
 
   <!-- The configuration binding source generator writes the Rask:Data bind at compile time, so no reflection binder

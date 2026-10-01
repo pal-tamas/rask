@@ -9,6 +9,81 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask.Cqrs says "event", not "notification".** You raise an event on an aggregate and publish one through the
+  dispatcher, so the thing a handler reacts to is now called that too:
+
+  ```csharp
+  public sealed record OrderPlaced(Guid Id) : IEvent;                        // was INotification
+
+  public sealed class LogSale : IEventHandler<OrderPlaced>                   // was INotificationHandler<OrderPlaced>
+  {
+      public Task Handle(OrderPlaced e) => …;
+  }
+  ```
+
+  | Before | After |
+  |---|---|
+  | `INotification` | `IEvent` |
+  | `INotificationHandler<TNotification>` | `IEventHandler<TEvent>` |
+  | `NotificationPublishStrategy`, `CqrsOptions.NotificationPublishStrategy` | `EventPublishStrategy`, `CqrsOptions.EventPublishStrategy` |
+  | `CqrsOptions.StopOnFirstNotificationException` | `CqrsOptions.StopOnFirstEventException` |
+  | `NotificationDispatch` | `EventDispatch` |
+  | `CqrsRegistry.NotificationInvoker` / `FindNotificationInvoker` / `RegisterNotification` / `ReplaceNotifications` | `EventInvoker` / `FindEventInvoker` / `RegisterEvent` / `ReplaceEvents` |
+  | `RemoteMessageKind.Notification`, `SubscriptionRegistration.NotificationType` | `RemoteMessageKind.Event`, `SubscriptionRegistration.EventType` |
+  | TypeScript contract kind `'notification'` | `'event'` |
+
+  `IDispatcher.Publish` keeps its name. The browser's `Notification` API (`INotifications`, `Rask.Web`) is a
+  different thing and is unchanged.
+- **Each handler chooses whether it is durable.** An event is a plain `IEvent`; `IEventHandler<T>` runs in memory
+  straight after the commit, and `IDurableHandler<T>` runs through the transactional outbox, with its row written
+  in the same transaction as the change that raised the event:
+
+  ```csharp
+  [LocalOnly]
+  public sealed record OrderPlaced(Guid Id) : IEvent;                          // was : IOutboxEvent
+
+  public sealed class RefreshDashboard : IEventHandler<OrderPlaced> { … }      // in memory, at once
+  public sealed class SendReceipt : IDurableHandler<OrderPlaced> { … }         // outbox: atomic, retried
+  ```
+
+  Before, one event went one way for the whole app. With the outbox on, a plain `INotification` raised on an
+  aggregate was **never delivered**, and nothing reported it. Now:
+  - Each durable handler is its own outbox row, so a failing one is retried alone.
+  - A bare `dispatcher.Publish(e)` stores its durable rows in a transaction of its own.
+  - A save wakes the processor at once, instead of it waiting for the next `PollInterval` (5s).
+  - Without an outbox (a browser app, or `Rask.Cqrs` on its own), a durable handler runs in memory.
+
+  **The outbox follows the data battery**, since the handler is now the switch. Removed:
+  - `IOutboxEvent`, `c.Outbox.Off()`, `rask new --no-outbox`
+  - `RaskDataOptions` with `DispatchDomainEventsInProcess`, and `AddRaskData(configure)`
+  - `IDomainEventDeliveryOwner`
+  - `OutboxSerializerRegistry.Replace`
+
+  `c.Outbox.Configure(o => …)` and `Rask:Outbox` still set the options.
+
+  **Upgrading:**
+  1. Declare events `: IEvent`, and give each handler that must not be lost `IDurableHandler<T>`.
+  2. Mark each domain event `[LocalOnly]`. `IOutboxEvent` did that for you: events travel from a browser like any
+     message, so an unmarked `OrderPlaced` could be published by a signed-in user.
+  3. Add the outbox's new `Handler` column: `rask db add AddOutboxHandler && rask db update`.
+- **BREAKING: navigate with `Go` and hand over files with `Download`; nothing is injected.** The router's
+  `Navigator` service is gone from the public API, which frees `Navigator` for MDN's own global in `Rask.Web`:
+  ```csharp
+  public sealed partial class ProductsPage(Navigator nav) : Component   // was
+  public sealed partial class ProductsPage : Component                  // now
+
+  nav.NavigateTo("/products/42");          →  Go.To("/products/42");
+  nav.NavigateTo("/login", replace: true); →  Go.To("/login").Replacing();
+  UserPage.Go(42, replace: true);          →  UserPage.Go(42).Replacing();
+  nav.SetQuery("page", "2");               →  Go.With("page", "2");
+  nav.RemoveQuery("page");                 →  Go.Without("page");
+  nav.ClearQuery();                        →  Go.Without();
+  nav.Download("report.csv", bytes);       →  Download.File("report.csv", bytes);
+  navigator.Download(fileDownload);        →  Download.File(fileDownload);        // Rask.Cqrs.Client
+  ```
+  The rules are the ones the navigator had: from an event handler (or a page's initial render, which the Server
+  host still answers with a `302`). In Rask.Testing, `TestRoute.NavigatorFor` is gone: a page under test
+  navigates over the `RouteState` and stages into the `IDownloadSink` it was given, with nothing else to build.
 - **BREAKING: the last `…Async` suffixes go, and signing in needs nothing injected.** A new static `Auth`
   (namespace `Rask.Core`) mirrors `IAuth` — `await Auth.SignIn(email, password)` from any handler, render or
   request; outside any work in progress it throws and says to inject `IAuth` there instead (code under a

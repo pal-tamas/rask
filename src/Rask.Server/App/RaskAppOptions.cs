@@ -98,8 +98,11 @@ public sealed class RaskAppOptions
     /// </remarks>
     public Battery<StorageOptions> Storage { get; } = new();
 
-    /// <summary>The transactional outbox for durable domain-event delivery.</summary>
-    public Battery<OutboxOptions> Outbox { get; } = new();
+    /// <summary>
+    /// The transactional outbox every <c>IDurableHandler</c> runs from. Always on while <see cref="Data"/> is — a
+    /// handler chooses durability, so there is nothing to turn off — and configured here.
+    /// </summary>
+    public Settings<OutboxOptions> Outbox { get; } = new();
 
     /// <summary>
     /// HTTP endpoints: API controllers and minimal APIs, with a typed client generated from them.

@@ -20,8 +20,8 @@ public static class RaskCqrsClientServiceCollectionExtensions
     ///         <b>A client is a pure client.</b> Every contract gets a remote invoker, whether or not this
     ///         process happens to contain a handler for it — there is no conditional to reason about at a
     ///         call site, and no way for a stray client-side handler to quietly intercept a message meant
-    ///         for the server. Notifications are the one exception, and deliberately so: they fan out
-    ///         rather than being handled once, so a client's own handlers still run and the notification
+    ///         for the server. Events are the one exception, and deliberately so: they fan out
+    ///         rather than being handled once, so a client's own handlers still run and the event
     ///         *also* travels to the server.
     ///     </para>
     ///     <para>
@@ -59,7 +59,7 @@ public static class RaskCqrsClientServiceCollectionExtensions
             sp.GetService<IRemoteRequestValidator>()));
         services.TryAddSingleton<IRemoteDispatch>(static sp => sp.GetRequiredService<RemoteDispatch>());
 
-        // Subscriptions open on the server too, so they hear what every host publishes — and a notification this tab
+        // Subscriptions open on the server too, so they hear what every host publishes — and an event this tab
         // publishes reaches its own subscriptions from there, once, like everyone else's.
         services.TryAddSingleton<IRemoteSubscriptions>(static sp => sp.GetRequiredService<RemoteDispatch>());
 
@@ -72,12 +72,12 @@ public static class RaskCqrsClientServiceCollectionExtensions
     // repeated registration on the SAME collection, but the registry these invokers go into is static and
     // process-wide, so a second collection — a test, a rebuilt container, a host composing two — would
     // reach here again. For a request that is merely wasteful: the invoker is replaced by an identical
-    // one. For a notification it is a correctness bug, because the composed invoker captures whatever
+    // one. For an event it is a correctness bug, because the composed invoker captures whatever
     // was registered before it and would wrap ITSELF, turning one publish into two sends, then three.
     private static readonly Lock InstallGate = new();
     private static bool _invokersInstalled;
 
-    // Every request contract becomes remote; every notification composes with whatever handles it here.
+    // Every request contract becomes remote; every event composes with whatever handles it here.
     //
     // Registered through CqrsRegistry's manual path, which the registry applies last when it rebuilds —
     // so a remote invoker deterministically wins over the generated local one rather than depending on
@@ -98,9 +98,9 @@ public static class RaskCqrsClientServiceCollectionExtensions
 
             foreach (var contract in RemoteContractRegistry.All)
             {
-                if (contract.Kind == RemoteMessageKind.Notification)
+                if (contract.Kind == RemoteMessageKind.Event)
                 {
-                    InstallNotification(contract);
+                    InstallEvent(contract);
                     continue;
                 }
 
@@ -114,26 +114,26 @@ public static class RaskCqrsClientServiceCollectionExtensions
         }
     }
 
-    private static void InstallNotification(RemoteContract contract)
+    private static void InstallEvent(RemoteContract contract)
     {
         // Captured before the replacement is installed, so the composed invoker still runs whatever the
         // generated one did. Publishing on a client should reach this process's own reactors — a badge, a
         // toast — and also travel; replacing the invoker outright would silently drop the local ones.
-        var local = CqrsRegistry.FindNotificationInvoker(contract.MessageType);
+        var local = CqrsRegistry.FindEventInvoker(contract.MessageType);
 
-        CqrsRegistry.RegisterNotification(contract.MessageType, async (provider, notification, cancellationToken) =>
+        CqrsRegistry.RegisterEvent(contract.MessageType, async (provider, e, cancellationToken) =>
         {
             if (local is not null)
             {
-                await local(provider, notification, cancellationToken).ConfigureAwait(false);
+                await local(provider, e, cancellationToken).ConfigureAwait(false);
             }
 
             var transport = provider.GetService<IRemoteDispatch>()
                             ?? throw new InvalidOperationException(
-                                "No remote transport is registered, so this notification cannot reach the server. "
+                                "No remote transport is registered, so this event cannot reach the server. "
                                 + "Call AddRaskCqrsClient() during startup.");
 
-            await transport.Publish(contract, notification, cancellationToken).ConfigureAwait(false);
+            await transport.Publish(contract, e, cancellationToken).ConfigureAwait(false);
         });
     }
 

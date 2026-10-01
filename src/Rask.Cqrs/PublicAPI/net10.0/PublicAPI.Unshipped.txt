@@ -5,12 +5,12 @@ Rask.Cqrs.CqrsOptions.AddOpenBehavior(System.Type! openBehaviorType) -> Rask.Cqr
 Rask.Cqrs.CqrsOptions.CqrsOptions() -> void
 Rask.Cqrs.CqrsOptions.HandlerLifetime.get -> Microsoft.Extensions.DependencyInjection.ServiceLifetime
 Rask.Cqrs.CqrsOptions.HandlerLifetime.set -> void
-Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.get -> Rask.Cqrs.NotificationPublishStrategy
-Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.set -> void
+Rask.Cqrs.CqrsOptions.EventPublishStrategy.get -> Rask.Cqrs.EventPublishStrategy
+Rask.Cqrs.CqrsOptions.EventPublishStrategy.set -> void
 Rask.Cqrs.CqrsOptions.ReplayCapacity.get -> int
 Rask.Cqrs.CqrsOptions.ReplayCapacity.set -> void
-Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.get -> bool
-Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.set -> void
+Rask.Cqrs.CqrsOptions.StopOnFirstEventException.get -> bool
+Rask.Cqrs.CqrsOptions.StopOnFirstEventException.set -> void
 Rask.Cqrs.CqrsOptions.SubscriptionBuffer.get -> int
 Rask.Cqrs.CqrsOptions.SubscriptionBuffer.set -> void
 Rask.Cqrs.CqrsOptions.SubscriptionReconnectCeiling.get -> System.TimeSpan
@@ -20,7 +20,7 @@ Rask.Cqrs.CqrsOptions.SubscriptionReconnectDelay.set -> void
 Rask.Cqrs.CqrsOptions.ValidateRequests.get -> bool
 Rask.Cqrs.CqrsOptions.ValidateRequests.set -> void
 Rask.Cqrs.CqrsRegistry
-Rask.Cqrs.CqrsRegistry.NotificationInvoker
+Rask.Cqrs.CqrsRegistry.EventInvoker
 Rask.Cqrs.CqrsRegistry.RequestInvoker
 Rask.Cqrs.CqrsServiceCollectionExtensions
 Rask.Cqrs.DataChanged
@@ -37,8 +37,8 @@ Rask.Cqrs.ICommand<TResult>
 Rask.Cqrs.ICommandHandler<TCommand, TResult>
 Rask.Cqrs.ICommandHandler<TCommand>
 Rask.Cqrs.IDispatcher
-Rask.Cqrs.INotification
-Rask.Cqrs.INotificationHandler<TNotification>
+Rask.Cqrs.IEvent
+Rask.Cqrs.IEventHandler<TEvent>
 Rask.Cqrs.IPipelineBehavior<TRequest, TResult>
 Rask.Cqrs.IQuery<TResult>
 Rask.Cqrs.IQueryHandler<TQuery, TResult>
@@ -47,16 +47,16 @@ Rask.Cqrs.IRemoteDispatch.Send(Rask.Cqrs.RemoteContract! contract, object! messa
 Rask.Cqrs.IRemoteDispatch.Send<TResult>(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IRemoteRequestValidator
 Rask.Cqrs.IRequestValidator<TRequest>
-Rask.Cqrs.ISubscription<TNotification>
-Rask.Cqrs.ISubscription<TNotification>.Matches(TNotification notification) -> bool
+Rask.Cqrs.ISubscription<TEvent>
+Rask.Cqrs.ISubscription<TEvent>.Matches(TEvent e) -> bool
 Rask.Cqrs.IWatchPolicy<TSubscription>
 Rask.Cqrs.IWatchPolicy<TSubscription>.CanWatch(TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 Rask.Cqrs.LocalOnlyAttribute
 Rask.Cqrs.LocalOnlyAttribute.LocalOnlyAttribute() -> void
-Rask.Cqrs.NotificationDispatch
-Rask.Cqrs.NotificationPublishStrategy
-Rask.Cqrs.NotificationPublishStrategy.Sequential = 0 -> Rask.Cqrs.NotificationPublishStrategy
-Rask.Cqrs.NotificationPublishStrategy.WhenAll = 1 -> Rask.Cqrs.NotificationPublishStrategy
+Rask.Cqrs.EventDispatch
+Rask.Cqrs.EventPublishStrategy
+Rask.Cqrs.EventPublishStrategy.Sequential = 0 -> Rask.Cqrs.EventPublishStrategy
+Rask.Cqrs.EventPublishStrategy.WhenAll = 1 -> Rask.Cqrs.EventPublishStrategy
 Rask.Cqrs.Notify
 Rask.Cqrs.RaskCqrsTransportAttribute
 Rask.Cqrs.RaskCqrsTransportAttribute.RaskCqrsTransportAttribute() -> void
@@ -121,7 +121,7 @@ Rask.Cqrs.RemoteDispatchException.StatusCode.init -> void
 Rask.Cqrs.RemoteEndpointDefaults
 Rask.Cqrs.RemoteLocalInvoker
 Rask.Cqrs.RemoteMessageKind
-Rask.Cqrs.RemoteMessageKind.Notification = 3 -> Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteMessageKind.Event = 3 -> Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageKind.Query = 0 -> Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageKind.ResultCommand = 2 -> Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageKind.Subscription = 4 -> Rask.Cqrs.RemoteMessageKind
@@ -142,9 +142,9 @@ Rask.Cqrs.RequestValidationError.RequestValidationError() -> void
 Rask.Cqrs.RequestValidationError.RequestValidationError(string! Field, string! Message) -> void
 Rask.Cqrs.SubscriptionRegistration
 Rask.Cqrs.SubscriptionRegistration.CanWatch.get -> System.Func<System.IServiceProvider!, object!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>!
-Rask.Cqrs.SubscriptionRegistration.Matches.get -> System.Func<object!, Rask.Cqrs.INotification!, bool>!
-Rask.Cqrs.SubscriptionRegistration.NotificationType.get -> System.Type!
-Rask.Cqrs.SubscriptionRegistration.SubscriptionRegistration(System.Type! notificationType, System.Func<object!, Rask.Cqrs.INotification!, bool>! matches, System.Func<System.IServiceProvider!, object!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>! canWatch) -> void
+Rask.Cqrs.SubscriptionRegistration.Matches.get -> System.Func<object!, Rask.Cqrs.IEvent!, bool>!
+Rask.Cqrs.SubscriptionRegistration.EventType.get -> System.Type!
+Rask.Cqrs.SubscriptionRegistration.SubscriptionRegistration(System.Type! eventType, System.Func<object!, Rask.Cqrs.IEvent!, bool>! matches, System.Func<System.IServiceProvider!, object!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>! canWatch) -> void
 Rask.Cqrs.Unit
 Rask.Cqrs.Unit.Equals(Rask.Cqrs.Unit other) -> bool
 Rask.Cqrs.Unit.Unit() -> void
@@ -173,20 +173,20 @@ override Rask.Cqrs.Unit.Equals(object? obj) -> bool
 override Rask.Cqrs.Unit.GetHashCode() -> int
 override Rask.Cqrs.Unit.ToString() -> string!
 static Rask.Cqrs.CqrsRegistry.CanWatch<TSubscription>(System.IServiceProvider! provider, TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
-static Rask.Cqrs.CqrsRegistry.FindNotificationInvoker(System.Type! notificationType) -> Rask.Cqrs.CqrsRegistry.NotificationInvoker?
-static Rask.Cqrs.CqrsRegistry.RegisterNotification(System.Type! notificationType, Rask.Cqrs.CqrsRegistry.NotificationInvoker! invoker) -> void
+static Rask.Cqrs.CqrsRegistry.FindEventInvoker(System.Type! eventType) -> Rask.Cqrs.CqrsRegistry.EventInvoker?
+static Rask.Cqrs.CqrsRegistry.RegisterEvent(System.Type! eventType, Rask.Cqrs.CqrsRegistry.EventInvoker! invoker) -> void
 static Rask.Cqrs.CqrsRegistry.RegisterRequest(System.Type! requestType, Rask.Cqrs.CqrsRegistry.RequestInvoker! invoker) -> void
 static Rask.Cqrs.CqrsRegistry.RegisterServices(System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection!, Microsoft.Extensions.DependencyInjection.ServiceLifetime>! registration) -> void
-static Rask.Cqrs.CqrsRegistry.ReplaceNotifications(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.CqrsRegistry.NotificationInvoker! Invoker)>! registrations) -> void
+static Rask.Cqrs.CqrsRegistry.ReplaceEvents(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.CqrsRegistry.EventInvoker! Invoker)>! registrations) -> void
 static Rask.Cqrs.CqrsRegistry.ReplaceRequests(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.CqrsRegistry.RequestInvoker! Invoker)>! registrations) -> void
 static Rask.Cqrs.CqrsRegistry.ReplaceSubscriptions(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.SubscriptionRegistration! Registration)>! registrations) -> void
 static Rask.Cqrs.CqrsServiceCollectionExtensions.AddRaskCqrs(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.CqrsOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Cqrs.DataChanged.operator !=(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
 static Rask.Cqrs.DataChanged.operator ==(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
-static Rask.Cqrs.NotificationDispatch.PublishAll<TNotification>(System.IServiceProvider! provider, TNotification notification, System.Collections.Generic.IEnumerable<Rask.Cqrs.INotificationHandler<TNotification>!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.EventDispatch.PublishAll<TEvent>(System.IServiceProvider! provider, TEvent e, System.Collections.Generic.IEnumerable<Rask.Cqrs.IEventHandler<TEvent>!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Notify.Configure(System.IServiceProvider! services) -> void
 static Rask.Cqrs.Notify.IsConfigured.get -> bool
-static Rask.Cqrs.Notify.Send<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.Notify.Send<TEvent>(TEvent e, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Notify.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
 static Rask.Cqrs.RemoteContractRegistry.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RemoteContract!>!
 static Rask.Cqrs.RemoteContractRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Cqrs.RemoteContract!>! contracts) -> void
@@ -198,7 +198,7 @@ static Rask.Cqrs.Unit.Task.get -> System.Threading.Tasks.Task<Rask.Cqrs.Unit>!
 static Rask.Cqrs.Unit.operator !=(Rask.Cqrs.Unit left, Rask.Cqrs.Unit right) -> bool
 static Rask.Cqrs.Unit.operator ==(Rask.Cqrs.Unit left, Rask.Cqrs.Unit right) -> bool
 static readonly Rask.Cqrs.Unit.Value -> Rask.Cqrs.Unit
-virtual Rask.Cqrs.CqrsRegistry.NotificationInvoker.Invoke(System.IServiceProvider! provider, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+virtual Rask.Cqrs.CqrsRegistry.EventInvoker.Invoke(System.IServiceProvider! provider, object! e, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 virtual Rask.Cqrs.CqrsRegistry.RequestInvoker.Invoke(System.IServiceProvider! provider, object! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 virtual Rask.Cqrs.RemoteLocalInvoker.Invoke(System.IServiceProvider! provider, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<object?>!
 virtual Rask.Cqrs.RemoteMessageReader.Invoke(ref System.Text.Json.Utf8JsonReader reader, System.Collections.Generic.IReadOnlyList<Rask.Wire.RemoteFile!>! files) -> object!
@@ -211,23 +211,35 @@ virtual Rask.Cqrs.RequestHandler<TResult>.Invoke() -> System.Threading.Tasks.Tas
 Rask.Cqrs.Dispatcher
 Rask.Cqrs.ICommandHandler<TCommand, TResult>.Handle(TCommand command) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.ICommandHandler<TCommand>.Handle(TCommand command) -> System.Threading.Tasks.Task!
-Rask.Cqrs.IDispatcher.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDispatcher.Publish<TEvent>(TEvent e, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IDispatcher.Query<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IDispatcher.Send(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IDispatcher.Send<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
-Rask.Cqrs.IDispatcher.Subscribe<TNotification>(Rask.Cqrs.ISubscription<TNotification>! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TNotification>!
-Rask.Cqrs.IDispatcher.Subscribe<TNotification>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TNotification>!
-Rask.Cqrs.INotificationHandler<TNotification>.Handle(TNotification notification) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDispatcher.Subscribe<TEvent>(Rask.Cqrs.ISubscription<TEvent>! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TEvent>!
+Rask.Cqrs.IDispatcher.Subscribe<TEvent>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TEvent>!
+Rask.Cqrs.IEventHandler<TEvent>.Handle(TEvent e) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IPipelineBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandler<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IQueryHandler<TQuery, TResult>.Handle(TQuery query) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IRemoteRequestValidator.Validate(object! request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.IRequestValidator<TRequest>.Validate(TRequest request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.ValidationBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandler<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
-static Rask.Cqrs.Dispatcher.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.Dispatcher.Publish<TEvent>(TEvent e, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Query<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 static Rask.Cqrs.Dispatcher.Send(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Send<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
-Rask.Cqrs.IRemoteDispatch.Publish(Rask.Cqrs.RemoteContract! contract, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IRemoteDispatch.Publish(Rask.Cqrs.RemoteContract! contract, object! e, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.Cqrs.RaskValidationException.RaskValidationException() -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message, System.Exception! innerException) -> void
+Rask.Cqrs.DurableEvents
+Rask.Cqrs.IDurableEventStore
+Rask.Cqrs.IDurableEventStore.Store(Rask.Cqrs.IEvent! e, System.Collections.Generic.IReadOnlyList<string!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cqrs.IDurableHandler<TEvent>
+Rask.Cqrs.IDurableHandler<TEvent>.Handle(TEvent e) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.CqrsRegistry.DurableHandlersOf(System.Type! eventType) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Rask.Cqrs.CqrsRegistry.FindDurableEvent(string! name) -> System.Type?
+static Rask.Cqrs.CqrsRegistry.FindDurableHandler(string! handler) -> Rask.Cqrs.CqrsRegistry.EventInvoker?
+static Rask.Cqrs.CqrsRegistry.NameOf(System.Type! type) -> string!
+static Rask.Cqrs.CqrsRegistry.ReplaceDurableHandlers(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! EventType, System.Type! HandlerType, Rask.Cqrs.CqrsRegistry.EventInvoker! Invoker)>! registrations) -> void
+static Rask.Cqrs.DurableEvents.MarkStored(Rask.Cqrs.IEvent! e) -> void
+static Rask.Cqrs.CqrsRegistry.HasDurableHandlers.get -> bool

@@ -1,11 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace Rask.Data;
 
@@ -21,19 +19,12 @@ public static partial class RaskDataServiceCollectionExtensions
     /// <c>OnModelCreating</c>. Idempotent. Domain-event dispatch needs <c>AddRaskCqrs()</c>.
     /// </summary>
     /// <remarks>
-    /// Domain events are published in-process unless something else owns delivery. Registering
-    /// <c>Rask.Outbox</c> is enough to hand delivery over — it registers an
-    /// <see cref="IDomainEventDeliveryOwner"/>, and this method needs no argument to match. The handover is
-    /// resolved when the container is built, so it holds whichever order the two <c>Add</c> calls appear
-    /// in. Override it in either direction with
-    /// <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>, which reads the <c>Rask:Data</c>
-    /// configuration section first and then <paramref name="configure"/>.
+    /// A raised event reaches its <c>IEventHandler</c>s in memory after the save commits, and its
+    /// <c>IDurableHandler</c>s through the outbox when <c>Rask.Outbox</c> is registered — each handler chooses.
     /// </remarks>
-    public static IServiceCollection AddRaskData(this IServiceCollection services, Action<RaskDataOptions>? configure = null)
+    public static IServiceCollection AddRaskData(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-
-        AddOptions(services, configure);
 
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
@@ -44,11 +35,8 @@ public static partial class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 
-            // Registered unconditionally. WHETHER IT PUBLISHES is not decided here: DomainEventInterceptor reads
-            // DispatchDomainEventsInProcess — which can come from Rask:Data — and asks the built container whether
-            // anything owns delivery. Deciding either at this line would freeze the answer before the configuration
-            // is readable and before AddRaskOutbox has necessarily run, which is exactly the order-dependent silent
-            // failure this replaces.
+            // Publishes after the commit and clears the events only then, so the outbox (which reads the same events
+            // in SavingChanges) sees them whichever interceptor runs first.
             services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
 
             // Last, so it sees the save as the others left it. Also a transaction interceptor — EF hands the
@@ -93,13 +81,12 @@ public static partial class RaskDataServiceCollectionExtensions
     ///     </code>
     /// </remarks>
     public static IServiceCollection AddRaskData<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
-        this IServiceCollection services,
-        Action<RaskDataOptions>? configure = null)
+        this IServiceCollection services)
         where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddRaskData(configure);
+        services.AddRaskData();
 
         // Singleton and resolved lazily: IDbContextFactory<TContext> is itself a singleton, so the
         // binding never reaches into a request or session scope for the context it opens. TryAdd keeps
@@ -116,37 +103,8 @@ public static partial class RaskDataServiceCollectionExtensions
         return services;
     }
 
-    // Rask:Data first, then configure — code wins; the first call's options win. Written out here rather than through
-    // the options helper every other battery source-links: Rask.SQLite.EntityFrameworkCore sees this assembly's
-    // internals AND Rask.SQLite's, and two copies of that helper in its sight would be ambiguous. One bool? is little
-    // enough to register by hand.
     // Rask.Data's browser build fills this in (Browser/BrowserData.cs); on a server the Rask host wires the same.
 #pragma warning disable S3251 // implemented only by the browser build (Browser/)
     static partial void AddBrowserWiring(IServiceCollection services);
 #pragma warning restore S3251
-
-    private static void AddOptions(IServiceCollection services, Action<RaskDataOptions>? configure)
-    {
-        if (services.Any(static d => d.ServiceType == typeof(RaskDataOptions)))
-        {
-            return;
-        }
-
-        services.AddOptions<RaskDataOptions>()
-            .Configure<IServiceProvider>(static (options, sp) =>
-            {
-                if (sp.GetService<IConfiguration>() is { } configuration)
-                {
-                    configuration.GetSection("Rask:Data").Bind(options);
-                }
-            });
-
-        if (configure is not null)
-        {
-            services.Configure(configure);
-        }
-
-        // The interceptor takes the plain options type, as it always has.
-        services.AddSingleton(static sp => sp.GetRequiredService<IOptions<RaskDataOptions>>().Value);
-    }
 }

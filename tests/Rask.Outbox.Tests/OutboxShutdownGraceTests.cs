@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 namespace Rask.Outbox.Tests;
 
 /// <summary>An event whose handler parks until the test releases it — the lever for the shutdown-grace tests.</summary>
-public sealed record GatedEvent : IOutboxEvent;
+public sealed record GatedEvent : IEvent;
 
 /// <summary>Latches for driving a handler across a shutdown: entered → (test acts) → released.</summary>
 public sealed class OutboxGate
@@ -16,7 +16,7 @@ public sealed class OutboxGate
     public TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
 
-public sealed class GatedEventHandler(OutboxGate gate) : INotificationHandler<GatedEvent>
+public sealed class GatedEventHandler(OutboxGate gate) : IDurableHandler<GatedEvent>
 {
     public async Task Handle(GatedEvent notification)
     {

@@ -66,11 +66,17 @@ internal abstract class BatteryModelCheck<TContext>(IDbContextFactory<TContext> 
     /// <summary>The <c>ModelBuilder</c> extension that maps it, without parentheses.</summary>
     protected abstract string MapCall { get; }
 
+    /// <summary>Whether the app needs the table at all; a battery that is always on needs it only once it is used.</summary>
+    protected virtual bool Needed => true;
+
+    /// <summary>The way out besides mapping the table, or empty when there is none.</summary>
+    protected virtual string Alternative => $" Turn the battery off instead by not calling {MapCall}<{typeof(TContext).Name}>().";
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         using var db = contextFactory.CreateDbContext();
 
-        if (db.Model.FindEntityType(Entity) is not null)
+        if (!Needed || db.Model.FindEntityType(Entity) is not null)
         {
             return Task.CompletedTask;
         }
@@ -82,8 +88,8 @@ internal abstract class BatteryModelCheck<TContext>(IDbContextFactory<TContext> 
             + "the first request that uses it would fail with \"Cannot create a DbSet for "
             + $"'{Entity.Name}'\". Add it to OnModelCreating:{Environment.NewLine}"
             + $"    modelBuilder.{MapCall}();{Environment.NewLine}"
-            + "Then create the migration: rask db add AddBatteryTables && rask db update. "
-            + $"Turn the battery off instead by not calling {MapCall}<{typeof(TContext).Name}>().");
+            + "Then create the migration: rask db add AddBatteryTables && rask db update."
+            + Alternative);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

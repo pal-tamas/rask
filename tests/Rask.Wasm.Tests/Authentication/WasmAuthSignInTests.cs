@@ -25,7 +25,7 @@ public class WasmAuthSignInTests
     {
         var state = new RouteState();
         var nav = new Navigator(state);
-        var auth = new WasmAuthSignIn(StubHttp(), new StubUserProvider(), nav);
+        var auth = new WasmAuthSignIn(StubHttp(), new StubUserProvider());
 
         using (nav.EnterHandler())
         {

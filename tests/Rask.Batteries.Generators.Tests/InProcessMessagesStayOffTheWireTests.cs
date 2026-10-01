@@ -2,12 +2,12 @@ using Rask.Cqrs;
 
 namespace Rask.Batteries.Generators.Tests;
 
-// A job payload and an outbox event are only ever sent by the server to itself. With a codec, anyone could
+// A job payload and a domain event are only ever sent by the server to itself. With a codec, anyone could
 // POST one to /_rask/cqrs and run its handler at once — a welcome-mail job becomes an open mail relay.
 public sealed class InProcessMessagesStayOffTheWireTests
 {
     [Fact]
-    public void A_job_and_an_outbox_event_get_no_wire_contract_while_an_ordinary_command_does()
+    public void A_job_and_a_local_only_event_get_no_wire_contract_while_an_ordinary_command_does()
     {
         var source = """
             using System.Threading.Tasks;
@@ -20,8 +20,9 @@ public sealed class InProcessMessagesStayOffTheWireTests
                 public Task Handle(SendWelcomeEmail c) => Task.CompletedTask;
             }
 
-            public sealed record OrderPaid(int OrderId) : Rask.Outbox.IOutboxEvent;
-            public sealed class OrderPaidHandler : INotificationHandler<OrderPaid>
+            [LocalOnly]
+            public sealed record OrderPaid(int OrderId) : IEvent;
+            public sealed class OrderPaidHandler : IEventHandler<OrderPaid>
             {
                 public Task Handle(OrderPaid n) => Task.CompletedTask;
             }
@@ -46,7 +47,7 @@ public sealed class InProcessMessagesStayOffTheWireTests
     public void The_auth_events_are_marked_local_only_so_no_browser_can_publish_or_watch_them()
     {
         var events = typeof(Rask.Auth.UserRegistered).Assembly.GetTypes()
-            .Where(t => typeof(INotification).IsAssignableFrom(t) && !t.IsInterface)
+            .Where(t => typeof(IEvent).IsAssignableFrom(t) && !t.IsInterface)
             .ToList();
 
         var exposed = events.Where(t => !t.IsDefined(typeof(LocalOnlyAttribute), inherit: false)).Select(t => t.Name);
