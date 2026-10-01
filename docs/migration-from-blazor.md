@@ -126,11 +126,11 @@ var theme = Context.Required<Theme>();   // or Context.Get<T>() (null if absent)
 ```csharp
 // Rask
 [Route("/users/{id}")]
-public sealed partial class UserPage(Navigator nav) : Component   // Navigator via ctor
+public sealed partial class UserPage : Component                   // nothing injected to navigate
 {
     [RouteParam] public int Id { get; set; }
     [QueryParam] public string? Tab { get; set; }
-    // navigate from a handler: Routes.HomePage().Go(), nav.SetQuery("tab", "x")
+    // navigate from a handler: Routes.HomePage().Go(), Go.With("tab", "x")
 }
 
 // type-safe link (generated URL builder) instead of a "/users/42" string:

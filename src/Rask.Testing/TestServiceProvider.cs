@@ -3,7 +3,7 @@ namespace Rask.Testing;
 /// <summary>
 ///     A minimal <see cref="IServiceProvider" /> for handing a component under test the one or two services
 ///     it resolves from the container — a <see cref="TestFileBackend" />, a <see cref="TestDownloadSink" />,
-///     a <c>Navigator</c>.
+///     a <c>RouteState</c>.
 /// </summary>
 /// <remarks>
 ///     <para>

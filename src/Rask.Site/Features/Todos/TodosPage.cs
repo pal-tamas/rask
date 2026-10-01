@@ -8,7 +8,6 @@ namespace Rask.Site.Features;
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class TodosPage : Component
 {
-    private readonly Navigator _nav;
     private readonly RouteState _route;
     private readonly TodoForm _form = new();
 
@@ -20,9 +19,8 @@ public sealed partial class TodosPage : Component
 
     private readonly List<TodoItem> _todos;
 
-    public TodosPage(Navigator nav, RouteState route, ITodoStore? store = null)
+    public TodosPage(RouteState route, ITodoStore? store = null)
     {
-        _nav = nav;
         _route = route;
         _store = store ?? new InMemoryTodoStore();
         _todos = _store.GetAll().ToList();
@@ -60,11 +58,11 @@ public sealed partial class TodosPage : Component
     // sat at the app root. Under a [ParentRoute] the real URL is /docs/todos/new, so the literals
     // navigated to a path with no route behind it: the dialog never opened and the page rendered the
     // 404. Deriving them from Routes.TodosPage() keeps the secondary templates pinned to the primary.
-    private void OpenAdd() => _nav.NavigateTo($"{Routes.TodosPage()}/new");
+    private static void OpenAdd() => Go.To($"{Routes.TodosPage()}/new");
 
-    private void OpenEdit(TodoItem item) => _nav.NavigateTo($"{Routes.TodosPage()}/{item.Id}/edit");
+    private static void OpenEdit(TodoItem item) => Go.To($"{Routes.TodosPage()}/{item.Id}/edit");
 
-    private void Cancel() => _nav.NavigateTo(Routes.TodosPage());
+    private static void Cancel() => Go.To(Routes.TodosPage());
 
     // Every mutation is written through to the store, so a SQLite-backed store (native) persists it.
     private void Save(TodoForm m)
@@ -82,7 +80,7 @@ public sealed partial class TodosPage : Component
             _store.Update(item);
         }
 
-        _nav.NavigateTo(Routes.TodosPage());
+        Go.To(Routes.TodosPage());
     }
 
     private void Toggle(TodoItem item, bool completed)

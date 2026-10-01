@@ -1,13 +1,12 @@
 using System.Globalization;
 using System.Text;
-using Rask.Core.Routing;
 
 namespace Rask.Site.Features;
 
-// Navigator.Download stages bytes on the active session — served from /_rask/download/{sid}/{token}
+// Download.File stages bytes on the active session — served from /_rask/download/{sid}/{token}
 // on the server, pulled by JS from the .NET side by token on WASM. It must be called from an event handler,
 // so the state and the handler live together in this self-contained component.
-public sealed partial class DownloadDemo(Navigator nav) : Component
+public sealed partial class DownloadDemo : Component
 {
     private int _reportCount;
 
@@ -16,7 +15,7 @@ public sealed partial class DownloadDemo(Navigator nav) : Component
         _reportCount++;
         var report =
             $"Rask download demo\nGenerated at {DateTimeOffset.UtcNow.ToString("u", CultureInfo.InvariantCulture)}\nCount: {_reportCount}\n";
-        nav.Download("report.txt", Encoding.UTF8.GetBytes(report), "text/plain");
+        Download.File("report.txt", Encoding.UTF8.GetBytes(report), "text/plain");
     }
 
     protected override Component? Render() =>

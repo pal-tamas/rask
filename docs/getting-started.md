@@ -388,8 +388,8 @@ NavLink.Href(Routes.UserPage(Id: 42))["View user"];
 ```
 
 The `Router` in your root component matches the current path and renders the page. To navigate from
-an event handler, go to the route itself — `Routes.HomePage().Go()`, nothing injected; for the rest
-(`SetQuery("tab", "settings")` and the rest) inject the `Navigator` through the constructor. For nested layouts
+an event handler, go to the route itself — `Routes.HomePage().Go()`, nothing injected — or change this page's
+query with `Go.With("tab", "settings")`. For nested layouts
 (`[ParentRoute]` + `Outlet`), 404 pages (`[NotFound]`), and the full routing model, see
 [routing](routing.md).
 

@@ -94,7 +94,7 @@ public partial class Page
     private static Page Open(string url, IServiceProvider? services, bool visited)
     {
         var route = TestRoute.At(Guarded(url, services));
-        var routed = new RoutedServices(route, TestRoute.NavigatorFor(route), services);
+        var routed = new RoutedServices(route, new Navigator(route, services?.GetService(typeof(IDownloadSink)) as IDownloadSink), services);
         // Routes = null resolves to the app's registered route table, which the chain entry does for an app.
         var router = new Router(route) { Routes = null };
 

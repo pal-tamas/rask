@@ -8,9 +8,8 @@ namespace Rask.Testing;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <c>Navigator.Download</c> refuses to run without a sink, and its message says <em>"If you're in
-///         a unit test, register a fake."</em> — while the testing package shipped none, so everyone wrote
-///         the same twenty lines. This is those twenty lines, once.
+///         <c>Download.File</c> refuses to run without a sink, and its message says to hand the page this
+///         one — the twenty lines everyone would otherwise write, once.
 ///     </para>
 ///     <para>
 ///         <see cref="Staged" /> is the assertion surface: it keeps every download in order, so a test can
@@ -19,7 +18,7 @@ namespace Rask.Testing;
 ///     </para>
 ///     <code>
 ///     var downloads = new TestDownloadSink();
-///     var page = Page.Render(new ExportPage(new Navigator(new RouteState(), downloads)));
+///     var page = Page.Render(new ExportPage(), TestServiceProvider.With&lt;IDownloadSink&gt;(downloads));
 ///     await page.On("#export").Click();
 ///
 ///     var file = Assert.Single(downloads.Staged);

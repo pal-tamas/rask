@@ -243,7 +243,7 @@ public static class GuideCatalog
         new("routing", "Routing", "Route attributes, params, nested layouts, type-safe URLs.", "Frontend")
         {
             SearchTitle = "Routing and type-safe URLs in C#",
-            Description = "Declare routes with [Route] and navigate with source-generated, type-safe URLs. Covers route and query parameters, nested layouts, Navigator and RouteState.",
+            Description = "Declare routes with [Route] and navigate with source-generated, type-safe URLs. Covers route and query parameters, nested layouts, Go.To and Go.With.",
         },
         new("composition", "Composition", "Children, fragments, callbacks, context, virtualize.", "Frontend")
         {

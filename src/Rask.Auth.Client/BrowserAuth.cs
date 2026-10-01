@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization.Metadata;
+using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Routing;
@@ -19,7 +20,6 @@ namespace Rask.Auth.Client;
 public sealed class BrowserAuth(
     HttpClient http,
     IUserProvider users,
-    Navigator navigator,
     IWebAuthn webAuthn,
     AuthClientOptions options) : IAuth
 {
@@ -48,7 +48,7 @@ public sealed class BrowserAuth(
         await http.SendAsync(request).ConfigureAwait(false);
 
         await users.RefreshAsync().ConfigureAwait(false);
-        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
+        Go.To(LocalUrl.Sanitize(returnUrl));
     }
 
     /// <inheritdoc />
@@ -65,7 +65,7 @@ public sealed class BrowserAuth(
         await http.SendAsync(request).ConfigureAwait(false);
 
         await users.RefreshAsync().ConfigureAwait(false);
-        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
+        Go.To(LocalUrl.Sanitize(returnUrl));
     }
 
     /// <inheritdoc />
@@ -223,7 +223,7 @@ public sealed class BrowserAuth(
         }
 
         await users.RefreshAsync().ConfigureAwait(false);
-        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
+        Go.To(LocalUrl.Sanitize(returnUrl));
         return AuthResult.Success;
     }
 

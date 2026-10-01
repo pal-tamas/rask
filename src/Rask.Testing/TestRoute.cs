@@ -4,8 +4,8 @@ using Rask.Core.Routing;
 namespace Rask.Testing;
 
 /// <summary>
-///     Builds the routing state a page under test reads: a <see cref="RouteState" /> at a given URL, and a
-///     <see cref="Navigator" /> over it.
+///     Builds the routing state a page under test reads: a <see cref="RouteState" /> at a given URL. Hand it to
+///     <c>Page.Render</c> and a handler's <c>Go.To</c> moves it.
 /// </summary>
 /// <remarks>
 ///     Seeding a path was already a one-liner (<c>new RouteState { Path = "/orders" }</c>) and is done that
@@ -67,16 +67,5 @@ public static class TestRoute
         }
 
         return new QueryCollection(store);
-    }
-
-    /// <summary>
-    ///     A <see cref="Navigator" /> over <paramref name="state" />, wired to <paramref name="downloads" />
-    ///     so <c>Navigator.Download</c> works instead of throwing. Pass a <see cref="TestDownloadSink" />
-    ///     when the page under test exports anything.
-    /// </summary>
-    public static Navigator NavigatorFor(RouteState state, IDownloadSink? downloads = null)
-    {
-        ArgumentNullException.ThrowIfNull(state);
-        return new Navigator(state, downloads);
     }
 }

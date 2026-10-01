@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Dashboard.Logging;
 using Rask.Logging;
@@ -29,8 +30,7 @@ namespace Rask.Dashboard.Pages;
 public sealed partial class LogsPage(
     DashboardLogBuffer buffer,
     RaskDashboardOptions options,
-    TimeProvider timeProvider,
-    Navigator navigator) : PollingPanel, IDisposable
+    TimeProvider timeProvider) : PollingPanel, IDisposable
 {
     private bool _subscribed;
     private LogPage _history = LogPage.Empty(1, 1);
@@ -234,7 +234,7 @@ public sealed partial class LogsPage(
 
     private Task CategoryChangedAsync(string value)
     {
-        navigator.NavigateTo(Link(level: Level, category: string.IsNullOrEmpty(value) ? null : value));
+        Go.To(Link(level: Level, category: string.IsNullOrEmpty(value) ? null : value));
         return Task.CompletedTask;
     }
 
@@ -254,7 +254,7 @@ public sealed partial class LogsPage(
         // this is the same shape.
         Query = string.IsNullOrWhiteSpace(value) ? null : value;
         Page = 1;
-        navigator.NavigateTo(Link(level: Level, category: Category, query: Query));
+        Go.To(Link(level: Level, category: Category, query: Query));
         return Task.CompletedTask;
     }
 
