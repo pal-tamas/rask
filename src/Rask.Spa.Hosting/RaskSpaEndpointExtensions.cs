@@ -15,16 +15,14 @@ using Rask.Hosting.Shared;
 namespace Rask.Spa.Hosting;
 
 /// <summary>
-///     Serves a built single-page app from an ASP.NET host — a TypeScript front end's bundle or a Rask
-///     WebAssembly app — with its cache headers and the fallback that keeps client-side routes working on
-///     a refresh or a deep link.
+///     Serves a built single-page app from an ASP.NET host — a Rask WebAssembly app, or any static bundle
+///     handed over as <c>distPath</c> — with its cache headers and the fallback that keeps client-side
+///     routes working on a refresh or a deep link.
 /// </summary>
 /// <remarks>
-///     The framework is not this package's business — React, Vue and Angular all bundle to the same
-///     thing, and the cache rules below are keyed on what the <em>bundler</em> guarantees rather than on
-///     who generated it. A Rask WebAssembly bundle is recognised from its files and gets the rules its
-///     publish guarantees instead. The language is: the contracts Rask generates for a front end are
-///     TypeScript, and the build refuses a client that cannot check them (RASKSPA004).
+///     A Rask WebAssembly bundle is recognised from its files and gets the cache rules its publish
+///     guarantees; anything else is served by the generic rules, keyed on what a bundler guarantees
+///     rather than on who produced it.
 /// </remarks>
 public static class RaskSpaEndpointExtensions
 {
@@ -61,7 +59,7 @@ public static class RaskSpaEndpointExtensions
     }
 
     /// <summary>
-    ///     Serves a built single-page app: a bundler's output, or a Rask WebAssembly app.
+    ///     Serves a built single-page app: a Rask WebAssembly app, or any static bundle.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -125,7 +123,7 @@ public static class RaskSpaEndpointExtensions
 
         if (devManifest is null && resolved is null)
         {
-            MapMissingBundle(endpoints, prefix, options, environment, entry, distPath);
+            MapMissingBundle(endpoints, prefix, environment, entry, distPath);
             return endpoints;
         }
 
@@ -303,9 +301,9 @@ public static class RaskSpaEndpointExtensions
     ///     Two gates: Development, and a build that baked the manifest and wrote it. The one-project client
     ///     bakes it on every build that is not a publish; a referenced client project, only when the build
     ///     skipped its publish (<c>RaskSpaBuild=false</c>). A deployment runs outside Development and takes
-    ///     the ordinary path, and so does a bundler's SPA, which bakes none. Hot reload is deliberately not a
-    ///     gate: <c>dotnet run</c> and <c>rask dev --once</c> have none, and without the manifest they would
-    ///     serve a stale publish or nothing at all.
+    ///     the ordinary path. Hot reload is deliberately not a gate: <c>dotnet run</c> and
+    ///     <c>rask dev --once</c> have none, and without the manifest they would serve a stale publish or
+    ///     nothing at all.
     /// </remarks>
     private static string? DevManifest(IHostEnvironment? environment, Assembly? entry)
     {
@@ -402,37 +400,25 @@ public static class RaskSpaEndpointExtensions
     private static void MapMissingBundle(
         IEndpointRouteBuilder endpoints,
         string prefix,
-        SpaHostingOptions options,
         IHostEnvironment? environment,
         Assembly? entry,
         string? distPath)
     {
         var wasmClient = SpaAppBundle.Read(entry, SpaAppBundle.WasmClientMetadataKey);
-        var client = SpaAppBundle.Read(entry, SpaAppBundle.ClientMetadataKey);
-        var devServer = options.DevServerUrl ?? SpaAppBundle.Read(entry, SpaAppBundle.DevServerMetadataKey);
-        var buildHint = (wasmClient, client) switch
-        {
-            ({ } wasmProject, _) => $"publish {wasmProject}",
-            (null, null) => "run your bundler's build",
-            (null, { } clientDirectory) => $"run the build in {clientDirectory}",
-        };
+        var buildHint = wasmClient is null ? "publish your WebAssembly client" : $"publish {wasmClient}";
 
         if (environment?.IsDevelopment() == true)
         {
-            Console.WriteLine(wasmClient is not null
-                ? "Rask.Spa.Hosting: the WebAssembly client has no build output to serve. Building this "
-                  + $"project builds the client too; to serve the published app from this host instead, {buildHint}."
-                : "Rask.Spa.Hosting: no built app to serve. In development the front end is served by the "
-                  + $"bundler — open {devServer ?? "the bundler's dev server"} (rask dev starts it). To serve "
-                  + $"the built app from this host instead, {buildHint}.");
+            Console.WriteLine(
+                "Rask.Spa.Hosting: the WebAssembly client has no build output to serve. Building this project "
+                + $"builds the client too; to serve the published app from this host instead, {buildHint}.");
 
             StaticSpaFiles.MapCatchAll(endpoints, prefix, async context =>
             {
                 context.Response.ContentType = "text/html; charset=utf-8";
                 context.Response.Headers.CacheControl = "no-store";
                 ApplySecurityHeaders(context.Response.Headers);
-                await context.Response.WriteAsync(
-                        DevelopmentPage(devServer, buildHint, wasmClient is not null), context.RequestAborted)
+                await context.Response.WriteAsync(DevelopmentPage(buildHint), context.RequestAborted)
                     .ConfigureAwait(false);
             });
 
@@ -455,32 +441,16 @@ public static class RaskSpaEndpointExtensions
         });
     }
 
-    private static string DevelopmentPage(string? devServer, string buildHint, bool wasm)
-    {
-        var startIt = devServer is null
-            ? "<p>Start it with <code>rask dev</code>.</p>"
-            : $"""<p><a href="{WebUtility.HtmlEncode(devServer)}">{WebUtility.HtmlEncode(devServer)}</a> &mdash; started by <code>rask dev</code>.</p>""";
-        var where = wasm
-            ? """
-              <p>This host serves your WebAssembly app's <em>build output</em>, and there isn't any.
-              Build this project — <code>dotnet build</code> or <code>rask dev</code> — and it is served from here.</p>
-              """
-            : $"""
-               <p>This host serves your app's <em>build output</em>, and there isn't any. In development the
-               front end is served by the bundler instead, which is the one with hot reload.</p>
-               {startIt}
-               """;
-
-        return $"""
-            <!doctype html>
-            <meta charset="utf-8">
-            <title>No built app</title>
-            <body style="font:16px/1.5 system-ui;max-width:38rem;margin:4rem auto;padding:0 1rem">
-            <h1>Nothing built yet</h1>
-            {where}
-            <p>To serve the built app from this host, {WebUtility.HtmlEncode(buildHint)} and reload.</p>
-            <p>The API on this host is unaffected and still answering.</p>
-            </body>
-            """;
-    }
+    private static string DevelopmentPage(string buildHint) => $"""
+        <!doctype html>
+        <meta charset="utf-8">
+        <title>No built app</title>
+        <body style="font:16px/1.5 system-ui;max-width:38rem;margin:4rem auto;padding:0 1rem">
+        <h1>Nothing built yet</h1>
+        <p>This host serves your WebAssembly app's <em>build output</em>, and there isn't any.
+        Build this project — <code>dotnet build</code> or <code>rask dev</code> — and it is served from here.</p>
+        <p>To serve the published app from this host instead, {WebUtility.HtmlEncode(buildHint)} and reload.</p>
+        <p>The API on this host is unaffected and still answering.</p>
+        </body>
+        """;
 }

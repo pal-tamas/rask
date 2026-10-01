@@ -14,7 +14,7 @@
 
       A property rather than an <_RaskScopedTs Remove="…"/>, because this project body is evaluated
       before Directory.Build.targets imports Rask.Core.targets, so there is no item list here yet to
-      remove anything from — the same reason Rask.Spa.Hosting sets it for its own vendored client.
+      remove anything from.
     -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
 
@@ -106,8 +106,8 @@
     <!-- Named explicitly for the same reason as the task assembly: it is written by a target, after the glob. -->
     <None Include="build\rask-extract-props.mjs" Pack="true" PackagePath="build\"/>
     <None Include="build\rask-extract-props.mjs" Pack="true" PackagePath="buildTransitive\rask-extract-props.mjs"/>
-    <!-- The adapters, shipped as source the way Rask.Spa.Hosting ships its client. Vendored into obj/
-         on every build, so upgrading this package upgrades both halves together. -->
+    <!-- The adapters, shipped as source. Vendored into obj/ on every build, so upgrading this package
+         upgrades both halves together. -->
     <None Include="client\**" Pack="true" PackagePath="client\"/>
   </ItemGroup>
 

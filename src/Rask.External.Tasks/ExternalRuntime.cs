@@ -15,8 +15,7 @@ namespace Rask.External.Tasks;
 ///         entry for a Vue component, which builds, ships, loads, and mounts nothing.
 ///     </para>
 ///     <para>
-///         Modelled on <c>SpaFramework</c> in the CLI, which solved the same problem for the SPA lane:
-///         one list, and everything derived from it. The two lanes now cover the same seven front ends.
+///         One list, and everything derived from it.
 ///     </para>
 /// </remarks>
 internal sealed class ExternalRuntime

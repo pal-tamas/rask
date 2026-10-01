@@ -8,10 +8,10 @@ namespace Rask.Site.Tests.Pages;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The README's equivalent section read "Three front ends" for as long as there were four lanes, and
-/// this page had no such section at all. The meta framework lane existed, was documented, and even had
-/// a card further down the page — but nothing that framed the choice counted it, and nothing failed,
-/// because the number lived in prose alone.
+/// The README's equivalent section once read "Three front ends" for as long as there were four lanes,
+/// and this page had no such section at all: a lane existed, was documented, and even had a card further
+/// down the page — but nothing that framed the choice counted it, and nothing failed, because the number
+/// lived in prose alone.
 /// </para>
 /// <para>
 /// So the number is asserted against the markup beside it rather than pinned to a literal: add a lane
@@ -27,8 +27,7 @@ public sealed partial class FrontEndsTests : global::Rask.Core.RaskMarkup
         {
             { "Rask components", "render-modes" },
             { "Islands", "islands" },
-            { "TypeScript SPA", "spa" },
-            { "Meta framework", "meta" },
+            { "Blazor components", "blazor-components" },
         };
 
     [Theory]

@@ -18,8 +18,7 @@ namespace Rask.UiTests;
 ///         It is then stated a SECOND time, as prose, in the <c>@plugin</c> comment in <c>ui.css</c>. A
 ///         bump that replaces the bundle and forgets the sentence leaves the file claiming a version
 ///         the repository no longer ships, and nothing here noticed. That is this codebase's most
-///         repeated failure shape — a claim written in a comment with nothing checking it — and
-///         <c>TailwindVersionPinTests</c> is the same test for the other pinned compiler.
+///         repeated failure shape — a claim written in a comment with nothing checking it.
 ///     </para>
 ///     <para>
 ///         <see cref="The_shipped_sheet_was_compiled_by_the_bundle_this_version_came_from" /> is what

@@ -20,13 +20,10 @@ internal static partial class ProjectGenerator
     ///         messages compile into both halves from the one project.
     ///     </para>
     ///     <para>
-    ///         <c>Client</c> keeps its capital. The lowercase <c>client/</c> is the JavaScript lanes'
-    ///         convention (and on the meta lane a requirement — several of those scaffolders derive an npm
-    ///         package name from the directory and reject capitals); this one is C# and follows .NET's.
+    ///         <c>Client</c> keeps its capital: it is C#, and follows .NET's naming.
     ///     </para>
     ///     <para>
-    ///         CQRS is forced on for the same reason <see cref="GenerateSpa" /> forces it: the wire between
-    ///         the halves IS the template. <c>Rask.Cqrs.Client</c> goes to the browser and
+    ///         CQRS is forced on because the wire between the halves IS the template. <c>Rask.Cqrs.Client</c> goes to the browser and
     ///         <c>Rask.Cqrs.Server</c> to the host — the split exists precisely so the process that answers
     ///         the endpoints never carries the code that calls them. <c>NewCommand</c> refuses
     ///         <c>--no-cqrs</c> here rather than accepting it and turning it back on silently.

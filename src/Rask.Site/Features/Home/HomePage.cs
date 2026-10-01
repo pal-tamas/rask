@@ -121,7 +121,7 @@ public sealed partial class HomePage : Component
                             Span.Class("text-ui-brand-ink")["C#"], "."
                         ],
                         P.Class(Lede)["Data, queries, auth, background jobs, email, realtime and deploy — one framework and one C# codebase, for a team of one or fifty."],
-                        P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — or bring React, Vue, Angular or Nuxt to the same back end."],
+                        P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — with React, Vue or Angular components inside them as islands."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
                             NavLink
                                 .Href(PageMeta.LinkTo(Routes.GuidesIndexPage()))
@@ -203,8 +203,8 @@ public sealed partial class HomePage : Component
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
                     LaneCard(Ui.IconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
-                    LaneCard(Ui.IconName.Storage, "Rask.Spa.Hosting", "Single-page host", "spa", "AddRaskSpaHost() · MapRaskSpa()",
-                        "Serves a WebAssembly app or a TypeScript bundle from an ASP.NET host, cached by what its build guarantees, with pre-compressed variants.")
+                    LaneCard(Ui.IconName.Storage, "Rask.Spa.Hosting", "WebAssembly host", "deployment", "AddRaskSpaHost() · MapRaskSpa()",
+                        "Serves a Rask WebAssembly app from the ASP.NET host that answers its API, cached by what its publish guarantees, with pre-compressed variants.")
                 ]
             ]
         ];
@@ -214,7 +214,7 @@ public sealed partial class HomePage : Component
     ///     The front-ends section's DOM id — the handle its tests address it by.
     /// </summary>
     /// <remarks>
-    /// The heading counts the lanes in words ("Four front ends"), and a count written in prose is the
+    /// The heading counts the lanes in words ("Three front ends"), and a count written in prose is the
     /// kind that goes stale silently — the README's equivalent section said "Three" for as long as
     /// there were four lanes to choose between. <c>FrontEndsTests</c> slices the page at this id and
     /// counts the cards inside it, so adding a lane without rewording the heading fails rather than
@@ -225,18 +225,16 @@ public sealed partial class HomePage : Component
     private static Component FrontEndsSection() =>
         Section.Id(FrontEndsSectionId).Class(SectionPad)[
             Div.Class(Wrap)[
-                SecHead("Four front ends · one back end",
-                    "Bring your own front end — or don't.",
-                    "Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, a real Blazor component, a TypeScript SPA or a Nuxt or Next.js app all run on it, against the same C# back end over the same typed wire. Pick one per project; islands also compose inside a Rask component tree, so those two mix freely."),
-                Div.Class("grid gap-4 md:grid-cols-2")[
+                SecHead("Three front ends · one back end",
+                    "Bring your own components — or don't.",
+                    "Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, and real Blazor components, run inside C# pages as islands, against the same C# back end — mixed freely in one component tree."),
+                Div.Class("grid gap-4 md:grid-cols-3")[
                     LaneCard(Ui.IconName.CodeBracket, "Rask.Core", "Rask components", "render-modes", "rask new Shop",
                         "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Pick ", Code["-t wasm-hosted"], " and the same components publish as a WebAssembly bundle the host serves, out of the same project."),
                     LaneCard(Ui.IconName.Puzzle, "Rask.External", "Islands", "islands", "class Chart : ReactComponent",
-                        "A ", Code[".tsx"], ", ", Code[".vue"], ", ", Code[".svelte"], " or Lit file as an ordinary Rask component — props declared in C#, callbacks re-entering C#, and the live diff leaving the subtree to its own renderer. A real Blazor component too."),
-                    LaneCard(Ui.IconName.Desktop, "Rask.Spa.Hosting", "TypeScript SPA", "spa", "rask new Shop --template react",
-                        "A TypeScript single-page app on an ASP.NET host — seven frameworks, with the client's types generated from your C# message records on every build. No Node at runtime."),
-                    LaneCard(Ui.IconName.Globe, "Rask.Meta.Hosting", "Meta framework", "meta", "rask new Shop --template nuxt",
-                        "Nuxt, Next, SvelteKit, TanStack Start, SolidStart or Analog owning the whole front end, with Rask the backend behind it. One container, one port: Kestrel fronts every request and supervises Node on loopback.")
+                        "A ", Code[".tsx"], ", ", Code[".vue"], ", ", Code[".svelte"], " or Lit file as an ordinary Rask component — props declared in C#, callbacks re-entering C#, and the live diff leaving the subtree to its own renderer."),
+                    LaneCard(Ui.IconName.Stack, "Rask.Blazor", "Blazor components", "blazor-components", "class Chart : BlazorComponent<MudChart>",
+                        "A real Blazor component — MudBlazor, Radzen, your own Razor Class Library — as an ordinary Rask component, rendered into the first response with no Blazor circuit.")
                 ]
             ]
         ];

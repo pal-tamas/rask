@@ -28,8 +28,7 @@
     <!--
       Build-order-only edge to the task project, which drops Rask.Tailwind.Tasks.dll into build/ here
       (CopyTaskAssemblyToRaskTailwindBuild) for <UsingTask> to load and for RaskTailwindBuildPack to
-      pack into the host packages. Same arrangement as Rask.Wasm/Rask.Wasm.Tasks and
-      Rask.Spa.Hosting/Rask.Spa.Tasks.
+      pack into the host packages. Same arrangement as Rask.Wasm/Rask.Wasm.Tasks.
     -->
     <ProjectReference Include="..\Rask.Tailwind.Tasks\Rask.Tailwind.Tasks.csproj"
                       ReferenceOutputAssembly="false"

@@ -70,8 +70,8 @@ app.MapRaskStorage();
 
 Add a migration for the new table before running — `rask db add AddStorage && rask db update`.
 
-`rask new MyApp` scaffolds all of it — on the server template and on every front-end and meta-framework
-template alike; `--no-storage` leaves it out. The wiring mistakes are loud rather than
+`rask new MyApp` scaffolds all of it — on the `server` and `wasm-hosted` templates alike; `--no-storage`
+leaves it out. The wiring mistakes are loud rather than
 silent: a missing `modelBuilder.AddRaskStorage()` stops the boot and names the line to add, a configuration
 value that can't work (a negative size, a storage directory inside `wwwroot`) stops the boot and names what
 to change, and a host that never calls `MapRaskStorage()` logs a warning at startup — its public and
@@ -506,8 +506,8 @@ files are on disk it says so, because that is the one state in which no backup c
 ## Limits
 
 - **Server-only.** `Rask.Storage` runs in the ASP.NET host, not in the browser: a WebAssembly page uploads to
-  the server, which saves the file. That host can be any template's — the server template, or the one behind a
-  front-end or meta-framework template.
+  the server, which saves the file. That host can be the `server` template's or the
+  `wasm-hosted` one's.
 - **One object per file, no multipart upload.** A single object is at most 5 GiB on S3 and 5000 MiB on Azure,
   so a `MaxFileSize` above the chosen provider's ceiling stops the boot.
 - **No image processing.** No resizing, no thumbnails, no format conversion.
