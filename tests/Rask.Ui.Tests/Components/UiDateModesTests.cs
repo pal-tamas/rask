@@ -41,10 +41,10 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(() =>
             Ui.Calendar.Values([Mar(20)]).Label("Days off").Month(March).OnChange(v => { reported = v; }));
 
-        await page.On(DaySelector(5)).ClickAsync();
+        await page.On(DaySelector(5)).Click();
         Assert.Equal([Mar(5), Mar(20)], reported);
 
-        await page.On(DaySelector(20)).ClickAsync();
+        await page.On(DaySelector(20)).Click();
         Assert.Equal([], reported);
     }
 
@@ -54,8 +54,8 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
         var model = new Holiday();
         var page = Page.Render(() => Ui.Calendar.Bind(() => model.DaysOff).Label("Days off").Month(March));
 
-        await page.On(DaySelector(12)).ClickAsync();
-        await page.On(DaySelector(2)).ClickAsync();
+        await page.On(DaySelector(12)).Click();
+        await page.On(DaySelector(2)).Click();
 
         Assert.Equal([Mar(2), Mar(12)], model.DaysOff);
     }
@@ -81,12 +81,12 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
                 .OnChange(r => { calls++; reported = r; }));
 
         // The later day first: the range still comes out start-to-end.
-        await page.On(DaySelector(18)).ClickAsync();
+        await page.On(DaySelector(18)).Click();
         Assert.Equal(0, calls);
         // The half-picked start is drawn, though, so the reader can see the first click landed.
         Assert.Equal(1, Pressed(page.Html));
 
-        await page.On(DaySelector(11)).ClickAsync();
+        await page.On(DaySelector(11)).Click();
         Assert.Equal(1, calls);
         Assert.Equal(new UiDateRange(Mar(11), Mar(18)), reported);
     }
@@ -97,10 +97,10 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
         var model = new Holiday();
         var page = Page.Render(() => Ui.Calendar.Bind(() => model.Stay).Label("Stay").Month(March));
 
-        await page.On(DaySelector(4)).ClickAsync();
+        await page.On(DaySelector(4)).Click();
         Assert.Equal(default, model.Stay);
 
-        await page.On(DaySelector(6)).ClickAsync();
+        await page.On(DaySelector(6)).Click();
         Assert.Equal(new UiDateRange(Mar(4), Mar(6)), model.Stay);
     }
 
@@ -125,7 +125,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(() => Ui.Calendar.Value(Mar(14)).Label("Delivery date"));
         Assert.Contains(March.ToString("MMMM yyyy", CultureInfo.CurrentCulture), page.Html, StringComparison.Ordinal);
 
-        await page.On("button[aria-label=\"Next month\"]").ClickAsync();
+        await page.On("button[aria-label=\"Next month\"]").Click();
 
         Assert.Contains(new DateOnly(2026, 4, 1).ToString("MMMM yyyy", CultureInfo.CurrentCulture), page.Html,
             StringComparison.Ordinal);
@@ -167,10 +167,10 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     {
         var model = new Holiday();
         var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Label("Arrival"));
-        await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
         var month = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
-        await page.On("button[aria-label=\"" + month.ToString("D", CultureInfo.CurrentCulture) + "\"]").ClickAsync();
+        await page.On("button[aria-label=\"" + month.ToString("D", CultureInfo.CurrentCulture) + "\"]").Click();
 
         Assert.Equal(month, model.Arrival);
     }
@@ -190,16 +190,16 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
         UiDateRange reported = default;
         var page = Page.Render(() =>
             Ui.DatePicker.Value(new UiDateRange(Mar(2), Mar(4))).Label("Stay").OnChange(r => { reported = r; }));
-        await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
         Assert.DoesNotContain("popovertargetaction", page.Html, StringComparison.Ordinal);
 
-        await page.On(DaySelector(20)).ClickAsync();
+        await page.On(DaySelector(20)).Click();
         // Held, not written — and now the next click is the one that finishes it, so that one closes the popover.
         Assert.Equal(default, reported);
         Assert.Contains("popovertargetaction=\"hide\"", page.Html, StringComparison.Ordinal);
 
-        await page.On(DaySelector(22)).ClickAsync();
+        await page.On(DaySelector(22)).Click();
         Assert.Equal(new UiDateRange(Mar(20), Mar(22)), reported);
     }
 
@@ -209,10 +209,10 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
         // The loop a page actually runs: the pick reaches OnChange, the parent stores it, re-renders, and the field
         // has to show it — not the placeholder it started with.
         var page = Page.Render(new PickerHost());
-        await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
         var month = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
-        await page.On("button[aria-label=\"" + month.ToString("D", CultureInfo.CurrentCulture) + "\"]").ClickAsync();
+        await page.On("button[aria-label=\"" + month.ToString("D", CultureInfo.CurrentCulture) + "\"]").Click();
 
         Assert.Contains(month.ToString("d", CultureInfo.CurrentCulture), page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("Choose a date", page.Html, StringComparison.Ordinal);

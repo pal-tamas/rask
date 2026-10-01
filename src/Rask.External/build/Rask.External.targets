@@ -728,15 +728,13 @@
 
     RaskExternalMinimumNode was declared with a comment promising exactly this ("the probe reports
     anything older rather than letting vite fail with an engines error nobody reads") and then read by
-    nothing at all — the same defect Rask.Spa.Hosting had, and fixed for the same reason. Setting the
+    nothing at all. Setting the
     property insisted on nothing, and an old Node reached `npm` and failed with vite's engines error,
     which is the message this exists to replace.
 
-    The floor matches RaskSpaMinimumNode, and for the same reason: vite asks for
-    `^20.19.0 || >=22.12.0`, and a numeric floor cannot express a disjoint range — a floor of 20.19.0
-    would ACCEPT 21.x, which vite refuses. 22.12.0 is the lowest version that satisfies vite with no
-    hole beneath it. NodeRequirementTests.The_islands_floor_matches_the_spa_floor holds the two files to the
-    same number.
+    Why 22.12.0: vite asks for `^20.19.0 || >=22.12.0`, and a numeric floor cannot express a disjoint
+    range — a floor of 20.19.0 would ACCEPT 21.x, which vite refuses. 22.12.0 is the lowest version that
+    satisfies vite with no hole beneath it. NodeRequirementTests holds the CLI's BuildFloor to this number.
   -->
   <Target Name="_RaskExternalProbeNode"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">

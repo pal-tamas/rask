@@ -30,11 +30,11 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary)
+                    Ui.Button.Primary
                         .Id("signal-join")
                         .Disabled(_joining)
                         .OnClick(JoinAsync)["Join the room twice"],
-                    Ui.Button.Tone(Ui.Tone.Secondary)
+                    Ui.Button.Secondary
                         .Id("signal-send")
                         .Disabled(_secondId is null)
                         .OnClick(SendAsync)["Relay a payload"]

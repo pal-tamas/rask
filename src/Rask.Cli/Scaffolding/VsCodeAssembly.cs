@@ -69,11 +69,11 @@ internal static class VsCodeAssembly
 
     /// <summary>
     ///     What <c>.vscode/extensions.json</c> recommends, why, and whether this project needs it — read from the
-    ///     files the scaffold wrote, so vue islands on a server app get Volar as the vue template does.
+    ///     files the scaffold wrote, so vue islands on a server app get Volar.
     /// </summary>
     /// <remarks>
-    ///     Generated rather than a fragment: a fragment replaces the whole file, and Tailwind × front-end framework ×
-    ///     islands is a product no set of committed files keeps in step.
+    ///     Generated rather than a fragment: a fragment replaces the whole file, and Tailwind × islands is a
+    ///     product no set of committed files keeps in step.
     /// </remarks>
     private static readonly (string Id, string Why, Func<string, IReadOnlyList<ScaffoldFile>, bool> Wanted)[] Recommendations =
     [
@@ -90,16 +90,14 @@ internal static class VsCodeAssembly
         ("bradlc.vscode-tailwindcss",
             "Tailwind CSS IntelliSense: class completion inside Div.Class(\"…\"), set up in settings.json.",
             CompilesTailwind),
-        ("dbaeumer.vscode-eslint", "ESLint: the front end's eslint.config.mjs, as you type.",
+        ("dbaeumer.vscode-eslint", "ESLint: the islands' eslint.config.mjs, as you type.",
             static (_, files) => Any(files, name => name.StartsWith("eslint.config.", StringComparison.Ordinal))),
-        ("esbenp.prettier-vscode", "Prettier: the front end's .prettierrc, on format.",
+        ("esbenp.prettier-vscode", "Prettier: the islands' .prettierrc, on format.",
             static (_, files) => Any(files, name => string.Equals(name, ".prettierrc", StringComparison.Ordinal))),
         ("vue.volar", "Vue (Official): .vue single-file components.",
             static (_, files) => Any(files, name => name.EndsWith(".vue", StringComparison.Ordinal))),
         ("svelte.svelte-vscode", "Svelte: .svelte components.",
             static (_, files) => Any(files, name => name.EndsWith(".svelte", StringComparison.Ordinal))),
-        ("angular.ng-template", "Angular Language Service: completion and checking inside Angular templates.",
-            static (_, files) => Any(files, name => string.Equals(name, "angular.json", StringComparison.Ordinal))),
     ];
 
     private static bool Any(IReadOnlyList<ScaffoldFile> files, Func<string, bool> name) =>

@@ -37,8 +37,9 @@
                     StampDirectory="$([System.IO.Path]::Combine($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.rask', 'mdn'))"/>
   </Target>
 
-  <!-- After the project references resolve, which is what builds Rask.Dom.Tasks on a clean clone. -->
-  <Target Name="_RaskDomEmit" BeforeTargets="CoreCompile" DependsOnTargets="ResolveProjectReferences;_RaskDomEmitCore">
+  <!-- After the project references resolve, which is what builds Rask.Dom.Tasks on a clean clone; and before the SDK hashes
+       @(Compile) into CoreCompileInputs.cache, the only thing that notices a generated file going away. -->
+  <Target Name="_RaskDomEmit" BeforeTargets="_GenerateCompileDependencyCache;CoreCompile" DependsOnTargets="ResolveProjectReferences;_RaskDomEmitCore">
     <ItemGroup>
       <Compile Include="$(RaskDomOutput)*.g.cs" Exclude="@(Compile)"/>
       <FileWrites Include="$(RaskDomOutput)*.g.cs"/>

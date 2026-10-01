@@ -66,6 +66,71 @@ them until tagged releases begin.
   2. Mark each domain event `[LocalOnly]`. `IOutboxEvent` did that for you: events travel from a browser like any
      message, so an unmarked `OrderPlaced` could be published by a signed-in user.
   3. Add the outbox's new `Handler` column: `rask db add AddOutboxHandler && rask db update`.
+- **BREAKING: React, Vue, Svelte and the rest run as islands only.** The meta-framework templates
+  (`nuxt`, `nextjs`, `sveltekit`, `solidstart`, `tanstack-start`, `analog`) and the `Rask.Meta.Hosting`
+  package are removed, and so are the TypeScript SPA templates (`react`, `preact`, `vue`, `solid`,
+  `svelte`, `lit`, `angular`). Those frameworks run as [islands](docs/islands.md) inside Rask pages —
+  `rask new Shop --islands react` — and `rask new --template` keeps `server`, `wasm` and `wasm-hosted`.
+  `Rask.Spa.Hosting` now only hosts a Rask WebAssembly client (`RaskApp.Create(args).Serve()`, or
+  `MapRaskSpa()` by hand); the generated TypeScript CQRS client and `Rask.Spa.Tasks` are gone. To migrate,
+  keep an existing SPA or meta-framework app on the previous Rask version, or move its front end into
+  islands.
+- **BREAKING: a test drives the page by what a person sees, or names the element.** Rask.Testing's `Page` loses
+  its `…Async` members. The "first element wired to X" shortcuts are gone — a test names what it presses.
+
+  | Before | After |
+  | --- | --- |
+  | `await page.ClickAsync()` | `await page.Click("Save")`, or `await page.On("#save").Click()` |
+  | `await page.InputAsync("{\"value\":\"Ada\"}")` | `await page.Type("Ada").Into("Name")`, or `await page.On("#name").Input("Ada")` |
+  | `await page.On(sel).ChangeAsync(v)` / `SubmitAsync(json)` / `FilesAsync(f)` | `.Change(v)` / `.Submit(json)` / `.Files(f)` |
+  | `await page.On(sel).RaiseAsync("keydown", json)` | `await page.On(sel).Raise("keydown", json)` |
+  | `await page.WaitForAsync("2 orders")` | `page.Shows("2 orders")` (visible text; waits `page.Patience`) |
+  | `await page.WaitForAsync(html => …)` | `page.Shows(html => …)` |
+  | `await page.InvokeAsync(id)` / `TryInvokeAsync(id)` | `await page.Invoke(id)` / `TryInvoke(id)` |
+- **The docs, samples and scaffold say only true things, in the short words.** Kit calls use the short forms
+  that already existed — `Ui.Button.Primary.Submit`, `Ui.Alert.Error`, `.Ghost.Sm` — instead of
+  `Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary)` (518 sites across the docs, `llms.txt`, the
+  site and the templates). Navigation is `Routes.ProductsPage().Go()` with nothing injected, a control with no
+  value yet is `Ui.Input.Of<string>()`, `Context.Provide(_theme)` infers its type, numbers go straight into
+  markup (`Code[_clicks]`), and a sequence of children needs no `(Component)` cast. Events are `Callback<T>`
+  props everywhere the docs used to say "a plain delegate". Fixed: `docs/routing.md` no longer calls
+  `[Route]` singular, `docs/forms.md` no longer says bound mode "does not offer" steps that compile,
+  `llms.txt`/`docs/cli.md` no longer place the sign-in pages in `Rask.Auth` (they are scaffolded into
+  `Features/Auth/`), and the scaffolded home page no longer tells you to run `rask db add Init` — `rask new`
+  already did, and the WASM template has no database at all.
+- **Runtime errors end in a fix, like the diagnostics.** A `Bind(() => …)` that walks through null, a
+  component with services in its constructor created outside an app, an open generic with scoped styles or
+  a script, `AuthSignIn` outside a handler, a hand-built or re-read upload, a synchronous read of a browser
+  file, a failed `docker build` and a rollback on a first deploy each say what to do next. `rask dev
+  --no-restart` and `rask deploy status`/`--health-path` describe what they do without deployment jargon.
+- **A live update renders the page straight into the session's buffer.** No pooled builder to regrow and no copy
+  out of one: a 1,500-row page allocates 336 B per live render instead of 267.59 KB (`RenderPageXLargeInto`). A
+  connected 1,000-row session's footprint reads 12.7 KB (0.3%) higher, which is large-object-heap fragmentation
+  only — with fragmentation subtracted the two are identical (#1141).
+- **One design standard for the whole codebase: SOLID and Clean Code.** The
+  [code analysis guide](docs/code-analysis.md#design) now states it — one responsibility per type and per file,
+  extension through the existing seams, small well-named methods, no copied helper — and the review and ship
+  gates hold every change to it. Large types are split in two steps: partial files by responsibility, then an
+  internal type where the seam is worth testing alone.
+
+- **The generators ask "is this a component?" in one place.** Five copies of the component check, three of
+  the "visible outside the assembly" check and fifteen spellings of the `Component`/`ExternalComponent` type
+  names across the generators and analyzers are now `ComponentSymbols`; the C# literal, doc-comment and camelCase helpers
+  copied between the island, package-island and batteries generators are `CodeText` and a shared
+  `Identifiers`. Every generated file is byte-for-byte what it was.
+
+- **`rask deploy`, `rask new` and `rask dev` are split by what each part does.** The 1,500-line deploy command is now
+  the command itself, its planning and its blue-green rollout as partial files, plus three small types
+  unit-tested on their own: `DockerCommands` (every `docker` argument list), `CaddyRouting` (which color
+  serves each domain) and `DeployEnvironment` (env keys, the env file and secret masking). `rask new` keeps
+  its wizard, output, post-scaffold steps and npm scaffold in partial files, with `BatterySelection` and
+  `NewArgumentChecks` as their own types; `rask dev` builds its `dotnet watch` command line in
+  `DotnetWatchInvocation`. Nothing any of the three does has changed.
+
+- **The WebAssembly prerender is split by what each part does.** `WasmPrerender` keeps its public surface and
+  the page loop; repairing the publish output's compressed siblings and endpoint manifest is
+  `PublishedAssetRepair`, writing `sitemap.xml` and `robots.txt` is `SitemapWriter`, and reading a page's own
+  last-modified date, canonical URL and noindex is `PrerenderedPageMetadata`. The published site is unchanged.
 
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
@@ -314,8 +379,18 @@ them until tagged releases begin.
   - An object's events are `On{Event}` subscriptions (`await Window.MatchMedia(q).OnChange(e => _wide = e.Matches)`,
     `await Window.OnOnline(() => …)`), their payload MDN's event type, and a method's callback is a C# handler
     (`await Navigator.Geolocation.GetCurrentPosition(p => …)`); either runs in its component's order and re-renders it.
+  - Any web object is faked in a test with `Fake()` — `using var clipboard = Navigator.Clipboard.Fake();`,
+    `clipboard.Returns(c => c.ReadText(), "pasted")`, `clipboard.Calls`, `Raise("change", e)` — for the test's own flow;
+    nothing reaches a browser.
   - Constructors are `X.Create(…)`, the new object kept (`await BroadcastChannel.Create("updates")`), and static
-    members are on the class (`await URL.CanParse(link)`, `await Notification.RequestPermission()`).
+    members are on the class (`await URL.CanParse(link)`, `await Notification.Permission`).
+  - **What only WebAssembly can run is in `Rask.Wasm` alone,** as extensions of the same types: a call the browser
+    allows only during the user's click (`Navigator.Share(…)`, `Notification.RequestPermission()`,
+    `MediaDevices.GetDisplayMedia(…)`, `ScreenOrientation.Lock(…)`, `PaymentRequest.Show()`), and the families driven
+    every frame (WebGL and its extension objects, WebGPU, audio worklets). In a WebAssembly app they read like any
+    other member; in a server app, where the click would be over before the call arrived, they do not compile.
+    The globals are sealed classes, no longer static ones, so they can be extended.
+  - A member that exists only on an HTTPS page (or localhost), MDN's `[SecureContext]`, says so in its doc comment.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,
@@ -335,6 +410,9 @@ them until tagged releases begin.
     `ScrollIntoViewAsync(js)` → `ScrollIntoView(new ScrollIntoViewOptions { Behavior = ScrollBehavior.Smooth,
     Block = ScrollLogicalPosition.Nearest })` (it used to default to that), each on a ref typed to the element.
   - A typed ref put on an element of another type throws there, naming both.
+  - `RequestFullscreen()`, `RequestPointerLock()` and `ShowPicker()` need the user's click
+    in progress, so they come from `Rask.Wasm` only; on the server host use `Trigger.Fullscreen` /
+    `Trigger.PictureInPicture`, which run in the click.
 - **BREAKING: the SVG elements are generated from MDN as well.** The 40 hand-written SVG types are gone; every
   SVG element MDN lists as shipping in two engines is generated from the same snapshot. The chain is unchanged
   (`Svg`, `Circle`, `SvgPath`, `SvgText`, `SvgA`, `SvgTitle`…). What changes:
@@ -358,6 +436,15 @@ them until tagged releases begin.
 
 ### Security
 
+- **Scaffolded front ends no longer lock a vulnerable `brace-expansion` or `ip-address`.** Every template
+  locked `brace-expansion` 5.0.9 (nuxt and analog also 2.1.4), open to a quadratic-time `{a},b}` expansion and to
+  stack exhaustion on nested brace groups; analog and angular locked `ip-address` 10.7.0. The lockfiles now carry
+  5.0.12 / 2.1.7 and 10.7.2.
+- **The analog and angular templates audit clean again.** Analog locked `webpack-dev-middleware` 7.4.2
+  (path traversal via a non-slash-terminated `publicPath`), pinned exactly by `@angular-devkit/build-angular` 20;
+  an npm `overrides` entry now takes it to 7.4.6 without the build-angular 22 major, whose Angular 22 and
+  TypeScript 6 peers `npm ci` refuses beside the template's Angular 20. Both templates also move `fast-uri` from
+  3.1.7 to 3.1.8 (inconsistent host case normalization).
 - **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
   `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
   run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
@@ -572,6 +659,19 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A design-time build compiles scoped TypeScript too, so `dotnet format` and an IDE reload see its generated calls.**
+  They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
+  with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time
+  build now compiles with a cached tsgo and still never downloads one (#1139).
+- **The shutdown drain keeps to one budget.** `ShutdownDrainTimeout` is measured once, from `ApplicationStopping`.
+  A drain that ran late used to start a second budget of its own, waiting on sockets the first had already
+  aborted and stretching shutdown to twice the setting (#1138).
+- **A sign-up racing the first one is no longer refused for want of the first-run token.** Registration read "not
+  yet claimed" and then compared the token, so a racer that lost the admin slot in between found the token already
+  spent and got `FirstRunTokenRequired`. The token is now compared first (#1143).
+- **Every meta template builds again.** Analog, Next.js, Nuxt, SolidStart, SvelteKit and TanStack Start failed on
+  RASK015/017: Rask's scoped CSS/TypeScript globs reached into `client/` and took `globals.css` or `next.config.ts`
+  for a component's assets. A meta host now keeps its front end out of them, as a SPA host already did (#1147).
 - **`StateHasChangedAsync()` shows in DevTools.** Only the synchronous `StateHasChanged()` reported the request, so a
   render asked for with the awaitable form never appeared as a state render in the Renders tab.
 - **Two generic Ui controls on one page no longer share an id.** A `UiTree`, `UiSelect` or `UiMultiSelect` counted

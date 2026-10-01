@@ -9,7 +9,7 @@ namespace Rask.Cli.Tests;
 /// dependency, so these are correctness rules, not conveniences.
 /// </summary>
 /// <remarks>
-/// Driven through <c>NewCommand.ToBatteries</c> so the flag names the user actually types are part of what
+/// Driven through <c>BatterySelection.ToBatteries</c> so the flag names the user actually types are part of what
 /// is under test, rather than a hand-built option set that could drift from the parser.
 /// </remarks>
 public sealed class ServerBatteriesTests
@@ -23,7 +23,7 @@ public sealed class ServerBatteriesTests
     {
         // Each pillar registers as AddRaskX<TContext> and resolves IDbContextFactory<TContext>; without
         // --data there is no context to name. --data in turn implies --cqrs.
-        var normalized = NewCommand.BatteriesOf([flag]).Normalized();
+        var normalized = BatterySelection.BatteriesOf([flag]).Normalized();
 
         Assert.True(normalized.Data, $"--{flag} should imply --data.");
         Assert.True(normalized.Cqrs, $"--{flag} should imply --cqrs (via --data).");
@@ -34,20 +34,20 @@ public sealed class ServerBatteriesTests
     {
         // A browser can only subscribe to Web Push through a service worker, which is what the PWA
         // registration installs.
-        Assert.True(NewCommand.BatteriesOf(["push"]).Normalized().Pwa);
+        Assert.True(BatterySelection.BatteriesOf(["push"]).Normalized().Pwa);
     }
 
     [Fact]
     public void Data_implies_cqrs_but_not_the_other_way_round()
     {
-        Assert.True(NewCommand.BatteriesOf(["data"]).Normalized().Cqrs);
-        Assert.False(NewCommand.BatteriesOf(["cqrs"]).Normalized().Data);
+        Assert.True(BatterySelection.BatteriesOf(["data"]).Normalized().Cqrs);
+        Assert.False(BatterySelection.BatteriesOf(["cqrs"]).Normalized().Data);
     }
 
     [Fact]
     public void A_bare_new_turns_on_every_battery_the_template_has()
     {
-        var all = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+        var all = BatterySelection.ToBatteries(TemplateCatalog.Default, []);
 
         Assert.True(all.Jobs);
         Assert.True(all.Mail);
@@ -69,7 +69,7 @@ public sealed class ServerBatteriesTests
     {
         // AddRaskDashboard<TContext> has to name a context, even on an app with no pillars yet — the
         // system panel still reports how the database is configured.
-        var ops = NewCommand.BatteriesOf(["ops"]).Normalized();
+        var ops = BatterySelection.BatteriesOf(["ops"]).Normalized();
 
         Assert.True(ops.Ops);
         Assert.True(ops.Data);
@@ -82,7 +82,7 @@ public sealed class ServerBatteriesTests
         // The exception to the rule every other battery follows. AddRaskLogging takes a connection string
         // rather than a TContext, so an app with no database at all can still keep its log — and pulling
         // --data in behind it would scaffold an EF Core layer nobody asked for.
-        var logs = NewCommand.BatteriesOf(["logs"]).Normalized();
+        var logs = BatterySelection.BatteriesOf(["logs"]).Normalized();
 
         Assert.True(logs.Logs);
         Assert.False(logs.Data);
@@ -101,10 +101,10 @@ public sealed class ServerBatteriesTests
         //
         // Asserted over the whole flag list rather than property by property, so a battery added with a
         // default of off cannot slip in here unnoticed.
-        var all = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+        var all = BatterySelection.ToBatteries(TemplateCatalog.Default, []);
 
         var off = TemplateCatalog.Default.SupportedFlags
-            .Where(flag => !NewCommand.Includes(all, flag))
+            .Where(flag => !BatterySelection.Includes(all, flag))
             .OrderBy(flag => flag, StringComparer.Ordinal)
             .ToArray();
 
@@ -119,12 +119,12 @@ public sealed class ServerBatteriesTests
     public void Wasm_hosted_cannot_drop_the_wire_between_its_halves()
     {
         // The browser half dispatches to the host over Rask.Cqrs.Client, so CQRS is the template rather
-        // than a battery in it — the same reason GenerateSpa forces it. The generator forcing it is only
+        // than a battery in it. The generator forcing it is only
         // half the contract; NewCommand refusing --no-cqrs is the other, and NewCommandTests holds that.
         _ = TemplateCatalog.TryGet("wasm-hosted", out var hosted);
 
         var dropped = ProjectGenerator.GenerateWasmHosted(
-            "/proj/App", "App", NewCommand.ToBatteries(hosted, ["cqrs"]), "9.9.9");
+            "/proj/App", "App", BatterySelection.ToBatteries(hosted, ["cqrs"]), "9.9.9");
 
         var program = dropped.Files.Single(f => f.Path.EndsWith("Program.cs", StringComparison.Ordinal)
                                                 && !f.Path.Contains("Client", StringComparison.Ordinal)).Content;
@@ -138,7 +138,7 @@ public sealed class ServerBatteriesTests
         // The default set is template.SupportedFlags rather than a per-template list someone maintains, so
         // a browser-WASM SPA with no host to put a database in simply never sees one.
         _ = TemplateCatalog.TryGet("wasm", out var wasm);
-        var batteries = NewCommand.ToBatteries(wasm, []);
+        var batteries = BatterySelection.ToBatteries(wasm, []);
 
         Assert.True(batteries.Pwa);
         Assert.True(batteries.Docker);
@@ -160,10 +160,10 @@ public sealed class ServerBatteriesTests
     {
         // The mirror of the implication above: each of these registers as AddRaskX<TContext>, so leaving
         // them on without a context would scaffold a registration naming something that isn't there.
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["data"]);
+        var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, ["data"]);
 
         Assert.False(batteries.Data);
-        Assert.False(NewCommand.Includes(batteries, battery));
+        Assert.False(BatterySelection.Includes(batteries, battery));
 
         // …and the log store is untouched, because it owns a database of its own.
         Assert.True(batteries.Logs);
@@ -174,7 +174,7 @@ public sealed class ServerBatteriesTests
     {
         // Every scaffolded feature handler dispatches through the mediator, so a context with no mediator
         // has nothing to reach it.
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["cqrs"]);
+        var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, ["cqrs"]);
 
         Assert.False(batteries.Cqrs);
         Assert.False(batteries.Data);
@@ -185,7 +185,7 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void Turning_the_pwa_off_takes_web_push_with_it()
     {
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["pwa"]);
+        var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, ["pwa"]);
 
         Assert.False(batteries.Pwa);
         Assert.False(batteries.Push);
@@ -194,7 +194,7 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void Turning_push_off_leaves_the_pwa_standing()
     {
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["push"]);
+        var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, ["push"]);
 
         Assert.False(batteries.Push);
         Assert.True(batteries.Pwa);
@@ -203,7 +203,7 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void The_outbox_has_no_switch_because_each_handler_chooses_durability()
     {
-        var flags = NewCommand.FeatureFlags;
+        var flags = BatterySelection.FeatureFlags;
 
         Assert.DoesNotContain("outbox", flags);
     }
@@ -211,7 +211,7 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void Turning_one_battery_off_leaves_the_rest_alone()
     {
-        var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, ["jobs"]);
+        var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, ["jobs"]);
 
         Assert.False(batteries.Jobs);
         Assert.True(batteries.Data);
@@ -236,7 +236,7 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void Reducing_is_idempotent()
     {
-        var once = NewCommand.ToBatteries(TemplateCatalog.Default, ["data"]);
+        var once = BatterySelection.ToBatteries(TemplateCatalog.Default, ["data"]);
 
         Assert.Equal(once, once.Reduced());
         Assert.Equal(once, once.Reduced().Normalized());
@@ -245,7 +245,7 @@ public sealed class ServerBatteriesTests
     [Fact]
     public void An_empty_set_stays_empty()
     {
-        var normalized = NewCommand.BatteriesOf([]).Normalized();
+        var normalized = BatterySelection.BatteriesOf([]).Normalized();
 
         Assert.False(normalized.Data);
         Assert.False(normalized.Cqrs);
@@ -258,7 +258,7 @@ public sealed class ServerBatteriesTests
     public void Normalizing_twice_changes_nothing()
     {
         // GenerateServer normalizes on entry; a caller that already normalized must get the same result.
-        var once = NewCommand.BatteriesOf(["jobs", "push"]).Normalized();
+        var once = BatterySelection.BatteriesOf(["jobs", "push"]).Normalized();
 
         Assert.Equal(once, once.Normalized());
     }
@@ -269,7 +269,7 @@ public sealed class ServerBatteriesTests
         // A flag the schema accepts but the template rejects would be a confusing hard error.
         var server = Templates.TemplateCatalog.All.Single(t => t.Key == "server");
 
-        foreach (var flag in NewCommand.FeatureFlags)
+        foreach (var flag in BatterySelection.FeatureFlags)
         {
             Assert.Contains(flag, server.SupportedFlags);
         }

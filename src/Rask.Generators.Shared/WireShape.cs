@@ -443,7 +443,7 @@ internal static class WireShape
 
                 // Every property of a generated model is nullable — a null is a value the model does not give.
                 result.Members.Add(new WireMember(
-                    member.Property.Name, CamelCase(member.Property.Name), wire, true));
+                    member.Property.Name, Identifiers.CamelCase(member.Property.Name), wire, true));
             }
 
             // The author's own partial half, when there is one, is part of the same object.
@@ -524,7 +524,7 @@ internal static class WireShape
             }
 
             result.Members.Add(new WireMember(
-                member.Property.Name, CamelCase(member.Property.Name), wire, true));
+                member.Property.Name, Identifiers.CamelCase(member.Property.Name), wire, true));
         }
 
         return result;
@@ -614,7 +614,7 @@ internal static class WireShape
             }
         }
 
-        return CamelCase(property.Name);
+        return Identifiers.CamelCase(property.Name);
     }
 
     /// <summary>
@@ -625,11 +625,6 @@ internal static class WireShape
     public static bool IsNullable(ITypeSymbol type, Compilation? compilation) =>
         type.NullableAnnotation == NullableAnnotation.Annotated ||
         (compilation is not null && GeneratedModelShape.NullableUnresolvedModel(type, compilation) is not null);
-
-    private static string CamelCase(string name) =>
-        name.Length == 0 || char.IsLower(name[0])
-            ? name
-            : char.ToLowerInvariant(name[0]) + name.Substring(1);
 
     // The file type a MESSAGE declares is Rask.Core's IRaskFile - the same one a file input hands a
     // component, on every host. Matched by name because a generator reads symbols: recognising it here

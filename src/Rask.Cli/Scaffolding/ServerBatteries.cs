@@ -11,7 +11,7 @@ namespace Rask.Cli.Scaffolding;
 /// <para>
 /// <b>Every property here defaults to <c>false</c>, and that is not what <c>rask new</c> defaults to.</b>
 /// The command turns on every battery the chosen template supports — see
-/// <c>NewCommand.ToBatteries</c>, which owns that decision because it is the only place that knows the
+/// <c>BatterySelection.ToBatteries</c>, which owns that decision because it is the only place that knows the
 /// template. This type stays the neutral carrier, so <c>new ServerBatteries()</c> keeps meaning
 /// "explicitly nothing" for the generators, their tests, and callers that want a deliberately lean
 /// project.

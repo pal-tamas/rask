@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators;
 
@@ -20,7 +21,6 @@ namespace Rask.Generators;
 [Generator(LanguageNames.CSharp)]
 public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
 {
-    private const string ComponentFullName = "Rask.Core.Component";
 
     private static readonly DiagnosticDescriptor Rask015 = new(
         "RASK015",
@@ -98,19 +98,6 @@ public sealed class ComponentScopedCssGenerator : IIncrementalGenerator
 
         var fqn = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         return new ComponentInfo(symbol.Name, fqn, path);
-    }
-
-    private static bool InheritsFromComponent(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
-        {
-            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static void Emit(

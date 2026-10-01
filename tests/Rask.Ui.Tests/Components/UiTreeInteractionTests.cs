@@ -42,7 +42,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     }
 
     private static Task KeyAsync(Page page, string key) =>
-        page.On("[role=\"tree\"]").RaiseAsync("keydown", $"{{\"key\":\"{key}\"}}");
+        page.On("[role=\"tree\"]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
 
     [Fact]
     public async Task The_arrows_move_the_cursor_and_stop_at_the_ends()
@@ -112,7 +112,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(Tree());
 
-        await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
+        await page.On("[role=\"tree\"]").Raise("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
 
         Assert.Equal("src", Cursor(page.Html));
     }
@@ -184,7 +184,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(Tree().Selection(Ui.TreeSelection.One));
 
-        await page.On(".ui-tree-row:has-text(\"README.md\")").ClickAsync();
+        await page.On(".ui-tree-row:has-text(\"README.md\")").Click();
 
         Assert.Equal("README.md", Cursor(page.Html));
         Assert.Contains("aria-selected=\"true\"", page.Html, StringComparison.Ordinal);
@@ -197,7 +197,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(Tree().Selection(Ui.TreeSelection.One).OnSelectionChange(picked.Add));
 
         // Every row has a twisty, so it is addressed by position: the first one belongs to the first root.
-        await page.InvokeAsync(page.FindAll(".ui-tree-toggle")[0].Attributes["data-rask-on-click"]!);
+        await page.Invoke(page.FindAll(".ui-tree-toggle")[0].Attributes["data-rask-on-click"]!);
 
         Assert.Contains("app.cs", page.Html, StringComparison.Ordinal);
         Assert.Empty(picked);
@@ -233,9 +233,9 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
         var hovered = new List<string?>();
         var page = Page.Render(Tree().OnHover(n => hovered.Add(n?.Name)));
 
-        await page.On(".ui-tree-row:has-text(\"docs\")").RaiseAsync("pointerenter", "{\"pointerType\":\"mouse\"}");
-        await page.On(".ui-tree-row:has-text(\"docs\")").RaiseAsync("pointerenter", "{\"pointerType\":\"mouse\"}");
-        await page.On("[role=\"tree\"]").RaiseAsync("pointerleave", "{\"pointerType\":\"mouse\"}");
+        await page.On(".ui-tree-row:has-text(\"docs\")").Raise("pointerenter", "{\"pointerType\":\"mouse\"}");
+        await page.On(".ui-tree-row:has-text(\"docs\")").Raise("pointerenter", "{\"pointerType\":\"mouse\"}");
+        await page.On("[role=\"tree\"]").Raise("pointerleave", "{\"pointerType\":\"mouse\"}");
 
         // The second enter on the same row says nothing new.
         Assert.Equal(["docs", null], hovered);
@@ -247,7 +247,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
         var hovered = new List<string?>();
         var page = Page.Render(Tree().OnHover(n => hovered.Add(n?.Name)));
 
-        await page.On(".ui-tree-row:has-text(\"docs\")").RaiseAsync("pointerenter", "{\"pointerType\":\"touch\"}");
+        await page.On(".ui-tree-row:has-text(\"docs\")").Raise("pointerenter", "{\"pointerType\":\"touch\"}");
 
         Assert.Empty(hovered);
     }

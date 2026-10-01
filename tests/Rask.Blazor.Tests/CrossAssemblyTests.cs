@@ -72,7 +72,7 @@ public partial class CrossAssemblyTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(EditorIsland.Text("hello"), Services());
         Assert.Contains("echo: hello", page.Html, StringComparison.Ordinal);
 
-        await page.ChangeAsync("{\"value\":\"typed\"}");
+        await page.On("input").Change("typed");
 
         Assert.Contains("echo: typed", page.Html, StringComparison.Ordinal);
         Assert.Contains("value=\"typed\"", page.Html, StringComparison.Ordinal);
@@ -86,7 +86,7 @@ public partial class CrossAssemblyTests : global::Rask.Core.RaskMarkup
             TickerIsland.Symbol("RASK").OnPick(s => picked = s),
             Services());
 
-        await page.On("[data-rask-on-click]").ClickAsync();
+        await page.On("[data-rask-on-click]").Click();
 
         Assert.Equal("RASK", picked);
     }

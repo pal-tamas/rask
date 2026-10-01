@@ -45,6 +45,25 @@ component and runtime code runs on Rask's lifecycle context or Blazor's renderer
 `CA1716` (a name that is a Visual Basic keyword) is off everywhere, because Rask is a C# framework and a name like
 `Select`, `Option` or `Get` is the HTML tag or the repo's verb.
 
+## Design
+
+The analyzers catch lines; design is held by review (`rask-review`), to one standard across the codebase —
+**SOLID and Clean Code**:
+
+- **Single responsibility** — one reason to change per type, and per file. A generator that reads symbols,
+  reports diagnostics and emits source is three types; a command that plans, executes and prints is three.
+- **Open/closed** — extend through the seams that exist (chain groups, the runtimes table, battery wiring)
+  rather than growing a `switch` in a central method.
+- **Liskov / interface segregation** — a derived component honours its base's contract; a new interface
+  is as small as its callers need.
+- **Dependency inversion** — services arrive through the constructor, never `new`ed or located.
+- **Clean Code** — small methods named for what they do, at most seven parameters (a record past that),
+  no copied helper (reuse it, or move it somewhere shared), no dead code.
+
+Splitting a large type goes in two steps: partial files by responsibility (`Type.Responsibility.cs`, a pure
+move), then an internal type where the seam is a unit worth testing alone. The public surface stays as it
+was unless the change is an API decision; render-hot-path moves bring `run-benchmarks` evidence.
+
 ## Adding an analyzer or raising a level
 
 Because every finding is an error, adding a rule set turns its findings into build errors at once:

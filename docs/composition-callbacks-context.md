@@ -160,8 +160,8 @@ It is cooperative: a handler that ignores the token (or runs unbounded synchrono
 force-aborted — that's a .NET reality, not a Rask limitation. In a lifecycle hook (no handler
 dispatch) the token is simply the component's lifetime token.
 
-A child raises an event through a plain delegate prop; the framework wraps it so the click re-renders
-the owning parent — no `StateHasChanged`:
+A child raises an event through a `Callback<T>` prop, fired with `await OnRate.Invoke(n)`; the framework wraps
+the parent's handler so the click re-renders the owning parent — no `StateHasChanged`:
 
 <!-- demo:callback-rating -->
 
@@ -174,7 +174,7 @@ drilling** — React's provide/consume, type-erased so it stays trim-safe.
 
 ```csharp
 // Provide near the top. `Provide<T>` is a transparent node; children render under it.
-Context.Provide<Theme>(_theme)[
+Context.Provide(_theme)[
     ThemeCard        // knows nothing about Theme — no prop passed through it
 ]
 

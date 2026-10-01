@@ -1,8 +1,7 @@
 # Rask.Auth.Api
 
 Accounts as **JSON endpoints**, for an ASP.NET Core app that renders no [Rask](https://rask.sh)
-components — a TypeScript SPA host, a meta-framework host, or a plain ASP.NET app where the front end
-owns the UI.
+components — a plain ASP.NET app or API where something else owns the UI.
 
 Register, sign in, sign out, `/me`, email confirmation and password reset, all at `/api/auth`, on the app's own
 `User` aggregate: PBKDF2 or bcrypt password hashing, a session row per signed-in device that signing out elsewhere
@@ -53,8 +52,8 @@ Reference one of the first two, never both: `Rask.Auth` already contains this pa
 
 `Rask` — the core, with the renderer — is a dependency of the hosts that render components
 (`Rask.Server`, `Rask.Wasm`) and of nothing else, so a host that renders nothing ships no copy of it.
-A battery that needed Core could therefore not run on `Rask.Spa.Hosting` or `Rask.Meta.Hosting` at
-all: the assembly is simply absent and the app aborts before `Main`.
+A battery that needed Core could therefore not run on such a host at all: the assembly is simply
+absent and the app aborts before `Main`.
 
 This package is the accounts battery with that dependency removed. It talks to the wire contract in
 `Rask.Wire` — the `/api/auth` paths, the request and response shapes, `AuthResult` — which the

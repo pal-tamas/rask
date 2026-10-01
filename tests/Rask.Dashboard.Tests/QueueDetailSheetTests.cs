@@ -29,7 +29,7 @@ public sealed class QueueDetailSheetTests
         var max = h.Get<JobsOptions>().MaxAttempts;
         await SeedDeadLetterAsync(h, now, max);
 
-        var page = await RenderQueueAsync(h);
+        var page = RenderQueue(h);
 
         // Open the sheet. Selected as the ELEMENT rather than [role="dialog"]: Ui.Modal renders a real
         // <dialog>, which carries that role implicitly, and stating it again in the markup would be the
@@ -60,7 +60,7 @@ public sealed class QueueDetailSheetTests
         var max = h.Get<JobsOptions>().MaxAttempts;
         await SeedDeadLetterAsync(h, now, max);
 
-        var page = await RenderQueueAsync(h);
+        var page = RenderQueue(h);
         await ClickAsync(page, "Details");
 
         Assert.True(page.Exists("dialog"));
@@ -79,7 +79,7 @@ public sealed class QueueDetailSheetTests
         await db.SaveChangesAsync();
     }
 
-    private static async Task<Page<QueuePage>> RenderQueueAsync(DashboardHarness harness)
+    private static Page<QueuePage> RenderQueue(DashboardHarness harness)
     {
         var component = ActivatorUtilities.CreateInstance<QueuePage>(harness.Services);
 
@@ -91,7 +91,7 @@ public sealed class QueueDetailSheetTests
         var page = Page.Render(component, harness.Services);
 
         // PollingPanel loads on an asynchronous mount, so the first render is the placeholder.
-        await page.WaitForAsync("Details");
+        page.Shows("Details");
         return page;
     }
 
@@ -104,6 +104,6 @@ public sealed class QueueDetailSheetTests
 
         var handler = button.Attribute("data-rask-on-click");
         Assert.NotNull(handler);
-        return page.InvokeAsync(handler);
+        return page.Invoke(handler);
     }
 }

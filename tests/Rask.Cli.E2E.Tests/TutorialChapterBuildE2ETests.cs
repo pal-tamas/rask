@@ -71,7 +71,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // files are overlaid below, and scaffolding a second copy would collide with them.
             var scaffold = ProjectGenerator.GenerateServer(
                 projectDir, "Shop",
-                NewCommand.ToBatteries(TemplateCatalog.Default, []), version);
+                BatterySelection.ToBatteries(TemplateCatalog.Default, []), version);
             foreach (var file in scaffold.Files)
             {
                 fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);

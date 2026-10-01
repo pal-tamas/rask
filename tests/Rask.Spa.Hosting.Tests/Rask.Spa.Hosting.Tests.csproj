@@ -5,12 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-
-    <!--
-      TypeScript/inference.check.ts is a type-level fixture compiled by tsgo in its own test, not a
-      scoped component asset. See the same opt-out, and the same reason, in Rask.Spa.Hosting.csproj.
-    -->
-    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,7 +37,6 @@
        read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test
        that starts reading a new file outside this project must add it here. -->
   <ItemGroup Condition="false">
-    <RaskTestReads Include="..\..\src\Rask.Core\Resources\browser\**" />
     <RaskTestReads Include="..\..\src\Rask.Spa.Hosting\**" />
   </ItemGroup>
 

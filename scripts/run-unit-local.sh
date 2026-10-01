@@ -229,35 +229,30 @@ if [ -n "$scope_projects" ]; then
   echo "==> Build (Release; affected projects only)"
   dotnet build "$scope_proj" -c Release -m:"$lane_slots" \
     -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-    -p:RaskMetaBuild=false -p:RaskSpaBuild=false
+    -p:RaskSpaBuild=false
   rm -f "$scope_proj"
 else
 
-echo "==> Build once (Release; no WASM bundle, no sample front ends)"
+echo "==> Build once (Release; no WASM bundle)"
 # -m:$lane_slots is the lever that actually bounds this gate. Left at MSBuild's default it takes every
 # logical core, and three of these running from three worktrees is how the machine reached 35 worker
 # nodes on 14 cores, load average 98, 0.0% idle -- at which point every timing-sensitive test in all
 # three runs was untrustworthy. This was the only gate in the repo without an -m cap; the others all
 # pass -m:1.
-# RaskMetaBuild / RaskSpaBuild off: this gate runs UNIT tests, and not one of them exercises a
-# meta framework's or a SPA's compiled front end — the browser E2E gate builds those, which is where
-# a broken Nuxt config should surface. Left on, `dotnet build Rask.slnx` runs npm plus a PRODUCTION
-# front-end build for every project that declares one.
-#
-# Measured on this machine rather than assumed, because the saving is much smaller than it looks:
-# warm, 12.7s -> 10.7s for the whole solution; with one project's front end invalidated, 4.5s -> 1.4s
-# for that project. It is minutes only on a genuinely cold tree. The gate's real cost is elsewhere —
-# the test run is ~146s and `dotnet format --verify-no-changes` ~57s, together about 90% of a warm
-# run — so do not read this line as the thing that makes the gate fast.
+# RaskWasm / RaskSpaBuild off: this gate runs UNIT tests, and not one of them needs a published
+# WebAssembly bundle — the browser E2E gate publishes those. The gate's real cost is elsewhere — the test
+# run and `dotnet format --verify-no-changes` are about 90% of a warm run.
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-  -p:RaskMetaBuild=false -p:RaskSpaBuild=false
+  -p:RaskSpaBuild=false
 
 fi
 
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
 # evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
 # project references from src/*.Generators/bin/DEBUG/, while this gate builds Release. See the header.
+# Rask.Dom.Tasks too: Rask.Core loads its MDN emitter from bin/$(Configuration), and without it the
+# workspace has no element types, so every chain that uses one fails to bind and RASK095 fires falsely.
 #
 # CONCURRENT, and safe to be: these projects have no ProjectReference at all, so there is no shared
 # output for two builds to race over — they share only source-linked .cs files, which are read and
@@ -265,9 +260,9 @@ fi
 # box; same reasoning as the -m cap on the solution build above, applied to parallelism that is ours
 # rather than MSBuild's.
 rask_build_debug_generators() {
-  echo "==> Source generators in Debug (dotnet format resolves analyzers from the default configuration)"
+  echo "==> Source generators + DOM emitter in Debug (dotnet format evaluates the default configuration)"
   gen_pids=""
-  for proj in src/*.Generators/*.csproj; do
+  for proj in src/*.Generators/*.csproj src/Rask.Dom.Tasks/Rask.Dom.Tasks.csproj; do
     [ -e "$proj" ] || continue
     dotnet build "$proj" -c Debug -m:1 --nologo -v quiet &
     gen_pids="$gen_pids $!"
@@ -367,13 +362,7 @@ rask_start_format
 #
 # The GATE still needs node, for the islands. RaskExternalBuild is left ON deliberately — the showcase
 # carries a package.json, so the solution build runs npm and Vite for it, and that IS covered by unit
-# tests. RaskSpaBuild and RaskMetaBuild are turned off on the build line above; see the note there.
-#
-# This comment used to claim the opposite — "the build passes -p:RaskSpaBuild=false", a flag no script
-# in this repo has ever passed (#1012). Anyone reading it would have concluded the unit gate was
-# node-light and cheap. It is neither, and the stale sentence is exactly what would have stopped someone
-# noticing that the gate's cost changed when the meta samples landed. Whether the unit gate SHOULD build
-# sample front ends is a separate, open question; this comment's job is only to describe what it does.
+# tests.
 tsc_filter=""
 
 echo "==> Unit & integration tests (excludes the browser E2E)"
@@ -463,11 +452,9 @@ if [ -n "$scope_projects" ]; then
 else
   # Excluded by the PROJECT-SHAPED suffix, not by one suite's name. Every end-to-end suite lives in a
   # `*.E2E.Tests` project and therefore a `*.E2E.Tests.*` namespace, so this one pattern covers all of
-  # them — Rask.Site.E2E.Tests, Rask.Cli.E2E.Tests, Rask.Meta.Hosting.E2E.Tests — and covers the next
-  # one without anybody remembering to widen it. Naming a single suite here is how a newly-added E2E
-  # project silently starts running inside the unit gate, which is exactly what
-  # Rask.Meta.Hosting's publish gate did: it had no guard and no exclusion, and cost the unit gate
-  # 14.9s of `dotnet publish` on every commit.
+  # them — Rask.Site.E2E.Tests, Rask.Cli.E2E.Tests — and covers the next one without anybody
+  # remembering to widen it. Naming a single suite here is how a newly-added E2E project silently
+  # starts running inside the unit gate — which once cost it 14.9s of `dotnet publish` on every commit.
   dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
     --filter "FullyQualifiedName!~.E2E.Tests.$tsc_filter" \
     --blame-crash \

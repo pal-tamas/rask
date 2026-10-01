@@ -391,4 +391,3 @@ and an entry nothing is watching is collected five minutes later.
 ## See also
 
 - [`docs/cqrs.md`](cqrs.md) — the dispatcher this wraps.
-- [`docs/spa.md`](spa.md) — the same model on the JavaScript side, through TanStack Query itself.

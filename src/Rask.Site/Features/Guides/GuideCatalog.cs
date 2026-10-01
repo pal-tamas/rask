@@ -306,17 +306,6 @@ public static class GuideCatalog
             SearchTitle = "React, Vue and Svelte components in a C# app",
             Description = "Use React, Vue, Svelte, Lit or Angular components in a C# app, from your own files or straight from npm, with typed props, callbacks and hot reload.",
         },
-        new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.", "Frontend")
-        {
-            SearchTitle = "TypeScript SPA with an ASP.NET Core backend",
-            Description = "Host a React, Vue, Svelte, Solid, Preact, Lit or Angular TypeScript app on ASP.NET Core, with types generated from your C# message records on each build.",
-        },
-        new("meta", "Meta framework front ends",
-            "Nuxt, Next, SvelteKit and three more owning the whole front end — one container.", "Frontend")
-        {
-            SearchTitle = "Nuxt, Next.js or SvelteKit with a .NET backend",
-            Description = "Run Nuxt, Next.js, SvelteKit, SolidStart, TanStack Start or Analog on a C# backend, shipped as one container on one port, calling into C# with shared sign-in.",
-        },
         new("blazor-components", "Blazor components",
             "A real Blazor component — MudBlazor, an RCL — hosted in a Rask page, server-rendered.", "Frontend")
         {
@@ -704,10 +693,10 @@ public static class GuideCatalog
             SearchTitle = "Prerender a .NET WebAssembly app to static HTML",
             Description = "Render each route of a .NET WebAssembly app to HTML at publish time, so crawlers see content, not a spinner. Also writes sitemap.xml and robots.txt.",
         },
-        new("code-analysis", "Code analysis", "The analyzers and warnings-as-errors adoption.", "Advanced")
+        new("code-analysis", "Code analysis", "The analyzers, warnings as errors, and the SOLID + Clean Code standard.", "Advanced")
         {
             SearchTitle = ".NET analyzers and warnings-as-errors setup",
-            Description = "How the repo builds with .NET analyzers and warnings as errors: the public API analyzer gate, recommended Roslyn analyzers, and adopting them one per PR.",
+            Description = "How Rask builds with .NET analyzers and warnings as errors, the public API gate, and the SOLID and Clean Code standard every change is reviewed against.",
         },
         new("api-style", "Public API style", "How every public name is chosen, and the gate that records the surface.", "Advanced")
         {

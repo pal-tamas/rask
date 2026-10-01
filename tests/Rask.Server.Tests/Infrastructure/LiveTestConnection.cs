@@ -60,8 +60,25 @@ internal static class LiveTestConnection
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
-    private sealed class WebSocketConnection(WebSocket ws) : ILiveTestConnection
+    /// <summary>
+    ///     The socket read by a pump into a channel from the moment it connects, as a browser tab reads it — and,
+    ///     like a tab, it answers the server's close. Without that, a shutdown drain waits out its whole budget for
+    ///     the handshake and then aborts, and whether the close frame got queued first is a race under load (#1138).
+    /// </summary>
+    private sealed class WebSocketConnection : ILiveTestConnection
     {
+        private readonly WebSocket _ws;
+        private readonly CancellationTokenSource _pumpCts = new();
+        private readonly Channel<string> _frames = Channel.CreateUnbounded<string>();
+        private readonly TaskCompletionSource<string?> _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly Task _pump;
+
+        private WebSocketConnection(WebSocket ws)
+        {
+            _ws = ws;
+            _pump = PumpAsync();
+        }
+
         public static async Task<ILiveTestConnection> OpenAsync(RaskTestHost host, string sessionId, string? resume)
         {
             var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -77,33 +94,97 @@ internal static class LiveTestConnection
             return new WebSocketConnection(ws);
         }
 
-        public bool IsOpen => ws.State == WebSocketState.Open;
+        public bool IsOpen => !_closed.Task.IsCompleted;
 
-        public Task SendJsonAsync(object payload) => ws.SendJsonAsync(payload);
+        public Task SendJsonAsync(object payload) => _ws.SendJsonAsync(payload);
 
         public async Task SendRawAsync(string frame) =>
-            await ws.SendAsync(Encoding.UTF8.GetBytes(frame), WebSocketMessageType.Text, true, CancellationToken.None);
+            await _ws.SendAsync(Encoding.UTF8.GetBytes(frame), WebSocketMessageType.Text, true, CancellationToken.None);
 
-        public Task<string?> TryReceiveTextAsync(TimeSpan timeout) => ws.TryReceiveTextAsync(timeout);
+        public async Task<string?> TryReceiveTextAsync(TimeSpan timeout)
+        {
+            using var cts = new CancellationTokenSource(timeout);
+            try
+            {
+                return await _frames.Reader.ReadAsync(cts.Token);
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or ChannelClosedException)
+            {
+                return null;
+            }
+        }
 
-        public async Task<string?> TryReceiveCloseReasonAsync(TimeSpan timeout) =>
-            await ws.TryReceiveCloseAsync(timeout) is { } close ? close.Reason : null;
+        public async Task<string?> TryReceiveCloseReasonAsync(TimeSpan timeout)
+        {
+            try
+            {
+                return await _closed.Task.WaitAsync(timeout);
+            }
+            catch (TimeoutException)
+            {
+                return null;
+            }
+        }
 
         public async ValueTask DisposeAsync()
         {
             try
             {
-                if (ws.State == WebSocketState.Open)
+                if (_ws.State == WebSocketState.Open)
                 {
-                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+                    await _ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
                 }
+
+                await _pump.WaitAsync(TimeSpan.FromSeconds(5));
             }
             catch
             {
                 // Already gone — which is what several tests are for.
             }
 
-            ws.Dispose();
+            await _pumpCts.CancelAsync();
+            _ws.Dispose();
+            _pumpCts.Dispose();
+        }
+
+        private async Task PumpAsync()
+        {
+            string? closeReason = null;
+            var buffer = new byte[16 * 1024];
+            var text = new StringBuilder();
+            try
+            {
+                while (true)
+                {
+                    var result = await _ws.ReceiveAsync(buffer, _pumpCts.Token);
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        closeReason = _ws.CloseStatusDescription;
+                        if (_ws.State == WebSocketState.CloseReceived)
+                        {
+                            await _ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+                        }
+
+                        break;
+                    }
+
+                    text.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                    if (result.EndOfMessage)
+                    {
+                        _frames.Writer.TryWrite(text.ToString());
+                        text.Clear();
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or WebSocketException or IOException or ObjectDisposedException)
+            {
+                // Disposed, or aborted without a close frame: an end without a reason.
+            }
+            finally
+            {
+                _frames.Writer.TryComplete();
+                _closed.TrySetResult(closeReason);
+            }
         }
     }
 

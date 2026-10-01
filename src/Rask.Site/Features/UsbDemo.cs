@@ -20,12 +20,12 @@ public sealed partial class UsbDemo(IUsb usb) : Component, IAsyncDisposable
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("usb-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.Cube), "Pair device"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
+                    Ui.Button.Primary.Id("usb-request").OnClick(RequestDevice)[Ui.Icon.Name(Ui.IconName.Cube), "Pair device"],
+                    Ui.Button.Primary.Outline
                         .Id("usb-open")
                         .Disabled(_device is null || _open)
                         .OnClick(Open)["Open"],
-                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
+                    Ui.Button.Error.Outline
                         .Id("usb-close")
                         .Disabled(_device is null)
                         .OnClick(Release)["Release"]

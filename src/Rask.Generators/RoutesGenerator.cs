@@ -7,13 +7,13 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators;
 
 [Generator(LanguageNames.CSharp)]
 public sealed class RoutesGenerator : IIncrementalGenerator
 {
-    private const string ComponentFullName = "Rask.Core.Component";
     private const string RouteAttrFullName = "Rask.Core.Routing.RouteAttribute";
     private const string NotFoundAttrFullName = "Rask.Core.Routing.NotFoundAttribute";
     private const string ParentRouteAttrFullName = "Rask.Core.Routing.ParentRouteAttribute";
@@ -303,7 +303,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
             new LocationInfo(firstRouteAttrLocation),
             IsNotFound: false,
             HasRouteAttr: true,
-            IsPubliclyVisible: IsTypePubliclyVisible(symbol));
+            IsPubliclyVisible: IsExternallyVisible(symbol));
     }
 
     // What a page's [Route], [NotFound] and [ParentRoute] attributes say about it.
@@ -344,25 +344,6 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         return (templates, firstRouteAttrLocation, hasNotFound, notFoundAttrLocation, parentTypeFqn);
     }
 
-    /// <summary>
-    ///     Whether the type is visible outside its assembly, walking containing types so a public nested type
-    ///     inside an internal one reads as internal. The generated navigation container's accessibility has to
-    ///     match: a static extension member takes the receiver type in its signature, so a public container
-    ///     over an internal page is CS0051.
-    /// </summary>
-    private static bool IsTypePubliclyVisible(INamedTypeSymbol symbol)
-    {
-        for (ISymbol? s = symbol; s is not null and not INamespaceSymbol; s = s.ContainingType)
-        {
-            if (s.DeclaredAccessibility != Accessibility.Public)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     // Normalize a route template to the shape the runtime router matches on (mirrors
     // Rask.Core.Routing.RoutePattern, which can't be referenced from this netstandard2.0 generator):
     // trim surrounding slashes, lowercase literal segments (literals match OrdinalIgnoreCase), and
@@ -401,19 +382,6 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
 
         return string.Join("/", parts);
-    }
-
-    private static bool InheritsFromComponent(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
-        {
-            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ComponentFullName, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static List<RoutePropInfo> GetPageProperties(INamedTypeSymbol symbol, Compilation compilation)

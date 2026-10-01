@@ -85,7 +85,7 @@ public sealed partial class IslandsDemo : Component
                     "Last bar clicked: ",
                     Code.Id("island-last-clicked")[_lastClicked == 0 ? "(none)" : _lastClicked.ToString(CultureInfo.InvariantCulture)],
                     Span.Class("ms-2")["after "],
-                    Code.Id("island-clicks")[_clicks.ToString(CultureInfo.InvariantCulture)],
+                    Code.Id("island-clicks")[_clicks],
                     Span[" click(s)"]
                 ]
             ];
@@ -112,13 +112,13 @@ public sealed partial class IslandsDemo : Component
                 ],
 
                 Div.Class("flex gap-2 mt-3")[
-                    Ui.Button.Tone(Ui.Tone.Primary).Id("island-raise").OnClick(Raise)["Raise the reading"],
-                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("island-reset").OnClick(Reset)["Reset"]
+                    Ui.Button.Primary.Id("island-raise").OnClick(Raise)["Raise the reading"],
+                    Ui.Button.Primary.Outline.Id("island-reset").OnClick(Reset)["Reset"]
                 ],
 
                 P.Class("text-sm mt-3 mb-0")[
                     "React reported a total of ",
-                    Code.Id("island-react-total")[_reactTotal.ToString(CultureInfo.InvariantCulture)],
+                    Code.Id("island-react-total")[_reactTotal],
                     Span[" back to C#, and the picker the colour "],
                     Code.Id("island-color")[_color],
                     Span["."]
@@ -139,7 +139,7 @@ public sealed partial class IslandsDemo : Component
 
                 P.Class("text-sm mt-3 mb-0")[
                     "The badge reported ",
-                    Code.Id("island-badge-nudges")[_badgeNudges.ToString(CultureInfo.InvariantCulture)],
+                    Code.Id("island-badge-nudges")[_badgeNudges],
                     Span[" nudge(s) back to C#."]
                 ]
             ];

@@ -39,6 +39,17 @@ opening/merging the PR.
 - Dispose/unsubscribe symmetry: `RouteState.Changed` / `IUserProvider.Changed` subscribed in
   `OnMount`, unsubscribed in `OnUnmount`; no `StateHasChanged()` in `OnUnmount`.
 
+## Design — SOLID / Clean Code
+- **One responsibility per type and per file.** A file that reads a model, validates it AND emits/renders
+  is three types. Split mechanically: partial files by responsibility first (`Type.Responsibility.cs`),
+  then an internal type where the seam is a unit you could test on its own.
+- **Open/closed through the existing seams** (chain groups, the runtimes table, battery wiring) — a new
+  case is a new entry, not another `switch` arm in a god method.
+- **Depend on abstractions via the ctor** (already the DI rule); a new interface stays small (ISP).
+- **Small methods, intention-revealing names**; more than 7 parameters → a parameter record.
+- **No copied helper**: reuse it, or move it to a shared home (`Rask.Generators.Shared` for generators).
+- Refactors stay behaviour-preserving and public-API-frozen unless the change says otherwise.
+
 ## Hold UX, security, and performance together
 Judge every change on all three at once — a win on one must not silently regress another.
 Good developer/user experience (clear APIs, helpful errors, no flicker), safe defaults, and a

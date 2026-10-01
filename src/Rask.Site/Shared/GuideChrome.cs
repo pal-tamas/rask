@@ -79,7 +79,7 @@ public sealed partial class GuideChrome : Component
             return
             [
                 BackLink(),
-                Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft)[$"No guide found for “{Slug}”."]
+                Ui.Alert.Warning.Soft[$"No guide found for “{Slug}”."]
             ];
         }
 

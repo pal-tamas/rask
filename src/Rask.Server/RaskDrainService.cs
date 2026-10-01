@@ -73,8 +73,10 @@ internal sealed class RaskDrainService : IHostedService, IDisposable
             return;
         }
 
-        using var budget = new CancellationTokenSource(_limits.ShutdownDrainTimeout);
-        var token = budget.Token;
+        // The one deadline BeginDrain armed at ApplicationStopping, not a fresh budget from here: a second
+        // timer started later let these steps wait on sockets the backstop had already aborted (#1138), and
+        // stretched a late-running StopAsync to twice the budget.
+        var token = _coordinator.HardStopping;
 
         try
         {

@@ -284,6 +284,9 @@ public sealed class LogWriterResilienceTests
             IReadOnlyList<LogRecord> records,
             CancellationToken cancellationToken = default)
         {
+            // Decided before the attempt is counted: a test that waits for an attempt and then mends the store
+            // must see that attempt fail, not race the flag and watch a batch it meant to lose get written.
+            var fail = Fail;
             Interlocked.Increment(ref _attempts);
 
             if (Hang)
@@ -291,7 +294,7 @@ public sealed class LogWriterResilienceTests
                 await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
             }
 
-            if (Fail)
+            if (fail)
             {
                 throw new InvalidOperationException("the store is unreachable");
             }

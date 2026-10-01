@@ -1,5 +1,7 @@
 using System.Globalization;
 using Spectre.Console;
+using static Rask.Cli.Commands.CaddyRouting;
+using static Rask.Cli.Commands.DockerCommands;
 
 namespace Rask.Cli.Commands;
 
@@ -217,7 +219,7 @@ internal sealed partial class DeployCommand
         {
             Console.WriteErrorLine($"No previous image for '{slug}' on {HostName(host)} — nothing to roll back to.", ConsoleStyle.Error);
             Console.WriteErrorLine(
-                $"A rollback restores {slug}:{PreviousTag}, which is written by the deploy that replaces it. The first deploy of an app has no predecessor.",
+                "A rollback goes back to the version before the current one, and this app has been deployed only once. Deploy a fixed version instead.",
                 ConsoleStyle.Error);
             return 1;
         }

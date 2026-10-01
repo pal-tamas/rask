@@ -63,7 +63,7 @@ response compression yourself, exclude that type too.
 
 > **WebAssembly is not a render mode.** A Rask app that runs in the browser is a single-page app of its own:
 > `rask new --template wasm` for a standalone one, or `rask new --template wasm-hosted` for a server that serves one from its
-> `Client/` folder. Either way the server renders none of its pages — see [Single-page apps](spa.md#a-rask-webassembly-app).
+> `Client/` folder. Either way the server renders none of its pages — see [serving a WebAssembly app](deployment.md#serving-a-webassembly-app).
 
 ## The initial GET waits for your data
 
@@ -223,4 +223,4 @@ Only same-site paths are accepted; anything else throws.
 - [Lifecycle](lifecycle.md) — when `OnMount` runs and what the initial render waits for.
 - [Routing](routing.md) — `[NotFound]`, `Navigator`, and route-driven redirects.
 - [Scaling](scaling.md) and [Deployment](deployment.md) — session accounting and sticky routing in production.
-- [Single-page apps](spa.md) — a WebAssembly app, served by a server that renders none of its pages.
+- [Serving a WebAssembly app](deployment.md#serving-a-webassembly-app) — a browser app, served by a server that renders none of its pages.

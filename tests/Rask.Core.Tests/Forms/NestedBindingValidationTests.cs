@@ -34,7 +34,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
+        await page.Invoke(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
         Assert.Contains("street required",
@@ -59,12 +59,12 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var fid = new FieldIdentifier(p.Address, nameof(Address.Street));
 
         // Blur with empty — touches and produces the message.
-        await page.ChangeAsync("{\"value\":\"\"}");
+        await page.On("input").Change("");
 
         Assert.Contains("too short", captured!.GetValidationMessages(fid));
 
         // Keystroke with a longer value — re-validates because the field is touched.
-        await page.InputAsync("{\"value\":\"Oak\"}");
+        await page.On("input").Input("Oak");
 
         Assert.Empty(captured.GetValidationMessages(fid));
         Assert.Equal("Oak", p.Address.Street);
@@ -86,7 +86,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
             Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
-        await page.ChangeAsync("{\"value\":\"x\"}");
+        await page.On("input").Change("x");
 
         // The form's captured EditContext.Model is the root, not the sub-object.
         Assert.NotNull(captured);
@@ -118,7 +118,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var initial = page.Render();
         var changeId = page.HandlerId("change");
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"x\"}");
+        await page.Invoke(changeId!, "{\"value\":\"x\"}");
 
         var afterBlur = page.Render();
 
@@ -142,7 +142,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
             Test.EditContextProbe(c => captured = c)
         ]);
 
-        await page.ChangeAsync("{\"value\":\"x\"}");
+        await page.On("input").Change("x");
 
         Assert.Same(ctx, captured);
         Assert.Contains("nested-explicit-ctx",
@@ -169,7 +169,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         p.Address = new Address { Street = "" };
         page.Render();
 
-        await page.ChangeAsync("{\"value\":\"\"}");
+        await page.On("input").Change("");
 
         Assert.NotNull(captured);
         Assert.Contains("street required",
@@ -217,13 +217,13 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         // produce validation messages — the field isn't touched yet.
         foreach (var partial in new[] { "9", "99", "999", "9999", "99999" })
         {
-            await page.InvokeAsync(inputId!, $"{{\"value\":\"{partial}\"}}");
+            await page.Invoke(inputId!, $"{{\"value\":\"{partial}\"}}");
         }
 
         Assert.DoesNotContain("don't ship", page.Render());
 
         // Blur with the final value — OnChange handler touches + runs async validator.
-        await page.InvokeAsync(changeId!, "{\"value\":\"99999\"}");
+        await page.Invoke(changeId!, "{\"value\":\"99999\"}");
 
         var afterBlur = page.Render();
 
@@ -265,15 +265,15 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
 
         // Step 1: blur with "99999" → undeliverable message lands.
-        await page.InvokeAsync(inputId!, "{\"value\":\"99999\"}");
+        await page.Invoke(inputId!, "{\"value\":\"99999\"}");
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"99999\"}");
+        await page.Invoke(changeId!, "{\"value\":\"99999\"}");
 
         Assert.Contains("ship to this area", page.Render());
 
         // Step 2: now-touched field, type a valid value via OnInput. Async validator runs and
         // returns success; the message must clear.
-        await page.InvokeAsync(inputId!, "{\"value\":\"12345\"}");
+        await page.Invoke(inputId!, "{\"value\":\"12345\"}");
 
         Assert.DoesNotContain("ship to this area", page.Render());
     }
@@ -310,12 +310,12 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var postalInputId = inputIds[1];
         Assert.NotNull(postalInputId);
 
-        await page.InvokeAsync(nameInputId!, "{\"value\":\"Ada\"}");
+        await page.Invoke(nameInputId!, "{\"value\":\"Ada\"}");
 
-        await page.InvokeAsync(postalInputId!, "{\"value\":\"12345\"}");
+        await page.Invoke(postalInputId!, "{\"value\":\"12345\"}");
 
         var submitId = page.HandlerId("submit");
-        await page.InvokeAsync(submitId!, "{}");
+        await page.Invoke(submitId!, "{}");
 
         Assert.Equal("Charged to Ada", submitted);
     }
@@ -344,7 +344,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         var changeId = page.HandlerId("change");
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
+        await page.Invoke(changeId!, "{\"value\":\"\"}");
 
         var afterBlur = page.Render();
 
@@ -369,13 +369,13 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var initial = page.Render();
         var changeId = page.HandlerId("change");
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
+        await page.Invoke(changeId!, "{\"value\":\"\"}");
 
         Assert.Contains("too short", page.Render());
 
         var inputId = page.HandlerId("input");
 
-        await page.InvokeAsync(inputId!, "{\"value\":\"Oak\"}");
+        await page.Invoke(inputId!, "{\"value\":\"Oak\"}");
 
         var afterKeystroke = page.Render();
 
@@ -400,7 +400,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
             Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
-        await page.ChangeAsync("{\"value\":\"\"}");
+        await page.On("input").Change("");
 
         Assert.NotNull(captured);
         Assert.Contains("postal required",

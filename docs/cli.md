@@ -100,10 +100,7 @@ rask new Blog --no-push --no-ops     # everything except those two
 rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Shop --no-tests             # no Shop.Tests project beside the app
 rask new Spa --template wasm         # an installable browser-WASM PWA
-rask new Shop --template react       # a React client on an ASP.NET host (no Node needed to scaffold)
-rask new Shop --template svelte      # …or preact, vue, angular, solid, lit
-rask new Shop --template nuxt        # a Nuxt app Rask fronts and supervises (node at runtime)
-rask new Shop --template nextjs      # …or sveltekit, solidstart, tanstack-start, analog
+rask new Shop --islands react        # a server app with a React island beside the C# pages
 rask new Shop --framework net11.0    # target .NET 11 (default: net10.0, the LTS release)
 ```
 
@@ -117,7 +114,7 @@ what it can do:
 
 - **where the UI runs** — that is the **template**, not a flag. `server` renders pages live; `wasm-hosted`
   writes them into `Client/` as a WebAssembly app an ASP.NET host serves
-  ([single-page apps](spa.md#a-rask-webassembly-app)); `wasm` is the same browser app with no backend at
+  ([serving a WebAssembly app](deployment.md#serving-a-webassembly-app)); `wasm` is the same browser app with no backend at
   all. It used to be a `--wasm` flag on `server`, which asked the same question twice — once as a project
   type and again as a yes/no afterwards.
 
@@ -208,40 +205,16 @@ config file and no property that turns it off. `--bootstrap` and `--tailwind` ar
 kind to discover.
 
 **Every template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
-card and a footer — so a project looks the same whether its front end is C# components, React or Nuxt.
-The built-in `/login` and `/register` pages are drawn with it too, and an app with a database links
-sign-in from the starter's navbar.
+card and a footer — so a project looks the same whether it runs on the server or in WebAssembly.
+The sign-in pages `rask new` writes into `Features/Auth/` are drawn with it too, and an app with a database
+links sign-in from the starter's navbar.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately.
 
-The front-end templates — `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit` — ship a
-client of their own. It was imported from the framework's own scaffolder (`create-vite` for all of
-them but Angular, which runs `ng new`) and is **committed** under `src/Rask.Templates/`, so `rask new`
-needs **no Node.js and no network**: it writes files, and the same command produces the same app twice
-running. That is the reverse of how it worked until #1009, when each scaffold fetched
-`create-vite@latest` and got whatever npm resolved that morning.
-
-What the change trades away is stated rather than hidden. The tree is a snapshot of what the creator
-wrote on the day it was imported, and `scripts/refresh-templates.sh` re-runs the real creators and
-shows the diff — upstream drift arrives as a reviewed commit instead of changing under every user.
-What it buys, besides determinism: every front-end dependency is now a committed manifest with a
-lockfile, which is a thing this repository can review and Dependabot can bump. Three templates were
-installing an older Tailwind than the C# host downloads, and nobody could see it.
-
-They emit one project with the client in `client/`: the client's half of every contract is generated
-TypeScript, so there is nothing for a `.Shared` to hold. The host's `Program.cs` is `RaskApp.Create(args)`,
-the starter's own service, and `app.Serve()` — the same call as `wasm-hosted` — and it references `Rask.Server`
-and `Rask.Spa.Hosting`. Always the `-ts` half of each pair: Rask supports
-**TypeScript** SPA clients, and a client with no TypeScript configuration is refused at build time
-with `RASKSPA004`. Each client lints and formats itself — `npm run lint`, `npm run format` — under the
-same ESLint flat config and Prettier settings, whichever template it came from.
-
-The set is the frameworks `create-vite` ships a TypeScript template for, plus Angular through its own
-CLI. **No data-fetching library and no router**: the starter calls `rask.dispatch` directly and renders
-one view, because a template that picks a cache and a router picks them for every app scaffolded from
-it. Angular differs in three ways (its own CLI, its own dev port, and a nested `dist`); see
-[TypeScript front ends](spa.md).
+React, Vue, Svelte, Solid, Lit, Angular and Preact are not templates: they run as
+[islands](islands.md) inside a Rask page, scaffolded with `--islands` (below). The TypeScript SPA and
+meta-framework templates were removed.
 
 A new project has **wiring, not sample code** — there is still nothing to delete before you start — and
 everything it scaffolds follows the vertical-slice layout the guides build on: feature code under
@@ -298,7 +271,7 @@ failing: the files on disk are correct either way.
 | Option | Meaning |
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
-| `--template`, `-t` | `server` (default), `wasm`, `wasm-hosted`, or a front-end framework: `react`, `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`. |
+| `--template`, `-t` | `server` (default), `wasm` or `wasm-hosted`. |
 | `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages read through the [model surface](data.md) without it, but they write through it: a save is a command whose handler loads the entity and calls `SaveChangesAsync`. The scaffold's plumbing needs it too — background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `wasm-hosted` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
@@ -345,25 +318,20 @@ useful than a page designed to reveal nothing.
 A template gets every battery in its column, and nothing outside it. Nobody maintains a per-template
 default list: the default set *is* the column.
 
-| Battery | `server` | `wasm` | `wasm-hosted` | front-end (`react`, `vue`, …) | meta framework (`nuxt`, `nextjs`, …) |
-| --- | :-: | :-: | :-: | :-: | :-: |
-| database, CQRS | ✅ | — | ✅¹ | ✅¹ | ✅¹ |
-| jobs, mail, cache, storage, outbox, snapshots, logs | ✅ | — | ✅ | ✅ | ✅ |
-| ops *(the operator dashboard)* | ✅ | — | ✅ | ✅ | —⁴ |
-| PWA | ✅ | ✅ | ✅ | ✅ | — |
-| Web Push | ✅ | — | ✅ | ✅ | — |
-| Docker | ✅ | ✅ | ✅ | ✅ | ✅ |
-| localization *(in `appsettings.json`, not a flag)* | ✅ | —² | —² | — | — |
-| `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | ✅ | —³ | —³ |
+| Battery | `server` | `wasm` | `wasm-hosted` |
+| --- | :-: | :-: | :-: |
+| database, CQRS | ✅ | — | ✅ |
+| jobs, mail, cache, storage, outbox, snapshots, logs | ✅ | — | ✅ |
+| ops *(the operator dashboard)* | ✅ | — | ✅¹ |
+| PWA | ✅ | ✅ | ✅ |
+| Web Push | ✅ | — | ✅ |
+| Docker | ✅ | ✅ | ✅ |
+| localization *(in `appsettings.json`, not a flag)* | ✅ | —² | —² |
+| `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | ✅ |
 
-³ Islands put a front-end component **inside a C# host**, so they are for the templates whose markup is
-C#. On a template whose whole client already is a front end, `--islands` is refused rather than
-ignored — add a component to the client you already have.
-
-⁴ The operator dashboard is Rask components, so it needs a host built on `Rask.Server` to mount it. The
-`server`, `wasm-hosted` and front-end hosts all are — the latter two are `RaskApp.Create(args).Serve()`, which
-serves the browser app *and* server-renders the dashboard at `/_rask`. The meta hosts front a Node server
-through `Rask.Meta.Hosting` and ship no Core, so `ops` is refused there rather than accepted and disregarded.
+¹ The operator dashboard is Rask components, so it needs a host built on `Rask.Server` to mount it.
+`wasm-hosted` is `RaskApp.Create(args).Serve()`, which serves the browser app *and* server-renders the
+dashboard at `/_rask`.
 
 ### `--islands` — a React, Vue, Svelte, Solid, Lit, Angular, Preact or Blazor component
 
@@ -378,21 +346,14 @@ merged into one root `package.json`, the tsconfig mapping that makes `@rask/<Nam
 the package reference it needs. The base class **is** the declaration; see
 [Islands](islands.md).
 
-Two combinations are refused, both by name and both because the build would refuse them later:
-
-- **`react` and `preact` together.** `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite`
-  pins a `@babel/core` 7 peer, so npm will not install both. A Preact component can also be rendered by
-  `ReactComponent` if the app aliases `react` to `preact/compat`.
-- **`--islands` on a SPA or meta template**, as above.
+One combination is refused by name, because the build would refuse it later: **`react` and `preact`
+together.** `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite` pins a `@babel/core` 7
+peer, so npm will not install both. A Preact component can also be rendered by `ReactComponent` if the
+app aliases `react` to `preact/compat`.
 
 `blazor` is the one kind with no npm side at all: the Razor SDK compiles the `.razor` and Rask renders
 it server-side into the first response, so a Blazor-only island project gets no `package.json` and
 never probes for Node.
-
-¹ A front-end or meta framework template always wires CQRS — the typed wire *is* the template — so on
-either `--no-cqrs` is refused rather than ignored. A sign-in flow used to be left out of these templates rather than half-scaffolded, because it had to be written
-in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
-scaffolded on a front-end template (not yet on a meta framework one) — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
 ² Languages are configured, never chosen on the command line — there is no `--culture` and no
 `--no-localization`. On `server` a scaffolded app already lists English in `Rask:Culture:SupportedCultures`,
@@ -414,8 +375,8 @@ $ rask new X --template wasm --no-data
 Template 'wasm' has nothing to change for: --no-data. It supports: docker, pwa.
 ```
 
-The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is
-and the ASP.NET host of a front-end template is too — a pure browser-WASM SPA has neither.
+The database-backed batteries need an ASP.NET host to put a database in, which `server` and `wasm-hosted`
+are — a pure browser-WASM app has none.
 
 Turning one off takes its dependents with it, so you never end up with a battery whose database isn't there:
 
@@ -467,7 +428,7 @@ $ rask deplyo
 Unknown command 'deplyo'. Did you mean 'deploy'?
 
 $ rask new Shop --template srever
-Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.
+Option '--template' does not accept 'srever'. Did you mean 'server'? Choose one of: server, wasm, wasm-hosted.
 Usage: rask new <name> [options]
 Run 'rask new --help' for details.
 
@@ -508,25 +469,6 @@ saving re-renders the open page live — see [what hot-reloads](#what-hot-reload
 
 It finds the project for you: in a **client-plus-host** solution it picks the `.Server` host (the client is
 built into it).
-
-In a **react** solution it runs **two** processes: `dotnet watch` for the host, and the bundler's own
-dev server for the client. The browser talks to the **bundler**, on `http://localhost:5173`, and the
-scaffolded `vite.config.ts` proxies `/_rask` back to the host on `:5000` — so HMR is native and instant,
-and the browser only ever sees one origin, which is why there is no CORS to configure. `--open` opens
-the bundler's URL rather than the host's, and the dev server is killed with the host so a stale one
-cannot be picked up by the next session.
-
-The production bundle is skipped for that session — `rask dev` builds with `RaskDevSession=true`, which
-turns `RaskSpaBuild` off: the dev server owns the client, and paying for a full bundle on every save would
-make watch unusable. The **generated
-contracts are still written**, because a dev server compiling the previous build's contracts is exactly
-the failure that pipeline exists to prevent.
-
-A [**meta framework**](meta.md) solution — Nuxt, Next, SvelteKit and the rest — runs the same two
-processes, with the framework's own dev server in the bundler's place and its own port (3000, or 5173
-for SvelteKit and Analog). The same dev session turns `RaskMetaBuild` off there, skipping a full
-*production* front-end build on every save, and because that leaves no server entry to supervise, the host is told where the dev server
-is instead and forwards to it — so both its port and the dev server's answer for the session.
 
 It also sets up the environment the loop needs: `ASPNETCORE_ENVIRONMENT=Development` when you have not
 set an environment yourself, and `HotReloadAutoRestart` so an edit hot reload *can't* apply restarts the
@@ -625,10 +567,9 @@ back to `http://localhost:5000` with a note. It is also skipped by design when:
 | `--urls` was passed | You named the addresses to listen on; serving somewhere else would be the opposite of helpful. |
 | Not macOS, Windows or Linux | There is no implementation of the three steps for that platform. |
 | No terminal (CI, a piped run) | The prompt would have nobody to answer it. |
-| A **react** or **meta framework** solution | The browser talks to the bundler's dev server over plain HTTP, so a certificate on the ASP.NET host behind it is not the one it would ever see. |
 | The project has [**islands**](islands.md) | Islands load from a second dev server over HTTP, which an HTTPS page is not allowed to do at all (mixed content). |
 
-The last two need their bundler taught to serve TLS before this can cover them; until then they keep the
+The last one needs its bundler taught to serve TLS before this can cover them; until then it keeps the
 localhost URL that does work.
 
 > **One app at a time gets port 443.** Only one process can hold it, and on macOS the pf redirect points
@@ -673,8 +614,7 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | An island's `.tsx` / `.vue` / `.svelte` | ✅ Hot-replaced by its own framework — see below. |
 
 **Islands hot-reload too, on a second dev server.** When the project has islands, `rask dev` starts
-Vite for them on `http://localhost:5174` — not the SPA lane's 5173, so a solution with both does not
-have two dev servers fighting for one port — and skips only the production island bundle. Everything
+Vite for them on `http://localhost:5174` and skips only the production island bundle. Everything
 else still runs, including the prop type-check.
 
 How much survives a save is the framework's call rather than Rask's: React, Preact, Solid, Vue and
@@ -763,9 +703,9 @@ What F5 does:
 
 | Step | What happens |
 | --- | --- |
-| Build | `dotnet build --property:RaskDevSession=true` — the same dev-session switch `rask dev` passes, so islands and the front end come from their dev servers instead of a production bundle. |
+| Build | `dotnet build --property:RaskDevSession=true` — the same dev-session switch `rask dev` passes, so islands come from their dev server instead of a production bundle. |
 | Launch | The C# debugger runs `bin/Debug/net10.0/<App>.dll` with the launch profile's settings and Just My Code on. |
-| Dev servers | The app starts what `rask dev` would have started beside it: the islands' Vite on 5174, a React, Vue or Angular client's dev server, or a meta framework's own. |
+| Dev servers | The app starts what `rask dev` would have started beside it: the islands' Vite on 5174. |
 | Address | `https://<name>.test` when an earlier `rask dev` already set that name up on this machine (with `:5001` on macOS, where the pf redirect cannot be checked without root); the launch profile's localhost otherwise. F5 never prompts and never changes the machine. |
 | Browser | The app prints `Rask dev: open <url>` once it is listening, and VS Code opens it. |
 
@@ -789,7 +729,7 @@ names a file on your machine is a `vscode://` link to that line.
 | Setting | What you get |
 | --- | --- |
 | File nesting | A component's paired files (`Counter.css`, `Counter.ts`, a `Counter.tsx` island, a package island's `Counter.props.json`) fold under `Counter.cs` in the explorer. Every template. |
-| Tailwind completion | Class completion and hover inside `Div.Class("…")`, from the [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) extension the folder then also recommends. Only the templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`); a SPA or meta host's C# side has none. |
+| Tailwind completion | Class completion and hover inside `Div.Class("…")`, from the [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) extension the folder then also recommends. Only the templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`). |
 
 Your own preferences belong in your VS Code *User* settings, which a workspace `settings.json` does not replace.
 
@@ -800,10 +740,9 @@ install the list when the folder opens:
 | --- | --- |
 | [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit), [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig), [Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens) | Every template. |
 | [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) | `server`, `wasm`, `wasm-hosted` — the templates that compile Tailwind. |
-| [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint), [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) | Every front-end template, which ships `eslint.config.mjs` and `.prettierrc` in `client/`. |
-| [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) | `vue`, `nuxt`, and `--islands vue`. |
-| [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) | `svelte`, `sveltekit`, and `--islands svelte`. |
-| [Angular Language Service](https://marketplace.visualstudio.com/items?itemName=Angular.ng-template) | `angular`, `analog`. |
+| [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint), [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) | An app with islands that use npm (every `--islands` runtime but `blazor`). |
+| [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) | An app with a `.vue` island (`--islands vue`). |
+| [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) | An app with a `.svelte` island (`--islands svelte`). |
 
 **An existing project** gets the same setup by copying `.vscode/` from a fresh `rask new` app of the same
 template and replacing the project name in `launch.json` and `tasks.json`. Add these lines to `.gitignore`, so
@@ -1064,8 +1003,8 @@ through, having already done some of the work.
                             template, and `dotnet publish` of either. Fix: dotnet workload
                             install wasm-tools
   warn  node                v24.14.0 (below the 24 LTS line)
-                            Existing apps build on it, but `rask new` on a front-end template
-                            may not: create-vite and the Angular CLI raise their own floors.
+                            Islands build on it, but their toolchains raise their own
+                            floors over time.
   ok    npm                 11.19.0
   ok    git                 git version 2.50.1
   ok    ssh                 OpenSSH_9.8p1, LibreSSL 3.3.6
@@ -1085,12 +1024,7 @@ rather than a missing install.
 
 **Two of them compare a version, rather than echoing one.** A .NET 9 box used to show a green
 `dotnet sdk` row and then fail at the first build, because the row printed whatever string the tool
-returned. Node is measured against the current Active LTS line — not against `RaskSpaMinimumNode`,
-which is the lower bar an *already-scaffolded* app builds on. The gap between the two is real: `rask
-new --template angular` shells out to `@angular/cli@latest`, which refuses below `^22.22.3 ||
-^24.15.0 || >=26.0.0`, so a Node that builds every existing project can still fail to scaffold a new
-one — after the project directory exists
-([#886](https://github.com/pal-tamas/rask/issues/886)).
+returned. Node is measured against the current Active LTS line.
 
 **Warnings aren't failures.** Docker missing is fatal to `rask deploy` and irrelevant to everyone else,
 so only a genuinely broken thing sets the exit code (`1`); a machine that can start every command exits

@@ -89,7 +89,7 @@ public sealed class FeedCoverageTests
         // itself: every flag `rask new` understands must be switched on here, or a new battery gets
         // added, references a package nobody packs, and every build gate keeps passing without ever
         // restoring it.
-        var uncovered = NewCommand.FeatureFlags
+        var uncovered = BatterySelection.FeatureFlags
             .Where(flag => typeof(ServerBatteries)
                 .GetProperty(flag, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
                 ?.GetValue(batteries) is not true)
@@ -113,30 +113,6 @@ public sealed class FeedCoverageTests
         AssertFeedCovers(
             ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
             "the wasm-hosted template with every battery");
-    }
-
-    /// <summary>Every front-end template, since each contributes the same host-side packages.</summary>
-    [Fact]
-    public void Every_package_a_front_end_template_references_can_be_restored_from_the_local_feed()
-    {
-        foreach (var framework in SpaFramework.All)
-        {
-            AssertFeedCovers(
-                ProjectGenerator.GenerateSpa(Root, "App", framework, new ServerBatteries(), Version),
-                $"the {framework.Key} template");
-        }
-    }
-
-    /// <summary>Every meta framework template, which swaps one host package for another.</summary>
-    [Fact]
-    public void Every_package_a_meta_template_references_can_be_restored_from_the_local_feed()
-    {
-        foreach (var framework in MetaTemplate.All)
-        {
-            AssertFeedCovers(
-                ProjectGenerator.GenerateMeta(Root, "App", framework, new ServerBatteries(), Version),
-                $"the {framework.Key} template");
-        }
     }
 
     [Fact]

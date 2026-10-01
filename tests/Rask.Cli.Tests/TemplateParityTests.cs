@@ -89,13 +89,8 @@ public sealed class TemplateParityTests
     /// <summary>
     ///     Drives the real <see cref="Commands.NewCommand"/>, so the generator switch under test is the one
     ///     that ships. Returns the console's error text and a stable description of everything the run
-    ///     produced — the files it wrote, and the external scaffolders it invoked.
+    ///     produced — the files it wrote, and any process it invoked.
     /// </summary>
-    /// <remarks>
-    ///     The invocations are part of the fingerprint because a front-end template's identity partly lives
-    ///     there: `create-vite --template react` versus `--template preact` is the difference between two
-    ///     of these templates, and the files either writes can be identical.
-    /// </remarks>
     private static async Task<(string Console, string Fingerprint)> ScaffoldAsync(string key)
     {
         var console = new StringConsole();

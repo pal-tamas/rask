@@ -12,15 +12,15 @@ public sealed partial class ElementRefDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Ui.Input.Value<string>(null).AccessibleLabel("Focus me from C#")
+            Ui.Input.Of<string>().AccessibleLabel("Focus me from C#")
                 .Type(InputType.Text)
                 .Placeholder("Focus me from C#")
                 .Ref(_input).Class("mb-2"),
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                Ui.Button.Tone(Ui.Tone.Primary).OnClick(FocusInput)["Focus the input"],
-                Ui.Button.Variant(Ui.Variant.Outline).OnClick(MeasureBox)["Measure the box"],
-                Ui.Button.Variant(Ui.Variant.Outline).OnClick(MeasureInJs)["Measure it in TypeScript"],
-                Ui.Button.Variant(Ui.Variant.Outline).OnClick(OpenDialog)["Open the dialog"]
+                Ui.Button.Primary.OnClick(FocusInput)["Focus the input"],
+                Ui.Button.Outline.OnClick(MeasureBox)["Measure the box"],
+                Ui.Button.Outline.OnClick(MeasureInJs)["Measure it in TypeScript"],
+                Ui.Button.Outline.OnClick(OpenDialog)["Open the dialog"]
             ],
             Div.Ref(_box).Class("border rounded p-3 bg-ui-well")[
                 "A box carrying an ElementRef — measured from C# through MDN's getBoundingClientRect, or in TypeScript."

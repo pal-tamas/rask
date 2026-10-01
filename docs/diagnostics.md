@@ -574,7 +574,7 @@ It deliberately leaves alone:
 nav.NavigateTo("/todos");            // ✗ RASK033 — use Routes.TodosPage()
 NavLink.Href("/todos")["Todos"];    // ✗ RASK033 — string → RouteUrl conversion
 
-nav.NavigateTo(Routes.TodosPage());  // ✓ type-safe; a renamed route is a compile error
+Routes.TodosPage().Go();             // ✓ type-safe; a renamed route is a compile error
 nav.NavigateTo("/todos/new");        // ✓ secondary template — no helper, left alone
 A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
 ```

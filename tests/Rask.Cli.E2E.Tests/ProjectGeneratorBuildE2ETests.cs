@@ -84,7 +84,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+            var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, []);
             Assert.True(batteries.Tests, "a bare rask new no longer scaffolds a test project");
 
             var result = ProjectGenerator.GenerateServer(projectDir, name, batteries, version);
@@ -226,7 +226,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             {
                 Localization = true,
                 CultureList = "en,hu",
-                Docker = NewCommand.ToBatteries(template, []).Docker,
+                Docker = BatterySelection.ToBatteries(template, []).Docker,
             }.Normalized();
             Assert.True(batteries.Localization, "the localized wasm shape was not constructed");
 
@@ -293,173 +293,6 @@ public sealed class ProjectGeneratorBuildE2ETests
         }
     }
 
-
-
-    /// <summary>
-    ///     The <c>react</c> template's host, built with the generated-TypeScript path live.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         A stand-in <c>package.json</c> is written where <c>create-vite</c> would have put one. That is
-    ///         what makes the <c>Client</c> folder convention resolve, which is what turns the
-    ///         TypeScript emit on — so this gate covers the generator writing its constants into the assembly
-    ///         AND the MSBuild task reading them back out and landing the files in the client's sources. The
-    ///         real scaffolder is not run: it needs node and a network, and what it produces is not what
-    ///         this is testing.
-    ///     </para>
-    ///     <para>
-    ///         <c>RaskSpaBuild=false</c> for the same reason — the bundler is somebody else's program, and
-    ///         the emit is deliberately independent of it, because <c>rask dev</c> runs the bundler itself
-    ///         and still needs contracts that match the server it is talking to.
-    ///     </para>
-    /// </remarks>
-    [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    // --push reaches the host half: the VAPID block and the Push battery Serve() maps at /_rask/push, with the
-    // app's own services beside the off-switches the generator writes into Program.cs — C# a real compile checks.
-    [InlineData(false, true)]
-    public async Task Generated_react_solution_builds(bool data, bool push)
-    {
-        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
-
-        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-
-        var name = push ? "RE2EPush" : data ? "RE2EData" : "RE2ENone";
-        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
-        var projectDir = Path.Combine(temp, name);
-        try
-        {
-            var result = ProjectGenerator.GenerateSpa(
-                projectDir, name, SpaFramework.React,
-                new ServerBatteries { Data = data, Push = push }.Normalized(), version);
-
-            var fs = new SystemFileSystem();
-            foreach (var file in result.Files)
-            {
-                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                fs.WriteAllText(file.Path, file.Content);
-            }
-
-            // The client the template writes, as it writes it. Two of its files are load-bearing here:
-            // package.json is what makes the client folder convention resolve, and tsconfig.json is what
-            // satisfies RASKSPA004, the build's refusal to generate TypeScript contracts into a client that
-            // is not a TypeScript project. This used to write a stand-in of both into Client/, from before
-            // the template shipped a client of its own; on a case-insensitive disk that overwrote the real
-            // one, and elsewhere it sat unused beside it.
-            var client = Path.Combine(projectDir, "client");
-            Assert.True(File.Exists(Path.Combine(client, "package.json")), "the template wrote no client/package.json.");
-            Assert.True(File.Exists(Path.Combine(client, "tsconfig.json")), "the template wrote no client/tsconfig.json.");
-
-            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
-
-            var server = Path.Combine(projectDir, name + ".csproj");
-            var (exit, output) = await CliBuildE2E.RunDotnet(
-                $"build \"{server}\" -warnaserror -m:1 -p:RaskSpaBuild=false");
-            Assert.True(exit == 0, $"[data={data}] generated react solution failed to build.{CliBuildE2E.Diagnostics(output)}");
-
-            // The whole point of the template: the front end's contracts come out of the server's own
-            // message records. A build that compiles but writes nothing here leaves the client importing
-            // the previous build's types, which type-checks and then breaks on the wire.
-            var generated = Path.Combine(client, "src", "rask");
-            Assert.True(
-                File.Exists(Path.Combine(generated, "contracts.ts")),
-                $"the build wrote no contracts.ts into {generated}.{CliBuildE2E.Diagnostics(output)}");
-            Assert.True(File.Exists(Path.Combine(generated, "messages.ts")), "the build wrote no messages.ts.");
-            Assert.True(
-                File.Exists(Path.Combine(generated, "client.ts")),
-                "the dispatcher was not refreshed from the package, so messages.ts imports nothing.");
-
-            var contracts = await File.ReadAllTextAsync(Path.Combine(generated, "contracts.ts"), TestContext.Current.CancellationToken);
-            Assert.Contains("export interface Greeting", contracts, StringComparison.Ordinal);
-            Assert.Contains("seenAt: Date;", contracts, StringComparison.Ordinal);
-        }
-        finally
-        {
-            CliBuildE2E.TryDeleteDirectory(temp);
-        }
-    }
-
-    /// <summary>
-    ///     A resolved client that is not TypeScript fails the build, naming RASKSPA004.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Rask supports TypeScript single-page app clients. The refusal is the feature: a JavaScript
-    ///         client can import the generated <c>.ts</c> — Vite transpiles it whatever the project is — and
-    ///         receives none of what it is for, so the build would succeed, the types would be checked by
-    ///         nobody, and a renamed C# property would surface on the wire instead of at a compiler.
-    ///     </para>
-    ///     <para>
-    ///         Only a real build proves this one. The check lives in MSBuild, ahead of the compile, and a
-    ///         test over the generator's output cannot see a target that never ran.
-    ///     </para>
-    /// </remarks>
-    [Fact]
-    public async Task A_client_that_is_not_typescript_is_refused()
-    {
-        Assert.SkipUnless(CliBuildE2E.Enabled, CliBuildE2E.SkipReason);
-
-        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-
-        const string name = "RE2ENoTs";
-        var temp = Path.Combine(Path.GetTempPath(), "rask-cli-e2e", Guid.NewGuid().ToString("N"));
-        var projectDir = Path.Combine(temp, name);
-        try
-        {
-            var result = ProjectGenerator.GenerateSpa(
-                projectDir, name, SpaFramework.React, new ServerBatteries(), version);
-
-            var fs = new SystemFileSystem();
-            foreach (var file in result.Files)
-            {
-                fs.CreateDirectory(Path.GetDirectoryName(file.Path)!);
-                fs.WriteAllText(file.Path, file.Content);
-            }
-
-            // package.json and no tsconfig.json: the convention resolves the client, the contract emit turns
-            // itself on, and there is nothing on the other side able to check what it writes.
-            //
-            // The template writes a real TypeScript client into client/, so that one is REPLACED rather than
-            // added to. A stand-in written beside it under another casing is the same directory on a
-            // case-insensitive disk, where the template's tsconfig.json survived and the build succeeded.
-            var client = Path.Combine(projectDir, "client");
-            Assert.True(
-                File.Exists(Path.Combine(client, "tsconfig.json")),
-                "the template no longer writes client/tsconfig.json, so this test no longer removes what it means to.");
-            Directory.Delete(client, recursive: true);
-            fs.CreateDirectory(client);
-            fs.WriteAllText(Path.Combine(client, "package.json"), """{ "name": "stand-in", "private": true }""");
-
-            CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
-
-            var server = Path.Combine(projectDir, name + ".csproj");
-            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{server}\" -m:1 -p:RaskSpaBuild=false");
-
-            Assert.True(exit != 0, $"a JavaScript client built anyway.{CliBuildE2E.Diagnostics(output)}");
-            Assert.Contains("RASKSPA004", output, StringComparison.Ordinal);
-
-            // And it fails BEFORE writing anything into the client: a half-generated src/rask is exactly the
-            // state that makes the next build look like it succeeded.
-            Assert.False(
-                Directory.Exists(Path.Combine(client, "src", "rask")),
-                "the refused build still wrote contracts into the client.");
-
-            // The escape hatch is real: no contracts, no requirement, and the host still serves a bundle.
-            var (hatchExit, hatchOutput) = await CliBuildE2E.RunDotnet(
-                $"build \"{server}\" -warnaserror -m:1 -p:RaskSpaBuild=false -p:RaskEmitTypeScript=false");
-            Assert.True(
-                hatchExit == 0,
-                $"RaskEmitTypeScript=false did not lift the requirement.{CliBuildE2E.Diagnostics(hatchOutput)}");
-        }
-        finally
-        {
-            CliBuildE2E.TryDeleteDirectory(temp);
-        }
-    }
-
-
-
     /// <summary>
     /// A default project: every battery on, and a one-line <c>Program.cs</c>. Only a real compile proves the
     /// scaffold's pages, accounts and <c>RaskApp.Create(args).Run&lt;App&gt;()</c> resolve together.
@@ -478,7 +311,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         {
             var result = ProjectGenerator.GenerateServer(
                 projectDir, name,
-                NewCommand.ToBatteries(TemplateCatalog.Default, []), version);
+                BatterySelection.ToBatteries(TemplateCatalog.Default, []), version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)

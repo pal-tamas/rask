@@ -12,10 +12,10 @@ public sealed partial class ScriptCallsDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                Ui.Button.Tone(Ui.Tone.Primary).OnClick(StartCountdown)["Count down from 5"],
-                Ui.Button.Variant(Ui.Variant.Outline).OnClick(StopCountdown)["Stop"],
-                Ui.Button.Variant(Ui.Variant.Outline).OnClick(ReadViewport)["Read the window size"],
-                Ui.Button.Variant(Ui.Variant.Outline).OnClick(ReadHalf)["Half the window"]
+                Ui.Button.Primary.OnClick(StartCountdown)["Count down from 5"],
+                Ui.Button.Outline.OnClick(StopCountdown)["Stop"],
+                Ui.Button.Outline.OnClick(ReadViewport)["Read the window size"],
+                Ui.Button.Outline.OnClick(ReadHalf)["Half the window"]
             ],
             P.Class("text-sm text-ui-muted mb-0 script-calls-status")[_status]
         ];

@@ -116,14 +116,28 @@ internal static class HtmlSerializer
     /// </summary>
     internal static void ReplayLeanFrames(ReadOnlySpan<LeanFrame> frames, StringBuilder sb, FrameWriter writer)
     {
-        var i = 0;
-        while (i < frames.Length)
+        var html = HtmlWriter.Over(sb);
+        try
         {
-            i = ReplayFrame(frames, i, sb, writer);
+            ReplayLeanFrames(frames, html, writer);
+        }
+        finally
+        {
+            html.Release();
         }
     }
 
-    private static int ReplayFrame(ReadOnlySpan<LeanFrame> frames, int i, StringBuilder sb, FrameWriter writer)
+    /// <inheritdoc cref="ReplayLeanFrames(ReadOnlySpan{LeanFrame}, StringBuilder, FrameWriter)" />
+    internal static void ReplayLeanFrames(ReadOnlySpan<LeanFrame> frames, HtmlWriter html, FrameWriter writer)
+    {
+        var i = 0;
+        while (i < frames.Length)
+        {
+            i = ReplayFrame(frames, i, html, writer);
+        }
+    }
+
+    private static int ReplayFrame(ReadOnlySpan<LeanFrame> frames, int i, HtmlWriter html, FrameWriter writer)
     {
         ref readonly var f = ref frames[i];
         switch (f.Kind)
@@ -133,30 +147,30 @@ internal static class HtmlSerializer
                 // Text frames store the raw (un-encoded) value; re-encode on emit exactly as Serialize
                 // did. Adjacent text was coalesced into one frame at capture, and HTML encoding is
                 // per-char so the coalesced encode is byte-identical to the piecewise one.
-                var start = sb.Length;
-                AppendEncoded(sb, f.Name ?? string.Empty);
-                writer.Text(f.Name, start, sb.Length);
+                var start = html.Length;
+                html.AppendEncoded(f.Name ?? string.Empty);
+                writer.Text(f.Name, start, html.Length);
                 return i + 1;
             }
 
             case RenderFrameKind.Raw:
             {
-                var start = sb.Length;
-                sb.Append(f.Name);
-                writer.Raw(f.Name, start, sb.Length);
+                var start = html.Length;
+                html.Append(f.Name);
+                writer.Raw(f.Name, start, html.Length);
                 return i + 1;
             }
 
             case RenderFrameKind.Doctype:
             {
-                var start = sb.Length;
-                sb.Append("<!DOCTYPE html>");
-                writer.Doctype(start, sb.Length);
+                var start = html.Length;
+                html.Append("<!DOCTYPE html>");
+                writer.Doctype(start, html.Length);
                 return i + 1;
             }
 
             case RenderFrameKind.Element:
-                return ReplayElement(frames, i, sb, writer);
+                return ReplayElement(frames, i, html, writer);
 
             default:
                 // Attribute at top level (shouldn't happen for a well-formed subtree) or a Component
@@ -165,16 +179,16 @@ internal static class HtmlSerializer
         }
     }
 
-    private static int ReplayElement(ReadOnlySpan<LeanFrame> frames, int i, StringBuilder sb, FrameWriter writer)
+    private static int ReplayElement(ReadOnlySpan<LeanFrame> frames, int i, HtmlWriter html, FrameWriter writer)
     {
         ref readonly var f = ref frames[i];
         var end = i + f.SubtreeLength;
-        var start = sb.Length;
+        var start = html.Length;
         var frameIdx = writer.OpenElement(f.Name!, f.Value, f.SelfClosing, start, f.Opaque);
-        sb.Append('<').Append(f.Name);
+        html.Append('<').Append(f.Name);
 
         // Leading Attribute frames = this element's attributes, in emit order.
-        var j = ReplayAttributes(frames, i + 1, end, sb, writer);
+        var j = ReplayAttributes(frames, i + 1, end, html, writer);
 
         // Island boundary marker, in the same position Serialize writes it. Like the scoped-CSS
         // marker below it rides the frame rather than an Attribute frame, so replay has to
@@ -183,46 +197,46 @@ internal static class HtmlSerializer
         // subtrees the retained cache is best at holding: the clean, unchanging ones.
         if (f.Opaque)
         {
-            sb.Append(" data-rask-opaque");
+            html.Append(" data-rask-opaque");
         }
 
         // Scoped-CSS marker rides the Element frame's Value (Serialize appends it after the
         // real attributes and before '>' / ' />'), not an Attribute frame.
         if (f.Value is not null)
         {
-            sb.Append(" data-").Append(f.Value);
+            html.Append(" data-").Append(f.Value);
         }
 
         if (f.SelfClosing)
         {
-            sb.Append(" />");
-            writer.CloseElement(frameIdx, sb.Length);
+            html.Append(" />");
+            writer.CloseElement(frameIdx, html.Length);
             return end;
         }
 
-        sb.Append('>');
+        html.Append('>');
         while (j < end)
         {
-            j = ReplayFrame(frames, j, sb, writer);
+            j = ReplayFrame(frames, j, html, writer);
         }
 
-        sb.Append("</").Append(f.Name).Append('>');
-        writer.CloseElement(frameIdx, sb.Length);
+        html.Append("</").Append(f.Name).Append('>');
+        writer.CloseElement(frameIdx, html.Length);
         return end;
     }
 
     // Replays the attribute frames from `j` on; returns the index of the first frame that is not one.
-    private static int ReplayAttributes(ReadOnlySpan<LeanFrame> frames, int j, int end, StringBuilder sb, FrameWriter writer)
+    private static int ReplayAttributes(ReadOnlySpan<LeanFrame> frames, int j, int end, HtmlWriter html, FrameWriter writer)
     {
         while (j < end && frames[j].Kind == RenderFrameKind.Attribute)
         {
             ref readonly var a = ref frames[j];
-            sb.Append(' ').Append(a.Name);
+            html.Append(' ').Append(a.Name);
             if (a.Value is not null)
             {
-                sb.Append("=\"");
-                AppendEncoded(sb, a.Value);
-                sb.Append('"');
+                html.Append("=\"");
+                html.AppendEncoded(a.Value);
+                html.Append('"');
             }
 
             writer.Attribute(a.Name!, a.Value);
@@ -233,6 +247,19 @@ internal static class HtmlSerializer
     }
 
     public static void Serialize(Component? component, StringBuilder sb)
+    {
+        var html = HtmlWriter.Over(sb);
+        try
+        {
+            Serialize(component, html);
+        }
+        finally
+        {
+            html.Release();
+        }
+    }
+
+    public static void Serialize(Component? component, HtmlWriter html)
     {
         // A null component means "render nothing" — Render()/RenderForLive() return Component? and
         // yield null for the nothing-render case (formerly an empty Fragment). Emit nothing.
@@ -251,69 +278,69 @@ internal static class HtmlSerializer
         {
             case Text t:
             {
-                var textStart = sb.Length;
-                AppendEncoded(sb, t.Value ?? string.Empty);
-                frames?.Text(t.Value, textStart, sb.Length);
+                var textStart = html.Length;
+                html.AppendEncoded(t.Value ?? string.Empty);
+                frames?.Text(t.Value, textStart, html.Length);
                 break;
             }
 
             case Raw r:
             {
-                var rawStart = sb.Length;
-                sb.Append(r.Value);
-                frames?.Raw(r.Value, rawStart, sb.Length);
+                var rawStart = html.Length;
+                html.Append(r.Value);
+                frames?.Raw(r.Value, rawStart, html.Length);
                 break;
             }
 
             case DoctypeComponent:
             {
-                var doctypeStart = sb.Length;
-                sb.Append("<!DOCTYPE html>");
-                frames?.Doctype(doctypeStart, sb.Length);
+                var doctypeStart = html.Length;
+                html.Append("<!DOCTYPE html>");
+                frames?.Doctype(doctypeStart, html.Length);
                 break;
             }
 
             case Fragment fragment:
-                SerializeFragment(fragment, sb);
+                SerializeFragment(fragment, html);
                 break;
 
             case ErrorBoundary boundary:
-                SerializeErrorBoundary(boundary, sb);
+                SerializeErrorBoundary(boundary, html);
                 break;
 
             case Context context:
-                SerializeContext(context, sb);
+                SerializeContext(context, html);
                 break;
 
             case { TagNameInternal: { } tagName } el:
-                SerializeElement(el, tagName, sb, frames);
+                SerializeElement(el, tagName, html, frames);
                 break;
 
             default:
-                SerializeComponent(component, sb, frames);
+                SerializeComponent(component, html, frames);
                 break;
         }
     }
 
-    private static void SerializeChildren(Component?[]? array, IEnumerable<Component?>? children, StringBuilder sb)
+    private static void SerializeChildren(Component?[]? array, IEnumerable<Component?>? children, HtmlWriter html)
     {
         if (array is not null)
         {
             for (var i = 0; i < array.Length; i++)
             {
-                Serialize(array[i], sb);
+                Serialize(array[i], html);
             }
         }
         else if (children is not null)
         {
             foreach (var child in children)
             {
-                Serialize(child, sb);
+                Serialize(child, html);
             }
         }
     }
 
-    private static void SerializeFragment(Fragment fragment, StringBuilder sb)
+    private static void SerializeFragment(Fragment fragment, HtmlWriter html)
     {
         // A keyed Fragment forwards its Key onto the first element it renders (the
         // first child's first element); Consume in WriteAttributes claims it once.
@@ -325,7 +352,7 @@ internal static class HtmlSerializer
 
         try
         {
-            SerializeChildren(fragment.ChildrenArray, fragment.Children, sb);
+            SerializeChildren(fragment.ChildrenArray, fragment.Children, html);
         }
         finally
         {
@@ -336,7 +363,7 @@ internal static class HtmlSerializer
         }
     }
 
-    private static void SerializeContext(Context context, StringBuilder sb)
+    private static void SerializeContext(Context context, HtmlWriter html)
     {
         // Transparent like Fragment: push the provided value onto the ambient stack for
         // the duration of the children walk, so any descendant's Render() (which runs
@@ -359,7 +386,7 @@ internal static class HtmlSerializer
 
             try
             {
-                SerializeChildren(context.ChildrenArray, context.Children, sb);
+                SerializeChildren(context.ChildrenArray, context.Children, html);
             }
             finally
             {
@@ -371,12 +398,12 @@ internal static class HtmlSerializer
         }
     }
 
-    private static void SerializeElement(Component el, string tagName, StringBuilder sb, FrameWriter? frames)
+    private static void SerializeElement(Component el, string tagName, HtmlWriter html, FrameWriter? frames)
     {
         var live = LiveRenderContext.CurrentSync;
         var scopeId = live?.CurrentScopeId;
         var isShell = _shellTags.Contains(tagName);
-        var elementStart = sb.Length;
+        var elementStart = html.Length;
         var opaque = el.OpaqueSubtreeInternal;
         var elementFrameIdx = frames?.OpenElement(tagName,
             scopeId is not null && !isShell ? scopeId : null,
@@ -384,36 +411,36 @@ internal static class HtmlSerializer
             elementStart,
             opaque) ?? -1;
 
-        sb.Append('<').Append(tagName);
-        el.WriteAttributesInternal(sb);
+        html.Append('<').Append(tagName);
+        html.WriteAttributes(el);
 
-        AppendFrameworkMarkers(sb, opaque, isShell ? null : scopeId);
+        AppendFrameworkMarkers(html, opaque, isShell ? null : scopeId);
 
         if (el.SelfClosingInternal)
         {
-            sb.Append(" />");
-            frames?.CloseElement(elementFrameIdx, sb.Length);
+            html.Append(" />");
+            frames?.CloseElement(elementFrameIdx, html.Length);
             return;
         }
 
-        sb.Append('>');
+        html.Append('>');
         using (el.EnterChildrenScopeInternal())
         {
-            SerializeElementChildren(el, opaque, live, sb);
+            SerializeElementChildren(el, opaque, live, html);
         }
 
         if (live is not null && string.Equals(tagName, "head", StringComparison.Ordinal))
         {
-            AppendHeadAssets(live, sb);
+            AppendHeadAssets(live, html);
         }
 
         if (string.Equals(tagName, "body", StringComparison.Ordinal) && live?.Services?.GetService<IRaskRuntimeScript>() is { } runtime)
         {
-            AppendRuntimeScript(runtime, sb);
+            AppendRuntimeScript(runtime, html);
         }
 
-        sb.Append("</").Append(tagName).Append('>');
-        frames?.CloseElement(elementFrameIdx, sb.Length);
+        html.Append("</").Append(tagName).Append('>');
+        frames?.CloseElement(elementFrameIdx, html.Length);
 
         // A component that renders as an element of its own (an External island) is still a component: the
         // devtools' tree lists it like one. The type test comes first, so every HTML element — all of them
@@ -429,20 +456,20 @@ internal static class HtmlSerializer
     // attributes rather than in the documented user-attribute order. The frame flag
     // is what the diff reads; this is what the client morph reads, and the full-HTML
     // fallback is a separate path to the same DOM — both need telling.
-    private static void AppendFrameworkMarkers(StringBuilder sb, bool opaque, string? scopeId)
+    private static void AppendFrameworkMarkers(HtmlWriter html, bool opaque, string? scopeId)
     {
         if (opaque)
         {
-            sb.Append(" data-rask-opaque");
+            html.Append(" data-rask-opaque");
         }
 
         if (scopeId is not null)
         {
-            sb.Append(" data-").Append(scopeId);
+            html.Append(" data-").Append(scopeId);
         }
     }
 
-    private static void SerializeElementChildren(Component el, bool opaque, LiveRenderContext? live, StringBuilder sb)
+    private static void SerializeElementChildren(Component el, bool opaque, LiveRenderContext? live, HtmlWriter html)
     {
         // The ChildrenArray fast path SKIPS RenderChildren(), so a component that rewrites
         // its own children (an island wrapping them into slot templates) would be silently
@@ -454,7 +481,7 @@ internal static class HtmlSerializer
             // Index walk over the backing Component[] — no enumerator allocation.
             for (var i = 0; i < childArray.Length; i++)
             {
-                Serialize(childArray[i], sb);
+                Serialize(childArray[i], html);
             }
         }
         else
@@ -478,7 +505,7 @@ internal static class HtmlSerializer
 
             for (var i = 0; i < children.Count; i++)
             {
-                Serialize(children[i], sb);
+                Serialize(children[i], html);
             }
         }
     }
@@ -488,10 +515,10 @@ internal static class HtmlSerializer
     // walk) splice in via HeadAssetRegistry.ApplyTo, alongside scoped-css
     // and scoped-js framework markers. Children passed to Head() (if any
     // slip past the RASK019 analyzer) render first; the sentinel follows.
-    private static void AppendHeadAssets(LiveRenderContext live, StringBuilder sb)
+    private static void AppendHeadAssets(LiveRenderContext live, HtmlWriter html)
     {
         // Record where the sentinel lands so RenderAsLiveRoot splices the head-asset
-        // block in place (StringBuilder.Insert) without re-scanning the whole page for
+        // block in place (HtmlWriter.Replace) without re-scanning the whole page for
         // the sentinel. The sentinel is byte-stable, so its start offset is all the
         // splice needs. Record only the FIRST head — the framework shell renders exactly
         // one <head> (RASK019/021), but a stray nested <head> from a component that
@@ -500,10 +527,10 @@ internal static class HtmlSerializer
         // duplicate sentinel as a literal) rather than mis-splicing the stray one.
         if (live.HeadSentinelIndex < 0)
         {
-            live.HeadSentinelIndex = sb.Length;
+            live.HeadSentinelIndex = html.Length;
         }
 
-        sb.Append(HeadAssetRegistry.Sentinel);
+        html.Append(HeadAssetRegistry.Sentinel);
 
         // Host-registered head markup (e.g. the Server PWA <link rel="manifest"> +
         // <meta name="theme-color">), emitted as real HTML so no post-boot JS injection is
@@ -531,7 +558,7 @@ internal static class HtmlSerializer
                 // sets .Content(...) would emit the stale one for a render), and on the
                 // server that stale byte is diffed and pushed.
                 BuilderRuntime.DrainSlotsAbove(headSlotDepth);
-                Serialize(headExtra, sb);
+                Serialize(headExtra, html);
             }
         }
         finally
@@ -555,7 +582,7 @@ internal static class HtmlSerializer
     // Slot-depth bracketed for the same reason as the head contribution (AppendHeadAssets): built during
     // serialization, so its entry slot has no enclosing Render() to drain it and would sit
     // on this thread's slot stack holding the page — and the whole live session — for ever.
-    private static void AppendRuntimeScript(IRaskRuntimeScript runtime, StringBuilder sb)
+    private static void AppendRuntimeScript(IRaskRuntimeScript runtime, HtmlWriter html)
     {
         // try/finally for the same reason as the head bracket: a fault must not be able to skip the drain.
         var runtimeSlotDepth = BuilderRuntime.SlotDepth;
@@ -565,7 +592,7 @@ internal static class HtmlSerializer
             {
                 // Before the walk, for the reason spelled out on the head bracket.
                 BuilderRuntime.DrainSlotsAbove(runtimeSlotDepth);
-                Serialize(runtimeScript, sb);
+                Serialize(runtimeScript, html);
             }
         }
         finally
@@ -574,7 +601,7 @@ internal static class HtmlSerializer
         }
     }
 
-    private static void SerializeComponent(Component component, StringBuilder sb, FrameWriter? frames)
+    private static void SerializeComponent(Component component, HtmlWriter html, FrameWriter? frames)
     {
         // Push the parent scope for the entire duration of serialising this user
         // component — including the walk of its rendered subtree. That way
@@ -593,7 +620,7 @@ internal static class HtmlSerializer
         // re-renders it and may re-cache. A replayed component is itself a nested user component
         // for its parent, so flag that.
         var replayFrameStart = frames?.Count ?? -1;
-        if (frames is not null && component.TryReplayCleanSubtree(sb, frames, liveCtx))
+        if (frames is not null && component.TryReplayCleanSubtree(html, frames, liveCtx))
         {
             // A replay appends the cached subtree at the writer's end, so the count before and after
             // brackets exactly what this component contributed to the frame stream.
@@ -621,7 +648,7 @@ internal static class HtmlSerializer
         // consumed — and the snapshot needs to know which identity it was captured under.
         var forwardedKeyAtCapture = KeyForwardScope.Peek();
 
-        WalkComponent(component, sb, frames, liveCtx, frameStart);
+        WalkComponent(component, html, frames, liveCtx, frameStart);
 
         var hadNested = _sawNestedComponent;
         if (frames is not null && frameStart >= 0)
@@ -655,7 +682,7 @@ internal static class HtmlSerializer
     // Read once: the devtools see the whole component, render AND subtree walk, as one span. The parent is
     // read here, before this component becomes the parent of everything under it.
     private static void WalkComponent(
-        Component component, StringBuilder sb, FrameWriter? frames, LiveRenderContext? liveCtx, int frameStart)
+        Component component, HtmlWriter html, FrameWriter? frames, LiveRenderContext? liveCtx, int frameStart)
     {
         var devTools = RaskDevToolsHook.Active;
         var devToolsParent = devTools is null ? null : liveCtx?.WalkParent;
@@ -693,7 +720,7 @@ internal static class HtmlSerializer
                     liveCtx.HeadAssets.Add(head);
                 }
 
-                Serialize(rendered, sb);
+                Serialize(rendered, html);
 
                 devTools?.ComponentWalked(component, devToolsParent, devToolsStart, frameStart, frames?.Count ?? -1);
             }
@@ -726,26 +753,26 @@ internal static class HtmlSerializer
     /// </remarks>
     internal static void MarkNestedComponent() => _sawNestedComponent = true;
 
-    private static void SerializeErrorBoundary(ErrorBoundary boundary, StringBuilder sb)
+    private static void SerializeErrorBoundary(ErrorBoundary boundary, HtmlWriter html)
     {
         var live = LiveRenderContext.CurrentSync;
         using (LiveRenderContext.PushScopeOrNone(live, boundary))
         using (LiveRenderContext.EnterParentScopeOrNone(live, boundary))
         using (LiveRenderContext.PushBoundaryOrNone(live, boundary))
         {
-            var saved = sb.Length;
+            var saved = html.Length;
             try
             {
-                Serialize(boundary.RenderForLive(), sb);
+                Serialize(boundary.RenderForLive(), html);
             }
             catch (Exception ex) when (boundary.Error is null)
             {
                 // Rewind anything the failing subtree wrote so the fallback replaces it
                 // cleanly. The guard prevents recursive catching of a fallback that itself
                 // throws — that escape bubbles to the next outer boundary instead.
-                sb.Length = saved;
+                html.Length = saved;
                 boundary.Trip(ex);
-                Serialize(boundary.RenderForLive(), sb);
+                Serialize(boundary.RenderForLive(), html);
             }
         }
 

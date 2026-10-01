@@ -98,7 +98,7 @@ public partial class UiSelectEntryTests : global::Rask.Core.RaskMarkup
             System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value;
         Assert.NotEqual("", option);
 
-        await page.On("#" + option).ClickAsync();
+        await page.On("#" + option).Click();
 
         Assert.Equal(["core", "ui"], model.Tags);
     }

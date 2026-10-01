@@ -13,8 +13,8 @@ namespace Rask.Cli.Commands;
 /// <param name="buildEnvironment">
 ///     Overlaid onto the environment of the <c>dotnet-ef</c> child process, which is how MSBuild
 ///     properties reach a build this command does not own the command line of. <c>rask new</c> passes
-///     <c>RaskSpaBuild=false</c> / <c>RaskMetaBuild=false</c> so scaffolding's first migration does not
-///     run a production front-end build. Null — no overlay — everywhere else.
+///     <c>RaskSpaBuild=false</c> so scaffolding's first migration does not publish a WebAssembly client.
+///     Null — no overlay — everywhere else.
 /// </param>
 internal sealed partial class DbCommand(
     IConsole console,
@@ -429,7 +429,7 @@ internal sealed partial class DbCommand(
 
     /// <summary>
     /// Build the <c>dotnet ef …</c> argument list. Pure and deterministic, so it is unit-tested directly
-    /// (like <see cref="DevCommand.BuildDotnetArguments"/>).
+    /// (like <see cref="DotnetWatchInvocation.BuildDotnetArguments"/>).
     /// </summary>
     internal static IReadOnlyList<string> BuildEfArguments(
         string subcommand,

@@ -32,7 +32,8 @@ internal sealed class ServerFileBackend : IBrowserFileBackend
 
         var entry = _store.Get(_session.Id, token)
                     ?? throw new InvalidOperationException(
-                        $"Upload token '{token}' is unknown — it was never POSTed, expired, or already consumed.");
+                        $"Upload token '{token}' is unknown: the upload never finished, expired, or was already read. "
+                        + "Read each file once, inside the OnFiles handler that received it.");
         return new ServerRaskFile(entry, _store);
     }
 

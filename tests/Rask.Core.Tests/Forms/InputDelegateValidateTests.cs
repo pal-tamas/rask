@@ -22,7 +22,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        await page.InvokeAsync(changeId!, "{\"value\":\"ab\"}");
+        await page.Invoke(changeId!, "{\"value\":\"ab\"}");
 
         Assert.NotNull(captured);
         Assert.Contains("too short",
@@ -46,7 +46,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
             Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
-        await page.SubmitAsync("{\"form\":{\"Name\":\"\"}}");
+        await page.On("form").Submit("{\"form\":{\"Name\":\"\"}}");
 
         Assert.NotNull(captured);
         Assert.Contains("always-fail",
@@ -71,7 +71,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
             Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
-        await page.ChangeAsync("{\"value\":\"ab\"}");
+        await page.On("input").Change("ab");
 
         Assert.NotEmpty(captured!.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
 
@@ -80,7 +80,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         // event — no rule, no messages.
         includeValidator = false;
         page.Render();
-        await page.ChangeAsync("{\"value\":\"ab\"}");
+        await page.On("input").Change("ab");
 
         Assert.Empty(captured.GetValidationMessages(new FieldIdentifier(p, nameof(Person.Name))));
     }

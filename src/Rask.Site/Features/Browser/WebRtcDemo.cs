@@ -1,4 +1,3 @@
-using System.Globalization;
 using Rask.Core.Browser;
 
 namespace Rask.Site.Features;
@@ -52,11 +51,11 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                         "This browser has no WebRTC support."]
                     : Div[
                         Div.Class("flex gap-2 mb-2")[
-                            Ui.Button.Tone(Ui.Tone.Primary)
+                            Ui.Button.Primary
                                 .Id("rtc-connect")
                                 .Disabled(_connecting)
                                 .OnClick(ConnectAsync)["Connect the two peers"],
-                            Ui.Button.Tone(Ui.Tone.Secondary)
+                            Ui.Button.Secondary
                                 .Id("rtc-send")
                                 .Disabled(!_everConnected)
                                 .OnClick(SendAsync)["Send a message"]
@@ -65,7 +64,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
                             "Connection state: ", Span.Id("rtc-state")[_state]],
                         Div.Class("text-sm text-ui-muted mb-1")[
                             "Local ICE candidates gathered: ",
-                            Span.Id("rtc-candidates")[_localCandidates.ToString(CultureInfo.InvariantCulture)]],
+                            Span.Id("rtc-candidates")[_localCandidates]],
                         Div.Class("text-sm text-ui-muted mb-1")["Received by the other peer:"],
                         MessageLog()
                     ]

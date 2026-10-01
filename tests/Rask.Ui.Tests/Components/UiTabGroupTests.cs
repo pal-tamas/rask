@@ -143,7 +143,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
         string? heard = null;
         var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
-        await page.On("[role=\"tab\"][aria-selected=\"false\"]").ClickAsync();
+        await page.On("[role=\"tab\"][aria-selected=\"false\"]").Click();
 
         Assert.Equal("history", heard);
     }
@@ -154,7 +154,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
         // A page that does not care which tab is up should not have to hold a field for it.
         var page = global::Rask.Testing.Page.Render(Group());
 
-        await page.On("[role=\"tab\"][aria-selected=\"false\"]").ClickAsync();
+        await page.On("[role=\"tab\"][aria-selected=\"false\"]").Click();
 
         var panels = PanelTags(page.Html);
         Assert.Contains("hidden", panels[0], StringComparison.Ordinal);
@@ -168,10 +168,10 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
         string? heard = null;
         var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
-        await page.On("[role=\"tablist\"]").RaiseAsync("keydown", "{\"key\":\"ArrowRight\"}");
+        await page.On("[role=\"tablist\"]").Raise("keydown", "{\"key\":\"ArrowRight\"}");
         Assert.Equal("history", heard);
 
-        await page.On("[role=\"tablist\"]").RaiseAsync("keydown", "{\"key\":\"Home\"}");
+        await page.On("[role=\"tablist\"]").Raise("keydown", "{\"key\":\"Home\"}");
         Assert.Equal("details", heard);
     }
 
@@ -182,7 +182,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
         var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
         // Left from the first tab lands on the last, rather than stopping dead.
-        await page.On("[role=\"tablist\"]").RaiseAsync("keydown", "{\"key\":\"ArrowLeft\"}");
+        await page.On("[role=\"tablist\"]").Raise("keydown", "{\"key\":\"ArrowLeft\"}");
 
         Assert.Equal("history", heard);
     }

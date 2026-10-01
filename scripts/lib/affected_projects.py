@@ -77,10 +77,10 @@ def find_projects(root: Path) -> list[Path]:
             parts = path.relative_to(root).parts
             if "bin" in parts or "obj" in parts or ".claude" in parts:
                 continue
-            # src/Rask.Templates/ is the scaffolder's PAYLOAD, not projects of ours: fifteen trees,
-            # every one of them holding a Company.RaskServer.csproj. Treating them as projects makes
-            # the map ambiguous (the same name fifteen times) and would attribute an edit to a
-            # template to a project that is never built here.
+            # src/Rask.Templates/ is the scaffolder's PAYLOAD, not projects of ours: every tree holds
+            # a Company.RaskServer.csproj. Treating them as projects makes the map ambiguous (the
+            # same name once per template) and would attribute an edit to a template to a project
+            # that is never built here.
             if "Rask.Templates" in parts:
                 continue
             found.append(path)

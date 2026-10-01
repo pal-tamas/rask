@@ -38,7 +38,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
 
-        var ok = await page.TryInvokeAsync(inputId!, "{\"value\":\"Bea\"}");
+        var ok = await page.TryInvoke(inputId!, "{\"value\":\"Bea\"}");
 
         Assert.True(ok);
         Assert.Equal("Bea", p.Name);
@@ -55,7 +55,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        var ok = await page.TryInvokeAsync(changeId!, "{\"value\":\"42\"}");
+        var ok = await page.TryInvoke(changeId!, "{\"value\":\"42\"}");
 
         Assert.True(ok);
         Assert.Equal(42, p.Age);
@@ -76,7 +76,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => p.Name), Input.Bind(() => p.Age)
         ]);
 
-        await page.SubmitAsync("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
+        await page.On("form").Submit("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
 
         Assert.Equal(0, validCalled);
         Assert.Equal(1, invalidCalled);
@@ -122,7 +122,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Form.Model(p).OnSubmit(m => captured = m)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
 
-        await page.SubmitAsync("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
+        await page.On("form").Submit("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         Assert.Same(p, captured);
         Assert.Equal("Ada", captured!.Name);
@@ -214,7 +214,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
 
-        var ok = await page.TryInvokeAsync(changeId!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(changeId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.OptionalAge);
@@ -226,7 +226,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"42\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"42\"}");
 
         Assert.True(ok);
         Assert.Equal(42, p.OptionalAge);
@@ -238,7 +238,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"not-a-number\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"not-a-number\"}");
 
         // Action still completes (TouchAndValidateHandler always runs validation after the
         // optional set), but the property retains its prior value because TrySetTyped failed.
@@ -252,7 +252,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Price);
@@ -264,7 +264,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.StartedAt);
@@ -276,7 +276,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Birthday);
@@ -288,7 +288,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Price = null };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"12.5\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"12.5\"}");
 
         Assert.True(ok);
         Assert.Equal(12.5m, p.Price);
@@ -300,7 +300,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, StartedAt = null };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"2025-05-14T09:30\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"2025-05-14T09:30\"}");
 
         Assert.True(ok);
         Assert.Equal(new DateTime(2025, 5, 14, 9, 30, 0), p.StartedAt);
@@ -312,7 +312,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Birthday = null };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"1990-01-02\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"1990-01-02\"}");
 
         Assert.True(ok);
         Assert.Equal(new DateOnly(1990, 1, 2), p.Birthday);
@@ -324,7 +324,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Status = null };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"Active\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"Active\"}");
 
         Assert.True(ok);
         Assert.Equal(PersonStatus.Active, p.Status);
@@ -336,7 +336,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Status = PersonStatus.Active };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Status);
@@ -351,7 +351,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Age)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(0, p.Age);
@@ -363,7 +363,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, Salary = 5000m };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Salary)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(0m, p.Salary);
@@ -375,7 +375,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, HireDate = new DateOnly(2020, 6, 1) };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.HireDate)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(default, p.HireDate);
@@ -387,7 +387,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30, CurrentStatus = PersonStatus.Inactive };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.CurrentStatus)]);
 
-        var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(page.HandlerId("change")!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal(default, p.CurrentStatus);
@@ -405,7 +405,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
 
-        var ok = await page.TryInvokeAsync(inputId!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(inputId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Null(p.Nickname);
@@ -424,7 +424,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
 
-        var ok = await page.TryInvokeAsync(inputId!, "{\"value\":\"\"}");
+        var ok = await page.TryInvoke(inputId!, "{\"value\":\"\"}");
 
         Assert.True(ok);
         Assert.Equal("", p.Name);
@@ -451,7 +451,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         {
             html = page.Render();
             changeId = MarkupAssert.Attr(html, "data-rask-on-change");
-            await page.InvokeAsync(changeId!, $"{{\"value\":\"{value}\"}}");
+            await page.Invoke(changeId!, $"{{\"value\":\"{value}\"}}");
         }
 
         await SendAsync("true");

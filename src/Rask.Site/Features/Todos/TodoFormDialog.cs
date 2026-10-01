@@ -54,10 +54,10 @@ public sealed partial class TodoFormDialog : Component
                     Ui.Input.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus(true).ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => Model.Title),
                     Div.Class("flex justify-end gap-2")[
-                        Ui.Button.Variant(Ui.Variant.Outline).OnClick(OnCancel)["Cancel"],
+                        Ui.Button.Outline.OnClick(OnCancel)["Cancel"],
                         Ui.Button
-                            .Tone(Ui.Tone.Primary)
-                            .Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), IsAdding ? "Add" : "Save"]
+                            .Primary
+                            .Submit[Ui.Icon.Name(Ui.IconName.CheckCircle), IsAdding ? "Add" : "Save"]
                     ]
                 ]
             ]

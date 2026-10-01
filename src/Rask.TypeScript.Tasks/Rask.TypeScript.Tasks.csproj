@@ -4,7 +4,7 @@
     <!--
       netstandard2.0 matches what MSBuild loads at build time: the task runs inside the MSBuild host
       process, which on Windows may still be full-framework MSBuild.exe. Same constraint, and the same
-      reasoning, as Rask.Tailwind.Tasks, Rask.Wasm.Tasks and Rask.Spa.Tasks.
+      reasoning, as Rask.Tailwind.Tasks and Rask.Wasm.Tasks.
     -->
     <TargetFramework>netstandard2.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -29,7 +29,7 @@
     IsPackable=false and its build/ folder is packed into EVERY host package by
     src/RaskCoreBuildPack.targets, so this one copy reaches Rask.Server and Rask.Wasm alike — and
     $(MSBuildThisFileDirectory) resolves identically for an in-repo consumer and for a NuGet one,
-    which gets build/ verbatim. Same arrangement as Rask.Tailwind.Tasks and Rask.Spa.Tasks.
+    which gets build/ verbatim. Same arrangement as Rask.Tailwind.Tasks.
   -->
   <Target Name="CopyTaskAssemblyToRaskCoreBuild" AfterTargets="Build">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(MSBuildThisFileDirectory)..\Rask.Core\build\"
