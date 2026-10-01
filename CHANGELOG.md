@@ -73,7 +73,9 @@ them until tagged releases begin.
 
 - **The source generators are split by what each part does.** `RoutesGenerator` (1,900 lines) is now
   partial files for its diagnostics, reading pages from symbols, the `Routes` class tree, the route registry,
-  the `Url()`/`Go()` factories and route-template parsing. Every file the generators emit is byte-for-byte what
+  the `Url()`/`Go()` factories and route-template parsing; `ModelInputGenerator` (2,000 lines) likewise splits
+  into its diagnostics, reading the entity, the model class, its writes and the value-object sync. Every file
+  the generators emit is byte-for-byte what
   it was, checked by building the whole solution with `EmitCompilerGeneratedFiles` before and after.
 
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
