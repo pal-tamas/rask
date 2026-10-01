@@ -33,7 +33,7 @@ namespace Rask.Data;
 /// <typeparam name="TId">The key type (e.g. <see cref="Guid"/>, <see cref="int"/>, a strongly-typed id).</typeparam>
 public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
 {
-    private readonly List<INotification> _domainEvents = [];
+    private readonly List<IEvent> _domainEvents = [];
 
     /// <summary>Initializes the base.</summary>
     protected Aggregate()
@@ -57,10 +57,10 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
 #pragma warning restore S1144
 
     /// <inheritdoc/>
-    public IReadOnlyList<INotification> DomainEvents => _domainEvents;
+    public IReadOnlyList<IEvent> DomainEvents => _domainEvents;
 
     /// <summary>Records a domain event to be published after the aggregate's change commits.</summary>
-    protected void Raise(INotification domainEvent)
+    protected void Raise(IEvent domainEvent)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
         _domainEvents.Add(domainEvent);

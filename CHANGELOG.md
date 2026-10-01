@@ -9,6 +9,81 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask.Cqrs says "event", not "notification".** You raise an event on an aggregate and publish one through the
+  dispatcher, so the thing a handler reacts to is now called that too:
+
+  ```csharp
+  public sealed record OrderPlaced(Guid Id) : IEvent;                        // was INotification
+
+  public sealed class LogSale : IEventHandler<OrderPlaced>                   // was INotificationHandler<OrderPlaced>
+  {
+      public Task Handle(OrderPlaced e) => …;
+  }
+  ```
+
+  | Before | After |
+  |---|---|
+  | `INotification` | `IEvent` |
+  | `INotificationHandler<TNotification>` | `IEventHandler<TEvent>` |
+  | `NotificationPublishStrategy`, `CqrsOptions.NotificationPublishStrategy` | `EventPublishStrategy`, `CqrsOptions.EventPublishStrategy` |
+  | `CqrsOptions.StopOnFirstNotificationException` | `CqrsOptions.StopOnFirstEventException` |
+  | `NotificationDispatch` | `EventDispatch` |
+  | `CqrsRegistry.NotificationInvoker` / `FindNotificationInvoker` / `RegisterNotification` / `ReplaceNotifications` | `EventInvoker` / `FindEventInvoker` / `RegisterEvent` / `ReplaceEvents` |
+  | `RemoteMessageKind.Notification`, `SubscriptionRegistration.NotificationType` | `RemoteMessageKind.Event`, `SubscriptionRegistration.EventType` |
+  | TypeScript contract kind `'notification'` | `'event'` |
+
+  `IDispatcher.Publish` keeps its name. The browser's `Notification` API (`INotifications`, `Rask.Web`) is a
+  different thing and is unchanged.
+- **Each handler chooses whether it is durable.** An event is a plain `IEvent`; `IEventHandler<T>` runs in memory
+  straight after the commit, and `IDurableHandler<T>` runs through the transactional outbox, with its row written
+  in the same transaction as the change that raised the event:
+
+  ```csharp
+  [LocalOnly]
+  public sealed record OrderPlaced(Guid Id) : IEvent;                          // was : IOutboxEvent
+
+  public sealed class RefreshDashboard : IEventHandler<OrderPlaced> { … }      // in memory, at once
+  public sealed class SendReceipt : IDurableHandler<OrderPlaced> { … }         // outbox: atomic, retried
+  ```
+
+  Before, one event went one way for the whole app. With the outbox on, a plain `INotification` raised on an
+  aggregate was **never delivered**, and nothing reported it. Now:
+  - Each durable handler is its own outbox row, so a failing one is retried alone.
+  - A bare `dispatcher.Publish(e)` stores its durable rows in a transaction of its own.
+  - A save wakes the processor at once, instead of it waiting for the next `PollInterval` (5s).
+  - Without an outbox (a browser app, or `Rask.Cqrs` on its own), a durable handler runs in memory.
+
+  **The outbox follows the data battery**, since the handler is now the switch. Removed:
+  - `IOutboxEvent`, `c.Outbox.Off()`, `rask new --no-outbox`
+  - `RaskDataOptions` with `DispatchDomainEventsInProcess`, and `AddRaskData(configure)`
+  - `IDomainEventDeliveryOwner`
+  - `OutboxSerializerRegistry.Replace`
+
+  `c.Outbox.Configure(o => …)` and `Rask:Outbox` still set the options.
+
+  **Upgrading:**
+  1. Declare events `: IEvent`, and give each handler that must not be lost `IDurableHandler<T>`.
+  2. Mark each domain event `[LocalOnly]`. `IOutboxEvent` did that for you: events travel from a browser like any
+     message, so an unmarked `OrderPlaced` could be published by a signed-in user.
+  3. Add the outbox's new `Handler` column: `rask db add AddOutboxHandler && rask db update`.
+- **BREAKING: navigate with `Go` and hand over files with `Download`; nothing is injected.** The router's
+  `Navigator` service is gone from the public API, which frees `Navigator` for MDN's own global in `Rask.Web`:
+  ```csharp
+  public sealed partial class ProductsPage(Navigator nav) : Component   // was
+  public sealed partial class ProductsPage : Component                  // now
+
+  nav.NavigateTo("/products/42");          →  Go.To("/products/42");
+  nav.NavigateTo("/login", replace: true); →  Go.To("/login").Replacing();
+  UserPage.Go(42, replace: true);          →  UserPage.Go(42).Replacing();
+  nav.SetQuery("page", "2");               →  Go.With("page", "2");
+  nav.RemoveQuery("page");                 →  Go.Without("page");
+  nav.ClearQuery();                        →  Go.Without();
+  nav.Download("report.csv", bytes);       →  Download.File("report.csv", bytes);
+  navigator.Download(fileDownload);        →  Download.File(fileDownload);        // Rask.Cqrs.Client
+  ```
+  The rules are the ones the navigator had: from an event handler (or a page's initial render, which the Server
+  host still answers with a `302`). In Rask.Testing, `TestRoute.NavigatorFor` is gone: a page under test
+  navigates over the `RouteState` and stages into the `IDownloadSink` it was given, with nothing else to build.
 - **BREAKING: the last `…Async` suffixes go, and signing in needs nothing injected.** A new static `Auth`
   (namespace `Rask.Core`) mirrors `IAuth` — `await Auth.SignIn(email, password)` from any handler, render or
   request; outside any work in progress it throws and says to inject `IAuth` there instead (code under a
@@ -118,6 +193,20 @@ them until tagged releases begin.
   the page loop; repairing the publish output's compressed siblings and endpoint manifest is
   `PublishedAssetRepair`, writing `sitemap.xml` and `robots.txt` is `SitemapWriter`, and reading a page's own
   last-modified date, canonical URL and noindex is `PrerenderedPageMetadata`. The published site is unchanged.
+
+- **`EditContext` runs every inline `Validate` rule through one path.** The field and form rules had four
+  copies of the same "run it, record its messages, turn a throw into *Validation could not be completed.*"
+  code; they are two now, and the class is split into partial files — state and queries, sync validation,
+  async validation, and the sticky validating indicator. A form validates exactly as it did.
+
+- **The source generators are split by what each part does.** `RoutesGenerator` (1,900 lines) is now
+  partial files for its diagnostics, reading pages from symbols, the `Routes` class tree, the route registry,
+  the `Url()`/`Go()` factories and route-template parsing; `ModelInputGenerator` (2,000 lines) likewise splits
+  into its diagnostics, reading the entity, the model class, its writes and the value-object sync; and
+  `ComponentFactoryGenerator` (6,300 lines) into its diagnostics, the component model, the setters and their
+  overloads, the chain entries, the chain states, type parameters, the entry hosts, the props describers and
+  doc comments. Every file the generators emit is byte-for-byte what it was, checked by building the whole
+  solution with `EmitCompilerGeneratedFiles` before and after.
 
 - **The getting-started path matches what `rask new` writes.** It runs the app with `rask dev`, the root
   is `HeadAssets => Title[…]` + `Render() => Router` (the old `Head` override with a hand-written charset
@@ -646,6 +735,36 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask db` works from a wasm-hosted solution's root.** It stopped with "Run this inside a project, or pass
+  --project" where `rask dev` already ran the Server project. It now targets that `.Server` project too:
+
+  ```bash
+  cd shop && rask db add Init   # was: rask db add Init --project Shop.Server
+  ```
+- **A server page's first `Rask.*` call waits for a slow scoped script.** On a cold load, a call from
+  `OnRendered` to a component's scoped TypeScript could fault with "Could not find 'Rask.X' on target" when the
+  script took longer than 5 seconds to execute. The WASM runtime already waited for the script's own load event,
+  with a 30-second backstop for same-origin assets; the server runtime now shares that gate with it.
+- **A `[JsonPropertyName]` with a line break no longer breaks the build.** The CQRS codec and the read-model
+  generator escaped only `\` and `"`, so such a name ended the generated string literal (CS1010). They, and the API
+  client generator's route literals, now use Roslyn's own escaping, and a route's `<` or `&` no longer malforms
+  the client's doc comment.
+- **A CQRS message nested two types deep crosses the wire.** The codec generator looked one level into a
+  container type, so `Orders.Returns.Refund` silently got no contract. It now walks every depth, like
+  the island, Blazor and validator generators — all four share one walker.
+- **An orphan scoped-CSS file is reported at the file.** RASK015 and RASK016 carried no location, so the error had
+  nothing to click; they now point at the `.css`, as scoped TypeScript's RASK017/018 already did. An empty orphan
+  `.css` is reported too, rather than skipped before it was paired.
+- **A remote dispatch failure reads the whole problem document.** When a server's problem document held an object
+  or array where Rask.Cqrs.Client expected a string, the reader lost its place: `detail` and the field `errors`
+  after it went missing, or the read threw. It now shares Rask.Api.Client's reader, which steps over such values.
+- **A server dispatch stops at its render budget.** A dispatch renders at most three times and warns that the rest
+  were dropped; on the server they were not — the dispatch's drain rendered the next one anyway, so a component that
+  kept asking for renders kept getting them. The server now drops them as the WASM runtime already did, and both
+  share one drain.
+- **A client that refuses brotli is not sent brotli.** The SPA host's precompressed files looked for `br` anywhere
+  in `Accept-Encoding`, so `br;q=0` still got the `.br` file. It now reads quality values as the page document
+  already did; the page, the scoped assets and the SPA host share one reading of the header.
 - **A design-time build compiles scoped TypeScript too, so `dotnet format` and an IDE reload see its generated calls.**
   They skipped the tsgo compile, so a component calling a member generated from its `.ts` (`NewCountdown`) failed
   with CS0246 until a real Debug build had run — every fresh worktree's pre-commit format check. A design-time

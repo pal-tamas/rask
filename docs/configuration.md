@@ -136,7 +136,6 @@ A few things to know:
 | `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization` and the relay limits. `AuthorizeRoom` is code-only. |
 | `Rask:Dashboard` | `RaskDashboardOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `MapRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [serving a WebAssembly app](deployment.md#serving-a-webassembly-app). |
-| `Rask:Data` | `RaskDataOptions` | `Rask.Data` | See [Rask.Data](data.md). |
 | `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
 | `Rask:Database:MigrateOnStart` | `true` | `Rask.Server` | Whether a `RaskApp` applies its pending migrations when it starts, before any battery's worker runs and before `/health` answers. `false` when something else applies them — a release pipeline running `rask db update`. Read by `RaskApp` while services are registered. In code: `app.Configure(c => c.MigrateOnStart = false)`, which wins over the setting. See [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start). |
 | `Rask:ConnectionStrings:App` | — | `Rask.SQLite`, `Rask.SQLite.EntityFrameworkCore`, `Rask.Postgres`, `Rask.SqlServer` | The application database. Also the default `DatabasePath` for Litestream and snapshots. |
@@ -153,7 +152,7 @@ A few things to know:
 | `Rask:Mail` | `MailOptions` | `Rask.Mail` | Any `Rask:Mail:Smtp` key turns SMTP delivery on; put `Rask__Mail__Smtp__Password` in the environment. See [mail](mail.md). |
 | `Rask:Outbox` | `OutboxOptions` | `Rask.Outbox` | See [outbox](outbox.md). |
 | `Rask:WebPush` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
-| `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `NotificationPublishStrategy`, `StopOnFirstNotificationException`, `ValidateRequests`, and the subscription knobs `ReplayCapacity`, `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
+| `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `EventPublishStrategy`, `StopOnFirstEventException`, `ValidateRequests`, and the subscription knobs `ReplayCapacity`, `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
 | `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits, and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
 
 ### Guard the environment like code

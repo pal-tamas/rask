@@ -122,7 +122,7 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
 
 ### Fakes for the things a component needs
 
-- **`TestDownloadSink`** — an `IDownloadSink` that records what a component staged. `Navigator.Download`
+- **`TestDownloadSink`** — an `IDownloadSink` that records what a component staged. `Download.File`
   refuses to run without one and tells you to "register a fake"; this is that fake. Assert on
   `.Staged` (`FileName`, `ContentType`, `Bytes`, `.Text`).
 - **`TestFileBackend`** — an `IBrowserFileBackend` serving files a test staged in memory, so an `OnFiles`
@@ -136,9 +136,9 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
   resolves: `TestServiceProvider.With<IBrowserFileBackend>(files)`, or `.Add(...).Add(...)` for several. Exists
   because `Page.Render` takes an `IServiceProvider` and this package depends on no DI container.
 - **`TestRoute.At("/search?q=hello%20world")`** — a `RouteState` at a URL, query string parsed and
-  decoded, repeated keys kept. `TestRoute.NavigatorFor(state, downloads)` wires the `Navigator`.
-  Register the `Navigator` in the provider and event dispatch enters its handler scope, so a component
-  that navigates or downloads on click can be unit-tested at all.
+  decoded, repeated keys kept. Hand it (and a `TestDownloadSink` as `IDownloadSink`) to the page through its
+  provider, and a handler's `Go.To`/`Go.With`/`Download.File` runs against them, so a component that
+  navigates or downloads on click can be unit-tested at all.
 - **`CapturingDiagnostics.Install()`** — captures the framework diagnostics raised while it is installed,
   so you can assert that a swallowed fault happened (or that none did). Swallow-and-log is the framework's
   designed behaviour for navigate faults, JS dispatch faults and faulted async lifecycle hooks, and

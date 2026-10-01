@@ -133,7 +133,6 @@ static Rask.Testing.StagedDownload.operator !=(Rask.Testing.StagedDownload? left
 static Rask.Testing.StagedDownload.operator ==(Rask.Testing.StagedDownload? left, Rask.Testing.StagedDownload? right) -> bool
 static Rask.Testing.TestFileBackend.PayloadFor(params Rask.Testing.TestFile![]! files) -> string!
 static Rask.Testing.TestRoute.At(string! url) -> Rask.Core.Routing.RouteState!
-static Rask.Testing.TestRoute.NavigatorFor(Rask.Core.Routing.RouteState! state, Rask.Core.Routing.IDownloadSink? downloads = null) -> Rask.Core.Routing.Navigator!
 static Rask.Testing.TestServiceProvider.With<TService>(TService! instance) -> Rask.Testing.TestServiceProvider!
 ~override Rask.Testing.JSCall.Equals(object obj) -> bool
 ~override Rask.Testing.JSCall.ToString() -> string

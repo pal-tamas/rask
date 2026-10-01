@@ -1,23 +1,36 @@
+using System.Data.Common;
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Rask.Cqrs;
 using Rask.Data;
 
 namespace Rask.Outbox;
 
 /// <summary>
-/// Before each save, drains every tracked entity's <see cref="IOutboxEvent"/> domain events into
-/// <see cref="OutboxMessage"/> rows on the same <see cref="DbContext"/> — so the events commit in the same
-/// transaction as the change that raised them (atomic; a rolled-back change writes no messages). The
-/// background <see cref="OutboxProcessor{TContext}"/> publishes them afterwards.
+/// Before each save, writes one <see cref="OutboxMessage"/> per <see cref="IDurableHandler{TEvent}"/> of every event the
+/// tracked entities raised, on the same <see cref="DbContext"/> — so the rows commit in the same transaction as the
+/// change that raised them (atomic; a rolled-back change writes none). Once they commit, the
+/// <see cref="OutboxProcessor{TContext}"/> is woken to run them.
 /// </summary>
 /// <remarks>
-/// Registered by <see cref="RaskOutboxServiceCollectionExtensions.AddRaskOutbox{TContext}"/>, which also
-/// claims domain-event delivery for the outbox — so Rask.Data's in-process publisher stands down on its
-/// own and events are not delivered twice. Nothing to disable by hand.
+/// It leaves the events on the entities: Rask.Data's <see cref="DomainEventInterceptor"/> publishes the same events to
+/// their in-memory handlers after the commit and clears them then, so the two read the same list whichever runs first.
+/// Each event it stored is marked, so that publish does not store it a second time.
 /// </remarks>
-public sealed class OutboxInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
+public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionInterceptor
 {
-    private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly TimeProvider _timeProvider;
+    private readonly OutboxSignal _signal;
+
+    // The contexts whose save wrote rows, until those rows are committed and the processor woken.
+    private readonly ConditionalWeakTable<DbContext, object> _wrote = new();
+
+    internal OutboxInterceptor(TimeProvider timeProvider, OutboxSignal signal)
+    {
+        _timeProvider = timeProvider;
+        _signal = signal;
+    }
 
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
@@ -34,6 +47,53 @@ public sealed class OutboxInterceptor(TimeProvider timeProvider) : SaveChangesIn
         return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
+    /// <inheritdoc/>
+    public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
+    {
+        WakeIfCommitted(eventData.Context);
+        return base.SavedChanges(eventData, result);
+    }
+
+    /// <inheritdoc/>
+    public override ValueTask<int> SavedChangesAsync(
+        SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+    {
+        WakeIfCommitted(eventData.Context);
+        return base.SavedChangesAsync(eventData, result, cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public override void SaveChangesFailed(DbContextErrorEventData eventData) => Forget(eventData.Context);
+
+    /// <inheritdoc/>
+    public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
+    {
+        Forget(eventData.Context);
+        return base.SaveChangesFailedAsync(eventData, cancellationToken);
+    }
+
+    // A save inside the caller's own transaction commits later than SavedChanges: wake then, not before, or the
+    // processor looks, finds rows it cannot see yet, and waits a whole poll.
+    void IDbTransactionInterceptor.TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData) =>
+        Wake(eventData.Context);
+
+    Task IDbTransactionInterceptor.TransactionCommittedAsync(
+        DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
+    {
+        Wake(eventData.Context);
+        return Task.CompletedTask;
+    }
+
+    void IDbTransactionInterceptor.TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData) =>
+        Forget(eventData.Context);
+
+    Task IDbTransactionInterceptor.TransactionRolledBackAsync(
+        DbTransaction transaction, TransactionEndEventData eventData, CancellationToken cancellationToken)
+    {
+        Forget(eventData.Context);
+        return Task.CompletedTask;
+    }
+
     private void Enqueue(DbContext? context)
     {
         if (context is null)
@@ -42,24 +102,58 @@ public sealed class OutboxInterceptor(TimeProvider timeProvider) : SaveChangesIn
         }
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
-
-        // Materialize first — adding OutboxMessage rows below mutates the ChangeTracker.
-        foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(entry => entry.Entity).ToList())
+        var rows = new List<OutboxMessage>();
+        foreach (var entity in context.ChangeTracker.Entries<IHasDomainEvents>().Select(static entry => entry.Entity))
         {
-            var events = entity.DomainEvents.OfType<IOutboxEvent>().ToList();
-            if (events.Count == 0)
+            foreach (var e in entity.DomainEvents)
             {
-                continue;
-            }
+                var handlers = CqrsRegistry.DurableHandlersOf(e.GetType());
+                if (handlers.Count > 0)
+                {
+                    rows.AddRange(Rows(e, handlers, now));
 
-            foreach (var domainEvent in events)
-            {
-                var (type, payload) = OutboxSerializerRegistry.Serialize(domainEvent);
-                context.Add(OutboxMessage.For(type, payload, now));
+                    // So the publish after the commit runs only the in-memory handlers.
+                    DurableEvents.MarkStored(e);
+                }
             }
+        }
 
-            // The outbox owns these events now; clear them so the in-process publisher (if any) skips them.
-            entity.ClearDomainEvents();
+        // Added after the walk: adding rows mutates the ChangeTracker being enumerated.
+        if (rows.Count > 0)
+        {
+            context.AddRange(rows);
+            _wrote.AddOrUpdate(context, _wrote);
+        }
+    }
+
+    /// <summary>One row per durable handler of <paramref name="e"/>.</summary>
+    internal static List<OutboxMessage> Rows(IEvent e, IReadOnlyList<string> handlers, DateTime now)
+    {
+        var (type, payload) = OutboxSerializerRegistry.Serialize(e);
+        return [.. handlers.Select(handler => OutboxMessage.For(type, payload, handler, now))];
+    }
+
+    private void WakeIfCommitted(DbContext? context)
+    {
+        if (context?.Database.CurrentTransaction is null)
+        {
+            Wake(context);
+        }
+    }
+
+    private void Wake(DbContext? context)
+    {
+        if (context is not null && _wrote.Remove(context))
+        {
+            _signal.Wake();
+        }
+    }
+
+    private void Forget(DbContext? context)
+    {
+        if (context is not null)
+        {
+            _wrote.Remove(context);
         }
     }
 }

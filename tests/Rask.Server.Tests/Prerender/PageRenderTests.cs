@@ -87,13 +87,13 @@ public sealed partial class PageRenderContentApp : Component
     protected override Component? Render() => P["page-render-content"];
 }
 
-public sealed partial class RedirectsOnMountApp(Navigator navigator) : Component
+public sealed partial class RedirectsOnMountApp : Component
 {
     protected override Component? HeadAssets => Title["redirects-on-mount"];
 
     protected override Task OnMount()
     {
-        navigator.NavigateTo("/elsewhere");
+        Go.To("/elsewhere");
         return Task.CompletedTask;
     }
 

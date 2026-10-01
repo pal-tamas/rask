@@ -52,7 +52,7 @@ public sealed class GeneratedInvokerTests
     }
 
     [Fact]
-    public void A_notification_gets_no_invoker_because_publishing_needs_no_generic()
+    public void A_event_gets_no_invoker_because_publishing_needs_no_generic()
     {
         Assert.Null(Contract<TodoArchived>().Invoker);
     }
@@ -111,10 +111,10 @@ public sealed class GeneratedInvokerTests
             return Task.CompletedTask;
         }
 
-        public Task Publish(RemoteContract contract, object notification, CancellationToken cancellationToken)
+        public Task Publish(RemoteContract contract, object e, CancellationToken cancellationToken)
         {
             Contract = contract;
-            Message = notification;
+            Message = e;
             return Task.CompletedTask;
         }
     }

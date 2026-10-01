@@ -28,7 +28,7 @@ public class ScopedTypeScriptTypeCheckTests
         ["bin", "obj", "node_modules", "wwwroot", "Resources", "Browser"];
 
     [Fact]
-    public void Every_scoped_TypeScript_file_type_checks()
+    public async Task Every_scoped_TypeScript_file_type_checks()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -48,7 +48,7 @@ public class ScopedTypeScriptTypeCheckTests
             var arguments = string.Join(" ", files.Concat([globals]).Select(f => $"\"{f}\""))
                             + " --noEmit --strict --target es2020 --module esnext --lib es2020,dom";
 
-            var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
+            var (exitCode, output) = await PinnedTools.Run(tsgo, arguments);
             if (exitCode != 0)
             {
                 failures.Add($"{Path.GetFileName(project)}:{Environment.NewLine}{output}");
@@ -78,7 +78,7 @@ public class ScopedTypeScriptTypeCheckTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void The_framework_service_workers_type_check()
+    public async Task The_framework_service_workers_type_check()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -99,7 +99,7 @@ public class ScopedTypeScriptTypeCheckTests
                         + " --noEmit --strict --target es2020 --module esnext --moduleResolution bundler"
                         + " --lib es2020,webworker";
 
-        var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
+        var (exitCode, output) = await PinnedTools.Run(tsgo, arguments);
 
         Assert.True(exitCode == 0, "The framework's service workers did not type-check:" + Environment.NewLine + output);
     }
@@ -130,7 +130,7 @@ public class ScopedTypeScriptTypeCheckTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void The_shipped_browser_modules_type_check_with_nothing_but_lib_dom()
+    public async Task The_shipped_browser_modules_type_check_with_nothing_but_lib_dom()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -158,7 +158,7 @@ public class ScopedTypeScriptTypeCheckTests
                         + " --isolatedModules --target es2022 --module esnext"
                         + " --moduleResolution bundler --lib es2022,dom";
 
-        var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
+        var (exitCode, output) = await PinnedTools.Run(tsgo, arguments);
 
         Assert.True(
             exitCode == 0,
@@ -192,7 +192,7 @@ public class ScopedTypeScriptTypeCheckTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void The_framework_client_runtimes_type_check()
+    public async Task The_framework_client_runtimes_type_check()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -242,7 +242,7 @@ public class ScopedTypeScriptTypeCheckTests
                         + " --noEmit --strict --noUnusedLocals --target es2020 --module esnext"
                         + " --moduleResolution bundler --lib es2020,dom";
 
-        var (exitCode, output) = PinnedTools.Run(tsgo, arguments);
+        var (exitCode, output) = await PinnedTools.Run(tsgo, arguments);
 
         Assert.True(
             exitCode == 0,

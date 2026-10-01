@@ -107,7 +107,7 @@ the whole of opting out at the app level.
 A delete, `db.Remove(product)`, removes the row — or, for an aggregate that declares
 `Deletes = Deletion.Soft`, stamps `DeletedAt` so the row drops out of queries (`IgnoreQueryFilters()` brings it
 back); a save against a stale `Version` throws
-`DbUpdateConcurrencyException`; and any `INotification` raised on the aggregate is published after the change
+`DbUpdateConcurrencyException`; and any `IEvent` raised on the aggregate is published after the change
 commits.
 
 To load many rows at once — seeding, an import, a migration — `await db.BulkInsertAsync(products)` (or

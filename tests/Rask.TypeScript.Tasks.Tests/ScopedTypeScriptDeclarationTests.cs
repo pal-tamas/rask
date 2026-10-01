@@ -61,7 +61,7 @@ public sealed class ScopedTypeScriptDeclarationTests
     }
 
     [Fact]
-    public void The_tsgo_emit_writes_a_declaration_the_generator_can_read()
+    public async Task The_tsgo_emit_writes_a_declaration_the_generator_can_read()
     {
         var directory = Directory.CreateTempSubdirectory("rask-ts-dts-");
         try
@@ -72,7 +72,7 @@ public sealed class ScopedTypeScriptDeclarationTests
                                       export class Chart { constructor(el: HTMLElement) {} draw(data: number[]): void {} }
                                       """);
 
-            var (exitCode, output) = PinnedTools.Run(
+            var (exitCode, output) = await PinnedTools.Run(
                 PinnedTools.Resolve("tsgo"),
                 $"\"{source}\" --rootDir \"{directory.FullName}\" --outDir \"{directory.FullName}/out\" "
                 + "--target es2020 --module esnext --noCheck --declaration --ignoreConfig");
@@ -90,7 +90,7 @@ public sealed class ScopedTypeScriptDeclarationTests
     }
 
     [Fact]
-    public void An_arrow_const_and_a_tuple_return_are_declared_in_the_forms_the_generator_reads()
+    public async Task An_arrow_const_and_a_tuple_return_are_declared_in_the_forms_the_generator_reads()
     {
         var directory = Directory.CreateTempSubdirectory("rask-ts-dts-");
         try
@@ -101,7 +101,7 @@ public sealed class ScopedTypeScriptDeclarationTests
                                       export const double = (x: number) => x * 2;
                                       """);
 
-            var (exitCode, output) = PinnedTools.Run(
+            var (exitCode, output) = await PinnedTools.Run(
                 PinnedTools.Resolve("tsgo"),
                 $"\"{source}\" --rootDir \"{directory.FullName}\" --outDir \"{directory.FullName}/out\" "
                 + "--target es2020 --module esnext --noCheck --declaration --ignoreConfig");

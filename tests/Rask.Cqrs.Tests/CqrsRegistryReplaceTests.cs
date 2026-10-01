@@ -13,7 +13,7 @@ public sealed class CqrsRegistryReplaceTests
 
     public sealed record Removed(int N) : ICommand;
 
-    public sealed record Noticed(int N) : INotification;
+    public sealed record Noticed(int N) : IEvent;
 
     public sealed record OtherGroupKept(int N) : ICommand;
 
@@ -31,7 +31,7 @@ public sealed class CqrsRegistryReplaceTests
             return Task.FromResult(Unit.Value);
         };
 
-    private static CqrsRegistry.NotificationInvoker Notes(List<string> log, string label) =>
+    private static CqrsRegistry.EventInvoker Notes(List<string> log, string label) =>
         (_, _, _) =>
         {
             log.Add(label);
@@ -61,19 +61,19 @@ public sealed class CqrsRegistryReplaceTests
     }
 
     [Fact]
-    public async Task Replacing_a_group_drops_a_notification_it_no_longer_registers()
+    public async Task Replacing_a_group_drops_a_event_it_no_longer_registers()
     {
-        // A notification with no invoker is a silent no-op, so a stale one is the worse failure: the fan-out
+        // An event with no invoker is a silent no-op, so a stale one is the worse failure: the fan-out
         // keeps running handlers that were deleted.
         var log = new List<string>();
         var key = new object();
-        CqrsRegistry.ReplaceNotifications(key, [(typeof(Noticed), Notes(log, "noticed"))]);
+        CqrsRegistry.ReplaceEvents(key, [(typeof(Noticed), Notes(log, "noticed"))]);
 
         await Dispatcher().Publish(new Noticed(1), TestContext.Current.CancellationToken);
 
         Assert.Equal(["noticed"], log);
 
-        CqrsRegistry.ReplaceNotifications(key, []);
+        CqrsRegistry.ReplaceEvents(key, []);
 
         await Dispatcher().Publish(new Noticed(1), TestContext.Current.CancellationToken);
 
@@ -118,7 +118,7 @@ public sealed class CqrsRegistryReplaceTests
     {
         Assert.Throws<ArgumentNullException>(() => CqrsRegistry.ReplaceRequests(null!, []));
         Assert.Throws<ArgumentNullException>(() => CqrsRegistry.ReplaceRequests(new object(), null!));
-        Assert.Throws<ArgumentNullException>(() => CqrsRegistry.ReplaceNotifications(null!, []));
-        Assert.Throws<ArgumentNullException>(() => CqrsRegistry.ReplaceNotifications(new object(), null!));
+        Assert.Throws<ArgumentNullException>(() => CqrsRegistry.ReplaceEvents(null!, []));
+        Assert.Throws<ArgumentNullException>(() => CqrsRegistry.ReplaceEvents(new object(), null!));
     }
 }

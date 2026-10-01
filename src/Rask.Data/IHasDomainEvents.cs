@@ -9,7 +9,7 @@ namespace Rask.Data;
 public interface IHasDomainEvents
 {
     /// <summary>The events raised since the entity was loaded, in the order they were raised.</summary>
-    IReadOnlyList<INotification> DomainEvents { get; }
+    IReadOnlyList<IEvent> DomainEvents { get; }
 
     /// <summary>Clears the recorded events (called by the interceptor after they are published).</summary>
     void ClearDomainEvents();

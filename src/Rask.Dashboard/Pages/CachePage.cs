@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Dashboard.Panels;
 
@@ -13,8 +14,7 @@ namespace Rask.Dashboard.Pages;
 public sealed partial class CachePage(
     ICachePanelReader cache,
     RaskDashboardOptions options,
-    TimeProvider timeProvider,
-    Navigator navigator) : PollingPanel
+    TimeProvider timeProvider) : PollingPanel
 {
     private CacheStats _stats;
     private IReadOnlyList<CacheKeyRow> _rows = [];
@@ -104,7 +104,7 @@ public sealed partial class CachePage(
         // not restore, which is worse than one that plainly carries less.
         Search = string.IsNullOrWhiteSpace(value) ? null : value;
         _page = 0;
-        navigator.NavigateTo(Routes.CachePage(Search: Search));
+        Go.To(Routes.CachePage(Search: Search));
         return Task.CompletedTask;
     }
 

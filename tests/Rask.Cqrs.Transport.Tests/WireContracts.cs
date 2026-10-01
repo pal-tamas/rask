@@ -17,7 +17,7 @@ public sealed record Bump(int By) : ICommand<int>;
 
 public sealed record Touch(string Note) : ICommand;
 
-public sealed record Announce(string Text) : INotification;
+public sealed record Announce(string Text) : IEvent;
 
 public sealed record Attach(string Note, IRaskFile File) : ICommand<string>;
 
@@ -91,11 +91,11 @@ public sealed class TouchHandler(Ledger ledger) : ICommandHandler<Touch>
     }
 }
 
-public sealed class AnnounceHandler(Ledger ledger) : INotificationHandler<Announce>
+public sealed class AnnounceHandler(Ledger ledger) : IEventHandler<Announce>
 {
-    public Task Handle(Announce notification)
+    public Task Handle(Announce e)
     {
-        ledger.Note($"announced:{notification.Text}");
+        ledger.Note($"announced:{e.Text}");
         return Task.CompletedTask;
     }
 }

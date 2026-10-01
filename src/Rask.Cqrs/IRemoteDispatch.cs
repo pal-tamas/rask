@@ -35,9 +35,9 @@ public interface IRemoteDispatch
     /// <param name="cancellationToken">Cancels the call, aborting the request in flight.</param>
     Task Send(RemoteContract contract, object message, CancellationToken cancellationToken);
 
-    /// <summary>Sends a notification for the other side's handlers to react to.</summary>
-    /// <param name="contract">The notification's wire contract.</param>
-    /// <param name="notification">The notification instance.</param>
+    /// <summary>Sends an event for the other side's handlers to react to.</summary>
+    /// <param name="contract">The event's wire contract.</param>
+    /// <param name="e">The event instance.</param>
     /// <param name="cancellationToken">Cancels the call, aborting the request in flight.</param>
-    Task Publish(RemoteContract contract, object notification, CancellationToken cancellationToken);
+    Task Publish(RemoteContract contract, object e, CancellationToken cancellationToken);
 }

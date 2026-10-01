@@ -3,9 +3,8 @@ using Microsoft.Extensions.Primitives;
 namespace Rask.Core.Routing;
 
 /// <summary>
-///     Imperative client-side navigation and query-string mutation, plus file downloads.
-///     Inject it through a component constructor (<c>public MyPage(Navigator nav)</c>) and call
-///     it from <b>event handlers only</b>.
+///     The engine under <see cref="Rask.Core.Go" /> and <see cref="Rask.Core.Download" />: client-side navigation, query-string
+///     changes and file downloads for one session, legal from <b>event handlers only</b>.
 ///     <para>
 ///         Every method throws <see cref="InvalidOperationException" /> if called outside an event
 ///         handler — e.g. during <c>Render()</c> or the initial GET. Navigation that needs to happen
@@ -17,7 +16,7 @@ namespace Rask.Core.Routing;
 ///         pushed (or replaced) into browser history by the live runtime after the handler returns.
 ///     </para>
 /// </summary>
-public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink = null)
+internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink = null)
 {
     // The navigator of the handler currently running on this async flow. Published by EnterHandler and
     // cleared when that scope disposes, so it is set for exactly the window in which navigation is legal —
@@ -37,16 +36,13 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
 
     /// <summary>
     ///     The <see cref="Navigator" /> for the event handler currently running, or <c>null</c> outside one.
-    ///     The generated <c>SomePage.Go(...)</c> helpers use this; injecting <see cref="Navigator" /> through a
-    ///     component constructor is the equivalent explicit route.
+    ///     The facades and the generated <c>SomePage.Go(...)</c> helpers reach it through this.
     /// </summary>
     public static Navigator? Current => _current.Value;
 
     /// <summary>
     ///     <see cref="Current" />, or a throw with the same actionable message the instance methods raise when
-    ///     used outside an event handler. Public because the generated <c>SomePage.Go(...)</c> helpers are
-    ///     compiled into the consumer's assembly and call it; prefer injecting <see cref="Navigator" /> through
-    ///     a component constructor in code you write by hand.
+    ///     used outside an event handler.
     /// </summary>
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public static Navigator RequireCurrent() =>
@@ -226,11 +222,18 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         ResolveSink().Stage(filename, stream, contentType);
     }
 
+    /// <summary>Makes the navigation this handler made replace the current history entry: <c>.Replacing()</c>.</summary>
+    internal void Replace()
+    {
+        EnsureInHandler();
+        _replace = true;
+    }
+
     private IDownloadSink ResolveSink() =>
         downloadSink ?? throw new InvalidOperationException(
-            "Navigator.Download requires an IDownloadSink. Every Rask host registers one — Rask.Server via " +
-            "AddRask(), WASM via WasmHostBuilder — so reaching this means the Navigator was built outside " +
-            "a host. If you're in a unit test, register a fake (Rask.Testing ships TestDownloadSink).");
+            "Download.File requires an IDownloadSink. Every Rask host registers one — Rask.Server via " +
+            "AddRask(), WASM via WasmHostBuilder — so reaching this means the page runs outside " +
+            "a host. In a unit test, hand the page a TestDownloadSink (Rask.Testing).");
 
     /// <summary>
     ///     Opens the window in which navigation is legal during a page's INITIAL server render, so a

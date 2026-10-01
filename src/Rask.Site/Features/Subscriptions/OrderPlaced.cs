@@ -6,4 +6,4 @@ namespace Rask.Site.Features;
 // none here) and reaches every open subscription for it.
 
 // Goes to every subscriber.
-public sealed record OrderPlaced(int Number, string Item) : INotification;
+public sealed record OrderPlaced(int Number, string Item) : IEvent;

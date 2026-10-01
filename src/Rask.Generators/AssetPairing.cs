@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Rask.Generators;
 
@@ -48,4 +51,33 @@ internal static class AssetPairing
     /// <summary>The pairing key for a file or class named <paramref name="name" /> in <paramref name="dir" />.</summary>
     public static string MakeKey(string dir, string name) =>
         dir.Length == 0 ? name : dir + "/" + name;
+
+    /// <summary>
+    ///     A location in a sibling file that is not part of the compilation.
+    /// </summary>
+    /// <remarks>
+    ///     The alternative is <c>Location.None</c>, which leaves an error about <c>Counter.css</c> with nothing to
+    ///     click and nothing to blame.
+    /// </remarks>
+    public static Location SourceLocation(string path) =>
+        Location.Create(path, new TextSpan(0, 0), new LinePositionSpan(default, default));
+
+    /// <summary>Appends <paramref name="value" /> as a C# verbatim string literal.</summary>
+    public static void AppendVerbatimStringLiteral(StringBuilder sb, string value)
+    {
+        sb.Append("@\"");
+        foreach (var ch in value)
+        {
+            if (ch == '"')
+            {
+                sb.Append("\"\"");
+            }
+            else
+            {
+                sb.Append(ch);
+            }
+        }
+
+        sb.Append('"');
+    }
 }

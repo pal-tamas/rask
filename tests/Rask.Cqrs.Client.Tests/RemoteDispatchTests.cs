@@ -118,6 +118,26 @@ public sealed class RemoteDispatchTests
     }
 
     [Fact]
+    public async Task A_problem_member_holding_an_object_is_stepped_over_and_the_rest_still_read()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                """{"type":{"href":"x"},"title":["Bad"],"detail":"name is taken","errors":{"Name":["taken"]}}""",
+                Encoding.UTF8,
+                "application/problem+json"),
+        };
+
+        var error = await Assert.ThrowsAsync<RemoteDispatchException>(
+            () => Dispatcher(Handler(response)).Query(new GetThing(1), TestContext.Current.CancellationToken));
+
+        Assert.Equal(400, error.StatusCode);
+        Assert.Null(error.ProblemType);
+        Assert.Equal("name is taken", error.Detail);
+        Assert.Equal(["taken"], error.Errors!["Name"]);
+    }
+
+    [Fact]
     public async Task A_request_that_never_reaches_the_server_reports_a_null_status()
     {
         // The null IS the signal — it is what separates "the server said no" from "there was no server".
@@ -215,7 +235,7 @@ public sealed class RemoteDispatchTests
     }
 
     [Fact]
-    public async Task Publishing_a_notification_reaches_the_server()
+    public async Task Publishing_a_event_reaches_the_server()
     {
         var handler = Handler(new HttpResponseMessage(HttpStatusCode.Accepted));
 

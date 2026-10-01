@@ -165,22 +165,22 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
         return new Command(this, [.. invalidates]);
     }
 
-    public Subscription<TNotification> Subscribe<TNotification>()
-        where TNotification : INotification =>
-        new(this, NotificationTarget<TNotification>(null));
+    public Subscription<TEvent> Subscribe<TEvent>()
+        where TEvent : IEvent =>
+        new(this, NotificationTarget<TEvent>(null));
 
-    public Subscription<TNotification> Subscribe<TNotification>(ISubscription<TNotification> subscription)
-        where TNotification : INotification
+    public Subscription<TEvent> Subscribe<TEvent>(ISubscription<TEvent> subscription)
+        where TEvent : IEvent
     {
         ArgumentNullException.ThrowIfNull(subscription);
-        return new Subscription<TNotification>(this, NotificationTarget<TNotification>(subscription));
+        return new Subscription<TEvent>(this, NotificationTarget<TEvent>(subscription));
     }
 
-    public Subscription<TNotification> Subscribe<TNotification>(Func<ISubscription<TNotification>?> subscription)
-        where TNotification : INotification
+    public Subscription<TEvent> Subscribe<TEvent>(Func<ISubscription<TEvent>?> subscription)
+        where TEvent : IEvent
     {
         ArgumentNullException.ThrowIfNull(subscription);
-        return new Subscription<TNotification>(this, new RecordSource<TNotification>(this, subscription));
+        return new Subscription<TEvent>(this, new RecordSource<TEvent>(this, subscription));
     }
 
     public Subscription<T> Subscribe<TInput, T>(
@@ -199,10 +199,10 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
         _dispatcher is LocalDispatcher dispatcher ? dispatcher.Subscriptions : CqrsExecutionOptions.Default;
 
     /// <summary>What a notification subscription watches: its type and its record, through the dispatcher.</summary>
-    internal SubscriptionTarget<TNotification> NotificationTarget<TNotification>(object? subscription)
-        where TNotification : INotification =>
-        new(new NotificationIdentity(typeof(TNotification), subscription),
-            (admitted, ct) => Watch<TNotification>(subscription, admitted, ct));
+    internal SubscriptionTarget<TEvent> NotificationTarget<TEvent>(object? subscription)
+        where TEvent : IEvent =>
+        new(new NotificationIdentity(typeof(TEvent), subscription),
+            (admitted, ct) => Watch<TEvent>(subscription, admitted, ct));
 
     /// <summary>What a function subscription watches: one input, handed to the stream it opens.</summary>
     internal static SubscriptionTarget<T>? StreamTarget<TInput, T>(
@@ -214,30 +214,30 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
 
     // The dispatcher's own Watch knows when the subscription is admitted — after the policy, after the replay. Any
     // other IDispatcher (a test double) is taken as admitted the moment it is asked.
-    private IAsyncEnumerable<TNotification> Watch<TNotification>(
+    private IAsyncEnumerable<TEvent> Watch<TEvent>(
         object? subscription,
         Action admitted,
         CancellationToken ct)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
         if (_dispatcher is LocalDispatcher dispatcher)
         {
-            return Typed<TNotification>(dispatcher.Watch(typeof(TNotification), subscription, admitted, ct), ct);
+            return Typed<TEvent>(dispatcher.Watch(typeof(TEvent), subscription, admitted, ct), ct);
         }
 
-        var stream = subscription is ISubscription<TNotification> record
+        var stream = subscription is ISubscription<TEvent> record
             ? _dispatcher.Subscribe(record, ct)
-            : _dispatcher.Subscribe<TNotification>(ct);
+            : _dispatcher.Subscribe<TEvent>(ct);
         return Admit(admitted, stream, ct);
     }
 
-    private static async IAsyncEnumerable<TNotification> Typed<TNotification>(
-        IAsyncEnumerable<INotification> source,
+    private static async IAsyncEnumerable<TEvent> Typed<TEvent>(
+        IAsyncEnumerable<IEvent> source,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
     {
         await foreach (var notification in source.WithCancellation(ct).ConfigureAwait(false))
         {
-            yield return (TNotification)notification;
+            yield return (TEvent)notification;
         }
     }
 
@@ -257,15 +257,15 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
 
     private sealed record StreamIdentity(object Input);
 
-    private sealed class RecordSource<TNotification>(
+    private sealed class RecordSource<TEvent>(
         SessionQueryClient client,
-        Func<ISubscription<TNotification>?> subscription) : ISubscriptionSource<TNotification>
-        where TNotification : INotification
+        Func<ISubscription<TEvent>?> subscription) : ISubscriptionSource<TEvent>
+        where TEvent : IEvent
     {
         private bool _asked;
-        private ISubscription<TNotification>? _last;
+        private ISubscription<TEvent>? _last;
 
-        public bool TryAdvance(out SubscriptionTarget<TNotification>? target)
+        public bool TryAdvance(out SubscriptionTarget<TEvent>? target)
         {
             var current = subscription();
             if (_asked && Equals(current, _last))
@@ -276,7 +276,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
 
             _asked = true;
             _last = current;
-            target = current is null ? null : client.NotificationTarget<TNotification>(current);
+            target = current is null ? null : client.NotificationTarget<TEvent>(current);
             return true;
         }
     }

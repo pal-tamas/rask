@@ -3,7 +3,7 @@ namespace Rask.Outbox;
 /// <summary>Options for the <see cref="OutboxProcessor{TContext}"/>.</summary>
 public sealed class OutboxOptions
 {
-    /// <summary>How often the processor polls the outbox table for unpublished messages. Default 5s.</summary>
+    /// <summary>How often the processor polls the outbox table as a safety net; a save that wrote rows wakes it at once. Default 5s.</summary>
     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>How many messages to claim and publish per poll. Default 100, maximum 1000.</summary>

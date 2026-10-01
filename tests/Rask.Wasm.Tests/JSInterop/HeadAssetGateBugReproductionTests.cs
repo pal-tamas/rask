@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Text.Json;
+using Rask.TestFiles;
 
 namespace Rask.Wasm.Tests.JsInteropRuntime;
 
@@ -44,7 +44,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 public sealed class HeadAssetGateBugReproductionTests
 {
     [Fact]
-    public void A_head_asset_error_drains_the_gate_with_a_diagnostic_warning_and_defensive_user_code_does_not_throw()
+    public async Task A_head_asset_error_drains_the_gate_with_a_diagnostic_warning_and_defensive_user_code_does_not_throw()
     {
         var node = ResolveNode();
         if (node is null)
@@ -62,21 +62,14 @@ public sealed class HeadAssetGateBugReproductionTests
         Assert.True(File.Exists(fixtureScript), $"Fixture script missing: {fixtureScript}");
         Assert.True(File.Exists(bundlePath), $"Bundle source missing: {bundlePath}");
 
-        var psi = new ProcessStartInfo(node, $"\"{fixtureScript}\" \"{bundlePath}\"")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
+        var run = await TestProcess.Run(
+            node, $"\"{fixtureScript}\" \"{bundlePath}\"", timeout: TimeSpan.FromSeconds(30),
+            cancellationToken: TestContext.Current.CancellationToken);
+        var stdout = run.StandardOutput;
+        var stderr = run.StandardError;
 
-        using var proc = Process.Start(psi)!;
-        var stdout = proc.StandardOutput.ReadToEnd();
-        var stderr = proc.StandardError.ReadToEnd();
-        proc.WaitForExit(30_000);
-
-        Assert.True(proc.ExitCode == 0,
-            $"Fixture exited with code {proc.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
+        Assert.True(run.ExitCode == 0,
+            $"Fixture exited with code {run.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
 
         // The fixture emits one JSON line on stdout (after any console.log noise
         // from the bundle's setExports). Locate it.

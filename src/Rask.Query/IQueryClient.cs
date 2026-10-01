@@ -198,7 +198,7 @@ public interface IQueryClient
     Command Command(params QueryKey[] invalidates);
 
     /// <summary>
-    ///     A live view of every <typeparamref name="TNotification" /> published — starting with the last one, when
+    ///     A live view of every <typeparamref name="TEvent" /> published — starting with the last one, when
     ///     there is one — for as long as a component reads it. tRPC's <c>useSubscription</c>, over a CQRS notification.
     /// </summary>
     /// <remarks>
@@ -210,12 +210,12 @@ public interface IQueryClient
     ///         every visitor's command publishes.
     ///     </para>
     /// </remarks>
-    /// <typeparam name="TNotification">The notification to watch.</typeparam>
-    Subscription<TNotification> Subscribe<TNotification>()
-        where TNotification : INotification;
+    /// <typeparam name="TEvent">The notification to watch.</typeparam>
+    Subscription<TEvent> Subscribe<TEvent>()
+        where TEvent : IEvent;
 
     /// <summary>
-    ///     A live view of the <typeparamref name="TNotification" />s <paramref name="subscription" /> asks for —
+    ///     A live view of the <typeparamref name="TEvent" />s <paramref name="subscription" /> asks for —
     ///     starting with the last matching one, when there is one.
     /// </summary>
     /// <remarks>
@@ -227,20 +227,20 @@ public interface IQueryClient
     ///     var shipped = client.Subscribe(new WatchOrder(orderId));   // one order's
     ///     </code>
     /// </remarks>
-    /// <typeparam name="TNotification">The notification the subscription carries.</typeparam>
+    /// <typeparam name="TEvent">The notification the subscription carries.</typeparam>
     /// <param name="subscription">What to watch.</param>
-    Subscription<TNotification> Subscribe<TNotification>(ISubscription<TNotification> subscription)
-        where TNotification : INotification;
+    Subscription<TEvent> Subscribe<TEvent>(ISubscription<TEvent> subscription)
+        where TEvent : IEvent;
 
     /// <summary>
     ///     A subscription that follows what it watches: <paramref name="subscription" /> runs at every read, and a
     ///     different record re-points it — for one held in a field and created before a route parameter is bound.
     /// </summary>
     /// <remarks>A null record means the input is not there yet: the subscription waits, opening nothing, until it is.</remarks>
-    /// <typeparam name="TNotification">The notification the subscription carries.</typeparam>
+    /// <typeparam name="TEvent">The notification the subscription carries.</typeparam>
     /// <param name="subscription">Builds the record from the component's current state, or returns null to wait.</param>
-    Subscription<TNotification> Subscribe<TNotification>(Func<ISubscription<TNotification>?> subscription)
-        where TNotification : INotification;
+    Subscription<TEvent> Subscribe<TEvent>(Func<ISubscription<TEvent>?> subscription)
+        where TEvent : IEvent;
 
     /// <summary>
     ///     A live view of a stream that is a function rather than a notification — a price feed, a progress report —

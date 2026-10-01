@@ -130,10 +130,10 @@ public sealed class DispatcherTests
     }
 
     [Fact]
-    public async Task The_WhenAll_strategy_runs_all_notification_handlers()
+    public async Task The_WhenAll_strategy_runs_all_event_handlers()
     {
         var recorder = new Recorder();
-        await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);
+        await using var sp = Build(o => o.EventPublishStrategy = EventPublishStrategy.WhenAll, recorder);
 
         await sp.GetRequiredService<IDispatcher>().Publish(new Pinged("w"), TestContext.Current.CancellationToken);
 
@@ -171,7 +171,7 @@ public sealed class DispatcherTests
     public async Task Sequential_publish_stops_on_the_first_handler_failure_and_rethrows()
     {
         var recorder = new Recorder();
-        // Default fan-out: Sequential + StopOnFirstNotificationException = true.
+        // Default fan-out: Sequential + StopOnFirstEventException = true.
         await using var sp = Build(recorder: recorder);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -188,7 +188,7 @@ public sealed class DispatcherTests
     public async Task Sequential_publish_without_stop_runs_all_handlers_and_aggregates_failures()
     {
         var recorder = new Recorder();
-        await using var sp = Build(o => o.StopOnFirstNotificationException = false, recorder);
+        await using var sp = Build(o => o.StopOnFirstEventException = false, recorder);
 
         var ex = await Assert.ThrowsAsync<AggregateException>(
             () => sp.GetRequiredService<IDispatcher>().Publish(new Grumble("x"), TestContext.Current.CancellationToken));
@@ -201,7 +201,7 @@ public sealed class DispatcherTests
     public async Task A_WhenAll_publish_starts_every_handler_then_surfaces_a_failure()
     {
         var recorder = new Recorder();
-        await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);
+        await using var sp = Build(o => o.EventPublishStrategy = EventPublishStrategy.WhenAll, recorder);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => sp.GetRequiredService<IDispatcher>().Publish(new Grumble("x"), TestContext.Current.CancellationToken));

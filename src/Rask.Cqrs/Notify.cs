@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Cqrs;
 
 /// <summary>
-///     Publishes a notification from anywhere, with nothing injected — a background job, a hosted service, a
+///     Publishes an event from anywhere, with nothing injected — a background job, a hosted service, a
 ///     webhook, a domain method.
 /// </summary>
 /// <remarks>
@@ -20,7 +20,7 @@ namespace Rask.Cqrs;
 ///         </code>
 ///     </para>
 ///     <para>
-///         It is the same publish in every respect: subscribers hear it first, then the notification's handlers
+///         It is the same publish in every respect: subscribers hear it first, then the event's handlers
 ///         run. Injecting <see cref="IDispatcher" /> where one is already to hand — a command handler, an
 ///         endpoint — stays exactly right, and is what the facade does underneath.
 ///     </para>
@@ -65,54 +65,54 @@ public static class Notify
     }
 
     /// <summary>
-    ///     Publishes <paramref name="notification" />: every subscription watching it is told, and every handler
+    ///     Publishes <paramref name="e" />: every subscription watching it is told, and every handler
     ///     for it runs.
     /// </summary>
-    /// <typeparam name="TNotification">The notification being published.</typeparam>
-    /// <param name="notification">What happened.</param>
+    /// <typeparam name="TEvent">The event being published.</typeparam>
+    /// <param name="e">What happened.</param>
     /// <param name="cancellationToken">Cancels the handlers; subscribers have already been told.</param>
     /// <returns>A task that completes when the handlers have.</returns>
-    public static Task Send<TNotification>(
-        TNotification notification,
+    public static Task Send<TEvent>(
+        TEvent e,
         CancellationToken cancellationToken = default)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
-        ArgumentNullException.ThrowIfNull(notification);
+        ArgumentNullException.ThrowIfNull(e);
 
         if (AmbientScope.Value is { } bound)
         {
-            return Publish(bound, notification, cancellationToken);
+            return Publish(bound, e, cancellationToken);
         }
 
         var root = _root ?? throw new InvalidOperationException(
             "Notify.Send was called before Rask.Cqrs started. Register it with services.AddRaskCqrs(), or "
             + "inject IDispatcher where the publish already has a scope.");
 
-        return SendInOwnScope(root, notification, cancellationToken);
+        return SendInOwnScope(root, e, cancellationToken);
     }
 
     // Awaits the handlers before the scope goes: disposing it underneath them would take away the very services
     // they were given it for.
-    private static async Task SendInOwnScope<TNotification>(
+    private static async Task SendInOwnScope<TEvent>(
         IServiceProvider root,
-        TNotification notification,
+        TEvent e,
         CancellationToken cancellationToken)
-        where TNotification : INotification
+        where TEvent : IEvent
     {
         var scope = root.CreateAsyncScope();
         await using (scope.ConfigureAwait(false))
         {
-            await Publish(scope.ServiceProvider, notification, cancellationToken).ConfigureAwait(false);
+            await Publish(scope.ServiceProvider, e, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static Task Publish<TNotification>(
+    private static Task Publish<TEvent>(
         IServiceProvider services,
-        TNotification notification,
+        TEvent e,
         CancellationToken cancellationToken)
-        where TNotification : INotification =>
+        where TEvent : IEvent =>
         services.GetService<IDispatcher>() is { } dispatcher
-            ? dispatcher.Publish(notification, cancellationToken)
+            ? dispatcher.Publish(e, cancellationToken)
             : throw new InvalidOperationException(
                 "Notify.Send needs Rask.Cqrs registered: call services.AddRaskCqrs().");
 

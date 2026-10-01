@@ -287,7 +287,10 @@ internal sealed class WireCodecEmitter
 
     private static string Format(string template, string value) => template.Replace("{0}", value);
 
-    private static string Literal(string value) => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+    // Roslyn's own escaping: a wire name can come from the user's [JsonPropertyName], and a hand escape that knew
+    // only \ and " let a line break end the literal (CS1010).
+    private static string Literal(string value) =>
+        Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
     private const string Writer = "global::System.Text.Json.Utf8JsonWriter";
     private const string Reader = "global::System.Text.Json.Utf8JsonReader";

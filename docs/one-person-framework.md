@@ -34,7 +34,7 @@ component code runs on two hosts — you pick per project, not per component:
 - **WASM** — the same component running fully client-side in the browser (and installable as an offline PWA).
 
 Behind the UI, features are **vertical slices**: [`Rask.Cqrs`](cqrs.md) gives you source-generated
-commands/queries/notifications, and [`Rask.Data`](data.md) gives every aggregate a base with identity,
+commands/queries/events, and [`Rask.Data`](data.md) gives every aggregate a base with identity,
 audit stamps, opt-in soft delete, optimistic concurrency, and domain events — driven by EF Core interceptors, not
 boilerplate you copy into each feature. You don't wire a mediator or write a repository; you describe the
 slice and the framework assembles it.

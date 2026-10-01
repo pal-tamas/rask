@@ -16,7 +16,7 @@ internal static class BatterySelection
     internal static readonly string[] FeatureFlags =
     [
         "pwa", "cqrs", "data", "docker",
-        "jobs", "mail", "cache", "storage", "outbox", "push", "snapshots", "logs", "ops", "tests",
+        "jobs", "mail", "cache", "storage", "push", "snapshots", "logs", "ops", "tests",
     ];
 
     /// <summary>
@@ -89,7 +89,6 @@ internal static class BatterySelection
             Mail = on.Contains("mail", StringComparer.Ordinal),
             Cache = on.Contains("cache", StringComparer.Ordinal),
             Storage = on.Contains("storage", StringComparer.Ordinal),
-            Outbox = on.Contains("outbox", StringComparer.Ordinal),
             Push = on.Contains("push", StringComparer.Ordinal),
             Snapshots = on.Contains("snapshots", StringComparer.Ordinal),
             Logs = on.Contains("logs", StringComparer.Ordinal),
@@ -120,7 +119,6 @@ internal static class BatterySelection
             Mail = On("mail"),
             Cache = On("cache"),
             Storage = On("storage"),
-            Outbox = On("outbox"),
             Push = On("push"),
             Snapshots = On("snapshots"),
             Logs = On("logs"),
@@ -145,7 +143,6 @@ internal static class BatterySelection
         "mail" => batteries.Mail,
         "cache" => batteries.Cache,
         "storage" => batteries.Storage,
-        "outbox" => batteries.Outbox,
         "push" => batteries.Push,
         "snapshots" => batteries.Snapshots,
         "logs" => batteries.Logs,

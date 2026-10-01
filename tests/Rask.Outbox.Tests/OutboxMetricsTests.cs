@@ -45,7 +45,7 @@ public sealed class OutboxMetricsTests : IDisposable
         await using (var db = NewContext())
         {
             db.Set<OutboxMessage>().Add(
-                OutboxMessage.For("Nothing.Registered.Here", "{}", DateTime.UtcNow));
+                OutboxMessage.For("Nothing.Registered.Here", "{}", "Some.Handler:Some.Event", DateTime.UtcNow));
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

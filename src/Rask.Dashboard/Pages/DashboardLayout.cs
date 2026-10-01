@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Dashboard.Panels;
 
@@ -37,7 +38,6 @@ namespace Rask.Dashboard.Pages;
 public sealed partial class DashboardLayout(
     IEnumerable<IQueuePanel> queues,
     RouteState route,
-    Navigator navigator,
     DashboardSecurityState security) : Component
 {
     // Enumerated once and kept: IsAvailable asks whether the battery is registered AND mapped in the EF
@@ -155,7 +155,7 @@ public sealed partial class DashboardLayout(
     {
         if (Available.Any(q => string.Equals(q.Slug, slug, StringComparison.Ordinal)))
         {
-            navigator.NavigateTo(Routes.QueuePage(slug).Path);
+            Go.To(Routes.QueuePage(slug).Path);
         }
 
         return Task.CompletedTask;

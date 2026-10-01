@@ -2204,17 +2204,6 @@ Rask.Core.Routing.IQueryCollection.Keys.get -> System.Collections.Generic.IColle
 Rask.Core.Routing.IQueryCollection.TryGetValue(string! key, out Microsoft.Extensions.Primitives.StringValues value) -> bool
 Rask.Core.Routing.IQueryCollection.this[string! key].get -> Microsoft.Extensions.Primitives.StringValues
 Rask.Core.Routing.LocalUrl
-Rask.Core.Routing.Navigator
-Rask.Core.Routing.Navigator.ClearQuery() -> void
-Rask.Core.Routing.Navigator.Download(string! filename, System.IO.Stream! stream, string? contentType = null) -> void
-Rask.Core.Routing.Navigator.Download(string! filename, byte[]! bytes, string? contentType = null) -> void
-Rask.Core.Routing.Navigator.NavigateTo(Rask.Core.Routing.RouteUrl url, bool replace = false) -> void
-Rask.Core.Routing.Navigator.NavigateTo(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string?>>! query, bool replace = false) -> void
-Rask.Core.Routing.Navigator.NavigateTo(string! path, bool replace = false) -> void
-Rask.Core.Routing.Navigator.Navigator(Rask.Core.Routing.RouteState! routeState, Rask.Core.Routing.IDownloadSink? downloadSink = null) -> void
-Rask.Core.Routing.Navigator.RemoveQuery(string! key) -> void
-Rask.Core.Routing.Navigator.SetQuery(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> void
-Rask.Core.Routing.Navigator.SetQuery(string! key, string? value) -> void
 Rask.Core.Routing.NotFoundAttribute
 Rask.Core.Routing.NotFoundAttribute.NotFoundAttribute() -> void
 Rask.Core.Routing.Outlet
@@ -2941,8 +2930,6 @@ static Rask.Core.RaskMarkup.VirtualizeModel -> Rask.Core.Components.RaskSeed_Vir
 static Rask.Core.RaskUrl.Trusted(string! url) -> string!
 static Rask.Core.RaskVersion.Current.get -> string!
 static Rask.Core.Routing.LocalUrl.Sanitize(string? url) -> string!
-static Rask.Core.Routing.Navigator.Current.get -> Rask.Core.Routing.Navigator?
-static Rask.Core.Routing.Navigator.RequireCurrent() -> Rask.Core.Routing.Navigator!
 static Rask.Core.Routing.PendingDownload.operator !=(Rask.Core.Routing.PendingDownload? left, Rask.Core.Routing.PendingDownload? right) -> bool
 static Rask.Core.Routing.PendingDownload.operator ==(Rask.Core.Routing.PendingDownload? left, Rask.Core.Routing.PendingDownload? right) -> bool
 static Rask.Core.Routing.QueryString.Build(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, Microsoft.Extensions.Primitives.StringValues>>! query) -> string!
@@ -13335,7 +13322,6 @@ static RaskEntriesRask_Core.View.get -> Rask.Core.SVGViewElement!
 static RaskEntriesRask_Core.Wbr.get -> Rask.Core.HTMLElement!
 Rask.Core.Authentication.IPrincipalFor
 Rask.Core.Authentication.IPrincipalFor.For(object! user) -> System.Security.Claims.ClaimsPrincipal?
-Rask.Core.Routing.RouteUrl.Go(bool replace = false) -> void
 Rask.Core.Toast
 Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.For(System.TimeSpan duration) -> Rask.Core.Messaging.ShowingToast
@@ -13376,6 +13362,23 @@ static Rask.Core.Toast.Success(string! message) -> Rask.Core.Messaging.ShowingTo
 static Rask.Core.Toast.Warning(string! message) -> Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.Action(string! label, System.Action! run) -> Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.Action(string! label, System.Func<System.Threading.Tasks.Task!>! run) -> Rask.Core.Messaging.ShowingToast
+Rask.Settings<TOptions>
+Rask.Settings<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Settings<TOptions!>!
+Rask.Settings<TOptions>.Settings() -> void
+Rask.Core.Download
+Rask.Core.Go
+Rask.Core.GoTo
+Rask.Core.GoTo.Replacing() -> void
+Rask.Core.Routing.RouteUrl.Go() -> Rask.Core.GoTo!
+static Rask.Core.Download.File(string! filename, System.IO.Stream! stream, string? contentType = null) -> void
+static Rask.Core.Download.File(string! filename, byte[]! bytes, string? contentType = null) -> void
+static Rask.Core.Go.To(Rask.Core.Routing.RouteUrl url) -> Rask.Core.GoTo!
+static Rask.Core.Go.To(string! path) -> Rask.Core.GoTo!
+static Rask.Core.Go.To(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string?>>! query) -> Rask.Core.GoTo!
+static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> void
+static Rask.Core.Go.With(string! key, string? value) -> void
+static Rask.Core.Go.Without() -> void
+static Rask.Core.Go.Without(string! key) -> void
 Rask.Core.Auth
 static Rask.Core.Auth.AddPasskey(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 static Rask.Core.Auth.ConfirmEmail(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!

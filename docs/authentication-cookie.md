@@ -236,14 +236,14 @@ public partial class AuthJson : JsonSerializerContext { }
 unsupported — the cookie is set by the server):
 
 ```csharp
-public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navigator nav)
+public sealed class WasmLoginService(HttpClient http, IUserProvider users)
 {
     public async Task<bool> LoginAsync(string username, string password, string? returnUrl)
     {
         var resp = await http.PostAsJsonAsync("api/login", new LoginDto(username, password), AuthJson.Default.LoginDto);
         if (!resp.IsSuccessStatusCode) return false;
         await users.RefreshAsync();
-        nav.NavigateTo(returnUrl ?? "/members");
+        Go.To(returnUrl ?? "/members");
         return true;
     }
 
@@ -252,7 +252,7 @@ public sealed class WasmLoginService(HttpClient http, IUserProvider users, Navig
         await http.PostAsync("auth/logout", null);
         // Navigate first (still in the click-handler scope), then clear the principal — refreshing first
         // closes the Authorize gate and unmounts the calling component before the navigation runs.
-        nav.NavigateTo("/login");
+        Go.To("/login");
         await users.RefreshAsync();
     }
 }

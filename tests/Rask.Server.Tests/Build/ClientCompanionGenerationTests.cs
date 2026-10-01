@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Rask.TestFiles;
 
 namespace Rask.Server.Tests.Build;
 
@@ -35,9 +35,9 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void The_companion_compiles_the_client_and_shared_folders_and_nothing_else()
+    public async Task The_companion_compiles_the_client_and_shared_folders_and_nothing_else()
     {
-        var project = Slashes(Generate());
+        var project = Slashes(await Generate());
 
         Assert.Contains("/Client/**/*.cs\" />", project, StringComparison.Ordinal);
         Assert.Contains("/Shared/**/*.cs\" />", project, StringComparison.Ordinal);
@@ -54,38 +54,38 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void The_browser_app_brings_its_own_entry_point()
+    public async Task The_browser_app_brings_its_own_entry_point()
     {
         // Client/Program.cs IS the entry point, compiled with the rest of Client/. Nothing is generated in
         // its place, so there is no second startup type to name and no hidden file to debug.
-        var project = Generate();
+        var project = await Generate();
 
         Assert.DoesNotContain("Program.g.cs", project, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(CompanionDir(), "Program.g.cs")));
     }
 
     [Fact]
-    public void A_client_only_reference_reaches_the_bundle()
+    public async Task A_client_only_reference_reaches_the_bundle()
     {
         // One project, two halves, one reference list — and some pairs exist precisely so that neither half
         // carries the other's transport. Rask.Cqrs.Client in the server would ship endpoint-CALLING code
         // into the process that answers those endpoints.
         Assert.Contains(
             "<PackageReference Include=\"Rask.Cqrs.Client\" Version=\"9.9.9\" />",
-            Generate(),
+            await Generate(),
             StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Semicolons_survive_into_the_generated_project()
+    public async Task Semicolons_survive_into_the_generated_project()
     {
-        Assert.Contains("Edits are lost; change the app instead.", Generate(), StringComparison.Ordinal);
+        Assert.Contains("Edits are lost; change the app instead.", await Generate(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_using_the_app_names_for_the_client_reaches_it_and_a_package_injected_one_does_not()
+    public async Task A_using_the_app_names_for_the_client_reaches_it_and_a_package_injected_one_does_not()
     {
-        var project = Generate();
+        var project = await Generate();
 
         Assert.Contains("<Using Include=\"Fixture.Shared\" />", project, StringComparison.Ordinal);
         Assert.Contains("<Using Include=\"Fixture.Aliased\" Alias=\"Shorthand\" />", project, StringComparison.Ordinal);
@@ -96,22 +96,22 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void The_boot_page_is_the_apps_own_and_the_sdk_fills_it()
+    public async Task The_boot_page_is_the_apps_own_and_the_sdk_fills_it()
     {
         // The browser loads Client/wwwroot/index.html. The SDK only fills the import map of a page in the
         // project's own web root, so the page is copied there and the placeholders are turned on.
-        var project = Generate();
+        var project = await Generate();
 
         Assert.Contains("<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>", project, StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(CompanionDir(), "wwwroot", "index.html")));
     }
 
     [Fact]
-    public void Scoped_assets_come_from_the_client_folder()
+    public async Task Scoped_assets_come_from_the_client_folder()
     {
         // The companion's own folder holds no components. Its glob is off, the items name Client/, and
         // tsgo is rooted there so the emitted files line up with the items.
-        var project = Slashes(Generate());
+        var project = Slashes(await Generate());
 
         Assert.Contains("<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>", project, StringComparison.Ordinal);
         Assert.Contains("<RaskScopedTsGlob>false</RaskScopedTsGlob>", project, StringComparison.Ordinal);
@@ -121,22 +121,22 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void A_package_islands_snapshot_reaches_the_browser_app()
+    public async Task A_package_islands_snapshot_reaches_the_browser_app()
     {
         // A package island's chain steps are generated from the committed {Island}.props.json beside its class.
         // Rask.External globs those from the companion's own directory, inside obj/, where none lives — so without
         // the app's, the island compiles with no steps and the browser half fails on its first one as CS1929.
-        var project = Slashes(Generate());
+        var project = Slashes(await Generate());
 
         Assert.Contains("/Client/**/*.props.json\" />", project, StringComparison.Ordinal);
         Assert.Contains("/Shared/**/*.props.json\" />", project, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_companion_publishes_outside_its_own_project_directory()
+    public async Task The_companion_publishes_outside_its_own_project_directory()
     {
         // Publishing into the companion's own folder makes each publish an input to the next.
-        Generate();
+        await Generate();
 
         var companionDir = CompanionDir();
         var outputDir = Path.Combine(_dir, "obj", "rask-client-out", "net10.0-browser");
@@ -148,9 +148,9 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void The_server_compiles_everything_except_the_client()
+    public async Task The_server_compiles_everything_except_the_client()
     {
-        var compile = Slashes(Evaluate("-getItem:Compile"));
+        var compile = Slashes(await Evaluate("-getItem:Compile"));
 
         Assert.Contains("Program.cs", compile, StringComparison.Ordinal);
         Assert.Contains("Server/PricingRule.cs", compile, StringComparison.Ordinal);
@@ -159,31 +159,31 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void Client_Program_cs_switches_it_on_and_RaskClient_false_switches_it_off()
+    public async Task Client_Program_cs_switches_it_on_and_RaskClient_false_switches_it_off()
     {
-        Assert.Equal("true", Evaluate("-getProperty:RaskClient").Trim());
+        Assert.Equal("true", (await Evaluate("-getProperty:RaskClient")).Trim());
 
         WriteProject(clientSwitch: false);
 
-        Assert.Equal("false", Evaluate("-getProperty:RaskClient").Trim());
-        Assert.Contains("Client/App.cs", Slashes(Evaluate("-getItem:Compile")), StringComparison.Ordinal);
+        Assert.Equal("false", (await Evaluate("-getProperty:RaskClient")).Trim());
+        Assert.Contains("Client/App.cs", Slashes(await Evaluate("-getItem:Compile")), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_missing_boot_page_is_refused_by_name()
+    public async Task A_missing_boot_page_is_refused_by_name()
     {
         File.Delete(Path.Combine(_dir, "Client", "wwwroot", "index.html"));
 
-        var (exit, output) = Run("-t:RaskGenerateClientCompanion", "-v:minimal");
+        var result = await Run("-t:RaskGenerateClientCompanion", "-v:minimal");
 
-        Assert.NotEqual(0, exit);
-        Assert.Contains("Client/wwwroot/index.html is missing", output, StringComparison.Ordinal);
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("Client/wwwroot/index.html is missing", result.Output, StringComparison.Ordinal);
     }
 
     [Theory]
     [InlineData("net10.0", "net10.0-browser")]
     [InlineData("net11.0", "net11.0-browser")]
-    public void The_browser_app_targets_the_server_halfs_dotnet_version(string server, string bundle)
+    public async Task The_browser_app_targets_the_server_halfs_dotnet_version(string server, string bundle)
     {
         // The companion compiles the app's Client/ sources, so it builds them for the .NET version the app
         // targets — and the development manifest MapRaskSpa serves is looked for under that framework's bin
@@ -195,8 +195,8 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
             $"<TargetFramework>{server}</TargetFramework>",
             StringComparison.Ordinal));
 
-        Assert.Contains($"<TargetFramework>{bundle}</TargetFramework>", Generate(bundle), StringComparison.Ordinal);
-        Assert.Equal(bundle, Evaluate("-getProperty:_RaskClientFramework").Trim());
+        Assert.Contains($"<TargetFramework>{bundle}</TargetFramework>", await Generate(bundle), StringComparison.Ordinal);
+        Assert.Equal(bundle, (await Evaluate("-getProperty:_RaskClientFramework")).Trim());
     }
 
     [GeneratedRegex("<Compile Include=\"(?<path>[^\"]*\\*\\*[^\"]*)\" />")]
@@ -238,48 +238,30 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     private string CompanionDir(string framework = "net10.0-browser") =>
         Path.Combine(_dir, "obj", "rask-client", framework);
 
-    private string Generate(string framework = "net10.0-browser")
+    private async Task<string> Generate(string framework = "net10.0-browser")
     {
-        var (exit, output) = Run("-t:RaskGenerateClientCompanion", "-v:quiet");
-        Assert.True(exit == 0, $"generation failed:\n{output}");
+        var result = await Run("-t:RaskGenerateClientCompanion", "-v:quiet");
+        Assert.True(result.ExitCode == 0, $"generation failed:\n{result.Output}");
 
         var generated = Path.Combine(CompanionDir(framework), "App.Client.csproj");
-        Assert.True(File.Exists(generated), $"no companion was generated:\n{output}");
+        Assert.True(File.Exists(generated), $"no companion was generated:\n{result.Output}");
         return File.ReadAllText(generated);
     }
 
     // Straight from MSBuild's own evaluation, rather than from the generated companion.
-    private string Evaluate(string query)
+    private async Task<string> Evaluate(string query)
     {
-        var (exit, output) = Run(query);
-        Assert.True(exit == 0, $"evaluating {query} failed:\n{output}");
-        return output;
+        var result = await Run(query);
+        Assert.True(result.ExitCode == 0, $"evaluating {query} failed:\n{result.Output}");
+        return result.Output;
     }
 
-    private (int Exit, string Output) Run(params string[] args)
-    {
-        var psi = new ProcessStartInfo("dotnet")
-        {
-            WorkingDirectory = _dir,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        psi.ArgumentList.Add("msbuild");
-        psi.ArgumentList.Add("App.csproj");
-        foreach (var arg in args)
-        {
-            psi.ArgumentList.Add(arg);
-        }
-
-        psi.ArgumentList.Add("-nologo");
-        psi.ArgumentList.Add("-nodeReuse:false");
-
-        using var p = Process.Start(psi)!;
-        var stdout = p.StandardOutput.ReadToEnd();
-        var stderr = p.StandardError.ReadToEnd();
-        p.WaitForExit();
-        return (p.ExitCode, stdout + stderr);
-    }
+    private Task<TestProcessResult> Run(params string[] args) =>
+        TestProcess.Run(
+            "dotnet",
+            ["msbuild", "App.csproj", .. args, "-nologo", "-nodeReuse:false"],
+            _dir,
+            cancellationToken: TestContext.Current.CancellationToken);
 
     private static string SrcDir
     {

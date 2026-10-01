@@ -9,7 +9,7 @@ namespace Rask.Site.Features;
 //   2. a dependent query, paused until a parcel is picked,
 //   3. a function query over a local source, keyed QueryKey.For<Parcel>(input),
 //   4. a command per row whose IsPending disables its own button, and whose success refetches the queries it names.
-public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, ParcelStore store) : Component
+public sealed partial class QueryParcelsDemo(RouteState route, ParcelStore store) : Component
 {
     private static readonly QueryOptions KeepPrevious = new() { KeepPreviousData = true };
 
@@ -97,15 +97,15 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
             Ui.Button.Class("query-pick").Disabled(true)["Details"]
         ];
 
-    private void GoTo(int page)
+    private static void GoTo(int page)
     {
         if (page <= 1)
         {
-            nav.RemoveQuery("page");
+            Go.Without("page");
         }
         else
         {
-            nav.SetQuery("page", page.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Go.With("page", page.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
     }
 }

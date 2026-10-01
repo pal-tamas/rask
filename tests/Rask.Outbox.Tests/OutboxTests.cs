@@ -19,6 +19,14 @@ public sealed class Order : Aggregate<Guid>
         return order;
     }
 
+    // Raises whatever the test hands it — see DurableHandlerTests.
+    public static Order PlaceRaising(IEvent e)
+    {
+        var order = new Order { Id = Guid.NewGuid(), Customer = "any" };
+        order.Raise(e);
+        return order;
+    }
+
     // Raises an event declared in a keyword-named namespace — see KeywordNamespaceEvent.cs.
     public static Order PlaceRaisingKeywordEvent(string customer)
     {
@@ -44,15 +52,15 @@ public sealed class Order : Aggregate<Guid>
     }
 }
 
-public sealed record OrderPlaced(Guid Id, string Customer) : IOutboxEvent;
+public sealed record OrderPlaced(Guid Id, string Customer) : IEvent;
 
 /// <summary>
 /// An event whose handler deletes the highest-numbered still-unprocessed outbox row — i.e. one sitting in the
 /// very batch being drained. Stands in for anything writing to the outbox table underneath the processor.
 /// </summary>
-public sealed record SaboteurEvent : IOutboxEvent;
+public sealed record SaboteurEvent : IEvent;
 
-public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> factory) : INotificationHandler<SaboteurEvent>
+public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> factory) : IDurableHandler<SaboteurEvent>
 {
     public async Task Handle(SaboteurEvent notification)
     {
@@ -88,7 +96,7 @@ public sealed class Recorder
     }
 }
 
-public sealed class OrderPlacedHandler(Recorder recorder) : INotificationHandler<OrderPlaced>
+public sealed class OrderPlacedHandler(Recorder recorder) : IDurableHandler<OrderPlaced>
 {
     public Task Handle(OrderPlaced notification)
     {
@@ -259,7 +267,12 @@ public sealed class OutboxTests : IDisposable
 // A nested outbox event: its Type.FullName uses '+', which must still match the generator's dotted registration.
 public sealed class OuterScope
 {
-    public sealed record NestedEvent(int N) : IOutboxEvent;
+    public sealed record NestedEvent(int N) : IEvent;
+}
+
+public sealed class NestedEventHandler : IDurableHandler<OuterScope.NestedEvent>
+{
+    public Task Handle(OuterScope.NestedEvent e) => Task.CompletedTask;
 }
 
 public sealed class OutboxSerializerRegistryTests
@@ -267,7 +280,7 @@ public sealed class OutboxSerializerRegistryTests
     [Fact]
     public void A_nested_event_type_round_trips()
     {
-        // The Rask.Outbox source generator registered this assembly's IOutboxEvent types at module load.
+        // The Rask.Cqrs generator recorded NestedEvent at module load, beside its durable handler below.
         var (type, payload) = OutboxSerializerRegistry.Serialize(new OuterScope.NestedEvent(7));
 
         Assert.DoesNotContain('+', type); // stored dotted, matching the generator's registration

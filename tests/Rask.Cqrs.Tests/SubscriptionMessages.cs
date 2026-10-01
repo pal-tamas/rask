@@ -1,9 +1,9 @@
 namespace Rask.Cqrs.Tests;
 
 // ---- Watched by type: every subscriber gets every one ----
-public sealed record Chimed(int Number) : INotification;
+public sealed record Chimed(int Number) : IEvent;
 
-public sealed record Whistled(int Number) : INotification;
+public sealed record Whistled(int Number) : IEvent;
 
 // ---- Watched through a record, which a policy guards ----
 public enum Colour
@@ -12,9 +12,9 @@ public enum Colour
     Green,
 }
 
-public sealed record DoorOpened(Guid DoorId, string Note = "") : INotification;
+public sealed record DoorOpened(Guid DoorId, string Note = "") : IEvent;
 
-public sealed record DoorPainted(Colour Colour) : INotification;
+public sealed record DoorPainted(Colour Colour) : IEvent;
 
 public sealed record WatchDoor(Guid DoorId) : ISubscription<DoorOpened>
 {
@@ -44,7 +44,7 @@ public sealed class DoorPolicy(Keyholder keys) : IWatchPolicy<WatchDoor>, IWatch
 }
 
 // ---- A subscription nothing guards — so nobody may open it ----
-public sealed record VaultOpened(int VaultId) : INotification;
+public sealed record VaultOpened(int VaultId) : IEvent;
 
 public sealed record WatchVault(int VaultId) : ISubscription<VaultOpened>
 {

@@ -389,7 +389,7 @@ public sealed class AuthEndpointTests
                     {
                         services.AddLogging(b => b.ClearProviders());
                         services.AddRouting();
-                        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+                        services.AddRaskData();
                         services.AddDbContextFactory<AuthDbContext>((sp, o) => o
                             .UseSqlite($"Data Source={_dbPath};Pooling=False")
                             .AddInterceptors(sp.GetServices<Microsoft.EntityFrameworkCore.Diagnostics.ISaveChangesInterceptor>()));

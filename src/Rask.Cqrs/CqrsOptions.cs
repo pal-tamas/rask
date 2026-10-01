@@ -5,7 +5,7 @@ namespace Rask.Cqrs;
 
 /// <summary>
 /// Configures <c>AddRaskCqrs</c>: the lifetime discovered handlers are registered at, how
-/// notifications fan out, and the pipeline behaviors (decorators) to apply. Handlers themselves are
+/// events fan out, and the pipeline behaviors (decorators) to apply. Handlers themselves are
 /// discovered by the source generator — you never list them here.
 /// </summary>
 public sealed class CqrsOptions
@@ -16,15 +16,15 @@ public sealed class CqrsOptions
     /// </summary>
     public ServiceLifetime HandlerLifetime { get; set; } = ServiceLifetime.Transient;
 
-    /// <summary>How a notification's handlers are run. Defaults to <see cref="NotificationPublishStrategy.Sequential"/>.</summary>
-    public NotificationPublishStrategy NotificationPublishStrategy { get; set; } = NotificationPublishStrategy.Sequential;
+    /// <summary>How an event's handlers are run. Defaults to <see cref="EventPublishStrategy.Sequential"/>.</summary>
+    public EventPublishStrategy EventPublishStrategy { get; set; } = EventPublishStrategy.Sequential;
 
     /// <summary>
-    /// When running notifications <see cref="NotificationPublishStrategy.Sequential"/>ly, whether the
+    /// When running events <see cref="EventPublishStrategy.Sequential"/>ly, whether the
     /// first handler failure stops the run and rethrows (default), or every handler runs and failures
     /// are collected into an <see cref="AggregateException"/>.
     /// </summary>
-    public bool StopOnFirstNotificationException { get; set; } = true;
+    public bool StopOnFirstEventException { get; set; } = true;
 
     /// <summary>
     ///     Whether every dispatched request is validated before its handler runs — its
@@ -84,12 +84,12 @@ public sealed class CqrsOptions
 
     /// <summary>
     /// How many "last values" the feed remembers, so a subscription that opens after a publish still starts with it —
-    /// one per notification type and key, oldest out first. Defaults to 4096.
+    /// one per event type and key, oldest out first. Defaults to 4096.
     /// </summary>
     public int ReplayCapacity { get; set; } = 4096;
 
     /// <summary>
-    /// How far one subscription may fall behind before its oldest undelivered notifications are dropped. Defaults to
+    /// How far one subscription may fall behind before its oldest undelivered events are dropped. Defaults to
     /// 256: a subscription shows the latest state, so losing the middle of a burst costs nothing on screen, while an
     /// unbounded buffer behind a stalled reader is memory a publisher can grow for ever.
     /// </summary>
@@ -132,10 +132,10 @@ public sealed class CqrsOptions
             throw new InvalidOperationException($"{nameof(HandlerLifetime)} has an invalid value: {HandlerLifetime}.");
         }
 
-        if (!Enum.IsDefined(NotificationPublishStrategy))
+        if (!Enum.IsDefined(EventPublishStrategy))
         {
             throw new InvalidOperationException(
-                $"{nameof(NotificationPublishStrategy)} has an invalid value: {NotificationPublishStrategy}.");
+                $"{nameof(EventPublishStrategy)} has an invalid value: {EventPublishStrategy}.");
         }
     }
 

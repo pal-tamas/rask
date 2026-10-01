@@ -95,7 +95,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         var found = new List<(INamedTypeSymbol Validator, string ModelFqn, IMethodSymbol? Ctor)>();
         var byModel = new Dictionary<string, INamedTypeSymbol>(System.StringComparer.Ordinal);
 
-        foreach (var type in Types(compilation.Assembly.GlobalNamespace))
+        foreach (var type in SymbolWalk.AllTypes(compilation.Assembly.GlobalNamespace))
         {
             if (type.IsAbstract || type.TypeKind != TypeKind.Class || type.IsGenericType)
             {
@@ -237,30 +237,5 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         }
 
         return null;
-    }
-
-    private static IEnumerable<INamedTypeSymbol> Types(INamespaceOrTypeSymbol root)
-    {
-        foreach (var member in root.GetMembers())
-        {
-            switch (member)
-            {
-                case INamespaceSymbol ns:
-                    foreach (var t in Types(ns))
-                    {
-                        yield return t;
-                    }
-
-                    break;
-                case INamedTypeSymbol type:
-                    yield return type;
-                    foreach (var nested in Types(type))
-                    {
-                        yield return nested;
-                    }
-
-                    break;
-            }
-        }
     }
 }

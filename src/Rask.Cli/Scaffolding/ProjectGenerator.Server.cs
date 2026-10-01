@@ -54,7 +54,6 @@ internal static partial class ProjectGenerator
         }
         else
         {
-            AddIfOff(batteries.Outbox, "Outbox");
             AddIfOff(batteries.Jobs, "Jobs");
             AddIfOff(batteries.Mail, "Mail");
             AddIfOff(batteries.Cache, "Cache");
