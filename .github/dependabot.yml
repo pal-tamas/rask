@@ -17,8 +17,7 @@ updates:
       # would raise the compiler floor for every downstream Rask consumer. Keep these pinned to
       # the SDK's Roslyn version; bump them by hand alongside an SDK-band update.
       #
-      # There is no global.json in this repo — an earlier version of this comment sent you to one.
-      # The SDK band is stated in .github/actions/setup/action.yml (dotnet-version: 10.0.x) and in
+      # The SDK band is stated in global.json and .github/actions/setup/action.yml (10.0.x), and in
       # rask.sh (RASK_INSTALL_DOTNET_CHANNEL); that is what "the build SDK" means here.
       #
       # .Features used to be listed here too, for a reason worth keeping in mind if it ever comes

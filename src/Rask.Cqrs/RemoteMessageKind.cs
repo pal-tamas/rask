@@ -12,12 +12,12 @@ public enum RemoteMessageKind
     /// <summary>An <see cref="ICommand{TResult}" /> — travels as a POST and answers with a value.</summary>
     ResultCommand,
 
-    /// <summary>An <see cref="INotification" /> — travels as a POST and is accepted, not answered.</summary>
-    Notification,
+    /// <summary>An <see cref="IEvent" /> — travels as a POST and is accepted, not answered.</summary>
+    Event,
 
     /// <summary>
-    ///     An <see cref="ISubscription{TNotification}" /> — travels as a GET to the event stream and is answered with
-    ///     every notification it matches, for as long as it stays open.
+    ///     An <see cref="ISubscription{TEvent}" /> — travels as a GET to the event stream and is answered with
+    ///     every event it matches, for as long as it stays open.
     /// </summary>
     Subscription,
 }

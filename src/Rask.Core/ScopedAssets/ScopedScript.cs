@@ -168,11 +168,7 @@ public static class ScopedScript
             return default!;
         }
 
-#if NET11_0_OR_GREATER
-        var info = options.GetTypeInfo<T>();
-#else
         var info = (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
-#endif
         return args[index].Deserialize(info)!;
     }
 

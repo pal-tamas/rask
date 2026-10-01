@@ -409,6 +409,19 @@ public sealed class RaskBatteryTests
         Assert.Equal(1234, built.Services.GetRequiredService<StorageOptions>().MaxFileSize);
     }
 
+    [Fact]
+    public void The_outbox_has_settings_but_no_switch_and_is_configured_in_the_same_block()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Configure(c => c.Outbox.Configure(o => o.BatchSize = 7));
+        app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
+        var built = app.Build<MinimalApp>();
+
+        Assert.Equal(7, built.Services.GetRequiredService<OutboxOptions>().BatchSize);
+        Assert.DoesNotContain(typeof(RaskAppOptions).GetProperty(nameof(RaskAppOptions.Outbox))!.PropertyType.GetMethods(), m => m.Name == "Off");
+    }
+
     /// <summary>
     /// Every battery's model check, found by name because each type is internal to its own package.
     /// </summary>
@@ -444,8 +457,12 @@ public sealed class RaskBatteryTests
         // for nothing a real app does.
         Assert.Equal(7, checks.Count);
 
+        // The outbox is always on, so it needs its table only once a durable handler exists — this app has none.
+        var outbox = Assert.Single(checks, c => c.GetType().Name.StartsWith("OutboxModelCheck", StringComparison.Ordinal));
+        await outbox.StartAsync(CancellationToken.None);
+
         var messages = new List<string>();
-        foreach (var check in checks)
+        foreach (var check in checks.Where(c => c != outbox))
         {
             var error = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => check.StartAsync(CancellationToken.None));
@@ -459,7 +476,6 @@ public sealed class RaskBatteryTests
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskJobs()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskCache()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskStorage()", StringComparison.Ordinal));
-        Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskOutbox()", StringComparison.Ordinal));
         Assert.Contains(messages, m => m.Contains("modelBuilder.AddRaskWebPush()", StringComparison.Ordinal));
         Assert.All(messages, m => Assert.Contains("OnModelCreating", m, StringComparison.Ordinal));
     }

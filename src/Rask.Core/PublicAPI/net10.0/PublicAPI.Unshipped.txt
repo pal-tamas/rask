@@ -13362,6 +13362,9 @@ static Rask.Core.Toast.Success(string! message) -> Rask.Core.Messaging.ShowingTo
 static Rask.Core.Toast.Warning(string! message) -> Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.Action(string! label, System.Action! run) -> Rask.Core.Messaging.ShowingToast
 Rask.Core.Messaging.ShowingToast.Action(string! label, System.Func<System.Threading.Tasks.Task!>! run) -> Rask.Core.Messaging.ShowingToast
+Rask.Settings<TOptions>
+Rask.Settings<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Settings<TOptions!>!
+Rask.Settings<TOptions>.Settings() -> void
 Rask.Core.Download
 Rask.Core.Go
 Rask.Core.GoTo

@@ -9,7 +9,7 @@
     <PackageId>Rask.Testing</PackageId>
     <Title>Rask.Testing — unit-test Rask components</Title>
     <Description>Test a Rask app the way a person uses it — no browser, no server, no WebSocket. Page.Visit("/products/new") opens a URL through the real router, and page.Type("Tea").Into("Name"), page.Click("Save") and page.Shows("Saved") find fields by their label and buttons by their text. Page.Render(component) renders one component whose Html reflects the current state; page.On("#save").Click() drives one element and Invoke(id) dispatches a handler by its data-rask-on-* id, each returning the re-rendered HTML. Mail.Fake(), Jobs.Fake(), Cache.Fake() and Clock.Fake() stand in for a battery or the clock for one test. Wraps Rask.Core's live-render + handler-dispatch seam. Reference from your test project; Rask.Core comes transitively from your app's Rask.Server / Rask.Wasm.</Description>
-    <PackageTags>rask testing unit-test component-testing render blazor-like dotnet net10 net11</PackageTags>
+    <PackageTags>rask testing unit-test component-testing render blazor-like dotnet net10</PackageTags>
   </PropertyGroup>
 
 

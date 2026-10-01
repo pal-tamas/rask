@@ -215,17 +215,15 @@ or snapshots; use S3 or Azure for uploads you can't afford to lose.
 
 ## Publish a domain event through the outbox
 
-Events are written to an `OutboxMessage` row **in the same transaction** as your data, then delivered
-post-commit (crash-safe, at-least-once). Declare the events, raise them from the entity, and wire the
-outbox:
+A handler that must not be lost is **durable**: its outbox row is written **in the same transaction** as your data,
+and it runs after the commit (crash-safe, at-least-once). Raise the event from the aggregate, and let the handler
+choose. A `RaskApp` has the outbox on already:
 
 ```csharp
-public sealed record OrderCreated(Guid Id) : IOutboxEvent;   // then Raise(new OrderCreated(Id)) in Create
-```
-```csharp
-builder.Services.AddRaskData();                                     // unchanged — the outbox claims delivery
-builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ });
-modelBuilder.AddRaskOutbox();                                        // then: rask db add AddOutbox && rask db update
+[LocalOnly] public sealed record OrderCreated(Guid Id) : IEvent;   // then Raise(new OrderCreated(Id)) in Create
+
+public sealed class NotifyWarehouse : IDurableHandler<OrderCreated> { … }   // via the outbox, retried
+public sealed class RefreshTotals : IEventHandler<OrderCreated> { … }       // in memory, at once
 ```
 
 → Reference: [outbox](outbox.md) · Learn it: [Tutorial Ch 7](tutorial/07-outbox-events.md)

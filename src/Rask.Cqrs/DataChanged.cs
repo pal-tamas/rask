@@ -11,7 +11,7 @@ namespace Rask.Cqrs;
 ///         rarely names it: declaring the const and calling <c>Live()</c> is the whole of it.
 ///     </para>
 ///     <para>
-///         The entity travels as a name rather than a <see cref="System.Type" /> so the same notification crosses
+///         The entity travels as a name rather than a <see cref="System.Type" /> so the same event crosses
 ///         the wire to a WebAssembly front end, where the server's <see cref="System.Type" /> means nothing.
 ///     </para>
 ///     <para>
@@ -22,4 +22,4 @@ namespace Rask.Cqrs;
 /// </remarks>
 /// <param name="Entity">The full name of the entity type the save wrote.</param>
 /// <param name="At">When the save committed.</param>
-public sealed record DataChanged(string Entity, DateTimeOffset At) : INotification;
+public sealed record DataChanged(string Entity, DateTimeOffset At) : IEvent;

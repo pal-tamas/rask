@@ -54,16 +54,6 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
-            // No short name on purpose, though `dotnet new` spells this one `-f`: `rask deploy` already
-            // claims -f for --follow, and a short name that means two things across the CLI is worse than
-            // no short name at all (CliApplicationTests holds the whole surface to that).
-            .Option(
-                "framework",
-                valueHint: "tfm",
-                description: "The .NET version the project targets (default: " + DotnetTarget.Default.Moniker
-                + ", the LTS release). " + DotnetTarget.Preview.Moniker + " needs the matching SDK installed; "
-                + "Rask itself ships for both.",
-                choices: DotnetTarget.Monikers)
             .MultiOption(
                 "islands",
                 valueHint: "runtime",
@@ -74,13 +64,12 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
                 choices: IslandRuntimes.All)
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
-            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose writes, jobs, outbox and domain events all go through it.")
+            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose writes, jobs and domain events all go through it.")
             .Flag("no-data", description: "Leave out the database and EF Core — and with it every battery that maps onto a DbContext.")
             .Flag("no-jobs", description: "Leave out durable background jobs.")
             .Flag("no-mail", description: "Leave out transactional email.")
             .Flag("no-cache", description: "Leave out the database-backed ICache + IDistributedCache.")
             .Flag("no-storage", description: "Leave out file storage for uploads (IFiles) and its StoredFile table.")
-            .Flag("no-outbox", description: "Leave out the transactional outbox for durable domain events.")
             .Flag("no-snapshots", description: "Leave out scheduled point-in-time SQLite backups.")
             .Flag("no-logs", description: "Leave out the durable log store (it keeps a database of its own).")
             .Flag("no-ops", description: "Leave out the operator dashboard at /_rask.")
@@ -172,86 +161,27 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
             return Fail(islandsError);
         }
 
-        // The schema declares the accepted monikers as this option's choices, so the parse already rejected
-        // anything else; DotnetTarget.For maps the validated value.
-        var dotnet = DotnetTarget.For(parsed.Option("framework"));
-        if (await SdkErrorAsync(dotnet, cancellationToken).ConfigureAwait(false) is { } sdkError)
-        {
-            return Fail(sdkError);
-        }
-
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
             template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
             parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"), batteries,
-            (dir, version) => Generate(template, dir, name, batteries, version, islands, dotnet),
+            (dir, version) => Generate(template, dir, name, batteries, version, islands),
             cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Why the installed SDK cannot build <paramref name="dotnet" />, or null when it can.</summary>
-    private async Task<string?> SdkErrorAsync(DotnetTarget dotnet, CancellationToken cancellationToken)
-    {
-        // Refused BEFORE a file is written, not left to the build. Scaffolding first would leave a directory
-        // that cannot compile — and the SDK's own message (NETSDK1045) names a framework the author chose
-        // deliberately, which reads as Rask being broken rather than as an SDK they have not installed yet.
-        //
-        // Asked ONLY when a version was actually chosen. Every SDK that can build Rask at all builds the
-        // default target, so probing for it would buy nothing and spend a process on every scaffold — and
-        // `rask new` starting no process at all on the ordinary path is a promise its tests hold it to.
-        if (dotnet != DotnetTarget.Default
-            && await SdkMajorAsync(cancellationToken).ConfigureAwait(false) is { } sdkMajor
-            && sdkMajor < dotnet.SdkMajor)
-        {
-            return $"--framework {dotnet.Moniker} needs the .NET {dotnet.SdkMajor} SDK, and the `dotnet` on your PATH "
-                + $"is {sdkMajor}.x. Install it from https://dotnet.microsoft.com/download, or scaffold for "
-                + $"{DotnetTarget.Default.Moniker} — Rask ships for both.";
-        }
-
-        return null;
     }
 
     private static ScaffoldResult Generate(
         TemplateInfo template, string dir, string name, ServerBatteries batteries, string version,
-        IReadOnlyList<string> islands, DotnetTarget dotnet)
+        IReadOnlyList<string> islands)
     {
         return template.Key switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
-                dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands, dotnet),
+                dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands),
             WasmHostedKey => ProjectGenerator.GenerateWasmHosted(
-                dir, name, batteries, version, islands, dotnet),
-            _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands, dotnet),
+                dir, name, batteries, version, islands),
+            _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands),
         };
-    }
-
-    /// <summary>
-    /// The major version of the SDK `dotnet` resolves here, or null when it cannot be read.
-    /// </summary>
-    /// <remarks>
-    /// Null rather than a guess when the probe fails: on a machine where `dotnet --version` does not answer,
-    /// refusing a scaffold over a version nobody could read would be worse than letting the build say so.
-    /// </remarks>
-    private async Task<int?> SdkMajorAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await _process
-                .CaptureAsync("dotnet", ["--version"], _workingDirectory, cancellationToken)
-                .ConfigureAwait(false);
-
-            return result.ExitCode == 0
-                   && int.TryParse(
-                       result.StandardOutput.Trim().Split('.').FirstOrDefault(),
-                       CultureInfo.InvariantCulture,
-                       out var major)
-                ? major
-                : null;
-        }
-        catch (Exception e) when (e is not OperationCanceledException)
-        {
-            return null;
-        }
     }
 
     /// <summary>

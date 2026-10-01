@@ -19,13 +19,13 @@ Rask-specific ideas, not the language.
 
 ## Before you start
 
-Rask requires the **.NET 10 SDK or newer** — every package ships for .NET 10 (LTS) and .NET 11. Confirm you have it:
+Rask requires the **.NET 10 SDK** — every package ships for .NET 10, the LTS release. Confirm you have it:
 
 ```bash
 dotnet --version      # must be ≥ 10.0
 ```
 
-If that prints an older version (or errors), install the .NET 10 or 11 SDK from
+If that prints an older version (or errors), install the .NET 10 SDK from
 [dotnet.microsoft.com](https://dotnet.microsoft.com/download) first.
 
 > **WASM only:** the `wasm` and `wasm-hosted` templates also need the browser

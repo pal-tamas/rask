@@ -33,18 +33,18 @@ public sealed class Widget : Aggregate<Guid>
     public void MarkDeleted() => Raise(new WidgetDeleted(Id));
 }
 
-public sealed record WidgetCreated(Guid Id) : INotification;
+public sealed record WidgetCreated(Guid Id) : IEvent;
 
-public sealed record WidgetRenamed(Guid Id) : INotification;
+public sealed record WidgetRenamed(Guid Id) : IEvent;
 
-public sealed record WidgetDeleted(Guid Id) : INotification;
+public sealed record WidgetDeleted(Guid Id) : IEvent;
 
 // Records every published domain event so a test can assert the interceptor fired.
 public sealed class EventRecorder
 {
-    private readonly List<INotification> _events = [];
+    private readonly List<IEvent> _events = [];
 
-    public IReadOnlyList<INotification> Events
+    public IReadOnlyList<IEvent> Events
     {
         get
         {
@@ -55,7 +55,7 @@ public sealed class EventRecorder
         }
     }
 
-    public void Add(INotification e)
+    public void Add(IEvent e)
     {
         lock (_events)
         {
@@ -64,7 +64,7 @@ public sealed class EventRecorder
     }
 }
 
-public sealed class WidgetCreatedHandler(EventRecorder recorder) : INotificationHandler<WidgetCreated>
+public sealed class WidgetCreatedHandler(EventRecorder recorder) : IEventHandler<WidgetCreated>
 {
     public Task Handle(WidgetCreated notification)
     {
@@ -73,7 +73,7 @@ public sealed class WidgetCreatedHandler(EventRecorder recorder) : INotification
     }
 }
 
-public sealed class WidgetRenamedHandler(EventRecorder recorder) : INotificationHandler<WidgetRenamed>
+public sealed class WidgetRenamedHandler(EventRecorder recorder) : IEventHandler<WidgetRenamed>
 {
     public Task Handle(WidgetRenamed notification)
     {
@@ -82,7 +82,7 @@ public sealed class WidgetRenamedHandler(EventRecorder recorder) : INotification
     }
 }
 
-public sealed class WidgetDeletedHandler(EventRecorder recorder) : INotificationHandler<WidgetDeleted>
+public sealed class WidgetDeletedHandler(EventRecorder recorder) : IEventHandler<WidgetDeleted>
 {
     public Task Handle(WidgetDeleted notification)
     {

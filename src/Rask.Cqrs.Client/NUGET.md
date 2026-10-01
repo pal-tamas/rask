@@ -8,7 +8,7 @@ write, nothing on a message marking it as remote.
 - Every request message the client dispatches goes to the server: **queries as GET, commands as POST,
   files as multipart, subscriptions as server-sent events**.
 - **A client is a pure client** — a stray client-side handler can never quietly intercept a request.
-  Notifications are the deliberate exception: they fan out locally *and* travel.
+  Events are the deliberate exception: they fan out locally *and* travel.
 - **Reflection-free.** The wire codecs are source-generated, so it publishes clean under the WebAssembly
   trimmer.
 - The other half is **Rask.Cqrs.Server**; neither references the other, so the browser bundle never

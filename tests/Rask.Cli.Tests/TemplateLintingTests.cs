@@ -18,7 +18,7 @@ public sealed class TemplateLintingTests
     {
         // A React island project ships its own ESLint and Prettier setup, so `npm run lint` works in it.
         var files = TemplateMaterializer.Files(
-            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9", DotnetTarget.Default,
+            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9",
             ["react"]);
 
         Assert.Contains(files, f => Path.GetFileName(f.Path) == "eslint.config.mjs");
@@ -49,7 +49,7 @@ public sealed class TemplateLintingTests
         // Blazor has no npm side, so there is no package.json — and therefore nothing that would tell
         // `dotnet build` to probe for node and install a linter for a project with no JavaScript.
         var files = TemplateMaterializer.Files(
-            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9", DotnetTarget.Default,
+            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9",
             ["blazor"]);
 
         Assert.DoesNotContain(files, f => Path.GetFileName(f.Path) == "package.json");

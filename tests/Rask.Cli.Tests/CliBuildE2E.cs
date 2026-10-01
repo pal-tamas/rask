@@ -118,30 +118,13 @@ internal static class CliBuildE2E
         var nupkg = Directory.GetFiles(feed, "Rask.Server.*.nupkg").Single();
         var version = Path.GetFileNameWithoutExtension(nupkg)["Rask.Server.".Length..];
 
-        AssertEveryDotnetVersionShipsTheSamePayload(feed, nupkg);
+        AssertTheCoreShipsFromItsOwnPackageOnly(feed, nupkg);
         AssertNoPackageShipsBuildIntermediates(feed);
 
         EvictFromGlobalCache(version);
         return (feed, version);
     }
 
-    /// <summary>
-    ///     Every package ships the same files for .NET 11 as for .NET 10: each <c>lib/net10.0*</c> folder has a
-    ///     <c>lib/net11.0*</c> twin with an identical file list.
-    /// </summary>
-    /// <remarks>
-    ///     Pack cannot see this. A folder a package forgot is simply not there — the literal <c>lib/net10.0/</c>
-    ///     paths that used to bundle Rask.Core would have shipped <c>lib/net11.0/</c> without it, and a consumer
-    ///     on .NET 11 would restore cleanly and die on the first render. So the packed feed is read back, and
-    ///     Rask.Core in Rask.Server's .NET 11 folder is named outright, so a feed with no second version at all
-    ///     cannot pass by having nothing to compare.
-    ///     <para>
-    ///         Scoped to <see cref="FeedPackages" />, which is what this gate packs — not every packable project.
-    ///         A package outside that list losing its .NET 11 face is not caught here; the repo-wide statement is
-    ///         RaskVerifyTargetFrameworks in Directory.Build.targets, which fails any shipped project that does not
-    ///         take its frameworks from RaskNetTargets.
-    ///     </para>
-    /// </remarks>
     /// <summary>No package carries a file out of a project's <c>obj/</c> as content.</summary>
     /// <remarks>
     ///     NuGet packs every <c>Content</c> item, and Rask.Tailwind declared its compiled sheet as one whenever the file
@@ -169,38 +152,14 @@ internal static class CliBuildE2E
             + "content:\n  " + string.Join("\n  ", offenders));
     }
 
-    private static void AssertEveryDotnetVersionShipsTheSamePayload(string feed, string serverPackage)
+    /// <summary>Rask.Core ships in the <c>Rask</c> package and in no host: one copy per process.</summary>
+    private static void AssertTheCoreShipsFromItsOwnPackageOnly(string feed, string serverPackage)
     {
-        foreach (var package in Directory.GetFiles(feed, "*.nupkg"))
-        {
-            using var zip = System.IO.Compression.ZipFile.OpenRead(package);
-            // The whole path under lib/<tfm>/, not just the file name: a satellite assembly sits one level deeper
-            // (lib/<tfm>/<culture>/X.resources.dll), and comparing names alone would let a framework ship without
-            // its translations while the folders still looked identical.
-            var lib = zip.Entries
-                .Select(e => e.FullName.Split('/'))
-                .Where(parts => parts.Length >= 3 && parts[0] == "lib" && parts[^1].Length > 0)
-                .GroupBy(parts => parts[1], parts => string.Join('/', parts[2..]), StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.ToHashSet(StringComparer.Ordinal), StringComparer.Ordinal);
-
-            foreach (var (folder, files) in lib.Where(f => f.Key.StartsWith("net10.0", StringComparison.Ordinal)))
-            {
-                var twin = "net11.0" + folder["net10.0".Length..];
-                Assert.True(
-                    lib.TryGetValue(twin, out var twinFiles),
-                    $"{Path.GetFileName(package)} ships lib/{folder}/ but no lib/{twin}/, so .NET 11 consumers get nothing.");
-                Assert.True(
-                    files.SetEquals(twinFiles!),
-                    $"{Path.GetFileName(package)}: lib/{folder}/ has [{string.Join(", ", files.Order(StringComparer.Ordinal))}] "
-                    + $"but lib/{twin}/ has [{string.Join(", ", twinFiles!.Order(StringComparer.Ordinal))}].");
-            }
-        }
-
         // The core is the `Rask` package: `Rask.<version>.nupkg`, the one whose name has a digit right after the id.
         var core = Directory.GetFiles(feed, "Rask.*.nupkg")
             .Single(path => char.IsDigit(Path.GetFileName(path)["Rask.".Length]));
         using var coreZip = System.IO.Compression.ZipFile.OpenRead(core);
-        Assert.Contains(coreZip.Entries, e => e.FullName == "lib/net11.0/Rask.Core.dll");
+        Assert.Contains(coreZip.Entries, e => e.FullName == "lib/net10.0/Rask.Core.dll");
 
         // And the hosts no longer bundle it: one copy per process, from one package.
         using var server = System.IO.Compression.ZipFile.OpenRead(serverPackage);

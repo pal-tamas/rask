@@ -34,8 +34,7 @@ internal static partial class ProjectGenerator
         string name,
         ServerBatteries requested,
         string version,
-        IReadOnlyList<string>? islands = null,
-        DotnetTarget? dotnet = null)
+        IReadOnlyList<string>? islands = null)
     {
         ArgumentNullException.ThrowIfNull(requested);
 
@@ -44,8 +43,7 @@ internal static partial class ProjectGenerator
         var batteries = (requested with { Cqrs = true }).Normalized();
 
         var files = TemplateMaterializer.Files(
-            targetDirectory, "wasm-hosted", name, batteries, version, dotnet ?? DotnetTarget.Default,
-            islands,
+            targetDirectory, "wasm-hosted", name, batteries, version, islands,
             // Two debug targets rather than one: the host under the C# debugger, the browser half in
             // the browser's.
             vsCode: VsCodeSetup.WasmHost);

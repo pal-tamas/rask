@@ -10,7 +10,7 @@
     <PackageId>Rask.Web</PackageId>
     <Title>Rask.Web — every web API, from MDN, in C#</Title>
     <Description>Every web API the browser ships, generated from MDN's own data for Rask: MDN's globals and interfaces in C# (await Navigator.Clipboard.WriteText("hi"), await Window.MatchMedia(query).Matches), each chain run in one round trip, on the server host over its socket and in WebAssembly in-process. Members are MDN's names with no Async suffix, their doc comments carry browser support and links to MDN, and an object you keep is a disposable handle.</Description>
-    <PackageTags>web-api mdn browser dom javascript-interop navigator clipboard geolocation webassembly blazor-alternative dotnet net10 net11</PackageTags>
+    <PackageTags>web-api mdn browser dom javascript-interop navigator clipboard geolocation webassembly blazor-alternative dotnet net10</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

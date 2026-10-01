@@ -36,6 +36,13 @@ public sealed class OutboxMessage : Entity<long>
     /// <summary>The event's registered type name (see <see cref="OutboxSerializerRegistry"/>).</summary>
     public string Type { get; private set; } = "";
 
+    /// <summary>
+    ///     The one durable handler this row runs, as <c>CqrsRegistry</c> names it. Every durable handler of an event
+    ///     gets its own row, so each is retried, dead-lettered and counted on its own. <c>null</c> on a row written
+    ///     before handlers chose durability, which runs every handler of its event.
+    /// </summary>
+    public string? Handler { get; private set; }
+
     /// <summary>The JSON-serialized event payload.</summary>
     public string Payload { get; private set; } = "";
 
@@ -71,6 +78,7 @@ public sealed class OutboxMessage : Entity<long>
     /// <summary>Enqueues <paramref name="payload" /> for publication.</summary>
     /// <param name="type">The event's registered type name.</param>
     /// <param name="payload">The serialized event.</param>
+    /// <param name="handler">The durable handler this row runs (see <see cref="Handler"/>).</param>
     /// <param name="occurredAt">When the event was raised (UTC).</param>
     /// <remarks>
     ///     <para>The key is the store's, and is also the processing order, so nothing assigns one here.</para>
@@ -80,9 +88,9 @@ public sealed class OutboxMessage : Entity<long>
     ///         and refusing to write it would be wrong.
     ///     </para>
     /// </remarks>
-    public static OutboxMessage For(string type, string payload, DateTime occurredAt)
+    public static OutboxMessage For(string type, string payload, string handler, DateTime occurredAt)
     {
-        var message = new OutboxMessage { Type = type, Payload = payload, OccurredAt = occurredAt };
+        var message = new OutboxMessage { Type = type, Payload = payload, Handler = handler, OccurredAt = occurredAt };
         message.RecordTenant(Current.Tenant);
         return message;
     }

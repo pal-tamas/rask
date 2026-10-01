@@ -34,7 +34,7 @@ public class CqrsOptionsTests
     [Fact]
     public void An_invalid_publish_strategy_is_rejected() =>
         Assert.Throws<InvalidOperationException>(() =>
-            new ServiceCollection().AddRaskCqrs(o => o.NotificationPublishStrategy = (NotificationPublishStrategy)99));
+            new ServiceCollection().AddRaskCqrs(o => o.EventPublishStrategy = (EventPublishStrategy)99));
 
     // Rask:Cqrs is read while services are registered, because the handler lifetime and the validation switch decide
     // which descriptors exist. The validation behavior is registered at the handler lifetime, which makes it the

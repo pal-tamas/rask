@@ -32,13 +32,12 @@ public sealed class ServerBatteryScaffoldTests
     // Every flag, so each row can take exactly one battery away from a full app.
     private static readonly string[] Every =
     [
-        "data", "cqrs", "jobs", "mail", "cache", "storage", "outbox", "push", "pwa", "snapshots", "logs", "ops",
+        "data", "cqrs", "jobs", "mail", "cache", "storage", "push", "pwa", "snapshots", "logs", "ops",
     ];
 
     // The batteries nothing else depends on, with the name Program.cs switches them off by.
     public static TheoryData<string, string> Leaves => new()
     {
-        { "outbox", "Outbox" },
         { "jobs", "Jobs" },
         { "mail", "Mail" },
         { "cache", "Cache" },

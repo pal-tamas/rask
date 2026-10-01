@@ -114,7 +114,7 @@ rask db add AddOrderCustomer   # applied the next time the app starts
 ## 5. Send from the outbox handler
 
 Chapter 7's handler already reacts to an order being placed. Shipping has the same shape: give `Order` a
-`Ship()` method that raises an `OrderShipped` event — an `IOutboxEvent`, like `OrderPlaced` — and call it with
+`Ship()` method that raises an `OrderShipped` event (a `[LocalOnly]` `IEvent`, like `OrderPlaced`) and call it with
 `Order.Update(id, o => o.Ship())`, which saves the change and the event in one transaction. Push is then one more handler hanging
 off that event:
 
@@ -123,7 +123,7 @@ using Rask.WebPush;
 
 namespace Shop.Features.Orders;
 
-public sealed class OrderShippedHandler : INotificationHandler<OrderShipped>
+public sealed class OrderShippedHandler : IEventHandler<OrderShipped>
 {
     public async Task Handle(OrderShipped notification)
     {

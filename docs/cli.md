@@ -15,7 +15,7 @@ curl -sSL https://rask.sh/rask.sh | sh
 ```
 
 That puts a `rask` command on your `PATH`, along with the .NET SDK and the dependencies the CLI
-shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 or 11 SDK,
+shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 SDK,
 `dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
 upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 
@@ -101,7 +101,6 @@ rask new Tiny --no-data --no-docker  # a lean project, one --no- at a time
 rask new Shop --no-tests             # no Shop.Tests project beside the app
 rask new Spa --template wasm         # an installable browser-WASM PWA
 rask new Shop --islands react        # a server app with a React island beside the C# pages
-rask new Shop --framework net11.0    # target .NET 11 (default: net10.0, the LTS release)
 ```
 
 **Batteries are included.** `rask new MyApp` gives you everything the template carries as standard — a
@@ -109,29 +108,12 @@ SQLite database, CQRS, background jobs, transactional email, a cache, a transact
 storage for uploads, scheduled backups, a durable log store, the operator dashboard, an installable PWA with Web Push, a Dockerfile,
 and the localization machinery. Not a sample page to delete: the wiring, ready for your first feature.
 
-**Two things are left to you**, because they are the ones that change what the app *is* rather than
-what it can do:
-
-- **where the UI runs** — that is the **template**, not a flag. `server` renders pages live; `wasm-hosted`
-  writes them into `Client/` as a WebAssembly app an ASP.NET host serves
-  ([serving a WebAssembly app](deployment.md#serving-a-webassembly-app)); `wasm` is the same browser app with no backend at
-  all. It used to be a `--wasm` flag on `server`, which asked the same question twice — once as a project
-  type and again as a yes/no afterwards.
-
-- **the .NET version** — `--framework net11.0` targets .NET 11 instead of the default `net10.0`, in the
-  csproj and in the Dockerfile's images. Every Rask package ships for both, so this decides only what your
-  app targets; .NET 10 is the default because it is the LTS release (supported to November 2028) and an app
-  inherits its support window from the runtime it names. Asking for a version whose SDK is not installed is
-  refused before any file is written.
-
-Languages are **not** on that list, and not on the command line at all: a scaffolded server app ships
-English in `appsettings.json` (`Rask:Culture:SupportedCultures`), and adding another is an entry in that list.
-See [localization](localization.md).
-
-Everything else has a `--no-` to leave it out: `--no-jobs`, `--no-push`, `--no-ops`, and so on. There is
-no `--minimal`; taking three things out reads as three flags, and you can see from the command line
-exactly which three. On `server` a `--no-` removes no package — `Rask.Server` carries every battery — it
-writes the off-switch into `Program.cs` instead, so the file says what the app does without:
+**One thing is left to you**, because it changes what the app *is* rather than what it can do:
+**where the UI runs** — that is the **template**, not a flag. `server` renders pages live; `wasm-hosted`
+writes them into `Client/` as a WebAssembly app an ASP.NET host serves
+([serving a WebAssembly app](deployment.md#serving-a-webassembly-app)); `wasm` is the same browser app with no backend at
+all. It used to be a `--wasm` flag on `server`, which asked the same question twice — once as a project
+type and again as a yes/no afterwards.
 
 ```csharp
 var app = RaskApp.Create(args);
@@ -167,8 +149,7 @@ A `server` or `wasm` app also gets a test project, `<Name>.Tests/`, listed in th
 with one passing test — so `dotnet test` is green before you have written anything. `--no-tests` leaves
 it out.
 
-**`global.json` decides which SDK compiles the app**, and it names the band your `--framework` asked
-for:
+**`global.json` decides which SDK compiles the app**, and it names the .NET 10 band:
 
 ```json
 {
@@ -186,9 +167,9 @@ compilers. `latestFeature` takes the newest SDK **within** the band and never cr
 get `10.0.400` if you have it and the next patch when you install one.
 
 The version is the band floor, `10.0.0`, rather than a real SDK release, and that matters while a band
-is still in preview: `11.0.100-rc.1` sorts *below* `11.0.100`, and roll-forward only ever goes up — so
-pinning `11.0.100` would resolve nothing at all on a machine holding the release candidate, and
-`allowPrerelease` does not rescue it. The floor is satisfied by every SDK in the band.
+is still in preview: a release candidate sorts *below* the release it is a candidate for, and
+roll-forward only ever goes up — so pinning the release would resolve nothing at all on a machine
+holding the candidate, and `allowPrerelease` does not rescue it. The floor is satisfied by every SDK in the band.
 
 The trade is that a machine with **only** a newer major fails outright instead of building on it. Run
 [`rask doctor`](#rask-doctor--check-before-you-hit-it) if a scaffold will not restore: it reads this
@@ -272,7 +253,6 @@ failing: the files on disk are correct either way.
 |--------|---------|
 | `<name>` (or `--name`) | The project name. Required. |
 | `--template`, `-t` | `server` (default), `wasm` or `wasm-hosted`. |
-| `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
 | `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages read through the [model surface](data.md) without it, but they write through it: a save is a command whose handler loads the entity and calls `SaveChangesAsync`. The scaffold's plumbing needs it too — background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `wasm-hosted` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
 | `--no-data` | Leave out the SQLite database (`c.Data.Off()`): no `RaskAppDbContext`, no WAL + `busy_timeout` connection, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
@@ -280,7 +260,6 @@ failing: the files on disk are correct either way.
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
 | `--no-cache` | Leave out the database-backed cache — the standard `IDistributedCache` plus a typed `ICache`. |
 | `--no-storage` | Leave out [file storage](file-storage.md) for uploads — a `StoredFile` row per file on the database, the bytes on disk (or in S3 or Azure, by configuration), and the routes that serve public and temporary links. |
-| `--no-outbox` | Leave out the transactional outbox for durable domain-event delivery. With it on, the outbox claims delivery and the in-process publisher stands down, so events aren't delivered twice. |
 | `--no-push` | Leave out server-sent [Web Push](webpush.md) (`c.Push.Off()`): the subscriber table, `Push.Send(…)`, and the `/_rask/push/key`, `/_rask/push/subscribe` and `/_rask/push/unsubscribe` endpoints. The PWA stays. |
 | `--no-snapshots` | Leave out scheduled point-in-time SQLite backups via the Online Backup API — a second line of defence alongside the continuous backup the database already wires. |
 | `--no-logs` | Leave out the [durable log store](logging.md) in a SQLite file of its own, which keeps the application log across a restart — buffered off the request thread, with retention by age and row count. The **only** battery unaffected by `--no-data`: it takes a connection string rather than a `DbContext`, so it needs no migration and works on an app with no database. |
@@ -607,11 +586,11 @@ edits*, and `rask dev` restarts the app for you and the browser reloads itself.
 | A scoped `.css` / `.ts` sibling | ✅ Applied live; the bundle URL changes and the `<link>` is swapped. |
 | Deleting a scoped `.css` | ✅ The rules disappear from the page. |
 | A `[Route]` template | ✅ The route table is rebuilt. |
-| A CQRS command/query/notification handler body | ✅ The next dispatch runs the new code. |
-| A job or outbox event type's body | ✅ Applied live. |
+| A CQRS command/query/event handler body | ✅ The next dispatch runs the new code. |
+| A job type's or durable handler's body | ✅ Applied live. |
 | **Adding or removing a type** — a new component, page, handler, job | ⚠️ Rude edit → the app restarts, and the browser reloads itself. |
 | **Changing a signature** — a new factory parameter, a changed method signature | ⚠️ Rude edit → restart. |
-| Renaming a job or outbox event type | ✅ Applied. The old name stops resolving too. |
+| Renaming a job type | ✅ Applied. The old name stops resolving too. |
 | An island's `.tsx` / `.vue` / `.svelte` | ✅ Hot-replaced by its own framework — see below. |
 
 **Islands hot-reload too, on a second dev server.** When the project has islands, `rask dev` starts

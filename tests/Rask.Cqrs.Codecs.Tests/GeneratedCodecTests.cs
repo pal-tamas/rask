@@ -14,7 +14,7 @@ public sealed class GeneratedCodecTests
         Assert.Equal(RemoteMessageKind.Query, Contract<ListTodos>().Kind);
         Assert.Equal(RemoteMessageKind.VoidCommand, Contract<ArchiveTodo>().Kind);
         Assert.Equal(RemoteMessageKind.ResultCommand, Contract<AddTodo>().Kind);
-        Assert.Equal(RemoteMessageKind.Notification, Contract<TodoArchived>().Kind);
+        Assert.Equal(RemoteMessageKind.Event, Contract<TodoArchived>().Kind);
     }
 
     [Fact]

@@ -19,7 +19,7 @@ service to operate.
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
 | **Data layer** | ✅ | [`Rask.Data`](data.md) — `Aggregate<TId>` and `Entity<TId>` + interceptors (audit, opt-in soft delete, concurrency, domain events), generated read faces and form models, and `Current` for the signed-in user with nothing injected. |
 | **Query cache** | ✅ | [`Rask.Query`](query.md) — TanStack Query's model over the CQRS dispatcher: dedup, staleness, background refetch, commands through `Command<T>`, and a write through `Rask.Data` refreshing the queries about what it wrote. |
-| **Realtime subscriptions** | ◐ | [`subscriptions.md`](subscriptions.md) — a published CQRS notification re-renders every subscribed page, narrowed by a record and admitted by a watch policy, from WebAssembly over server-sent events. **One process**: events do not yet cross between processes or hosts ([below](#subscriptions--beyond-one-process)). |
+| **Realtime subscriptions** | ◐ | [`subscriptions.md`](subscriptions.md) — a published CQRS event re-renders every subscribed page, narrowed by a record and admitted by a watch policy, from WebAssembly over server-sent events. **One process**: events do not yet cross between processes or hosts ([below](#subscriptions--beyond-one-process)). |
 | **Multi-tenancy** | ✅ | [`multi-tenancy.md`](multi-tenancy.md) — one `const` partitions a table by tenant: a `TenantId`, a query filter nothing composes away, tenant-prefixed indexes, the tenant from the signed-in user; jobs, mail, outbox, cache, storage and accounts honour it. |
 | **Full-text search** | ✅ | [`full-text-search.md`](full-text-search.md) — `HasFullTextSearch` + `Search(text)`, ranked and diacritic-insensitive, on SQLite (FTS5), in the browser and on PostgreSQL (`tsvector` + GIN). |
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
@@ -49,7 +49,7 @@ The developer-facing cache has [shipped](cache.md). Still planned: a render/frag
 framework's existing subtree-cache machinery, to memoize a component subtree across sessions by an explicit key.
 
 ### Subscriptions — beyond one process
-[Subscriptions](subscriptions.md) have shipped: a published notification reaches every subscribed component, scoped by
+[Subscriptions](subscriptions.md) have shipped: a published event reaches every subscribed component, scoped by
 key and admitted by a watch policy, and from WebAssembly over server-sent events. They reach the process that published
 them. Still planned: carrying events between processes and hosts — the blue and green containers of a deploy, and the
 instances behind a load balancer — and resuming a dropped stream from the last event it saw rather than from the latest

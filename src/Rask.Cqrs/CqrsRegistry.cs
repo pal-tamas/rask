@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Cqrs;
@@ -16,29 +17,34 @@ public static class CqrsRegistry
     /// (<c>Task&lt;TResult&gt;</c> for queries/result-commands, <c>Task&lt;Unit&gt;</c> for void commands).</summary>
     public delegate Task RequestInvoker(IServiceProvider provider, object request, CancellationToken cancellationToken);
 
-    /// <summary>Invokes every handler for a notification.</summary>
-    public delegate Task NotificationInvoker(IServiceProvider provider, object notification, CancellationToken cancellationToken);
+    /// <summary>Invokes every handler for an event.</summary>
+    public delegate Task EventInvoker(IServiceProvider provider, object e, CancellationToken cancellationToken);
 
     private static readonly Lock _lock = new();
     private static readonly Dictionary<Type, RequestInvoker> _manualRequests = new();
-    private static readonly Dictionary<Type, NotificationInvoker> _manualNotifications = new();
+    private static readonly Dictionary<Type, EventInvoker> _manualEvents = new();
 
     // One entry per contributing assembly, keyed by that assembly's generated registry type.
     private static readonly List<(object Key, (Type Type, RequestInvoker Invoker)[] Items)> _requestGroups = new();
-    private static readonly List<(object Key, (Type Type, NotificationInvoker Invoker)[] Items)> _notificationGroups = new();
+    private static readonly List<(object Key, (Type Type, EventInvoker Invoker)[] Items)> _eventGroups = new();
 
     // The flattened dispatch tables. Rebuilt under the lock and installed in a single store, so a
     // dispatch in flight observes either the complete old table or the complete new one.
     private static volatile Dictionary<Type, RequestInvoker> _requests =
         new Dictionary<Type, RequestInvoker>();
 
-    private static volatile Dictionary<Type, NotificationInvoker> _notifications =
-        new Dictionary<Type, NotificationInvoker>();
+    private static volatile Dictionary<Type, EventInvoker> _events =
+        new Dictionary<Type, EventInvoker>();
 
     private static readonly List<(object Key, (Type Type, SubscriptionRegistration Registration)[] Items)> _subscriptionGroups = new();
 
     private static volatile Dictionary<Type, SubscriptionRegistration> _subscriptions =
         new Dictionary<Type, SubscriptionRegistration>();
+
+    // Durable handlers, per contributing assembly: (event type, (handler type, invoker)).
+    private static readonly List<(object Key, (Type Type, (Type Handler, EventInvoker Invoker) Invoker)[] Items)> _durableGroups = new();
+
+    private static volatile DurableTable _durable = DurableTable.Empty;
 
     // The modules whose initializer has been forced, so a lookup that misses does it at most once per module.
     private static readonly ConcurrentDictionary<System.Reflection.Module, bool> _initialized = new();
@@ -57,15 +63,15 @@ public static class CqrsRegistry
         }
     }
 
-    /// <summary>Maps a notification type to its fan-out invoker.</summary>
-    public static void RegisterNotification(Type notificationType, NotificationInvoker invoker)
+    /// <summary>Maps an event type to its fan-out invoker.</summary>
+    public static void RegisterEvent(Type eventType, EventInvoker invoker)
     {
-        ArgumentNullException.ThrowIfNull(notificationType);
+        ArgumentNullException.ThrowIfNull(eventType);
         ArgumentNullException.ThrowIfNull(invoker);
         lock (_lock)
         {
-            _manualNotifications[notificationType] = invoker;
-            RebuildNotifications();
+            _manualEvents[eventType] = invoker;
+            RebuildEvents();
         }
     }
 
@@ -92,27 +98,96 @@ public static class CqrsRegistry
     }
 
     /// <summary>
-    ///     The notification counterpart of <see cref="ReplaceRequests" />.
+    ///     The event counterpart of <see cref="ReplaceRequests" />.
     /// </summary>
-    public static void ReplaceNotifications(
+    public static void ReplaceEvents(
         object groupKey,
-        IEnumerable<(Type Type, NotificationInvoker Invoker)> registrations)
+        IEnumerable<(Type Type, EventInvoker Invoker)> registrations)
     {
         ArgumentNullException.ThrowIfNull(groupKey);
         ArgumentNullException.ThrowIfNull(registrations);
 
-        var items = registrations as (Type Type, NotificationInvoker Invoker)[] ?? registrations.ToArray();
+        var items = registrations as (Type Type, EventInvoker Invoker)[] ?? registrations.ToArray();
         lock (_lock)
         {
-            if (ReplaceGroup(_notificationGroups, groupKey, items))
+            if (ReplaceGroup(_eventGroups, groupKey, items))
             {
-                RebuildNotifications();
+                RebuildEvents();
             }
         }
     }
 
     /// <summary>
-    ///     Installs <paramref name="registrations" /> as the complete set of <see cref="ISubscription{TNotification}" />
+    ///     Installs <paramref name="registrations" /> as the complete set of <see cref="IDurableHandler{TEvent}" />s
+    ///     owned by <paramref name="groupKey" />: each event type, the handler, and the invoker that runs that one
+    ///     handler. The same per-assembly swap as <see cref="ReplaceRequests" />.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void ReplaceDurableHandlers(
+        object groupKey,
+        IEnumerable<(Type EventType, Type HandlerType, EventInvoker Invoker)> registrations)
+    {
+        ArgumentNullException.ThrowIfNull(groupKey);
+        ArgumentNullException.ThrowIfNull(registrations);
+
+        var items = registrations.Select(static r => (r.EventType, (r.HandlerType, r.Invoker))).ToArray();
+        lock (_lock)
+        {
+            if (ReplaceGroup(_durableGroups, groupKey, items))
+            {
+                _durable = DurableTable.From(_durableGroups.SelectMany(static g => g.Items));
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The names of the durable handlers of <paramref name="eventType" /> — what the outbox stores one row per —
+    ///     or an empty list when it has none.
+    /// </summary>
+    /// <param name="eventType">The event's concrete type.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IReadOnlyList<string> DurableHandlersOf(Type eventType)
+    {
+        ArgumentNullException.ThrowIfNull(eventType);
+        return _durable.ByEvent.TryGetValue(eventType, out var names) ? names : [];
+    }
+
+    /// <summary>Whether any loaded assembly declares an <see cref="IDurableHandler{TEvent}" /> — so the outbox is in use.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static bool HasDurableHandlers => _durable.ByHandler.Count > 0;
+
+    /// <summary>The invoker that runs the durable handler stored as <paramref name="handler" />, or null.</summary>
+    /// <param name="handler">A name from <see cref="DurableHandlersOf" />.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static EventInvoker? FindDurableHandler(string handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return _durable.ByHandler.TryGetValue(handler, out var invoker) ? invoker : null;
+    }
+
+    /// <summary>The event type stored as <paramref name="name" /> by <see cref="NameOf" />, when a durable handler takes it.</summary>
+    /// <param name="name">The stored type name.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static Type? FindDurableEvent(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        return _durable.EventsByName.TryGetValue(name, out var type) ? type : null;
+    }
+
+    /// <summary>
+    ///     The name a type is stored under: its full name, dot-separated even for a nested type (which is what Roslyn
+    ///     writes), so a stored row and a generated registration agree.
+    /// </summary>
+    /// <param name="type">The event or handler type.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static string NameOf(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return (type.FullName ?? type.Name).Replace('+', '.');
+    }
+
+    /// <summary>
+    ///     Installs <paramref name="registrations" /> as the complete set of <see cref="ISubscription{TEvent}" />
     ///     records owned by <paramref name="groupKey" />, the same per-assembly swap as <see cref="ReplaceRequests" />.
     /// </summary>
     public static void ReplaceSubscriptions(
@@ -233,10 +308,10 @@ public static class CqrsRegistry
     }
 
     // Caller holds _lock.
-    private static void RebuildNotifications()
+    private static void RebuildEvents()
     {
-        var map = new Dictionary<Type, NotificationInvoker>();
-        foreach (var (_, items) in _notificationGroups)
+        var map = new Dictionary<Type, EventInvoker>();
+        foreach (var (_, items) in _eventGroups)
         {
             foreach (var (type, invoker) in items)
             {
@@ -244,12 +319,12 @@ public static class CqrsRegistry
             }
         }
 
-        foreach (var (type, invoker) in _manualNotifications)
+        foreach (var (type, invoker) in _manualEvents)
         {
             map[type] = invoker;
         }
 
-        _notifications = map;
+        _events = map;
     }
 
     /// <summary>Called by generated code to enqueue a handler's DI registration (applied by <c>AddRaskCqrs</c>).</summary>
@@ -265,29 +340,60 @@ public static class CqrsRegistry
                 "AddRaskCqrs() was called during startup.");
 
     /// <summary>
-    ///     Finds the fan-out invoker for a notification type, or null when nothing handles it here.
+    ///     Finds the fan-out invoker for an event type, or null when nothing handles it here.
     /// </summary>
-    /// <param name="notificationType">The notification's concrete type.</param>
+    /// <param name="eventType">The event's concrete type.</param>
     /// <remarks>
     ///     Public so a remote transport can <em>compose</em> with the local fan-out rather than replace
-    ///     it: on a client, publishing a notification should still reach the handlers in that process —
+    ///     it: on a client, publishing an event should still reach the handlers in that process —
     ///     a badge, a toast — and also travel to the server. Replacing the invoker outright would
     ///     silently drop the local ones.
     /// </remarks>
-    public static NotificationInvoker? FindNotificationInvoker(Type notificationType)
+    public static EventInvoker? FindEventInvoker(Type eventType)
     {
-        ArgumentNullException.ThrowIfNull(notificationType);
-        return _notifications.TryGetValue(notificationType, out var invoker) ? invoker : null;
+        ArgumentNullException.ThrowIfNull(eventType);
+        return _events.TryGetValue(eventType, out var invoker) ? invoker : null;
     }
 
-    internal static NotificationInvoker? GetNotificationInvoker(Type notificationType) =>
-        _notifications.TryGetValue(notificationType, out var invoker) ? invoker : null;
+    internal static EventInvoker? GetEventInvoker(Type eventType) =>
+        _events.TryGetValue(eventType, out var invoker) ? invoker : null;
 
     internal static void ApplyRegistrations(IServiceCollection services, ServiceLifetime lifetime)
     {
         foreach (var registration in Registrations)
         {
             registration(services, lifetime);
+        }
+    }
+
+    // The flattened durable lookups, built together and installed in one store.
+    private sealed record DurableTable(
+        Dictionary<Type, string[]> ByEvent,
+        Dictionary<string, EventInvoker> ByHandler,
+        Dictionary<string, Type> EventsByName)
+    {
+        public static readonly DurableTable Empty = new([], new(StringComparer.Ordinal), new(StringComparer.Ordinal));
+
+        public static DurableTable From(IEnumerable<(Type Type, (Type Handler, EventInvoker Invoker) Invoker)> items)
+        {
+            var byEvent = new Dictionary<Type, List<string>>();
+            var byHandler = new Dictionary<string, EventInvoker>(StringComparer.Ordinal);
+            var eventsByName = new Dictionary<string, Type>(StringComparer.Ordinal);
+            foreach (var (eventType, (handlerType, invoker)) in items)
+            {
+                // Keyed by handler AND event: one class may handle two events durably, and each is its own row.
+                var name = $"{NameOf(handlerType)}:{NameOf(eventType)}";
+                if (!byEvent.TryGetValue(eventType, out var names))
+                {
+                    byEvent[eventType] = names = [];
+                }
+
+                names.Add(name);
+                byHandler[name] = invoker;
+                eventsByName[NameOf(eventType)] = eventType;
+            }
+
+            return new DurableTable(byEvent.ToDictionary(static p => p.Key, static p => p.Value.ToArray()), byHandler, eventsByName);
         }
     }
 }
