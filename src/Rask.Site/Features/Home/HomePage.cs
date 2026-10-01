@@ -363,7 +363,7 @@ public sealed partial class HomePage : Component
         Section.Class(SectionPad)[
             Div.Class(Wrap)[
                 Div.Class("mx-auto mb-10 max-w-2xl text-center")[
-                    P.Class($"{Eyebrow} justify-center")["Prerequisite · .NET 10 or 11 SDK"],
+                    P.Class($"{Eyebrow} justify-center")["Prerequisite · .NET 10 SDK"],
                     H2.Class(H2Class)["Up and running in one command."]
                 ],
                 InstallTabs

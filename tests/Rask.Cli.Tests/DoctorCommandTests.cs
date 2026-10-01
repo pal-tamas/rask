@@ -50,13 +50,13 @@ public class DoctorCommandTests
     public async Task An_sdk_pin_that_nothing_satisfies_is_named()
     {
         var (console, fs, command) = Build(sdk: string.Empty);
-        fs.Seed($"{ProjectDir}/global.json", DotnetTarget.Preview.GlobalJson);
+        fs.Seed($"{ProjectDir}/global.json", DotnetTarget.GlobalJson.Replace(DotnetTarget.SdkPin, "99.0.0", StringComparison.Ordinal));
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
         Assert.Equal(1, exit);
         Assert.Contains("global.json", console.OutText, StringComparison.Ordinal);
-        Assert.Contains("11.0.0", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("99.0.0", console.OutText, StringComparison.Ordinal);
     }
 
     /// <summary>

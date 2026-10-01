@@ -169,9 +169,8 @@ guides and every live demo — built from [`src/Rask.Site`](src/Rask.Site).
 
 ## Status
 
-Rask is pre-1.0; APIs may change between minor versions. Every package ships for **.NET 10 and .NET 11** (`net10.0` / `net11.0` for
-ASP.NET hosts, `net10.0-browser` / `net11.0-browser` for WASM); .NET 10 is the LTS release and the
-default `rask new` scaffolds, and `--framework net11.0` opts a new app into .NET 11. Production use at your own discretion — issues and PRs welcome.
+Rask is pre-1.0; APIs may change between minor versions. Every package ships for **.NET 10**, the LTS release (`net10.0` for
+ASP.NET hosts, `net10.0-browser` for WASM), and that is what `rask new` scaffolds. Production use at your own discretion — issues and PRs welcome.
 
 ## License
 

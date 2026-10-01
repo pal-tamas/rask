@@ -19,16 +19,16 @@ public sealed class GlobalJsonPinTests
     private static JsonElement Sdk(string json) =>
         JsonDocument.Parse(json).RootElement.GetProperty("sdk");
 
-    private static ScaffoldFile Pin(string key, DotnetTarget dotnet) =>
+    private static ScaffoldFile Pin(string key) =>
         TemplateMaterializer
-            .Files("/proj/Shop", key, "Shop", new ServerBatteries(), "9.9.9", dotnet)
+            .Files("/proj/Shop", key, "Shop", new ServerBatteries(), "9.9.9")
             .Single(f => Path.GetFileName(f.Path) == TemplateMaterializer.GlobalJsonFile);
 
     [Theory]
     [MemberData(nameof(Templates))]
     public void Every_template_writes_one_at_the_project_root(string key)
     {
-        var pin = Pin(key, DotnetTarget.Default);
+        var pin = Pin(key);
 
         Assert.Equal(
             Path.Combine("/proj/Shop", TemplateMaterializer.GlobalJsonFile),
@@ -37,13 +37,6 @@ public sealed class GlobalJsonPinTests
         var sdk = Sdk(pin.Content);
         Assert.Equal("10.0.0", sdk.GetProperty("version").GetString());
         Assert.Equal("latestFeature", sdk.GetProperty("rollForward").GetString());
-    }
-
-    [Fact]
-    public void The_pin_follows_the_framework_that_was_asked_for()
-    {
-        Assert.Equal("11.0.0", Sdk(Pin("server", DotnetTarget.Preview).Content)
-            .GetProperty("version").GetString());
     }
 
     /// <summary>
@@ -57,63 +50,34 @@ public sealed class GlobalJsonPinTests
     [Fact]
     public void The_roll_forward_policy_does_not_cross_a_major()
     {
-        foreach (var dotnet in new[] { DotnetTarget.Default, DotnetTarget.Preview })
-        {
-            Assert.Equal("latestFeature", Sdk(Pin("server", dotnet).Content)
-                .GetProperty("rollForward").GetString());
-        }
+        var policy = Sdk(Pin("server").Content).GetProperty("rollForward").GetString();
+
+        Assert.Equal("latestFeature", policy);
     }
 
     /// <summary>
-    ///     The pin names the band FLOOR, <c>{major}.0.0</c>, never a real SDK version.
+    ///     The pin names the band FLOOR, never a real SDK version.
     /// </summary>
     /// <remarks>
-    ///     Measured, not assumed. With only <c>11.0.100-rc.1</c> installed, a pin of <c>11.0.100</c>
-    ///     resolves NOTHING — the release candidate sorts below the release it is a candidate for, and
-    ///     roll-forward only ever goes up, so the SDK exits with "the command could not be loaded" before
-    ///     a line of the scaffold is compiled. <c>allowPrerelease</c> does not rescue it. The floor is
-    ///     satisfied by every SDK in the band including prereleases, and it does not go stale at GA.
+    ///     Measured, not assumed, on a band still in preview: a pin naming the release resolves NOTHING
+    ///     while only its release candidate is installed — the candidate sorts below the release, and
+    ///     roll-forward only ever goes up. The floor is satisfied by every SDK in the band.
     /// </remarks>
     [Fact]
     public void The_pin_is_a_band_floor_that_a_release_candidate_still_satisfies()
     {
-        foreach (var dotnet in new[] { DotnetTarget.Default, DotnetTarget.Preview })
-        {
-            Assert.Equal($"{dotnet.SdkMajor}.0.0", dotnet.SdkPin);
-            Assert.EndsWith(".0.0", Sdk(Pin("server", dotnet).Content)
-                .GetProperty("version").GetString(), StringComparison.Ordinal);
-        }
-    }
+        var version = Sdk(Pin("server").Content).GetProperty("version").GetString();
 
-    /// <summary>
-    ///     A template tree that ever commits a <c>global.json</c> of its own is caught, not trusted.
-    /// </summary>
-    /// <remarks>
-    ///     The generated pin replaces such a file, so this can only bite if the generation is removed.
-    ///     It is guarded anyway because the failure is silent in the direction that matters: a
-    ///     <c>--framework net11.0</c> scaffold pinned to the 10.0 band restores nothing, and says so in
-    ///     an error that names neither the framework nor the file.
-    /// </remarks>
-    [Fact]
-    public void A_committed_pin_naming_the_default_band_is_caught_and_rewritten()
-    {
-        var committed = DotnetTarget.Default.GlobalJson;
-
-        Assert.True(DotnetTarget.StillNamesTheDefault(committed));
-        Assert.False(
-            DotnetTarget.StillNamesTheDefault(DotnetTarget.Preview.Rewrite(committed)));
-        Assert.Equal(
-            "11.0.0",
-            Sdk(DotnetTarget.Preview.Rewrite(committed)).GetProperty("version").GetString());
+        Assert.EndsWith(".0.0", DotnetTarget.SdkPin, StringComparison.Ordinal);
+        Assert.Equal(DotnetTarget.SdkPin, version);
     }
 
     [Fact]
-    public void The_pin_is_the_only_file_the_default_target_adds_beyond_the_committed_tree()
+    public void The_pin_is_the_only_file_added_beyond_the_committed_tree()
     {
-        // The default target still writes the committed trees byte for byte -- DotnetTarget.Rewrite is a
-        // no-op there, and this file is the one deliberate addition on top of them.
+        // The committed trees are written byte for byte, and this file is the one deliberate addition.
         var files = TemplateMaterializer.Files(
-            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9", DotnetTarget.Default);
+            "/proj/Shop", "server", "Shop", new ServerBatteries(), "9.9.9");
 
         Assert.Single(files, f => Path.GetFileName(f.Path) == TemplateMaterializer.GlobalJsonFile);
     }

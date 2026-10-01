@@ -76,14 +76,12 @@ internal static class TemplateMaterializer
         string name,
         ServerBatteries batteries,
         string version,
-        DotnetTarget dotnet,
         IReadOnlyList<string>? islands = null,
         VsCodeSetup vsCode = VsCodeSetup.None)
     {
         ArgumentException.ThrowIfNullOrEmpty(targetDirectory);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(batteries);
-        ArgumentNullException.ThrowIfNull(dotnet);
 
         var assets = TemplateAssets.Load(templateKey);
         var owners = ReadOwners(assets, templateKey);
@@ -114,29 +112,16 @@ internal static class TemplateMaterializer
             ? IslandAssembly.Apply(targetDirectory, islands, name, files)
             : files;
 
-        // The .vscode fragment tree is assembled HERE, next to the islands, for the reason the rewrite
-        // below exists: it is one more set of files added to this list, and anything added after the
-        // rewrite is a file the rewrite never saw. It carried net10.0 in launch.json's program path, so
-        // F5 on a net11.0 scaffold started a dll that was never built.
         if (vsCode != VsCodeSetup.None)
         {
             written = VsCodeAssembly.Apply(targetDirectory, name, written, vsCode);
         }
 
-        written = WithGlobalJson(targetDirectory, written, dotnet);
+        written = WithGlobalJson(targetDirectory, written);
 
         // The development VAPID pair, after the markers have been stripped: it is added only when the
         // RENDERED appsettings.json carries a WebPush section, so it reads the same text the app will.
-        written = WebPushAssembly.Apply(targetDirectory, written);
-
-        // Last, and over the ASSEMBLED list rather than each asset as it is read: the assemblers above
-        // contribute files of their own, and a rewrite inside the loop reached none of them. A no-op for
-        // the default target, so a plain `rask new` still writes the committed trees byte for byte.
-        written = [.. written.Select(file =>
-            file.Bytes is null ? file with { Content = dotnet.Rewrite(file.Content) } : file)];
-
-        VerifyFrameworkRewritten(written, dotnet);
-        return written;
+        return WebPushAssembly.Apply(targetDirectory, written);
     }
 
     /// <summary>One asset as the file it becomes: renamed, its regions resolved and its tokens replaced.</summary>
@@ -170,13 +155,7 @@ internal static class TemplateMaterializer
     /// <remarks>
     ///     <para>
     ///         Generated here rather than committed into all nineteen template trees, for the reason the
-    ///         <c>_vscode</c> fragments are shared: the file is identical everywhere except the one number
-    ///         <see cref="DotnetTarget" /> already owns. Generating it also keeps it off
-    ///         <see cref="DotnetTarget.Rewrite" />'s literal path — a committed one saying <c>10.0.0</c>
-    ///         would be rewritten only if someone remembered to teach the rewrite that spelling, and the
-    ///         silent result is a <c>--framework net11.0</c> scaffold pinned to an SDK that cannot restore
-    ///         it. <see cref="DotnetTarget.StillNamesTheDefault" /> knows the spelling anyway, so a tree
-    ///         that ever does commit one is caught rather than trusted.
+    ///         <c>_vscode</c> fragments are shared: the file is identical everywhere.
     ///     </para>
     ///     <para>
     ///         A file already at that path wins nothing: the generated pin replaces it, the way a later
@@ -184,53 +163,16 @@ internal static class TemplateMaterializer
     ///     </para>
     /// </remarks>
     private static IReadOnlyList<ScaffoldFile> WithGlobalJson(
-        string targetDirectory, IReadOnlyList<ScaffoldFile> files, DotnetTarget dotnet)
+        string targetDirectory, IReadOnlyList<ScaffoldFile> files)
     {
         var path = Path.Combine(targetDirectory, GlobalJsonFile);
-        var pin = new ScaffoldFile(path, dotnet.GlobalJson);
+        var pin = new ScaffoldFile(path, DotnetTarget.GlobalJson);
 
         return
         [
             .. files.Where(file => !string.Equals(file.Path, path, StringComparison.Ordinal)),
             pin,
         ];
-    }
-
-    /// <summary>
-    ///     Every csproj and Dockerfile a scaffold writes names the .NET version that was asked for.
-    /// </summary>
-    /// <remarks>
-    ///     The rewrite is by exact literal (<see cref="DotnetTarget.Rewrite" />), so a template that spells its
-    ///     framework some other way — an attribute instead of an element, a Docker tag written differently, a
-    ///     file an assembler adds after the loop — is simply not rewritten, and says nothing. What reaches the
-    ///     user is then a project whose csproj and container disagree about the .NET version: `dotnet run`
-    ///     works and `docker build` fails on a restore error that names neither. Checked rather than trusted,
-    ///     and only when a version other than the default was asked for.
-    /// </remarks>
-    private static void VerifyFrameworkRewritten(IReadOnlyList<ScaffoldFile> files, DotnetTarget dotnet)
-    {
-        if (dotnet == DotnetTarget.Default)
-        {
-            return;
-        }
-
-        // Every text file, not just csproj and Dockerfile. The spellings StillNamesTheDefault looks for
-        // are exact enough that prose mentioning net10.0 does not match one, and narrowing this to the
-        // two obvious file types is what let .vscode/launch.json through.
-        var missed = files
-            .Where(file => file.Bytes is null)
-            .Where(file => DotnetTarget.StillNamesTheDefault(file.Content))
-            .Select(file => Path.GetFileName(file.Path))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-
-        if (missed.Length > 0)
-        {
-            throw new InvalidOperationException(
-                $"--framework {dotnet.Moniker} did not reach {string.Join(", ", missed)}: the template names "
-                + $"{DotnetTarget.Default.Moniker} in a spelling DotnetTarget.Rewrite does not match. Scaffolding "
-                + "would have produced a project whose csproj and Dockerfile disagree about the .NET version.");
-        }
     }
 
     /// <summary>Whether a committed tree exists for <paramref name="templateKey"/>.</summary>

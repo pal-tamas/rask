@@ -70,7 +70,7 @@ internal sealed partial class NewCommand
         // The checklist that used to stand here arrived fully ticked, which made it a question whose
         // answer was "yes" every time: thirteen rows to read past before the scaffold could start.
 
-        WriteWizardSummary(filled, template, DotnetTarget.For(parsed.Option("framework")));
+        WriteWizardSummary(filled, template);
         return filled;
     }
 
@@ -83,7 +83,7 @@ internal sealed partial class NewCommand
     /// SPA it had chosen a database battery — a question that template never asks and does not support —
     /// which is worse than saying nothing, because it reads as confirmation.
     /// </remarks>
-    private void WriteWizardSummary(List<string> args, TemplateInfo template, DotnetTarget dotnet)
+    private void WriteWizardSummary(List<string> args, TemplateInfo template)
     {
         // Resolved through the same path the scaffold will take, rather than read back off the flags. The
         // summary's whole job is to be what happens next, and a second reading of the same answers is how
@@ -115,18 +115,6 @@ internal sealed partial class NewCommand
         if (template.SupportedFlags.Contains("tests"))
         {
             grid.AddRow(Label("🧪", "Tests"), new Text(batteries.Tests ? "yes — one passing, run with dotnet test" : "no"));
-        }
-
-        // Only when it is not the default. The summary's job is to restate the DECISIONS, and .NET 10 is the
-        // one nobody made — a row saying so on every scaffold would be one more line to read past, and the
-        // wizard deliberately asks nothing about the version. The value comes from the PARSE, which has
-        // already normalised the choice, rather than from a second reading of the raw arguments:
-        // `--framework NET11.0` scaffolds net11.0, and a case-sensitive re-read would have dropped this row.
-        if (dotnet != DotnetTarget.Default)
-        {
-            grid.AddRow(
-                Label("🎯", ".NET"),
-                new Text($"{dotnet.Moniker} (the default is {DotnetTarget.Default.Moniker}, the LTS release)"));
         }
 
         grid.AddRow(

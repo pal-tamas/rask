@@ -22,12 +22,11 @@ jobs:
         with:
           fetch-depth: 0 # MinVer needs full history + tags to resolve the version
 
-      # The shared setup — both SDKs, the workloads and the NuGet cache — so this workflow cannot drift from
-      # release and nightly again. wasm-tools-net10 because the .NET 11 SDK relinks net10.0-browser (the site)
-      # only with the net10 toolchain.
+      # The shared setup — the SDK, the workload and the NuGet cache — so this workflow cannot drift from
+      # release and nightly again.
       - uses: ./.github/actions/setup
         with:
-          workloads: wasm-tools wasm-tools-net10
+          workloads: wasm-tools
 
       # The Pages site is ONE Rask WASM app served from the apex custom domain https://rask.sh: the
       # landing page at /, the showcase and guides at /docs. It used to be three separately-published
