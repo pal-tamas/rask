@@ -13895,3 +13895,87 @@ static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLInputElement<T
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLSelectElement<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.Core.HTMLSelectElement<T>!
 static RaskBuilderSettersRask_Core.Validate<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Validate<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, System.Func<TModel, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.Core.HTMLFormElement<TModel>!
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ElementTiming.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLAnchorElement!>!).AttributionSourceId.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLAnchorElement!>!).SetAttributionSourceId(int value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLAreaElement!>!).Hreflang.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLAreaElement!>!).Type.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLElement!>!).SetVirtualKeyboardPolicy(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLElement!>!).VirtualKeyboardPolicy.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>!).Credentialless.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>!).Csp.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>!).PrivateToken.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>!).SetCredentialless(bool value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>!).SetCsp(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>!).SetPrivateToken(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).Alpha.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).Loading.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>!).SetLoading(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLTemplateElement!>!).HtmlFor.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Hash.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Host.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Hostname.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Origin.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Password.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Pathname.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Ping.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Port.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Protocol.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Search.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetHash(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetHost(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetHostname(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetPassword(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetPathname(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetPort(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetProtocol(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetSearch(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).SetUsername(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGAElement!>!).Username.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGMarkerElement!>!).Orient.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGScriptElement!>!).CrossOrigin.get -> System.Threading.Tasks.ValueTask<string?>
+Rask.Core.Touch.AltitudeAngle.get -> double
+Rask.Core.Touch.AltitudeAngle.init -> void
+Rask.Core.Touch.AzimuthAngle.get -> double
+Rask.Core.Touch.AzimuthAngle.init -> void
+Rask.Core.WheelEvent.Momentum.get -> bool
+Rask.Core.WheelEvent.Momentum.init -> void
+static Rask.Core.ElementRefMembers.SetAttributionSourceId(this Rask.Core.IElementRef<Rask.Core.HTMLAnchorElement!>! element, int value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetCredentialless(this Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>! element, bool value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetCsp(this Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetHash(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetHost(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetHostname(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetLoading(this Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetPassword(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetPathname(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetPort(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetPrivateToken(this Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetProtocol(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetSearch(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetUsername(this Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetVirtualKeyboardPolicy(this Rask.Core.IElementRef<Rask.Core.HTMLElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.get_Alpha(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Core.ElementRefMembers.get_AttributionSourceId(Rask.Core.IElementRef<Rask.Core.HTMLAnchorElement!>! element) -> System.Threading.Tasks.ValueTask<int>
+static Rask.Core.ElementRefMembers.get_Credentialless(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>! element) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Core.ElementRefMembers.get_CrossOrigin(Rask.Core.IElementRef<Rask.Core.SVGScriptElement!>! element) -> System.Threading.Tasks.ValueTask<string?>
+static Rask.Core.ElementRefMembers.get_Csp(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_ElementTiming(Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Hash(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Host(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Hostname(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Hreflang(Rask.Core.IElementRef<Rask.Core.HTMLAreaElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_HtmlFor(Rask.Core.IElementRef<Rask.Core.HTMLTemplateElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Loading(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Orient(Rask.Core.IElementRef<Rask.Core.SVGMarkerElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Origin(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Password(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Pathname(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Ping(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Port(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_PrivateToken(Rask.Core.IElementRef<Rask.Core.HTMLIFrameElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Protocol(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Search(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Type(Rask.Core.IElementRef<Rask.Core.HTMLAreaElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_Username(Rask.Core.IElementRef<Rask.Core.SVGAElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Core.ElementRefMembers.get_VirtualKeyboardPolicy(Rask.Core.IElementRef<Rask.Core.HTMLElement!>! element) -> System.Threading.Tasks.ValueTask<string!>

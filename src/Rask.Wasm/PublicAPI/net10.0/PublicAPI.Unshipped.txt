@@ -805,9 +805,6 @@ Rask.Web.Types.WebGLUniformLocation
 Rask.Web.Types.WebGLVertexArrayObject
 Rask.Web.Types.WebGLVertexArrayObjectOES
 Rask.Web.WasmMembers
-Rask.Web.WasmMembers.extension(Rask.Web.Document!)
-Rask.Web.WasmMembers.extension(Rask.Web.Navigator!)
-Rask.Web.WasmMembers.extension(Rask.Web.Notification!)
 Rask.Web.WasmMembers.extension(Rask.Web.Types.BaseAudioContext!)
 Rask.Web.WasmMembers.extension(Rask.Web.Types.BaseAudioContext!).AudioWorklet.get -> Rask.Web.Types.AudioWorklet!
 Rask.Web.WasmMembers.extension(Rask.Web.Types.Document!)
@@ -839,23 +836,13 @@ static Rask.Web.GPUValidationError.Create(string! message) -> System.Threading.T
 static Rask.Web.WasmMembers.GetDisplayMedia(this Rask.Web.Types.MediaDevices! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
 static Rask.Web.WasmMembers.GetDisplayMedia(this Rask.Web.Types.MediaDevices! self, Rask.Web.Types.DisplayMediaStreamOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStream!>
 static Rask.Web.WasmMembers.Lock(this Rask.Web.Types.ScreenOrientation! self, Rask.Web.Types.OrientationLockType orientation) -> System.Threading.Tasks.ValueTask
-static Rask.Web.WasmMembers.RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
 static Rask.Web.WasmMembers.RequestPort(this Rask.Web.Types.Serial! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SerialPort!>
 static Rask.Web.WasmMembers.RequestPort(this Rask.Web.Types.Serial! self, Rask.Web.Types.SerialPortRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SerialPort!>
-static Rask.Web.WasmMembers.RequestStorageAccess() -> System.Threading.Tasks.ValueTask
 static Rask.Web.WasmMembers.RequestStorageAccess(this Rask.Web.Types.Document! self) -> System.Threading.Tasks.ValueTask
-static Rask.Web.WasmMembers.Share() -> System.Threading.Tasks.ValueTask
-static Rask.Web.WasmMembers.Share(Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
 static Rask.Web.WasmMembers.Share(this Rask.Web.Types.Navigator! self) -> System.Threading.Tasks.ValueTask
 static Rask.Web.WasmMembers.Share(this Rask.Web.Types.Navigator! self, Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
 static Rask.Web.WasmMembers.Show(this Rask.Web.Types.PaymentRequest! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PaymentResponse!>
-static Rask.Web.WasmMembers.extension(Rask.Web.Document!).RequestStorageAccess() -> System.Threading.Tasks.ValueTask
-static Rask.Web.WasmMembers.extension(Rask.Web.Navigator!).Gpu.get -> Rask.Web.Types.GPU!
-static Rask.Web.WasmMembers.extension(Rask.Web.Navigator!).Share() -> System.Threading.Tasks.ValueTask
-static Rask.Web.WasmMembers.extension(Rask.Web.Navigator!).Share(Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
-static Rask.Web.WasmMembers.extension(Rask.Web.Notification!).RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
 static Rask.Web.WasmMembers.get_AudioWorklet(Rask.Web.Types.BaseAudioContext! self) -> Rask.Web.Types.AudioWorklet!
-static Rask.Web.WasmMembers.get_Gpu() -> Rask.Web.Types.GPU!
 static Rask.Web.WasmMembers.get_Gpu(Rask.Web.Types.Navigator! self) -> Rask.Web.Types.GPU!
 Rask.Web.Types.ANGLE_instanced_arrays
 Rask.Web.Types.EXT_blend_minmax
@@ -897,3 +884,324 @@ Rask.Web.Types.WEBGL_lose_context.LoseContext() -> System.Threading.Tasks.ValueT
 Rask.Web.Types.WEBGL_lose_context.RestoreContext() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WEBGL_multi_draw
 Rask.Wasm.Authentication.WasmAuthSignIn.WasmAuthSignIn(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! userProvider) -> void
+Rask.Web.Types.AudioWorklet.Port.get -> Rask.Web.Types.MessagePort!
+Rask.Web.Types.EXT_disjoint_timer_query_webgl2
+Rask.Web.Types.GPUAdapterInfo.SubgroupMaxSize.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUAdapterInfo.SubgroupMinSize.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUDevice.PopErrorScope() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUError!>
+Rask.Web.Types.GPUError
+Rask.Web.Types.GPUError.Message.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.GPUSupportedLimits.MaxImmediateSize.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.OVR_multiview2
+Rask.Web.Types.WebGL2RenderingContext.MakeXRCompatible() -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLObject
+Rask.Web.Types.WebGLRenderingContext.MakeXRCompatible() -> System.Threading.Tasks.ValueTask
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLDepthInformation!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLDepthInformation!).Texture.get -> Rask.Web.Types.WebGLTexture!
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLLayer!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLLayer!).Framebuffer.get -> Rask.Web.Types.WebGLFramebuffer!
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLSubImage!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLSubImage!).ColorTexture.get -> Rask.Web.Types.WebGLTexture!
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLSubImage!).DepthStencilTexture.get -> Rask.Web.Types.WebGLTexture!
+Rask.Web.WasmMembers.extension(Rask.Web.Types.XRWebGLSubImage!).MotionVectorTexture.get -> Rask.Web.Types.WebGLTexture!
+static Rask.Web.WasmMembers.get_ColorTexture(Rask.Web.Types.XRWebGLSubImage! self) -> Rask.Web.Types.WebGLTexture!
+static Rask.Web.WasmMembers.get_DepthStencilTexture(Rask.Web.Types.XRWebGLSubImage! self) -> Rask.Web.Types.WebGLTexture!
+static Rask.Web.WasmMembers.get_Framebuffer(Rask.Web.Types.XRWebGLLayer! self) -> Rask.Web.Types.WebGLFramebuffer!
+static Rask.Web.WasmMembers.get_MotionVectorTexture(Rask.Web.Types.XRWebGLSubImage! self) -> Rask.Web.Types.WebGLTexture!
+static Rask.Web.WasmMembers.get_Texture(Rask.Web.Types.XRWebGLDepthInformation! self) -> Rask.Web.Types.WebGLTexture!
+Rask.Web.Types.ANGLE_instanced_arrays.DrawArraysInstancedANGLE(int mode, int first, int count, int primcount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ANGLE_instanced_arrays.DrawElementsInstancedANGLE(int mode, int count, int type, long offset, int primcount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ANGLE_instanced_arrays.VertexAttribDivisorANGLE(int index, int divisor) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer.MapAsync(int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer.MapAsync(int mode, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer.MapAsync(int mode, long offset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer.Size.get -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.GPUBuffer.Usage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUCommandEncoder.CopyBufferToTexture(Rask.Web.Types.GPUTexelCopyBufferInfo! source, Rask.Web.Types.GPUTexelCopyTextureInfo! destination, Rask.Web.Types.GPUExtent3DDict! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyBufferToTexture(Rask.Web.Types.GPUTexelCopyBufferInfo! source, Rask.Web.Types.GPUTexelCopyTextureInfo! destination, int[]! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyTextureToBuffer(Rask.Web.Types.GPUTexelCopyTextureInfo! source, Rask.Web.Types.GPUTexelCopyBufferInfo! destination, Rask.Web.Types.GPUExtent3DDict! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyTextureToBuffer(Rask.Web.Types.GPUTexelCopyTextureInfo! source, Rask.Web.Types.GPUTexelCopyBufferInfo! destination, int[]! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyTextureToTexture(Rask.Web.Types.GPUTexelCopyTextureInfo! source, Rask.Web.Types.GPUTexelCopyTextureInfo! destination, Rask.Web.Types.GPUExtent3DDict! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUCommandEncoder.CopyTextureToTexture(Rask.Web.Types.GPUTexelCopyTextureInfo! source, Rask.Web.Types.GPUTexelCopyTextureInfo! destination, int[]! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.DispatchWorkgroups(int workgroupCountX) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.DispatchWorkgroups(int workgroupCountX, int workgroupCountY) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.DispatchWorkgroups(int workgroupCountX, int workgroupCountY, int workgroupCountZ) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQuerySet.Count.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUQueue.CopyExternalImageToTexture(Rask.Web.Types.GPUCopyExternalImageSourceInfo! source, Rask.Web.Types.GPUCopyExternalImageDestInfo! destination, Rask.Web.Types.GPUExtent3DDict! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQueue.CopyExternalImageToTexture(Rask.Web.Types.GPUCopyExternalImageSourceInfo! source, Rask.Web.Types.GPUCopyExternalImageDestInfo! destination, int[]! copySize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.Draw(int vertexCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.Draw(int vertexCount, int instanceCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.Draw(int vertexCount, int instanceCount, int firstVertex) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.DrawIndexed(int indexCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.DrawIndexed(int indexCount, int instanceCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.DrawIndexed(int indexCount, int instanceCount, int firstIndex) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.DrawIndexed(int indexCount, int instanceCount, int firstIndex, int baseVertex) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.DrawIndexed(int indexCount, int instanceCount, int firstIndex, int baseVertex, int firstInstance) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.BeginOcclusionQuery(int queryIndex) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.Draw(int vertexCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.Draw(int vertexCount, int instanceCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.Draw(int vertexCount, int instanceCount, int firstVertex) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.DrawIndexed(int indexCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.DrawIndexed(int indexCount, int instanceCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.DrawIndexed(int indexCount, int instanceCount, int firstIndex) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.DrawIndexed(int indexCount, int instanceCount, int firstIndex, int baseVertex) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.DrawIndexed(int indexCount, int instanceCount, int firstIndex, int baseVertex, int firstInstance) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetBlendConstant(Rask.Web.Types.GPUColorDict! color) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetBlendConstant(double[]! color) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetScissorRect(int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetStencilReference(int reference) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUTexture.DepthOrArrayLayers.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUTexture.Height.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUTexture.MipLevelCount.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUTexture.SampleCount.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUTexture.Usage.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.GPUTexture.Width.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.OES_draw_buffers_indexed.BlendEquationSeparateiOES(int buf, int modeRGB, int modeAlpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_draw_buffers_indexed.BlendEquationiOES(int buf, int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_draw_buffers_indexed.BlendFuncSeparateiOES(int buf, int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_draw_buffers_indexed.BlendFunciOES(int buf, int src, int dst) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_draw_buffers_indexed.ColorMaskiOES(int buf, bool r, bool g, bool b, bool a) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_draw_buffers_indexed.DisableiOES(int target, int index) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.OES_draw_buffers_indexed.EnableiOES(int target, int index) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_draw_buffers.DrawBuffersWEBGL(int[]! buffers) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_multi_draw.MultiDrawArraysInstancedWEBGL(int mode, int[]! firstsList, long firstsOffset, int[]! countsList, long countsOffset, int[]! instanceCountsList, long instanceCountsOffset, int drawcount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_multi_draw.MultiDrawArraysWEBGL(int mode, int[]! firstsList, long firstsOffset, int[]! countsList, long countsOffset, int drawcount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_multi_draw.MultiDrawElementsInstancedWEBGL(int mode, int[]! countsList, long countsOffset, int type, int[]! offsetsList, long offsetsOffset, int[]! instanceCountsList, long instanceCountsOffset, int drawcount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WEBGL_multi_draw.MultiDrawElementsWEBGL(int mode, int[]! countsList, long countsOffset, int type, int[]! offsetsList, long offsetsOffset, int drawcount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ActiveTexture(int texture) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BeginTransformFeedback(int primitiveMode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BlendColor(double red, double green, double blue, double alpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BlendEquation(int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BlendEquationSeparate(int modeRGB, int modeAlpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BlendFunc(int sfactor, int dfactor) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BlendFuncSeparate(int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BlitFramebuffer(int srcX0, int srcY0, int srcX1, int srcY1, int dstX0, int dstY0, int dstX1, int dstY1, int mask, int filter) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BufferData(int target, long size, int usage) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CheckFramebufferStatus(int target) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.Clear(int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearBufferfi(int buffer, int drawbuffer, double depth, int stencil) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearBufferfv(int buffer, int drawbuffer, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearBufferfv(int buffer, int drawbuffer, double[]! values, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearBufferiv(int buffer, int drawbuffer, int[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearBufferiv(int buffer, int drawbuffer, int[]! values, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearBufferuiv(int buffer, int drawbuffer, int[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearBufferuiv(int buffer, int drawbuffer, int[]! values, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearColor(double red, double green, double blue, double alpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearDepth(double depth) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ClearStencil(int s) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ColorMask(bool red, bool green, bool blue, bool alpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, int imageSize, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int imageSize, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int imageSize, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int imageSize, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CopyBufferSubData(int readTarget, int writeTarget, long readOffset, long writeOffset, long size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CopyTexImage2D(int target, int level, int internalformat, int x, int y, int width, int height, int border) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CopyTexSubImage2D(int target, int level, int xoffset, int yoffset, int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CopyTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CreateShader(int type) -> Rask.Web.Types.WebGLShader!
+Rask.Web.Types.WebGL2RenderingContext.CullFace(int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DepthFunc(int func) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DepthMask(bool flag) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DepthRange(double zNear, double zFar) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Disable(int cap) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DisableVertexAttribArray(int index) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawArrays(int mode, int first, int count) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawArraysInstanced(int mode, int first, int count, int instanceCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawBuffers(int[]! buffers) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawElements(int mode, int count, int type, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawElementsInstanced(int mode, int count, int type, long offset, int instanceCount) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawRangeElements(int mode, int start, int end, int count, int type, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawingBufferFormat.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.DrawingBufferHeight.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.DrawingBufferStorage(int sizedFormat, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.DrawingBufferWidth.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.Enable(int cap) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.EnableVertexAttribArray(int index) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.EndQuery(int target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.FenceSync(int condition, int flags) -> Rask.Web.Types.WebGLSync!
+Rask.Web.Types.WebGL2RenderingContext.FrontFace(int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.GenerateMipmap(int target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.GetError() -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGL2RenderingContext.GetQuery(int target, int pname) -> Rask.Web.Types.WebGLQuery!
+Rask.Web.Types.WebGL2RenderingContext.GetShaderPrecisionFormat(int shadertype, int precisiontype) -> Rask.Web.Types.WebGLShaderPrecisionFormat!
+Rask.Web.Types.WebGL2RenderingContext.GetVertexAttribOffset(int index, int pname) -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.WebGL2RenderingContext.Hint(int target, int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.InvalidateFramebuffer(int target, int[]! attachments) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.InvalidateSubFramebuffer(int target, int[]! attachments, int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.IsEnabled(int cap) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGL2RenderingContext.LineWidth(double width) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.PixelStorei(int pname, int param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.PolygonOffset(double factor, double units) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ReadBuffer(int src) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.ReadPixels(int x, int y, int width, int height, int format, int type, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.RenderbufferStorage(int target, int internalformat, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.RenderbufferStorageMultisample(int target, int samples, int internalformat, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.SampleCoverage(double value, bool invert) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Scissor(int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.StencilFunc(int func, int ref, int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.StencilFuncSeparate(int face, int func, int ref, int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.StencilMask(int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.StencilMaskSeparate(int face, int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.StencilOp(int fail, int zfail, int zpass) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.StencilOpSeparate(int face, int fail, int zfail, int zpass) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, long pboOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, long pboOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexParameterf(int target, int pname, double param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexParameteri(int target, int pname, int param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexStorage2D(int target, int levels, int internalformat, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexStorage3D(int target, int levels, int internalformat, int width, int height, int depth) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, long pboOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, long pboOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib1f(int index, double x) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib1fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib2f(int index, double x, double y) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib2fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib3f(int index, double x, double y, double z) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib3fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib4f(int index, double x, double y, double z, double w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttrib4fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttribDivisor(int index, int divisor) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttribI4i(int index, int x, int y, int z, int w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttribI4iv(int index, int[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttribI4ui(int index, int x, int y, int z, int w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttribI4uiv(int index, int[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttribIPointer(int index, int size, int type, int stride, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.VertexAttribPointer(int index, int size, int type, bool normalized, int stride, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.Viewport(int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLActiveInfo.Size.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLActiveInfo.Type.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLRenderingContext.ActiveTexture(int texture) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BlendColor(double red, double green, double blue, double alpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BlendEquation(int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BlendEquationSeparate(int modeRGB, int modeAlpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BlendFunc(int sfactor, int dfactor) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BlendFuncSeparate(int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BufferData(int target, long size, int usage) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.CheckFramebufferStatus(int target) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLRenderingContext.Clear(int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.ClearColor(double red, double green, double blue, double alpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.ClearDepth(double depth) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.ClearStencil(int s) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.ColorMask(bool red, bool green, bool blue, bool alpha) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.CopyTexImage2D(int target, int level, int internalformat, int x, int y, int width, int height, int border) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.CopyTexSubImage2D(int target, int level, int xoffset, int yoffset, int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.CreateShader(int type) -> Rask.Web.Types.WebGLShader!
+Rask.Web.Types.WebGLRenderingContext.CullFace(int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DepthFunc(int func) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DepthMask(bool flag) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DepthRange(double zNear, double zFar) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Disable(int cap) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DisableVertexAttribArray(int index) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DrawArrays(int mode, int first, int count) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DrawElements(int mode, int count, int type, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DrawingBufferFormat.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLRenderingContext.DrawingBufferHeight.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLRenderingContext.DrawingBufferStorage(int sizedFormat, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.DrawingBufferWidth.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLRenderingContext.Enable(int cap) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.EnableVertexAttribArray(int index) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.FrontFace(int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.GenerateMipmap(int target) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.GetError() -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLRenderingContext.GetShaderPrecisionFormat(int shadertype, int precisiontype) -> Rask.Web.Types.WebGLShaderPrecisionFormat!
+Rask.Web.Types.WebGLRenderingContext.GetVertexAttribOffset(int index, int pname) -> System.Threading.Tasks.ValueTask<long>
+Rask.Web.Types.WebGLRenderingContext.Hint(int target, int mode) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.IsEnabled(int cap) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.WebGLRenderingContext.LineWidth(double width) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.PixelStorei(int pname, int param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.PolygonOffset(double factor, double units) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.RenderbufferStorage(int target, int internalformat, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.SampleCoverage(double value, bool invert) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Scissor(int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.StencilFunc(int func, int ref, int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.StencilFuncSeparate(int face, int func, int ref, int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.StencilMask(int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.StencilMaskSeparate(int face, int mask) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.StencilOp(int fail, int zfail, int zpass) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.StencilOpSeparate(int face, int fail, int zfail, int zpass) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexParameterf(int target, int pname, double param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexParameteri(int target, int pname, int param) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib1f(int index, double x) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib1fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib2f(int index, double x, double y) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib2fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib3f(int index, double x, double y, double z) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib3fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib4f(int index, double x, double y, double z, double w) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttrib4fv(int index, double[]! values) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.VertexAttribPointer(int index, int size, int type, bool normalized, int stride, long offset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.Viewport(int x, int y, int width, int height) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLShaderPrecisionFormat.Precision.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLShaderPrecisionFormat.RangeMax.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.WebGLShaderPrecisionFormat.RangeMin.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.DocumentPictureInPictureWasmMembers
+Rask.Web.DocumentPictureInPictureWasmMembers.extension(Rask.Web.DocumentPictureInPicture!)
+Rask.Web.DocumentWasmMembers
+Rask.Web.DocumentWasmMembers.extension(Rask.Web.Document!)
+Rask.Web.IdleDetectorWasmMembers
+Rask.Web.IdleDetectorWasmMembers.extension(Rask.Web.IdleDetector!)
+Rask.Web.NavigatorWasmMembers
+Rask.Web.NavigatorWasmMembers.extension(Rask.Web.Navigator!)
+Rask.Web.NotificationWasmMembers
+Rask.Web.NotificationWasmMembers.extension(Rask.Web.Notification!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Bluetooth!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Bluetooth!).RequestDevice() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothDevice!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Bluetooth!).RequestDevice(Rask.Web.Types.RequestDeviceOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothDevice!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.ContactsManager!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.ContactsManager!).Select(Rask.Web.Types.ContactProperty[]! properties) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ContactInfo![]!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.ContactsManager!).Select(Rask.Web.Types.ContactProperty[]! properties, Rask.Web.Types.ContactsSelectOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ContactInfo![]!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.DocumentPictureInPicture!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.DocumentPictureInPicture!).RequestWindow() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.DocumentPictureInPicture!).RequestWindow(Rask.Web.Types.DocumentPictureInPictureOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.EyeDropper!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.EyeDropper!).Open() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ColorSelectionResult!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.PresentationRequest!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.PresentationRequest!).Start() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PresentationConnection!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.USB!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.USB!).RequestDevice(Rask.Web.Types.USBDeviceRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBDevice!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).ShowDirectoryPicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).ShowDirectoryPicker(Rask.Web.Types.DirectoryPickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).ShowSaveFilePicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).ShowSaveFilePicker(Rask.Web.Types.SaveFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+Rask.Web.WindowWasmMembers
+Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!)
+static Rask.Web.DocumentPictureInPictureWasmMembers.RequestWindow() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+static Rask.Web.DocumentPictureInPictureWasmMembers.RequestWindow(Rask.Web.Types.DocumentPictureInPictureOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+static Rask.Web.DocumentPictureInPictureWasmMembers.extension(Rask.Web.DocumentPictureInPicture!).RequestWindow() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+static Rask.Web.DocumentPictureInPictureWasmMembers.extension(Rask.Web.DocumentPictureInPicture!).RequestWindow(Rask.Web.Types.DocumentPictureInPictureOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+static Rask.Web.DocumentWasmMembers.RequestStorageAccess() -> System.Threading.Tasks.ValueTask
+static Rask.Web.DocumentWasmMembers.extension(Rask.Web.Document!).RequestStorageAccess() -> System.Threading.Tasks.ValueTask
+static Rask.Web.IdleDetectorWasmMembers.RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.IdleDetectorWasmMembers.extension(Rask.Web.IdleDetector!).RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionState>
+static Rask.Web.NavigatorWasmMembers.Share() -> System.Threading.Tasks.ValueTask
+static Rask.Web.NavigatorWasmMembers.Share(Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
+static Rask.Web.NavigatorWasmMembers.extension(Rask.Web.Navigator!).Gpu.get -> Rask.Web.Types.GPU!
+static Rask.Web.NavigatorWasmMembers.extension(Rask.Web.Navigator!).Share() -> System.Threading.Tasks.ValueTask
+static Rask.Web.NavigatorWasmMembers.extension(Rask.Web.Navigator!).Share(Rask.Web.Types.ShareData! data) -> System.Threading.Tasks.ValueTask
+static Rask.Web.NavigatorWasmMembers.get_Gpu() -> Rask.Web.Types.GPU!
+static Rask.Web.NotificationWasmMembers.RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
+static Rask.Web.NotificationWasmMembers.extension(Rask.Web.Notification!).RequestPermission() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NotificationPermission>
+static Rask.Web.WasmMembers.Open(this Rask.Web.Types.EyeDropper! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ColorSelectionResult!>
+static Rask.Web.WasmMembers.RequestDevice(this Rask.Web.Types.Bluetooth! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothDevice!>
+static Rask.Web.WasmMembers.RequestDevice(this Rask.Web.Types.Bluetooth! self, Rask.Web.Types.RequestDeviceOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothDevice!>
+static Rask.Web.WasmMembers.RequestDevice(this Rask.Web.Types.USB! self, Rask.Web.Types.USBDeviceRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBDevice!>
+static Rask.Web.WasmMembers.RequestWindow(this Rask.Web.Types.DocumentPictureInPicture! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+static Rask.Web.WasmMembers.RequestWindow(this Rask.Web.Types.DocumentPictureInPicture! self, Rask.Web.Types.DocumentPictureInPictureOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Window!>
+static Rask.Web.WasmMembers.Select(this Rask.Web.Types.ContactsManager! self, Rask.Web.Types.ContactProperty[]! properties) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ContactInfo![]!>
+static Rask.Web.WasmMembers.Select(this Rask.Web.Types.ContactsManager! self, Rask.Web.Types.ContactProperty[]! properties, Rask.Web.Types.ContactsSelectOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ContactInfo![]!>
+static Rask.Web.WasmMembers.ShowDirectoryPicker(this Rask.Web.Types.Window! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+static Rask.Web.WasmMembers.ShowDirectoryPicker(this Rask.Web.Types.Window! self, Rask.Web.Types.DirectoryPickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+static Rask.Web.WasmMembers.ShowSaveFilePicker(this Rask.Web.Types.Window! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+static Rask.Web.WasmMembers.ShowSaveFilePicker(this Rask.Web.Types.Window! self, Rask.Web.Types.SaveFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+static Rask.Web.WasmMembers.Start(this Rask.Web.Types.PresentationRequest! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PresentationConnection!>
+static Rask.Web.WindowWasmMembers.ShowDirectoryPicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+static Rask.Web.WindowWasmMembers.ShowDirectoryPicker(Rask.Web.Types.DirectoryPickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+static Rask.Web.WindowWasmMembers.ShowSaveFilePicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+static Rask.Web.WindowWasmMembers.ShowSaveFilePicker(Rask.Web.Types.SaveFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowDirectoryPicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowDirectoryPicker(Rask.Web.Types.DirectoryPickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemDirectoryHandle!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowSaveFilePicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowSaveFilePicker(Rask.Web.Types.SaveFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle!>

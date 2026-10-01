@@ -44,11 +44,15 @@ public sealed class WasmOnlyTests
     [InlineData("Notification", "requestPermission")]
     [InlineData("Element", "requestFullscreen")]
     [InlineData("HTMLInputElement", "showPicker")]
+    [InlineData("USB", "requestDevice")]
+    [InlineData("IdleDetector", "requestPermission")]
     public void A_generated_call_that_needs_the_click_is_in_WebAssembly(string iface, string idl)
     {
         var method = Pascal(idl);
 
-        var inWasm = Declares(typeof(WasmMembers), method) || OnRef(typeof(WasmElementRefMembers), iface, method);
+        // Instance members in WasmMembers; a class's statics in its own {Class}WasmMembers.
+        var inWasm = Declares(typeof(WasmMembers), method) || Declares(Wasm.GetType($"Rask.Web.{iface}WasmMembers"), method)
+                     || OnRef(typeof(WasmElementRefMembers), iface, method);
 
         Assert.True(inWasm, $"{iface}.{idl}");
         Assert.Contains($"{iface}.{idl}", WebHost.Activation);

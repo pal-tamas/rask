@@ -352,23 +352,48 @@ internal static class WebEmitter
             Extension(sb, TypesNs + name + " self", model.Members[name].Where(m => m.Wasm), m => m.WriteExtension(sb, "self"));
         }
 
+        sb.AppendLine("}");
+
+        // A static extension member lowers to a plain static method with no receiver, so two classes' requestPermission()
+        // in one container would be the same method: each global and class gets a container of its own.
         var globals = GlobalList(model);
         foreach (var (name, _, type, _) in globals)
         {
             var members = GlobalMembers(model, type);
             var extras = model.Extras.TryGetValue(name, out var e) ? FacadeOf(e, members) : Enumerable.Empty<WebMember>();
-            Extension(sb, "global::Rask.Web." + name, members.Where(m => m.Wasm), m => m.WriteStatic(sb, "        ", $"global::Rask.Web.{name}.Instance"));
-            Extension(sb, "global::Rask.Web." + name, extras.Where(m => m.Wasm), m => m.WriteFacade(sb, "        "));
+            StaticContainer(sb, name, w =>
+            {
+                Extension(w, "global::Rask.Web." + name, members.Where(m => m.Wasm), m => m.WriteStatic(w, "        ", $"global::Rask.Web.{name}.Instance"));
+                Extension(w, "global::Rask.Web." + name, extras.Where(m => m.Wasm), m => m.WriteFacade(w, "        "));
+            });
         }
 
         foreach (var name in model.Extras.Keys.Where(n => !WebHost.IsWasmInterface(n) && !globals.Any(g => string.Equals(g.Name, n, StringComparison.Ordinal)))
                      .OrderBy(n => n, StringComparer.Ordinal))
         {
-            Extension(sb, "global::Rask.Web." + name, model.Extras[name].Where(m => m.Wasm), m => m.WriteFacade(sb, "        "));
+            StaticContainer(sb, name, w => Extension(w, "global::Rask.Web." + name, model.Extras[name].Where(m => m.Wasm), m => m.WriteFacade(w, "        ")));
         }
 
-        sb.AppendLine("}");
         return sb.ToString();
+    }
+
+    // `{Name}WasmMembers`, written only when it holds something.
+    private static void StaticContainer(StringBuilder sb, string name, Action<StringBuilder> write)
+    {
+        var body = new StringBuilder();
+        write(body);
+        if (body.Length == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine();
+        sb.Append("/// <summary>The members of <see cref=\"global::Rask.Web.").Append(name)
+            .AppendLine("\" /> only WebAssembly can run: each needs the user's click in progress, generated from MDN.</summary>");
+        sb.Append("public static class ").Append(name).AppendLine("WasmMembers");
+        sb.AppendLine("{");
+        sb.Append(body);
+        sb.AppendLine("}");
     }
 
     private static void Extension(StringBuilder sb, string receiver, IEnumerable<WebMember> members, Action<WebMember> write)

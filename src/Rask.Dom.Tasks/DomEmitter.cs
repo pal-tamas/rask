@@ -625,6 +625,13 @@ internal static class DomEmitter
 
         if (data["support"] is { Kind: JsonKind.Object } support)
         {
+            // A web API ships in one engine at least (WebUSB is Chromium's alone): say so before the versions.
+            var engines = support.Members.Select(p => EngineName(p.Key)).Distinct(StringComparer.Ordinal).ToList();
+            if (engines.Count == 1)
+            {
+                remarks.Add($"<b>{engines[0]} only.</b>");
+            }
+
             var line = string.Join(" · ", support.Members.Select(p => $"{BrowserName(p.Key)} {p.Value.AsString()}"));
             if (line.Length > 0)
             {
@@ -656,6 +663,14 @@ internal static class DomEmitter
         "firefox_android" => "Firefox Android",
         "safari" => "Safari",
         "safari_ios" => "Safari iOS",
+        _ => id,
+    };
+
+    private static string EngineName(string id) => id switch
+    {
+        "chrome" or "chrome_android" => "Chromium",
+        "firefox" or "firefox_android" => "Firefox",
+        "safari" or "safari_ios" => "Safari",
         _ => id,
     };
 

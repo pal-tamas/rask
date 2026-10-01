@@ -19,8 +19,10 @@ const eventsPkg = require("@webref/events");
 const bcd = require("@mdn/browser-compat-data");
 const version = name => JSON.parse(readFileSync(resolve(process.argv[2], "node_modules", name, "package.json"), "utf8")).version;
 
-// An element, attribute or member ships when two of the three engines have it unflagged, on desktop or
-// mobile: `<input capture>` exists only on phones, and that is where it matters.
+// An element, attribute or element event ships when two of the three engines have it unflagged, on desktop or
+// mobile: `<input capture>` exists only on phones, and that is where it matters. A web API (an interface, member,
+// constructor, static or its events) ships in ONE: WebUSB is Chromium's alone, and its doc comment says so, with an
+// IsSupported check to guard it. Markup stays cross-engine; a call an app chooses to make need not.
 const ENGINES = { chrome: ["chrome", "chrome_android"], firefox: ["firefox", "firefox_android"], safari: ["safari", "safari_ios"] };
 // IDL types a content attribute can reflect directly.
 const PLAIN = new Set(["DOMString", "USVString", "CSSOMString", "DOMString?", "boolean", "long", "unsigned long", "double", "unrestricted double"]);
@@ -29,19 +31,20 @@ const VOID = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link"
 // Specs whose elements are HTML or SVG. MathML is out of scope.
 const SPECS = { html: "html", "html-ruby-extensions": "html", SVG2: "svg", "filter-effects-1": "svg", "css-masking-1": "svg", "svg-animations": "svg" };
 
-function ships(compat) {
+function ships(compat, engines = 2) {
   if (!compat) return false;
   const s = compat.status ?? {};
   if (s.deprecated || s.standard_track === false) return false;
-  let engines = 0;
+  let found = 0;
   for (const browsers of Object.values(ENGINES)) {
     const ok = browsers.some(browser => [compat.support?.[browser]].flat().filter(Boolean).some(e =>
       typeof e.version_added === "string" && e.version_added !== "preview" &&
       !e.version_removed && !e.flags && !e.prefix && !e.alternative_name && !e.partial_implementation));
-    if (ok) engines++;
+    if (ok) found++;
   }
-  return engines >= 2;
+  return found >= engines;
 }
+const shipsAnywhere = compat => ships(compat, 1);
 
 const experimental = compat => compat?.status?.experimental === true || undefined;
 const mdnUrl = compat => compat?.mdn_url;
@@ -91,7 +94,7 @@ for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1"
 }
 
 // ---- IDL: merge partials and mixins -------------------------------------------------------------
-const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map(), callbacks = new Map();
+const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map(), callbacks = new Map(), typedefs = new Map();
 // The members a [SecureContext] interface, partial or mixin declares: they exist only on an HTTPS (or localhost) page.
 const securedByDefinition = new WeakSet();
 function merge(map, def) {
@@ -112,6 +115,7 @@ for (const ast of Object.values(await idlPkg.parseAll())) {
     else if (def.type === "enum") enums.set(def.name, def.values.map(v => v.value));
     else if (def.type === "dictionary") merge(dictionaries, def);
     else if (def.type === "callback") callbacks.set(def.name, def);
+    else if (def.type === "typedef") typedefs.set(def.name, def.idlType);
   }
 }
 for (const inc of includes) {
@@ -125,7 +129,12 @@ function typeOf(t) {
   let s;
   if (t.union) s = "(" + t.idlType.map(typeOf).join(" or ") + ")";
   else if (t.generic) s = `${t.generic}<${t.idlType.map(typeOf).join(", ")}>`;
-  else s = typeof t.idlType === "string" ? t.idlType : typeOf(t.idlType);
+  // A typedef is spelled out (navigator.vibrate's VibratePattern is `(unsigned long or sequence<unsigned long>)`), so
+  // what it stands for maps like any other type.
+  else if (typeof t.idlType === "string" && typedefs.has(t.idlType)) {
+    s = typeOf(typedefs.get(t.idlType));
+    if (t.nullable) s = s.replace(/\?$/, "");
+  } else s = typeof t.idlType === "string" ? t.idlType : typeOf(t.idlType);
   return s + (t.nullable ? "?" : "");
 }
 const ext = (m, name) => m.extAttrs?.find(a => a.name === name);
@@ -233,7 +242,7 @@ function membersOf(name) {
     if (m.type !== "attribute" && m.type !== "operation") continue;
     // BCD files the window's own globals (fetch, performance, crypto: WindowOrWorkerGlobalScope's) at the top of api.
     const compat = api[m.name]?.__compat ?? (name === "Window" ? bcd.api[m.name]?.__compat : undefined);
-    if (!ships(compat)) continue;
+    if (!shipsAnywhere(compat)) continue;
     const type = m.type === "attribute" ? typeOf(m.idlType) : undefined;
     if (type === "EventHandler" || type === "EventHandler?") continue; // events are Rask's own surface
     const entry = m.type === "attribute"
@@ -315,8 +324,8 @@ function extrasOf(name) {
   const args = m => m.arguments.map(a => ({ name: a.name, type: typeOf(a.idlType), optional: a.optional || undefined, variadic: a.variadic || undefined }));
   for (const m of def.members) {
     if (m.type === "constructor") {
-      if (ships(api[name]?.__compat)) constructors.push({ args: args(m), secure: !!ext(def, "SecureContext") || undefined, ...meta(api[name]?.__compat) });
-    } else if (m.special === "static" && m.name && ships((api[m.name + "_static"] ?? api[m.name])?.__compat)) {
+      if (shipsAnywhere(api[name]?.__compat)) constructors.push({ args: args(m), secure: !!ext(def, "SecureContext") || undefined, ...meta(api[name]?.__compat) });
+    } else if (m.special === "static" && m.name && shipsAnywhere((api[m.name + "_static"] ?? api[m.name])?.__compat)) {
       // BCD files a static member as name_static, beside any instance member of the same name.
       const compat = (api[m.name + "_static"] ?? api[m.name]).__compat;
       const prior = statics.find(x => x.kind === "operation" && x.name === m.name);
@@ -327,7 +336,7 @@ function extrasOf(name) {
         : { kind: "operation", name: m.name, returns: typeOf(m.idlType), args: args(m), secure, ...meta(compat) });
     } else if (m.type === "attribute" && m.name?.startsWith("on") && typeOf(m.idlType).startsWith("EventHandler")) {
       const type = m.name.slice(2);
-      if (ships(api[`${type}_event`]?.__compat)) events.push({ type, interface: eventInterface(name, type) });
+      if (shipsAnywhere(api[`${type}_event`]?.__compat)) events.push({ type, interface: eventInterface(name, type) });
     }
   }
   return { constructors, statics, events };
@@ -390,7 +399,7 @@ function exposedToWindow(def) {
 }
 const web = [];
 for (const [name, def] of interfaces) {
-  if (!exposedToWindow(def) || !ships(bcd.api[name]?.__compat)) continue;
+  if (!exposedToWindow(def) || !shipsAnywhere(bcd.api[name]?.__compat)) continue;
   web.push(name);
   for (let n = name; n && !interfaceOut[n]; n = interfaces.get(n)?.inheritance) interfaceOut[n] = describe(n);
 }
