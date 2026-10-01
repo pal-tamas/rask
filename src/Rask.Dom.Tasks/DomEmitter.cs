@@ -77,8 +77,10 @@ internal static class DomEmitter
 
     private static readonly Regex PartialClass = new(@"partial\s+class\s+(?<name>(?:HTML|SVG)\w*Element)\b(?!\s*<)", PartialScan, PartialScanTimeout);
 
+    // Each word before the name is taken whole (a space only after a comma, `Dictionary<string, int>`), so a long
+    // `public` line is tried once per word, never once per split of it — which a loaded machine stretched past the timeout.
     private static readonly Regex PublicProperty = new(
-        @"^\s*public\s+(?:new\s+|override\s+|virtual\s+|required\s+)*[\w<>\[\]?.,: ]+?\s+(?<name>\w+)\s*(?:\{|=>)",
+        @"^\s*public\s+(?:(?>(?:[\w<>\[\]?.:]|,\s*)+)\s+)+?(?<name>\w+)\s*(?:\{|=>)",
         PartialScan | RegexOptions.Multiline, PartialScanTimeout);
 
     public static IReadOnlyDictionary<string, string> Sources(string snapshotJson)
