@@ -47,7 +47,7 @@ public sealed partial class DeployCommandTests
     [Fact]
     public void Build_arguments_target_the_remote_daemon_over_ssh()
     {
-        var args = DeployCommand.BuildBuildArguments("deploy@box", "shop", "/proj/Dockerfile", "/proj");
+        var args = DockerCommands.BuildBuildArguments("deploy@box", "shop", "/proj/Dockerfile", "/proj");
 
         // Two tags: :current is what runs and what the next deploy moves aside to :previous, and :latest
         // is kept so the box still reads the way a person expects from `docker images`.
@@ -59,7 +59,7 @@ public sealed partial class DeployCommandTests
     [Fact]
     public void Run_arguments_domain_mode_add_network_and_labels_no_published_port()
     {
-        var args = DeployCommand.BuildRunArguments("deploy@box", "shop", "shop.example.com", "green", 8080, ["A=1"]);
+        var args = DockerCommands.BuildRunArguments("deploy@box", "shop", "shop.example.com", "green", 8080, ["A=1"]);
 
         Assert.Equal(
         [
@@ -84,7 +84,7 @@ public sealed partial class DeployCommandTests
     [Fact]
     public void Run_arguments_port_mode_publish_the_host_port()
     {
-        var args = DeployCommand.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, []);
+        var args = DockerCommands.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, []);
 
         Assert.Equal(
         [
@@ -110,19 +110,19 @@ public sealed partial class DeployCommandTests
                 "-H", "ssh://deploy@box", "stop", "-t",
                 ShutdownBudget.DockerStopSeconds.ToString(CultureInfo.InvariantCulture), "shop-blue"
             ],
-            DeployCommand.BuildStopArguments("deploy@box", "shop-blue"));
+            DockerCommands.BuildStopArguments("deploy@box", "shop-blue"));
 
     [Theory]
     [InlineData(null, "blue")]
     [InlineData("green", "blue")]
     [InlineData("blue", "green")]
     public void The_next_color_toggles_between_blue_and_green(string? current, string expected) =>
-        Assert.Equal(expected, DeployCommand.NextColor(current));
+        Assert.Equal(expected, CaddyRouting.NextColor(current));
 
     [Fact]
     public void The_label_listing_is_read_into_deployed_apps_and_no_value_is_normalized()
     {
-        var apps = DeployCommand.ParseDeployedApps("shop-blue\tshop\tshop.example.com\tblue\t8080\napi\tapi\t<no value>\t<no value>\t9000\n");
+        var apps = CaddyRouting.ParseDeployedApps("shop-blue\tshop\tshop.example.com\tblue\t8080\napi\tapi\t<no value>\t<no value>\t9000\n");
 
         Assert.Equal(2, apps.Count);
         Assert.Equal(new DeployedApp("shop-blue", "shop", "shop.example.com", "blue", 8080), apps[0]);
@@ -138,7 +138,7 @@ public sealed partial class DeployCommandTests
             new("demo-blue", "demo", "demo.example.com", "blue", 8080),
         ];
 
-        var map = DeployCommand.BuildRoutingMap(apps, "demo", "demo.example.com", new RouteTarget("demo-green", 8080));
+        var map = CaddyRouting.BuildRoutingMap(apps, "demo", "demo.example.com", new RouteTarget("demo-green", 8080));
 
         Assert.Equal(new RouteTarget("demo-green", 8080), map["demo.example.com"]); // deploying app → new container
         Assert.Equal(new RouteTarget("shop-blue", 8080), map["shop.example.com"]);  // other app kept
@@ -149,7 +149,7 @@ public sealed partial class DeployCommandTests
     {
         IReadOnlyList<DeployedApp> apps = [new("api", "api", string.Empty, string.Empty, 8080)];
 
-        var map = DeployCommand.BuildRoutingMap(apps, "demo", "demo.example.com", new RouteTarget("demo-blue", 8080));
+        var map = CaddyRouting.BuildRoutingMap(apps, "demo", "demo.example.com", new RouteTarget("demo-blue", 8080));
 
         Assert.Single(map);
         Assert.False(map.ContainsKey(string.Empty));
@@ -158,7 +158,7 @@ public sealed partial class DeployCommandTests
     [Fact]
     public void The_caddyfile_has_a_block_per_route()
     {
-        var caddyfile = DeployCommand.BuildCaddyfile(new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal)
+        var caddyfile = CaddyRouting.BuildCaddyfile(new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal)
         {
             ["demo.example.com"] = new RouteTarget("demo-green", 8080),
             ["shop.example.com"] = new RouteTarget("shop-blue", 8080),
@@ -507,7 +507,7 @@ public sealed partial class DeployCommandTests
         int StartNew = runs.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("demo-green"));
         int Reload = runs.FindIndex(i => i.Arguments.Contains("reload"));
         int StopOld = runs.FindIndex(i =>
-            i.Arguments.SequenceEqual(DeployCommand.BuildStopArguments("deploy@box", "demo-blue")));
+            i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "demo-blue")));
         int RemoveOld = runs.FindIndex(i => i.Arguments is ["-H", "ssh://deploy@box", "rm", "-f", "demo-blue"]);
 
         Assert.True(StartNew >= 0 && Reload >= 0 && StopOld >= 0 && RemoveOld >= 0);
@@ -576,7 +576,7 @@ public sealed partial class DeployCommandTests
     [Fact]
     public void The_health_check_probes_over_the_container_network_namespace()
     {
-        var args = DeployCommand.BuildHealthCheckArguments("deploy@box", "shop-green", "/health");
+        var args = DockerCommands.BuildHealthCheckArguments("deploy@box", "shop-green", "/health");
 
         Assert.Equal(
         [
@@ -588,7 +588,7 @@ public sealed partial class DeployCommandTests
     [Fact]
     public void The_health_check_uses_the_custom_path()
     {
-        var args = DeployCommand.BuildHealthCheckArguments("deploy@box", "shop", "/ready");
+        var args = DockerCommands.BuildHealthCheckArguments("deploy@box", "shop", "/ready");
 
         Assert.Contains("http://localhost:8080/ready", args);
     }
@@ -940,7 +940,7 @@ public sealed partial class DeployCommandTests
     {
         // An app that echoes its configuration on a failed start is ordinary; the dump exists to show
         // why it failed, so short values stay readable and only real secrets are masked.
-        var masked = DeployCommand.MaskSecrets(
+        var masked = DeployEnvironment.MaskSecrets(
             "starting with ConnectionStrings__App=Data Source=/data/app.db and key s3cr3t-value-here on port 8080",
             ["API_KEY=s3cr3t-value-here", "PORT=8080"]);
 
@@ -953,7 +953,7 @@ public sealed partial class DeployCommandTests
     {
         // A one-box deploy runs unattended for months: json-file logs are unbounded by default, and an
         // app filling the disk takes down every other app sharing the host with it.
-        var args = DeployCommand.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, []);
+        var args = DockerCommands.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, []);
 
         Assert.Contains("max-size=10m", args);
         Assert.Contains("max-file=3", args);
@@ -965,7 +965,7 @@ public sealed partial class DeployCommandTests
     {
         // Without this the deployed app runs in whatever environment the base image assumes — which is
         // what selects appsettings.Production.json and turns off the developer exception page.
-        var args = DeployCommand.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, ["ASPNETCORE_ENVIRONMENT=Staging"]);
+        var args = DockerCommands.BuildRunArguments("deploy@box", "shop", domain: null, color: null, 9000, ["ASPNETCORE_ENVIRONMENT=Staging"]);
 
         var ours = args.ToList().IndexOf("ASPNETCORE_ENVIRONMENT=Production");
         var theirs = args.ToList().IndexOf("ASPNETCORE_ENVIRONMENT=Staging");
@@ -1072,10 +1072,10 @@ public sealed partial class DeployCommandTests
     public void A_multiline_value_stays_inline_because_an_env_file_cannot_carry_it()
     {
         // A PEM key is the realistic case. Writing it to a line-oriented file would truncate it silently.
-        Assert.False(DeployCommand.CanGoInEnvFile("KEY=-----BEGIN-----\nabc\n-----END-----"));
-        Assert.True(DeployCommand.CanGoInEnvFile("KEY=simple"));
+        Assert.False(DeployEnvironment.CanGoInEnvFile("KEY=-----BEGIN-----\nabc\n-----END-----"));
+        Assert.True(DeployEnvironment.CanGoInEnvFile("KEY=simple"));
 
-        var args = DeployCommand.BuildRunArguments(
+        var args = DockerCommands.BuildRunArguments(
             "deploy@box", "shop", domain: null, color: null, 9000,
             ["PEM=a\nb", "SIMPLE=1"], 8080, "current", "/tmp/x.env");
 
@@ -1089,7 +1089,7 @@ public sealed partial class DeployCommandTests
     [InlineData(new[] { "A=1", "A=2" }, new[] { "A" })]               // de-duplicated
     [InlineData(new[] { "A=x=y" }, new[] { "A" })]                    // only the first '=' splits
     public void Env_keys_are_extracted_as_stable_sorted_names(string[] env, string[] expected) =>
-        Assert.Equal(expected, DeployCommand.EnvKeysOf(env));
+        Assert.Equal(expected, DeployEnvironment.EnvKeysOf(env));
 
     /// <summary>The Caddyfile the deploy generated — read from the write history, since it is deleted
     /// once it has been copied to the host.</summary>

@@ -39,21 +39,17 @@ internal static class DomRefEmitter
     // What an untyped ElementRef carries, ahead of every element interface.
     private static readonly string[] Untyped = { "Element" };
 
+    // `wasm`, when given, receives the members only WebAssembly can run (WebHost), for Rask.Wasm; Core never declares them.
     public static void Emit(
         JsonNode root, IReadOnlyList<string> dom, IReadOnlyDictionary<string, HashSet<string>> rendered, List<KeyValuePair<string, string>> files,
-        DomValueTypes? shared = null)
+        DomValueTypes? shared = null, List<KeyValuePair<string, string>>? wasm = null)
     {
         var types = shared ?? new DomValueTypes(root);
         var interfaces = root["interfaces"]!;
-        var sb = new StringBuilder();
-        DomValueTypes.Header(sb);
-        sb.AppendLine("using System.Threading.Tasks;");
-        sb.AppendLine();
-        sb.AppendLine("namespace Rask.Core;");
-        sb.AppendLine();
-        sb.AppendLine("/// <summary>The DOM members each MDN interface gives an <see cref=\"IElementRef{T}\" /> of it, generated from MDN.</summary>");
-        sb.AppendLine("public static partial class ElementRefMembers");
-        sb.AppendLine("{");
+        var core = Open("ElementRefMembers", "The DOM members each MDN interface gives an <see cref=\"IElementRef{T}\" /> of it, generated from MDN.");
+        var wasmOnly = Open(
+            "WasmElementRefMembers",
+            "The DOM members of an <see cref=\"IElementRef{T}\" /> that need the user's click in progress, so run only in WebAssembly, generated from MDN.");
 
         // Bases before derived, so a member a base already carries is not declared again (it reaches the derived
         // ref through IElementRef's covariance).
@@ -66,26 +62,56 @@ internal static class DomRefEmitter
                 : new HashSet<string>(StringComparer.Ordinal);
             names[name] = taken;
             var owned = rendered.TryGetValue(name, out var r) ? r : new HashSet<string>(StringComparer.Ordinal);
-            var body = Members(interfaces[name]!, types, owned, taken);
-            if (body.Length > 0)
-            {
-                var receiver = string.Equals(name, "Element", StringComparison.Ordinal) ? "global::Rask.Core.Element" : name;
-                sb.Append("    extension(IElementRef<").Append(receiver).AppendLine("> element)");
-                sb.AppendLine("    {");
-                sb.Append(body);
-                sb.AppendLine("    }");
-                sb.AppendLine();
-            }
+            var body = new Body();
+            Members(name, interfaces[name]!, types, owned, taken, body);
+            var receiver = string.Equals(name, "Element", StringComparison.Ordinal) ? "global::Rask.Core.Element" : name;
+            Extension(core, receiver, body.Core);
+            Extension(wasmOnly, receiver, body.Wasm);
         }
 
-        sb.AppendLine("}");
-        files.Add(new KeyValuePair<string, string>("ElementRefMembers.g.cs", sb.ToString()));
+        files.Add(new KeyValuePair<string, string>("ElementRefMembers.g.cs", core.AppendLine("}").ToString()));
         files.Add(new KeyValuePair<string, string>("DomValues.g.cs", types.Declarations("Rask.Core", "RaskDomJsonContext")));
+        wasm?.Add(new KeyValuePair<string, string>("WasmElementRefMembers.g.cs", wasmOnly.AppendLine("}").ToString()));
     }
 
-    private static string Members(JsonNode iface, DomValueTypes types, HashSet<string> rendered, HashSet<string> taken)
+    // Where each member of an interface goes: Core, or Rask.Wasm alone.
+    private sealed class Body
+    {
+        public StringBuilder Core { get; } = new();
+
+        public StringBuilder Wasm { get; } = new();
+    }
+
+    private static StringBuilder Open(string name, string summary)
     {
         var sb = new StringBuilder();
+        DomValueTypes.Header(sb);
+        sb.AppendLine("using System.Threading.Tasks;");
+        sb.AppendLine();
+        sb.AppendLine("namespace Rask.Core;");
+        sb.AppendLine();
+        sb.Append("/// <summary>").Append(summary).AppendLine("</summary>");
+        sb.Append("public static partial class ").AppendLine(name);
+        sb.AppendLine("{");
+        return sb;
+    }
+
+    private static void Extension(StringBuilder sb, string receiver, StringBuilder body)
+    {
+        if (body.Length == 0)
+        {
+            return;
+        }
+
+        sb.Append("    extension(IElementRef<").Append(receiver).AppendLine("> element)");
+        sb.AppendLine("    {");
+        sb.Append(body);
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    private static void Members(string name, JsonNode iface, DomValueTypes types, HashSet<string> rendered, HashSet<string> taken, Body body)
+    {
         foreach (var m in iface["members"]?.Items ?? new List<JsonNode>())
         {
             var idl = m["name"]!.AsString()!;
@@ -94,6 +120,7 @@ internal static class DomRefEmitter
                 continue;
             }
 
+            var sb = WebHost.IsWasmMember(name, idl) ? body.Wasm : body.Core;
             if (string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal))
             {
                 Operation(sb, m, idl, types, taken);
@@ -103,8 +130,6 @@ internal static class DomRefEmitter
                 Attribute(sb, m, idl, types, rendered, taken);
             }
         }
-
-        return sb.ToString();
     }
 
     private static void Attribute(StringBuilder sb, JsonNode m, string idl, DomValueTypes types, HashSet<string> rendered, HashSet<string> taken)

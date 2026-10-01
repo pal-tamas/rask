@@ -84,7 +84,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         var projectDir = Path.Combine(temp, name);
         try
         {
-            var batteries = NewCommand.ToBatteries(TemplateCatalog.Default, []);
+            var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, []);
             Assert.True(batteries.Tests, "a bare rask new no longer scaffolds a test project");
 
             var result = ProjectGenerator.GenerateServer(projectDir, name, batteries, version);
@@ -226,7 +226,7 @@ public sealed class ProjectGeneratorBuildE2ETests
             {
                 Localization = true,
                 CultureList = "en,hu",
-                Docker = NewCommand.ToBatteries(template, []).Docker,
+                Docker = BatterySelection.ToBatteries(template, []).Docker,
             }.Normalized();
             Assert.True(batteries.Localization, "the localized wasm shape was not constructed");
 
@@ -478,7 +478,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         {
             var result = ProjectGenerator.GenerateServer(
                 projectDir, name,
-                NewCommand.ToBatteries(TemplateCatalog.Default, []), version);
+                BatterySelection.ToBatteries(TemplateCatalog.Default, []), version);
 
             var fs = new SystemFileSystem();
             foreach (var file in result.Files)

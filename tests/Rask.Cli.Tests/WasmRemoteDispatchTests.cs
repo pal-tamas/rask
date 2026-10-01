@@ -32,11 +32,11 @@ public sealed class WasmRemoteDispatchTests
 
     /// <summary>The wasm-hosted template. CQRS is not passed: the generator forces it on.</summary>
     private static Dictionary<string, string> Hosted(params string[] flags) =>
-        Index(ProjectGenerator.GenerateWasmHosted(Root, "App", NewCommand.BatteriesOf(flags), Version));
+        Index(ProjectGenerator.GenerateWasmHosted(Root, "App", BatterySelection.BatteriesOf(flags), Version));
 
     /// <summary>The server template, for the assertions about what it must NOT carry.</summary>
     private static Dictionary<string, string> Server(params string[] flags) =>
-        Index(ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version));
+        Index(ProjectGenerator.GenerateServer(Root, "App", BatterySelection.BatteriesOf(flags), Version));
 
     [Fact]
     public void The_browser_app_lives_in_Client_and_the_server_writes_no_pages_of_its_own()
@@ -62,7 +62,7 @@ public sealed class WasmRemoteDispatchTests
     [Fact]
     public void With_every_battery_on_the_server_is_one_line()
     {
-        var files = Hosted([.. NewCommand.BatteryFlags]);
+        var files = Hosted([.. BatterySelection.BatteryFlags]);
 
         var program = files["Program.cs"];
 
@@ -118,7 +118,7 @@ public sealed class WasmRemoteDispatchTests
         // the template, so the generator forces CQRS back on and NewCommand refuses --no-cqrs outright
         // (NewCommandTests holds the refusal). This pins the generator's half — a template that quietly
         // honoured the flag would scaffold a browser app with no way to reach its own server.
-        var files = Hosted([.. NewCommand.BatteryFlags.Where(f => f != "cqrs")]);
+        var files = Hosted([.. BatterySelection.BatteryFlags.Where(f => f != "cqrs")]);
 
         Assert.Contains("AddRaskCqrsClient", files["Client/Program.cs"], StringComparison.Ordinal);
         Assert.Contains("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);

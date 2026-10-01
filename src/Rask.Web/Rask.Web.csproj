@@ -28,5 +28,10 @@
                       PrivateAssets="all"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Rask.Wasm declares what only WebAssembly runs, over these proxies' chains. -->
+    <InternalsVisibleTo Include="Rask.Wasm"/>
+  </ItemGroup>
+
   <Import Project="Rask.Web.targets"/>
 </Project>

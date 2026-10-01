@@ -92,7 +92,10 @@ for (const [file, ns] of [["html", "html"], ["SVG2", "svg"], ["filter-effects-1"
 
 // ---- IDL: merge partials and mixins -------------------------------------------------------------
 const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map(), callbacks = new Map();
+// The members a [SecureContext] interface, partial or mixin declares: they exist only on an HTTPS (or localhost) page.
+const securedByDefinition = new WeakSet();
 function merge(map, def) {
+  if (def.extAttrs?.some(a => a.name === "SecureContext")) for (const m of def.members) securedByDefinition.add(m);
   const cur = map.get(def.name);
   if (!cur) map.set(def.name, { name: def.name, inheritance: def.inheritance ?? null, members: [...def.members], extAttrs: def.extAttrs ?? [] });
   else {
@@ -126,6 +129,8 @@ function typeOf(t) {
   return s + (t.nullable ? "?" : "");
 }
 const ext = (m, name) => m.extAttrs?.find(a => a.name === name);
+// A mixin's member arrives as an object over the declared one (see the includes above), so its definition is its prototype.
+const secured = m => !!ext(m, "SecureContext") || securedByDefinition.has(m) || securedByDefinition.has(Object.getPrototypeOf(m));
 const unquote = v => typeof v === "string" ? v.replace(/^"(.*)"$/, "$1") : v;
 const extValue = a => a?.rhs ? (Array.isArray(a.rhs.value) ? a.rhs.value.map(v => unquote(v.value ?? v)) : unquote(a.rhs.value)) : undefined;
 
@@ -242,6 +247,7 @@ function membersOf(name) {
     const range = extValue(ext(m, "ReflectRange"));
     if (range !== undefined) entry.reflectRange = range.map(Number);
     if (m.mixin) entry.mixin = m.mixin;
+    if (secured(m)) entry.secure = true;
     Object.assign(entry, meta(compat));
     // Overloads collapse to the first one that ships; the rest are recorded as args variants.
     const prior = members.find(x => x.kind === "operation" && x.name === m.name);
@@ -296,7 +302,7 @@ function describe(name) {
   for (const a of attributes) if (a.tags.length === tags.length) delete a.tags; // on every tag of the interface
   const { constructors, statics, events } = extrasOf(name);
   return { parent: def.inheritance, abstract: tags.length === 0 || undefined, namespace: ns, exposed: exposedToWindow(def) || undefined,
-    ...meta(compat), attributes: attributes.length ? attributes : undefined, members,
+    secure: !!ext(def, "SecureContext") || undefined, ...meta(compat), attributes: attributes.length ? attributes : undefined, members,
     constructors: constructors.length ? constructors : undefined, statics: statics.length ? statics : undefined,
     events: events.length ? events : undefined };
 }
@@ -309,15 +315,16 @@ function extrasOf(name) {
   const args = m => m.arguments.map(a => ({ name: a.name, type: typeOf(a.idlType), optional: a.optional || undefined, variadic: a.variadic || undefined }));
   for (const m of def.members) {
     if (m.type === "constructor") {
-      if (ships(api[name]?.__compat)) constructors.push({ args: args(m), ...meta(api[name]?.__compat) });
+      if (ships(api[name]?.__compat)) constructors.push({ args: args(m), secure: !!ext(def, "SecureContext") || undefined, ...meta(api[name]?.__compat) });
     } else if (m.special === "static" && m.name && ships((api[m.name + "_static"] ?? api[m.name])?.__compat)) {
       // BCD files a static member as name_static, beside any instance member of the same name.
       const compat = (api[m.name + "_static"] ?? api[m.name]).__compat;
       const prior = statics.find(x => x.kind === "operation" && x.name === m.name);
       if (prior) { (prior.overloads ??= []).push(args(m)); continue; }
+      const secure = secured(m) || undefined;
       statics.push(m.type === "attribute"
-        ? { kind: "attribute", name: m.name, type: typeOf(m.idlType), readonly: m.readonly || undefined, ...meta(compat) }
-        : { kind: "operation", name: m.name, returns: typeOf(m.idlType), args: args(m), ...meta(compat) });
+        ? { kind: "attribute", name: m.name, type: typeOf(m.idlType), readonly: m.readonly || undefined, secure, ...meta(compat) }
+        : { kind: "operation", name: m.name, returns: typeOf(m.idlType), args: args(m), secure, ...meta(compat) });
     } else if (m.type === "attribute" && m.name?.startsWith("on") && typeOf(m.idlType).startsWith("EventHandler")) {
       const type = m.name.slice(2);
       if (ships(api[`${type}_event`]?.__compat)) events.push({ type, interface: eventInterface(name, type) });
