@@ -52,6 +52,9 @@ public sealed class WasmHostBuilder
         // there is exactly one culture for its lifetime.
         // Deferred to a factory so UseCulture can still be called after the builder is constructed —
         // the ctor runs before the app's own configuration does.
+        // Before AddRaskCulture, whose remember-nothing fallback is a TryAdd: the cookie is written through
+        // Rask.Web, which Core cannot see.
+        Services.TryAddSingleton<IRaskCulturePersistence, Rask.Web.CookieCulturePersistence>();
         Services.AddRaskCulture(o => _configureCulture?.Invoke(o), ServiceLifetime.Singleton);
         // Typed browser/device API wrappers, Singleton (one per app instance). Registered via the shared
         // helpers (RaskBrowserApis / RaskWasmBrowserApis) so the interface → impl list lives in one place

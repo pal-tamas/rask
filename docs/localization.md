@@ -71,6 +71,10 @@ MVC, agrees with them rather than holding a second, conflicting preference.
 It is deliberately readable from script — the WASM host reads it before the runtime boots, to stamp
 `lang`/`dir` on the document — so it carries a language tag and never anything else.
 
+A choice made with `SetAsync` is written by `Rask.Web.CookieCulturePersistence`, through `document.cookie`
+(`Document.SetCookie`), so it is remembered over plain HTTP too. Both hosts register it, so there is nothing to
+write; register your own `IRaskCulturePersistence` first to store the choice elsewhere.
+
 ## Translating your text
 
 Put a catalog per language in `Resources/`:

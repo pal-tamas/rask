@@ -46,6 +46,40 @@ internal sealed class WebMember
 
     public string Name { get; }
 
+    // Its type parameters: one per IDL `any` it takes (TMessage), and T for an `any` it answers with.
+    private string[] Generics { get; set; } = Array.Empty<string>();
+
+    // What JSInterop asks of a type it reads or writes, so the trimmer keeps an app's type whole.
+    internal const string JsonMembers =
+        "[global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(" +
+        "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors | " +
+        "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields | " +
+        "global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] ";
+
+    private const string AnyArg = "global::Rask.Web.JsChain.Any(";
+
+    private static readonly string[] ReadsT = { "T" };
+    private static readonly string[] WritesTValue = { "TValue" };
+    private static readonly string[] Arrays = { "sequence<", "FrozenArray<" };
+
+    // Members that write into the bytes they are handed and answer with something else: the bytes cross as a copy, so
+    // C# would never see them filled, and their overloads that take bytes are not written. (getRandomValues answers with
+    // the filled array, so it is not here.)
+    private static readonly HashSet<string> Fills = new(StringComparer.Ordinal)
+    {
+        "AnalyserNode.getByteFrequencyData", "AnalyserNode.getByteTimeDomainData", "AudioData.copyTo", "EncodedAudioChunk.copyTo",
+        "EncodedVideoChunk.copyTo", "VideoFrame.copyTo", "TextEncoder.encodeInto", "WebGLRenderingContext.readPixels",
+        "WebGL2RenderingContext.readPixels", "WebGL2RenderingContext.getBufferSubData",
+    };
+
+    private string TypeParameters => Generics.Length == 0 ? "" : "<" + string.Join(", ", Generics.Select(g => JsonMembers + g)) + ">";
+
+    private string TypeArguments => Generics.Length == 0 ? "" : "<" + string.Join(", ", Generics) + ">";
+
+    // The type parameters a combination of arguments brings: each `any` one's.
+    private static string[] GenericsOf(List<(string Type, string Name, string Arg)> parameters) =>
+        parameters.Where(p => p.Arg.StartsWith(AnyArg, StringComparison.Ordinal)).Select(p => p.Type).ToArray();
+
     // Whether only WebAssembly can run it (WebHost): Rask.Wasm declares it, as an extension member, and Rask.Web does not.
     public bool Wasm { get; private set; }
 
@@ -90,7 +124,8 @@ internal sealed class WebMember
                 result.Add(new WebMember(ctor, $"MDN's <c>new {iface}()</c>: the new object, kept in the browser until you dispose of it.",
                     $"ValueTask<{proxy}>", "Create", string.Join(", ", parameters.Select(p => p.Type + " " + p.Name)), names,
                     $"global::Rask.Web.JsChain.Window.New(\"{iface}\"{array}).Keep(static c => new {proxy}(c))",
-                    hidden.Contains(typesOnly) ? "static new " : "static ", typesOnly));
+                    hidden.Contains(typesOnly) ? "static new " : "static ", typesOnly)
+                { Generics = GenericsOf(parameters) });
             }
         }
 
@@ -100,19 +135,31 @@ internal sealed class WebMember
     // Every combination of the arguments' types that crosses the wire, each with how it goes into the call: a value
     // as itself, an element as its ElementRef, a callback as a C# handler handed over by JsChain's Callback, or Awaited
     // for one whose result the browser waits on. A method with one callback takes it sync or async; with more, each is
-    // an Action.
-    internal static IEnumerable<List<(string Type, string Name, string Arg)>> Expand(List<JsonNode> args, DomValueTypes types, JsonNode? callbacks)
+    // an Action. An `any` is the caller's own type, TMessage, which JsChain's Any hands the host's runtime to write; an
+    // `object` is the dictionary WebObjectArgs names for it (`owner` is Interface.member), else nothing.
+    internal static IEnumerable<List<(string Type, string Name, string Arg)>> Expand(
+        List<JsonNode> args, DomValueTypes types, JsonNode? callbacks, string? owner = null)
     {
         IEnumerable<List<(string Type, string Name, string Arg)>> combos = new[] { new List<(string Type, string Name, string Arg)>() };
         foreach (var a in args)
         {
-            var name = DomRefEmitter.Identifier(a["name"]!.AsString()!);
+            var idlName = a["name"]!.AsString()!;
+            var name = DomRefEmitter.Identifier(idlName);
             var alternatives = new List<(string Type, string Arg)>();
             foreach (var t in DomValueTypes.Alternatives(a["type"]!.AsString()!))
             {
                 if (types.CSharp(t, returned: false) is { } value)
                 {
                     alternatives.Add((value, name));
+                }
+                else if (string.Equals(t, "any", StringComparison.Ordinal))
+                {
+                    alternatives.Add(("T" + DomRefEmitter.Pascal(idlName), AnyArg + name + ")"));
+                }
+                else if (string.Equals(t.TrimEnd('?'), "object", StringComparison.Ordinal) && owner is not null && WebObjectArgs.Dictionaries.TryGetValue(owner + "." + idlName, out var dictionary))
+                {
+                    alternatives.Add((types.CSharp(dictionary + (t.EndsWith("?", StringComparison.Ordinal) ? "?" : ""), returned: false)
+                                      ?? throw new DomEmitException($"WebObjectArgs names {dictionary} for {owner}.{idlName}, which the snapshot does not have."), name));
                 }
                 else if (types.IsElement(t))
                 {
@@ -124,7 +171,9 @@ internal sealed class WebMember
                 }
             }
 
-            combos = combos.SelectMany(c => alternatives.Select(t => new List<(string Type, string Name, string Arg)>(c) { (t.Type, name, t.Arg) })).ToList();
+            // Each type once: BufferSource's views are all a byte[].
+            var distinct = alternatives.GroupBy(t => t.Type, StringComparer.Ordinal).Select(g => g.First()).ToList();
+            combos = combos.SelectMany(c => distinct.Select(t => new List<(string Type, string Name, string Arg)>(c) { (t.Type, name, t.Arg) })).ToList();
         }
 
         return combos.Where(c => !c.Any(p => p.Type.StartsWith("global::System.Func<", StringComparison.Ordinal)) || c.Count(p => IsHandler(p.Arg)) == 1);
@@ -200,7 +249,7 @@ internal sealed class WebMember
     }
 
     private WebMember AsStatic(string root) =>
-        new(_data, _summary, _returns, Name, _parameters, _arguments, Rechain(root + "."), "static ", ParameterTypes) { Wasm = Wasm };
+        new(_data, _summary, _returns, Name, _parameters, _arguments, Rechain(root + "."), "static ", ParameterTypes) { Wasm = Wasm, Generics = Generics };
 
     // The body over another chain: the member's own `Chain.`, never the JsChain.Callback(…) inside its arguments.
     private string Rechain(string replacement) =>
@@ -220,7 +269,7 @@ internal sealed class WebMember
             }
 
             var added = string.Equals(m["kind"]?.AsString(), "operation", StringComparison.Ordinal)
-                ? Operation(m, idl, types, proxies, callbacks)
+                ? Operation(m, iface + "." + idl, types, proxies, callbacks)
                 : Attribute(m, idl, types, proxies, denied.Contains(iface + "." + idl + "="));
             foreach (var x in added)
             {
@@ -243,6 +292,31 @@ internal sealed class WebMember
         {
             result.Add(new WebMember(m, $"MDN's <c>{idl}</c>: the object, one step further along the chain.", TypesNs + idlType.TrimEnd('?'), prop, null, "",
                 $"new(Chain.Get(\"{idl}\"))"));
+
+            // Written with an object you kept (a new MediaMetadata), which crosses as its handle; null where MDN allows it.
+            if (!readOnly && m["readonly"]?.AsBoolean() != true)
+            {
+                var nullable = idlType.EndsWith("?", StringComparison.Ordinal) ? "?" : "";
+                result.Add(new WebMember(m, $"Sets MDN's <c>{idl}</c> in the browser, to an object you kept.", "ValueTask", "Set" + prop,
+                    TypesNs + idlType.TrimEnd('?') + nullable + " value", "value", $"Chain.Write(\"{idl}\", value)"));
+            }
+
+            return result;
+        }
+
+        // An `any` is read as the caller's own type, and a property cannot ask for one: `await History.State<Cart>()`.
+        if (string.Equals(idlType, "any", StringComparison.Ordinal))
+        {
+            result.Add(new WebMember(m, $"MDN's <c>{idl}</c>, read from the browser as your own type.", "ValueTask<T>", prop, "", "",
+                $"Chain.ReadAny<T>(\"{idl}\")")
+            { Generics = ReadsT });
+            if (!readOnly && m["readonly"]?.AsBoolean() != true)
+            {
+                result.Add(new WebMember(m, $"Sets MDN's <c>{idl}</c> in the browser.", "ValueTask", "Set" + prop, "TValue value", "value",
+                    $"Chain.Write(\"{idl}\", {AnyArg}value))")
+                { Generics = WritesTValue });
+            }
+
             return result;
         }
 
@@ -263,9 +337,11 @@ internal sealed class WebMember
         return result;
     }
 
-    private static List<WebMember> Operation(JsonNode m, string idl, DomValueTypes types, HashSet<string> proxies, JsonNode? callbacks)
+    // `owner` is Interface.member, as WebObjectArgs names an argument's dictionary.
+    private static List<WebMember> Operation(JsonNode m, string owner, DomValueTypes types, HashSet<string> proxies, JsonNode? callbacks)
     {
         var result = new List<WebMember>();
+        var idl = owner.Substring(owner.IndexOf('.') + 1);
         var returns = m["returns"]!.AsString()!;
         var method = DomRefEmitter.Pascal(idl);
         var signatures = new HashSet<string>(StringComparer.Ordinal);
@@ -273,7 +349,8 @@ internal sealed class WebMember
         lists.AddRange((m["overloads"]?.Items ?? new List<JsonNode>()).Select(o => o.Items));
         foreach (var args in lists.Where(a => !a.Any(x => x["variadic"]?.AsBoolean() == true)))
         {
-            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks))
+            var distinct = DomRefEmitter.Prefixes(args).SelectMany(prefix => Expand(prefix, types, callbacks, owner))
+                .Where(p => !Fills.Contains(owner) || !p.Any(x => x.Type.StartsWith("byte[]", StringComparison.Ordinal)))
                 .Where(p => signatures.Add(string.Join(",", p.Select(x => x.Type))));
             foreach (var parameters in distinct)
             {
@@ -297,30 +374,66 @@ internal sealed class WebMember
         var args = parameters.Count == 0 ? "" : ", new object?[] { " + values + " }";
         var promised = returns.StartsWith("Promise<", StringComparison.Ordinal) ? returns.Substring(8, returns.Length - 9) : null;
         var summary = $"MDN's <c>{idl}()</c>, called in the browser.";
+        var generics = GenericsOf(parameters);
         if (promised is not null && proxies.Contains(promised.TrimEnd('?')))
         {
             var proxy = TypesNs + promised.TrimEnd('?');
             return new WebMember(m, summary + " The object it resolves to is kept: dispose of it when done.", $"ValueTask<{proxy}>", method, declared, names,
-                $"Chain.Invoke(\"{idl}\"{args}).Keep(static c => new {proxy}(c))");
+                $"Chain.Invoke(\"{idl}\"{args}).Keep(static c => new {proxy}(c))")
+            { Generics = generics };
         }
 
         if (promised is null && proxies.Contains(returns.TrimEnd('?')))
         {
             var proxy = TypesNs + returns.TrimEnd('?');
             return new WebMember(m, summary + " Nothing runs until a member of the result is awaited.", proxy, method, declared, names,
-                $"new(Chain.Invoke(\"{idl}\"{args}))");
+                $"new(Chain.Invoke(\"{idl}\"{args}))")
+            { Generics = generics };
         }
 
-        // A promise of anything (a lock request's, settling with what its callback returned) is waited on, not read.
-        if ((string.Equals(returns, "Promise<any>", StringComparison.Ordinal) ? "void" : types.CSharp(returns, returned: true)) is not { } value)
+        if (ItemOf(promised ?? returns) is { } item && proxies.Contains(item.TrimEnd('?')))
+        {
+            var proxy = TypesNs + item.TrimEnd('?');
+            var orNull = item.EndsWith("?", StringComparison.Ordinal);
+            return new WebMember(m, summary + " Each object in it is kept: dispose of each when done.", $"ValueTask<{proxy}{(orNull ? "?" : "")}[]>", method,
+                declared, names, $"Chain.Invoke(\"{idl}\"{args}).{(orNull ? "KeepEachOrNull" : "KeepEach")}(static c => new {proxy}(c))")
+            { Generics = generics };
+        }
+
+        var typesOnly = string.Join(",", parameters.Select(p => p.Type));
+
+        // A promise of anything that settles with what its callback returned (a lock request's) is waited on, not read.
+        // Anything else is read as the caller's own type, as a response's JSON is read as an Order.
+        if (string.Equals(promised ?? returns, "any", StringComparison.Ordinal))
+        {
+            if (promised is not null && parameters.Any(p => IsHandler(p.Arg)))
+            {
+                return new WebMember(m, summary, "ValueTask", method, declared, names, $"Chain.Call(\"{idl}\"{args})", parameterTypes: typesOnly) { Generics = generics };
+            }
+
+            var result = generics.Length == 0 ? "T" : "TResult";
+            return new WebMember(m, summary + " Its result is read as your own type.", $"ValueTask<{result}>", method, declared, names,
+                $"Chain.CallAny<{result}>(\"{idl}\"{args})", parameterTypes: typesOnly)
+            { Generics = generics.Concat(new[] { result }).ToArray() };
+        }
+
+        if (types.CSharp(returns, returned: true) is not { } value)
         {
             return null;
         }
 
-        var typesOnly = string.Join(",", parameters.Select(p => p.Type));
-        return string.Equals(value, "void", StringComparison.Ordinal)
-            ? new WebMember(m, summary, "ValueTask", method, declared, names, $"Chain.Call(\"{idl}\"{args})", parameterTypes: typesOnly)
-            : new WebMember(m, summary, $"ValueTask<{value}>", method, declared, names, $"Chain.Call<{value}>(\"{idl}\"{args})", parameterTypes: typesOnly);
+        var isVoid = string.Equals(value, "void", StringComparison.Ordinal);
+        return new WebMember(m, summary, isVoid ? "ValueTask" : $"ValueTask<{value}>", method, declared, names,
+            isVoid ? $"Chain.Call(\"{idl}\"{args})" : $"Chain.Call<{value}>(\"{idl}\"{args})", parameterTypes: typesOnly)
+        { Generics = generics };
+    }
+
+    // The item type of a sequence or frozen array, `sequence<USBDevice>` → USBDevice; null for anything else.
+    private static string? ItemOf(string idl)
+    {
+        var bare = idl.TrimEnd('?');
+        var open = Arrays.FirstOrDefault(a => bare.StartsWith(a, StringComparison.Ordinal) && bare.EndsWith(">", StringComparison.Ordinal));
+        return open is null ? null : bare.Substring(open.Length, bare.Length - open.Length - 1);
     }
 
     public void WriteInstance(StringBuilder sb) => Write(sb, "    ", "public " + _modifiers, _body);
@@ -335,7 +448,7 @@ internal sealed class WebMember
     private void Write(StringBuilder sb, string indent, string modifiers, string body)
     {
         DomEmitter.Doc(sb, indent, _summary, _data);
-        sb.Append(indent).Append(modifiers).Append(_returns).Append(' ').Append(Name);
+        sb.Append(indent).Append(modifiers).Append(_returns).Append(' ').Append(Name).Append(TypeParameters);
         if (_parameters is not null)
         {
             sb.Append('(').Append(_parameters).Append(')');
@@ -349,13 +462,13 @@ internal sealed class WebMember
     public void WriteStatic(StringBuilder sb, string indent = "    ", string instance = "Instance")
     {
         DomEmitter.Doc(sb, indent, _summary, _data);
-        sb.Append(indent).Append("public static ").Append(_returns).Append(' ').Append(Name);
+        sb.Append(indent).Append("public static ").Append(_returns).Append(' ').Append(Name).Append(TypeParameters);
         if (_parameters is not null)
         {
             sb.Append('(').Append(_parameters).Append(')');
         }
 
-        sb.Append(" => ").Append(instance).Append('.').Append(Name);
+        sb.Append(" => ").Append(instance).Append('.').Append(Name).Append(TypeArguments);
         if (_parameters is not null)
         {
             sb.Append('(').Append(_arguments).Append(')');

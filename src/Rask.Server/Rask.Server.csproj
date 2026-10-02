@@ -67,6 +67,8 @@
     <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.Logging\Rask.Logging.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.WebPush\Rask.WebPush.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+    <!-- Every web API from MDN, on the server over the page's socket — and how a chosen culture is remembered. -->
+    <ProjectReference Include="..\Rask.Web\Rask.Web.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <!-- DataAnnotations is in the core; this is the other half — an AbstractValidator&lt;T&gt; in the app is
          discovered and wired by the generator. -->
     <ProjectReference Include="..\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj" PrivateAssets="none" ExcludeAssets="build"/>

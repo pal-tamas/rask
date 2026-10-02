@@ -64,7 +64,7 @@ internal static class WebEmitter
 
         files.Add(new KeyValuePair<string, string>("WebEvents.g.cs", payloads.Declarations()));
         files.Add(new KeyValuePair<string, string>("Globals.g.cs", Globals(model)));
-        files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext")));
+        files.Add(new KeyValuePair<string, string>("WebValues.g.cs", types.Declarations("Rask.Web.Types", "RaskWebJsonContext", "global::Rask.Web.BytesJsonConverter")));
         return files;
     }
 

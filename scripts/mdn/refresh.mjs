@@ -438,6 +438,9 @@ for (const i of Object.values(interfaceOut)) {
     for (const a of m.args ?? []) reach(a.type);
   }
 }
+// The dictionaries an `object` argument really takes, which the IDL never names (Permissions.query's descriptor): the
+// generator's table in src/Rask.Dom.Tasks/WebObjectArgs.cs. Keep the two lists together.
+for (const d of ["PermissionDescriptor"]) reach(d);
 const sortObj = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
 
 const snapshot = {

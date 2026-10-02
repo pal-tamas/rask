@@ -1,8 +1,8 @@
 namespace Rask.Core.Globalization;
 
 /// <summary>
-///     Remembers nothing. The default where there is nowhere to write, and what an app gets when it
-///     turns <see cref="RaskCultureOptions.UseCookie" /> off.
+///     Remembers nothing. The default on a host that does not reference <c>Rask.Web</c>, where the cookie
+///     is written; turning <see cref="RaskCultureOptions.UseCookie" /> off skips persistence on every host.
 /// </summary>
 public sealed class NullCulturePersistence : IRaskCulturePersistence
 {

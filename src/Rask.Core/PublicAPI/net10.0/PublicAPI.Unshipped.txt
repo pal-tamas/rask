@@ -1564,9 +1564,6 @@ Rask.Core.Forms.ValidationEntry.Message.get -> string!
 Rask.Core.Forms.ValidationEntry.Message.init -> void
 Rask.Core.Forms.ValidationEntry.ValidationEntry() -> void
 Rask.Core.Forms.ValidationEntry.ValidationEntry(string! Field, string! Message) -> void
-Rask.Core.Globalization.CookieCulturePersistence
-Rask.Core.Globalization.CookieCulturePersistence.CookieCulturePersistence(Rask.Core.Browser.ICookies! cookies, Rask.Core.Globalization.RaskCultureOptions! options) -> void
-Rask.Core.Globalization.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Core.Globalization.CultureNegotiation
 Rask.Core.Globalization.CultureNegotiation.Culture.get -> System.Globalization.CultureInfo!
 Rask.Core.Globalization.CultureNegotiation.Culture.init -> void

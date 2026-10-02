@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -100,6 +101,58 @@ internal sealed class JsChain
 
     internal ValueTask Write(string name, object? value) => new JsChain(this, StepWrite, name, [value]).Run();
 
+    // A value of IDL `any` read as the app's own type, which Rask.Web's metadata cannot know: the host's runtime reads
+    // it, with the options it reads any InvokeAsync<T> with (reflection where the app can run it, its contexts in AOT).
+    internal ValueTask<T> ReadAny<[DynamicallyAccessedMembers(Json)] T>(string name) => Get(name).RunAny<T>();
+
+    internal ValueTask<T> CallAny<[DynamicallyAccessedMembers(Json)] T>(string name) => Invoke(name).RunAny<T>();
+
+    internal ValueTask<T> CallAny<[DynamicallyAccessedMembers(Json)] T>(string name, object?[] args) => Invoke(name, args).RunAny<T>();
+
+    // An argument of IDL `any`: the app's own value, which rides beside the steps for the host's runtime to write, as
+    // it writes any InvokeAsync argument. Annotated as InvokeAsync<T> is, so the trimmer keeps what that writes.
+    internal static object? Any<[DynamicallyAccessedMembers(Json)] T>(T value) => value is null ? null : new AnyArg(value);
+
+    internal sealed record AnyArg(object Content);
+
+    // Runs the chain and keeps each item of the array it ends at as an object of its own (each USB device, each file
+    // handle), disposed of one by one. The array is kept while that happens, so each item is taken from the array the
+    // browser answered, by index, rather than by running the chain again: a handle to it, which slots hold an item, and
+    // a handle per item. An empty slot (a gamepad not connected) stays null.
+    internal async ValueTask<T?[]> KeepEachOrNull<T>(Func<JsChain, T> wrap)
+        where T : class
+    {
+        if (Faked(out var fake, out var rest))
+        {
+            return fake.Answer<T?[]>(rest) ?? [];
+        }
+
+        var array = await Keep().ConfigureAwait(false);
+        try
+        {
+            var slots = await array.Runtime.InvokeAsync<JsonElement>("__raskWeb.slots", array.Arguments()).ConfigureAwait(false);
+            var items = new T?[slots.GetArrayLength()];
+            for (var i = 0; i < items.Length; i++)
+            {
+                if (slots[i].ValueKind == JsonValueKind.True)
+                {
+                    items[i] = wrap(await array.Get(i.ToString(CultureInfo.InvariantCulture)).Keep().ConfigureAwait(false));
+                }
+            }
+
+            return items;
+        }
+        finally
+        {
+            // The array only: any handler the chain was made with may still be the items' to call.
+            await array._handle!.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    internal async ValueTask<T[]> KeepEach<T>(Func<JsChain, T> wrap)
+        where T : class =>
+        [.. (await KeepEachOrNull(wrap).ConfigureAwait(false)).OfType<T>()];
+
     // Runs the chain and keeps what it ends at, a handle to an object the browser holds until it is disposed of.
     internal async ValueTask<JsChain> Keep()
     {
@@ -155,8 +208,11 @@ internal sealed class JsChain
             return new FakeListening(fake, listener);
         }
 
-        var callback = ScopedScript.Handler(Owner(handler), args => invoke(read(First(args))));
         var runtime = Runtime;
+        // The host's own options read an `any` field as the caller's type. A runtime that is not Rask's (a test's)
+        // gets plain web defaults, which resolve a type only where reflection is on — as it is in a test.
+        var options = (runtime as RaskJSRuntimeBase)?.SerializerOptions ?? Unhosted;
+        var callback = ScopedScript.Handler(Owner(handler), args => invoke(ReadEvent(read, First(args), options)));
         var (steps, extras) = Serialize();
         int id;
         try
@@ -211,6 +267,39 @@ internal sealed class JsChain
     internal static T Field<[DynamicallyAccessedMembers(Json)] T>(JsonElement payload, string name) =>
         payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty(name, out var value) ? Value<T>(value) : default!;
 
+    // A field of IDL `any` (a message's data), kept as its JSON until the handler reads it as its own type: e.Data<T>().
+    internal static AnyField AnyFieldOf(JsonElement payload, string name) =>
+        payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty(name, out var value) ? new AnyField(value.Clone(), t_reading) : default;
+
+    // The options of the runtime an event came over, while its payload is read: what its `any` fields are read with later.
+    [ThreadStatic] private static JsonSerializerOptions? t_reading;
+
+    // Reflection-backed web defaults, for a runtime that is not Rask's. Both hosts pass their own source-generated
+    // options, so a trimmed app never reaches this; a test's fake runtime does, where reflection is on.
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reached only from a runtime that is not Rask's, a test's; both hosts pass their own options.")]
+    private static JsonSerializerOptions Unhosted => JsonSerializerOptions.Web;
+
+    private static TEvent ReadEvent<TEvent>(Func<JsonElement, TEvent> read, JsonElement payload, JsonSerializerOptions? options)
+    {
+        t_reading = options;
+        try
+        {
+            return read(payload);
+        }
+        finally
+        {
+            t_reading = null;
+        }
+    }
+
+    internal readonly record struct AnyField(JsonElement Raw, JsonSerializerOptions? Options)
+    {
+        public T As<[DynamicallyAccessedMembers(Json)] T>() =>
+            Options is null || Raw.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined
+                ? default!
+                : Raw.Deserialize((JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T)))!;
+    }
+
     private static T Arg<[DynamicallyAccessedMembers(Json)] T>(JsonElement args, int index) =>
         args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > index ? Value<T>(args[index]) : default!;
 
@@ -254,6 +343,16 @@ internal sealed class JsChain
         return Runtime.InvokeVoidAsync("__raskWeb.run", Arguments());
     }
 
+    private async ValueTask<T> RunAny<[DynamicallyAccessedMembers(Json)] T>()
+    {
+        if (Faked(out var fake, out var rest))
+        {
+            return fake.Answer<T>(rest);
+        }
+
+        return await Runtime.InvokeAsync<T>("__raskWeb.read", Arguments()).ConfigureAwait(false);
+    }
+
     // The fake standing in for where this chain goes, if a test set one up.
     private bool Faked(out WebFakes.Entry fake, out IReadOnlyList<Step> rest)
     {
@@ -268,7 +367,7 @@ internal sealed class JsChain
         var steps = new List<Step>();
         for (var c = this; c._kind != StepRoot; c = c._parent!)
         {
-            steps.Add(new Step(c._kind, c._name!, c._args));
+            steps.Add(new Step(c._kind, c._name!, c._args?.Select(a => a is AnyArg any ? any.Content : a).ToArray()));
         }
 
         steps.Reverse();
@@ -365,6 +464,12 @@ internal sealed class JsChain
                 break;
             case JsObject:
                 throw new InvalidOperationException("Only a kept object can be handed to the browser: await it first, to keep it.");
+            case AnyArg { Content: ScopedScript.ScriptCallback or IJSObjectReference or ElementRef or JsObject } any:
+                WriteArg(writer, any.Content, extras);
+                break;
+            case AnyArg any:
+                Placeholder(writer, any.Content, extras);
+                break;
             default:
                 JsonSerializer.Serialize(writer, arg, RaskWebJsonContext.Default.GetTypeInfo(arg.GetType())
                     ?? throw new NotSupportedException($"{arg.GetType()} has no JSON metadata in Rask.Web."));

@@ -13,8 +13,6 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 {
     private const string CorePrefix = "global::Rask.Core.";
 
-    private static readonly string[] Or = { " or " };
-
     private static readonly char[] Space = { ' ' };
 
     private readonly JsonNode _interfaces = root["interfaces"]!;
@@ -37,11 +35,31 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         _external.UnionWith(_records.Keys);
         _serializable.Clear();
         _onlyData = true;
+        _bytes = true;
     }
 
     // Core has no live objects, so there anything that serializes itself is a value; where live objects exist (Rask.Web),
     // only one that is nothing but data is.
     private bool _onlyData;
+
+    // Bytes cross as base64 that Rask.Web's runtime turns back into a Uint8Array; an element ref's call has no such step,
+    // so Core never maps them.
+    private bool _bytes;
+
+    // What C# hands over and reads back as byte[]: a buffer, or a view of one whose items are bytes.
+    private static readonly HashSet<string> Bytes = new(StringComparer.Ordinal)
+    {
+        "ArrayBuffer", "SharedArrayBuffer", "DataView", "Int8Array", "Uint8Array", "Uint8ClampedArray",
+        "BufferSource", "AllowSharedBufferSource", "ArrayBufferView",
+    };
+
+    // The views of wider numbers: still binary, so a union of them and bytes (BufferSource, spelled out) is bytes, but a
+    // lone Float32Array is no byte[].
+    private static readonly HashSet<string> WiderViews = new(StringComparer.Ordinal)
+    {
+        "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float16Array", "Float32Array", "Float64Array", "BigInt64Array",
+        "BigUint64Array",
+    };
 
     // Whether an IDL name crosses as a value (an enum, a dictionary, data that serializes itself or a callback is handed)
     // rather than a live object.
@@ -82,17 +100,45 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         sb.AppendLine("#nullable enable");
     }
 
-    // The alternatives of a union type, `(boolean or ScrollIntoViewOptions)`; a plain type is its own.
+    // The alternatives of a union type, `(boolean or ScrollIntoViewOptions)`, nested ones flattened (BufferSource spells
+    // out as `((Int8Array or … or DataView) or ArrayBuffer)`); a plain type is its own.
     public static IEnumerable<string> Alternatives(string idl)
     {
         var nullable = idl.EndsWith("?", StringComparison.Ordinal) && idl.StartsWith("(", StringComparison.Ordinal);
         var inner = nullable ? idl.Substring(0, idl.Length - 1) : idl;
-        if (!inner.StartsWith("(", StringComparison.Ordinal) || inner.IndexOf(" or ", StringComparison.Ordinal) < 0)
+        if (!inner.StartsWith("(", StringComparison.Ordinal) || !inner.EndsWith(")", StringComparison.Ordinal))
         {
             return new[] { idl };
         }
 
-        return inner.Substring(1, inner.Length - 2).Split(Or, StringSplitOptions.None).Select(t => nullable ? t.TrimEnd('?') + "?" : t);
+        return TopLevel(inner.Substring(1, inner.Length - 2)).SelectMany(Alternatives).Select(t => nullable ? t.TrimEnd('?') + "?" : t);
+    }
+
+    // `A or (B or C) or sequence<(D or E)>` → A, (B or C), sequence<(D or E)>: split only outside brackets.
+    private static List<string> TopLevel(string union)
+    {
+        var parts = new List<string>();
+        var depth = 0;
+        var start = 0;
+        for (var i = 0; i < union.Length; i++)
+        {
+            if (union[i] is '(' or '<')
+            {
+                depth++;
+            }
+            else if (union[i] is ')' or '>')
+            {
+                depth--;
+            }
+            else if (depth == 0 && string.CompareOrdinal(union, i, " or ", 0, 4) == 0)
+            {
+                parts.Add(union.Substring(start, i - start));
+                start = i + 4;
+            }
+        }
+
+        parts.Add(union.Substring(start));
+        return parts;
     }
 
     // The C# type for an IDL type, or null when it does not cross the wire. `returned` allows `undefined` (void).
@@ -117,6 +163,16 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         var nullable = idl.EndsWith("?", StringComparison.Ordinal);
         var bare = nullable ? idl.Substring(0, idl.Length - 1) : idl;
         var suffix = nullable ? "?" : "";
+        if (bare.StartsWith("(", StringComparison.Ordinal))
+        {
+            return IsBytes(bare, returned) ? "byte[]" + suffix : null;
+        }
+
+        if (_bytes && Bytes.Contains(bare))
+        {
+            return "byte[]" + suffix;
+        }
+
         if (bare.StartsWith("sequence<", StringComparison.Ordinal) || bare.StartsWith("FrozenArray<", StringComparison.Ordinal))
         {
             var open = bare.IndexOf('<');
@@ -137,6 +193,17 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 
         var named = Named(bare);
         return named is null ? null : Qualify(named) + suffix;
+    }
+
+    // A union of buffers and views is bytes, as BufferSource is. One C# hands over that also takes a string is bytes too:
+    // the string only spells the same bytes out (a push subscription's applicationServerKey, in base64url). One the
+    // browser answers with is not, since it may well be the string (a FileReader's result).
+    private bool IsBytes(string union, bool returned)
+    {
+        var alternatives = Alternatives(union).ToList();
+        return _bytes && alternatives.Any(Bytes.Contains)
+               && alternatives.All(t => Bytes.Contains(t) || WiderViews.Contains(t)
+                                        || (!returned && string.Equals(Primitive(t), "string", StringComparison.Ordinal)));
     }
 
     private static string? Primitive(string idl) => idl switch
@@ -308,8 +375,9 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         }
     }
 
-    // This assembly's enums and records, in `ns`, and a JSON context `context` for every type its members send or read.
-    public string Declarations(string ns, string context)
+    // This assembly's enums and records, in `ns`, and a JSON context `context` for every type its members send or read,
+    // which writes byte arrays with `bytes`: a converter that marks them for the browser to turn back into bytes.
+    public string Declarations(string ns, string context, string? bytes = null)
     {
         var sb = new StringBuilder();
         Header(sb);
@@ -330,6 +398,11 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
         foreach (var t in _serializable)
         {
             sb.Append("[JsonSerializable(typeof(").Append(t).AppendLine("))]");
+        }
+
+        if (bytes is not null && _serializable.Contains("byte[]"))
+        {
+            sb.Append("[JsonSourceGenerationOptions(Converters = new[] { typeof(").Append(bytes).AppendLine(") })]");
         }
 
         sb.Append("internal sealed partial class ").Append(context).AppendLine(" : JsonSerializerContext;");

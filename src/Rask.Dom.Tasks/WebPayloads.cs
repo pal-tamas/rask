@@ -78,18 +78,20 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
         _declared[name] = Own(name).Where(f => !inherited.Contains(f.Json)).ToList();
     }
 
-    // An interface's attributes whose types are values.
+    // An interface's attributes whose types are values, and its `any` ones (a message's data), as Any.
     private IEnumerable<(string Property, string Type, string Json, JsonNode Data)> Own(string name)
     {
         foreach (var m in _interfaces[name]!["members"]?.Items ?? new List<JsonNode>())
         {
-            if (string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal)
-                && types.CSharp(m["type"]!.AsString()!, returned: false) is { } type)
+            if (string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal) && m["type"]!.AsString() is { } idl
+                && (string.Equals(idl, "any", StringComparison.Ordinal) ? Any : types.CSharp(idl, returned: false)) is { } type)
             {
                 yield return (DomRefEmitter.Pascal(m["name"]!.AsString()!), type, m["name"]!.AsString()!, m);
             }
         }
     }
+
+    private const string Any = "any";
 
     // Every field the payload reads: its own and its ancestors'.
     private List<string> Fields(string name)
@@ -134,13 +136,20 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
         sb.AppendLine("    {");
         foreach (var (property, type, json, _) in fields)
         {
-            sb.Append("        ").Append(property).Append(" = global::Rask.Web.JsChain.Field<").Append(type).Append(">(p, \"").Append(json).AppendLine("\");");
+            sb.Append("        ").Append(string.Equals(type, Any, StringComparison.Ordinal) ? "_" + json : property).Append(" = global::Rask.Web.JsChain.");
+            sb.Append(string.Equals(type, Any, StringComparison.Ordinal) ? "AnyFieldOf" : "Field<" + type + ">").Append("(p, \"").Append(json).AppendLine("\");");
         }
 
         sb.AppendLine("    }");
         foreach (var (property, type, json, data) in fields)
         {
             sb.AppendLine();
+            if (string.Equals(type, Any, StringComparison.Ordinal))
+            {
+                AnyField(sb, property, json, data);
+                continue;
+            }
+
             DomEmitter.Doc(sb, "    ", $"The event's <c>{json}</c>.", data);
             // A non-nullable reference (a string, an array, a record) starts as default! for the empty constructor.
             var valueOrNullable = type.EndsWith("?", StringComparison.Ordinal) || type is "bool" or "int" or "long" or "double" || types.IsEnum(type);
@@ -148,5 +157,14 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
         }
 
         sb.AppendLine("}");
+    }
+
+    // An `any` field is the sender's own type, which only the handler knows: kept as JSON, read when it asks, e.Data<T>().
+    private static void AnyField(StringBuilder sb, string property, string json, JsonNode data)
+    {
+        sb.Append("    private readonly global::Rask.Web.JsChain.AnyField _").Append(json).AppendLine(";");
+        sb.AppendLine();
+        DomEmitter.Doc(sb, "    ", $"The event's <c>{json}</c>, read as your own type.", data);
+        sb.Append("    public T ").Append(property).Append('<').Append(WebMember.JsonMembers).Append("T>() => _").Append(json).AppendLine(".As<T>();");
     }
 }

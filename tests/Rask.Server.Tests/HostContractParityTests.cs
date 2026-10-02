@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
+using Rask.Core.Globalization;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests;
@@ -29,5 +30,17 @@ public sealed class HostContractParityTests
             .ToList();
 
         Assert.Empty(missing);
+    }
+
+    // The cookie is written through Rask.Web, which Core cannot see, so the host registers it ahead of Core's
+    // remember-nothing fallback — a server app keeps a visitor's language across a reload with nothing to write.
+    [Fact]
+    public void The_server_host_remembers_a_chosen_culture_in_a_cookie()
+    {
+        using var host = RaskTestHost.Create<NoOpApp>();
+
+        using var scope = host.Services.CreateScope();
+
+        Assert.IsType<Rask.Web.CookieCulturePersistence>(scope.ServiceProvider.GetService<IRaskCulturePersistence>());
     }
 }

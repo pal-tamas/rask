@@ -330,6 +330,9 @@ public static partial class RaskEndpointExtensions
         // off the built options by MapRask instead, since nothing is built yet.
         services.AddRaskOptions<RaskCultureOptions>("Rask:Cultures", static (section, o) => BindCultures(section, o),
             configureCulture, validate: null);
+        // Before AddRaskCulture, whose remember-nothing fallback is a TryAdd: the cookie is written through
+        // Rask.Web, which Core cannot see.
+        services.TryAddScoped<IRaskCulturePersistence, Rask.Web.CookieCulturePersistence>();
         services.AddRaskCulture(configure: null, ServiceLifetime.Scoped);
         // Typed browser/device API wrappers — the transport-agnostic Core set, Scoped (one per WebSocket
         // session). Registered via the shared helper (RaskBrowserApis) so the interface → impl list lives in

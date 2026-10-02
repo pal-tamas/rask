@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
+using Rask.Core.Globalization;
 
 namespace Rask.Wasm.Tests;
 
@@ -36,5 +37,17 @@ public sealed class HostContractParityTests
         using var provider = builder.Services.BuildServiceProvider();
 
         Assert.Same(http, provider.GetService<HttpClient>());
+    }
+
+    // The cookie is written through Rask.Web, which Core cannot see, so the host registers it ahead of Core's
+    // remember-nothing fallback.
+    [Fact]
+    public void The_WASM_host_remembers_a_chosen_culture_in_a_cookie()
+    {
+        var builder = WasmHostBuilder.CreateDefault();
+
+        using var provider = builder.Services.BuildServiceProvider();
+
+        Assert.IsType<Rask.Web.CookieCulturePersistence>(provider.GetService<IRaskCulturePersistence>());
     }
 }

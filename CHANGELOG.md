@@ -22,6 +22,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `CookieCulturePersistence` moved to `Rask.Web`, and writes the culture cookie through
+  `Document.SetCookie`.** It no longer needs the `ICookies` wrapper; the cookie it writes is unchanged
+  (`.AspNetCore.Culture`, a year, `path=/`, `samesite=lax`), so a visitor's remembered language survives the
+  upgrade. Both hosts still register it by default, so an app writes nothing; only code that built one by hand
+  changes, and `Rask.Server` now references `Rask.Web`:
+  ```csharp
+  using Rask.Core.Globalization;   // was: new CookieCulturePersistence(cookies, options)
+  using Rask.Web;                   // now: new CookieCulturePersistence(services, options)
+  ```
+
 - **A write takes no token, and a role gate takes a word.** `Product.Create`, `Update`, `Delete`, `Save`, `Find` and
   `Model` fall back to the work they run in (`Current.Cancellation`) when given no token, as reads already did, and
   `Authorize` takes one role or several without a collection expression:
@@ -574,6 +584,21 @@ them until tagged releases begin.
     browser awaits runs at once, not queued behind the handler awaiting the browser. New with it: `ResizeObserver`,
     `MutationObserver`, `ReportingObserver`, `PerformanceObserver`, `Window.RequestIdleCallback`,
     `Window.GetComputedStyle(ElementRef)` and every other member taking an element.
+  - **Bytes, your own types, lists of live objects, loose `object` arguments and object-valued setters** — about 350
+    more members:
+    ```csharp
+    var hash = await Crypto.Subtle.Digest("SHA-256", bytes);          // BufferSource / ArrayBuffer: byte[] both ways
+    var salt = await Crypto.GetRandomValues(new byte[16]);            // answers with the filled array
+    await channel.PostMessage(new CartChanged(42));                   // `any` argument: your type, PostMessage<TMessage>
+    var order = await response.Json<Order>();                         // `any` result: a generic read
+    var cart = e.Data<CartChanged>();                                 // MessageEvent.data
+    var devices = await Navigator.Usb.GetDevices();                   // USBDevice[], each one kept
+    var status = await Navigator.Permissions.Query(new() { Name = "geolocation" });
+    await Navigator.MediaSession.SetMetadata(await MediaMetadata.Create(new() { Title = "Song" }));   // a kept object
+    ```
+    **BREAKING:** `Response.Json()`, `Request.Json()`, `Observable.First()` and `Last()` read their result now:
+    `Json<T>()`, `First<T>()`. A member that fills the bytes it is handed but answers with something else
+    (`AnalyserNode.GetByteFrequencyData`) is not generated, since C# would never see them filled.
   - **BREAKING: a record the browser sends is typed as MDN types it.** `DOMRect`, `GeolocationPosition` and the other
     records read from an interface have non-nullable fields where MDN's are: `rect.Width` (was `double?`),
     `p.Coords.Latitude` (was `p.Coords!.Latitude ?? 0`). Dictionaries you fill in keep their optional fields.

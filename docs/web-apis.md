@@ -47,10 +47,67 @@ per await. `Window.MatchMedia(q).Matches` wants exactly that; a method you call 
 `Performance.Mark("start")`, wants awaiting on its own, which runs it once and keeps what it returns:
 `await using var mark = await Performance.Mark("start");`.
 
+A writable attribute that holds an object is set with one you kept, which crosses as its handle — or `null`, where MDN
+allows it:
+
+```csharp
+await Navigator.MediaSession.SetMetadata(await MediaMetadata.Create(new() { Title = "Song" }));
+await Navigator.MediaSession.SetMetadata(null);
+```
+
 ## Constructors and static members
 
 `new X(…)` is `X.Create(…)`, and the new object is kept: `await using var channel = await BroadcastChannel.Create("updates")`.
 A static member is on the class, as in JavaScript: `await URL.CanParse(link)`, `await Notification.RequestPermission()`.
+
+## Bytes, your own types, lists and loose objects
+
+**Bytes are a `byte[]`**, both ways — a `BufferSource`, an `ArrayBuffer`, a `DataView` or a `Uint8Array` alike. They
+cross as base64 and arrive as a `Uint8Array`; a buffer the browser answers with comes back as a `byte[]`. A method that
+fills the array it is handed and answers with it does the same:
+
+```csharp
+var hash = await Crypto.Subtle.Digest("SHA-256", bytes);
+var salt = await Crypto.GetRandomValues(new byte[16]);            // the filled array
+await device.TransferOut(1, payload);                             // a USBDevice
+var value = await characteristic.ReadValue();                     // a Bluetooth DataView, as bytes
+var push = await PushManager.Subscribe(new() { UserVisibleOnly = true, ApplicationServerKey = vapidKey });
+```
+
+A method that fills the bytes it is handed but answers with something else (`AnalyserNode.GetByteFrequencyData`) is
+not generated: the bytes cross as a copy, so you would never see them filled.
+
+**Where MDN says `any`, it is your own type.** An argument is a type parameter, written by the host's own JSON options
+as any JS interop argument is; a result is a generic read, and so is an event's `any` field:
+
+```csharp
+await channel.PostMessage(new CartChanged(42));                   // BroadcastChannel.postMessage(any)
+var order = await response.Json<Order>();                         // Response.json(): Promise<any>
+var state = await History.State<CartState>();                     // history.state
+await using var _ = await channel.OnMessage(e => _last = e.Data<CartChanged>());   // MessageEvent.data
+```
+
+Your type is kept whole in a trimmed WebAssembly app, as for `InvokeAsync<T>`; under full AOT give it a
+`JsonSerializerContext`, as Blazor asks. A promise of anything that settles with what your callback returned (a lock
+request's) is only waited on.
+
+**A list of live objects is an array of kept objects**, each disposed of on its own; an empty slot (a gamepad not
+connected) is `null`:
+
+```csharp
+var devices = await Navigator.Usb.GetDevices();                   // USBDevice[], each one kept
+var ports = await Navigator.Serial.GetPorts();
+var pads = await Navigator.GetGamepads();                         // Gamepad?[]
+var files = await Window.ShowOpenFilePicker();                    // WebAssembly: in the click
+```
+
+**An argument MDN types only as `object`** takes the dictionary its page documents, from a small table in the generator
+(`src/Rask.Dom.Tasks/WebObjectArgs.cs`); without an entry it is not generated:
+
+```csharp
+await using var status = await Navigator.Permissions.Query(new() { Name = "geolocation" });
+var state = await status.State;                                   // PermissionState.Granted
+```
 
 ## Events and callbacks
 

@@ -1134,3 +1134,82 @@ Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int x
 Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WebGLRenderingContext.TexImage2D(int target, int level, int internalformat, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WebGLRenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int format, int type, Rask.Core.ElementRef! source) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUBuffer.GetMappedRange() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.GPUBuffer.GetMappedRange(long offset) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.GPUBuffer.GetMappedRange(long offset, long size) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.GPUComputePassEncoder.SetImmediates(int rangeOffset, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.SetImmediates(int rangeOffset, byte[]! data, long dataOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUComputePassEncoder.SetImmediates(int rangeOffset, byte[]! data, long dataOffset, long dataSize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQueue.WriteTexture(Rask.Web.Types.GPUTexelCopyTextureInfo! destination, byte[]! data, Rask.Web.Types.GPUTexelCopyBufferLayout! dataLayout, Rask.Web.Types.GPUExtent3DDict! size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPUQueue.WriteTexture(Rask.Web.Types.GPUTexelCopyTextureInfo! destination, byte[]! data, Rask.Web.Types.GPUTexelCopyBufferLayout! dataLayout, int[]! size) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetImmediates(int rangeOffset, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetImmediates(int rangeOffset, byte[]! data, long dataOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderBundleEncoder.SetImmediates(int rangeOffset, byte[]! data, long dataOffset, long dataSize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetImmediates(int rangeOffset, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetImmediates(int rangeOffset, byte[]! data, long dataOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.GPURenderPassEncoder.SetImmediates(int rangeOffset, byte[]! data, long dataOffset, long dataSize) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BufferData(int target, byte[]! srcData, int usage, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BufferData(int target, byte[]! srcData, int usage, long srcOffset, int length) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BufferData(int target, byte[]? srcData, int usage) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BufferSubData(int target, long dstByteOffset, byte[]! srcData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BufferSubData(int target, long dstByteOffset, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.BufferSubData(int target, long dstByteOffset, byte[]! srcData, long srcOffset, int length) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, byte[]! srcData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, byte[]! srcData, long srcOffset, int srcLengthOverride) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, byte[]! srcData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, byte[]! srcData, long srcOffset, int srcLengthOverride) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, byte[]! srcData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, byte[]! srcData, long srcOffset, int srcLengthOverride) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, byte[]! srcData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.CompressedTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, byte[]! srcData, long srcOffset, int srcLengthOverride) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.GetBufferParameter<T>(int target, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetFramebufferAttachmentParameter<T>(int target, int attachment, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetIndexedParameter<T>(int target, int index) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetInternalformatParameter<T>(int target, int internalformat, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetParameter<T>(int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetRenderbufferParameter<T>(int target, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetTexParameter<T>(int target, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.GetVertexAttrib<T>(int index, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, byte[]? pixels) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int format, int type, byte[]? srcData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, byte[]! srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, byte[]? pixels) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, byte[]? srcData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGL2RenderingContext.TexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, byte[]? srcData, long srcOffset) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BufferData(int target, byte[]? data, int usage) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.BufferSubData(int target, long offset, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.CompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.CompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.GetBufferParameter<T>(int target, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetFramebufferAttachmentParameter<T>(int target, int attachment, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetParameter<T>(int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetRenderbufferParameter<T>(int target, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetTexParameter<T>(int target, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.GetVertexAttrib<T>(int index, int pname) -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.WebGLRenderingContext.TexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, byte[]? pixels) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebGLRenderingContext.TexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, byte[]? pixels) -> System.Threading.Tasks.ValueTask
+Rask.Web.WasmMembers.extension(Rask.Web.Types.HID!)
+Rask.Web.WasmMembers.extension(Rask.Web.Types.HID!).RequestDevice(Rask.Web.Types.HIDDeviceRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.HIDDevice![]!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).QueryLocalFonts() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).QueryLocalFonts(Rask.Web.Types.QueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).ShowOpenFilePicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>
+Rask.Web.WasmMembers.extension(Rask.Web.Types.Window!).ShowOpenFilePicker(Rask.Web.Types.OpenFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>
+static Rask.Web.WasmMembers.QueryLocalFonts(this Rask.Web.Types.Window! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+static Rask.Web.WasmMembers.QueryLocalFonts(this Rask.Web.Types.Window! self, Rask.Web.Types.QueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+static Rask.Web.WasmMembers.RequestDevice(this Rask.Web.Types.HID! self, Rask.Web.Types.HIDDeviceRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.HIDDevice![]!>
+static Rask.Web.WasmMembers.ShowOpenFilePicker(this Rask.Web.Types.Window! self) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>
+static Rask.Web.WasmMembers.ShowOpenFilePicker(this Rask.Web.Types.Window! self, Rask.Web.Types.OpenFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>
+static Rask.Web.WindowWasmMembers.QueryLocalFonts() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+static Rask.Web.WindowWasmMembers.QueryLocalFonts(Rask.Web.Types.QueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+static Rask.Web.WindowWasmMembers.ShowOpenFilePicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>
+static Rask.Web.WindowWasmMembers.ShowOpenFilePicker(Rask.Web.Types.OpenFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).QueryLocalFonts() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).QueryLocalFonts(Rask.Web.Types.QueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontData![]!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowOpenFilePicker() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>
+static Rask.Web.WindowWasmMembers.extension(Rask.Web.Window!).ShowOpenFilePicker(Rask.Web.Types.OpenFilePickerOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FileSystemFileHandle![]!>

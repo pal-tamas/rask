@@ -67,9 +67,11 @@ const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
 // What JSON cannot carry — a C# handler, a kept object, an element — arrives as its own argument, revived by the host,
 // and the steps name it by position: {"__raskArg__": 0}.
 // A C# handler among them is handed what the browser calls it with as data, and the browser gets back the promise of
-// its finishing, which a lock waits on.
+// its finishing, which a lock waits on. C#'s bytes arrive as {"__raskBytes__": base64}, and go in as a Uint8Array.
 const raskWebSteps = (steps: string, extras: unknown[]): RaskWebStep[] =>
     JSON.parse(steps, (_key, value: unknown) => {
+        const bytes = value && typeof value === "object" ? (value as { __raskBytes__?: unknown }).__raskBytes__ : undefined;
+        if (typeof bytes === "string") return Uint8Array.from(atob(bytes), c => c.charCodeAt(0));
         const index = value && typeof value === "object" ? (value as { __raskArg__?: unknown }).__raskArg__ : undefined;
         if (typeof index !== "number") return value;
         const extra = extras[index];
@@ -79,10 +81,18 @@ const raskWebSteps = (steps: string, extras: unknown[]): RaskWebStep[] =>
     }) as RaskWebStep[];
 // What crosses back to C# as a value. An object that serializes itself (DOMRect's toJSON) or is plain stays as it is;
 // one that is only the browser's — an IntersectionObserverEntry, a DOMException — crosses as the fields it can be
-// read for, which JSON alone would turn into {}. A node, a window or a function does not cross.
+// read for, which JSON alone would turn into {}. A buffer, or a view of one, crosses as its bytes in base64, which C#
+// reads as a byte[]. A node, a window or a function does not cross.
+const raskWebBase64 = (value: ArrayBuffer | ArrayBufferView): string => {
+    const bytes = value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+};
 const raskWebData = (value: unknown, depth = 0): unknown => {
     if (typeof value === "function") return undefined;
-    if (value === null || typeof value !== "object" || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return value;
+    if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return raskWebBase64(value);
+    if (value === null || typeof value !== "object") return value;
     if (depth > 4 || value instanceof Node || value === window) return undefined;
     if (Array.isArray(value)) return value.map(v => raskWebData(v, depth + 1));
     if (typeof (value as { toJSON?: unknown }).toJSON === "function") return value;
@@ -106,6 +116,9 @@ window.__raskWeb = window.__raskWeb || {
     run: (root: unknown, steps: string, ...extras: unknown[]) => raskWebWalk(root, raskWebSteps(steps, extras)),
     // The same, for a value C# reads: what it ends at (or resolves to) as data.
     read: async (root: unknown, steps: string, ...extras: unknown[]) => raskWebData(await raskWebWalk(root, raskWebSteps(steps, extras))),
+    // Which slots of the array the chain ends at hold an item (a gamepad's can be empty): C# then keeps each by index.
+    slots: async (root: unknown, steps: string, ...extras: unknown[]) =>
+        Array.from(((await raskWebWalk(root, raskWebSteps(steps, extras))) ?? []) as ArrayLike<unknown>, item => item != null),
     // Whether the browser has what the chain ends at: the object before it exists and holds a member of that name.
     has: (root: unknown, steps: string, ...extras: unknown[]) => {
         const parsed = raskWebSteps(steps, extras);

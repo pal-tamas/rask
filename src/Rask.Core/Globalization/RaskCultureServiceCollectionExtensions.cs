@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Rask.Core.Browser;
 
 namespace Rask.Core.Globalization;
 
@@ -51,22 +50,10 @@ public static class RaskCultureServiceCollectionExtensions
         services.Add(new ServiceDescriptor(
             typeof(IRaskCulture), static sp => sp.GetRequiredService<SessionCulture>(), lifetime));
 
+        // Remembering nothing is only the fallback: the cookie is written through Rask.Web, which Core cannot
+        // see, so a host that references it registers Rask.Web's CookieCulturePersistence first.
         services.TryAdd(new ServiceDescriptor(
-            typeof(IRaskCulturePersistence),
-            static sp =>
-            {
-                var opts = sp.GetRequiredService<RaskCultureOptions>();
-
-                // A cookie is only reachable where there is a browser to write it through, and only
-                // wanted when the app asked for the choice to be remembered.
-                if (!opts.UseCookie || sp.GetService<ICookies>() is not { } cookies)
-                {
-                    return new NullCulturePersistence();
-                }
-
-                return new CookieCulturePersistence(cookies, opts);
-            },
-            lifetime));
+            typeof(IRaskCulturePersistence), typeof(NullCulturePersistence), lifetime));
 
         return services;
     }

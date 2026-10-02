@@ -1,4 +1,7 @@
 #nullable enable
+Rask.Web.CookieCulturePersistence
+Rask.Web.CookieCulturePersistence.CookieCulturePersistence(System.IServiceProvider! services, Rask.Core.Globalization.RaskCultureOptions! options) -> void
+Rask.Web.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Web.CookieStore
 Rask.Web.CustomElements
 Rask.Web.Document
@@ -11381,7 +11384,6 @@ Rask.Web.Types.BluetoothLEScanFilterInit.Name.init -> void
 Rask.Web.Types.BluetoothLEScanFilterInit.NamePrefix.get -> string?
 Rask.Web.Types.BluetoothLEScanFilterInit.NamePrefix.init -> void
 Rask.Web.Types.BluetoothManufacturerDataFilterInit
-Rask.Web.Types.BluetoothManufacturerDataFilterInit.<Clone>$() -> Rask.Web.Types.BluetoothManufacturerDataFilterInit!
 Rask.Web.Types.BluetoothManufacturerDataFilterInit.BluetoothManufacturerDataFilterInit() -> void
 Rask.Web.Types.BluetoothManufacturerDataFilterInit.CompanyIdentifier.get -> int
 Rask.Web.Types.BluetoothManufacturerDataFilterInit.CompanyIdentifier.init -> void
@@ -15282,10 +15284,6 @@ virtual Rask.Web.Types.DOMException.Equals(Rask.Web.Types.DOMException? other) -
 virtual Rask.Web.Types.DOMException.PrintMembers(System.Text.StringBuilder! builder) -> bool
 Rask.Web.Types.LockManager.Request(string! name, System.Action<Rask.Web.Types.Lock?>! callback) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.LockManager.Request(string! name, System.Func<Rask.Web.Types.Lock?, System.Threading.Tasks.Task!>! callback) -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.Observable.First() -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.Observable.Last() -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.Request.Json() -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.Response.Json() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.ContactAddress.AddressLine.get -> string![]!
 Rask.Web.Types.ContactAddress.City.get -> string!
 Rask.Web.Types.ContactAddress.Country.get -> string!
@@ -15343,3 +15341,457 @@ Rask.Web.Types.ResizeObserverEntry.ContentRect.get -> Rask.Core.DOMRectReadOnly!
 Rask.Web.Types.ResizeObserverEntry.DevicePixelContentBoxSize.get -> Rask.Web.Types.ResizeObserverSize![]!
 Rask.Web.Types.ResizeObserverSize.BlockSize.get -> double
 Rask.Web.Types.ResizeObserverSize.InlineSize.get -> double
+Rask.Web.CSSPerspective
+Rask.Web.DataCue
+Rask.Web.IDBKeyRange
+Rask.Web.Types.AbortController.Abort<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AbortSignal.Reason<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.AudioDataInit.Data.get -> byte[]!
+Rask.Web.Types.AudioDataInit.Data.init -> void
+Rask.Web.Types.AudioDecoderConfig.Description.get -> byte[]?
+Rask.Web.Types.AudioDecoderConfig.Description.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputs.CredBlob.get -> byte[]?
+Rask.Web.Types.AuthenticationExtensionsClientInputs.CredBlob.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputs.HmacGetSecret.get -> Rask.Web.Types.HMACGetSecretInput?
+Rask.Web.Types.AuthenticationExtensionsClientInputs.HmacGetSecret.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientInputs.Prf.get -> Rask.Web.Types.AuthenticationExtensionsPRFInputs?
+Rask.Web.Types.AuthenticationExtensionsClientInputs.Prf.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientOutputs.GetCredBlob.get -> byte[]?
+Rask.Web.Types.AuthenticationExtensionsClientOutputs.GetCredBlob.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientOutputs.HmacGetSecret.get -> Rask.Web.Types.HMACGetSecretOutput?
+Rask.Web.Types.AuthenticationExtensionsClientOutputs.HmacGetSecret.init -> void
+Rask.Web.Types.AuthenticationExtensionsClientOutputs.Payment.get -> Rask.Web.Types.AuthenticationExtensionsPaymentOutputs?
+Rask.Web.Types.AuthenticationExtensionsClientOutputs.Payment.init -> void
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputs.Write.get -> byte[]?
+Rask.Web.Types.AuthenticationExtensionsLargeBlobInputs.Write.init -> void
+Rask.Web.Types.AuthenticationExtensionsLargeBlobOutputs.Blob.get -> byte[]?
+Rask.Web.Types.AuthenticationExtensionsLargeBlobOutputs.Blob.init -> void
+Rask.Web.Types.AuthenticationExtensionsPRFInputs
+Rask.Web.Types.AuthenticationExtensionsPRFInputs.<Clone>$() -> Rask.Web.Types.AuthenticationExtensionsPRFInputs!
+Rask.Web.Types.AuthenticationExtensionsPRFInputs.AuthenticationExtensionsPRFInputs() -> void
+Rask.Web.Types.AuthenticationExtensionsPRFInputs.Equals(Rask.Web.Types.AuthenticationExtensionsPRFInputs? other) -> bool
+Rask.Web.Types.AuthenticationExtensionsPRFInputs.Eval.get -> Rask.Web.Types.AuthenticationExtensionsPRFValues?
+Rask.Web.Types.AuthenticationExtensionsPRFInputs.Eval.init -> void
+Rask.Web.Types.AuthenticationExtensionsPRFOutputs.Results.get -> Rask.Web.Types.AuthenticationExtensionsPRFValues?
+Rask.Web.Types.AuthenticationExtensionsPRFOutputs.Results.init -> void
+Rask.Web.Types.AuthenticationExtensionsPRFValues
+Rask.Web.Types.AuthenticationExtensionsPRFValues.<Clone>$() -> Rask.Web.Types.AuthenticationExtensionsPRFValues!
+Rask.Web.Types.AuthenticationExtensionsPRFValues.AuthenticationExtensionsPRFValues() -> void
+Rask.Web.Types.AuthenticationExtensionsPRFValues.Equals(Rask.Web.Types.AuthenticationExtensionsPRFValues? other) -> bool
+Rask.Web.Types.AuthenticationExtensionsPRFValues.First.get -> byte[]!
+Rask.Web.Types.AuthenticationExtensionsPRFValues.First.init -> void
+Rask.Web.Types.AuthenticationExtensionsPRFValues.Second.get -> byte[]?
+Rask.Web.Types.AuthenticationExtensionsPRFValues.Second.init -> void
+Rask.Web.Types.AuthenticationExtensionsPaymentOutputs
+Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.<Clone>$() -> Rask.Web.Types.AuthenticationExtensionsPaymentOutputs!
+Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.AuthenticationExtensionsPaymentOutputs() -> void
+Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.BrowserBoundSignature.get -> Rask.Web.Types.BrowserBoundSignature?
+Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.BrowserBoundSignature.init -> void
+Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.Equals(Rask.Web.Types.AuthenticationExtensionsPaymentOutputs? other) -> bool
+Rask.Web.Types.AuthenticatorAssertionResponse.AuthenticatorData.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.AuthenticatorAssertionResponse.Signature.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.AuthenticatorAssertionResponse.UserHandle.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.AuthenticatorAttestationResponse.AttestationObject.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.AuthenticatorAttestationResponse.GetAuthenticatorData() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.AuthenticatorAttestationResponse.GetPublicKey() -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.AuthenticatorResponse.ClientDataJSON.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.BackgroundFetchManager.Fetch(string! id, string! requests) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRegistration!>
+Rask.Web.Types.BackgroundFetchManager.Fetch(string! id, string! requests, Rask.Web.Types.BackgroundFetchOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRegistration!>
+Rask.Web.Types.BackgroundFetchRegistration.MatchAll() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRecord![]!>
+Rask.Web.Types.BackgroundFetchRegistration.MatchAll(string! request) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRecord![]!>
+Rask.Web.Types.BackgroundFetchRegistration.MatchAll(string! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRecord![]!>
+Rask.Web.Types.BaseAudioContext.DecodeAudioData(byte[]! audioData) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioBuffer!>
+Rask.Web.Types.BaseAudioContext.DecodeAudioData(byte[]! audioData, System.Action? successCallback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioBuffer!>
+Rask.Web.Types.BaseAudioContext.DecodeAudioData(byte[]! audioData, System.Action? successCallback, System.Action<Rask.Web.Types.DOMException!>? errorCallback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioBuffer!>
+Rask.Web.Types.BaseAudioContext.DecodeAudioData(byte[]! audioData, System.Func<System.Threading.Tasks.Task!>? successCallback) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AudioBuffer!>
+Rask.Web.Types.Blob.ArrayBuffer() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.Blob.Bytes() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.BluetoothDataFilterInit
+Rask.Web.Types.BluetoothDataFilterInit.BluetoothDataFilterInit() -> void
+Rask.Web.Types.BluetoothDataFilterInit.BluetoothDataFilterInit(Rask.Web.Types.BluetoothDataFilterInit! original) -> void
+Rask.Web.Types.BluetoothDataFilterInit.DataPrefix.get -> byte[]?
+Rask.Web.Types.BluetoothDataFilterInit.DataPrefix.init -> void
+Rask.Web.Types.BluetoothDataFilterInit.Mask.get -> byte[]?
+Rask.Web.Types.BluetoothDataFilterInit.Mask.init -> void
+Rask.Web.Types.BluetoothLEScanFilterInit.ServiceData.get -> Rask.Web.Types.BluetoothServiceDataFilterInit![]?
+Rask.Web.Types.BluetoothLEScanFilterInit.ServiceData.init -> void
+Rask.Web.Types.BluetoothRemoteGATTCharacteristic.GetDescriptors() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTDescriptor![]!>
+Rask.Web.Types.BluetoothRemoteGATTCharacteristic.GetDescriptors(int descriptor) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTDescriptor![]!>
+Rask.Web.Types.BluetoothRemoteGATTCharacteristic.GetDescriptors(string! descriptor) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTDescriptor![]!>
+Rask.Web.Types.BluetoothRemoteGATTCharacteristic.ReadValue() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.BluetoothRemoteGATTCharacteristic.Value.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.BluetoothRemoteGATTCharacteristic.WriteValueWithResponse(byte[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.BluetoothRemoteGATTCharacteristic.WriteValueWithoutResponse(byte[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.BluetoothRemoteGATTDescriptor.ReadValue() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.BluetoothRemoteGATTDescriptor.Value.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.BluetoothRemoteGATTDescriptor.WriteValue(byte[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.BluetoothRemoteGATTServer.GetPrimaryServices() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTService![]!>
+Rask.Web.Types.BluetoothRemoteGATTServer.GetPrimaryServices(int service) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTService![]!>
+Rask.Web.Types.BluetoothRemoteGATTServer.GetPrimaryServices(string! service) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTService![]!>
+Rask.Web.Types.BluetoothRemoteGATTService.GetCharacteristics() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTCharacteristic![]!>
+Rask.Web.Types.BluetoothRemoteGATTService.GetCharacteristics(int characteristic) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTCharacteristic![]!>
+Rask.Web.Types.BluetoothRemoteGATTService.GetCharacteristics(string! characteristic) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BluetoothRemoteGATTCharacteristic![]!>
+Rask.Web.Types.BluetoothServiceDataFilterInit
+Rask.Web.Types.BluetoothServiceDataFilterInit.BluetoothServiceDataFilterInit() -> void
+Rask.Web.Types.BluetoothServiceDataFilterInit.Equals(Rask.Web.Types.BluetoothServiceDataFilterInit? other) -> bool
+Rask.Web.Types.BroadcastChannel.PostMessage<TMessage>(TMessage message) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.BrowserBoundSignature
+Rask.Web.Types.BrowserBoundSignature.<Clone>$() -> Rask.Web.Types.BrowserBoundSignature!
+Rask.Web.Types.BrowserBoundSignature.BrowserBoundSignature() -> void
+Rask.Web.Types.BrowserBoundSignature.Equals(Rask.Web.Types.BrowserBoundSignature? other) -> bool
+Rask.Web.Types.BrowserBoundSignature.Signature.get -> byte[]!
+Rask.Web.Types.BrowserBoundSignature.Signature.init -> void
+Rask.Web.Types.Cache.Keys() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Request![]!>
+Rask.Web.Types.Cache.Keys(string! request) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Request![]!>
+Rask.Web.Types.Cache.Keys(string! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Request![]!>
+Rask.Web.Types.Cache.MatchAll() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response![]!>
+Rask.Web.Types.Cache.MatchAll(string! request) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response![]!>
+Rask.Web.Types.Cache.MatchAll(string! request, Rask.Web.Types.CacheQueryOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response![]!>
+Rask.Web.Types.Clipboard.Read() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ClipboardItem![]!>
+Rask.Web.Types.Clipboard.Read(Rask.Web.Types.ClipboardUnsanitizedFormats! formats) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ClipboardItem![]!>
+Rask.Web.Types.Crypto.GetRandomValues(byte[]! array) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.DataCue.SetValue<TValue>(TValue value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.DataCue.Value<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Document.GetAnimations() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation![]!>
+Rask.Web.Types.EncodedAudioChunkInit.Data.get -> byte[]!
+Rask.Web.Types.EncodedAudioChunkInit.Data.init -> void
+Rask.Web.Types.EncodedVideoChunkInit.Data.get -> byte[]!
+Rask.Web.Types.EncodedVideoChunkInit.Data.init -> void
+Rask.Web.Types.ErrorEvent.Error<T>() -> T
+Rask.Web.Types.FileSystemWritableFileStream.Write(byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FontFaceSet.Load(string! font) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFace![]!>
+Rask.Web.Types.FontFaceSet.Load(string! font, string! text) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFace![]!>
+Rask.Web.Types.HID.GetDevices() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.HIDDevice![]!>
+Rask.Web.Types.HIDDevice.ReceiveFeatureReport(int reportId) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.HIDDevice.SendFeatureReport(int reportId, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.HIDDevice.SendReport(int reportId, byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.HIDInputReportEvent.Data.get -> byte[]!
+Rask.Web.Types.HIDInputReportEvent.Data.init -> void
+Rask.Web.Types.HMACGetSecretInput
+Rask.Web.Types.HMACGetSecretInput.<Clone>$() -> Rask.Web.Types.HMACGetSecretInput!
+Rask.Web.Types.HMACGetSecretInput.Equals(Rask.Web.Types.HMACGetSecretInput? other) -> bool
+Rask.Web.Types.HMACGetSecretInput.HMACGetSecretInput() -> void
+Rask.Web.Types.HMACGetSecretInput.Salt1.get -> byte[]!
+Rask.Web.Types.HMACGetSecretInput.Salt1.init -> void
+Rask.Web.Types.HMACGetSecretInput.Salt2.get -> byte[]?
+Rask.Web.Types.HMACGetSecretInput.Salt2.init -> void
+Rask.Web.Types.HMACGetSecretOutput
+Rask.Web.Types.HMACGetSecretOutput.<Clone>$() -> Rask.Web.Types.HMACGetSecretOutput!
+Rask.Web.Types.HMACGetSecretOutput.Equals(Rask.Web.Types.HMACGetSecretOutput? other) -> bool
+Rask.Web.Types.HMACGetSecretOutput.HMACGetSecretOutput() -> void
+Rask.Web.Types.HMACGetSecretOutput.Output1.get -> byte[]!
+Rask.Web.Types.HMACGetSecretOutput.Output1.init -> void
+Rask.Web.Types.HMACGetSecretOutput.Output2.get -> byte[]?
+Rask.Web.Types.HMACGetSecretOutput.Output2.init -> void
+Rask.Web.Types.History.PushState<TData>(TData data, string! unused) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.History.PushState<TData>(TData data, string! unused, string? url) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.History.ReplaceState<TData>(TData data, string! unused) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.History.ReplaceState<TData>(TData data, string! unused, string? url) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.History.State<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBCursor.Continue<TKey>(TKey key) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.IDBCursor.ContinuePrimaryKey<TKey, TPrimaryKey>(TKey key, TPrimaryKey primaryKey) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.IDBCursor.Key<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBCursor.PrimaryKey<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBCursor.Update<TValue>(TValue value) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBCursorWithValue.Value<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBFactory.Cmp<TFirst, TSecond>(TFirst first, TSecond second) -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.IDBIndex.Count<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.Get<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.GetAll<TQueryOrOptions>(TQueryOrOptions queryOrOptions) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.GetAll<TQueryOrOptions>(TQueryOrOptions queryOrOptions, int count) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.GetAllKeys<TQueryOrOptions>(TQueryOrOptions queryOrOptions) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.GetAllKeys<TQueryOrOptions>(TQueryOrOptions queryOrOptions, int count) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.GetKey<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.KeyPath<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBIndex.OpenCursor<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.OpenCursor<TQuery>(TQuery query, Rask.Web.Types.IDBCursorDirection direction) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.OpenKeyCursor<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBIndex.OpenKeyCursor<TQuery>(TQuery query, Rask.Web.Types.IDBCursorDirection direction) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBKeyRange.Includes<TKey>(TKey key) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.IDBKeyRange.Lower<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBKeyRange.Upper<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBObjectStore.Add<TValue, TKey>(TValue value, TKey key) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.Add<TValue>(TValue value) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.Count<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.Delete<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.Get<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.GetAll<TQueryOrOptions>(TQueryOrOptions queryOrOptions) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.GetAll<TQueryOrOptions>(TQueryOrOptions queryOrOptions, int count) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.GetAllKeys<TQueryOrOptions>(TQueryOrOptions queryOrOptions) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.GetAllKeys<TQueryOrOptions>(TQueryOrOptions queryOrOptions, int count) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.GetKey<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.KeyPath<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBObjectStore.OpenCursor<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.OpenCursor<TQuery>(TQuery query, Rask.Web.Types.IDBCursorDirection direction) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.OpenKeyCursor<TQuery>(TQuery query) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.OpenKeyCursor<TQuery>(TQuery query, Rask.Web.Types.IDBCursorDirection direction) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.Put<TValue, TKey>(TValue value, TKey key) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBObjectStore.Put<TValue>(TValue value) -> Rask.Web.Types.IDBRequest!
+Rask.Web.Types.IDBRecord.Key<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBRecord.PrimaryKey<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBRecord.Value<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IDBRequest.Result<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.IdentityCredential.Token<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.ImageData.Data.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.MIDIMessageEvent.Data.get -> byte[]?
+Rask.Web.Types.MIDIMessageEvent.Data.init -> void
+Rask.Web.Types.MediaKeyMessageEvent.Message.get -> byte[]!
+Rask.Web.Types.MediaKeyMessageEvent.Message.init -> void
+Rask.Web.Types.MediaKeySession.GenerateRequest(string! initDataType, byte[]! initData) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaKeySession.Update(byte[]! response) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaKeyStatusMap.Has(byte[]! keyId) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.MediaKeys.SetServerCertificate(byte[]! serverCertificate) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.MediaStream.GetAudioTracks() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStreamTrack![]!>
+Rask.Web.Types.MediaStream.GetTracks() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStreamTrack![]!>
+Rask.Web.Types.MediaStream.GetVideoTracks() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaStreamTrack![]!>
+Rask.Web.Types.MessageEvent.Data<T>() -> T
+Rask.Web.Types.MessagePort.PostMessage<TMessage>(TMessage message) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.NDEFReader.Write(byte[]! message) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.NDEFReader.Write(byte[]! message, Rask.Web.Types.NDEFWriteOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.NDEFRecord.Data.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.NDEFRecord.ToRecords() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NDEFRecord![]!>
+Rask.Web.Types.NavigateEvent.Info<T>() -> T
+Rask.Web.Types.Navigation.Entries() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NavigationHistoryEntry![]!>
+Rask.Web.Types.NavigationDestination.GetState<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.NavigationHistoryEntry.GetState<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Navigator.GetGamepads() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Gamepad?[]!>
+Rask.Web.Types.Navigator.SendBeacon(string! url, byte[]? data) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Navigator.SendBeacon(string! url, string? data) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.Notification.Data<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Observable.First<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Observable.Last<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Observable.TakeUntil<TValue>(TValue value) -> Rask.Web.Types.Observable!
+Rask.Web.Types.PerformanceMark.Detail<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.PermissionDescriptor
+Rask.Web.Types.PermissionDescriptor.<Clone>$() -> Rask.Web.Types.PermissionDescriptor!
+Rask.Web.Types.PermissionDescriptor.Equals(Rask.Web.Types.PermissionDescriptor? other) -> bool
+Rask.Web.Types.PermissionDescriptor.Name.get -> string!
+Rask.Web.Types.PermissionDescriptor.Name.init -> void
+Rask.Web.Types.PermissionDescriptor.PermissionDescriptor() -> void
+Rask.Web.Types.Permissions.Query(Rask.Web.Types.PermissionDescriptor! permissionDesc) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.PermissionStatus!>
+Rask.Web.Types.PopStateEvent.State<T>() -> T
+Rask.Web.Types.PresentationConnection.Send(byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.PromiseRejectionEvent.Reason<T>() -> T
+Rask.Web.Types.PublicKeyCredential.RawId.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.PublicKeyCredentialCreationOptions.Challenge.get -> byte[]!
+Rask.Web.Types.PublicKeyCredentialCreationOptions.Challenge.init -> void
+Rask.Web.Types.PublicKeyCredentialDescriptor.Id.get -> byte[]!
+Rask.Web.Types.PublicKeyCredentialDescriptor.Id.init -> void
+Rask.Web.Types.PublicKeyCredentialRequestOptions.Challenge.get -> byte[]!
+Rask.Web.Types.PublicKeyCredentialRequestOptions.Challenge.init -> void
+Rask.Web.Types.PublicKeyCredentialUserEntity.Id.get -> byte[]!
+Rask.Web.Types.PublicKeyCredentialUserEntity.Id.init -> void
+Rask.Web.Types.PushSubscription.GetKey(Rask.Web.Types.PushEncryptionKeyName name) -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.PushSubscriptionOptions.ApplicationServerKey.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.PushSubscriptionOptionsInit.ApplicationServerKey.get -> byte[]?
+Rask.Web.Types.PushSubscriptionOptionsInit.ApplicationServerKey.init -> void
+Rask.Web.Types.RTCDataChannel.Send(byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.RTCEncodedAudioFrame.Data.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.RTCEncodedAudioFrame.SetData(byte[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.RTCEncodedVideoFrame.Data.get -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.RTCEncodedVideoFrame.SetData(byte[]! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.RTCIceTransport.GetLocalCandidates() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidate![]!>
+Rask.Web.Types.RTCIceTransport.GetRemoteCandidates() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidate![]!>
+Rask.Web.Types.RTCPeerConnection.GetReceivers() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpReceiver![]!>
+Rask.Web.Types.RTCPeerConnection.GetSenders() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpSender![]!>
+Rask.Web.Types.RTCPeerConnection.GetTransceivers() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpTransceiver![]!>
+Rask.Web.Types.ReadableByteStreamController.Enqueue(byte[]! chunk) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableByteStreamController.Error<TE>(TE e) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStream.Cancel<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStream.Tee() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStream![]!>
+Rask.Web.Types.ReadableStreamBYOBReader.Cancel<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamBYOBReader.Read(byte[]! view) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult!>
+Rask.Web.Types.ReadableStreamBYOBReader.Read(byte[]! view, Rask.Web.Types.ReadableStreamBYOBReaderReadOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult!>
+Rask.Web.Types.ReadableStreamBYOBRequest.RespondWithNewView(byte[]! view) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamBYOBRequest.View.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.ReadableStreamDefaultController.Enqueue<TChunk>(TChunk chunk) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultController.Error<TE>(TE e) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ReadableStreamDefaultReader.Cancel<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Request.ArrayBuffer() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.Request.Bytes() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.Request.Json<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Response.ArrayBuffer() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.Response.Bytes() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.Response.Json<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Selection.GetComposedRanges() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.StaticRange![]!>
+Rask.Web.Types.Serial.GetPorts() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SerialPort![]!>
+Rask.Web.Types.ServiceWorker.PostMessage<TMessage>(TMessage message) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ServiceWorkerContainer.GetRegistrations() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ServiceWorkerRegistration![]!>
+Rask.Web.Types.ServiceWorkerRegistration.GetNotifications() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Notification![]!>
+Rask.Web.Types.ServiceWorkerRegistration.GetNotifications(Rask.Web.Types.GetNotificationOptions! filter) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Notification![]!>
+Rask.Web.Types.SourceBuffer.AppendBuffer(byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.SpeechSynthesis.GetVoices() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SpeechSynthesisVoice![]!>
+Rask.Web.Types.StylePropertyMapReadOnly.GetAll(string! property) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSStyleValue![]!>
+Rask.Web.Types.Subscriber.Error<TError>(TError error) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Subscriber.Next<TValue>(TValue value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.SubtleCrypto.Digest(string! algorithm, byte[]! data) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.SubtleCrypto.ImportKey(Rask.Web.Types.KeyFormat format, byte[]! keyData, string! algorithm, bool extractable, Rask.Web.Types.KeyUsage[]! keyUsages) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CryptoKey!>
+Rask.Web.Types.TextDecoder.Decode(byte[]! input) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.TextDecoder.Decode(byte[]! input, Rask.Web.Types.TextDecodeOptions! options) -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.TextEncoder.Encode() -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.TextEncoder.Encode(string! input) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.TransformStreamDefaultController.Enqueue<TChunk>(TChunk chunk) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.TransformStreamDefaultController.Error<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.TrustedTypePolicyFactory.IsHTML<TValue>(TValue value) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.TrustedTypePolicyFactory.IsScript<TValue>(TValue value) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.TrustedTypePolicyFactory.IsScriptURL<TValue>(TValue value) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.USB.GetDevices() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBDevice![]!>
+Rask.Web.Types.USBDevice.ControlTransferOut(Rask.Web.Types.USBControlTransferParameters! setup, byte[]! data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBOutTransferResult!>
+Rask.Web.Types.USBDevice.IsochronousTransferOut(int endpointNumber, byte[]! data, int[]! packetLengths) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousOutTransferResult!>
+Rask.Web.Types.USBDevice.TransferOut(int endpointNumber, byte[]! data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBOutTransferResult!>
+Rask.Web.Types.USBInTransferResult.Data.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.USBIsochronousInTransferPacket.Data.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.USBIsochronousInTransferResult.Data.get -> System.Threading.Tasks.ValueTask<byte[]?>
+Rask.Web.Types.VideoDecoderConfig.Description.get -> byte[]?
+Rask.Web.Types.VideoDecoderConfig.Description.init -> void
+Rask.Web.Types.WebSocket.Send(byte[]! data) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebTransport.ExportKeyingMaterial(byte[]! label, byte[]! context, int outputLength) -> System.Threading.Tasks.ValueTask<byte[]!>
+Rask.Web.Types.WebTransportHash.Value.get -> byte[]!
+Rask.Web.Types.WebTransportHash.Value.init -> void
+Rask.Web.Types.Window.Opener<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.Window.PostMessage<TMessage>(TMessage message) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Window.PostMessage<TMessage>(TMessage message, string! targetOrigin) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Window.ReportError<TE>(TE e) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Window.SetOpener<TValue>(TValue value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Window.StructuredClone<TValue, TResult>(TValue value) -> System.Threading.Tasks.ValueTask<TResult>
+Rask.Web.Types.Worker.PostMessage<TMessage>(TMessage message) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStream.Abort<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultController.Error<TE>(TE e) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultWriter.Abort<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WritableStreamDefaultWriter.Write<TChunk>(TChunk chunk) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Response<T>() -> System.Threading.Tasks.ValueTask<T>
+Rask.Web.Types.XMLHttpRequest.Send(byte[]? body) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XMLHttpRequest.Send(string? body) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XRCPUDepthInformation.Data.get -> System.Threading.Tasks.ValueTask<byte[]!>
+override Rask.Web.Types.AuthenticationExtensionsPRFInputs.Equals(object? obj) -> bool
+override Rask.Web.Types.AuthenticationExtensionsPRFInputs.GetHashCode() -> int
+override Rask.Web.Types.AuthenticationExtensionsPRFInputs.ToString() -> string!
+override Rask.Web.Types.AuthenticationExtensionsPRFValues.Equals(object? obj) -> bool
+override Rask.Web.Types.AuthenticationExtensionsPRFValues.GetHashCode() -> int
+override Rask.Web.Types.AuthenticationExtensionsPRFValues.ToString() -> string!
+override Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.Equals(object? obj) -> bool
+override Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.GetHashCode() -> int
+override Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.ToString() -> string!
+override Rask.Web.Types.BluetoothDataFilterInit.Equals(object? obj) -> bool
+override Rask.Web.Types.BluetoothDataFilterInit.GetHashCode() -> int
+override Rask.Web.Types.BluetoothDataFilterInit.ToString() -> string!
+override Rask.Web.Types.BluetoothManufacturerDataFilterInit.<Clone>$() -> Rask.Web.Types.BluetoothManufacturerDataFilterInit!
+override Rask.Web.Types.BluetoothServiceDataFilterInit.<Clone>$() -> Rask.Web.Types.BluetoothServiceDataFilterInit!
+override Rask.Web.Types.BluetoothServiceDataFilterInit.Equals(object? obj) -> bool
+override Rask.Web.Types.BluetoothServiceDataFilterInit.GetHashCode() -> int
+override Rask.Web.Types.BluetoothServiceDataFilterInit.ToString() -> string!
+override Rask.Web.Types.BrowserBoundSignature.Equals(object? obj) -> bool
+override Rask.Web.Types.BrowserBoundSignature.GetHashCode() -> int
+override Rask.Web.Types.BrowserBoundSignature.ToString() -> string!
+override Rask.Web.Types.HMACGetSecretInput.Equals(object? obj) -> bool
+override Rask.Web.Types.HMACGetSecretInput.GetHashCode() -> int
+override Rask.Web.Types.HMACGetSecretInput.ToString() -> string!
+override Rask.Web.Types.HMACGetSecretOutput.Equals(object? obj) -> bool
+override Rask.Web.Types.HMACGetSecretOutput.GetHashCode() -> int
+override Rask.Web.Types.HMACGetSecretOutput.ToString() -> string!
+override Rask.Web.Types.PermissionDescriptor.Equals(object? obj) -> bool
+override Rask.Web.Types.PermissionDescriptor.GetHashCode() -> int
+override Rask.Web.Types.PermissionDescriptor.ToString() -> string!
+override sealed Rask.Web.Types.BluetoothManufacturerDataFilterInit.Equals(Rask.Web.Types.BluetoothDataFilterInit? other) -> bool
+override sealed Rask.Web.Types.BluetoothServiceDataFilterInit.Equals(Rask.Web.Types.BluetoothDataFilterInit? other) -> bool
+static Rask.Web.AbortSignal.Abort<TReason>(TReason reason) -> Rask.Web.Types.AbortSignal!
+static Rask.Web.CSSPerspective.Create(string! length) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSPerspective!>
+static Rask.Web.CSSStyleValue.ParseAll(string! property, string! cssText) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.CSSStyleValue![]!>
+static Rask.Web.Crypto.GetRandomValues(byte[]! array) -> System.Threading.Tasks.ValueTask<byte[]!>
+static Rask.Web.DataCue.Create<TValue>(double startTime, double endTime, TValue value) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DataCue!>
+static Rask.Web.DataCue.Create<TValue>(double startTime, double endTime, TValue value, string! type) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.DataCue!>
+static Rask.Web.Document.GetAnimations() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Animation![]!>
+static Rask.Web.FontFace.Create(string! family, byte[]! source) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFace!>
+static Rask.Web.FontFace.Create(string! family, byte[]! source, Rask.Web.Types.FontFaceDescriptors! descriptors) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFace!>
+static Rask.Web.History.PushState<TData>(TData data, string! unused) -> System.Threading.Tasks.ValueTask
+static Rask.Web.History.PushState<TData>(TData data, string! unused, string? url) -> System.Threading.Tasks.ValueTask
+static Rask.Web.History.ReplaceState<TData>(TData data, string! unused) -> System.Threading.Tasks.ValueTask
+static Rask.Web.History.ReplaceState<TData>(TData data, string! unused, string? url) -> System.Threading.Tasks.ValueTask
+static Rask.Web.History.State<T>() -> System.Threading.Tasks.ValueTask<T>
+static Rask.Web.IDBKeyRange.Bound<TLower, TUpper>(TLower lower, TUpper upper) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IDBKeyRange.Bound<TLower, TUpper>(TLower lower, TUpper upper, bool lowerOpen) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IDBKeyRange.Bound<TLower, TUpper>(TLower lower, TUpper upper, bool lowerOpen, bool upperOpen) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IDBKeyRange.LowerBound<TLower>(TLower lower) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IDBKeyRange.LowerBound<TLower>(TLower lower, bool open) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IDBKeyRange.Only<TValue>(TValue value) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IDBKeyRange.UpperBound<TUpper>(TUpper upper) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IDBKeyRange.UpperBound<TUpper>(TUpper upper, bool open) -> Rask.Web.Types.IDBKeyRange!
+static Rask.Web.IdentityProvider.Resolve<TToken>(TToken token) -> System.Threading.Tasks.ValueTask
+static Rask.Web.IdentityProvider.Resolve<TToken>(TToken token, Rask.Web.Types.IdentityResolveOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.ImageData.Create(byte[]! data, int sw) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageData!>
+static Rask.Web.ImageData.Create(byte[]! data, int sw, int sh) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageData!>
+static Rask.Web.ImageData.Create(byte[]! data, int sw, int sh, Rask.Web.Types.ImageDataSettings! settings) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ImageData!>
+static Rask.Web.IndexedDB.Cmp<TFirst, TSecond>(TFirst first, TSecond second) -> System.Threading.Tasks.ValueTask<int>
+static Rask.Web.Navigation.Entries() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.NavigationHistoryEntry![]!>
+static Rask.Web.Navigator.GetGamepads() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Gamepad?[]!>
+static Rask.Web.Navigator.SendBeacon(string! url, byte[]? data) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Navigator.SendBeacon(string! url, string? data) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Observable.From<TValue>(TValue value) -> Rask.Web.Types.Observable!
+static Rask.Web.Origin.From<TValue>(TValue value) -> Rask.Web.Types.Origin!
+static Rask.Web.RTCRtpScriptTransform.Create<TOptions>(Rask.Web.Types.WorkerAndParameters! workerOrWorkerAndParameters, TOptions options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpScriptTransform!>
+static Rask.Web.Response.Create(byte[]? body) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(byte[]? body, Rask.Web.Types.ResponseInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(string? body) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.Response.Create(string? body, Rask.Web.Types.ResponseInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Response!>
+static Rask.Web.SpeechSynthesis.GetVoices() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SpeechSynthesisVoice![]!>
+static Rask.Web.TrustedTypes.IsHTML<TValue>(TValue value) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TrustedTypes.IsScript<TValue>(TValue value) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TrustedTypes.IsScriptURL<TValue>(TValue value) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Types.AuthenticationExtensionsPRFInputs.operator !=(Rask.Web.Types.AuthenticationExtensionsPRFInputs? left, Rask.Web.Types.AuthenticationExtensionsPRFInputs? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsPRFInputs.operator ==(Rask.Web.Types.AuthenticationExtensionsPRFInputs? left, Rask.Web.Types.AuthenticationExtensionsPRFInputs? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsPRFValues.operator !=(Rask.Web.Types.AuthenticationExtensionsPRFValues? left, Rask.Web.Types.AuthenticationExtensionsPRFValues? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsPRFValues.operator ==(Rask.Web.Types.AuthenticationExtensionsPRFValues? left, Rask.Web.Types.AuthenticationExtensionsPRFValues? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.operator !=(Rask.Web.Types.AuthenticationExtensionsPaymentOutputs? left, Rask.Web.Types.AuthenticationExtensionsPaymentOutputs? right) -> bool
+static Rask.Web.Types.AuthenticationExtensionsPaymentOutputs.operator ==(Rask.Web.Types.AuthenticationExtensionsPaymentOutputs? left, Rask.Web.Types.AuthenticationExtensionsPaymentOutputs? right) -> bool
+static Rask.Web.Types.BluetoothDataFilterInit.operator !=(Rask.Web.Types.BluetoothDataFilterInit? left, Rask.Web.Types.BluetoothDataFilterInit? right) -> bool
+static Rask.Web.Types.BluetoothDataFilterInit.operator ==(Rask.Web.Types.BluetoothDataFilterInit? left, Rask.Web.Types.BluetoothDataFilterInit? right) -> bool
+static Rask.Web.Types.BluetoothServiceDataFilterInit.operator !=(Rask.Web.Types.BluetoothServiceDataFilterInit? left, Rask.Web.Types.BluetoothServiceDataFilterInit? right) -> bool
+static Rask.Web.Types.BluetoothServiceDataFilterInit.operator ==(Rask.Web.Types.BluetoothServiceDataFilterInit? left, Rask.Web.Types.BluetoothServiceDataFilterInit? right) -> bool
+static Rask.Web.Types.BrowserBoundSignature.operator !=(Rask.Web.Types.BrowserBoundSignature? left, Rask.Web.Types.BrowserBoundSignature? right) -> bool
+static Rask.Web.Types.BrowserBoundSignature.operator ==(Rask.Web.Types.BrowserBoundSignature? left, Rask.Web.Types.BrowserBoundSignature? right) -> bool
+static Rask.Web.Types.HMACGetSecretInput.operator !=(Rask.Web.Types.HMACGetSecretInput? left, Rask.Web.Types.HMACGetSecretInput? right) -> bool
+static Rask.Web.Types.HMACGetSecretInput.operator ==(Rask.Web.Types.HMACGetSecretInput? left, Rask.Web.Types.HMACGetSecretInput? right) -> bool
+static Rask.Web.Types.HMACGetSecretOutput.operator !=(Rask.Web.Types.HMACGetSecretOutput? left, Rask.Web.Types.HMACGetSecretOutput? right) -> bool
+static Rask.Web.Types.HMACGetSecretOutput.operator ==(Rask.Web.Types.HMACGetSecretOutput? left, Rask.Web.Types.HMACGetSecretOutput? right) -> bool
+static Rask.Web.Types.PermissionDescriptor.operator !=(Rask.Web.Types.PermissionDescriptor? left, Rask.Web.Types.PermissionDescriptor? right) -> bool
+static Rask.Web.Types.PermissionDescriptor.operator ==(Rask.Web.Types.PermissionDescriptor? left, Rask.Web.Types.PermissionDescriptor? right) -> bool
+static Rask.Web.USBInTransferResult.Create(Rask.Web.Types.USBTransferStatus status, byte[]? data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBInTransferResult!>
+static Rask.Web.USBIsochronousInTransferPacket.Create(Rask.Web.Types.USBTransferStatus status, byte[]? data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousInTransferPacket!>
+static Rask.Web.VideoFrame.Create(byte[]! data, Rask.Web.Types.VideoFrameBufferInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
+static Rask.Web.Window.Opener<T>() -> System.Threading.Tasks.ValueTask<T>
+static Rask.Web.Window.PostMessage<TMessage>(TMessage message) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Window.PostMessage<TMessage>(TMessage message, string! targetOrigin) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Window.ReportError<TE>(TE e) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Window.SetOpener<TValue>(TValue value) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Window.StructuredClone<TValue, TResult>(TValue value) -> System.Threading.Tasks.ValueTask<TResult>
+virtual Rask.Web.Types.BluetoothDataFilterInit.<Clone>$() -> Rask.Web.Types.BluetoothDataFilterInit!
+virtual Rask.Web.Types.BluetoothDataFilterInit.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.BluetoothDataFilterInit.Equals(Rask.Web.Types.BluetoothDataFilterInit? other) -> bool
+virtual Rask.Web.Types.BluetoothDataFilterInit.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Web.Types.Animation.SetEffect(Rask.Web.Types.AnimationEffect? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Animation.SetTimeline(Rask.Web.Types.AnimationTimeline? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioBufferSourceNode.SetBuffer(Rask.Web.Types.AudioBuffer? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSMatrixComponent.SetMatrix(Rask.Web.Types.DOMMatrix! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSRotate.SetAngle(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSSkew.SetAx(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSSkew.SetAy(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSSkewX.SetAx(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSSkewY.SetAy(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSTranslate.SetX(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSTranslate.SetY(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.CSSTranslate.SetZ(Rask.Web.Types.CSSNumericValue! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.ConvolverNode.SetBuffer(Rask.Web.Types.AudioBuffer? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.MediaSession.SetMetadata(Rask.Web.Types.MediaMetadata? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.Presentation.SetDefaultRequest(Rask.Web.Types.PresentationRequest? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.SpeechSynthesisUtterance.SetVoice(Rask.Web.Types.SpeechSynthesisVoice? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.VTTCue.SetRegion(Rask.Web.Types.VTTRegion? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebTransportDatagramsWritable.SetSendGroup(Rask.Web.Types.WebTransportSendGroup? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.WebTransportSendStream.SetSendGroup(Rask.Web.Types.WebTransportSendGroup? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XRCubeLayer.SetSpace(Rask.Web.Types.XRSpace! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XRCylinderLayer.SetSpace(Rask.Web.Types.XRSpace! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XRCylinderLayer.SetTransform(Rask.Web.Types.XRRigidTransform! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XREquirectLayer.SetSpace(Rask.Web.Types.XRSpace! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XREquirectLayer.SetTransform(Rask.Web.Types.XRRigidTransform! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XRProjectionLayer.SetDeltaPose(Rask.Web.Types.XRRigidTransform? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XRQuadLayer.SetSpace(Rask.Web.Types.XRSpace! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.XRQuadLayer.SetTransform(Rask.Web.Types.XRRigidTransform! value) -> System.Threading.Tasks.ValueTask

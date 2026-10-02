@@ -128160,6 +128160,15 @@
     }
    ]
   },
+  "PermissionDescriptor": {
+   "members": [
+    {
+     "name": "name",
+     "type": "DOMString",
+     "required": true
+    }
+   ]
+  },
   "PhotoCapabilities": {
    "members": [
     {
