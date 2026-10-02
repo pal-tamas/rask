@@ -431,11 +431,6 @@ public static class GuideCatalog
             SearchTitle = "Badging API in C# and .NET (IBadge)",
             Description = "Set or clear the count on an installed PWA's app icon from C# with the Badging API wrapper. Works on Server and WebAssembly; rendering varies by platform.",
         },
-        new("battery", "IBattery", "Typed browser API: IBattery.", "Browser API reference", "apis/battery.md")
-        {
-            SearchTitle = "Battery Status API in C# and .NET (IBattery)",
-            Description = "Read the Battery Status API from C#: level, charging state and charge times, or watch for changes in a callback. Chromium-only; null where unsupported.",
-        },
         new("bluetooth", "IBluetooth", "Typed browser API: IBluetooth.", "Browser API reference", "apis/bluetooth.md")
         {
             SearchTitle = "Web Bluetooth API in C# and .NET (IBluetooth)",
@@ -445,11 +440,6 @@ public static class GuideCatalog
         {
             SearchTitle = "Broadcast Channel API in C# (IBroadcastChannel)",
             Description = "Send messages between browser tabs from C# with the Broadcast Channel API wrapper, and receive them in a callback. Works on Server and WebAssembly.",
-        },
-        new("clipboard", "IClipboard", "Typed browser API: IClipboard.", "Browser API reference", "apis/clipboard.md")
-        {
-            SearchTitle = "Clipboard API in C# and .NET (IClipboard)",
-            Description = "Copy text to and read text from the system clipboard in C# with the Async Clipboard API. Works on Server and WebAssembly; reads need a gesture or grant.",
         },
         new("cookies", "ICookies", "Typed browser API: ICookies.", "Browser API reference", "apis/cookies.md")
         {
@@ -471,11 +461,6 @@ public static class GuideCatalog
             SearchTitle = "DeviceOrientation Events in C# (IDeviceOrientation)",
             Description = "Receive alpha, beta and gamma tilt from device orientation events in a C# callback. Works on Server and WebAssembly; iOS needs a gesture-triggered grant.",
         },
-        new("eye-dropper", "IEyeDropper", "Typed browser API: IEyeDropper.", "Browser API reference", "apis/eye-dropper.md")
-        {
-            SearchTitle = "EyeDropper API in C# and .NET (IEyeDropper)",
-            Description = "Pick a colour from anywhere on screen in C# with the EyeDropper API. IEyeDropper is WASM-only; on Server, Trigger.EyeDropper posts the colour to OnColor.",
-        },
         new("file-system-access", "IFileSystemAccess", "Typed browser API: IFileSystemAccess.", "Browser API reference", "apis/file-system-access.md")
         {
             SearchTitle = "File System Access API in C# (IFileSystemAccess)",
@@ -491,20 +476,10 @@ public static class GuideCatalog
             SearchTitle = "Gamepad API in C# and .NET (IGamepad)",
             Description = "Read connected game controllers and their state in C# with the Gamepad API, with readings pushed to a callback. Works on Server; prefer WASM for twitch input.",
         },
-        new("geolocation", "IGeolocation", "Typed browser API: IGeolocation.", "Browser API reference", "apis/geolocation.md")
-        {
-            SearchTitle = "Geolocation API in C# and .NET (IGeolocation)",
-            Description = "Get the user's position once or watch a live stream of fixes from C# with the Geolocation API wrapper. Needs a secure context and the location permission.",
-        },
         new("hid", "IHid", "Typed browser API: IHid.", "Browser API reference", "apis/hid.md")
         {
             SearchTitle = "WebHID API in C# and .NET (IHid)",
             Description = "Talk to HID devices from C# with the WebHID API, with input reports pushed to a callback. Available on the WebAssembly host only, behind a device chooser.",
-        },
-        new("idle-detector", "IIdleDetector", "Typed browser API: IIdleDetector.", "Browser API reference", "apis/idle-detector.md")
-        {
-            SearchTitle = "Idle Detection API in C# and .NET (IIdleDetector)",
-            Description = "Detect when the user goes idle or locks the screen in C# with the Idle Detection API, with changes pushed to a callback. WASM-only, behind a permission.",
         },
         new("indexeddb", "IIndexedDb", "Typed browser API: IIndexedDb.", "Browser API reference", "apis/indexeddb.md")
         {
@@ -521,11 +496,6 @@ public static class GuideCatalog
             SearchTitle = "getUserMedia Camera Capture in C# (IMediaDevices)",
             Description = "Capture camera, microphone or screen into a video element from C# with getUserMedia. IMediaDevices is WASM-only; on Server, use Trigger.MediaCapture instead.",
         },
-        new("media-query", "IMediaQuery", "Typed browser API: IMediaQuery.", "Browser API reference", "apis/media-query.md")
-        {
-            SearchTitle = "matchMedia Media Queries in C# (IMediaQuery)",
-            Description = "Evaluate media queries such as dark mode or reduced motion from C# with window.matchMedia. IMediaQuery works on both the Server and WebAssembly hosts.",
-        },
         new("media-session", "IMediaSession", "Typed browser API: IMediaSession.", "Browser API reference", "apis/media-session.md")
         {
             SearchTitle = "Media Session API in C# and .NET (IMediaSession)",
@@ -535,16 +505,6 @@ public static class GuideCatalog
         {
             SearchTitle = "MediaStream in C#: Attach and Stop (IMediaStreams)",
             Description = "Attach a live MediaStream to a video element or stop its tracks from C#, whether from capture or a WebRTC peer. Works on every host without a gesture.",
-        },
-        new("navigator-info", "INavigatorInfo", "Typed browser API: INavigatorInfo.", "Browser API reference", "apis/navigator-info.md")
-        {
-            SearchTitle = "Navigator API in C# and .NET (INavigatorInfo)",
-            Description = "Read navigator.onLine, language and userAgent from C# with INavigatorInfo, a one-shot Navigator API wrapper that works on the Server host and on WebAssembly.",
-        },
-        new("network-info", "INetworkInfo", "Typed browser API: INetworkInfo.", "Browser API reference", "apis/network-info.md")
-        {
-            SearchTitle = "Network Information API in C# (INetworkInfo)",
-            Description = "Read the effective connection type, downlink, RTT and Data-Saver flag from C# with INetworkInfo. The Network Information API is Chromium-only; feature-detect.",
         },
         new("notifications", "INotifications", "Typed browser API: INotifications.", "Browser API reference", "apis/notifications.md")
         {
@@ -556,16 +516,6 @@ public static class GuideCatalog
             SearchTitle = "Origin Private File System (OPFS) in C# and .NET",
             Description = "Read and write files in the origin private file system from C# by path and byte range, with no picker or user gesture. A fit for a local SQLite database file.",
         },
-        new("page-visibility", "IPageVisibility", "Typed browser API: IPageVisibility.", "Browser API reference", "apis/page-visibility.md")
-        {
-            SearchTitle = "Page Visibility API in C# (IPageVisibility)",
-            Description = "Check whether the page is visible or hidden from C# with IPageVisibility, a Page Visibility API wrapper with a change subscription for Server and WebAssembly.",
-        },
-        new("performance", "IPerformance", "Typed browser API: IPerformance.", "Browser API reference", "apis/performance.md")
-        {
-            SearchTitle = "Performance API in C# and .NET (IPerformance)",
-            Description = "Read the browser's high-resolution clock and navigation timing from C# with IPerformance, a typed Performance API wrapper for Server and WebAssembly hosts.",
-        },
         new("permissions", "IPermissions", "Typed browser API: IPermissions.", "Browser API reference", "apis/permissions.md")
         {
             SearchTitle = "Permissions API in C# and .NET (IPermissions)",
@@ -576,25 +526,10 @@ public static class GuideCatalog
             SearchTitle = "Picture-in-Picture API in C# (IPictureInPicture)",
             Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the Trigger.PictureInPicture component on Server.",
         },
-        new("screen-info", "IScreenInfo", "Typed browser API: IScreenInfo.", "Browser API reference", "apis/screen-info.md")
-        {
-            SearchTitle = "Screen API in C# and .NET (IScreenInfo)",
-            Description = "Read display size, color depth and device pixel ratio from C# with IScreenInfo, a typed wrapper over the Screen API and devicePixelRatio for every host.",
-        },
-        new("screen-orientation", "IScreenOrientation", "Typed browser API: IScreenOrientation.", "Browser API reference", "apis/screen-orientation.md")
-        {
-            SearchTitle = "Screen Orientation API in C# (IScreenOrientation)",
-            Description = "Read and lock screen orientation from C#: IScreenOrientation on WebAssembly, Trigger.ScreenOrientation on Server. The Screen Orientation lock needs fullscreen.",
-        },
         new("serial", "ISerial", "Typed browser API: ISerial.", "Browser API reference", "apis/serial.md")
         {
             SearchTitle = "Web Serial API in C# and .NET (ISerial)",
             Description = "Talk to a serial device such as an Arduino or GPS from C# with ISerial, a Web Serial API wrapper that pushes incoming data to a callback. WebAssembly only.",
-        },
-        new("share", "IShare", "Typed browser API: IShare.", "Browser API reference", "apis/share.md")
-        {
-            SearchTitle = "Web Share API in C# and .NET (IShare)",
-            Description = "Open the OS share sheet with text or a URL from C# via the Web Share API: IShare on WebAssembly, or the Shareable component inside a click on Server.",
         },
         new("speech-recognition", "ISpeechRecognition", "Typed browser API: ISpeechRecognition.", "Browser API reference", "apis/speech-recognition.md")
         {
@@ -611,25 +546,10 @@ public static class GuideCatalog
             SearchTitle = "StorageManager.estimate in C# (IStorageEstimator)",
             Description = "Read browser storage quota and usage from C# with IStorageEstimator, a navigator.storage.estimate wrapper, to budget caches and request persistent storage.",
         },
-        new("storage", "IBrowserStorage", "Typed browser API: IBrowserStorage.", "Browser API reference", "apis/storage.md")
-        {
-            SearchTitle = "localStorage in C# and .NET (IBrowserStorage)",
-            Description = "Get, set, remove and clear localStorage and sessionStorage strings from C# with IBrowserStorage, a typed Web Storage API wrapper for Server and WebAssembly.",
-        },
         new("usb", "IUsb", "Typed browser API: IUsb.", "Browser API reference", "apis/usb.md")
         {
             SearchTitle = "WebUSB API in C# and .NET (IUsb)",
             Description = "Pick and drive a USB device from C# with IUsb, a WebUSB API wrapper for WebAssembly apps. The device chooser needs a user gesture, so Server has no support.",
-        },
-        new("vibration", "IVibration", "Typed browser API: IVibration.", "Browser API reference", "apis/vibration.md")
-        {
-            SearchTitle = "Vibration API in C# and .NET (IVibration)",
-            Description = "Vibrate the device with a vibrate/pause pattern from C# using IVibration, a Vibration API wrapper. navigator.vibrate works on Android Chromium, not iOS.",
-        },
-        new("visual-viewport", "IVisualViewport", "Typed browser API: IVisualViewport.", "Browser API reference", "apis/visual-viewport.md")
-        {
-            SearchTitle = "Visual Viewport API in C# (IVisualViewport)",
-            Description = "Read the visible viewport size, offset and zoom from C# with IVisualViewport, useful once a mobile soft keyboard opens. Works on Server and WebAssembly.",
         },
         new("wake-lock", "IWakeLock", "Typed browser API: IWakeLock.", "Browser API reference", "apis/wake-lock.md")
         {

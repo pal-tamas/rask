@@ -170,7 +170,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await Expect(Page.Locator("#eyedropper-pick")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("[data-section=eye-dropper] .sample-code").First).ToContainTextAsync("IEyeDropper",
+        await Expect(Page.Locator("[data-section=eye-dropper] .sample-code").First).ToContainTextAsync("EyeDropper.Create",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
@@ -187,7 +187,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await Expect(Page.Locator("#idle-start")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("[data-section=idle] .sample-code").First).ToContainTextAsync("IIdleDetector",
+        await Expect(Page.Locator("[data-section=idle] .sample-code").First).ToContainTextAsync("IdleDetector.Create",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 

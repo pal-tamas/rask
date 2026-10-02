@@ -1,12 +1,12 @@
-using Rask.Wasm.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IEyeDropper" /> — pick a color from anywhere on screen with the system loupe, then show
+///     <c>EyeDropper</c> (Rask.Web) — pick a color from anywhere on screen with the system loupe, then show
 ///     the picked swatch + hex. WASM-only: <c>open()</c> needs a live user gesture.
 /// </summary>
-public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
+public sealed partial class EyeDropperDemo : Component
 {
     private string? _hex;
     private string _status = "(idle)";
@@ -28,29 +28,19 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("eyedropper-status")[_status]]
             ];
 
+    // new EyeDropper().open(): rejects when the browser has no EyeDropper, or when the user presses Escape.
     private async Task Pick()
     {
         try
         {
-            if (!await eyeDropper.IsSupportedAsync())
-            {
-                _status = "EyeDropper not supported in this browser";
-                return;
-            }
-
-            var hex = await eyeDropper.OpenAsync();
-            if (hex is null)
-            {
-                _status = "Cancelled";
-                return;
-            }
-
-            _hex = hex;
-            _status = "Picked " + hex;
+            await using var dropper = await EyeDropper.Create();
+            var color = await dropper.Open();
+            _hex = color.SRGBHex;
+            _status = "Picked " + _hex;
         }
         catch (Exception ex)
         {
-            _status = "Failed: " + ex.Message;
+            _status = "No color picked: " + ex.Message;
         }
     }
 }

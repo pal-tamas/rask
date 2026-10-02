@@ -1,12 +1,12 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IPageVisibility" /> — read whether the page is foreground/visible, e.g. to pause work
-///     when the user tabs away.
+///     MDN's <c>document.visibilityState</c>, from Rask.Web — read whether the page is foreground/visible, e.g. to pause
+///     work when the user tabs away.
 /// </summary>
-public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Component
+public sealed partial class PageVisibilityDemo : Component
 {
     private string? _state;
     private string? _status;
@@ -24,9 +24,7 @@ public sealed partial class PageVisibilityDemo(IPageVisibility visibility) : Com
     {
         try
         {
-            var state = await visibility.GetStateAsync();
-            var hidden = await visibility.IsHiddenAsync();
-            _state = $"{state} (hidden: {hidden})";
+            _state = $"{await Document.VisibilityState} (hidden: {await Document.Hidden})";
             _status = "Read";
         }
         catch (Exception ex) { _status = "Read failed: " + ex.Message; }

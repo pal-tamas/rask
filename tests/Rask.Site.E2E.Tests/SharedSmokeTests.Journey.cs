@@ -1467,7 +1467,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#bc-send")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        // Storage — localStorage round-trip via IBrowserStorage.
+        // Storage — localStorage round-trip via Rask.Web's LocalStorage.
         await Page.Locator("#storage-input").FillAsync("persist-me");
         await Page.Locator("#storage-set").ClickAsync();
         await Expect(Page.Locator("#storage-status")).ToContainTextAsync("Stored: persist-me", contains);
@@ -1647,7 +1647,7 @@ public abstract partial class SharedSmokeTests
 
         // The file-storage guide carries no live demo (Rask.Storage is server-only), so a hard navigation
         // proves what can be proven here: the guide resolves by its slug — "storage" belongs to the
-        // IBrowserStorage reference — renders its heading, and trips no root error boundary.
+        // localStorage reference — renders its heading, and trips no root error boundary.
         await Page.GotoAsync(Docs + "/guides/file-storage");
         await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("Rask.Storage",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });

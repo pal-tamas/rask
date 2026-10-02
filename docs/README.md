@@ -34,8 +34,8 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), built-in toasts (`Toast.Success("Saved")`), `VirtualizeModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
 | [Web APIs from MDN](web-apis.md) | Every web API the browser ships, generated from MDN into C# (`Rask.Web`): `await Navigator.Clipboard.WriteText("hi")`, one round trip per await, kept objects as handles. |
-| [Browser APIs](browser-apis.md) | The map of all 53 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
-| [Capability matrix](browser-capabilities.md) | Where each of the 53 APIs works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
+| [Browser APIs](browser-apis.md) | The map of the typed Web-API wrappers and where `Rask.Web` takes over — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
+| [Capability matrix](browser-capabilities.md) | Where each typed wrapper works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm`. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
 | [Prerendering](prerendering.md) | Render a standalone WASM app's pages to real HTML at publish (`<RaskPrerender>true</RaskPrerender>`), so a crawler gets the page instead of the boot spinner: what is written, which routes are skipped and why, and why a route that throws is deliberately left out. |

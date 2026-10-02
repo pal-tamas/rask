@@ -8,31 +8,20 @@ Where each wrapper lives, how declarative and imperative sharing differ, and how
 
 Work identically on Server and WASM. **Shape** is *one-shot* (a request/response call) or
 *subscription* (you hold an `IAsyncDisposable` and the browser **pushes** updates to a C# handler — see
-[Subscriptions](#subscriptions--the-push-pattern)).
+[Subscriptions](#subscriptions--the-push-pattern)). Storage, clipboard, geolocation, `matchMedia`, the screen and the
+rest of what the browser ships are MDN's own surface in [`Rask.Web`](web-apis.md), not wrappers.
 
 | Service | Wraps | What it does | Shape |
 | --- | --- | --- | --- |
-| `IBrowserStorage` | `localStorage` / `sessionStorage` | `.Local` / `.Session` key/value (get/set/remove/clear/key/length) | one-shot |
 | `ICookies` | `document.cookie` | Read/write cookies with typed `CookieOptions` | one-shot |
-| `IClipboard` | `navigator.clipboard` | `WriteTextAsync` / `ReadTextAsync` | one-shot |
-| `IGeolocation` | `navigator.geolocation` | `GetCurrentPositionAsync` (one fix) + `WatchAsync` (live tracking) | one-shot + subscription |
 | `IPermissions` | `navigator.permissions` | `QueryAsync(PermissionName)` → `PermissionState` before prompting | one-shot |
-| `IVibration` | `navigator.vibrate` | Haptic buzz / pattern (mobile) | one-shot |
-| `IPageVisibility` | `document.visibilityState` | Foreground/background state | one-shot |
-| `INavigatorInfo` | `window.navigator` | `OnLineAsync` / `LanguageAsync` / `UserAgentAsync` | one-shot |
-| `INetworkInfo` | `navigator.connection` | Effective type / downlink / RTT / Data Saver — adapt loading | one-shot |
-| `IBattery` | Battery Status API | Charge level + charging state | one-shot + **subscription** |
-| `IMediaQuery` | `window.matchMedia` | Evaluate a query; `PrefersDarkAsync` / `PrefersReducedMotionAsync` | one-shot |
 | `ISpeechSynthesis` | `window.speechSynthesis` | Speak text aloud; cancel | one-shot |
 | `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text | **subscription** |
 | `IMediaSession` | `navigator.mediaSession` | Now-playing metadata + hardware media-key handlers (native-feel player) | one-shot + subscription |
 | `IDeviceOrientation` | `deviceorientation` | Gyroscope/compass tilt angles (tilt UI, AR, compass) | **subscription** |
 | `IDeviceMotion` | `devicemotion` | Accelerometer / rotation rate (shake, step counter, motion games) | **subscription** |
-| `IScreenInfo` | `window.screen` | Size, color depth, device pixel ratio (retina) | one-shot |
 | `IStorageEstimator` | `navigator.storage.estimate` | Quota / usage, to budget caches | one-shot |
-| `IVisualViewport` | `window.visualViewport` | Visible size/offset/zoom after the soft keyboard | one-shot |
 | `ICrypto` | `crypto` / `crypto.subtle` | Random UUID / bytes, SHA digest (hex) | one-shot |
-| `IPerformance` | `performance` | High-res clock + navigation timing (TTFB / DCL / load) | one-shot |
 | `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
 | `IFileSystemAccess` | File System Access API | Open/save a file *back to disk* + directory access (editors) | one-shot |
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
@@ -66,14 +55,14 @@ user activation survives even on the Server transport. Because it's headless, th
 with a `Data` prop (a link, an icon button, a `Ui.Button`), not just a `<button>`. Web Share is available on
 mobile Safari / Android Chrome / Edge (not desktop Firefox); an unsupported browser no-ops.
 
-**`IShare`** (`Rask.Wasm.Browser`) is the **imperative** path — share from *code* (a lifecycle hook,
-after an `await`). That needs the in-process transport to keep the activation, so it's registered only by
-the **WASM** host.
+**`Navigator.Share(…)`** ([`Rask.Web`](web-apis.md#what-only-webassembly-runs)) is the **imperative** path — share
+from *code* (a lifecycle hook, after an `await`). That needs the in-process transport to keep the activation, so it
+compiles only in a **WASM** app.
 
 | API | Home | Hosts | Use |
 | --- | --- | --- | --- |
 | `Shareable` | `Rask.Core` | **all** (Server too) | Headless declarative share — attaches `data-rask-share` to your element; fires `navigator.share` in the gesture |
-| `IShare` | `Rask.Wasm.Browser` | WASM | Imperative share from code |
+| `Navigator.Share(…)` | `Rask.Web` | WASM | Imperative share from code |
 
 ### Gesture bridge — activation-gated APIs on the Server host
 
@@ -113,12 +102,9 @@ installed-PWA instance / live document, or a browser-only device API.
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |
 | `IFullscreen` | Fullscreen API | Present an element/page fullscreen | transient activation |
-| `IScreenOrientation` | Screen Orientation API | Read / lock orientation (lock needs fullscreen) | live document |
 | `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
 | `IMediaDevices` | `getUserMedia` / `getDisplayMedia` | Capture camera / mic / screen into a `<video>` (calls, capture) | transient activation + secure context |
-| `IEyeDropper` | EyeDropper API | Pick a color from anywhere on screen (design tools) | transient activation |
 | `IPictureInPicture` | Picture-in-Picture API | Float a `<video>` into an always-on-top miniplayer | transient activation |
-| `IIdleDetector` | Idle Detection API | Notice when the user goes idle / the screen locks (auto-lock, presence) | activation + live document |
 | `ISerial` | Web Serial API | Talk to a serial device (Arduino / microcontroller, GPS, USB-to-serial) — open, write, read | transient activation + secure context |
 | `IUsb` | WebUSB API | Pair with and drive a USB device — open, claim an interface, bulk/interrupt/control transfers | transient activation + secure context |
 | `IHid` | WebHID API | Talk to a HID device (custom gamepads, sim controls, POS) — output/feature reports + pushed input reports | transient activation + secure context |
@@ -141,10 +127,7 @@ each change back into C#:
   frame, so the framework coalesces them
 - **`IMediaSession.SetActionHandlerAsync`** — `SetActionHandlerAsync(action, onAction)` → `IAsyncDisposable`
 - **`IDeviceOrientation`** / **`IDeviceMotion`** — `WatchAsync(onReading)` → `IAsyncDisposable`
-- **`IBattery`** — `WatchAsync(onChange)` → `IAsyncDisposable` (plus a one-shot `GetStatusAsync`)
-- **`IGeolocation.WatchAsync`** — `WatchAsync(onPosition, options?)` → `IAsyncDisposable`
 - **`IGamepad`** — `WatchAsync(onReading)` → `IAsyncDisposable` (a `requestAnimationFrame` poll pushed on change)
-- **`IIdleDetector`** *(WASM)* — `WatchAsync(onChange, thresholdSeconds?)` → `IAsyncDisposable`
 - **`ISerial`** *(WASM)* — `RequestPortAsync(options, onData, onClosed?)` → `ISerialPort?` (the read loop pushes inbound bytes to `onData`; `onClosed` fires if the device is unplugged; dispose the port to stop)
 - **`IHid`** *(WASM)* — `IHidDevice.WatchInputReportsAsync(onReport, onDisconnect?)` → `IAsyncDisposable` (each input report is pushed to `onReport`; `onDisconnect` fires if the device is unplugged; dispose to stop)
 - **`IBluetooth`** *(WASM)* — `IBluetoothCharacteristic.WatchAsync(onValue)` pushes each notified value; `IBluetoothDevice.WatchDisconnectAsync(onDisconnect)` fires on GATT disconnect — both return `IAsyncDisposable`
@@ -152,8 +135,8 @@ each change back into C#:
 They share one mechanism: the JS event invokes a static `[JSInvokable]` via
 `window.DotNet.invokeMethodAsync` (which Rask implements on **both** transports), routed back to your
 handler by an id — so there's a single implementation, no `DotNetObjectReference` marshalling, and it's
-rooted for the WASM trimmer. The observers additionally hand the observed element across as an
-[`ElementRef`](js-interop-runtime.md#element-refs).
+rooted for the WASM trimmer. A `Rask.Web` object's events are `On{Event}` subscriptions instead — see
+[Web APIs from MDN](web-apis.md#events-and-callbacks).
 
 **Lifecycle.** Open from a lifecycle hook (e.g. `OnFirstRender()`) and **dispose** the
 returned handle on unmount (implement `IAsyncDisposable` on the component). A handler that updates state

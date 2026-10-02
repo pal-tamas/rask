@@ -5,7 +5,7 @@ namespace Rask.Core.Browser;
 ///     (<see href="https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate" />) — how much
 ///     on-device storage the origin may use and how much it already uses, e.g. to budget a cache or warn
 ///     before filling up — plus the same object's <b>persistence</b> knob, which asks for that storage to be
-///     exempt from eviction. Pairs with <see cref="IBrowserStorage" />,
+///     exempt from eviction. Pairs with <c>LocalStorage</c>,
 ///     <see cref="IOriginPrivateFileSystem" />, and the offline/PWA story. Works on <b>both transports</b>;
 ///     inject it through a component constructor and read from an event handler or lifecycle hook.
 /// </summary>

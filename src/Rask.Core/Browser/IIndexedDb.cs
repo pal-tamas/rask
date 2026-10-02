@@ -3,7 +3,7 @@ namespace Rask.Core.Browser;
 /// <summary>
 ///     Typed access to a persistent, asynchronous key/value store backed by IndexedDB
 ///     (<see href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API" />) — far larger than
-///     <see cref="IBrowserStorage" /> (hundreds of MB vs ~5 MB) and non-blocking, for caching app data
+///     <c>LocalStorage</c> (hundreds of MB vs ~5 MB) and non-blocking, for caching app data
 ///     offline. Inject it through a component constructor, open a named store, and read/write string values
 ///     (serialize your own objects to JSON).
 /// </summary>

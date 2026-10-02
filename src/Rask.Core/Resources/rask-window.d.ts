@@ -3,7 +3,7 @@
 // These are internal to Rask and deliberately NOT in the rask-globals.d.ts that ships to consumers:
 // an app has no business calling them, and shipping their shapes would make them API. They exist as
 // globals at all because .NET reaches them by dotted name — an IJSRuntime identifier like
-// "__raskApi.geolocation" is resolved against `window` at call time — so a module-local binding
+// "__raskApi.cookieGet" is resolved against `window` at call time — so a module-local binding
 // would be invisible to the caller that matters.
 //
 // Kept narrow on purpose: only what the framework's own modules read or write from another module.
@@ -201,7 +201,7 @@ interface Window {
      *
      * A template-literal index signature rather than thirty hand-written interfaces, and the reason
      * is where the contract lives: each of these is reached from C# by a dotted IJSRuntime identifier
-     * (`"__raskApi.geolocation"`), resolved against `window` at call time, and the authoritative
+     * (`"__raskApi.cookieGet"`), resolved against `window` at call time, and the authoritative
      * shape is the C# wrapper that calls it. A second copy of those thirty shapes here would be a
      * copy that drifts, and drift is exactly what this migration exists to remove.
      *

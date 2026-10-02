@@ -9,7 +9,7 @@
 // What IS checked here is every implementation: the arguments each helper takes and what it does
 // with them.
 
-// The extracted browser layer. Importing it registers window.__raskApi and window.__raskGeoWatch,
+// The extracted browser layer. Importing it registers window.__raskApi and the other window.__rask* namespaces,
 // which used to be defined in this file; the implementations now live in ./browser/ as ordinary
 // modules a TypeScript front end can import directly. See ./browser/globals.ts.
 import "./browser/globals.js";

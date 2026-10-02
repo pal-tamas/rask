@@ -1,9 +1,9 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="IClipboard" /> — copy to and read back from the system clipboard.</summary>
-public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
+/// <summary>MDN's Clipboard API from Rask.Web — copy to and read back from the system clipboard.</summary>
+public sealed partial class ClipboardDemo : Component
 {
     private string _input = "Copied from Rask!";
     private string? _read;
@@ -24,7 +24,7 @@ public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
     {
         try
         {
-            await clipboard.WriteTextAsync(_input);
+            await Navigator.Clipboard.WriteText(_input);
             _status = "Copied to clipboard";
         }
         catch (Exception ex) { _status = "Copy failed: " + ex.Message; }
@@ -34,7 +34,7 @@ public sealed partial class ClipboardDemo(IClipboard clipboard) : Component
     {
         try
         {
-            _read = await clipboard.ReadTextAsync();
+            _read = await Navigator.Clipboard.ReadText();
             _status = "Pasted from clipboard";
         }
         catch (Exception ex) { _status = "Paste failed: " + ex.Message; }

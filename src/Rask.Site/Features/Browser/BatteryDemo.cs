@@ -1,55 +1,38 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IBattery" /> — read the device charge level and charging state, and subscribe to changes.
-///     The watch is opened on mount and disposed on unmount; its handler updates state and calls
-///     <c>StateHasChanged()</c> (the sanctioned pattern for an externally-pushed update). Browser support is
-///     Chromium-only, so each call is gated on <see cref="IBattery.IsSupportedAsync" />.
+///     MDN's <c>BatteryManager</c>, from Rask.Web — read the device charge level and charging state, and watch them
+///     change. Chromium only: elsewhere <c>navigator.getBattery()</c> is missing and the call fails.
 /// </summary>
-public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDisposable
+public sealed partial class BatteryDemo : Component
 {
-    private BatteryStatus? _status;
+    private Rask.Web.Types.BatteryManager? _battery;
+    private IAsyncDisposable? _levelWatch;
+    private IAsyncDisposable? _chargingWatch;
+    private double? _level;
+    private bool? _charging;
 
-    // Two labels, not one, because the two halves of this demo write on their own schedules: the watch
-    // pushes whenever the device changes, and the button reports what a one-shot read just returned.
-    // Sharing a field made whichever wrote last the visible truth — a push landing after a click replaced
-    // "read" with "live" and never put it back, which read as the button having done nothing.
+    // Two labels, because the watch and the button write on their own schedules: one shared label let a change event
+    // landing after a click replace "read" with "live", which read as the button having done nothing.
     private string _watchState = "(starting…)";
     private string _readState = "(not read yet)";
 
-    // The level/charging figures ARE shared on purpose: both sources describe the same battery, so the
-    // freshest value is the right one to show whichever produced it.
-    private IAsyncDisposable? _watch;
-    private bool _started;
-
     protected override async Task OnFirstRender()
     {
-        if (_started)
-
+        try
         {
-
-            return;
-
+            _battery ??= await Navigator.GetBattery();
+            _levelWatch = await _battery.OnLevelChange(Refresh);
+            _chargingWatch = await _battery.OnChargingChange(Refresh);
+            await Refresh();
+            _watchState = "live";
         }
-
-        _started = true;
-        if (!await battery.IsSupportedAsync())
+        catch (Exception)
         {
             _watchState = "not supported on this browser";
-            _readState = "not supported on this browser";
-            StateHasChanged();
-            return;
         }
-
-        _watch = await battery.WatchAsync(s =>
-        {
-            _status = s;
-            _watchState = "live";
-            StateHasChanged();
-            return Task.CompletedTask;
-        });
     }
 
     protected override Component? Render() =>
@@ -58,20 +41,29 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
                     Ui.Button.Primary.Id("battery-read").OnClick(Read)["Read now"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
-                    "Level: ", Code.Id("battery-level")[_status is { } s ? $"{s.Level * 100:0}%" : "(none)"]],
+                    "Level: ", Code.Id("battery-level")[_level is { } l ? $"{l * 100:0}%" : "(none)"]],
                 Div.Class("text-sm text-ui-muted mb-1")[
-                    "Charging: ", Code.Id("battery-charging")[_status switch { null => "(none)", { Charging: true } => "yes", _ => "no" }]],
+                    "Charging: ", Code.Id("battery-charging")[_charging switch { null => "(none)", true => "yes", _ => "no" }]],
                 Div.Class("text-sm text-ui-muted mb-1")[
                     "Watch: ", Code.Id("battery-watch")[_watchState]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("battery-status")[_readState]]
             ];
 
+    private async Task Refresh()
+    {
+        if (_battery is not null)
+        {
+            (_level, _charging) = (await _battery.Level, await _battery.Charging);
+        }
+    }
+
     private async Task Read()
     {
         try
         {
-            _status = await battery.GetStatusAsync();
-            _readState = _status is null ? "not supported" : "read";
+            _battery ??= await Navigator.GetBattery();
+            await Refresh();
+            _readState = "read";
         }
         catch (Exception ex)
         {
@@ -79,11 +71,21 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
         }
     }
 
-    public async ValueTask DisposeAsync()
+    protected override async Task OnUnmount()
     {
-        if (_watch is not null)
+        if (_levelWatch is not null)
         {
-            await _watch.DisposeAsync();
+            await _levelWatch.DisposeAsync();
+        }
+
+        if (_chargingWatch is not null)
+        {
+            await _chargingWatch.DisposeAsync();
+        }
+
+        if (_battery is not null)
+        {
+            await _battery.DisposeAsync();
         }
     }
 }

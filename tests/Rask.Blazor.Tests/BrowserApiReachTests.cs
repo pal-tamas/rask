@@ -53,7 +53,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
     {
         // The renderer is handed the app's own provider, so anything the host registered is
         // [Inject]-able inside the hosted component.
-        Assert.NotNull(Services(new RecordingJSRuntime()).GetRequiredService<IGeolocation>());
+        Assert.NotNull(Services(new RecordingJSRuntime()).GetRequiredService<ICookies>());
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
         // Asserted on the runtime rather than on page.Html: Page.Render captures the markup once,
         // synchronously, and the repaint the hook asks for lands after that snapshot. What matters here
         // is that a hosted component reached a browser API from a hook StaticHtmlRenderer never fires.
-        Assert.Equal("__raskApi.matchMedia", js.LastIdentifier);
+        Assert.Equal("__raskApi.cookieGet", js.LastIdentifier);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
 
         await page.On("[data-rask-on-click]").Click();
 
-        Assert.Contains("__raskApi.matchMedia", js.LastIdentifier, StringComparison.Ordinal);
+        Assert.Contains("__raskApi.cookieGet", js.LastIdentifier, StringComparison.Ordinal);
     }
 }
 
@@ -183,7 +183,7 @@ public sealed class ThemeBox : ComponentBase
 
     [Parameter] public string? Label { get; set; }
 
-    [Inject] public IMediaQuery Media { get; set; } = default!;
+    [Inject] public ICookies Cookies { get; set; } = default!;
 
     protected override void BuildRenderTree(RenderTreeBuilder builder)
     {
@@ -193,7 +193,7 @@ public sealed class ThemeBox : ComponentBase
         builder.CloseElement();
     }
 
-    private async Task ProbeAsync() => _dark = await Media.PrefersDarkAsync();
+    private async Task ProbeAsync() => _dark = await Cookies.GetAsync("theme") == "dark";
 }
 
 /// <summary>Reads a browser API from OnAfterRenderAsync rather than from a click.</summary>
@@ -204,7 +204,7 @@ public sealed class AfterRenderBox : ComponentBase, IHandleAfterRender
 
     [Parameter] public string? Label { get; set; }
 
-    [Inject] public IMediaQuery Media { get; set; } = default!;
+    [Inject] public ICookies Cookies { get; set; } = default!;
 
     public async Task OnAfterRenderAsync()
     {
@@ -213,7 +213,7 @@ public sealed class AfterRenderBox : ComponentBase, IHandleAfterRender
             return;
         }
         _read = true;
-        _dark = await Media.PrefersDarkAsync();
+        _dark = await Cookies.GetAsync("theme") == "dark";
         StateHasChanged();
     }
 

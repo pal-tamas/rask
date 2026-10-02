@@ -195,13 +195,13 @@ public sealed partial class PwaPage : Component
         new("orientation", "Orientation", () =>
         [
             P.Class("text-ui-muted")[
-                "Read the screen orientation via IScreenOrientation and, for an installed or fullscreen app, ",
+                "Read the screen orientation via Screen.Orientation and, for an installed or fullscreen app, ",
                 "lock it. Locking is usually rejected outside fullscreen and is often unsupported on desktop."
             ],
             CodeSample
                 .Files(["OrientationDemo.cs"])
-                .Notes("GetAsync returns the OrientationInfo (type + angle); LockAsync/UnlockAsync change it. "
-                    + "WASM-only — locking needs the live, usually fullscreen, document.")
+                .Notes("Screen.Orientation.Type and Angle read it; Lock(OrientationLockType)/Unlock() change it. "
+                    + "Lock is WASM-only — it needs the live, usually fullscreen, document. Gate on IsSupported.")
                 .Result(OrientationDemo)
         ]);
 
@@ -241,13 +241,13 @@ public sealed partial class PwaPage : Component
         [
             P.Class("text-ui-muted")[
                 "Let the user pick a color from anywhere on screen with the system magnifier loupe, via ",
-                "IEyeDropper (the EyeDropper API) — handy for a design tool or theme editor. WASM-only: ",
+                "EyeDropper (the EyeDropper API) — handy for a design tool or theme editor. WASM-only: ",
                 "open() needs a live user gesture, and it's Chromium-family only at the time of writing."
             ],
             CodeSample
                 .Files(["EyeDropperDemo.cs"])
-                .Notes("OpenAsync() resolves with the picked sRGB hex (e.g. \"#3366ff\"), or null if the user "
-                    + "cancels (Escape) — cancellation is not an error. Gate on IsSupportedAsync.")
+                .Notes("EyeDropper.Create() keeps a picker; Open() resolves with the picked SRGBHex (e.g. \"#3366ff\"). "
+                    + "It rejects when the user cancels (Escape) or the browser has no EyeDropper — so try/catch.")
                 .Result(EyeDropperDemo)
         ]);
 
@@ -256,15 +256,15 @@ public sealed partial class PwaPage : Component
         [
             P.Class("text-ui-muted")[
                 "Be notified when the user goes idle (no input for a threshold) or the screen locks, via ",
-                "IIdleDetector (the Idle Detection API) — e.g. to auto-lock a session, pause a sync, or update ",
+                "IdleDetector (the Idle Detection API) — e.g. to auto-lock a session, pause a sync, or update ",
                 "presence in a collaborative app. WASM-only: the idle-detection permission needs a live gesture ",
                 "and the detector needs the live document."
             ],
             CodeSample
                 .Files(["IdleDetectorDemo.cs"])
-                .Notes("RequestPermissionAsync() must run from a gesture; WatchAsync(onChange, thresholdSeconds) "
-                    + "then pushes an IdleReading on each user/screen state change. The spec enforces a 60-second "
-                    + "minimum threshold. Dispose the handle to stop.")
+                .Notes("IdleDetector.RequestPermission() must run from a gesture; IdleDetector.Create() keeps a detector, "
+                    + "OnChange fires on each user/screen state change, and Start(new() { Threshold = 60_000 }) begins "
+                    + "watching — the spec enforces a 60-second minimum. Dispose the detector to stop.")
                 .Result(IdleDetectorDemo)
         ]);
 

@@ -1,9 +1,12 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="INetworkInfo" /> — read the connection quality (effective type, downlink, Data Saver).</summary>
-public sealed partial class NetworkInfoDemo(INetworkInfo network) : Component
+/// <summary>
+///     MDN's <c>navigator.connection</c>, from Rask.Web — read the connection quality (effective type, downlink, Data
+///     Saver). Chromium only.
+/// </summary>
+public sealed partial class NetworkInfoDemo : Component
 {
     private string? _value;
     private string? _status;
@@ -21,17 +24,16 @@ public sealed partial class NetworkInfoDemo(INetworkInfo network) : Component
     {
         try
         {
-            if (!await network.IsSupportedAsync())
+            var connection = Navigator.Connection;
+            if (!await connection.IsSupported)
             {
                 _value = "not supported (try a Chromium browser)";
                 _status = "Network Information unavailable";
                 return;
             }
 
-            var status = await network.GetStatusAsync();
-            _value = status is null
-                ? "unavailable"
-                : $"{status.EffectiveType}, {status.Downlink} Mbps, {status.Rtt} ms RTT, saveData: {status.SaveData}";
+            var type = (await connection.EffectiveType).ToString().TrimStart('_');   // MDN's "4g" is the enum's _4g
+            _value = $"{type}, {await connection.Downlink} Mbps, {await connection.Rtt} ms RTT, saveData: {await connection.SaveData}";
             _status = "Network read";
         }
         catch (Exception ex) { _status = "Read failed: " + ex.Message; }

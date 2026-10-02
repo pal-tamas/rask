@@ -5,7 +5,7 @@ namespace Rask.Site.Features;
 /// <summary>
 ///     <see cref="IFullscreen" /> — present a single element fullscreen, then exit. Pass an
 ///     <see cref="ElementRef" /> to fullscreen just that box (or nothing to fullscreen the whole page).
-///     Pairs with <see cref="IScreenOrientation" />: orientation locking needs fullscreen first.
+///     Pairs with <c>Screen.Orientation.Lock</c>: orientation locking needs fullscreen first.
 /// </summary>
 public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
 {

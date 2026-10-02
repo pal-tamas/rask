@@ -14,28 +14,28 @@ public class BrowserCallbackOwnershipTests
     public async Task A_watch_answers_only_the_session_that_registered_it()
     {
         var mine = new FakeJsRuntime();
-        BatteryStatus? seen = null;
-        var id = BatteryInterop.Register(mine, status =>
+        GamepadReading? seen = null;
+        var id = GamepadInterop.Register(mine, reading =>
         {
-            seen = status;
+            seen = reading;
             return Task.CompletedTask;
         });
-        var status = new BatteryStatus(0.5, Charging: true, ChargingTime: null, DischargingTime: null);
+        var reading = new GamepadReading(0, "pad", Connected: true, Axes: [0.5], Buttons: [1]);
 
         using (JsCaller.Enter(new FakeJsRuntime()))
         {
-            await BatteryInterop.Changed(id, status);
+            await GamepadInterop.Reading(id, reading);
         }
 
         var fromAnotherSession = seen;
         using (JsCaller.Enter(mine))
         {
-            await BatteryInterop.Changed(id, status);
+            await GamepadInterop.Reading(id, reading);
         }
 
-        BatteryInterop.Unregister(id);
+        GamepadInterop.Unregister(id);
         Assert.Null(fromAnotherSession);
-        Assert.Same(status, seen);
+        Assert.Same(reading, seen);
     }
 
     [Fact]

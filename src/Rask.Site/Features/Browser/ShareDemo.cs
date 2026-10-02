@@ -6,8 +6,8 @@ namespace Rask.Site.Features;
 ///     <c>Shareable</c> (Rask.Core) — headless share: it hands <b>your</b> element the
 ///     <c>data-rask-share</c> attribute, so the click opens the OS share sheet from <b>any</b> host, the
 ///     Server included. The shared client fires <c>navigator.share</c> inside the gesture (no round-trip, so
-///     the activation isn't lost). For a code-driven share on the in-process host, inject <c>IShare</c> from
-///     <c>Rask.Wasm.Browser</c>.
+///     the activation isn't lost). For a code-driven share on the WebAssembly host, call
+///     <c>await Navigator.Share(…)</c> from <c>Rask.Web</c>.
 /// </summary>
 public sealed partial class ShareDemo : Component
 {

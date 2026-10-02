@@ -1,8 +1,9 @@
 # Browser APIs
 
-Rask ships **typed C# wrappers over the browser's Web APIs** — inject one through a component
-constructor and call it, instead of hand-writing `IJSRuntime` identifiers and getting the JSON
-shape right yourself. Each is a thin, awaitable layer over the same unified
+Rask reaches the browser's Web APIs two ways. Most are MDN's own surface, generated into C# by
+[`Rask.Web`](web-apis.md): `await Navigator.Clipboard.WriteText("hi")`, `await LocalStorage.GetItem("theme")`. The
+rest are **typed C# wrappers** — inject one through a component constructor and call it, instead of hand-writing
+`IJSRuntime` identifiers and getting the JSON shape right yourself. Each is a thin, awaitable layer over the same unified
 [`IJSRuntime`](js-interop-runtime.md#calling-js-from-c-ijsruntime), so it works the same way whether your
 app runs on the **Server** (WebSocket) or **WASM** (`JSImport`/`JSExport`) transport.
 
@@ -14,8 +15,8 @@ refs — see [JS interop → Typed browser APIs](js-interop-runtime.md#typed-bro
 angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in the
 [showcase](https://rask.sh/docs/), under **Browser APIs** — except the WASM-only tier
 plus `IWakeLock` and `IWebPush`, which get their own pages under **PWA** because they need something the
-Server transport can't give them. (The six activation-gated ones appear in both: as gesture components
-under Browser APIs, and as injectable services under PWA.)
+Server transport can't give them. (The activation-gated ones appear in both: as gesture components
+under Browser APIs, and as injectable services or Rask.Web calls under PWA.)
 
 ## Two homes, one rule
 
@@ -30,19 +31,23 @@ under Browser APIs, and as injectable services under PWA.)
 Sharing shows the split cleanly. The **declarative, headless** `Shareable` (Rask.Core) hands *your* markup
 a `data-rask-share` attribute and the shared client fires `navigator.share` *inside the click gesture* — no
 round-trip, so activation survives — so it works on **every** host, Server included. The **imperative**
-`IShare` (Rask.Wasm.Browser) lets you share from code (a lifecycle hook, after an `await`), which only the
-WASM host can do, so it lives in the WASM-only home.
+`await Navigator.Share(…)` from [`Rask.Web`](web-apis.md#what-only-webassembly-runs) shares from code (a lifecycle
+hook, after an `await`), which only the WASM host can do, so it compiles only in a WASM app.
 
 Inject through the **constructor** (not a settable property — that would become a required chain
 parameter) and call from an **event handler or lifecycle hook**, never from `Render()`:
 
 ```csharp
-public sealed partial class ThemeToggle(IBrowserStorage storage, IMediaQuery media) : Component
+using Rask.Web;
+
+public sealed partial class ThemeToggle(ICookies cookies) : Component
 {
     protected override async Task OnFirstRender()
     {
-        var saved = await storage.Local.GetAsync("theme");
-        var dark = saved is null ? await media.PrefersDarkAsync() : saved == "dark";
+        var saved = await cookies.GetAsync("theme");
+        var dark = saved is null
+            ? await Window.MatchMedia("(prefers-color-scheme: dark)").Matches
+            : saved == "dark";
         // …apply theme…
     }
 }

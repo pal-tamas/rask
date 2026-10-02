@@ -6,7 +6,7 @@ namespace Rask.Core.Browser;
 ///     Typed access to the Permissions API
 ///     (<see href="https://developer.mozilla.org/en-US/docs/Web/API/Permissions/query" />) — check
 ///     whether a feature is granted, denied, or will prompt, <em>before</em> triggering it. Pairs with
-///     <see cref="IClipboard" /> and <see cref="IGeolocation" /> to avoid surprising the user with a
+///     <c>Navigator.Clipboard</c> and <c>Navigator.Geolocation</c> to avoid surprising the user with a
 ///     prompt. Inject it through a component constructor and call from an event handler or lifecycle hook.
 ///     <para>
 ///         <b>Engines answer for different names.</b> WebKit (Safari) answers only for

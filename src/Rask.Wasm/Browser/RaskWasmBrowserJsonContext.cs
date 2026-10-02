@@ -11,11 +11,9 @@ namespace Rask.Wasm.Browser;
 ///     types live in <c>Rask.Core.Browser.RaskBrowserJsonContext</c>.
 /// </summary>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
-[JsonSerializable(typeof(OrientationReading))]
 [JsonSerializable(typeof(MediaConstraints))]
 [JsonSerializable(typeof(MediaDeviceInfo))]
 [JsonSerializable(typeof(MediaDeviceInfo[]))]
-[JsonSerializable(typeof(IdleReading))]
 [JsonSerializable(typeof(SerialOptions))]
 [JsonSerializable(typeof(SerialPortFilter))]
 [JsonSerializable(typeof(SerialPortFilter[]))]

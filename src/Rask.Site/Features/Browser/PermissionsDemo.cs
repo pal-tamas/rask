@@ -4,7 +4,7 @@ namespace Rask.Site.Features;
 
 /// <summary>
 ///     <see cref="IPermissions" /> — query a feature's permission state (granted/denied/prompt) before
-///     triggering it. Pairs with <see cref="IGeolocation" /> / <see cref="IClipboard" />.
+///     triggering it. Pairs with <c>Navigator.Geolocation</c> / <c>Navigator.Clipboard</c>.
 /// </summary>
 public sealed partial class PermissionsDemo(IPermissions permissions) : Component
 {

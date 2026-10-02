@@ -1,10 +1,10 @@
 using System.Globalization;
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="IPerformance" /> — high-resolution clock and page-load (navigation) timing.</summary>
-public sealed partial class PerformanceDemo(IPerformance performance) : Component
+/// <summary>MDN's <c>Performance</c>, from Rask.Web — the high-resolution clock and the page-load (navigation) entry.</summary>
+public sealed partial class PerformanceDemo : Component
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private string? _value;
@@ -21,12 +21,11 @@ public sealed partial class PerformanceDemo(IPerformance performance) : Componen
     {
         try
         {
-            var now = await performance.NowAsync();
-            var t = await performance.GetNavigationTimingAsync();
-            _value = t is null
+            var now = await Performance.Now();
+            var navigation = (await Performance.GetEntriesByType("navigation")).FirstOrDefault();
+            _value = navigation is null
                 ? string.Create(Inv, $"now {now:F0} ms (no navigation entry)")
-                : string.Create(Inv,
-                    $"TTFB {t.TimeToFirstByteMs:F0} ms, DOMContentLoaded {t.DomContentLoadedMs:F0} ms, load {t.LoadMs:F0} ms");
+                : string.Create(Inv, $"now {now:F0} ms, page load took {navigation.Duration:F0} ms");
             _status = "Performance read";
         }
         catch (Exception ex) { _status = "Read failed: " + ex.Message; }

@@ -1,9 +1,9 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="INavigatorInfo" /> — read-only navigator facts (online, language, user agent).</summary>
-public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Component
+/// <summary>MDN's Navigator from Rask.Web — read-only navigator facts (online, language).</summary>
+public sealed partial class NavigatorInfoDemo : Component
 {
     private string? _value;
     private string? _status;
@@ -21,8 +21,8 @@ public sealed partial class NavigatorInfoDemo(INavigatorInfo navigator) : Compon
     {
         try
         {
-            var online = await navigator.OnLineAsync();
-            var language = await navigator.LanguageAsync();
+            var online = await Navigator.OnLine;
+            var language = await Navigator.Language;
             _value = $"online: {online}, language: {language}";
             _status = "Navigator read";
         }

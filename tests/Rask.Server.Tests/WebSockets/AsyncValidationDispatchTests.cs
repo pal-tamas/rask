@@ -38,9 +38,12 @@ public class AsyncValidationDispatchTests
 
         await ws.SendJsonAsync(new { id = changeId, value = "admin" }, ct: TestContext.Current.CancellationToken);
 
-        // Wait for the frame that carries the verdict — after the mid-await ("Checking...") one, if any — rather
-        // than for a gap in the traffic: a loaded machine can take longer than any gap to send the first (#1144).
-        var verdict = await ws.ReceiveUntilAsync(f => f.Contains("Already taken.", StringComparison.Ordinal), TimeSpan.FromSeconds(5));
+        // Wait for the frame that carries the settled verdict rather than for a gap in the traffic: a loaded machine can
+        // take longer than any gap to send the first (#1144), and can send one frame between the verdict landing and the
+        // indicator clearing. What the page settles on is what the user sees.
+        var verdict = await ws.ReceiveUntilAsync(
+            f => f.Contains("Already taken.", StringComparison.Ordinal) && !f.Contains("Checking...", StringComparison.Ordinal),
+            TimeSpan.FromSeconds(5));
 
         Assert.NotNull(verdict);
         var html = JsonDocument.Parse(verdict).RootElement.GetProperty("html").GetString()!;

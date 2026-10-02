@@ -1,19 +1,20 @@
 # Browser APIs — reference & live demos
 
-Every typed browser wrapper with a runnable demo showing its C# source beside the live result.
+Every typed browser wrapper, and the MDN calls from [Rask.Web](web-apis.md) that replaced the rest, with a runnable
+demo showing its C# source beside the live result.
 
 ‹ Back to [Browser APIs](browser-apis.md)
 
 ## API reference — live demos
 
-Every wrapper below runs live and identically on both transports. Each demo shows its C# source beside
+Every demo below runs live and identically on both transports. Each demo shows its C# source beside
 the running result (some are device/permission-dependent and no-op in a headless or desktop browser —
 try them on a phone). The WASM-only device APIs (Serial, USB, HID, Bluetooth) and the installation/PWA
 APIs live in the [Mobile & PWA guide](pwa.md).
 
 ### Storage & persistence
 
-**`IBrowserStorage`** — typed, awaitable `localStorage` / `sessionStorage`.
+**localStorage / sessionStorage** — `await LocalStorage.SetItem(key, value)` and `await LocalStorage.GetItem(key)`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-storage -->
 
@@ -32,30 +33,31 @@ text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stor
 
 ### Environment & capabilities
 
-**`INavigatorInfo`** — read-only navigator facts: `onLine`, `language`, `userAgent`.
+**Navigator facts** — `await Navigator.OnLine`, `await Navigator.Language`, `await Navigator.UserAgent`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-navigator-info -->
 
-**`INetworkInfo`** — connection quality (effective type, downlink, RTT, Data Saver) to adapt loading.
+**Network quality** — `await Navigator.Connection.EffectiveType` (and `Downlink`, `Rtt`, `SaveData`), from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-network -->
 
+**Battery** — `await using var battery = await Navigator.GetBattery();` then `await battery.Level`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-battery -->
 
-**`IScreenInfo`** — display size, colour depth, and device pixel ratio.
+**Screen** — `await Screen.Width`, `await Screen.ColorDepth` and `await Window.DevicePixelRatio`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-screen -->
 
-**`IVisualViewport`** — the actually-visible viewport: size, offset, and pinch-zoom scale.
+**Visual viewport** — `await Window.VisualViewport.Width` (and `Height`, `OffsetTop`, `Scale`), from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-visual-viewport -->
 
-**`IMediaQuery`** — evaluate CSS media queries and preferences (dark mode, reduced motion) from C#.
+**Media queries** — `await Window.MatchMedia("(prefers-color-scheme: dark)").Matches`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-media-query -->
 
-**`IPageVisibility`** — whether the page is foreground/visible.
+**Page visibility** — `await Document.VisibilityState`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-page-visibility -->
 
@@ -103,9 +105,9 @@ finished.
 
 Unlike `IViewTransitions`, **reduced motion is yours to decide here** — these are your animations, and
 only you know whether a given one is a loading affordance or decoration. Read the preference with
-`IMediaQuery` and skip what should be skipped.
+`await Window.MatchMedia("(prefers-reduced-motion: reduce)").Matches` and skip what should be skipped.
 
-**`IPerformance`** — a high-resolution monotonic clock and page-load (Navigation Timing) metrics.
+**Performance** — `await Performance.Now()`, a high-resolution monotonic clock, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-performance -->
 
@@ -115,11 +117,11 @@ only you know whether a given one is a loading affordance or decoration. Read th
 
 ### Location, sensors & input
 
-**`IGeolocation`** — one-shot device position.
+**Geolocation** — `await Navigator.Geolocation.GetCurrentPosition(p => _where = p.Coords)`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-geolocation -->
 
-**`IGeolocation.WatchAsync`** — track position live; the browser pushes each fix to C#.
+**Live position** — `await Navigator.Geolocation.WatchPosition(p => …)`, from [Rask.Web](web-apis.md); each fix runs the handler.
 
 <!-- demo:browser-geolocation-watch -->
 
@@ -131,7 +133,7 @@ only you know whether a given one is a loading affordance or decoration. Read th
 
 <!-- demo:browser-gamepad -->
 
-**`IVibration`** — pulse the device's vibration motor (mobile).
+**Vibration** — `await Navigator.Vibrate(200)`, from [Rask.Web](web-apis.md) (mobile).
 
 <!-- demo:browser-vibration -->
 
@@ -155,7 +157,7 @@ data and re-renders its component.
 
 ### Media, crypto & files
 
-**`IClipboard`** — copy to and read from the system clipboard.
+**Clipboard** — `await Navigator.Clipboard.WriteText("hi")` and `await Navigator.Clipboard.ReadText()`, from [Rask.Web](web-apis.md).
 
 <!-- demo:browser-clipboard -->
 
@@ -163,6 +165,7 @@ data and re-renders its component.
 
 <!-- demo:browser-speech -->
 
+**`ISpeechRecognition`** — dictation: spoken audio turned into text, pushed to C# as it is heard.
 
 <!-- demo:browser-speech-recognition -->
 
@@ -221,8 +224,8 @@ is numeric-only.
 
 **`Shareable`** *(`Rask.Core` — all hosts)* — headless share: hand *your* element the `data-rask-share`
 attribute and its click opens the OS share sheet, on every host including Server (the shared client fires
-`navigator.share` in the click gesture, so the activation survives). For a code-driven share on the
-WASM host, inject **`IShare`** (`Rask.Wasm.Browser`) instead.
+`navigator.share` in the click gesture, so the activation survives). For a code-driven share in a
+WASM app, call `await Navigator.Share(…)` from [Rask.Web](web-apis.md#what-only-webassembly-runs) instead.
 
 <!-- demo:browser-share -->
 

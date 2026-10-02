@@ -13,39 +13,27 @@ public class RaskBrowserApisTests
     // Keep in sync with the registrar; AddCoreBrowserApis_registers_nothing_beyond_the_pinned_set enforces it.
     private static readonly (Type Service, Type Impl)[] CoreApis =
     [
-        (typeof(IBrowserStorage), typeof(BrowserStorage)),
-        (typeof(IClipboard), typeof(Clipboard)),
-        (typeof(IGeolocation), typeof(Geolocation)),
-        (typeof(INavigatorInfo), typeof(NavigatorInfo)),
-        (typeof(INetworkInfo), typeof(NetworkInfo)),
-        (typeof(IMediaQuery), typeof(MediaQuery)),
         (typeof(ISpeechSynthesis), typeof(SpeechSynthesis)),
         (typeof(ISpeechRecognition), typeof(SpeechRecognition)),
-        (typeof(IScreenInfo), typeof(ScreenInfoReader)),
         (typeof(IStorageEstimator), typeof(StorageEstimator)),
-        (typeof(IVisualViewport), typeof(VisualViewportReader)),
         (typeof(IBroadcastChannel), typeof(BroadcastChannelService)),
         (typeof(IMediaSession), typeof(MediaSession)),
         (typeof(IGamepad), typeof(Gamepad)),
         (typeof(IDeviceOrientation), typeof(DeviceOrientation)),
         (typeof(IDeviceMotion), typeof(DeviceMotion)),
         (typeof(ICrypto), typeof(Crypto)),
-        (typeof(IPerformance), typeof(Rask.Core.Browser.Performance)),
         (typeof(IIndexedDb), typeof(IndexedDb)),
         (typeof(IFileSystemAccess), typeof(FileSystemAccess)),
         (typeof(IOriginPrivateFileSystem), typeof(OriginPrivateFileSystem)),
         (typeof(IWebAuthn), typeof(WebAuthn)),
         (typeof(ICookies), typeof(Cookies)),
         (typeof(IPermissions), typeof(Permissions)),
-        (typeof(IVibration), typeof(Vibration)),
-        (typeof(IPageVisibility), typeof(PageVisibilityInfo)),
         (typeof(IViewTransitions), typeof(ViewTransitions)),
         (typeof(IWebAnimations), typeof(WebAnimations)),
         (typeof(IWebLocks), typeof(WebLocks)),
         (typeof(IMediaStreams), typeof(MediaStreams)),
         (typeof(ISignaling), typeof(Signaling)),
         (typeof(IWebRtc), typeof(WebRtc)),
-        (typeof(IBattery), typeof(BrowserBattery)),
         (typeof(IWebPush), typeof(Rask.Core.Browser.WebPush)),
         (typeof(INotifications), typeof(Notifications)),
         (typeof(IBadge), typeof(Badge)),
@@ -117,12 +105,12 @@ public class RaskBrowserApisTests
         var services = new ServiceCollection();
 
         // The app registers its own backend first...
-        services.AddSingleton<IClipboard, FakeAppClipboard>();
+        services.AddSingleton<ICookies, FakeAppCookies>();
         // ...then the framework wires the JS-backed fallbacks.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
 
-        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IClipboard));
-        Assert.Equal(typeof(FakeAppClipboard), descriptor.ImplementationType);
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(ICookies));
+        Assert.Equal(typeof(FakeAppCookies), descriptor.ImplementationType);
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime); // the app registration's lifetime, untouched
     }
 
@@ -133,14 +121,19 @@ public class RaskBrowserApisTests
 
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
 
-        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(IClipboard));
-        Assert.Equal(typeof(Clipboard), descriptor.ImplementationType);
+        var descriptor = Assert.Single(services, d => d.ServiceType == typeof(ICookies));
+        Assert.Equal(typeof(Cookies), descriptor.ImplementationType);
     }
 
-    private sealed class FakeAppClipboard : IClipboard
+    private sealed class FakeAppCookies : ICookies
     {
-        public ValueTask WriteTextAsync(string text) => default;
+        public ValueTask<string?> GetAsync(string name) => ValueTask.FromResult<string?>(null);
 
-        public ValueTask<string> ReadTextAsync() => ValueTask.FromResult(string.Empty);
+        public ValueTask SetAsync(string name, string value, CookieOptions? options = null) => default;
+
+        public ValueTask DeleteAsync(string name, string? path = null) => default;
+
+        public ValueTask<IReadOnlyDictionary<string, string>> GetAllAsync() =>
+            ValueTask.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
     }
 }

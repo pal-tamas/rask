@@ -1,9 +1,9 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="IScreenInfo" /> — read the display size, color depth, and device pixel ratio.</summary>
-public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
+/// <summary>MDN's Screen and <c>devicePixelRatio</c> from Rask.Web — read the display size, color depth, and pixel ratio.</summary>
+public sealed partial class ScreenInfoDemo : Component
 {
     private string? _value;
     private string? _status;
@@ -21,8 +21,9 @@ public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
     {
         try
         {
-            var s = await screen.GetAsync();
-            _value = $"{s.Width}×{s.Height} (avail {s.AvailWidth}×{s.AvailHeight}), {s.ColorDepth}-bit, DPR {s.PixelRatio}";
+            var s = Window.Screen;
+            _value = $"{await s.Width}×{await s.Height} (avail {await s.AvailWidth}×{await s.AvailHeight}), "
+                + $"{await s.ColorDepth}-bit, DPR {await Window.DevicePixelRatio}";
             _status = "Screen read";
         }
         catch (Exception ex) { _status = "Read failed: " + ex.Message; }

@@ -1,12 +1,9 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary>
-///     <see cref="IBrowserStorage" /> — a <c>localStorage</c> round-trip, injected through the ctor and
-///     identical on Server and WASM.
-/// </summary>
-public sealed partial class StorageDemo(IBrowserStorage storage) : Component
+/// <summary>MDN's <c>localStorage</c>, from Rask.Web — a round-trip, identical on Server and WASM.</summary>
+public sealed partial class StorageDemo : Component
 {
     private const string StorageKey = "rask.browser.storage";
 
@@ -33,7 +30,7 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     {
         try
         {
-            await storage.Local.SetAsync(StorageKey, _input);
+            await LocalStorage.SetItem(StorageKey, _input);
             _status = $"Stored: {_input}";
         }
         catch (Exception ex) { _status = "Set failed: " + ex.Message; }
@@ -43,9 +40,8 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     {
         try
         {
-            _read = await storage.Local.GetAsync(StorageKey);
-            var count = await storage.Local.LengthAsync();
-            _status = $"Read (localStorage holds {count} key(s))";
+            _read = await LocalStorage.GetItem(StorageKey);
+            _status = $"Read (localStorage holds {await LocalStorage.Length} key(s))";
         }
         catch (Exception ex) { _status = "Read failed: " + ex.Message; }
     }
@@ -54,7 +50,7 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     {
         try
         {
-            await storage.Local.RemoveAsync(StorageKey);
+            await LocalStorage.RemoveItem(StorageKey);
             _read = null;
             _status = "Removed";
         }

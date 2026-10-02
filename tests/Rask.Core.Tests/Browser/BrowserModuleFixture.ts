@@ -23,9 +23,6 @@
 
 import * as auth from "../../../src/Rask.Core/Resources/browser/auth.js";
 import * as cookies from "../../../src/Rask.Core/Resources/browser/cookies.js";
-import * as geolocation from "../../../src/Rask.Core/Resources/browser/geolocation.js";
-import * as mediaQuery from "../../../src/Rask.Core/Resources/browser/mediaQuery.js";
-import * as networkInformation from "../../../src/Rask.Core/Resources/browser/networkInformation.js";
 import * as storageManager from "../../../src/Rask.Core/Resources/browser/storageManager.js";
 
 // Reaching this line at all is assertion (2): every import above evaluated with no DOM present.
@@ -53,70 +50,13 @@ Object.defineProperty(documentStub, "cookie", {
 });
 define("document", documentStub);
 
-const mediaQueries: string[] = [];
-define("window", {
-    matchMedia: (query: string) => {
-        mediaQueries.push(query);
-        return {matches: query.indexOf("dark") >= 0};
-    }
-});
-
-let clears = 0;
 define("navigator", {
-    geolocation: {
-        getCurrentPosition: (
-            ok: (p: unknown) => void,
-            _fail: (e: unknown) => void,
-            opts: Record<string, unknown>) => {
-            ok({
-                coords: {
-                    latitude: 51.5,
-                    longitude: -0.12,
-                    accuracy: 12,
-                    altitude: null,
-                    altitudeAccuracy: null,
-                    heading: null,
-                    speed: null
-                },
-                timestamp: 1234,
-                requested: opts
-            });
-        },
-        watchPosition: (ok: (p: unknown) => void) => {
-            ok({
-                coords: {
-                    latitude: 1,
-                    longitude: 2,
-                    accuracy: 3,
-                    altitude: null,
-                    altitudeAccuracy: null,
-                    heading: null,
-                    speed: null
-                },
-                timestamp: 99
-            });
-            return 7;
-        },
-        clearWatch: () => {
-            clears++;
-        }
-    },
-    // Deliberately the Mozilla-prefixed one: the unprefixed navigator.connection is absent, which is
-    // the shape Firefox actually presents, and the fallback chain has to find it.
-    mozConnection: {effectiveType: "3g", saveData: true},
     storage: {estimate: () => Promise.resolve({})}
 });
 
 // --- exercise -----------------------------------------------------------------------------------
 
 async function run(): Promise<Any> {
-    const fix = await geolocation.getCurrentPosition({enableHighAccuracy: true, timeoutMs: 5000});
-
-    const watched: unknown[] = [];
-    const stop = geolocation.watchPosition((f) => watched.push(f));
-    stop();
-    stop(); // idempotent: a second stop must not clear a second time
-
     cookies.set("token", "he llo", {maxAgeSeconds: 60, path: "/", sameSite: "Lax", secure: true});
     cookies.remove("token", "/app");
 
@@ -229,30 +169,12 @@ async function run(): Promise<Any> {
 
         importedWithoutADom,
 
-        // Geolocation flattens GeolocationPosition and carries the timestamp across.
-        fixLatitude: fix.latitude,
-        fixAltitudeIsNull: fix.altitude === null,
-        fixTimestampMs: fix.timestampMs,
-
-        // A subscription hands back a stop function rather than an id, and stopping twice clears once.
-        watchedCount: watched.length,
-        clears,
-
         // Cookies: reads decode, writes build the assignment string option by option.
         cookieRead: cookies.get("token"),
         cookieMissing: cookies.get("nope"),
         cookieAll: cookies.getAll(),
         cookieSetWrite: cookieWrites[0],
         cookieDeleteWrite: cookieWrites[1],
-
-        // Media queries: the convenience wrappers must ask the real query strings.
-        prefersDark: mediaQuery.prefersDark(),
-        prefersReducedMotion: mediaQuery.prefersReducedMotion(),
-        mediaQueries,
-
-        // Network info resolves through the vendor-prefixed fallback and defaults the numbers.
-        network: networkInformation.current(),
-        networkSupported: networkInformation.isSupported(),
 
         // An estimate with neither figure present reports zeroes rather than undefined.
         estimate

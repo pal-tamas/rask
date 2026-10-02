@@ -1,9 +1,9 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="IVisualViewport" /> — read the actually-visible viewport (size, offset, zoom).</summary>
-public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Component
+/// <summary>MDN's VisualViewport from Rask.Web — read the actually-visible viewport (size, offset, zoom).</summary>
+public sealed partial class VisualViewportDemo : Component
 {
     private string? _value;
     private string? _status;
@@ -21,17 +21,16 @@ public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Compo
     {
         try
         {
-            if (!await viewport.IsSupportedAsync())
+            var v = Window.VisualViewport;
+            if (!await v.IsSupported)
             {
                 _value = "not supported in this browser";
                 _status = "Visual viewport unavailable";
                 return;
             }
 
-            var v = await viewport.GetAsync();
-            _value = v is null
-                ? "unavailable"
-                : $"{v.Width:N0}×{v.Height:N0} @ scale {v.Scale:N2}, offset ({v.OffsetLeft:N0}, {v.OffsetTop:N0})";
+            _value = $"{await v.Width:N0}×{await v.Height:N0} @ scale {await v.Scale:N2}, "
+                + $"offset ({await v.OffsetLeft:N0}, {await v.OffsetTop:N0})";
             _status = "Viewport read";
         }
         catch (Exception ex) { _status = "Read failed: " + ex.Message; }

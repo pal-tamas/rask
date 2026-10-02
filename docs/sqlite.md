@@ -795,8 +795,8 @@ to fix.
 For client-side storage in a Rask WASM app, reach for what the browser already gives you and Rask
 already wraps:
 
-- **Key/value** — `IBrowserStorage` (localStorage/sessionStorage, ~5 MB) or `IIndexedDb` (hundreds of
-  MB, async), both in `Rask.Core.Browser`. See [browser-apis.md](browser-apis.md).
+- **Key/value** — `LocalStorage` / `SessionStorage` from [`Rask.Web`](web-apis.md) (~5 MB), or `IIndexedDb`
+  (hundreds of MB, async) in `Rask.Core.Browser`. See [browser-apis.md](browser-apis.md).
 - **A real client-side SQL database, in C#** — [`Rask.SQLite.Browser`](#rasksqlitebrowser--keeping-a-browser-database),
   below. Same `Microsoft.Data.Sqlite`, same EF Core, persisted across reloads.
 - **A real client-side SQL database, in JavaScript** — the

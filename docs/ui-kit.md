@@ -420,17 +420,19 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
   tooltip would be cut off: the panel clips its overflow.)
 
   `Collapsed`/`OnCollapse` hand the choice to C#, and remembering it is the app's: the kit stores nothing on
-  your behalf. Read it once from `IBrowserStorage` after the first render and write it back as it changes:
+  your behalf. Read it once from `localStorage` ([`Rask.Web`](web-apis.md)) after the first render and write it back as it changes:
 
   ```csharp
-  public sealed partial class AppShell(IBrowserStorage storage) : Component
+  using Rask.Web;
+
+  public sealed partial class AppShell : Component
   {
       private bool _rail;
 
       // After the first render, because storage lives in the browser. The hook repaints when it completes.
       protected override async Task OnFirstRender()
       {
-          if (await storage.Local.GetAsync("sidebar-rail") == "1")
+          if (await LocalStorage.GetItem("sidebar-rail") == "1")
           {
               _rail = true;
           }
@@ -442,7 +444,7 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
               .OnCollapse(async rail =>
               {
                   _rail = rail;
-                  await storage.Local.SetAsync("sidebar-rail", rail ? "1" : "0");
+                  await LocalStorage.SetItem("sidebar-rail", rail ? "1" : "0");
               })[ … ];
   }
   ```

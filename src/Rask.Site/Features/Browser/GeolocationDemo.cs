@@ -1,10 +1,10 @@
 using System.Globalization;
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="IGeolocation" /> — one-shot current position via the Promise-wrapped helper.</summary>
-public sealed partial class GeolocationDemo(IGeolocation geolocation) : Component
+/// <summary>MDN's Geolocation API from Rask.Web — one-shot current position, handed to a callback.</summary>
+public sealed partial class GeolocationDemo : Component
 {
     private string? _location;
     private string? _status;
@@ -22,17 +22,26 @@ public sealed partial class GeolocationDemo(IGeolocation geolocation) : Componen
     {
         try
         {
-            var pos = await geolocation.GetCurrentPositionAsync(new GeolocationOptions { TimeoutMs = 10_000 });
-            // Coordinates format invariantly (decimal point) — independent of the server's locale.
-            _location = string.Create(
-                CultureInfo.InvariantCulture,
-                $"lat {pos.Latitude:F4}, lon {pos.Longitude:F4} (±{pos.Accuracy:F0} m)");
-            _status = "Position acquired";
+            _status = "Locating…";
+            await Navigator.Geolocation.GetCurrentPosition(
+                p =>
+                {
+                    _location = Describe(p.Coords);
+                    _status = "Position acquired";
+                },
+                e => Failed(e.Message),
+                new Rask.Web.Types.PositionOptions { Timeout = 10_000 });
         }
-        catch (Exception ex)
-        {
-            _location = null;
-            _status = "Location failed: " + ex.Message;
-        }
+        catch (Exception ex) { Failed(ex.Message); }
     }
+
+    private void Failed(string message)
+    {
+        _location = null;
+        _status = "Location failed: " + message;
+    }
+
+    // Coordinates format invariantly (decimal point) — independent of the server's locale.
+    internal static string Describe(Rask.Web.Types.GeolocationCoordinates c) =>
+        string.Create(CultureInfo.InvariantCulture, $"lat {c.Latitude:F4}, lon {c.Longitude:F4} (±{c.Accuracy:F0} m)");
 }

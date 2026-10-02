@@ -72,15 +72,15 @@ public static class RaskHostContracts
     /// </summary>
     public static IReadOnlyList<Type> BrowserApis { get; } =
     [
-        typeof(IBadge), typeof(IBattery), typeof(IBroadcastChannel), typeof(IBrowserStorage),
-        typeof(IClipboard), typeof(ICookies), typeof(ICrypto), typeof(IDeviceMotion),
-        typeof(IDeviceOrientation), typeof(IFileSystemAccess), typeof(IGamepad), typeof(IGeolocation),
-        typeof(IIndexedDb), typeof(IMediaQuery), typeof(IMediaSession),
-        typeof(IMediaStreams), typeof(INavigatorInfo), typeof(INetworkInfo),
-        typeof(INotifications), typeof(IOriginPrivateFileSystem), typeof(IPageVisibility),
-        typeof(IPerformance), typeof(IPermissions), typeof(IScreenInfo),
+        typeof(IBadge), typeof(IBroadcastChannel),
+        typeof(ICookies), typeof(ICrypto), typeof(IDeviceMotion),
+        typeof(IDeviceOrientation), typeof(IFileSystemAccess), typeof(IGamepad),
+        typeof(IIndexedDb), typeof(IMediaSession),
+        typeof(IMediaStreams),
+        typeof(INotifications), typeof(IOriginPrivateFileSystem),
+        typeof(IPermissions),
         typeof(ISignaling), typeof(ISpeechRecognition), typeof(ISpeechSynthesis), typeof(IStorageEstimator),
-        typeof(IVibration), typeof(IViewTransitions), typeof(IVisualViewport), typeof(IWakeLock),
+        typeof(IViewTransitions), typeof(IWakeLock),
         typeof(IWebAnimations), typeof(IWebAuthn), typeof(IWebLocks), typeof(IWebPush), typeof(IWebRtc),
     ];
 
@@ -95,7 +95,7 @@ public static class RaskHostContracts
     [
         typeof(IBroadcastChannelConnection), typeof(IDirectoryHandle), typeof(IFileHandle),
         typeof(IKeyValueStore), typeof(IPeerConnection), typeof(IRtcDataChannel),
-        typeof(ISignalingConnection), typeof(IWakeLockSentinel), typeof(IWebStorage),
+        typeof(ISignalingConnection), typeof(IWakeLockSentinel),
     ];
 
     /// <summary>

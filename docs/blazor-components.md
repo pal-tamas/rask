@@ -325,7 +325,7 @@ component through Blazor's own activator, so anything you registered is availabl
 your own services, and Rask's typed browser APIs:
 
 ```csharp
-@inject IMediaQuery Media
+@inject ICookies Cookies
 
 @code {
     private bool _dark;
@@ -333,8 +333,7 @@ your own services, and Rask's typed browser APIs:
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _dark = await Media.PrefersDarkAsync();
-        StateHasChanged();
+        _dark = await Cookies.GetAsync("theme") == "dark";
     }
 }
 ```

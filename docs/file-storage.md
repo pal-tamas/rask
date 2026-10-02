@@ -523,4 +523,4 @@ files are on disk it says so, because that is the one state in which no backup c
 - [Deployment](deployment.md#uploaded-files) — the deploy volume, and passing storage settings.
 - [Scaling](scaling.md) — what else changes on more than one host.
 - [Dashboard](dashboard.md) — the Storage tab.
-- Looking for `localStorage` in the browser? That is [`IBrowserStorage`](apis/storage.md).
+- Looking for `localStorage` in the browser? That is `LocalStorage` in [`Rask.Web`](web-apis.md).

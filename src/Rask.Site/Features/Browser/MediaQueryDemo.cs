@@ -1,9 +1,9 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
-/// <summary><see cref="IMediaQuery" /> — evaluate CSS media queries and user preferences from C#.</summary>
-public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
+/// <summary>MDN's <c>matchMedia</c> from Rask.Web — evaluate CSS media queries and user preferences from C#.</summary>
+public sealed partial class MediaQueryDemo : Component
 {
     private string? _value;
     private string? _status;
@@ -21,9 +21,9 @@ public sealed partial class MediaQueryDemo(IMediaQuery media) : Component
     {
         try
         {
-            var wide = await media.MatchesAsync("(min-width: 768px)");
-            var dark = await media.PrefersDarkAsync();
-            var reduced = await media.PrefersReducedMotionAsync();
+            var wide = await Window.MatchMedia("(min-width: 768px)").Matches;
+            var dark = await Window.MatchMedia("(prefers-color-scheme: dark)").Matches;
+            var reduced = await Window.MatchMedia("(prefers-reduced-motion: reduce)").Matches;
             _value = $"≥768px: {wide}, prefersDark: {dark}, reducedMotion: {reduced}";
             _status = "Media queries evaluated";
         }

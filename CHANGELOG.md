@@ -584,6 +584,19 @@ them until tagged releases begin.
     _io = await IntersectionObserver.Create(entries => _seen = entries[^1].IsIntersecting);   // re-renders itself
     await _io.Observe(_card);
     ```
+  - **BREAKING: 16 more forwarding wrappers are gone — inject nothing, call MDN's API from Rask.Web.**
+    `IClipboard`, `IGeolocation`, `INavigatorInfo`, `IMediaQuery`, `IScreenInfo`, `IVisualViewport`, `IPerformance`,
+    `IVibration`, `IPageVisibility`, `IBattery`, `INetworkInfo`, `IBrowserStorage`, and on WebAssembly `IShare`,
+    `IEyeDropper`, `IIdleDetector`, `IScreenOrientation`, with their records and TypeScript:
+    ```csharp
+    // before: await clipboard.WriteTextAsync("hi");   var dark = await media.PrefersDarkAsync();
+    await Navigator.Clipboard.WriteText("hi");
+    var dark = await Window.MatchMedia("(prefers-color-scheme: dark)").Matches;
+    // before: await storage.SetAsync("k", "v");        await share.ShareAsync(new ShareData { Url = url });
+    await LocalStorage.SetItem("k", "v");
+    await Navigator.Share(new() { Url = url });          // WebAssembly
+    ```
+    The site's demos use them. The declarative `Shareable`, `ScreenOrientationTrigger` and gesture components are unchanged.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

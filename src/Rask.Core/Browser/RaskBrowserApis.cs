@@ -52,22 +52,11 @@ public static class RaskBrowserApis
 
     private static void AddPageAndDeviceApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<IClipboard, Clipboard>(lifetime);
-        services.AddBrowserApi<IGeolocation, Geolocation>(lifetime);
-        services.AddBrowserApi<INavigatorInfo, NavigatorInfo>(lifetime);
-        services.AddBrowserApi<INetworkInfo, NetworkInfo>(lifetime);
-        services.AddBrowserApi<IMediaQuery, MediaQuery>(lifetime);
-        services.AddBrowserApi<IScreenInfo, ScreenInfoReader>(lifetime);
-        services.AddBrowserApi<IVisualViewport, VisualViewportReader>(lifetime);
         services.AddBrowserApi<IGamepad, Gamepad>(lifetime);
         services.AddBrowserApi<IDeviceOrientation, DeviceOrientation>(lifetime);
         services.AddBrowserApi<IDeviceMotion, DeviceMotion>(lifetime);
-        services.AddBrowserApi<IPerformance, Performance>(lifetime);
-        services.AddBrowserApi<IVibration, Vibration>(lifetime);
-        services.AddBrowserApi<IPageVisibility, PageVisibilityInfo>(lifetime);
         services.AddBrowserApi<IViewTransitions, ViewTransitions>(lifetime);
         services.AddBrowserApi<IWebAnimations, WebAnimations>(lifetime);
-        services.AddBrowserApi<IBattery, BrowserBattery>(lifetime);
     }
 
     private static void AddObserverAndMediaApis(IServiceCollection services, ServiceLifetime lifetime)
@@ -83,7 +72,6 @@ public static class RaskBrowserApis
 
     private static void AddStorageAndSecurityApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<IBrowserStorage, BrowserStorage>(lifetime);
         services.AddBrowserApi<IStorageEstimator, StorageEstimator>(lifetime);
         services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
         services.AddBrowserApi<IFileSystemAccess, FileSystemAccess>(lifetime);

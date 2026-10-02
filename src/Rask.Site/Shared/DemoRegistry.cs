@@ -116,15 +116,15 @@ public static partial class DemoRegistry
                 + "data-rask-share attribute to spread onto it. The shared client fires navigator.share inside "
                 + "the click gesture, so the transient user activation survives even on the Server transport "
                 + "(an imperative round-trip would lose it), and it works on every host. For a code-driven "
-                + "share on the WASM host, inject IShare from Rask.Wasm.Browser.")
+                + "share on the WASM host, await Navigator.Share(…) from Rask.Web.")
                 .Result(ShareDemo),
             ["browser-gesture-bridge"] = () => CodeSample
                 .Files(["GestureBridgeDemo.cs"])
                 .Notes("The GestureTrigger family (Rask.Core) is headless like Shareable: each trigger hands your "
                 + "element a data-rask-gesture attribute and the shared client runs the activation-gated API "
                 + "inside the click gesture. That makes normally-WASM-only APIs reachable on every host, the "
-                + "Server included — where the imperative IFullscreen / IEyeDropper / … services can't be "
-                + "injected, because a round-trip would lose the transient user activation. Six typed triggers "
+                + "Server included — where an imperative RequestFullscreen() / EyeDropper.Open() / … call can't "
+                + "run, because a round-trip would lose the transient user activation. Six typed triggers "
                 + "ship: Trigger.Fullscreen, Trigger.ScreenOrientation, Trigger.EyeDropper, Trigger.Install, "
                 + "Trigger.MediaCapture, and Trigger.PictureInPicture (the last two target a <video> via its "
                 + "ElementRef). Capabilities that return a value (the eyedropper's hex, the install outcome) "

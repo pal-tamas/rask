@@ -7,9 +7,9 @@ namespace Rask.Wasm.Browser;
 ///     Typed access to the Fullscreen API
 ///     (<see href="https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API" />) — present an
 ///     element (or the whole page) fullscreen, e.g. for media, games, or an immersive view. Pairs with
-///     <see cref="IScreenOrientation" />: <c>LockAsync</c> generally requires fullscreen, so request
+///     <c>Screen.Orientation</c>: <c>LockAsync</c> generally requires fullscreen, so request
 ///     fullscreen first, then lock. <b>WASM-only:</b> <c>requestFullscreen()</c> needs <em>transient</em>
-///     user activation (the same constraint as <see cref="IShare" />), which the Server/WebSocket
+///     user activation (the same constraint as <c>Navigator.Share</c>), which the Server/WebSocket
 ///     round-trip loses, so it's registered only by the WASM host.
 /// </summary>
 /// <remarks>

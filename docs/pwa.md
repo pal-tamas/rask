@@ -331,53 +331,54 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 > offline app**: the service worker deliberately does **not** cache the server-rendered shell (it
 > carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
 > rather than a dead cached page. The **install-prompt replay** (`IInstallPrompt`) and the
-> activation-bound imperative device APIs (`IShare`, `IFullscreen`, `IMediaDevices`, …) are not
+> activation-bound imperative device APIs (`IFullscreen`, `IMediaDevices`, …) are not
 > registered on Server, and neither is [**background sync**](#background-sync-ibackgroundsync) — it rides
 > the service-worker registration and needs a client-side runtime to wake into, which a WebSocket-rendered
 > app does not have. The honest framing: *installable + push + native-feel, not an offline app.* (Sharing
 > still works on Server via the headless `Shareable` in `Rask.Core`, which fires `navigator.share` in the
-> click gesture; the imperative `IShare` lives in `Rask.Wasm.Browser`, WASM only.)
+> click gesture; the imperative `Navigator.Share(…)` from `Rask.Web` compiles only in a WASM app.)
 
 ---
 
 ## Device capabilities for mobile
 
-Typed wrappers for the browser APIs that make a web app feel native. Everything in `Rask.Core.Browser`
+The browser APIs that make a web app feel native. Rows marked *(Rask.Web)* are MDN's own surface from
+[`Rask.Web`](web-apis.md) (`using Rask.Web;`); the rest are typed wrappers. Everything in `Rask.Core.Browser`
 works on **both transports** (and is registered on Server too) — including the PWA APIs `IWebPush`,
 `INotifications`, `IBadge`, `IWakeLock`, and the headless declarative `Shareable` *(all hosts)*. The
-`*(WASM)*` ones — `IShare` and the device/handle set — live in `Rask.Wasm.Browser`. They need a live user
-gesture or the installed-app instance the Server round-trip can't carry, so none is registered on Server.
+`*(WASM)*` ones need a live user gesture or the installed-app instance the Server round-trip can't carry: the
+device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server.
 
-| Capability | Service | Use |
+| Capability | API | Use |
 | --- | --- | --- |
-| **Share sheet** | `Shareable` *(all)* / `IShare` *(WASM)* | Headless declarative share works everywhere; imperative `IShare` for code-driven shares |
-| **Vibration** | `IVibration` | Haptic feedback (`VibrateAsync(200)`) |
-| **Geolocation** | `IGeolocation` | Current position (`GetCurrentPositionAsync`) + live tracking (`WatchAsync`) |
-| **Clipboard** | `IClipboard` | Copy/paste |
-| **Storage / Cookies** | `IBrowserStorage` / `ICookies` | Persist state on-device |
+| **Share sheet** | `Shareable` *(all)* / `Navigator.Share(…)` *(Rask.Web, WASM)* | Headless declarative share works everywhere; `Navigator.Share` for code-driven shares |
+| **Vibration** | `Navigator.Vibrate(200)` *(Rask.Web)* | Haptic feedback |
+| **Geolocation** | `Navigator.Geolocation` *(Rask.Web)* | Current position (`GetCurrentPosition`) + live tracking (`WatchPosition`) |
+| **Clipboard** | `Navigator.Clipboard` *(Rask.Web)* | Copy/paste (`WriteText` / `ReadText`) |
+| **Storage / Cookies** | `LocalStorage` *(Rask.Web)* / `ICookies` | Persist state on-device |
 | **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
 | **Files on disk** | `IFileSystemAccess` | Open/save a file back to disk + directory access (editors, file managers) |
 | **Passkeys** | `IWebAuthn` | Passwordless register / sign-in with a biometric or security key |
 | **Permissions** | `IPermissions` | Check before prompting |
-| **Page visibility** | `IPageVisibility` | Pause work when backgrounded |
-| **Online status** | `INavigatorInfo` | `OnLineAsync()` for an offline indicator |
-| **Network quality** | `INetworkInfo` | `GetStatusAsync()` → effective type / downlink / Data Saver, to adapt loading |
-| **Media queries** | `IMediaQuery` | `MatchesAsync(query)` / `PrefersDarkAsync` / `PrefersReducedMotionAsync` |
+| **Page visibility** | `Document.VisibilityState` *(Rask.Web)* | Pause work when backgrounded |
+| **Online status** | `Navigator.OnLine` *(Rask.Web)* | An offline indicator |
+| **Network quality** | `Navigator.Connection` *(Rask.Web)* | `EffectiveType` / `Downlink` / `SaveData`, to adapt loading |
+| **Media queries** | `Window.MatchMedia(query)` *(Rask.Web)* | `.Matches`, and `OnChange` to follow it |
 | **Speech (text-to-speech)** | `ISpeechSynthesis` | `SpeakAsync(text, SpeechOptions?)` / `CancelAsync` |
-| **Screen info** | `IScreenInfo` | `GetAsync()` → size / color depth / device pixel ratio (retina) |
+| **Screen info** | `Screen` *(Rask.Web)* | `Width` / `Height` / `ColorDepth`; `Window.DevicePixelRatio` for retina |
 | **Storage estimate** | `IStorageEstimator` | `EstimateAsync()` → quota / usage, to budget offline caches |
-| **Visual viewport** | `IVisualViewport` | `GetAsync()` → visible size/offset/zoom, e.g. above the soft keyboard |
+| **Visual viewport** | `Window.VisualViewport` *(Rask.Web)* | Visible size/offset/zoom, e.g. above the soft keyboard |
 | **Cross-tab messaging** | `IBroadcastChannel` | `OpenAsync(name, onMessage)` / `PostAsync` — sync sign-out, theme, "data updated" across tabs |
 | **Local notifications** | `INotifications` | Show a notification from the page (no server) |
 | **App badge** | `IBadge` | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
 | **Wake lock** | `IWakeLock` | Keep the screen awake; dispose the sentinel to release |
-| **Screen orientation** | `IScreenOrientation` *(WASM)* | Read orientation; `LockAsync` / `UnlockAsync` (needs fullscreen) |
+| **Screen orientation** | `Screen.Orientation` *(Rask.Web)* | Read orientation; `Lock(…)` *(WASM)* / `Unlock()` (needs fullscreen) |
 | **Fullscreen** | `IFullscreen` *(WASM)* | Present an element/page fullscreen (`RequestAsync(ElementRef?)` / `ExitAsync`) |
 | **Camera / mic / screen** | `IMediaDevices` *(WASM)* | Capture into a `<video>` (`GetUserMediaAsync` / `GetDisplayMediaAsync`) |
 | **Picture-in-Picture** | `IPictureInPicture` *(WASM)* | Float a `<video>` into an always-on-top miniplayer |
 | **Gamepad** | `IGamepad` | Read connected controllers — sticks / triggers / buttons (`WatchAsync`) |
-| **Idle detection** | `IIdleDetector` *(WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
-| **EyeDropper** | `IEyeDropper` *(WASM)* | Pick a color from anywhere on screen (`OpenAsync`) |
+| **Idle detection** | `IdleDetector.Create()` *(Rask.Web, WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
+| **EyeDropper** | `EyeDropper.Create()` *(Rask.Web, WASM)* | Pick a color from anywhere on screen (`Open()`) |
 | **Serial device** | `ISerial` *(WASM)* | Talk to an Arduino / serial device — `RequestPortAsync(options, onData, onClosed?)` → `ISerialPort?` |
 | **USB device** | `IUsb` *(WASM)* | Pair with and drive a USB device — `RequestDeviceAsync(filters)` → `IUsbDevice?` (open, claim, transfer) |
 | **HID device** | `IHid` *(WASM)* | Talk to a HID device — `RequestDevicesAsync(filters)` → devices (output/feature reports + pushed input reports) |
@@ -393,9 +394,9 @@ should stay on and `DisposeAsync()` (e.g. `await using`, or from a component's `
 release. Browsers auto-release when the page is hidden — the framework re-acquires held locks when it
 becomes visible again, so a sentinel stays effective until you dispose it.
 
-**Screen orientation.** `IScreenOrientation.GetAsync()` reads the current `OrientationInfo`
-(type + angle); `LockAsync(OrientationLock.Landscape)` / `UnlockAsync()` lock it — locking usually
-requires fullscreen and is often unsupported on desktop, so wrap it in `try/catch`.
+**Screen orientation.** `await Screen.Orientation.Type` and `await Screen.Orientation.Angle` read it.
+`await Screen.Orientation.Lock(…)` (WASM, in a click) and `Unlock()` lock it — locking usually requires fullscreen
+and is often unsupported on desktop, so wrap it in `try/catch`. On the Server host, use `Trigger.ScreenOrientation`.
 
 **Fullscreen.** `IFullscreen.RequestAsync(element)` presents an `ElementRef` (or, with no argument, the
 whole page) fullscreen; `ExitAsync()` leaves and `IsActiveAsync()` reports state. `requestFullscreen`

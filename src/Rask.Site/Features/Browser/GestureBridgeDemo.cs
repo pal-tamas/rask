@@ -7,7 +7,7 @@ namespace Rask.Site.Features;
 ///     The full <c>GestureTrigger</c> family (Rask.Core) — the headless gesture bridge. Each trigger hands
 ///     <b>your</b> element a <c>data-rask-gesture</c> attribute; the shared client runs the activation-gated
 ///     browser API <b>inside the click gesture</b>, so these work on <b>every</b> host — the Server included,
-///     where the imperative <c>IFullscreen</c> / <c>IEyeDropper</c> / … services can't be injected (a round-trip
+///     where an imperative <c>RequestFullscreen()</c> / <c>EyeDropper.Open()</c> / … call can't run (a round-trip
 ///     would lose the transient user activation). <c>FullscreenTrigger</c> and <c>EyeDropperTrigger</c> are
 ///     joined here by <c>ScreenOrientationTrigger</c>, <c>InstallTrigger</c>, <c>MediaCaptureTrigger</c>, and
 ///     <c>PictureInPictureTrigger</c> (the last two target a <c>&lt;video&gt;</c> via its <c>ElementRef</c>).

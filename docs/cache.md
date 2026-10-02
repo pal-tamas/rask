@@ -158,7 +158,7 @@ migration for it — which is exactly what this overload removes.
 ## Notes
 
 - **Server-side.** The store is your EF Core database and the purger is a hosted service — this is not a
-  browser/WASM concern. (For client-side browser storage, see [`apis/storage.md`](apis/storage.md).)
+  browser/WASM concern. (For client-side browser storage, see `LocalStorage` in [Web APIs from MDN](web-apis.md).)
 - **No `ShutdownGracePeriod`, on purpose.** Jobs, the outbox and mail each take one, because they run *your*
   code and cancelling it halfway is destructive. The purger's only in-flight work is a single bulk delete of
   expired rows: cancel it and either the statement rolls back (the next sweep redoes it) or it committed (the

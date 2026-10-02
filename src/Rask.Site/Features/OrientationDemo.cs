@@ -1,13 +1,14 @@
-using Rask.Wasm.Browser;
+using Rask.Web;
+using OrientationLockType = Rask.Web.Types.OrientationLockType;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IScreenOrientation" /> — read the current screen orientation and, for an installed or
+///     <c>Screen.Orientation</c> (Rask.Web) — read the current screen orientation and, for an installed or
 ///     fullscreen app, lock/unlock it. Locking is usually rejected outside fullscreen and is often
 ///     unsupported on desktop, so each call is wrapped in try/catch.
 /// </summary>
-public sealed partial class OrientationDemo(IScreenOrientation orientation) : Component
+public sealed partial class OrientationDemo : Component
 {
     private string? _current;
     private string? _status;
@@ -18,10 +19,10 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
                     Ui.Button.Primary.Id("orientation-read").OnClick(Read)["Read current"],
                     Ui.Button.Primary.Outline
                         .Id("orientation-portrait")
-                        .OnClick(() => Lock(OrientationLock.Portrait))["Lock portrait"],
+                        .OnClick(() => Lock(OrientationLockType.Portrait))["Lock portrait"],
                     Ui.Button.Primary.Outline
                         .Id("orientation-landscape")
-                        .OnClick(() => Lock(OrientationLock.Landscape))["Lock landscape"],
+                        .OnClick(() => Lock(OrientationLockType.Landscape))["Lock landscape"],
                     Ui.Button.Error.Outline.Id("orientation-unlock").OnClick(Unlock)["Unlock"]
                 ],
                 Div.Class("text-sm text-ui-muted mb-1")[
@@ -33,14 +34,13 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
     {
         try
         {
-            if (!await orientation.IsSupportedAsync())
+            if (!await Screen.Orientation.IsSupported)
             {
                 _current = "not supported";
                 return;
             }
 
-            var info = await orientation.GetAsync();
-            _current = $"{info.Type} ({info.Angle}°)";
+            _current = $"{await Screen.Orientation.Type} ({await Screen.Orientation.Angle}°)";
         }
         catch (Exception ex)
         {
@@ -53,11 +53,11 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
         }
     }
 
-    private async Task Lock(OrientationLock to)
+    private async Task Lock(OrientationLockType to)
     {
         try
         {
-            await orientation.LockAsync(to);
+            await Screen.Orientation.Lock(to);
             // Read back AFTER claiming the lock, and claim it last: Read owns _status on its failure
             // path, so setting the lock's status first let a failed read-back overwrite it with
             // "Failed: …" — reporting a lock that had in fact succeeded as one that had not. The read
@@ -75,7 +75,7 @@ public sealed partial class OrientationDemo(IScreenOrientation orientation) : Co
     {
         try
         {
-            await orientation.UnlockAsync();
+            await Screen.Orientation.Unlock();
             _status = "Unlocked";
         }
         catch (Exception ex)

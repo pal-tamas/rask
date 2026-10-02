@@ -1,7 +1,7 @@
 // The C#-facing adapter over ./ — and the ONLY module in this directory with side effects.
 //
 // Rask's C# wrappers reach the browser by handing IJSRuntime a dotted identifier ("__raskApi.
-// geolocation") that the invoke dispatcher resolves against `window` at call time. That is why these
+// cookieGet") that the invoke dispatcher resolves against `window` at call time. That is why these
 // are globals rather than exports: the caller is .NET, and it resolves names, not modules.
 //
 // Importing this file registers those namespaces. Both framework clients do exactly that — Server's
@@ -21,7 +21,6 @@
 // anywhere in the path to notice.
 
 import * as badge from "./badge.js";
-import * as battery from "./battery.js";
 import * as broadcastChannel from "./broadcastChannel.js";
 import * as cookies from "./cookies.js";
 import * as crypto from "./crypto.js";
@@ -32,38 +31,24 @@ import * as fileSystem from "./fileSystem.js";
 import * as fullscreen from "./fullscreen.js";
 import * as gamepad from "./gamepad.js";
 import * as installPrompt from "./installPrompt.js";
-import * as geolocation from "./geolocation.js";
 import * as indexedDb from "./indexedDb.js";
 import * as mediaDevices from "./mediaDevices.js";
-import * as mediaQuery from "./mediaQuery.js";
 import * as mediaSession from "./mediaSession.js";
-import * as networkInformation from "./networkInformation.js";
 import * as notifications from "./notifications.js";
 import * as opfs from "./originPrivateFileSystem.js";
-import * as performance from "./performance.js";
 import * as permissions from "./permissions.js";
 import * as pictureInPicture from "./pictureInPicture.js";
-import * as screenInfo from "./screen.js";
 import * as screenOrientation from "./screenOrientation.js";
 import * as signaling from "./signaling.js";
 import * as speechRecognition from "./speechRecognition.js";
 import * as speechSynthesis from "./speechSynthesis.js";
 import * as storageManager from "./storageManager.js";
-import * as visualViewport from "./visualViewport.js";
 import * as wakeLock from "./wakeLock.js";
 import * as webAuthn from "./webAuthn.js";
 import * as webLocks from "./webLocks.js";
 import * as webPush from "./webPush.js";
 
 window.__raskApi = window.__raskApi || {
-    // IGeolocation.GetCurrentPositionAsync. Rejects when unsupported, denied or timed out; the
-    // awaiting ValueTask surfaces that as a JSException.
-    geolocation: (
-        enableHighAccuracy: boolean,
-        timeoutMs: number | null,
-        maximumAgeMs: number | null) =>
-        geolocation.getCurrentPosition({enableHighAccuracy, timeoutMs, maximumAgeMs}),
-
     // IPermissions.QueryAsync — the live PermissionStatus flattened to its state string.
     permissionState: (name: PermissionName) => permissions.query(name),
 
@@ -89,31 +74,17 @@ window.__raskApi = window.__raskApi || {
         }),
     cookieDelete: (name: string, path: string | null) => cookies.remove(name, path),
 
-    // IMediaQuery — just the boolean, since MediaQueryList is live and does not serialize.
-    matchMedia: (query: string) => mediaQuery.matches(query),
-
     // IStorageEstimator.
     storageSupported: () => storageManager.isSupported(),
     storageEstimate: () => storageManager.estimate(),
     storagePersisted: () => storageManager.persisted(),
     storagePersist: () => storageManager.persist(),
 
-    // IVisualViewport.
-    visualViewportSupported: () => visualViewport.isSupported(),
-    visualViewport: () => visualViewport.current(),
-
-    // IScreenInfo.
-    screen: () => screenInfo.info(),
-
     // ISpeechSynthesis.
     speechSupported: () => speechSynthesis.isSupported(),
     speak: (text: string, options?: RaskSpeakOptions | null) =>
         speechSynthesis.speak(text, options || undefined),
-    cancelSpeech: () => speechSynthesis.cancel(),
-
-    // INetworkInfo.
-    networkSupported: () => networkInformation.isSupported(),
-    network: () => networkInformation.current()
+    cancelSpeech: () => speechSynthesis.cancel()
 };
 
 // IIndexedDb / IKeyValueStore. C# addresses a store by name on every call rather than holding a
@@ -171,12 +142,6 @@ window.__raskIdb = window.__raskIdb || (() => {
     };
 })();
 
-// IPerformance.
-window.__raskPerf = window.__raskPerf || {
-    now: () => performance.now(),
-    navigation: () => performance.navigation()
-};
-
 // ICrypto. randomBytes crosses as a plain number array — a Uint8Array does not survive the JSON hop
 // the Server transport takes, and the module hands back the typed array a TypeScript caller wants.
 window.__raskCrypto = window.__raskCrypto || {
@@ -184,41 +149,6 @@ window.__raskCrypto = window.__raskCrypto || {
     randomBytes: (length: number) => Array.from(crypto.randomBytes(length)),
     digestHex: (algorithm: AlgorithmIdentifier, text: string) => crypto.digestHex(algorithm, text)
 };
-
-// IBattery. watch resolves as soon as the subscription is REGISTERED rather than once the manager has
-// arrived: navigator.getBattery is a promise, and the module hands back a stop function synchronously
-// precisely so a clear that lands mid-flight cannot leave listeners attached with nothing holding
-// them.
-window.__raskBattery = window.__raskBattery || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        isSupported: () => battery.isSupported(),
-        getStatus: () => battery.getStatus(),
-        watch: (id: number) => {
-            const watching = battery.watch((status) =>
-                window.DotNet.invokeMethodAsync("Rask.Core", "RaskBatteryChanged", id, status));
-            stops.set(id, watching.stop);
-
-            // The rejection is RETURNED, not swallowed. getBattery() rejects in a cross-origin iframe
-            // without the battery permission policy, and the shape this replaced resolved immediately
-            // either way — so C# got a live IAsyncDisposable for a subscription that would never fire,
-            // with an unhandled promise rejection in the console as the only trace. IBattery.WatchAsync
-            // unregisters and rethrows on a rejection, which is the behaviour before the extraction.
-            return watching.attached.catch((e: unknown) => {
-                stops.delete(id);
-                throw e;
-            });
-        },
-        clear: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
-    };
-})();
 
 // The PWA four — IWebPush, INotifications, IBadge, IWakeLock. These used to live in rask-pwa.ts, which
 // is now gone: they are transport-agnostic browser APIs like the rest, and there was no reason for
@@ -720,28 +650,3 @@ window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
     };
 })();
 
-// IGeolocation.WatchAsync. C# mints the id and holds the subscription, so the stop function the
-// module returns is parked here under that id rather than handed back.
-window.__raskGeoWatch = window.__raskGeoWatch || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        watch: (
-            id: number,
-            enableHighAccuracy: boolean,
-            timeoutMs: number | null,
-            maximumAgeMs: number | null) => {
-            const stop = geolocation.watchPosition(
-                (fix) => window.DotNet.invokeMethodAsync("Rask.Core", "RaskGeolocationFix", id, fix),
-                {enableHighAccuracy, timeoutMs, maximumAgeMs});
-            stops.set(id, stop);
-        },
-        clear: (id: number) => {
-            const stop = stops.get(id);
-            if (stop == null) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
-    };
-})();

@@ -1,14 +1,15 @@
-using Rask.Wasm.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IIdleDetector" /> — request the <c>idle-detection</c> permission from a gesture, then
+///     <c>IdleDetector</c> (Rask.Web) — request the <c>idle-detection</c> permission from a gesture, then
 ///     watch for the user going idle or the screen locking. WASM-only: permission needs a live gesture and
 ///     the detector needs the live document.
 /// </summary>
-public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IAsyncDisposable
+public sealed partial class IdleDetectorDemo : Component
 {
+    private Rask.Web.Types.IdleDetector? _idle;
     private IAsyncDisposable? _watch;
     private string _user = "active";
     private string _screen = "unlocked";
@@ -24,32 +25,28 @@ public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IA
 
     private async Task Start()
     {
-        if (_watch is not null)
+        if (_idle is not null)
         {
             return;
         }
 
         try
         {
-            if (!await idle.IsSupportedAsync())
-            {
-                _status = "Idle Detection not supported in this browser";
-                return;
-            }
-
-            if (await idle.RequestPermissionAsync() is not "granted")
+            if (await IdleDetector.RequestPermission() is not Rask.Web.Types.PermissionState.Granted)
             {
                 _status = "Permission denied";
                 return;
             }
 
-            _watch = await idle.WatchAsync(reading =>
+            // The detector's `change` event: read both states each time either one moves.
+            var idle = await IdleDetector.Create();
+            _idle = idle;
+            _watch = await idle.OnChange(async () =>
             {
-                _user = reading.UserIdle ? "idle" : "active";
-                _screen = reading.ScreenLocked ? "locked" : "unlocked";
-                StateHasChanged();
-                return Task.CompletedTask;
+                _user = await idle.UserState is Rask.Web.Types.UserIdleState.Idle ? "idle" : "active";
+                _screen = await idle.ScreenState is Rask.Web.Types.ScreenIdleState.Locked ? "locked" : "unlocked";
             });
+            await idle.Start(new() { Threshold = 60_000 });
             _status = "Watching — stop interacting for 60s to go idle";
         }
         catch (Exception ex)
@@ -58,11 +55,16 @@ public sealed partial class IdleDetectorDemo(IIdleDetector idle) : Component, IA
         }
     }
 
-    public async ValueTask DisposeAsync()
+    protected override async Task OnUnmount()
     {
         if (_watch is not null)
         {
             await _watch.DisposeAsync();
+        }
+
+        if (_idle is not null)
+        {
+            await _idle.DisposeAsync();
         }
     }
 }

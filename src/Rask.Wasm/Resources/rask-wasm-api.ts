@@ -76,50 +76,14 @@ window.__raskPwa = window.__raskPwa || {
 // they also ship to the Server client — the declarative InstallTrigger / ScreenOrientationTrigger /
 // MediaCaptureTrigger / PictureInPictureTrigger drive them inside the click gesture there (and __raskInstall
 // must self-arm its beforeinstallprompt listener at boot on both transports). The imperative IInstallPrompt /
-// IScreenOrientation / IMediaDevices / IPictureInPicture services stay WASM-only.
+// IMediaDevices / IPictureInPicture services stay WASM-only.
 
 // __raskNotify / __raskBadge / __raskWakeLock are transport-agnostic and live in
 // Rask.Core/Resources/rask-pwa.js (spliced into both clients) — they are not duplicated here.
 
 // __raskFullscreen / __raskEyeDropper also moved to Rask.Core/Resources/rask-api.js (same reason — the
 // declarative FullscreenTrigger / EyeDropperTrigger drive them on the Server client). The imperative
-// IFullscreen / IEyeDropper services stay WASM-only.
-
-// Idle Detection (driven by IIdleDetector). Permission needs transient activation and the detector needs
-// the live document, so this is WASM-only. Each watch holds a live IdleDetector + AbortController under the
-// C#-minted id and pushes each change back via window.DotNet.invokeMethodAsync (static [JSInvokable]
-// IdleDetectorInterop.Changed in Rask.Wasm — the WASM DotNet dispatcher resolves any assembly name).
-window.__raskIdle = window.__raskIdle || (() => {
-    const detectors = new Map();
-    return {
-        isSupported: () => "IdleDetector" in window,
-        requestPermission: () =>
-            window.IdleDetector ? IdleDetector!.requestPermission().catch(() => "denied") : Promise.resolve("denied"),
-        watch: async (id: number, thresholdSeconds: number) => {
-            const controller = new AbortController();
-            // Reached only through isSupported(); the constructor is optional in the declaration
-            // because the API is Chromium-only.
-            const detector = new IdleDetector!();
-            detector.addEventListener("change", () => {
-                window.DotNet.invokeMethodAsync("Rask.Wasm", "RaskIdleChanged", id, {
-                    userIdle: detector.userState === "idle",
-                    screenLocked: detector.screenState === "locked"
-                });
-            });
-            // The spec enforces a 60-second floor; clamp here so a smaller value doesn't reject.
-            await detector.start({threshold: Math.max(60, thresholdSeconds) * 1000, signal: controller.signal});
-            detectors.set(id, controller);
-        },
-        unwatch: (id: number) => {
-            const controller = detectors.get(id);
-            if (!controller) {
-                return;
-            }
-            detectors.delete(id);
-            controller.abort();
-        }
-    };
-})();
+// IFullscreen service stays WASM-only.
 
 // Web Serial (driven by ISerial). requestPort() needs transient activation and the live port stream, so
 // this is WASM-only. C# mints the id and registers its callbacks BEFORE calling in here, so a device's first

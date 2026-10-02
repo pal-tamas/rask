@@ -356,7 +356,7 @@ public sealed partial class HomePage : Component
     /// <c>IWebAnimations</c> have no page of their own under docs/apis/ and are documented in the reference
     /// guide instead. <c>BrowserApiCountTests</c> recounts the source and fails when this goes stale.
     /// </remarks>
-    internal const int BrowserApiCount = 50;
+    internal const int BrowserApiCount = 34;
 
     // ---- install ----
     private static Component InstallSection() =>

@@ -15,12 +15,8 @@ public static class RaskWasmBrowserApis
     public static IServiceCollection AddWasmBrowserApis(this IServiceCollection services, ServiceLifetime lifetime)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddBrowserApi<IShare, Share>(lifetime);
         services.AddBrowserApi<IFullscreen, Fullscreen>(lifetime);
-        services.AddBrowserApi<IScreenOrientation, ScreenOrientation>(lifetime);
-        services.AddBrowserApi<IEyeDropper, EyeDropper>(lifetime);
         services.AddBrowserApi<IPictureInPicture, PictureInPicture>(lifetime);
-        services.AddBrowserApi<IIdleDetector, IdleDetectorService>(lifetime);
         services.AddBrowserApi<IMediaDevices, MediaDevices>(lifetime);
         services.AddBrowserApi<IInstallPrompt, InstallPrompt>(lifetime);
         services.AddBrowserApi<ISerial, Serial>(lifetime);

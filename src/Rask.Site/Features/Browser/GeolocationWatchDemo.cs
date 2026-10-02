@@ -1,17 +1,14 @@
-using System.Globalization;
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IGeolocation.WatchAsync" /> — live position tracking. Start watching and the browser
-///     pushes each fix to C#, which re-renders the readout (the handler calls <c>StateHasChanged()</c>,
-///     the sanctioned pushed-update pattern). Stop disposes the watch (<c>clearWatch</c>).
+///     MDN's <c>watchPosition</c> from Rask.Web — live position tracking. The browser hands each fix to the
+///     handler, which re-renders this; Stop calls <c>clearWatch</c>.
 /// </summary>
-public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Component, IAsyncDisposable
+public sealed partial class GeolocationWatchDemo : Component
 {
-    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
-    private IAsyncDisposable? _watch;
+    private int? _watchId;
     private string? _location;
     private int _fixes;
     private string? _status;
@@ -19,7 +16,7 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
     protected override Component? Render() =>
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    _watch is null
+                    _watchId is null
                         ? Ui.Button.Primary.Id("geowatch-start").OnClick(Start)["Start watching"]
                         : Ui.Button.Error.Outline.Id("geowatch-stop").OnClick(Stop)["Stop"]
                 ],
@@ -34,37 +31,33 @@ public sealed partial class GeolocationWatchDemo(IGeolocation geolocation) : Com
     {
         try
         {
-            _watch = await geolocation.WatchAsync(pos =>
-            {
-                _fixes++;
-                _location = string.Create(Inv, $"lat {pos.Latitude:F4}, lon {pos.Longitude:F4} (±{pos.Accuracy:F0} m)");
-                StateHasChanged();
-                return Task.CompletedTask;
-            }, new GeolocationOptions { EnableHighAccuracy = true });
+            _watchId = await Navigator.Geolocation.WatchPosition(
+                p =>
+                {
+                    _fixes++;
+                    _location = GeolocationDemo.Describe(p.Coords);
+                },
+                e => _status = "Watch failed: " + e.Message,
+                new Rask.Web.Types.PositionOptions { EnableHighAccuracy = true });
             _status = "Watching — move the device to see updates";
         }
-        catch (Exception ex)
-        {
-            _status = "Watch failed: " + ex.Message;
-        }
+        catch (Exception ex) { _status = "Watch failed: " + ex.Message; }
     }
 
     private async Task Stop()
     {
-        if (_watch is not null)
-        {
-            await _watch.DisposeAsync();
-            _watch = null;
-        }
-
+        await ClearWatch();
         _status = "Stopped";
     }
 
-    public async ValueTask DisposeAsync()
+    protected override Task OnUnmount() => ClearWatch();
+
+    private async Task ClearWatch()
     {
-        if (_watch is not null)
+        if (_watchId is { } id)
         {
-            await _watch.DisposeAsync();
+            _watchId = null;
+            await Navigator.Geolocation.ClearWatch(id);
         }
     }
 }
