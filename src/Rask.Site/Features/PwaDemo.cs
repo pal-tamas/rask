@@ -1,17 +1,17 @@
-using System.Text;
+using System.Buffers.Text;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.JSInterop;
-using Rask.Core.Browser;
 using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     A live, WASM-only PWA demo: local notifications (MDN's <c>Notification</c> from Rask.Web), Web Push
-///     readiness (<see cref="IWebPush" />), and the installed-app badge (MDN's <c>navigator.setAppBadge</c> from
-///     Rask.Web). <see cref="PwaPage" /> hosts this demo (with its source) in the showcase.
+///     A live, WASM-only PWA demo: local notifications (MDN's <c>Notification</c>), a Web Push subscription
+///     (MDN's <c>PushManager</c>), and the installed-app badge (MDN's <c>navigator.setAppBadge</c>), all from
+///     Rask.Web. <see cref="PwaPage" /> hosts this demo (with its source) in the showcase.
 /// </summary>
-public sealed partial class PwaDemo(IWebPush push, HttpClient http) : Component
+public sealed partial class PwaDemo(HttpClient http) : Component
 {
     // Fallback VAPID public key for the standalone static showcase (no backend to ask). When a backend
     // is present the key comes from GET /_rask/push/key instead, so the two never drift.
@@ -36,7 +36,7 @@ public sealed partial class PwaDemo(IWebPush push, HttpClient http) : Component
             ],
 
         Ui.Card.Class("shadow-sm mb-3")[
-                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Signal).Class("me-2"), "Web Push (IWebPush)"],
+                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Signal).Class("me-2"), "Web Push (PushManager)"],
                 P.Class("text-sm text-ui-muted")[
                     "Subscribes, then hands the subscription to a ", Code["RaskApp"],
                     " host's Web Push battery at ", Code["/_rask/push/subscribe"],
@@ -102,35 +102,40 @@ public sealed partial class PwaDemo(IWebPush push, HttpClient http) : Component
     {
         try
         {
-            if (!await push.IsSupportedAsync())
+            if (!await PushManager.IsSupported)
             {
                 _pushStatus = "Push not supported in this browser";
                 return;
             }
 
-            var permission = await push.RequestPermissionAsync();
-            if (permission != NotificationPermissionState.Granted)
+            var permission = await Notification.RequestPermission();
+            if (permission != Rask.Web.Types.NotificationPermission.Granted)
             {
                 _pushStatus = $"Permission: {permission}";
                 return;
             }
 
-            await push.RegisterServiceWorkerAsync();
+            // The page shell registered rask-sw.js, which shows each push; Ready settles once it is active.
+            await using var worker = await Navigator.ServiceWorker.Ready;
 
             // Use the backend's VAPID public key when there is one, so the client and server can't
-            // drift; fall back to the baked-in demo key on the static showcase.
+            // drift; fall back to the baked-in demo key on the static showcase. Subscribing again with
+            // the same key answers the subscription the browser already has.
             var vapidKey = await TryGetServerVapidKey() ?? DemoVapidPublicKey;
-            var sub = await push.GetSubscriptionAsync() ?? await push.SubscribeAsync(vapidKey);
+            await using var subscription = await worker.PushManager.Subscribe(new()
+            {
+                UserVisibleOnly = true,
+                ApplicationServerKey = Base64Url.DecodeFromChars(vapidKey)
+            });
             _subscribed = true;
 
-            // Hand the subscription to the host's Web Push battery. The flat { endpoint, p256dh, auth }
-            // shape is what /_rask/push/subscribe expects; the secrets are never rendered to the page.
-            // On the standalone static showcase there is no backend, so a failure is expected.
+            // Hand the subscription to the host's Web Push battery in MDN's own toJSON() shape; the
+            // secrets are never rendered to the page. On the standalone static showcase there is no
+            // backend, so a failure is expected.
             try
             {
-                var json = $"{{\"endpoint\":\"{sub.Endpoint}\",\"p256dh\":\"{sub.P256dh}\",\"auth\":\"{sub.Auth}\"}}";
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await http.PostAsync("_rask/push/subscribe", content);
+                using var response = await http.PostAsJsonAsync("_rask/push/subscribe", await subscription.ToJSON(),
+                    PushJsonContext.Default.PushSubscriptionJSON);
                 _pushStatus = response.IsSuccessStatusCode
                     ? "Subscribed and registered with the backend — click \"Send a test push\"."
                     : $"Subscribed, but the backend returned {(int)response.StatusCode}.";
@@ -140,7 +145,7 @@ public sealed partial class PwaDemo(IWebPush push, HttpClient http) : Component
                 _pushStatus = "Subscribed. No backend here (static showcase), so nothing will send to it.";
             }
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _pushStatus = "Failed: " + ex.Message;
         }

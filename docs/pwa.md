@@ -18,7 +18,7 @@ share sheet, geolocation, clipboard) through typed C# — the same component cod
 - [Custom install button (`IInstallPrompt`)](#custom-install-button-iinstallprompt)
 - [Offline — the service worker](#offline--the-service-worker)
 - [Background sync (`IBackgroundSync`)](#background-sync-ibackgroundsync)
-- [Push notifications (`IWebPush`)](#push-notifications-iwebpush)
+- [Push notifications (`PushManager`)](#push-notifications-pushmanager)
 - [PWA on the Server host](#pwa-on-the-server-host)
 - [Device capabilities for mobile](#device-capabilities-for-mobile)
 - [Deploying (GitHub Pages & sub-paths)](#deploying-github-pages--sub-paths)
@@ -159,8 +159,8 @@ Register it from `index.html` (the `--pwa` templates do this for you). It resolv
 </script>
 ```
 
-Bring your own worker (custom caching/routing) by registering a different URL — e.g. via
-`IWebPush.RegisterServiceWorkerAsync("/my-sw.js")`.
+Bring your own worker (custom caching/routing) by registering a different URL there instead. Whichever
+worker the page registered is the one `await Navigator.ServiceWorker.Ready` answers, so push follows it.
 
 ---
 
@@ -241,27 +241,38 @@ Full reference: [`IBackgroundSync`](apis/background-sync.md).
 
 ---
 
-## Push notifications (`IWebPush`)
+## Push notifications (`PushManager`)
 
-`IWebPush` (in `Rask.Core.Browser`, injected through the constructor) wraps the Web Push API. It works
-on **both** hosts — on WASM always, and on Server once you opt in with
-[`AddRaskPwa`](#pwa-on-the-server-host) (which serves the service worker push relies on). Drive it from
-an event handler:
+A browser subscribes to Web Push through MDN's own [`PushManager`](https://developer.mozilla.org/docs/Web/API/PushManager),
+from [`Rask.Web`](web-apis.md) — there is no Rask wrapper. It hangs off the service worker the page already
+registered (`rask-sw.js`: the `--pwa` templates' `index.html` on WASM, [`AddRaskPwa`](#pwa-on-the-server-host)'s
+`<head>` on Server), so the subscription starts at `Navigator.ServiceWorker.Ready`. Drive it from an event handler:
 
 ```csharp
-public sealed partial class PushButton(IWebPush push) : Component
+using System.Buffers.Text;
+using Rask.Web;
+
+public sealed partial class PushButton : Component
 {
     private async Task Enable()
     {
-        if (!await push.IsSupportedAsync()) return;
-        if (await push.RequestPermissionAsync() != NotificationPermissionState.Granted) return;
-
-        await push.RegisterServiceWorkerAsync();                 // default rask-sw.js
-        var sub = await push.SubscribeAsync(Push.PublicKey!);    // the app's VAPID public key
-        await Push.Subscribe(sub);                               // kept on the app's database
+        // Settles once rask-sw.js is active; the registration is a kept browser object, so dispose of it.
+        await using var worker = await Navigator.ServiceWorker.Ready;
+        await using var subscription = await worker.PushManager.Subscribe(new()
+        {
+            UserVisibleOnly = true,                                               // every push shows a notification
+            ApplicationServerKey = Base64Url.DecodeFromChars(Push.PublicKey),     // the app's VAPID public key
+        });
+        await Push.Subscribe(await subscription.ToJSON());                        // kept on the app's database
     }
 }
 ```
+
+`Subscribe` asks for notification permission itself; on WASM, `await Notification.RequestPermission()` in the click
+asks first. Subscribing again with the same key answers the subscription the browser already has, and
+`await subscription.Unsubscribe()` removes it. A WebAssembly client has no `Push` battery in its process: it reads
+the key from `GET /_rask/push/key` and posts `await subscription.ToJSON()` — MDN's `PushSubscriptionJSON`, as is — to
+`POST /_rask/push/subscribe`.
 
 The default `rask-sw.js` receives a push and shows a notification from its JSON payload
 (`{ title, body, icon, tag, data: { url } }`), so nothing else runs in the browser.
@@ -284,8 +295,8 @@ await Push.Send(WebPushMessage.Text("Your order shipped")).To(userId);   // one 
 ```
 
 A subscription the push service says is gone is dropped as the send finds it. A WebAssembly client posts its
-subscription to `POST /_rask/push/subscribe` instead of calling `Push.Subscribe`, and reads the public key from
-`GET /_rask/push/key`.
+`subscription.ToJSON()` to `POST /_rask/push/subscribe` instead of calling `Push.Subscribe`, and reads the public key
+from `GET /_rask/push/key`.
 
 The keys come from `Rask:Push`: `rask new` wrote a development pair to the gitignored
 `appsettings.Development.json`, and deployed they come from the environment
@@ -321,8 +332,8 @@ builder.Services.AddRaskPwa(new WebAppManifest
   server-rendered `<head>` — no boot-time JS injection;
 - **serves Rask's service worker** at `{PathBase}/rask-sw.js` and **auto-registers it**, so the app
   meets install criteria with no extra wiring;
-- works with the transport-agnostic PWA APIs `AddRask()` already registers — `IWebPush` and `IWakeLock` —
-  and with `Notification` and `Navigator.SetAppBadge` from [`Rask.Web`](web-apis.md).
+- works with `IWakeLock`, which `AddRask()` already registers, and with MDN's `PushManager`, `Notification` and
+  `Navigator.SetAppBadge` from [`Rask.Web`](web-apis.md).
 
 Then ship a static **`wwwroot/offline.html`** (the SW serves it on failed navigations) and, to send
 push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
@@ -331,8 +342,8 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 > offline app**: the service worker deliberately does **not** cache the server-rendered shell (it
 > carries a one-shot session id and is served `no-store`), so offline navigations show `offline.html`
 > rather than a dead cached page. The **install-prompt replay** (`IInstallPrompt`) and the
-> activation-bound imperative device APIs (`IMediaDevices`, `RequestFullscreen()`, …) are not
-> registered on Server, and neither is [**background sync**](#background-sync-ibackgroundsync) — it rides
+> activation-bound imperative device APIs (`GetDisplayMedia()`, `RequestFullscreen()`, …) are not
+> available on Server, and neither is [**background sync**](#background-sync-ibackgroundsync) — it rides
 > the service-worker registration and needs a client-side runtime to wake into, which a WebSocket-rendered
 > app does not have. The honest framing: *installable + push + native-feel, not an offline app.* (Sharing
 > still works on Server via the headless `Shareable` in `Rask.Core`, which fires `navigator.share` in the
@@ -344,8 +355,8 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 
 The browser APIs that make a web app feel native. Rows marked *(Rask.Web)* are MDN's own surface from
 [`Rask.Web`](web-apis.md) (`using Rask.Web;`); the rest are typed wrappers. Everything in `Rask.Core.Browser`
-works on **both transports** (and is registered on Server too) — including the PWA APIs `IWebPush` and
-`IWakeLock`, and the headless declarative `Shareable` *(all hosts)*. The
+works on **both transports** (and is registered on Server too) — including the PWA API `IWakeLock`, and the
+headless declarative `Shareable` *(all hosts)*. The
 `*(WASM)*` ones need a live user gesture or the installed-app instance the Server round-trip can't carry: the
 device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server.
 
@@ -366,15 +377,16 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Media queries** | `Window.MatchMedia(query)` *(Rask.Web)* | `.Matches`, and `OnChange` to follow it |
 | **Speech (text-to-speech)** | `SpeechSynthesis.Speak(utterance)` *(Rask.Web)* | Speak a `SpeechSynthesisUtterance`; `Cancel()` stops it |
 | **Screen info** | `Screen` *(Rask.Web)* | `Width` / `Height` / `ColorDepth`; `Window.DevicePixelRatio` for retina |
-| **Storage estimate** | `IStorageEstimator` | `EstimateAsync()` → quota / usage, to budget offline caches |
+| **Storage estimate** | `Navigator.Storage.Estimate()` *(Rask.Web)* | `Quota` / `Usage`, to budget offline caches; `Persist()` to survive eviction |
 | **Visual viewport** | `Window.VisualViewport` *(Rask.Web)* | Visible size/offset/zoom, e.g. above the soft keyboard |
 | **Cross-tab messaging** | `BroadcastChannel.Create(name)` *(Rask.Web)* | `PostMessage` / `OnMessage` — sync sign-out, theme, "data updated" across tabs |
 | **Local notifications** | `Notification.Create(title, …)` *(Rask.Web)* | Show a notification from the page (no server); `Notification.RequestPermission()` *(WASM)* first |
 | **App badge** | `Navigator.SetAppBadge(3)` *(Rask.Web)* | Unread count on the installed icon (`SetAppBadge(3)` / `ClearAppBadge()`) |
 | **Wake lock** | `IWakeLock` | Keep the screen awake; dispose the sentinel to release |
+| **Device tilt / motion** | `Window.OnDeviceOrientation` / `OnDeviceMotion` *(Rask.Web)* | Gyroscope and accelerometer events; `every:` throttles them in the browser |
 | **Screen orientation** | `Screen.Orientation` *(Rask.Web)* | Read orientation; `Lock(…)` *(WASM)* / `Unlock()` (needs fullscreen) |
 | **Fullscreen** | `_stage.RequestFullscreen()` *(Rask.Web, WASM)* | Present an element fullscreen; `Document.ExitFullscreen()` leaves |
-| **Camera / mic / screen** | `IMediaDevices` *(WASM)* | Capture into a `<video>` (`GetUserMediaAsync` / `GetDisplayMediaAsync`) |
+| **Camera / mic / screen** | `Navigator.MediaDevices` *(Rask.Web)* | `GetUserMedia(…)`, or `GetDisplayMedia()` *(WASM)*; show it with `_video.SetSrcObject(stream)` |
 | **Picture-in-Picture** | `_video.RequestPictureInPicture()` *(Rask.Web, WASM)* | Float a `<video>` into an always-on-top miniplayer |
 | **Gamepad** | `Navigator.GetGamepads()` *(Rask.Web)* | Read connected controllers — `Buttons` / `Axes`; `Window.OnGamepadConnected` |
 | **Idle detection** | `IdleDetector.Create()` *(Rask.Web, WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
@@ -404,11 +416,22 @@ says whether it can, and `await Document.FullscreenElement == _stage` whether it
 `Trigger.Fullscreen`. Request fullscreen first when you also want to **lock the orientation** — most browsers only
 allow the lock in fullscreen.
 
+**Camera and microphone.** `await Navigator.MediaDevices.GetUserMedia(new() { Video = new() { Width = 640, FacingMode = "user" } })`
+from [`Rask.Web`](web-apis.md#keeping-an-object) asks for the camera and hands back a kept `MediaStream`.
+`await _video.SetSrcObject(stream)` shows it. Stop it with `await stream.GetTracks()` and `Stop()` on each track.
+Screen capture is `GetDisplayMedia()` (WASM, in the click). On the Server host, `Trigger.MediaCapture` runs the
+camera in the click too.
+
+**Device tilt and motion.** `await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds)` and
+`Window.OnDeviceMotion(e => …, every: …)` from [`Rask.Web`](web-apis.md#events-and-callbacks) follow the gyroscope
+and accelerometer. `every:` throttles the events in the browser before they cross. Dispose of the subscription to
+stop. iOS asks first: `await DeviceOrientationEvent.RequestPermission()` (WASM, in the click).
+
 **Local vs push notifications.** `Notification` from [`Rask.Web`](web-apis.md) shows a notification directly from
 the running page. Ask first with `await Notification.RequestPermission()` (WASM, in the click), then
 `await using var n = await Notification.Create("Title", new() { Body = "…" })`. `await Notification.Permission` reads
 the answer. Use it for in-app alerts. For notifications delivered while the app is **closed**, use
-[`IWebPush`](#push-notifications-iwebpush) — those go through the service worker.
+[`PushManager`](#push-notifications-pushmanager) — those go through the service worker.
 
 See [JS interop → Typed browser APIs](js-interop-runtime.md#typed-browser-apis) for the full surface.
 

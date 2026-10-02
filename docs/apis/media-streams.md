@@ -12,24 +12,27 @@ A `MediaStream` can't cross interop, so the framework holds it in the browser un
 [`MediaStreamId`](#the-id-is-the-currency) and C# passes the id around instead. `IMediaStreams` is what you
 do with one: show it in a `<video>`, or stop it.
 
-Neither call needs a user gesture — only *acquiring* a stream does — which is why this works on every host
-while [`IMediaDevices`](media-devices.md) is WASM-only.
+Neither call needs a user gesture — only *acquiring* a stream does — which is why this works on every host.
 
 ## The id is the currency
 
-Three things hand you a `MediaStreamId`, and all three produce the same kind:
+Two things hand you a `MediaStreamId`, and both produce the same kind:
 
 | Source | Host | How |
 |---|---|---|
-| [`Trigger.MediaCapture`](media-devices.md) | Server + WASM | its `OnStream` callback, from the click gesture |
-| [`IMediaDevices`](media-devices.md) | WASM | `IMediaStreamHandle.Id` |
+| `Trigger.MediaCapture` | Server + WASM | its `OnStream` callback, from the click gesture |
 | [`IWebRtc`](webrtc.md) | every host | `RtcHandlers.OnTrack`, for a peer's remote stream |
 
 So a camera acquired on the Server host can be sent to a WebRTC peer, and a peer's incoming video can be
 attached to a `<video>`, with the same two calls in both directions.
 
+An app can also ask for the camera in code with MDN's own call from [`Rask.Web`](../web-apis.md):
+`await Navigator.MediaDevices.GetUserMedia(new() { Video = new() { Width = 640, FacingMode = "user" } })`,
+then `await _video.SetSrcObject(stream)`. That hands you a kept `MediaStream`, not an id; stop it with
+`await stream.GetTracks()` and `Stop()` on each track.
+
 Attaching and stopping work on **every** host — neither needs a permission. *Acquiring* is the part that
-does: [`IMediaDevices`](media-devices.md) is WASM-only, and prompts for the camera/microphone permission.
+does: it prompts for the camera/microphone permission.
 
 ```csharp
 public sealed class Camera(IMediaStreams streams) : Component
@@ -72,7 +75,7 @@ or do anything else with it. `OnStream` plus `IMediaStreams` closes that gap.
 ## See also
 
 - Source: [`IMediaStreams.cs`](../../src/Rask.Core/Browser/IMediaStreams.cs)
-- [`IMediaDevices`](media-devices.md) — acquiring a stream
+- [Web APIs from MDN](../web-apis.md) — `Navigator.MediaDevices.GetUserMedia`, asking for a stream in code
 - [`IWebRtc`](webrtc.md) — sending one to a peer
 - [Capability matrix](../browser-capabilities.md)
 - [Browser APIs — the narrative map](../browser-apis.md)

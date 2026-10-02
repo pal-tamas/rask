@@ -20,6 +20,30 @@ them until tagged releases begin.
   compile with the same compiler and analyzers and the build no longer needs the .NET 11 SDK (`RASKSDK001`
   is gone). `scripts/run-unit-net11-local.sh` and its row in `run-all-gates.sh` went with the second target.
 
+- **BREAKING: the browser-side `Rask.Core.Browser.IWebPush` is gone; a browser subscribes with MDN's own
+  `PushManager` from `Rask.Web`.** The page already registers `rask-sw.js` (the `--pwa` templates' `index.html`,
+  `AddRaskPwa`'s `<head>`), so the subscription starts at the new `Navigator.ServiceWorker.Ready` — an attribute
+  that promises an object is now kept like a method's result (`Animation.Finished`, `FontFace.Loaded` too).
+  `NotificationPermissionState` went with it (MDN's is `NotificationPermission`). The server's `Rask.WebPush.IWebPush`
+  sender is unchanged.
+  ```csharp
+  // before — server host
+  var subscription = await browser.SubscribeAsync(Push.PublicKey!);   // IWebPush browser, injected
+  await Push.Subscribe(subscription);
+  // now — server host (using System.Buffers.Text; using Rask.Web;)
+  await using var worker = await Navigator.ServiceWorker.Ready;
+  await using var subscription = await worker.PushManager.Subscribe(new()
+  {
+      UserVisibleOnly = true,
+      ApplicationServerKey = Base64Url.DecodeFromChars(Push.PublicKey),
+  });
+  await Push.Subscribe(await subscription.ToJSON());   // new overload in Rask.Server, MDN's PushSubscriptionJSON
+  // now — WebAssembly client: POST it as is
+  await http.PostAsJsonAsync("_rask/push/subscribe", await subscription.ToJSON(), MyJson.Default.PushSubscriptionJSON);
+  ```
+  `POST /_rask/push/subscribe` reads MDN's standard `{ endpoint, expirationTime, keys: { p256dh, auth } }` — what
+  `subscription.toJSON()` answers in any client — and still reads the flat `{ endpoint, p256dh, auth }`.
+
 ### Changed
 
 - **BREAKING: `CookieCulturePersistence` moved to `Rask.Web`, and writes the culture cookie through
@@ -662,6 +686,34 @@ them until tagged releases begin.
     gone** — `await SpeechSynthesis.Speak(await SpeechSynthesisUtterance.Create("Hello"))`, `await _stage.RequestFullscreen()`
     with `await Document.FullscreenElement == _stage`, `await _video.RequestPictureInPicture()`,
     `_box.Animate(frames, 300)`. The declarative `Trigger.Fullscreen` / `Trigger.PictureInPicture` are unchanged.
+  - **Hot events throttle where you subscribe; media constraints are plain values.** Every `On{Event}` takes an optional
+    `every:` — the first event crosses at once, then at most one per interval, the latest:
+    `await Window.OnDeviceOrientation(e => _tilt = e, every: 100.Milliseconds)`. A `(boolean or dictionary)` union is the
+    dictionary, nullable (`Video = new()` asks for a camera), and MDN's constraints are their plain values, taken as the
+    ideal: `await Navigator.MediaDevices.GetUserMedia(new() { Video = new() { Width = 640, FacingMode = "user" } })`.
+    A promise-valued attribute is awaited and kept (`await Navigator.ServiceWorker.Ready`).
+  - **BREAKING: `IDeviceMotion`, `IDeviceOrientation` and, on WebAssembly, `IMediaDevices` are gone** —
+    `Window.OnDeviceMotion`/`OnDeviceOrientation` with `every:`, `DeviceOrientationEvent.RequestPermission()` on iOS,
+    and `Navigator.MediaDevices.GetUserMedia(…)` with `_video.SetSrcObject(stream)`.
+  - **BREAKING: `IWebLocks` and `IStorageEstimator` are gone** (with `LockInfo`, `LockMode`, `StorageEstimate` and their
+    TypeScript) — `Rask.SQLite.Browser` elects its owner tab and asks for persistent storage through MDN's own
+    `navigator.locks` and `navigator.storage` now, with the same semantics (one `ifAvailable` exclusive lock held for
+    the page's life):
+    ```csharp
+    // before: await locks.RequestAsync("sync", async () => await Sync());
+    await Navigator.Locks.Request("sync", async lk => await Sync());          // held until Sync() returns
+    // before: var got = await locks.TryRequestAsync("sync", work);
+    await Navigator.Locks.Request("sync", new() { IfAvailable = true }, lk => _got = lk is not null);
+    // before: var e = await storage.EstimateAsync();   await storage.RequestPersistAsync();
+    var e = await Navigator.Storage.Estimate();                                // e.Quota, e.Usage
+    var kept = await Navigator.Storage.Persist();
+    ```
+    `LockManager.Request` takes MDN's `LockOptions` now (the refresh reaches an overload's option dictionaries, which
+    also brings `CookieStore.Set(CookieInit)`, `CookieStore.Delete(CookieStoreDeleteOptions)`,
+    `Window.PostMessage(message, WindowPostMessageOptions)` and the `SetRangeText(…, SelectionMode)` overload on
+    input and textarea refs). A handler the browser awaits may belong to no component — a hosted service's runs at
+    once and is let go when its call settles — and a fake can drive one: `locks.CallsBack<Lock?>("request", …)`,
+    plus `fake.Throws(s => s.Persist(), error)` and `fake.Returns(l => l.IsSupported, false)`.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

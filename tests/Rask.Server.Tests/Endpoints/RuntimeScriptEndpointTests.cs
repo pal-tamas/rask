@@ -38,10 +38,10 @@ public class RuntimeScriptEndpointTests
     }
 
     [Fact]
-    public async Task The_runtime_script_includes_the_transport_agnostic_PWA_helpers()
+    public async Task The_runtime_script_includes_the_transport_agnostic_PWA_helper()
     {
-        // The PWA helpers imported from Rask.Core/Resources/rask-pwa.ts must reach the Server client
-        // so IWebPush/IWakeLock can find them. Notifications and the badge are MDN's own, from Rask.Web.
+        // The wake-lock helper must reach the Server client so IWakeLock can find it. Push, notifications
+        // and the badge are MDN's own, from Rask.Web, so no helper of Rask's stands in for them.
         //
         // Asserted without the surrounding spaces: these are property names, which a minifier leaves
         // alone, but the whitespace around the `=` does not survive Release.
@@ -49,8 +49,8 @@ public class RuntimeScriptEndpointTests
 
         var body = await (await host.Http.GetAsync("/rask/rask.js", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Contains("window.__raskPush", body, StringComparison.Ordinal);
         Assert.Contains("window.__raskWakeLock", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("window.__raskPush", body, StringComparison.Ordinal);
     }
 
     [Fact]

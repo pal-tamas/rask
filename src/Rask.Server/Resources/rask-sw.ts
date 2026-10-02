@@ -1,6 +1,6 @@
 // Rask default service worker (Server) — the SW a Rask Server PWA needs, served at {PathBase}/rask-sw.js
 // only when PWA is opted into (AddRaskPwa). It does two jobs:
-//   1. Web Push: shows the pushed notification and focuses/opens a window on click (IWebPush) — the
+//   1. Web Push: shows the pushed notification and focuses/opens a window on click (MDN's PushManager subscribed) — the
 //      shared rask-sw-shared handlers, imported below.
 //   2. Offline fallback: when a navigation fails offline, serve a static offline page.
 //

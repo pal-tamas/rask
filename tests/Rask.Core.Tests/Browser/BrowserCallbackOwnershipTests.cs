@@ -14,26 +14,26 @@ public class BrowserCallbackOwnershipTests
     public async Task A_watch_answers_only_the_session_that_registered_it()
     {
         var mine = new FakeJsRuntime();
-        MotionReading? seen = null;
-        var id = DeviceMotionInterop.Register(mine, reading =>
+        RecognitionResult? seen = null;
+        var id = SpeechRecognitionInterop.Register(mine, reading =>
         {
             seen = reading;
             return Task.CompletedTask;
         });
-        var reading = new MotionReading(0.1, 0.2, 0.3, null, null, null, 16);
+        var reading = new RecognitionResult("hello", IsFinal: true, Confidence: 0.9);
 
         using (JsCaller.Enter(new FakeJsRuntime()))
         {
-            await DeviceMotionInterop.Reading(id, reading);
+            await SpeechRecognitionInterop.Result(id, reading);
         }
 
         var fromAnotherSession = seen;
         using (JsCaller.Enter(mine))
         {
-            await DeviceMotionInterop.Reading(id, reading);
+            await SpeechRecognitionInterop.Result(id, reading);
         }
 
-        DeviceMotionInterop.Unregister(id);
+        SpeechRecognitionInterop.Unregister(id);
         Assert.Null(fromAnotherSession);
         Assert.Same(reading, seen);
     }

@@ -161,10 +161,9 @@ public sealed class RaskAppOptions
     /// An installable PWA: the web app manifest, and the service worker that receives Web Push.
     /// </summary>
     /// <remarks>
-    /// On by default, because leaving it off made four APIs that <c>AddRask()</c> always registers —
-    /// <c>IWebPush</c>, <c>INotifications</c>, <c>IBadge</c>, <c>IWakeLock</c> — inject successfully and
-    /// then fail at runtime: the service worker they need is served by <c>AddRaskPwa</c>, which nothing
-    /// called. The parts were registered and the seam was not.
+    /// On by default, because a push subscription is made through the service worker this serves and the
+    /// page registers: without it, <c>await Navigator.ServiceWorker.Ready</c> never settles and the Web Push
+    /// battery has no browser to keep.
     /// <para>
     /// The default manifest is named after the entry assembly, so an app that configures nothing is
     /// installable. Override any of it, or leave it out entirely with <c>c.Pwa.Off()</c>.

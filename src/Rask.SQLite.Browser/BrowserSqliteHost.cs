@@ -1,7 +1,11 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 using Rask.Core.Browser;
+using Rask.Core.Forms;
 using Rask.SQLite.Snapshots;
+using Rask.Web;
+using LockOptions = Rask.Web.Types.LockOptions;
 
 namespace Rask.SQLite.Browser;
 
@@ -24,27 +28,33 @@ namespace Rask.SQLite.Browser;
 ///         in-memory database that is never persisted, and say so in the log. Promoting a waiting tab when
 ///         the owner closes, or proxying its writes over a <c>BroadcastChannel</c>, is not implemented.
 ///     </para>
+///     <para>
+///         It starts at boot, outside any event handler, so it names the app's own services as the page its
+///         <c>Navigator</c> calls run on; the lock and availability tasks it starts carry that with them.
+///     </para>
 /// </remarks>
 internal sealed partial class BrowserSqliteHost(
     BrowserSqliteOptions options,
-    IWebLocks locks,
+    IServiceProvider services,
     IIndexedDb indexedDb,
-    IStorageEstimator storage,
     ISqliteSnapshotter snapshotter,
     BrowserSqliteOwnership ownership,
     ILogger<BrowserSqliteHost> logger) : IHostedService, IDisposable
 {
-    // Completing this releases the Web Lock: IWebLocks holds the lock only for the lifetime of the
-    // callback it is given, so the callback parks on this until shutdown.
+    // ifAvailable: a lock another tab holds is not waited for; the handler is handed none.
+    private static readonly LockOptions IfAvailable = new() { IfAvailable = true };
+
+    // Completing this releases the Web Lock: a lock is held only while the handler it was granted to runs,
+    // so the handler parks on this until shutdown.
     private readonly TaskCompletionSource _release = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly IndexedDbSnapshotStore _store =
         new(indexedDb, BrowserSqlite.SnapshotStoreName(options.Name));
 
-    // The in-flight TryRequestAsync. For the owner it does not complete until _release is set, which is
+    // The in-flight lock request. For the owner it does not complete until _release is set, which is
     // exactly what holds the lock; awaiting it on shutdown is what makes "released" true by the time
     // StopAsync returns, rather than at some unobservable later moment.
-    private Task<bool>? _ownerHold;
+    private Task? _ownerHold;
 
     // Stops the non-owner's availability watcher when the page goes away.
     private readonly CancellationTokenSource _shutdown = new();
@@ -55,6 +65,14 @@ internal sealed partial class BrowserSqliteHost(
 
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        using (DispatchServicesScope.Push(services))
+        {
+            await StartOnPageAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task StartOnPageAsync(CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(options.DatabasePath) ?? BrowserSqlite.DirectoryPath);
 
@@ -98,25 +116,23 @@ internal sealed partial class BrowserSqliteHost(
     {
         try
         {
-            if (await storage.IsPersistedAsync().ConfigureAwait(false))
+            if (await Navigator.Storage.Persisted().ConfigureAwait(false))
             {
                 return;
             }
 
-            if (await storage.RequestPersistAsync().ConfigureAwait(false))
+            if (await Navigator.Storage.Persist().ConfigureAwait(false))
             {
                 LogPersisted(logger, options.Name);
                 return;
             }
 
-            // One branch, not two: RequestPersistAsync resolves false both when the browser declines and
-            // when it has no such API, and from here those have exactly the same consequence.
             LogNotPersisted(logger, options.Name);
         }
-#pragma warning disable CA1031 // Durability is best-effort; a failed request must not stop the app booting.
-        catch (Exception ex)
-#pragma warning restore CA1031
+        catch (JSException ex)
         {
+            // Durability is best-effort: a browser without navigator.storage, or one that refuses, must not
+            // stop the app booting.
             LogPersistFailed(logger, ex, options.Name);
         }
     }
@@ -162,10 +178,9 @@ internal sealed partial class BrowserSqliteHost(
         {
             await _ownerHold.ConfigureAwait(false);
         }
-#pragma warning disable CA1031 // The browser releases every lock when the context is torn down anyway.
-        catch (Exception ex)
-#pragma warning restore CA1031
+        catch (JSException ex)
         {
+            // The browser releases every lock when the context is torn down anyway.
             LogReleaseFailed(logger, ex, options.Name);
         }
     }
@@ -175,8 +190,8 @@ internal sealed partial class BrowserSqliteHost(
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Polls with <see cref="IWebLocks.TryRequestAsync" />, which acquires and releases within the
-    ///         call, rather than waiting on <c>RequestAsync</c>. Waiting would mean <em>holding</em> the
+    ///         Polls with an <c>ifAvailable</c> request, which acquires and releases within the call, rather
+    ///         than waiting for the lock. Waiting would mean <em>holding</em> the
     ///         lock the moment it frees — and this tab must not own the database: it opened its own empty
     ///         one at boot, so persisting from here would overwrite the previous owner's good snapshot with
     ///         nothing. Holding a lock it must never use would also block a tab that could actually use it.
@@ -196,9 +211,10 @@ internal sealed partial class BrowserSqliteHost(
 
             while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
             {
-                // The callback is empty on purpose: acquiring proves the lock is free, and returning
-                // immediately hands it straight back.
-                if (await locks.TryRequestAsync(name, static () => Task.CompletedTask).ConfigureAwait(false))
+                // Being handed the lock proves it is free, and returning at once hands it straight back.
+                var free = false;
+                await Navigator.Locks.Request(name, IfAvailable, granted => free = granted is not null).ConfigureAwait(false);
+                if (free)
                 {
                     LogAvailable(logger, options.Name);
                     ownership.MarkAvailable();
@@ -210,10 +226,9 @@ internal sealed partial class BrowserSqliteHost(
         {
             // The page is going away.
         }
-#pragma warning disable CA1031 // A watcher that dies must not take the app with it; the tab simply stops offering to take over.
-        catch (Exception ex)
-#pragma warning restore CA1031
+        catch (JSException ex)
         {
+            // A watcher that dies must not take the app with it; the tab simply stops offering to take over.
             LogWatchFailed(logger, ex, options.Name);
         }
     }
@@ -222,15 +237,15 @@ internal sealed partial class BrowserSqliteHost(
     ///     Takes the owner lock and holds it for the lifetime of the page.
     /// </summary>
     /// <remarks>
-    ///     <see cref="IWebLocks.TryRequestAsync" /> holds the lock only while its callback runs, so the
-    ///     callback parks on <see cref="_release" />. That means the call itself never completes for the
-    ///     winner — hence racing it against a signal raised from inside the callback rather than awaiting
-    ///     it. <c>TryRequestAsync</c> and not <c>RequestAsync</c>: the waiting form has no cancellation, so
-    ///     a second tab would hang its whole boot until the first one closed.
+    ///     A lock is held only while the handler it was granted to runs, so the handler parks on
+    ///     <see cref="_release" />. That means the request itself never completes for the winner — hence
+    ///     racing it against a signal raised from inside the handler rather than awaiting it.
+    ///     <c>ifAvailable</c> rather than a waiting request: that has no cancellation here, so a second tab
+    ///     would hang its whole boot until the first one closed.
     /// </remarks>
     private async Task<bool> TryBecomeOwnerAsync()
     {
-        if (!await locks.IsSupportedAsync().ConfigureAwait(false))
+        if (!await Navigator.Locks.IsSupported.ConfigureAwait(false))
         {
             // No Web Locks means no way to detect a second tab. Owning the database is the useful
             // behaviour for the overwhelmingly common single-tab case; the risk is stated rather than
@@ -241,16 +256,22 @@ internal sealed partial class BrowserSqliteHost(
 
         var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        _ownerHold = locks.TryRequestAsync(
+        _ownerHold = Navigator.Locks.Request(
             BrowserSqlite.OwnerLockName(options.Name),
-            async () =>
+            IfAvailable,
+            async granted =>
             {
+                if (granted is null)
+                {
+                    return; // another tab holds it
+                }
+
                 held.TrySetResult();
                 await _release.Task.ConfigureAwait(false);
             }).AsTask();
 
-        // Whichever happens first: the callback started (we are the owner, and _ownerHold will not
-        // complete until shutdown), or the request returned false (someone else holds it).
+        // Whichever happens first: the handler was granted the lock (we are the owner, and _ownerHold will
+        // not complete until shutdown), or the request settled without one (someone else holds it).
         var first = await Task.WhenAny(held.Task, _ownerHold).ConfigureAwait(false);
 
         if (first == held.Task)
@@ -260,9 +281,9 @@ internal sealed partial class BrowserSqliteHost(
 
         // Observe the completed request so a failure inside the interop call surfaces here rather than
         // as an unobserved task exception later. Nothing is holding a lock now, so nothing to release.
-        var granted = await _ownerHold.ConfigureAwait(false);
+        await _ownerHold.ConfigureAwait(false);
         _ownerHold = null;
-        return granted;
+        return false;
     }
 
     /// <inheritdoc />
@@ -317,7 +338,7 @@ internal sealed partial class BrowserSqliteHost(
         Message = "The browser did not grant persistent storage, so it may evict the snapshots of '{Name}' "
                   + "under storage pressure and the database would come back empty. Chromium grants this on "
                   + "engagement; Firefox prompts, so ask from a user gesture with "
-                  + "IStorageEstimator.RequestPersistAsync() and set BrowserSqliteOptions."
+                  + "Navigator.Storage.Persist() and set BrowserSqliteOptions."
                   + nameof(BrowserSqliteOptions.RequestPersistentStorage) + " to false.")]
     private static partial void LogNotPersisted(ILogger logger, string name);
 

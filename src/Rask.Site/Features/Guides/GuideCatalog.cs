@@ -212,7 +212,7 @@ public static class GuideCatalog
             SearchTitle = "Live queries and real-time subscriptions in C#",
             Description = "Keep C# pages current: Live() refetches a query when anyone writes, and QueryClient.Subscribe pushes real events to every subscribed component.",
         },
-        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPush, delivery results.", "Realtime")
+        new("webpush", "Web Push (server)", "Subscribe with MDN's PushManager, send Web Push from your backend — VAPID keys, delivery results.", "Realtime")
         {
             SearchTitle = "Send Web Push notifications from .NET",
             Description = "Send Web Push notifications from an ASP.NET Core backend to subscribed browsers with your own VAPID keys, aes128gcm encryption and zero external dependencies.",
@@ -431,16 +431,6 @@ public static class GuideCatalog
             SearchTitle = "document.cookie in C# and .NET (ICookies)",
             Description = "Read and write browser cookies from C# through document.cookie, with typed CookieOptions. The ICookies wrapper works on both the Server and WebAssembly hosts.",
         },
-        new("device-motion", "IDeviceMotion", "Typed browser API: IDeviceMotion.", "Browser API reference", "apis/device-motion.md")
-        {
-            SearchTitle = "DeviceMotion Events in C# and .NET (IDeviceMotion)",
-            Description = "Receive accelerometer and gyroscope readings from device motion events in a C# callback. Request permission first: iOS gates and often blocks the sensor.",
-        },
-        new("device-orientation", "IDeviceOrientation", "Typed browser API: IDeviceOrientation.", "Browser API reference", "apis/device-orientation.md")
-        {
-            SearchTitle = "DeviceOrientation Events in C# (IDeviceOrientation)",
-            Description = "Receive alpha, beta and gamma tilt from device orientation events in a C# callback. Works on Server and WebAssembly; iOS needs a gesture-triggered grant.",
-        },
         new("indexeddb", "IIndexedDb", "Typed browser API: IIndexedDb.", "Browser API reference", "apis/indexeddb.md")
         {
             SearchTitle = "IndexedDB in C# and .NET (IIndexedDb)",
@@ -450,11 +440,6 @@ public static class GuideCatalog
         {
             SearchTitle = "PWA Install Prompt (beforeinstallprompt) in C#",
             Description = "Capture the beforeinstallprompt event and replay the PWA install prompt from C#. IInstallPrompt is WASM-only; on Server, Trigger.Install reports the outcome.",
-        },
-        new("media-devices", "IMediaDevices", "Typed browser API: IMediaDevices.", "Browser API reference", "apis/media-devices.md")
-        {
-            SearchTitle = "getUserMedia Camera Capture in C# (IMediaDevices)",
-            Description = "Capture camera, microphone or screen into a video element from C# with getUserMedia. IMediaDevices is WASM-only; on Server, use Trigger.MediaCapture instead.",
         },
         new("media-streams", "IMediaStreams", "Typed browser API: IMediaStreams.", "Browser API reference", "apis/media-streams.md")
         {
@@ -466,25 +451,10 @@ public static class GuideCatalog
             SearchTitle = "Speech Recognition API in C# (ISpeechRecognition)",
             Description = "Turn speech into text from C# with ISpeechRecognition, which pushes final or interim transcripts to a callback. SpeechRecognition is Chromium-only.",
         },
-        new("storage-estimator", "IStorageEstimator", "Typed browser API: IStorageEstimator.", "Browser API reference", "apis/storage-estimator.md")
-        {
-            SearchTitle = "StorageManager.estimate in C# (IStorageEstimator)",
-            Description = "Read browser storage quota and usage from C# with IStorageEstimator, a navigator.storage.estimate wrapper, to budget caches and request persistent storage.",
-        },
         new("wake-lock", "IWakeLock", "Typed browser API: IWakeLock.", "Browser API reference", "apis/wake-lock.md")
         {
             SearchTitle = "Screen Wake Lock API in C# and .NET (IWakeLock)",
             Description = "Keep the screen awake from C# with IWakeLock and release it by disposing the sentinel. The Screen Wake Lock API drops the lock when the page is hidden.",
-        },
-        new("web-locks", "IWebLocks", "Typed browser API: IWebLocks.", "Browser API reference", "apis/web-locks.md")
-        {
-            SearchTitle = "Web Locks API in C# and .NET (IWebLocks)",
-            Description = "Coordinate work across tabs and workers from C# with IWebLocks: hold a named Web Locks API lock for a callback, try without waiting, or query the held locks.",
-        },
-        new("web-push", "IWebPush", "Typed browser API: IWebPush.", "Browser API reference", "apis/web-push.md")
-        {
-            SearchTitle = "Push API: subscribe to Web Push in C# (IWebPush)",
-            Description = "Subscribe a browser to Web Push from C# with IWebPush: request permission, register the service worker, and get or remove the Push API subscription.",
         },
         new("webauthn", "IWebAuthn", "Typed browser API: IWebAuthn.", "Browser API reference", "apis/webauthn.md")
         {

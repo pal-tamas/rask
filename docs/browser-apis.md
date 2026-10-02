@@ -14,7 +14,7 @@ under [`docs/apis/`](apis/). For the deeper "why" — user activation, the trans
 refs — see [JS interop → Typed browser APIs](js-interop-runtime.md#typed-browser-apis); for the mobile/PWA
 angle see the [Mobile & PWA guide](pwa.md). Every wrapper has a runnable demo in the
 [showcase](https://rask.sh/docs/), under **Browser APIs** — except the WASM-only tier
-plus `IWakeLock` and `IWebPush`, which get their own pages under **PWA** because they need something the
+plus `IWakeLock`, which gets its own page under **PWA** because they need something the
 Server transport can't give them. (The activation-gated ones appear in both: as gesture components
 under Browser APIs, and as injectable services or Rask.Web calls under PWA.)
 

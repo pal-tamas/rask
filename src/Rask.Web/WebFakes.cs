@@ -86,6 +86,9 @@ internal static class WebFakes
 
         public List<Listener> Listeners { get; } = [];
 
+        // Keyed by MDN's member name (request): what runs the awaited handler a call is handed, in the browser's place.
+        public Dictionary<string, Func<WebCall, Func<object?[], Task>, Task>> CallsBack { get; } = new(StringComparer.Ordinal);
+
         public IReadOnlyList<WebCall> Calls
         {
             get
@@ -117,22 +120,50 @@ internal static class WebFakes
             return Answers.TryGetValue(member, out var value) ? Cast<T>(member, value) : default!;
         }
 
+        // A call answered as Answer does, once the awaited handler it was handed has run, if the test said how: the
+        // browser settles a lock request only when its handler has.
+        public async Task<T> Settle<T>(IReadOnlyList<JsChain.Step> rest)
+        {
+            var value = Answer<T>(rest);
+            if (rest.Count > 0 && rest[^1] is { Kind: JsChain.StepCall } call && CallsBack.TryGetValue(call.Name, out var answer)
+                && call.Args?.OfType<AwaitedHandler>().FirstOrDefault() is { } handler)
+            {
+                await answer(new WebCall(Member(rest), Recorded(call.Args)), handler.Run).ConfigureAwait(false);
+            }
+
+            return value;
+        }
+
+        // IsSupported, as the test answered it (Returns(l => l.IsSupported, false)); a fake is there unless told not.
+        public bool Has(IReadOnlyList<JsChain.Step> rest)
+        {
+            var member = rest.Count == 0 ? nameof(JsObject.IsSupported) : $"{Member(rest)}.{nameof(JsObject.IsSupported)}";
+            return !Answers.TryGetValue(member, out var value) || value is not false;
+        }
+
         private void Record(string member, object?[] args)
         {
             lock (_gate)
             {
-                _calls.Add(new WebCall(member, args));
+                _calls.Add(new WebCall(member, Recorded(args)));
             }
         }
+
+        // What a call is recorded with: an awaited handler as the code under test wrote it.
+        private static object?[] Recorded(object?[] args) => [.. args.Select(a => a is AwaitedHandler awaited ? awaited.Handler : a)];
 
         private static T Cast<T>(string member, object? value) => value switch
         {
             null => default!,
+            Refusal refusal => throw refusal.Error,
             T typed => typed,
             _ => throw new InvalidOperationException(
                 $"The fake answers {member} with a {value.GetType().Name}, but the code under test reads it as a {typeof(T).Name}."),
         };
     }
+
+    // An answer that is a failure: WebFake.Throws.
+    internal sealed record Refusal(Exception Error);
 
     internal sealed record Listener(string Type, Component Owner, Func<object, Task> Invoke);
 }

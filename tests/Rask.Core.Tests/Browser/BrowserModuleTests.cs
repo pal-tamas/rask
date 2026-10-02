@@ -179,14 +179,4 @@ public class BrowserModuleTests
         // A delete is an expiry, and it only lands when it names the same path the cookie was set on.
         Assert.Equal("token=; max-age=0; path=/app", r.GetProperty("cookieDeleteWrite").GetString());
     }
-
-    [Fact]
-    public void A_storage_estimate_with_neither_figure_reports_zeroes()
-    {
-        if (Result is not { } r) return;
-
-        var estimate = r.GetProperty("estimate");
-        Assert.Equal(0, estimate.GetProperty("quota").GetInt64());
-        Assert.Equal(0, estimate.GetProperty("usage").GetInt64());
-    }
 }

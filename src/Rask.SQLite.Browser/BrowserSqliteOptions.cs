@@ -52,7 +52,7 @@ public sealed class BrowserSqliteOptions
     ///         Chromium decides from engagement heuristics without prompting. <b>Firefox shows a permission
     ///         prompt</b>, and this is asked during startup rather than from a click, so an app that would
     ///         rather choose its moment should set this to <see langword="false" /> and call
-    ///         <c>IStorageEstimator.RequestPersistAsync()</c> from a user-gesture handler instead.
+    ///         <c>await Navigator.Storage.Persist()</c> (Rask.Web) from a user-gesture handler instead.
     ///     </para>
     ///     <para>Only the owning tab asks: the others persist nothing, so a prompt there would buy nothing.</para>
     /// </remarks>

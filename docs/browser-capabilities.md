@@ -4,9 +4,10 @@ Every typed browser/device API wrapper Rask ships, and where it works. Inject th
 framework resolves the implementation for the host. Each API links to its own reference page; the
 narrative overview (with the three-homes rationale and the subscription pattern) is
 [browser-apis.md](browser-apis.md). Everything else the browser ships — clipboard, geolocation, `matchMedia`,
-storage, screen, share, crypto, permissions, `BroadcastChannel`, media session, speech synthesis, animations,
-fullscreen, Picture-in-Picture, files, gamepads, notifications, the app badge, WebUSB, WebHID, Web Serial, Web
-Bluetooth — is MDN's own surface in [`Rask.Web`](web-apis.md).
+storage, screen, share, crypto, permissions, `BroadcastChannel`, media session, Web Locks, the storage estimate,
+device orientation and motion, the camera and microphone, speech synthesis, animations, fullscreen,
+Picture-in-Picture, files, gamepads, notifications, push subscription, the app badge, WebUSB, WebHID, Web Serial,
+Web Bluetooth — is MDN's own surface in [`Rask.Web`](web-apis.md).
 
 **Legend** — ✅ injectable service · 🟡 reachable on Server via a declarative **gesture component** (runs the
 activation-gated call inside a click), not as an injected service · ⬜ not available · — n/a.
@@ -15,19 +16,13 @@ activation-gated call inside a click), not as an injected service · ⬜ not ava
 |-----|:---:|:---:|
 | [`ICookies`](apis/cookies.md) | ✅ | ✅ |
 | [`ISpeechRecognition`](apis/speech-recognition.md) | ✅ | ✅ |
-| [`IDeviceOrientation`](apis/device-orientation.md) | ✅ | ✅ |
-| [`IDeviceMotion`](apis/device-motion.md) | ✅ | ✅ |
-| [`IStorageEstimator`](apis/storage-estimator.md) | ✅ | ✅ |
 | [`IIndexedDb`](apis/indexeddb.md) | ✅ | ✅ |
 | [`IWebAuthn`](apis/webauthn.md) | ✅ | ✅ |
-| [`IWebLocks`](apis/web-locks.md) | ✅ | ✅ |
 | [`IMediaStreams`](apis/media-streams.md) | ✅ | ✅ |
 | [`ISignaling`](apis/signaling.md) | ✅ | ✅ |
 | [`IWebRtc`](apis/webrtc.md) | ✅ | ✅ |
-| [`IWebPush`](apis/web-push.md) | ✅ | ✅ |
 | [`IWakeLock`](apis/wake-lock.md) | ✅ | ✅ |
 | [`IInstallPrompt`](apis/install-prompt.md) | 🟡 | ✅ |
-| [`IMediaDevices`](apis/media-devices.md) | 🟡 | ✅ |
 | [`IBackgroundSync`](apis/background-sync.md) | ⬜ | ✅ |
 
 ## Notes
@@ -37,9 +32,9 @@ activation-gated call inside a click), not as an injected service · ⬜ not ava
   declarative **gesture components** that run the call inside the click gesture. All six ship:
   `Trigger.Fullscreen`, `Trigger.ScreenOrientation`,
   `Trigger.EyeDropper`, [`Trigger.Install`](apis/install-prompt.md),
-  [`Trigger.MediaCapture`](apis/media-devices.md), and `Trigger.PictureInPicture`
+  [`Trigger.MediaCapture`](apis/media-streams.md), and `Trigger.PictureInPicture`
   (plus the generic `Trigger.Gesture`). The last two target a `<video>` via its `ElementRef`.
 - **PWA / WASM** is the in-browser WebAssembly host, which registers the full set.
-- Push subscription (`IWebPush`) and the wake lock (`IWakeLock`) work on Server too, but their JS helpers ship
-  only under `AddRaskPwa` — see [pwa.md](pwa.md). Notifications and the app badge are `Notification` and
-  `Navigator.SetAppBadge` in [`Rask.Web`](web-apis.md).
+- The wake lock (`IWakeLock`) works on Server too, but its JS helper ships only under `AddRaskPwa` — see
+  [pwa.md](pwa.md). Push subscription, notifications and the app badge are MDN's `PushManager`, `Notification`
+  and `Navigator.SetAppBadge` in [`Rask.Web`](web-apis.md).

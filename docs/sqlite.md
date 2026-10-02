@@ -867,7 +867,7 @@ Three limits, stated plainly because each one is a silent failure rather than an
   logs a refusal rather than failing. Chromium decides from engagement heuristics without prompting;
   **Firefox prompts**, and this is asked during boot rather than from a click — so an app that would
   rather pick its moment sets `o.RequestPersistentStorage = false` and calls
-  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
+  `await Navigator.Storage.Persist()` (`using Rask.Web;`) from a user-gesture handler instead.
 - **One tab owns the database.** Every tab has its own copy of the in-memory filesystem, so two owners
   would mean two divergent databases and a last-writer-wins overwrite. The others run with their own empty,
   unpersisted database — which, left unexplained, looks exactly like the user's data having been deleted.

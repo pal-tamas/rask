@@ -1,6 +1,6 @@
 # Rask.WebPush — Web Push on your own keys and your own database
 
-> **In practice:** [PWA & Web Push](pwa.md#push-notifications-iwebpush) (the browser subscribe side) · [cheat sheet](cheatsheet.md#code-idioms).
+> **In practice:** [PWA & Web Push](pwa.md#push-notifications-pushmanager) (the browser subscribe side) · [cheat sheet](cheatsheet.md#code-idioms).
 
 `Rask.WebPush` delivers a **Web Push notification from your server to the browsers that asked for one**. It keeps
 those browsers in a table on the app's own database, signs each message with your own VAPID keys
@@ -30,29 +30,39 @@ A person with a phone and a laptop has two rows, and `.To(userId)` reaches both.
 
 ## Subscribe
 
-On the **server host**, a component asks the browser and keeps the answer:
+The browser side is MDN's own `PushManager`, from [`Rask.Web`](web-apis.md), reached through the service worker
+the page registered. On the **server host**, a component asks the browser and keeps the answer:
 
 ```csharp
-public sealed partial class NotifyMe(IWebPush browser) : Component
+using System.Buffers.Text;
+using Rask.Web;
+
+public sealed partial class NotifyMe : Component
 {
     protected override Component? Render() =>
         Ui.Button.OnClick(Subscribe)["Notify me about my orders"];
 
     private async Task Subscribe()
     {
-        var subscription = await browser.SubscribeAsync(Push.PublicKey!);   // the browser API
-        await Push.Subscribe(subscription);                                // one row, for the signed-in user
+        await using var worker = await Navigator.ServiceWorker.Ready;              // rask-sw.js, once active
+        await using var subscription = await worker.PushManager.Subscribe(new()
+        {
+            UserVisibleOnly = true,
+            ApplicationServerKey = Base64Url.DecodeFromChars(Push.PublicKey),     // the VAPID public key, as bytes
+        });
+        await Push.Subscribe(await subscription.ToJSON());                       // one row, for the signed-in user
     }
 }
 ```
 
-A **WebAssembly client or a SPA** posts the same record to the endpoints `RaskApp` maps:
+A **WebAssembly client or a SPA** posts the same `ToJSON()` — MDN's `PushSubscriptionJSON`, what `subscription.toJSON()`
+answers in JavaScript too — to the endpoints `RaskApp` maps:
 
 | Endpoint | What it does |
 | --- | --- |
 | `GET /_rask/push/key` | `{ "publicKey": "…" }` — empty until a key pair is configured |
-| `POST /_rask/push/subscribe` | keeps `{ endpoint, p256dh, auth }` for the signed-in user, when there is one |
-| `POST /_rask/push/unsubscribe` | forgets it |
+| `POST /_rask/push/subscribe` | keeps `{ endpoint, expirationTime, keys: { p256dh, auth } }` for the signed-in user, when there is one (the flat `{ endpoint, p256dh, auth }` is read too) |
+| `POST /_rask/push/unsubscribe` | forgets it (`{ endpoint }`) |
 
 They are anonymous (a visitor may subscribe before signing in) and outside the API description. Subscribing
 again from the same browser renews its row rather than adding one.
@@ -112,8 +122,8 @@ service's own semantics ([RFC 8030](https://www.rfc-editor.org/rfc/rfc8030)).
 
 `Push.Send(subscription, message)` sends to a single `PushSubscription` and returns the `WebPushResult` —
 `IsSuccess`, `ShouldDelete` (the subscription is gone) or `ShouldRetry` (429/5xx; send it through
-[`Rask.Jobs`](jobs.md) to retry durably). `PushSubscription` lives in `Rask.Wire`, one record for the browser
-API and the server alike.
+[`Rask.Jobs`](jobs.md) to retry durably). `PushSubscription` lives in `Rask.Wire`: the endpoint and the two keys
+the sender encrypts for, flat.
 
 An app that keeps its subscriptions somewhere of its own registers the sender alone and uses `IWebPush`:
 

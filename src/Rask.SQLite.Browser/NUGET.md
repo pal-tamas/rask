@@ -73,7 +73,7 @@ compiled into the SQLite build that is linked into the WebAssembly app.
   origin (`navigator.storage.persist()`) at startup; a refusal is logged and changes nothing else.
   Chromium decides on engagement without prompting, **Firefox prompts** — so an app that would rather
   choose its moment sets `o.RequestPersistentStorage = false` and calls
-  `IStorageEstimator.RequestPersistAsync()` from a user-gesture handler instead.
+  `await Navigator.Storage.Persist()` (`using Rask.Web;`) from a user-gesture handler instead.
 - **Non-owner tabs are not read-only — they are separate.** They get their own empty in-memory database
   and never persist, which looks like data loss unless you say otherwise. Inject `BrowserSqliteOwnership`
   and tell the user: `await ownership.Resolved` gives the answer, and `ownership.IsOwner` is `null` while

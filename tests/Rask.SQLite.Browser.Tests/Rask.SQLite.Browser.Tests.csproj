@@ -40,7 +40,7 @@
     <ProjectReference Include="..\..\src\Rask.SQLite.Browser\Rask.SQLite.Browser.csproj"/>
     <!-- Referenced directly because Rask.SQLite.Browser takes Rask.Core with PrivateAssets="all" (it is
          IsPackable=false and reaches consumers through Rask.Wasm), so it does not flow transitively —
-         and the fakes here implement IIndexedDb and IWebLocks. -->
+         and the fakes here implement IIndexedDb. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <!-- Same reason, for ISqliteSnapshotter and SqliteSnapshotInfo. -->
     <ProjectReference Include="..\..\src\Rask.SQLite.Snapshots\Rask.SQLite.Snapshots.csproj"/>

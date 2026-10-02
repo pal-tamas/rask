@@ -38,15 +38,6 @@ Rask.Wasm.Browser.IInstallPrompt
 Rask.Wasm.Browser.IInstallPrompt.CanInstallAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.IInstallPrompt.IsInstalledAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.IInstallPrompt.PromptAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.InstallOutcome>
-Rask.Wasm.Browser.IMediaDevices
-Rask.Wasm.Browser.IMediaDevices.EnumerateDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.MediaDeviceInfo!>!>
-Rask.Wasm.Browser.IMediaDevices.GetDisplayMediaAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
-Rask.Wasm.Browser.IMediaDevices.GetUserMediaAsync(Rask.Wasm.Browser.MediaConstraints! constraints) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
-Rask.Wasm.Browser.IMediaDevices.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.IMediaStreamHandle
-Rask.Wasm.Browser.IMediaStreamHandle.AttachToAsync(Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
-Rask.Wasm.Browser.IMediaStreamHandle.Id.get -> Rask.Core.Browser.MediaStreamId
-Rask.Wasm.Browser.IMediaStreamHandle.StopAsync() -> System.Threading.Tasks.ValueTask
 Rask.Wasm.Browser.InstallOutcome
 Rask.Wasm.Browser.InstallOutcome.Accepted = 0 -> Rask.Wasm.Browser.InstallOutcome
 Rask.Wasm.Browser.InstallOutcome.Dismissed = 1 -> Rask.Wasm.Browser.InstallOutcome
@@ -56,36 +47,6 @@ Rask.Wasm.Browser.InstallPrompt.CanInstallAsync() -> System.Threading.Tasks.Valu
 Rask.Wasm.Browser.InstallPrompt.InstallPrompt(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Wasm.Browser.InstallPrompt.IsInstalledAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Wasm.Browser.InstallPrompt.PromptAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.InstallOutcome>
-Rask.Wasm.Browser.MediaConstraints
-Rask.Wasm.Browser.MediaConstraints.<Clone>$() -> Rask.Wasm.Browser.MediaConstraints!
-Rask.Wasm.Browser.MediaConstraints.Audio.get -> bool
-Rask.Wasm.Browser.MediaConstraints.Audio.init -> void
-Rask.Wasm.Browser.MediaConstraints.Deconstruct(out bool Video, out bool Audio, out string? FacingMode) -> void
-Rask.Wasm.Browser.MediaConstraints.Equals(Rask.Wasm.Browser.MediaConstraints? other) -> bool
-Rask.Wasm.Browser.MediaConstraints.FacingMode.get -> string?
-Rask.Wasm.Browser.MediaConstraints.FacingMode.init -> void
-Rask.Wasm.Browser.MediaConstraints.MediaConstraints(bool Video = true, bool Audio = false, string? FacingMode = null) -> void
-Rask.Wasm.Browser.MediaConstraints.Video.get -> bool
-Rask.Wasm.Browser.MediaConstraints.Video.init -> void
-Rask.Wasm.Browser.MediaDeviceInfo
-Rask.Wasm.Browser.MediaDeviceInfo.<Clone>$() -> Rask.Wasm.Browser.MediaDeviceInfo!
-Rask.Wasm.Browser.MediaDeviceInfo.Deconstruct(out string! DeviceId, out string! Kind, out string! Label, out string! GroupId) -> void
-Rask.Wasm.Browser.MediaDeviceInfo.DeviceId.get -> string!
-Rask.Wasm.Browser.MediaDeviceInfo.DeviceId.init -> void
-Rask.Wasm.Browser.MediaDeviceInfo.Equals(Rask.Wasm.Browser.MediaDeviceInfo? other) -> bool
-Rask.Wasm.Browser.MediaDeviceInfo.GroupId.get -> string!
-Rask.Wasm.Browser.MediaDeviceInfo.GroupId.init -> void
-Rask.Wasm.Browser.MediaDeviceInfo.Kind.get -> string!
-Rask.Wasm.Browser.MediaDeviceInfo.Kind.init -> void
-Rask.Wasm.Browser.MediaDeviceInfo.Label.get -> string!
-Rask.Wasm.Browser.MediaDeviceInfo.Label.init -> void
-Rask.Wasm.Browser.MediaDeviceInfo.MediaDeviceInfo(string! DeviceId, string! Kind, string! Label, string! GroupId) -> void
-Rask.Wasm.Browser.MediaDevices
-Rask.Wasm.Browser.MediaDevices.EnumerateDevicesAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wasm.Browser.MediaDeviceInfo!>!>
-Rask.Wasm.Browser.MediaDevices.GetDisplayMediaAsync() -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
-Rask.Wasm.Browser.MediaDevices.GetUserMediaAsync(Rask.Wasm.Browser.MediaConstraints! constraints) -> System.Threading.Tasks.ValueTask<Rask.Wasm.Browser.IMediaStreamHandle!>
-Rask.Wasm.Browser.MediaDevices.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Wasm.Browser.MediaDevices.MediaDevices(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Wasm.Browser.RaskWasmBrowserApis
 Rask.Wasm.RaskWasmBatteryRegistry
 Rask.Wasm.WasmHostBuilder
@@ -102,19 +63,9 @@ const Rask.Wasm.WasmPrerender.TrailingSlashVariable = "RASK_PRERENDER_TRAILING_S
 override Rask.Wasm.Browser.BackgroundSyncEvent.Equals(object? obj) -> bool
 override Rask.Wasm.Browser.BackgroundSyncEvent.GetHashCode() -> int
 override Rask.Wasm.Browser.BackgroundSyncEvent.ToString() -> string!
-override Rask.Wasm.Browser.MediaConstraints.Equals(object? obj) -> bool
-override Rask.Wasm.Browser.MediaConstraints.GetHashCode() -> int
-override Rask.Wasm.Browser.MediaConstraints.ToString() -> string!
-override Rask.Wasm.Browser.MediaDeviceInfo.Equals(object? obj) -> bool
-override Rask.Wasm.Browser.MediaDeviceInfo.GetHashCode() -> int
-override Rask.Wasm.Browser.MediaDeviceInfo.ToString() -> string!
 static Rask.Wasm.Browser.BackgroundSyncEvent.operator !=(Rask.Wasm.Browser.BackgroundSyncEvent? left, Rask.Wasm.Browser.BackgroundSyncEvent? right) -> bool
 static Rask.Wasm.Browser.BackgroundSyncEvent.operator ==(Rask.Wasm.Browser.BackgroundSyncEvent? left, Rask.Wasm.Browser.BackgroundSyncEvent? right) -> bool
 static Rask.Wasm.Browser.BackgroundSyncInterop.Fired(bool periodic, string! tag) -> System.Threading.Tasks.Task!
-static Rask.Wasm.Browser.MediaConstraints.operator !=(Rask.Wasm.Browser.MediaConstraints? left, Rask.Wasm.Browser.MediaConstraints? right) -> bool
-static Rask.Wasm.Browser.MediaConstraints.operator ==(Rask.Wasm.Browser.MediaConstraints? left, Rask.Wasm.Browser.MediaConstraints? right) -> bool
-static Rask.Wasm.Browser.MediaDeviceInfo.operator !=(Rask.Wasm.Browser.MediaDeviceInfo? left, Rask.Wasm.Browser.MediaDeviceInfo? right) -> bool
-static Rask.Wasm.Browser.MediaDeviceInfo.operator ==(Rask.Wasm.Browser.MediaDeviceInfo? left, Rask.Wasm.Browser.MediaDeviceInfo? right) -> bool
 static Rask.Wasm.Browser.RaskWasmBrowserApis.AddWasmBrowserApis(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.DependencyInjection.ServiceLifetime lifetime) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Wasm.RaskWasmBatteryRegistry.Use(System.Action<Rask.Wasm.WasmHostBuilder!, Microsoft.Extensions.DependencyInjection.IServiceCollection!>! wire) -> void
 static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
@@ -145,10 +96,6 @@ Rask.Web.GPUPipelineError
 Rask.Web.GPUValidationError
 Rask.Web.Types.AudioWorklet
 Rask.Web.Types.AudioWorkletNode
-Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action<Rask.Web.Types.ErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<Rask.Web.Types.ErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.AudioWorkletNode.Parameters.get -> Rask.Web.Types.AudioParamMap!
 Rask.Web.Types.AudioWorkletNode.Port.get -> Rask.Web.Types.MessagePort!
 Rask.Web.Types.GPU
@@ -234,10 +181,6 @@ Rask.Web.Types.GPUDevice.Features.get -> Rask.Web.Types.GPUSupportedFeatures!
 Rask.Web.Types.GPUDevice.ImportExternalTexture(Rask.Web.Types.GPUExternalTextureDescriptor! descriptor) -> Rask.Web.Types.GPUExternalTexture!
 Rask.Web.Types.GPUDevice.Label.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.GPUDevice.Limits.get -> Rask.Web.Types.GPUSupportedLimits!
-Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action<Rask.Web.Types.GPUUncapturedErrorEvent!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<Rask.Web.Types.GPUUncapturedErrorEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.GPUDevice.PushErrorScope(Rask.Web.Types.GPUErrorFilter filter) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.GPUDevice.Queue.get -> Rask.Web.Types.GPUQueue!
 Rask.Web.Types.GPUDevice.SetLabel(string! value) -> System.Threading.Tasks.ValueTask
@@ -1204,3 +1147,12 @@ static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create
 static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGL2RenderingContext! context, Rask.Web.Types.XRWebGLLayerInit! layerInit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
 static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
 static Rask.Web.XRWebGLLayerWasmMembers.extension(Rask.Web.XRWebGLLayer!).Create(Rask.Web.Types.XRSession! session, Rask.Web.Types.WebGLRenderingContext! context, Rask.Web.Types.XRWebGLLayerInit! layerInit) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.XRWebGLLayer!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Action<Rask.Web.Types.ErrorEvent!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<Rask.Web.Types.ErrorEvent!, System.Threading.Tasks.Task!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.AudioWorkletNode.OnProcessorError(System.Func<System.Threading.Tasks.Task!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.Lost.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GPUDeviceLostInfo!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action<Rask.Web.Types.GPUUncapturedErrorEvent!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<Rask.Web.Types.GPUUncapturedErrorEvent!, System.Threading.Tasks.Task!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
+Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<System.Threading.Tasks.Task!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>

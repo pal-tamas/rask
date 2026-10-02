@@ -56,7 +56,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 - `src/Rask.Spa.Hosting` — `MapRaskSpa()`: serves a Rask WASM app from its ASP.NET host (WASM is a SPA, never a render mode; JS frameworks only as islands). `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
 - `src/Rask.Validation.{DataAnnotations,FluentValidation}` — opt-in validators. `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.Web` — every web API from MDN (generated at build from the Core snapshot by `src/Rask.Dom.Tasks`'s WebEmitter): globals in `Rask.Web`, MDN interfaces in `Rask.Web.Types`, each chain one `__raskWeb.run` round trip, kept objects as `IJSObjectReference` handles. Opt-in (`using Rask.Web;`) until the wrappers go.
-- `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; pairs with `IWebPush`). Zero external deps.
+- `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; browsers subscribe via MDN's `PushManager`). Zero external deps.
 - `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from
   `BlazorComponent<T>` (T from an RCL/MudBlazor/Radzen — the Razor SDK compiles `.razor` untouched). Rendered
   server-side into the FIRST response via `OnPropsChangedAsync` + quiescence; params cross as live C# objects
@@ -146,7 +146,7 @@ dotnet run --project src/Rask.Site
 
 ## Subsystems → read `docs/`
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
-(`docs/js-interop.md`, `docs/browser-apis.md` — the 53-wrapper map), forms +
+(`docs/js-interop.md`, `docs/browser-apis.md` — the wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
 diagnostics RASK001–097, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must

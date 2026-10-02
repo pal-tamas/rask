@@ -72,9 +72,8 @@ public static class RaskHostContracts
     /// </summary>
     public static IReadOnlyList<Type> BrowserApis { get; } =
     [
-        typeof(ICookies), typeof(IDeviceMotion), typeof(IDeviceOrientation), typeof(IIndexedDb), typeof(IMediaStreams),
-        typeof(ISignaling), typeof(ISpeechRecognition), typeof(IStorageEstimator), typeof(IViewTransitions),
-        typeof(IWakeLock), typeof(IWebAuthn), typeof(IWebLocks), typeof(IWebPush), typeof(IWebRtc),
+        typeof(ICookies), typeof(IIndexedDb), typeof(IMediaStreams), typeof(ISignaling), typeof(ISpeechRecognition),
+        typeof(IViewTransitions), typeof(IWakeLock), typeof(IWebAuthn), typeof(IWebRtc),
     ];
 
     /// <summary>

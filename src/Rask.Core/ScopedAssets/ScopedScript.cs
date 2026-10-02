@@ -144,6 +144,11 @@ public static class ScopedScript
     internal static ScriptCallback Handler(Component owner, Func<JsonElement, Task> invoke, bool awaited = false) =>
         Register(owner, (args, _) => invoke(args), awaited);
 
+    // One no component owns, for a call that runs it before it settles (a hosted service's lock request): it runs at
+    // once, re-renders nothing, and the caller releases it when the call settles.
+    internal static ScriptCallback Handler(IJSRuntime runtime, Func<JsonElement, Task> invoke) =>
+        new(Callbacks.Register(runtime, (args, _) => invoke(args)));
+
     internal static void Release(ScriptCallback callback) => Callbacks.Unregister(callback.Id);
 
     private static ScriptCallback Register(Component owner, Func<JsonElement, JsonSerializerOptions, Task> invoke, bool awaited = false)

@@ -234,9 +234,11 @@ internal sealed class WebMember
     };
 
     // An interface's events, each as On{Event}(handler): sync or async, with the event or without it. The subscription
-    // they return removes the listener when disposed of; so does the handler's component unmounting.
+    // they return removes the listener when disposed of; so does the handler's component unmounting. `every` throttles a
+    // hot event (a sensor's, a pointer's) in the browser: at most one per interval crosses, the latest.
     public static List<WebMember> EventsOf(JsonNode data, WebPayloads payloads, HashSet<string> taken)
     {
+        const string every = ", global::System.TimeSpan? every = null";
         var result = new List<WebMember>();
         foreach (var e in data["events"]?.Items ?? new List<JsonNode>())
         {
@@ -249,16 +251,17 @@ internal sealed class WebMember
 
             var (payload, fields) = payloads.Of(e["interface"]?.AsString() ?? "Event");
             var head = $"Chain.Listen(\"{type}\", {fields}, handler, static p => new {payload}(p), ";
-            var summary = $"MDN's <c>{type}</c> event: the handler runs, in its component's order, each time it fires. Dispose of the subscription to stop.";
+            var summary = $"MDN's <c>{type}</c> event: the handler runs, in its component's order, each time it fires — at most once "
+                          + "<c>every</c> interval, with the latest, when one is given. Dispose of the subscription to stop.";
             const string returns = "ValueTask<global::System.IAsyncDisposable>";
-            result.Add(new WebMember(e, summary, returns, name, $"global::System.Action<{payload}> handler", "handler",
-                head + "e => { handler(e); return global::System.Threading.Tasks.Task.CompletedTask; })"));
-            result.Add(new WebMember(e, summary, returns, name, $"global::System.Func<{payload}, global::System.Threading.Tasks.Task> handler", "handler",
-                head + "handler)"));
-            result.Add(new WebMember(e, summary, returns, name, "global::System.Action handler", "handler",
-                head + "_ => { handler(); return global::System.Threading.Tasks.Task.CompletedTask; })"));
-            result.Add(new WebMember(e, summary, returns, name, "global::System.Func<global::System.Threading.Tasks.Task> handler", "handler",
-                head + "_ => handler())"));
+            result.Add(new WebMember(e, summary, returns, name, $"global::System.Action<{payload}> handler" + every, "handler, every",
+                head + "e => { handler(e); return global::System.Threading.Tasks.Task.CompletedTask; }, every)"));
+            result.Add(new WebMember(e, summary, returns, name, $"global::System.Func<{payload}, global::System.Threading.Tasks.Task> handler" + every,
+                "handler, every", head + "handler, every)"));
+            result.Add(new WebMember(e, summary, returns, name, "global::System.Action handler" + every, "handler, every",
+                head + "_ => { handler(); return global::System.Threading.Tasks.Task.CompletedTask; }, every)"));
+            result.Add(new WebMember(e, summary, returns, name, "global::System.Func<global::System.Threading.Tasks.Task> handler" + every, "handler, every",
+                head + "_ => handler(), every)"));
         }
 
         return result;
@@ -304,9 +307,10 @@ internal sealed class WebMember
         var result = new List<WebMember>();
         var idlType = m["type"]!.AsString()!;
         var prop = DomRefEmitter.Pascal(idl);
-        if (ElementRead(m, idl, prop, types) is { } element)
+        // A promise of a live object (a service worker's `ready`) is kept; an element the browser names reads as your ref.
+        if ((Promised(m, idl, idlType, prop, proxies) ?? ElementRead(m, idl, prop, types)) is { } single)
         {
-            result.Add(element);
+            result.Add(single);
             return result;
         }
 
@@ -357,6 +361,20 @@ internal sealed class WebMember
         }
 
         return result;
+    }
+
+    // A promise of a live object (a service worker container's `ready`) is waited on, and the object it settles with is
+    // kept, as a call's would be.
+    private static WebMember? Promised(JsonNode m, string idl, string idlType, string prop, HashSet<string> proxies)
+    {
+        if (!idlType.StartsWith("Promise<", StringComparison.Ordinal) || !proxies.Contains(idlType.Substring(8, idlType.Length - 9)))
+        {
+            return null;
+        }
+
+        var kept = TypesNs + idlType.Substring(8, idlType.Length - 9);
+        return new WebMember(m, $"MDN's <c>{idl}</c>: completes when it settles in the browser. The object it settles with is kept: dispose of it when done.",
+            $"ValueTask<{kept}>", prop, null, "", $"Chain.Get(\"{idl}\").Keep(static c => new {kept}(c))");
     }
 
     // An element the browser names (document.fullscreenElement) cannot cross, but whether it is one of yours can: it

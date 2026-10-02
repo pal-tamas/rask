@@ -21,8 +21,6 @@
 // anywhere in the path to notice.
 
 import * as cookies from "./cookies.js";
-import * as deviceMotion from "./deviceMotion.js";
-import * as deviceOrientation from "./deviceOrientation.js";
 import * as eyeDropper from "./eyeDropper.js";
 import * as fullscreen from "./fullscreen.js";
 import * as installPrompt from "./installPrompt.js";
@@ -32,11 +30,8 @@ import * as pictureInPicture from "./pictureInPicture.js";
 import * as screenOrientation from "./screenOrientation.js";
 import * as signaling from "./signaling.js";
 import * as speechRecognition from "./speechRecognition.js";
-import * as storageManager from "./storageManager.js";
 import * as wakeLock from "./wakeLock.js";
 import * as webAuthn from "./webAuthn.js";
-import * as webLocks from "./webLocks.js";
-import * as webPush from "./webPush.js";
 
 window.__raskApi = window.__raskApi || {
     // ICookies. Positional here, an options object in the module.
@@ -59,13 +54,7 @@ window.__raskApi = window.__raskApi || {
             sameSite: sameSite as "Strict" | "Lax" | "None" | null,
             secure
         }),
-    cookieDelete: (name: string, path: string | null) => cookies.remove(name, path),
-
-    // IStorageEstimator.
-    storageSupported: () => storageManager.isSupported(),
-    storageEstimate: () => storageManager.estimate(),
-    storagePersisted: () => storageManager.persisted(),
-    storagePersist: () => storageManager.persist()
+    cookieDelete: (name: string, path: string | null) => cookies.remove(name, path)
 };
 
 // IIndexedDb / IKeyValueStore. C# addresses a store by name on every call rather than holding a
@@ -122,18 +111,6 @@ window.__raskIdb = window.__raskIdb || (() => {
         clear: (name: string) => store(name).then((s) => s.clear())
     };
 })();
-
-// The PWA pair — IWebPush, IWakeLock. These used to live in rask-pwa.ts, which
-// is now gone: they are transport-agnostic browser APIs like the rest, and there was no reason for
-// them to sit in a second file with its own import in both entry points.
-window.__raskPush = window.__raskPush || {
-    isSupported: () => webPush.isSupported(),
-    requestPermission: () => webPush.requestPermission(),
-    register: (swUrl: string) => webPush.register(swUrl),
-    subscribe: (vapidPublicKey: string) => webPush.subscribe(vapidPublicKey),
-    getSubscription: () => webPush.getSubscription(),
-    unsubscribe: () => webPush.unsubscribe()
-};
 
 // IWakeLock. C# holds an integer id where the module hands back a handle; the re-acquire-on-visible
 // behaviour that makes a lock survive the user glancing at another tab lives in the module, because it
@@ -301,45 +278,6 @@ window.__raskMedia = window.__raskMedia || (() => {
     };
 })();
 
-// IWebLocks. The platform holds a lock for as long as the callback's promise is pending, and C# wants
-// to do its work in C# — so the callback parks on a promise this resolves when release(id) arrives.
-// Nothing of that shape belongs in the module, where `work` is an ordinary async function.
-window.__raskLocks = window.__raskLocks || (() => {
-    const releasers = new Map<number, () => void>();
-    return {
-        isSupported: () => webLocks.isSupported(),
-        request: (id: number, name: string, mode: LockMode, ifAvailable: boolean) =>
-            new Promise<boolean>((granted, failed) => {
-                webLocks.request(
-                    name,
-                    () => {
-                        granted(true);
-                        return new Promise<void>((release) => releasers.set(id, release));
-                    },
-                    {mode: mode || "exclusive", ifAvailable})
-                    .then((result) => {
-                        // null means ifAvailable could not grant it — the callback never ran, so
-                        // nothing resolved `granted` yet.
-                        if (result === null) {
-                            granted(false);
-                        }
-                    })
-                    .catch((e) => {
-                        releasers.delete(id);
-                        failed(e);
-                    });
-            }),
-        release: (id: number) => {
-            const release = releasers.get(id);
-            if (release) {
-                releasers.delete(id);
-                release();
-            }
-        },
-        query: () => webLocks.query()
-    };
-})();
-
 // ISpeechRecognition. The recognizer's options arrive as one object already, so this is close to a
 // pass-through; what it adds is the id-keyed stop.
 window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
@@ -352,58 +290,6 @@ window.__raskSpeechRecognition = window.__raskSpeechRecognition || (() => {
                 options));
         },
         stop: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
-    };
-})();
-
-// IDeviceOrientation / IDeviceMotion.
-//
-// The throttle is applied HERE rather than in the modules, because it is a property of this BOUNDARY
-// and not of the sensor: these fire at roughly 60 Hz, and every reading that crosses is a WebSocket
-// frame on the Server transport with a re-render behind it. A TypeScript front end calling the module
-// directly has no wire to protect, and gets every event unless it asks for otherwise.
-const SENSOR_THROTTLE_MS = 100;
-
-window.__raskDeviceOrientation = window.__raskDeviceOrientation || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        isSupported: () => deviceOrientation.isSupported(),
-        requestPermission: () => deviceOrientation.requestPermission(),
-        watch: (id: number) => {
-            stops.set(id, deviceOrientation.watch(
-                (reading) =>
-                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceOrientation", id, reading),
-                {throttleMs: SENSOR_THROTTLE_MS}));
-        },
-        clear: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
-    };
-})();
-
-window.__raskDeviceMotion = window.__raskDeviceMotion || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        isSupported: () => deviceMotion.isSupported(),
-        requestPermission: () => deviceMotion.requestPermission(),
-        watch: (id: number) => {
-            stops.set(id, deviceMotion.watch(
-                (reading) =>
-                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskDeviceMotion", id, reading),
-                {throttleMs: SENSOR_THROTTLE_MS}));
-        },
-        clear: (id: number) => {
             const stop = stops.get(id);
             if (!stop) {
                 return;

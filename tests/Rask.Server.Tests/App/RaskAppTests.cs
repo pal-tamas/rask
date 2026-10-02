@@ -67,11 +67,10 @@ public sealed class RaskAppTests
     [Fact]
     public async Task An_app_with_no_configuration_serves_the_service_worker()
     {
-        // The seam, not the parts. AddRask() registers IWebPush/INotifications/IBadge/IWakeLock
-        // unconditionally, but on a Server host their JS helper is served only by AddRaskPwa -- which
-        // nothing called before the Pwa battery existed. All four injected fine and then failed on a 404,
-        // and a test asserting the REGISTRATIONS would have passed throughout. This one asks the running
-        // server for the file.
+        // The seam, not the parts. A push subscription is made through MDN's PushManager on the worker the
+        // page registered, which on a Server host is served only by AddRaskPwa -- which nothing called
+        // before the Pwa battery existed. A test asserting the REGISTRATIONS would have passed throughout;
+        // this one asks the running server for the file.
         var app = NewApp().Build<MinimalApp>();
         await app.StartAsync(TestContext.Current.CancellationToken);
 
@@ -82,8 +81,8 @@ public sealed class RaskAppTests
             Assert.True(
                 response.IsSuccessStatusCode,
                 $"the service worker answered {(int)response.StatusCode}; "
-                + "IWebPush.RegisterServiceWorkerAsync() defaults to this URL, so a failure here is a "
-                + "runtime failure for every push subscription");
+                + "the page registers this URL and Navigator.ServiceWorker.Ready waits on it, so a failure "
+                + "here is a runtime failure for every push subscription");
 
             // Status alone would prove nothing: MapRask ends in a catch-all serving the app for any
             // unmatched path, so an ABSENT worker answers 200 with HTML. The content type is the evidence.

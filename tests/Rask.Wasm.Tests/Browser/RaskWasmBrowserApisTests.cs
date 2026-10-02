@@ -13,7 +13,6 @@ public class RaskWasmBrowserApisTests
 {
     private static readonly (Type Service, Type Impl)[] WasmOnlyApis =
     [
-        (typeof(IMediaDevices), typeof(MediaDevices)),
         (typeof(IInstallPrompt), typeof(InstallPrompt)),
         (typeof(IBackgroundSync), typeof(BackgroundSync)),
     ];

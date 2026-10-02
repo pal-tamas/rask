@@ -159,6 +159,61 @@ public sealed class WebCrossingTests
     }
 
     [Fact]
+    public async Task A_boolean_or_dictionary_is_written_as_the_dictionary_and_left_out_when_null()
+    {
+        var browser = new FakeBrowser();
+
+        using (browser.Enter())
+        {
+            await using var stream = await Navigator.MediaDevices.GetUserMedia(new() { Video = new() });
+        }
+
+        Assert.Equal("""[["g","navigator"],["g","mediaDevices"],["c","getUserMedia",[{"video":{}}]]]""", browser.Steps(0));
+    }
+
+    [Fact]
+    public void A_boolean_or_dictionary_answered_as_a_boolean_reads_true_as_empty_and_false_as_null()
+    {
+        const string answer = """{"video":true,"audio":false}""";
+
+        var constraints = JsonSerializer.Deserialize<MediaStreamConstraints>(answer)!;
+
+        Assert.Equal((new MediaTrackConstraints(), (MediaTrackConstraints?)null), (constraints.Video, constraints.Audio));
+    }
+
+    [Fact]
+    public async Task A_media_constraint_is_written_as_its_plain_value()
+    {
+        var browser = new FakeBrowser();
+
+        using (browser.Enter())
+        {
+            await using var stream = await Navigator.MediaDevices.GetUserMedia(new() { Video = new() { Width = 640, FacingMode = "user", Torch = true } });
+        }
+
+        Assert.Equal("""[["g","navigator"],["g","mediaDevices"],["c","getUserMedia",[{"video":{"torch":true,"width":640,"facingMode":"user"}}]]]""",
+            browser.Steps(0));
+    }
+
+    [Fact]
+    public async Task A_media_constraint_read_back_as_an_object_is_its_ideal_else_its_exact_else_null()
+    {
+        var browser = new FakeBrowser().Answers(
+            "[true]", """{"width":{"ideal":640,"max":1920},"height":{"exact":480},"frameRate":{"min":24},"facingMode":["user","environment"],"torch":true}""");
+
+        MediaTrackConstraints constraints;
+        using (browser.Enter())
+        {
+            await using var stream = await Navigator.MediaDevices.GetUserMedia(new() { Video = new() });
+            var tracks = await stream.GetTracks();
+            constraints = await tracks[0].GetConstraints();
+        }
+
+        Assert.Equal(((int?)640, (int?)480, (double?)null, (string?)"user", (bool?)true),
+            (constraints.Width, constraints.Height, constraints.FrameRate, constraints.FacingMode, constraints.Torch));
+    }
+
+    [Fact]
     public async Task A_list_of_objects_that_are_only_values_is_read_whole_as_records()
     {
         var browser = new FakeBrowser().Answers("[true]", """[{"pressed":true,"touched":true,"value":1}]""");

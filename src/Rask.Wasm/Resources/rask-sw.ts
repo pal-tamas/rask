@@ -1,13 +1,13 @@
 // Rask default service worker (WASM) — the one SW a Rask WASM PWA needs. It does three jobs:
 //   1. Offline app shell: a network-first runtime cache (fresh when online, cached when offline),
 //      with navigations falling back to the cached page shell so deep links work offline.
-//   2. Web Push: shows the pushed notification and focuses/opens a window on click (IWebPush) —
+//   2. Web Push: shows the pushed notification and focuses/opens a window on click (MDN's PushManager subscribed) —
 //      shared with the Server SW via the imported rask-sw-shared handlers.
 //   3. Background Sync: forwards a woken-up sync/periodicsync tag to the open clients (IBackgroundSync).
 //      WASM-only, so it stays here rather than in the shared handlers.
 //
-// Registered by the page shell (see the WASM templates' / example's index.html) or by
-// IWebPush.RegisterServiceWorkerAsync(). Bring your own SW (pass a URL) to customize.
+// Registered by the page shell (see the WASM templates' / example's index.html), so an app reaches it with
+// `await Navigator.ServiceWorker.Ready`. Bring your own SW by registering yours there instead.
 
 // See the note in rask-sw-shared.ts: the webworker lib types `self` as the generic WorkerGlobalScope.
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;

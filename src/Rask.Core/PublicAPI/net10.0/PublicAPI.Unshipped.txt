@@ -158,18 +158,6 @@ Rask.Core.Browser.CredentialDescriptor.Transports.get -> string![]?
 Rask.Core.Browser.CredentialDescriptor.Transports.init -> void
 Rask.Core.Browser.CredentialDescriptor.Type.get -> string!
 Rask.Core.Browser.CredentialDescriptor.Type.init -> void
-Rask.Core.Browser.DeviceMotion
-Rask.Core.Browser.DeviceMotion.DeviceMotion(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.DeviceMotion.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.DeviceMotion.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
-Rask.Core.Browser.DeviceMotion.WatchAsync(System.Func<Rask.Core.Browser.MotionReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.DeviceMotionInterop
-Rask.Core.Browser.DeviceOrientation
-Rask.Core.Browser.DeviceOrientation.DeviceOrientation(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.DeviceOrientation.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.DeviceOrientation.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
-Rask.Core.Browser.DeviceOrientation.WatchAsync(System.Func<Rask.Core.Browser.OrientationReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.DeviceOrientationInterop
 Rask.Core.Browser.DisplayMode
 Rask.Core.Browser.DisplayMode.Browser = 3 -> Rask.Core.Browser.DisplayMode
 Rask.Core.Browser.DisplayMode.Fullscreen = 1 -> Rask.Core.Browser.DisplayMode
@@ -196,14 +184,6 @@ Rask.Core.Browser.ICookies.DeleteAsync(string! name, string? path = null) -> Sys
 Rask.Core.Browser.ICookies.GetAllAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
 Rask.Core.Browser.ICookies.GetAsync(string! name) -> System.Threading.Tasks.ValueTask<string?>
 Rask.Core.Browser.ICookies.SetAsync(string! name, string! value, Rask.Core.Browser.CookieOptions? options = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IDeviceMotion
-Rask.Core.Browser.IDeviceMotion.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IDeviceMotion.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
-Rask.Core.Browser.IDeviceMotion.WatchAsync(System.Func<Rask.Core.Browser.MotionReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.IDeviceOrientation
-Rask.Core.Browser.IDeviceOrientation.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IDeviceOrientation.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.SensorPermissionState>
-Rask.Core.Browser.IDeviceOrientation.WatchAsync(System.Func<Rask.Core.Browser.OrientationReading!, System.Threading.Tasks.Task!>! onReading) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.IIndexedDb
 Rask.Core.Browser.IIndexedDb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IIndexedDb.OpenStoreAsync(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
@@ -240,11 +220,6 @@ Rask.Core.Browser.ISignalingConnection.SendAsync(string! toPeerId, string! paylo
 Rask.Core.Browser.ISpeechRecognition
 Rask.Core.Browser.ISpeechRecognition.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.ISpeechRecognition.StartAsync(System.Func<Rask.Core.Browser.RecognitionResult!, System.Threading.Tasks.Task!>! onResult, Rask.Core.Browser.SpeechRecognitionOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.IStorageEstimator
-Rask.Core.Browser.IStorageEstimator.EstimateAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.StorageEstimate?>
-Rask.Core.Browser.IStorageEstimator.IsPersistedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IStorageEstimator.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IStorageEstimator.RequestPersistAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IViewTransitions
 Rask.Core.Browser.IViewTransitions.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IViewTransitions.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -258,18 +233,6 @@ Rask.Core.Browser.IWebAuthn.CreateAsync(Rask.Core.Browser.PublicKeyCredentialCre
 Rask.Core.Browser.IWebAuthn.GetAsync(Rask.Core.Browser.PublicKeyCredentialRequestOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.AssertionResult?>
 Rask.Core.Browser.IWebAuthn.IsPlatformAuthenticatorAvailableAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebAuthn.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWebLocks
-Rask.Core.Browser.IWebLocks.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWebLocks.QueryAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.LockInfo!>!>
-Rask.Core.Browser.IWebLocks.RequestAsync(string! name, System.Func<System.Threading.Tasks.Task!>! work, Rask.Core.Browser.LockMode mode = Rask.Core.Browser.LockMode.Exclusive) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IWebLocks.TryRequestAsync(string! name, System.Func<System.Threading.Tasks.Task!>! work, Rask.Core.Browser.LockMode mode = Rask.Core.Browser.LockMode.Exclusive) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWebPush
-Rask.Core.Browser.IWebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription?>
-Rask.Core.Browser.IWebPush.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.IWebPush.RegisterServiceWorkerAsync(string? swUrl = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IWebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
-Rask.Core.Browser.IWebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription!>
-Rask.Core.Browser.IWebPush.UnsubscribeAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IWebRtc
 Rask.Core.Browser.IWebRtc.CreateAsync(Rask.Core.Browser.RtcConfiguration! config, Rask.Core.Browser.RtcHandlers! handlers) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IPeerConnection!>
 Rask.Core.Browser.IWebRtc.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -277,22 +240,6 @@ Rask.Core.Browser.IndexedDb
 Rask.Core.Browser.IndexedDb.IndexedDb(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.IndexedDb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IndexedDb.OpenStoreAsync(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
-Rask.Core.Browser.LockInfo
-Rask.Core.Browser.LockInfo.<Clone>$() -> Rask.Core.Browser.LockInfo!
-Rask.Core.Browser.LockInfo.ClientId.get -> string?
-Rask.Core.Browser.LockInfo.ClientId.init -> void
-Rask.Core.Browser.LockInfo.Deconstruct(out string! Name, out string! Mode, out string? ClientId, out bool Held) -> void
-Rask.Core.Browser.LockInfo.Equals(Rask.Core.Browser.LockInfo? other) -> bool
-Rask.Core.Browser.LockInfo.Held.get -> bool
-Rask.Core.Browser.LockInfo.Held.init -> void
-Rask.Core.Browser.LockInfo.LockInfo(string! Name, string! Mode, string? ClientId, bool Held) -> void
-Rask.Core.Browser.LockInfo.Mode.get -> string!
-Rask.Core.Browser.LockInfo.Mode.init -> void
-Rask.Core.Browser.LockInfo.Name.get -> string!
-Rask.Core.Browser.LockInfo.Name.init -> void
-Rask.Core.Browser.LockMode
-Rask.Core.Browser.LockMode.Exclusive = 0 -> Rask.Core.Browser.LockMode
-Rask.Core.Browser.LockMode.Shared = 1 -> Rask.Core.Browser.LockMode
 Rask.Core.Browser.ManifestIcon
 Rask.Core.Browser.ManifestIcon.<Clone>$() -> Rask.Core.Browser.ManifestIcon!
 Rask.Core.Browser.ManifestIcon.Deconstruct(out string! Src, out string! Sizes, out string! Type, out string? Purpose) -> void
@@ -356,42 +303,6 @@ Rask.Core.Browser.MediaStreams
 Rask.Core.Browser.MediaStreams.AttachAsync(Rask.Core.Browser.MediaStreamId stream, Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.MediaStreams.MediaStreams(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.MediaStreams.StopAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.MotionReading
-Rask.Core.Browser.MotionReading.<Clone>$() -> Rask.Core.Browser.MotionReading!
-Rask.Core.Browser.MotionReading.AccelerationX.get -> double?
-Rask.Core.Browser.MotionReading.AccelerationX.init -> void
-Rask.Core.Browser.MotionReading.AccelerationY.get -> double?
-Rask.Core.Browser.MotionReading.AccelerationY.init -> void
-Rask.Core.Browser.MotionReading.AccelerationZ.get -> double?
-Rask.Core.Browser.MotionReading.AccelerationZ.init -> void
-Rask.Core.Browser.MotionReading.Deconstruct(out double? AccelerationX, out double? AccelerationY, out double? AccelerationZ, out double? RotationAlpha, out double? RotationBeta, out double? RotationGamma, out double? Interval) -> void
-Rask.Core.Browser.MotionReading.Equals(Rask.Core.Browser.MotionReading? other) -> bool
-Rask.Core.Browser.MotionReading.Interval.get -> double?
-Rask.Core.Browser.MotionReading.Interval.init -> void
-Rask.Core.Browser.MotionReading.MotionReading(double? AccelerationX, double? AccelerationY, double? AccelerationZ, double? RotationAlpha, double? RotationBeta, double? RotationGamma, double? Interval) -> void
-Rask.Core.Browser.MotionReading.RotationAlpha.get -> double?
-Rask.Core.Browser.MotionReading.RotationAlpha.init -> void
-Rask.Core.Browser.MotionReading.RotationBeta.get -> double?
-Rask.Core.Browser.MotionReading.RotationBeta.init -> void
-Rask.Core.Browser.MotionReading.RotationGamma.get -> double?
-Rask.Core.Browser.MotionReading.RotationGamma.init -> void
-Rask.Core.Browser.NotificationPermissionState
-Rask.Core.Browser.NotificationPermissionState.Default = 0 -> Rask.Core.Browser.NotificationPermissionState
-Rask.Core.Browser.NotificationPermissionState.Denied = 2 -> Rask.Core.Browser.NotificationPermissionState
-Rask.Core.Browser.NotificationPermissionState.Granted = 1 -> Rask.Core.Browser.NotificationPermissionState
-Rask.Core.Browser.OrientationReading
-Rask.Core.Browser.OrientationReading.<Clone>$() -> Rask.Core.Browser.OrientationReading!
-Rask.Core.Browser.OrientationReading.Absolute.get -> bool
-Rask.Core.Browser.OrientationReading.Absolute.init -> void
-Rask.Core.Browser.OrientationReading.Alpha.get -> double?
-Rask.Core.Browser.OrientationReading.Alpha.init -> void
-Rask.Core.Browser.OrientationReading.Beta.get -> double?
-Rask.Core.Browser.OrientationReading.Beta.init -> void
-Rask.Core.Browser.OrientationReading.Deconstruct(out double? Alpha, out double? Beta, out double? Gamma, out bool Absolute) -> void
-Rask.Core.Browser.OrientationReading.Equals(Rask.Core.Browser.OrientationReading? other) -> bool
-Rask.Core.Browser.OrientationReading.Gamma.get -> double?
-Rask.Core.Browser.OrientationReading.Gamma.init -> void
-Rask.Core.Browser.OrientationReading.OrientationReading(double? Alpha, double? Beta, double? Gamma, bool Absolute) -> void
 Rask.Core.Browser.PubKeyCredParam
 Rask.Core.Browser.PubKeyCredParam.<Clone>$() -> Rask.Core.Browser.PubKeyCredParam!
 Rask.Core.Browser.PubKeyCredParam.Alg.get -> int
@@ -546,9 +457,6 @@ Rask.Core.Browser.SameSiteMode
 Rask.Core.Browser.SameSiteMode.Lax = 0 -> Rask.Core.Browser.SameSiteMode
 Rask.Core.Browser.SameSiteMode.None = 2 -> Rask.Core.Browser.SameSiteMode
 Rask.Core.Browser.SameSiteMode.Strict = 1 -> Rask.Core.Browser.SameSiteMode
-Rask.Core.Browser.SensorPermissionState
-Rask.Core.Browser.SensorPermissionState.Denied = 1 -> Rask.Core.Browser.SensorPermissionState
-Rask.Core.Browser.SensorPermissionState.Granted = 0 -> Rask.Core.Browser.SensorPermissionState
 Rask.Core.Browser.ShareData
 Rask.Core.Browser.ShareData.<Clone>$() -> Rask.Core.Browser.ShareData!
 Rask.Core.Browser.ShareData.Equals(Rask.Core.Browser.ShareData? other) -> bool
@@ -639,22 +547,6 @@ Rask.Core.Browser.SpeechRecognitionOptions.InterimResults.init -> void
 Rask.Core.Browser.SpeechRecognitionOptions.Lang.get -> string?
 Rask.Core.Browser.SpeechRecognitionOptions.Lang.init -> void
 Rask.Core.Browser.SpeechRecognitionOptions.SpeechRecognitionOptions() -> void
-Rask.Core.Browser.StorageEstimate
-Rask.Core.Browser.StorageEstimate.<Clone>$() -> Rask.Core.Browser.StorageEstimate!
-Rask.Core.Browser.StorageEstimate.Deconstruct(out long Quota, out long Usage) -> void
-Rask.Core.Browser.StorageEstimate.Equals(Rask.Core.Browser.StorageEstimate? other) -> bool
-Rask.Core.Browser.StorageEstimate.Quota.get -> long
-Rask.Core.Browser.StorageEstimate.Quota.init -> void
-Rask.Core.Browser.StorageEstimate.StorageEstimate(long Quota, long Usage) -> void
-Rask.Core.Browser.StorageEstimate.Usage.get -> long
-Rask.Core.Browser.StorageEstimate.Usage.init -> void
-Rask.Core.Browser.StorageEstimate.UsageRatio.get -> double
-Rask.Core.Browser.StorageEstimator
-Rask.Core.Browser.StorageEstimator.EstimateAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.StorageEstimate?>
-Rask.Core.Browser.StorageEstimator.IsPersistedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.StorageEstimator.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.StorageEstimator.RequestPersistAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.StorageEstimator.StorageEstimator(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.ViewTransitions
 Rask.Core.Browser.ViewTransitions.IsActiveAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.ViewTransitions.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -708,20 +600,6 @@ Rask.Core.Browser.WebAuthn.GetAsync(Rask.Core.Browser.PublicKeyCredentialRequest
 Rask.Core.Browser.WebAuthn.IsPlatformAuthenticatorAvailableAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebAuthn.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.WebAuthn.WebAuthn(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.WebLocks
-Rask.Core.Browser.WebLocks.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WebLocks.QueryAsync() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.LockInfo!>!>
-Rask.Core.Browser.WebLocks.RequestAsync(string! name, System.Func<System.Threading.Tasks.Task!>! work, Rask.Core.Browser.LockMode mode = Rask.Core.Browser.LockMode.Exclusive) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.WebLocks.TryRequestAsync(string! name, System.Func<System.Threading.Tasks.Task!>! work, Rask.Core.Browser.LockMode mode = Rask.Core.Browser.LockMode.Exclusive) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WebLocks.WebLocks(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.WebPush
-Rask.Core.Browser.WebPush.GetSubscriptionAsync() -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription?>
-Rask.Core.Browser.WebPush.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WebPush.RegisterServiceWorkerAsync(string? swUrl = null) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.WebPush.RequestPermissionAsync() -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.NotificationPermissionState>
-Rask.Core.Browser.WebPush.SubscribeAsync(string! vapidPublicKey) -> System.Threading.Tasks.ValueTask<Rask.Wire.PushSubscription!>
-Rask.Core.Browser.WebPush.UnsubscribeAsync() -> System.Threading.Tasks.ValueTask<bool>
-Rask.Core.Browser.WebPush.WebPush(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.WebRtc
 Rask.Core.Browser.WebRtc.CreateAsync(Rask.Core.Browser.RtcConfiguration! config, Rask.Core.Browser.RtcHandlers! handlers) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IPeerConnection!>
 Rask.Core.Browser.WebRtc.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -1851,9 +1729,6 @@ override Rask.Core.Browser.CredentialDescriptor.ToString() -> string!
 override Rask.Core.Browser.FileHandler.Equals(object? obj) -> bool
 override Rask.Core.Browser.FileHandler.GetHashCode() -> int
 override Rask.Core.Browser.FileHandler.ToString() -> string!
-override Rask.Core.Browser.LockInfo.Equals(object? obj) -> bool
-override Rask.Core.Browser.LockInfo.GetHashCode() -> int
-override Rask.Core.Browser.LockInfo.ToString() -> string!
 override Rask.Core.Browser.ManifestIcon.Equals(object? obj) -> bool
 override Rask.Core.Browser.ManifestIcon.GetHashCode() -> int
 override Rask.Core.Browser.ManifestIcon.ToString() -> string!
@@ -1864,12 +1739,6 @@ override Rask.Core.Browser.ManifestShortcut.Equals(object? obj) -> bool
 override Rask.Core.Browser.ManifestShortcut.GetHashCode() -> int
 override Rask.Core.Browser.ManifestShortcut.ToString() -> string!
 override Rask.Core.Browser.MediaStreamId.GetHashCode() -> int
-override Rask.Core.Browser.MotionReading.Equals(object? obj) -> bool
-override Rask.Core.Browser.MotionReading.GetHashCode() -> int
-override Rask.Core.Browser.MotionReading.ToString() -> string!
-override Rask.Core.Browser.OrientationReading.Equals(object? obj) -> bool
-override Rask.Core.Browser.OrientationReading.GetHashCode() -> int
-override Rask.Core.Browser.OrientationReading.ToString() -> string!
 override Rask.Core.Browser.PubKeyCredParam.Equals(object? obj) -> bool
 override Rask.Core.Browser.PubKeyCredParam.GetHashCode() -> int
 override Rask.Core.Browser.PubKeyCredParam.ToString() -> string!
@@ -1930,9 +1799,6 @@ override Rask.Core.Browser.SignalingSignal.ToString() -> string!
 override Rask.Core.Browser.SpeechRecognitionOptions.Equals(object? obj) -> bool
 override Rask.Core.Browser.SpeechRecognitionOptions.GetHashCode() -> int
 override Rask.Core.Browser.SpeechRecognitionOptions.ToString() -> string!
-override Rask.Core.Browser.StorageEstimate.Equals(object? obj) -> bool
-override Rask.Core.Browser.StorageEstimate.GetHashCode() -> int
-override Rask.Core.Browser.StorageEstimate.ToString() -> string!
 override Rask.Core.Browser.WebAppManifest.Equals(object? obj) -> bool
 override Rask.Core.Browser.WebAppManifest.GetHashCode() -> int
 override Rask.Core.Browser.WebAppManifest.ToString() -> string!
@@ -2009,12 +1875,8 @@ static Rask.Core.Browser.CookieOptions.operator !=(Rask.Core.Browser.CookieOptio
 static Rask.Core.Browser.CookieOptions.operator ==(Rask.Core.Browser.CookieOptions? left, Rask.Core.Browser.CookieOptions? right) -> bool
 static Rask.Core.Browser.CredentialDescriptor.operator !=(Rask.Core.Browser.CredentialDescriptor? left, Rask.Core.Browser.CredentialDescriptor? right) -> bool
 static Rask.Core.Browser.CredentialDescriptor.operator ==(Rask.Core.Browser.CredentialDescriptor? left, Rask.Core.Browser.CredentialDescriptor? right) -> bool
-static Rask.Core.Browser.DeviceMotionInterop.Reading(int id, Rask.Core.Browser.MotionReading! reading) -> System.Threading.Tasks.Task!
-static Rask.Core.Browser.DeviceOrientationInterop.Reading(int id, Rask.Core.Browser.OrientationReading! reading) -> System.Threading.Tasks.Task!
 static Rask.Core.Browser.FileHandler.operator !=(Rask.Core.Browser.FileHandler? left, Rask.Core.Browser.FileHandler? right) -> bool
 static Rask.Core.Browser.FileHandler.operator ==(Rask.Core.Browser.FileHandler? left, Rask.Core.Browser.FileHandler? right) -> bool
-static Rask.Core.Browser.LockInfo.operator !=(Rask.Core.Browser.LockInfo? left, Rask.Core.Browser.LockInfo? right) -> bool
-static Rask.Core.Browser.LockInfo.operator ==(Rask.Core.Browser.LockInfo? left, Rask.Core.Browser.LockInfo? right) -> bool
 static Rask.Core.Browser.ManifestIcon.operator !=(Rask.Core.Browser.ManifestIcon? left, Rask.Core.Browser.ManifestIcon? right) -> bool
 static Rask.Core.Browser.ManifestIcon.operator ==(Rask.Core.Browser.ManifestIcon? left, Rask.Core.Browser.ManifestIcon? right) -> bool
 static Rask.Core.Browser.ManifestScreenshot.operator !=(Rask.Core.Browser.ManifestScreenshot? left, Rask.Core.Browser.ManifestScreenshot? right) -> bool
@@ -2023,10 +1885,6 @@ static Rask.Core.Browser.ManifestShortcut.operator !=(Rask.Core.Browser.Manifest
 static Rask.Core.Browser.ManifestShortcut.operator ==(Rask.Core.Browser.ManifestShortcut? left, Rask.Core.Browser.ManifestShortcut? right) -> bool
 static Rask.Core.Browser.MediaStreamId.operator !=(Rask.Core.Browser.MediaStreamId left, Rask.Core.Browser.MediaStreamId right) -> bool
 static Rask.Core.Browser.MediaStreamId.operator ==(Rask.Core.Browser.MediaStreamId left, Rask.Core.Browser.MediaStreamId right) -> bool
-static Rask.Core.Browser.MotionReading.operator !=(Rask.Core.Browser.MotionReading? left, Rask.Core.Browser.MotionReading? right) -> bool
-static Rask.Core.Browser.MotionReading.operator ==(Rask.Core.Browser.MotionReading? left, Rask.Core.Browser.MotionReading? right) -> bool
-static Rask.Core.Browser.OrientationReading.operator !=(Rask.Core.Browser.OrientationReading? left, Rask.Core.Browser.OrientationReading? right) -> bool
-static Rask.Core.Browser.OrientationReading.operator ==(Rask.Core.Browser.OrientationReading? left, Rask.Core.Browser.OrientationReading? right) -> bool
 static Rask.Core.Browser.PubKeyCredParam.operator !=(Rask.Core.Browser.PubKeyCredParam? left, Rask.Core.Browser.PubKeyCredParam? right) -> bool
 static Rask.Core.Browser.PubKeyCredParam.operator ==(Rask.Core.Browser.PubKeyCredParam? left, Rask.Core.Browser.PubKeyCredParam? right) -> bool
 static Rask.Core.Browser.PublicKeyCredentialCreationOptions.operator !=(Rask.Core.Browser.PublicKeyCredentialCreationOptions? left, Rask.Core.Browser.PublicKeyCredentialCreationOptions? right) -> bool
@@ -2072,8 +1930,6 @@ static Rask.Core.Browser.SignalingSignal.operator ==(Rask.Core.Browser.Signaling
 static Rask.Core.Browser.SpeechRecognitionInterop.Result(int id, Rask.Core.Browser.RecognitionResult! result) -> System.Threading.Tasks.Task!
 static Rask.Core.Browser.SpeechRecognitionOptions.operator !=(Rask.Core.Browser.SpeechRecognitionOptions? left, Rask.Core.Browser.SpeechRecognitionOptions? right) -> bool
 static Rask.Core.Browser.SpeechRecognitionOptions.operator ==(Rask.Core.Browser.SpeechRecognitionOptions? left, Rask.Core.Browser.SpeechRecognitionOptions? right) -> bool
-static Rask.Core.Browser.StorageEstimate.operator !=(Rask.Core.Browser.StorageEstimate? left, Rask.Core.Browser.StorageEstimate? right) -> bool
-static Rask.Core.Browser.StorageEstimate.operator ==(Rask.Core.Browser.StorageEstimate? left, Rask.Core.Browser.StorageEstimate? right) -> bool
 static Rask.Core.Browser.WebAppManifest.operator !=(Rask.Core.Browser.WebAppManifest? left, Rask.Core.Browser.WebAppManifest? right) -> bool
 static Rask.Core.Browser.WebAppManifest.operator ==(Rask.Core.Browser.WebAppManifest? left, Rask.Core.Browser.WebAppManifest? right) -> bool
 static Rask.Core.Browser.WebRtcInterop.Channel(int connectionId, int channelId, string! label) -> System.Threading.Tasks.Task!
@@ -13293,3 +13149,12 @@ override Rask.Core.ElementRef.Equals(object? obj) -> bool
 override Rask.Core.ElementRef.GetHashCode() -> int
 static Rask.Core.ElementRef.operator !=(Rask.Core.ElementRef? left, Rask.Core.ElementRef? right) -> bool
 static Rask.Core.ElementRef.operator ==(Rask.Core.ElementRef? left, Rask.Core.ElementRef? right) -> bool
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>!).SetRangeText(string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLTextAreaElement!>!).SetRangeText(string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
+Rask.Core.SelectionMode
+Rask.Core.SelectionMode.End = 2 -> Rask.Core.SelectionMode
+Rask.Core.SelectionMode.Preserve = 3 -> Rask.Core.SelectionMode
+Rask.Core.SelectionMode.Select = 0 -> Rask.Core.SelectionMode
+Rask.Core.SelectionMode.Start = 1 -> Rask.Core.SelectionMode
+static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.SetRangeText(this Rask.Core.IElementRef<Rask.Core.HTMLTextAreaElement!>! element, string! replacement, int start, int end, Rask.Core.SelectionMode selectionMode) -> System.Threading.Tasks.ValueTask

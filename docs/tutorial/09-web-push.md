@@ -71,26 +71,37 @@ must never be served — which is why `Push.PublicKey` and `/_rask/push/key` han
 
 ## 3. Subscribe a browser
 
-From a page, ask the browser, then keep the answer. `IWebPush` wraps the browser's side; `Push` is the
-battery's:
+From a page, ask the browser, then keep the answer. The browser's side is MDN's own `PushManager`, from
+`Rask.Web`; `Push` is the battery's:
 
 ```csharp
-using Rask.WebPush; // Push
+using System.Buffers.Text; // Base64Url
+using Rask.Web;            // Navigator — MDN's browser APIs
+using Rask.WebPush;        // Push
 
 namespace Shop.Features.Orders;
 
-public sealed partial class NotifyMe(IWebPush browser) : Component
+public sealed partial class NotifyMe : Component
 {
     protected override Component? Render() =>
         Ui.Button.OnClick(Subscribe)["Notify me about my orders"];
 
     private async Task Subscribe()
     {
-        var subscription = await browser.SubscribeAsync(Push.PublicKey!);   // the browser's permission prompt
-        await Push.Subscribe(subscription);                                // one row, for the signed-in user
+        // The service worker the PWA battery registered — PushManager hangs off it.
+        await using var worker = await Navigator.ServiceWorker.Ready;
+        await using var subscription = await worker.PushManager.Subscribe(new()   // the browser's permission prompt
+        {
+            UserVisibleOnly = true,                                               // every push shows a notification
+            ApplicationServerKey = Base64Url.DecodeFromChars(Push.PublicKey),     // your public key, as bytes
+        });
+        await Push.Subscribe(await subscription.ToJSON());                        // one row, for the signed-in user
     }
 }
 ```
+
+`worker` and `subscription` are objects the browser holds for you, so `await using` lets them go when the click
+is done.
 
 Browsers only show the permission prompt in response to a real user gesture, so this belongs on a button —
 not in `OnMount`. Asking on page load is also how you get permanently denied.
@@ -169,6 +180,6 @@ push.Sent().To(customerId).WithTitle("Order shipped").Once();
 - Shipping an order shows a system notification, with the app closed.
 - Real delivery needs a browser push service, so a local run can only take you as far as the subscription.
 
-**Learn more:** [Web Push](../webpush.md) · [PWA](../pwa.md) · [browser APIs](../apis/web-push.md)
+**Learn more:** [Web Push](../webpush.md) · [PWA](../pwa.md) · [MDN's web APIs](../web-apis.md)
 
 Next → **[Chapter 10: Watching it run](10-ops.md)**

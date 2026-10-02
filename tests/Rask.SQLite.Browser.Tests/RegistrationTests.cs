@@ -13,8 +13,6 @@ public class RegistrationTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<IIndexedDb>(new FakeIndexedDb());
-        services.AddSingleton<IWebLocks>(new FakeWebLocks());
-        services.AddSingleton<IStorageEstimator>(new FakeStorageEstimator());
         return services;
     }
 
@@ -115,11 +113,12 @@ public class BrowserSqliteSnapshotServiceTests
             DatabasePath = Path.Combine(temp.FullName, "app.db"),
         };
         options.Validate();
-        var locks = new FakeWebLocks();
-        locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+        var web = new FakeWebApis();
+        web.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+        using var faked = web.Enter();
         var snapshotter = new RecordingSnapshotter();
         var host = new BrowserSqliteHost(
-            options, locks, new FakeIndexedDb(), new FakeStorageEstimator(), snapshotter,
+            options, new ServiceCollection().BuildServiceProvider(), new FakeIndexedDb(), snapshotter,
             new BrowserSqliteOwnership(), NullLogger<BrowserSqliteHost>.Instance);
         await host.StartAsync(CancellationToken.None);
         var service = new BrowserSqliteSnapshotService(

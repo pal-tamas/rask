@@ -205,7 +205,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await Expect(Page.Locator("#media-start")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("[data-section=media-devices] .sample-code").First).ToContainTextAsync("IMediaDevices",
+        await Expect(Page.Locator("[data-section=media-devices] .sample-code").First).ToContainTextAsync("Navigator.MediaDevices.GetUserMedia",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 

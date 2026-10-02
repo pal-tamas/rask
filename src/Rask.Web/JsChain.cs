@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
+using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.ScopedAssets;
@@ -157,7 +158,7 @@ internal sealed class JsChain
         var array = await Keep().ConfigureAwait(false);
         try
         {
-            var slots = await array.Runtime.InvokeAsync<JsonElement>("__raskWeb.slots", array.Arguments()).ConfigureAwait(false);
+            var slots = await array.Send<JsonElement>("__raskWeb.slots").ConfigureAwait(false);
             var items = new T?[slots.GetArrayLength()];
             for (var i = 0; i < items.Length; i++)
             {
@@ -188,9 +189,19 @@ internal sealed class JsChain
             return new JsChain(null, StepRoot, null, null, faked: Path(), handlers: Handlers());
         }
 
+        // A handler no component owns that the run registers is the kept object's, let go with it.
         var runtime = Runtime;
-        var handle = await runtime.InvokeAsync<IJSObjectReference>("__raskWeb.run", Arguments()).ConfigureAwait(false);
-        return new JsChain(null, StepRoot, null, null, handle, runtime, handlers: Handlers());
+        var crossing = Cross(runtime);
+        try
+        {
+            var handle = await runtime.InvokeAsync<IJSObjectReference>("__raskWeb.run", crossing.Arguments(Start._handle)).ConfigureAwait(false);
+            return new JsChain(null, StepRoot, null, null, handle, runtime, handlers: [.. Handlers(), .. crossing.OneRun]);
+        }
+        catch
+        {
+            crossing.Release();
+            throw;
+        }
     }
 
     internal async ValueTask<T> Keep<T>(Func<JsChain, T> wrap) => wrap(await Keep().ConfigureAwait(false));
@@ -201,15 +212,22 @@ internal sealed class JsChain
         var handlers = new List<ScopedScript.ScriptCallback>();
         for (var c = this; c._kind != StepRoot; c = c._parent!)
         {
-            handlers.AddRange((c._args ?? []).OfType<ScopedScript.ScriptCallback>());
+            handlers.AddRange((c._args ?? []).Select(a => a is AwaitedHandler awaited ? awaited.Owned : a).OfType<ScopedScript.ScriptCallback>());
         }
 
         return [.. handlers];
     }
 
     // Whether the browser has what the chain ends at.
-    internal ValueTask<bool> Exists() =>
-        _kind == StepRoot || Faked(out _, out _) ? ValueTask.FromResult(true) : Runtime.InvokeAsync<bool>("__raskWeb.has", Arguments());
+    internal ValueTask<bool> Exists()
+    {
+        if (_kind == StepRoot)
+        {
+            return ValueTask.FromResult(true);
+        }
+
+        return Faked(out var fake, out var rest) ? ValueTask.FromResult(fake.Has(rest)) : Send<bool>("__raskWeb.has");
+    }
 
     // Lets the browser drop a kept object, and the handlers it was made with stop reaching C#.
     internal ValueTask Release()
@@ -224,10 +242,16 @@ internal sealed class JsChain
 
     // Adds `handler` to the object the chain ends at, for events of `type`; each one arrives as the fields named in
     // `fields` (a JSON array: only what the payload type reads), read into a TEvent. Disposing of what this returns
-    // removes it; so does the owner unmounting.
+    // removes it; so does the owner unmounting. With `every`, the browser throttles a hot event (a sensor's, ~60 a
+    // second) before it crosses: the first at once, then at most one per interval, the latest.
     internal async ValueTask<IAsyncDisposable> Listen<TEvent>(
-        string type, string fields, Delegate handler, Func<JsonElement, TEvent> read, Func<TEvent, Task> invoke)
+        string type, string fields, Delegate handler, Func<JsonElement, TEvent> read, Func<TEvent, Task> invoke, TimeSpan? every = null)
     {
+        if (every < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(every), every, "An event cannot be throttled by a negative interval.");
+        }
+
         if (Faked(out var fake, out _))
         {
             var listener = new WebFakes.Listener(type, Owner(handler), e => invoke((TEvent)e));
@@ -238,16 +262,22 @@ internal sealed class JsChain
         var runtime = Runtime;
         var reading = new Reading(WebOptions(runtime), runtime, Owner(handler));
         var callback = ScopedScript.Handler(reading.Component, args => invoke(ReadEvent(read, First(args), reading)));
-        var (steps, extras) = Serialize(reading.Options);
+        var crossing = Serialize(reading.Options, runtime);
         int id;
         try
         {
-            id = await runtime.InvokeAsync<int>("__raskWeb.listen", [Start._handle, steps, type, fields, callback, .. extras]).ConfigureAwait(false);
+            id = await runtime.InvokeAsync<int>(
+                "__raskWeb.listen",
+                [Start._handle, crossing.Steps, type, fields, callback, every?.TotalMilliseconds, .. crossing.Extras]).ConfigureAwait(false);
         }
         catch
         {
             ScopedScript.Release(callback);
             throw;
+        }
+        finally
+        {
+            crossing.Release();
         }
 
         return new Listening(runtime, id, callback);
@@ -275,18 +305,20 @@ internal sealed class JsChain
         handler is null ? null : ScopedScript.Handler(Owner(handler), a => Done(() => handler(Arg<T1>(a, 0), Arg<T2>(a, 1), Arg<T3>(a, 2))));
 
     // A C# handler as a function whose promise the browser waits on: a lock is held until it returns. It runs at once,
-    // not queued behind the handler that is awaiting the call that runs it, which would wait on it forever.
+    // not queued behind the handler that is awaiting the call that runs it, which would wait on it forever. One that
+    // belongs to no component (a hosted service's) is good for a call that runs it before it settles, as a lock
+    // request does: see AwaitedHandler.
     internal static object? Awaited(Action? handler) =>
-        handler is null ? null : ScopedScript.Handler(Owner(handler), _ => Done(handler), awaited: true);
+        handler is null ? null : AwaitedHandler.Of(handler, _ => Done(handler), _ => Done(handler));
 
     internal static object? Awaited(Func<Task>? handler) =>
-        handler is null ? null : ScopedScript.Handler(Owner(handler), _ => handler(), awaited: true);
+        handler is null ? null : AwaitedHandler.Of(handler, _ => handler(), _ => handler());
 
     internal static object? Awaited<[DynamicallyAccessedMembers(Json)] T1>(Action<T1>? handler) =>
-        handler is null ? null : ScopedScript.Handler(Owner(handler), a => Done(() => handler(Arg<T1>(a, 0))), awaited: true);
+        handler is null ? null : AwaitedHandler.Of(handler, a => Done(() => handler(Arg<T1>(a, 0))), a => Done(() => handler(AwaitedHandler.Given<T1>(a))));
 
     internal static object? Awaited<[DynamicallyAccessedMembers(Json)] T1>(Func<T1, Task>? handler) =>
-        handler is null ? null : ScopedScript.Handler(Owner(handler), a => handler(Arg<T1>(a, 0)), awaited: true);
+        handler is null ? null : AwaitedHandler.Of(handler, a => handler(Arg<T1>(a, 0)), a => handler(AwaitedHandler.Given<T1>(a)));
 
     // One field of an event's payload, as the generated payload types read it.
     internal static T Field<[DynamicallyAccessedMembers(Json)] T>(JsonElement payload, string name) =>
@@ -370,34 +402,32 @@ internal sealed class JsChain
     {
         if (Faked(out var fake, out var rest))
         {
-            return fake.Answer<T>(rest);
+            return await fake.Settle<T>(rest).ConfigureAwait(false);
         }
 
-        var result = await Runtime.InvokeAsync<JsonElement>("__raskWeb.read", Arguments()).ConfigureAwait(false);
-        return Value<T>(result);
+        return Value<T>(await Send<JsonElement>("__raskWeb.read").ConfigureAwait(false));
     }
 
-    private ValueTask Run()
+    private async ValueTask Run()
     {
         if (Faked(out var fake, out var rest))
         {
-            fake.Answer<object>(rest);
-            return default;
+            await fake.Settle<object>(rest).ConfigureAwait(false);
+            return;
         }
 
-        return Runtime.InvokeVoidAsync("__raskWeb.run", Arguments());
+        await Send<IJSVoidResult>("__raskWeb.run").ConfigureAwait(false);
     }
 
     private async ValueTask<T> RunAny<[DynamicallyAccessedMembers(Json)] T>()
     {
         if (Faked(out var fake, out var rest))
         {
-            return fake.Answer<T>(rest);
+            return await fake.Settle<T>(rest).ConfigureAwait(false);
         }
 
-        var runtime = Runtime;
-        var result = await runtime.InvokeAsync<JsonElement>("__raskWeb.read", Arguments()).ConfigureAwait(false);
-        return new AnyField(result, WebOptions(runtime)).As<T>();
+        var result = await Send<JsonElement>("__raskWeb.read").ConfigureAwait(false);
+        return new AnyField(result, WebOptions(Runtime)).As<T>();
     }
 
     // The fake standing in for where this chain goes, if a test set one up.
@@ -421,11 +451,22 @@ internal sealed class JsChain
         return Start._faked is { } kept ? [.. kept, .. steps] : steps;
     }
 
-    // [root, steps, …the arguments the steps name by position].
-    private object?[] Arguments()
+    // [root, steps, …the arguments the steps name by position], for one run against `runtime`.
+    private Crossing Cross(IJSRuntime runtime) => Serialize(WebOptions(runtime), runtime);
+
+    // Runs the chain as `identifier`. A handler no component owns crosses for this run alone, and is let go when it settles.
+    private async ValueTask<T> Send<[DynamicallyAccessedMembers(Json)] T>(string identifier)
     {
-        var (steps, extras) = Serialize(WebOptions(Runtime));
-        return [Start._handle, steps, .. extras];
+        var runtime = Runtime;
+        var crossing = Cross(runtime);
+        try
+        {
+            return await runtime.InvokeAsync<T>(identifier, crossing.Arguments(Start._handle)).ConfigureAwait(false);
+        }
+        finally
+        {
+            crossing.Release();
+        }
     }
 
     // The element ref a chain starts from, if it does: its first step.
@@ -466,10 +507,11 @@ internal sealed class JsChain
             "A web API was called outside a page: call it from an event handler or from OnRendered, where the page is live.");
 
     // [["g","navigator"],["g","clipboard"],["c","writeText",["hi"]]]
-    internal string Steps() => Serialize(null).Steps;
+    internal string Steps() => Serialize(null, null).Steps;
 
     // `options`: what the app's own values are written with (WebOptions); without them they ride as they are.
-    private (string Steps, List<object> Extras) Serialize(JsonSerializerOptions? options)
+    // `runtime`: where a handler no component owns is registered; without one it is only named.
+    private Crossing Serialize(JsonSerializerOptions? options, IJSRuntime? runtime)
     {
         var steps = new List<JsChain>();
         for (var c = this; c._kind != StepRoot; c = c._parent!)
@@ -478,23 +520,32 @@ internal sealed class JsChain
         }
 
         steps.Reverse();
-        var extras = new List<object>();
+        var crossing = new Crossing(options, runtime);
         var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
+        try
         {
-            writer.WriteStartArray();
-            foreach (var step in steps)
+            using (var writer = new Utf8JsonWriter(buffer))
             {
-                step.WriteStep(writer, extras, options);
-            }
+                writer.WriteStartArray();
+                foreach (var step in steps)
+                {
+                    step.WriteStep(writer, crossing);
+                }
 
-            writer.WriteEndArray();
+                writer.WriteEndArray();
+            }
+        }
+        catch
+        {
+            crossing.Release();
+            throw;
         }
 
-        return (Encoding.UTF8.GetString(buffer.WrittenSpan), extras);
+        crossing.Steps = Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return crossing;
     }
 
-    private void WriteStep(Utf8JsonWriter writer, List<object> extras, JsonSerializerOptions? options)
+    private void WriteStep(Utf8JsonWriter writer, Crossing crossing)
     {
         writer.WriteStartArray();
         writer.WriteStringValue(_kind.ToString());
@@ -504,7 +555,7 @@ internal sealed class JsChain
             writer.WriteStartArray();
             foreach (var arg in _args)
             {
-                WriteArg(writer, arg, extras, options);
+                WriteArg(writer, arg, crossing);
             }
 
             writer.WriteEndArray();
@@ -513,7 +564,7 @@ internal sealed class JsChain
         writer.WriteEndArray();
     }
 
-    private static void WriteArg(Utf8JsonWriter writer, object? arg, List<object> extras, JsonSerializerOptions? options)
+    private static void WriteArg(Utf8JsonWriter writer, object? arg, Crossing crossing)
     {
         switch (arg)
         {
@@ -521,18 +572,24 @@ internal sealed class JsChain
                 writer.WriteNullValue();
                 break;
             case ScopedScript.ScriptCallback or IJSObjectReference or ElementRef:
-                Placeholder(writer, arg, extras);
+                crossing.Placeholder(writer, arg);
+                break;
+            case AwaitedHandler awaited:
+                crossing.Placeholder(writer, crossing.Register(awaited));
                 break;
             case JsObject { Chain.IsKept: true } kept:
-                Placeholder(writer, kept.Chain._handle!, extras);
+                crossing.Placeholder(writer, kept.Chain._handle!);
                 break;
             case JsObject:
                 throw new InvalidOperationException("Only a kept object can be handed to the browser: await it first, to keep it.");
             case AnyArg { Content: ScopedScript.ScriptCallback or IJSObjectReference or ElementRef or JsObject } any:
-                WriteArg(writer, any.Content, extras, options);
+                WriteArg(writer, any.Content, crossing);
                 break;
             case AnyArg any:
-                Placeholder(writer, options is null ? any.Content : JsonSerializer.SerializeToElement(any.Content, options.GetTypeInfo(any.Type)), extras, "__raskAny__");
+                crossing.Placeholder(
+                    writer,
+                    crossing.Options is null ? any.Content : JsonSerializer.SerializeToElement(any.Content, crossing.Options.GetTypeInfo(any.Type)),
+                    "__raskAny__");
                 break;
             default:
                 JsonSerializer.Serialize(writer, arg, RaskWebJsonContext.Default.GetTypeInfo(arg.GetType())
@@ -541,14 +598,58 @@ internal sealed class JsChain
         }
     }
 
-    // `kind`: __raskArg__ for what the host revives alone, __raskAny__ for the app's own value, whose bytes the browser
-    // revives too.
-    private static void Placeholder(Utf8JsonWriter writer, object value, List<object> extras, string kind = "__raskArg__")
+    // What one run hands the browser: its steps, the arguments they name by position, and the handlers no component
+    // owns that it registered — which live exactly as long as the run, or as the object it keeps.
+    private sealed class Crossing(JsonSerializerOptions? options, IJSRuntime? runtime)
     {
-        writer.WriteStartObject();
-        writer.WriteNumber(kind, extras.Count);
-        writer.WriteEndObject();
-        extras.Add(value);
+        private readonly List<object> _extras = [];
+        private readonly List<ScopedScript.ScriptCallback> _oneRun = [];
+
+        public JsonSerializerOptions? Options => options;
+
+        public string Steps { get; set; } = "[]";
+
+        public IReadOnlyList<object> Extras => _extras;
+
+        public IReadOnlyList<ScopedScript.ScriptCallback> OneRun => _oneRun;
+
+        public object?[] Arguments(IJSObjectReference? root) => [root, Steps, .. _extras];
+
+        // An owned handler was registered when it was made; one that is not is registered here, for this run.
+        public object Register(AwaitedHandler awaited)
+        {
+            if (awaited.Owned is { } owned)
+            {
+                return owned;
+            }
+
+            if (runtime is null)
+            {
+                return awaited; // only named (Steps()): nothing runs, so nothing is registered
+            }
+
+            var callback = awaited.Register(runtime);
+            _oneRun.Add(callback);
+            return callback;
+        }
+
+        // `kind`: __raskArg__ for what the host revives alone, __raskAny__ for the app's own value, whose bytes the
+        // browser revives too.
+        public void Placeholder(Utf8JsonWriter writer, object value, string kind = "__raskArg__")
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber(kind, _extras.Count);
+            writer.WriteEndObject();
+            _extras.Add(value);
+        }
+
+        public void Release()
+        {
+            foreach (var callback in _oneRun)
+            {
+                ScopedScript.Release(callback);
+            }
+        }
     }
 
     private static JsonTypeInfo<T> TypeInfo<[DynamicallyAccessedMembers(Json)] T>() =>

@@ -79,6 +79,17 @@ public sealed class WebFakeTests
     }
 
     [Fact]
+    public async Task A_member_a_fake_throws_for_fails_as_the_browser_refusing_it_would()
+    {
+        using var storage = Navigator.Storage.Fake();
+        storage.Throws(s => s.Persist(), new Microsoft.JSInterop.JSException("denied"));
+
+        var error = await Assert.ThrowsAsync<Microsoft.JSInterop.JSException>(async () => await Navigator.Storage.Persist());
+
+        Assert.Equal(("denied", "persist"), (error.Message, storage.Calls.Single().Member));
+    }
+
+    [Fact]
     public async Task A_disposed_fake_hands_the_object_back_to_the_browser()
     {
         var clipboard = Navigator.Clipboard.Fake();

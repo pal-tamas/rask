@@ -1,5 +1,12 @@
+using System.Collections.Concurrent;
+using Microsoft.JSInterop;
 using Rask.Core.Browser;
 using Rask.SQLite.Snapshots;
+using Rask.Web;
+using Lock = Rask.Web.Types.Lock;
+using LockMode = Rask.Web.Types.LockMode;
+using LockOptions = Rask.Web.Types.LockOptions;
+using StorageManager = Rask.Web.Types.StorageManager;
 
 namespace Rask.SQLite.Browser.Tests;
 
@@ -62,67 +69,21 @@ internal sealed class FakeKeyValueStore : IKeyValueStore
 }
 
 /// <summary>
-///     An <see cref="IWebLocks" /> that models the one behaviour under test: a lock is held for as long
-///     as its callback runs, and a second request for a held lock fails immediately.
+///     The browser's <c>navigator.locks</c> and <c>navigator.storage</c>, faked with Rask.Web's own fakes. The locks
+///     model the one behaviour under test: a lock is held for as long as its handler runs, and an <c>ifAvailable</c>
+///     request for a held one is handed no lock.
 /// </summary>
-internal sealed class FakeWebLocks : IWebLocks
+/// <remarks>
+///     A model, entered with <see cref="Enter" /> from the test's own flow — a web fake lasts for the flow it was made
+///     in, and the host's lock and availability tasks inherit it from there.
+/// </remarks>
+internal sealed class FakeWebApis
 {
-    private readonly HashSet<string> _held = [];
+    // The availability watcher polls from its own task, so the model is read off the test's thread too.
+    private readonly ConcurrentDictionary<string, bool> _held = new(StringComparer.Ordinal);
+    private WebFake<StorageManager>? _storage;
 
-    public bool Supported { get; set; } = true;
-
-    /// <summary>Pre-hold a lock, standing in for another tab that already owns it.</summary>
-    public void HoldElsewhere(string name) => _held.Add(name);
-
-    /// <summary>Drop a pre-held lock — that other tab closing.</summary>
-    public void ReleaseElsewhere(string name) => _held.Remove(name);
-
-    public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(Supported);
-
-    public async ValueTask RequestAsync(string name, Func<Task> work, LockMode mode = LockMode.Exclusive)
-    {
-        _held.Add(name);
-        try
-        {
-            await work();
-        }
-        finally
-        {
-            _held.Remove(name);
-        }
-    }
-
-    public async ValueTask<bool> TryRequestAsync(string name, Func<Task> work, LockMode mode = LockMode.Exclusive)
-    {
-        if (!_held.Add(name))
-        {
-            return false;
-        }
-
-        try
-        {
-            await work();
-        }
-        finally
-        {
-            _held.Remove(name);
-        }
-
-        return true;
-    }
-
-    public ValueTask<IReadOnlyList<LockInfo>> QueryAsync() =>
-        ValueTask.FromResult<IReadOnlyList<LockInfo>>(
-            [.. _held.Select(n => new LockInfo(n, "exclusive", null, true))]);
-}
-
-/// <summary>
-///     An <see cref="IStorageEstimator" /> that records whether persistence was asked for, and answers
-///     however the test says the browser would.
-/// </summary>
-internal sealed class FakeStorageEstimator : IStorageEstimator
-{
-    public bool Supported { get; set; } = true;
+    public bool LocksSupported { get; set; } = true;
 
     /// <summary>Whether the origin is already exempt — an already-persisted origin must not be asked again.</summary>
     public bool AlreadyPersisted { get; set; }
@@ -130,24 +91,67 @@ internal sealed class FakeStorageEstimator : IStorageEstimator
     /// <summary>What the browser answers. False covers both "declined" and "no such API".</summary>
     public bool GrantsPersist { get; set; } = true;
 
-    public int PersistRequests { get; private set; }
+    /// <summary>A refusal from <c>navigator.storage</c> itself.</summary>
+    public JSException? StorageThrows { get; set; }
 
-    public Exception? Throws { get; set; }
+    public int PersistRequests => _storage?.Calls.Count(c => c.Member == "persist") ?? 0;
 
-    public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(Supported);
+    /// <summary>Pre-hold a lock, standing in for another tab that already owns it.</summary>
+    public void HoldElsewhere(string name) => _held[name] = true;
 
-    public ValueTask<StorageEstimate?> EstimateAsync() =>
-        ValueTask.FromResult<StorageEstimate?>(new StorageEstimate(0, 0));
+    /// <summary>Drop a pre-held lock — that other tab closing.</summary>
+    public void ReleaseElsewhere(string name) => _held.TryRemove(name, out _);
 
-    public ValueTask<bool> IsPersistedAsync() =>
-        Throws is not null
-            ? ValueTask.FromException<bool>(Throws)
-            : ValueTask.FromResult(AlreadyPersisted);
+    public bool IsHeld(string name) => _held.ContainsKey(name);
 
-    public ValueTask<bool> RequestPersistAsync()
+    /// <summary>Stands in for both, for the rest of the calling flow, until disposed of.</summary>
+    public IDisposable Enter()
     {
-        PersistRequests++;
-        return ValueTask.FromResult(GrantsPersist);
+        var locks = Navigator.Locks.Fake();
+        locks.Returns(l => l.IsSupported, LocksSupported);
+        locks.CallsBack<Lock?>("request", Request);
+
+        _storage = Navigator.Storage.Fake();
+        if (StorageThrows is { } refusal)
+        {
+            _storage.Throws(s => s.Persisted(), refusal);
+        }
+        else
+        {
+            _storage.Returns(s => s.Persisted(), AlreadyPersisted).Returns(s => s.Persist(), GrantsPersist);
+        }
+
+        return new Both(locks, _storage);
+    }
+
+    private async Task Request(WebCall call, Func<Lock?, Task> handler)
+    {
+        var name = (string)call.Args[0]!;
+        if (!_held.TryAdd(name, true))
+        {
+            // Held: an ifAvailable request is handed no lock. A waiting one is not what the host makes.
+            Assert.True(call.Args[1] is LockOptions { IfAvailable: true }, "the host never waits for a lock");
+            await handler(null);
+            return;
+        }
+
+        try
+        {
+            await handler(new Lock { Name = name, Mode = LockMode.Exclusive });
+        }
+        finally
+        {
+            _held.TryRemove(name, out _);
+        }
+    }
+
+    private sealed class Both(IDisposable locks, IDisposable storage) : IDisposable
+    {
+        public void Dispose()
+        {
+            locks.Dispose();
+            storage.Dispose();
+        }
     }
 }
 

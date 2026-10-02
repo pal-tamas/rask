@@ -17,13 +17,12 @@
 //
 //     Node DOES define `navigator` (>= 21), which is the sharper lesson: a module cannot decide it is
 //     on a server by finding no navigator. Every capability check has to name the capability —
-//     `navigator.geolocation`, `navigator.storage.estimate` — never merely the object holding it.
+//     `navigator.geolocation`, `navigator.mediaDevices` — never merely the object holding it.
 //
 // The C# test (BrowserModuleTests) runs this in a node subprocess and asserts the JSON on stdout.
 
 import * as auth from "../../../src/Rask.Core/Resources/browser/auth.js";
 import * as cookies from "../../../src/Rask.Core/Resources/browser/cookies.js";
-import * as storageManager from "../../../src/Rask.Core/Resources/browser/storageManager.js";
 
 // Reaching this line at all is assertion (2): every import above evaluated with no DOM present.
 const importedWithoutADom = true;
@@ -50,17 +49,11 @@ Object.defineProperty(documentStub, "cookie", {
 });
 define("document", documentStub);
 
-define("navigator", {
-    storage: {estimate: () => Promise.resolve({})}
-});
-
 // --- exercise -----------------------------------------------------------------------------------
 
 async function run(): Promise<Any> {
     cookies.set("token", "he llo", {maxAgeSeconds: 60, path: "/", sameSite: "Lax", secure: true});
     cookies.remove("token", "/app");
-
-    const estimate = await storageManager.estimate();
 
     // ---- auth.ts ---------------------------------------------------------------------------------
     // fetch is a global rather than a DOM member, so replacing it drives this module with no server.
@@ -174,10 +167,7 @@ async function run(): Promise<Any> {
         cookieMissing: cookies.get("nope"),
         cookieAll: cookies.getAll(),
         cookieSetWrite: cookieWrites[0],
-        cookieDeleteWrite: cookieWrites[1],
-
-        // An estimate with neither figure present reports zeroes rather than undefined.
-        estimate
+        cookieDeleteWrite: cookieWrites[1]
     };
 }
 

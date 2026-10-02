@@ -119193,6 +119193,11 @@
    "video",
    "audio"
   ],
+  "CookieSameSite": [
+   "strict",
+   "lax",
+   "none"
+  ],
   "CredentialMediationRequirement": [
    "silent",
    "optional",
@@ -120455,6 +120460,12 @@
    "right-eye",
    "eye",
    "mouth"
+  ],
+  "SelectionMode": [
+   "select",
+   "start",
+   "end",
+   "preserve"
   ],
   "SelfCapturePreferenceEnum": [
    "include",
@@ -122276,6 +122287,44 @@
     }
    ]
   },
+  "CookieInit": {
+   "members": [
+    {
+     "name": "name",
+     "type": "USVString",
+     "required": true
+    },
+    {
+     "name": "value",
+     "type": "USVString",
+     "required": true
+    },
+    {
+     "name": "expires",
+     "type": "double?"
+    },
+    {
+     "name": "domain",
+     "type": "USVString?"
+    },
+    {
+     "name": "path",
+     "type": "USVString"
+    },
+    {
+     "name": "sameSite",
+     "type": "CookieSameSite"
+    },
+    {
+     "name": "partitioned",
+     "type": "boolean"
+    },
+    {
+     "name": "maxAge",
+     "type": "long long?"
+    }
+   ]
+  },
   "CookieListItem": {
    "members": [
     {
@@ -122285,6 +122334,27 @@
     {
      "name": "value",
      "type": "USVString"
+    }
+   ]
+  },
+  "CookieStoreDeleteOptions": {
+   "members": [
+    {
+     "name": "name",
+     "type": "USVString",
+     "required": true
+    },
+    {
+     "name": "domain",
+     "type": "USVString?"
+    },
+    {
+     "name": "path",
+     "type": "USVString"
+    },
+    {
+     "name": "partitioned",
+     "type": "boolean"
     }
    ]
   },
@@ -125867,6 +125937,26 @@
     {
      "name": "pending",
      "type": "sequence<LockInfo>"
+    }
+   ]
+  },
+  "LockOptions": {
+   "members": [
+    {
+     "name": "mode",
+     "type": "LockMode"
+    },
+    {
+     "name": "ifAvailable",
+     "type": "boolean"
+    },
+    {
+     "name": "steal",
+     "type": "boolean"
+    },
+    {
+     "name": "signal",
+     "type": "AbortSignal"
     }
    ]
   },
@@ -132078,6 +132168,15 @@
     {
      "name": "visible",
      "type": "boolean"
+    }
+   ]
+  },
+  "WindowPostMessageOptions": {
+   "parent": "StructuredSerializeOptions",
+   "members": [
+    {
+     "name": "targetOrigin",
+     "type": "USVString"
     }
    ]
   },

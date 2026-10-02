@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Wire;
 
 namespace Rask.WebPush;
 
@@ -45,11 +44,11 @@ public static class RaskPushEndpointExtensions
 
         group.MapPost("subscribe", static async (HttpContext context, IPush push) =>
         {
-            var subscription = await context.Request
-                .ReadFromJsonAsync(PushJson.Default.PushSubscription, context.RequestAborted)
+            var posted = await context.Request
+                .ReadFromJsonAsync(PushJson.Default.PostedSubscription, context.RequestAborted)
                 .ConfigureAwait(false);
 
-            if (subscription is null || WebPushSender.Problem(subscription) is not null)
+            if (posted?.Subscription is not { } subscription || WebPushSender.Problem(subscription) is not null)
             {
                 return Results.BadRequest();
             }
@@ -60,16 +59,16 @@ public static class RaskPushEndpointExtensions
 
         group.MapPost("unsubscribe", static async (HttpContext context, IPush push) =>
         {
-            var subscription = await context.Request
-                .ReadFromJsonAsync(PushJson.Default.PushSubscription, context.RequestAborted)
+            var posted = await context.Request
+                .ReadFromJsonAsync(PushJson.Default.PostedSubscription, context.RequestAborted)
                 .ConfigureAwait(false);
 
-            if (subscription is null || string.IsNullOrWhiteSpace(subscription.Endpoint))
+            if (string.IsNullOrWhiteSpace(posted?.Endpoint))
             {
                 return Results.BadRequest();
             }
 
-            await push.Unsubscribe(subscription.Endpoint, context.RequestAborted).ConfigureAwait(false);
+            await push.Unsubscribe(posted.Endpoint, context.RequestAborted).ConfigureAwait(false);
             return Results.NoContent();
         });
 

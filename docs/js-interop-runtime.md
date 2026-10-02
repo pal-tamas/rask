@@ -54,10 +54,11 @@ later step on the same pattern.
 | Service | Wraps | Key members |
 | --- | --- | --- |
 | `ICookies` | `document.cookie` | `GetAsync`, `SetAsync(name, value, CookieOptions?)`, `DeleteAsync`, `GetAllAsync` |
-| `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
-| `IDeviceOrientation` | `deviceorientation` | `RequestPermissionAsync()` + `WatchAsync(Func<OrientationReading,Task>)` → `IAsyncDisposable` — gyroscope/compass tilt |
-| `IDeviceMotion` | `devicemotion` | `RequestPermissionAsync()` + `WatchAsync(Func<MotionReading,Task>)` → `IAsyncDisposable` — accelerometer / rotation |
 | `IIndexedDb` | `IndexedDB` | `IsSupportedAsync`, `OpenStoreAsync(name)` → `IKeyValueStore` (`Set`/`Get`/`SetBytes`/`GetBytes`/`Delete`/`Keys`/`Clear`) — large async persistent storage, text or raw bytes |
+
+The storage estimate is `await Navigator.Storage.Estimate()` in [`Rask.Web`](web-apis.md), with `Persist()` and
+`Persisted()` beside it. Device tilt and motion are `Window` events there:
+`await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds)`, throttled in the browser by `every:`.
 
 ```csharp
 using Rask.Web;
@@ -95,22 +96,19 @@ transient activation has expired. The practical effect:
 - **Fullscreen** and **Picture-in-Picture** need transient activation too. They are `await _stage.RequestFullscreen()`
   and `await _video.RequestPictureInPicture()` on an element ref in [`Rask.Web`](web-apis.md#on-an-element-ref),
   generated into WASM only. On Server, `Trigger.Fullscreen` and `Trigger.PictureInPicture` run them in the click.
-- **`IMediaDevices`** and **`IInstallPrompt`** (capture/replay the deferred
-  `beforeinstallprompt` for a custom install button) are likewise **WASM-only** in `Rask.Wasm.Browser` —
-  they depend on the installed-PWA instance or the live document the Server round-trip can't carry. See
-  the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
+- **`IInstallPrompt`** (capture/replay the deferred `beforeinstallprompt` for a custom install button) is likewise
+  **WASM-only** in `Rask.Wasm.Browser` — it depends on the live document the Server round-trip can't carry. Screen
+  capture, `await Navigator.MediaDevices.GetDisplayMedia()`, is a [`Rask.Web`](web-apis.md#what-only-webassembly-runs)
+  call generated into WASM only. See the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
 - **`IWakeLock`** (keep the screen awake) needs no transient activation, so it is shared; its JS helper ships on
   the Server client under `AddRaskPwa`. The app badge is `await Navigator.SetAppBadge(3)` in [`Rask.Web`](web-apis.md).
-- Everything else here (cookies, storage estimate, indexeddb) is unaffected by activation and
+- Everything else here (cookies, indexeddb) is unaffected by activation and
   behaves identically on both transports.
 
-Most of these are one-shot request/response calls. **`IDeviceOrientation`** and **`IDeviceMotion`** are the
-exceptions — they're *subscriptions*: you
-open/observe/watch (returning an `IAsyncDisposable`) and the browser **pushes** each change back to a C#
-handler (via a static `[JSInvokable]`, so one wiring works on both transports). Open from a lifecycle hook and dispose on unmount; a
-handler
-that updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
-subscription, not a render/binding callback, so RASK026 doesn't apply).
+These are one-shot request/response calls. A *subscription* — `ISignaling`, `IWebRtc`, or a `Rask.Web` event such as
+`Window.OnDeviceMotion` — hands back an `IAsyncDisposable` and the browser **pushes** each change to a C# handler.
+Open it from a lifecycle hook and dispose of it on unmount. See
+[the push pattern](browser-apis-sharing.md#subscriptions--the-push-pattern).
 
 This is the rule for the whole surface: **shared APIs live in `Rask.Core.Browser`; APIs that can't
 work on Server live in `Rask.Wasm.Browser`** (the home for upcoming PWA-only APIs too).

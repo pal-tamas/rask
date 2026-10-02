@@ -3,7 +3,7 @@ namespace Rask.WebPush;
 // A VAPID application-server key pair (RFC 8292), both members base64url-encoded:
 //   PublicKey  — the uncompressed P-256 point (65 bytes: 0x04 ‖ X ‖ Y). This is exactly the
 //                `applicationServerKey` the browser passes to pushManager.subscribe, so hand the
-//                SAME string to the client's IWebPush.SubscribeAsync.
+//                SAME key, decoded to bytes, to MDN's PushManager.Subscribe (Rask.Web).
 //   PrivateKey — the 32-byte private scalar D. Keep it secret on the server.
 //
 // Generate one pair per application with Generate(), store it in configuration/secrets, and reuse it
@@ -21,8 +21,8 @@ namespace Rask.WebPush;
 ///         unsubscribed until they subscribe again. Treat it as a migration, not a routine key rotation.
 ///     </para>
 /// </remarks>
-/// <param name="PublicKey">The uncompressed P-256 point, base64url-encoded. Hand this same string to the
-///     client's <c>IWebPush.SubscribeAsync</c>.</param>
+/// <param name="PublicKey">The uncompressed P-256 point, base64url-encoded. Decoded, it is the
+///     <c>ApplicationServerKey</c> MDN's <c>PushManager.Subscribe</c> takes.</param>
 /// <param name="PrivateKey">The 32-byte private scalar, base64url-encoded. Server-side secret.</param>
 public sealed record VapidKeys(string PublicKey, string PrivateKey)
 {

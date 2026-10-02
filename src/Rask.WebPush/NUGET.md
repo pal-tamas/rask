@@ -16,15 +16,21 @@ Included in `Rask.Server` and on by default — `app.Configure(c => c.Push.Off()
 
 ## Subscribe
 
-On the server host a component keeps what the browser API hands back:
+The browser subscribes through MDN's own `PushManager` (from `Rask.Web`); on the server host a component keeps
+what it hands back:
 
 ```csharp
-var subscription = await push.SubscribeAsync(Push.PublicKey!);   // IWebPush, the browser API
-await Push.Subscribe(subscription);                             // the signed-in user's, when there is one
+await using var worker = await Navigator.ServiceWorker.Ready;
+await using var subscription = await worker.PushManager.Subscribe(new()
+{
+    UserVisibleOnly = true,
+    ApplicationServerKey = Base64Url.DecodeFromChars(Push.PublicKey),
+});
+await Push.Subscribe(await subscription.ToJSON());   // the signed-in user's, when there is one
 ```
 
-A WebAssembly client or a SPA posts it to the endpoints `RaskApp` maps: `GET /_rask/push/key`,
-`POST /_rask/push/subscribe`, `POST /_rask/push/unsubscribe`.
+A WebAssembly client or a SPA posts that `ToJSON()` — MDN's `{ endpoint, keys: { p256dh, auth } }` — to the
+endpoints `RaskApp` maps: `GET /_rask/push/key`, `POST /_rask/push/subscribe`, `POST /_rask/push/unsubscribe`.
 
 ## Keys
 

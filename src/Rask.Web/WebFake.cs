@@ -20,7 +20,9 @@ namespace Rask.Web;
 ///     <para>
 ///         A read or call nobody set up answers the type's default; a write is remembered, so reading it back sees it.
 ///         An object kept from it stays inside it. <see cref="Raise" /> fires an event at its subscribers, whose
-///         handlers run in their components' order and re-render them, as the browser's would.
+///         handlers run in their components' order and re-render them, as the browser's would. <see cref="Throws" />
+///         fails a member as the browser refusing it would, and <see cref="CallsBack" /> runs the handler a call such as
+///         a lock request was handed.
 ///     </para>
 /// </remarks>
 public sealed class WebFake<T> : IDisposable
@@ -38,6 +40,30 @@ public sealed class WebFake<T> : IDisposable
     public WebFake<T> Returns<TValue>(Expression<Func<T, ValueTask<TValue>>> member, TValue value)
     {
         _entry.Answers[WebFakes.Member(member.Body)] = value;
+        return this;
+    }
+
+    /// <summary>
+    ///     Makes <paramref name="member" /> fail with <paramref name="error" />, as the browser refusing it would.
+    /// </summary>
+    /// <example><c>storage.Throws(s => s.Persist(), new JSException("denied"))</c></example>
+    public WebFake<T> Throws<TValue>(Expression<Func<T, ValueTask<TValue>>> member, Exception error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        _entry.Answers[WebFakes.Member(member.Body)] = new WebFakes.Refusal(error);
+        return this;
+    }
+
+    /// <summary>
+    ///     Answers the call MDN names <paramref name="member" /> (<c>"request"</c>) by running <paramref name="answer" />,
+    ///     handed the call and the handler the code under test passed it, to call with what the browser would pass. The
+    ///     call settles when <paramref name="answer" /> does, as a lock request settles once its handler has.
+    /// </summary>
+    /// <example><c>locks.CallsBack&lt;Lock?&gt;("request", (call, handler) =&gt; handler(new Lock { Name = "sync" }))</c></example>
+    public WebFake<T> CallsBack<TArg>(string member, Func<WebCall, Func<TArg, Task>, Task> answer)
+    {
+        ArgumentNullException.ThrowIfNull(answer);
+        _entry.CallsBack[member] = (call, run) => answer(call, arg => run([arg]));
         return this;
     }
 

@@ -71,6 +71,10 @@
     <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
     <InternalsVisibleTo Include="Rask.Auth"/>
     <InternalsVisibleTo Include="Rask.Auth.Tests"/>
+    <!-- Rask.SQLite.Browser's hosted service makes its Rask.Web calls (the owner lock, persistent storage) at boot,
+         outside any event handler: it names the app's services as the current page around them
+         (DispatchServicesScope), as Rask.Web's CookieCulturePersistence does. -->
+    <InternalsVisibleTo Include="Rask.SQLite.Browser"/>
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
     <InternalsVisibleTo Include="Rask.Benchmarks.VsBlazor"/>
     <InternalsVisibleTo Include="Rask.Site.Tests"/>

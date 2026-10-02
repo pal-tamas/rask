@@ -52,8 +52,6 @@ public static class RaskBrowserApis
 
     private static void AddPageAndDeviceApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<IDeviceOrientation, DeviceOrientation>(lifetime);
-        services.AddBrowserApi<IDeviceMotion, DeviceMotion>(lifetime);
         services.AddBrowserApi<IViewTransitions, ViewTransitions>(lifetime);
     }
 
@@ -67,18 +65,15 @@ public static class RaskBrowserApis
 
     private static void AddStorageAndSecurityApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<IStorageEstimator, StorageEstimator>(lifetime);
         services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
         services.AddBrowserApi<ICookies, Cookies>(lifetime);
-        services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
         services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
     }
 
-    // Transport-agnostic PWA APIs (IJSRuntime-backed, no transient activation): push subscribe, local
-    // notifications, app badge, screen wake lock. Their JS helpers ship on Server only under AddRaskPwa.
+    // The transport-agnostic screen wake lock (IJSRuntime-backed, no transient activation). Push is MDN's own
+    // PushManager from Rask.Web, reached through the service worker the host registers.
     private static void AddPwaApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<IWebPush, WebPush>(lifetime);
         services.AddBrowserApi<IWakeLock, WakeLock>(lifetime);
     }
 }

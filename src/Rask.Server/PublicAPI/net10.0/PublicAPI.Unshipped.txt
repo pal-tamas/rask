@@ -166,3 +166,7 @@ Rask.RaskAppOptions.Server.get -> Rask.Configurable<Rask.Server.RaskServerOption
 static Rask.JobsBattery.Run<TJob>(this Rask.Battery<Rask.Background.JobsOptions!>! jobs) -> Rask.Background.RecurringJob!
 static Rask.JobsBattery.Run<TJob>(this Rask.Battery<Rask.Background.JobsOptions!>! jobs, System.Func<TJob>! make) -> Rask.Background.RecurringJob!
 Rask.RaskAppOptions.Outbox.get -> Rask.Settings<Rask.Outbox.OutboxOptions!>!
+Rask.WebPush.BrowserPushSubscriptions
+Rask.WebPush.BrowserPushSubscriptions.extension(Rask.WebPush.Push!)
+static Rask.WebPush.BrowserPushSubscriptions.Subscribe(Rask.Web.Types.PushSubscriptionJSON! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriber!>!
+static Rask.WebPush.BrowserPushSubscriptions.extension(Rask.WebPush.Push!).Subscribe(Rask.Web.Types.PushSubscriptionJSON! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriber!>!

@@ -14,18 +14,13 @@ public class RaskBrowserApisTests
     private static readonly (Type Service, Type Impl)[] CoreApis =
     [
         (typeof(ISpeechRecognition), typeof(SpeechRecognition)),
-        (typeof(IStorageEstimator), typeof(StorageEstimator)),
-        (typeof(IDeviceOrientation), typeof(DeviceOrientation)),
-        (typeof(IDeviceMotion), typeof(DeviceMotion)),
         (typeof(IIndexedDb), typeof(IndexedDb)),
         (typeof(IWebAuthn), typeof(WebAuthn)),
         (typeof(ICookies), typeof(Cookies)),
         (typeof(IViewTransitions), typeof(ViewTransitions)),
-        (typeof(IWebLocks), typeof(WebLocks)),
         (typeof(IMediaStreams), typeof(MediaStreams)),
         (typeof(ISignaling), typeof(Signaling)),
         (typeof(IWebRtc), typeof(WebRtc)),
-        (typeof(IWebPush), typeof(Rask.Core.Browser.WebPush)),
         (typeof(IWakeLock), typeof(WakeLock)),
     ];
 

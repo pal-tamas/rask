@@ -9,28 +9,26 @@ Where each wrapper lives, how declarative and imperative sharing differ, and how
 Work identically on Server and WASM. **Shape** is *one-shot* (a request/response call) or
 *subscription* (you hold an `IAsyncDisposable` and the browser **pushes** updates to a C# handler — see
 [Subscriptions](#subscriptions--the-push-pattern)). Storage, clipboard, geolocation, `matchMedia`, the screen, crypto,
-permissions, `BroadcastChannel`, media session, speech synthesis, animations, files, gamepads, notifications, the app badge and the rest of what the
-browser ships are MDN's own surface in [`Rask.Web`](web-apis.md), not wrappers.
+permissions, `BroadcastChannel`, media session, Web Locks, the storage estimate, speech synthesis, animations, files,
+gamepads, notifications, the app badge and the rest of what the browser ships are MDN's own surface in
+[`Rask.Web`](web-apis.md), not wrappers. Device tilt and motion are `Window` events there:
+`await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds)`, where `every:` throttles them in the
+browser before they cross.
 
 | Service | Wraps | What it does | Shape |
 | --- | --- | --- | --- |
 | `ICookies` | `document.cookie` | Read/write cookies with typed `CookieOptions` | one-shot |
 | `ISpeechRecognition` | `webkitSpeechRecognition` | Dictation — spoken audio → text | **subscription** |
-| `IDeviceOrientation` | `deviceorientation` | Gyroscope/compass tilt angles (tilt UI, AR, compass) | **subscription** |
-| `IDeviceMotion` | `devicemotion` | Accelerometer / rotation rate (shake, step counter, motion games) | **subscription** |
-| `IStorageEstimator` | `navigator.storage.estimate` | Quota / usage, to budget caches | one-shot |
 | `IIndexedDb` | IndexedDB | `OpenStoreAsync(name)` → large async key/value store | one-shot |
 | `IWebAuthn` | Web Authentication API | Passkeys — register / sign in with biometric or security key | one-shot |
-| `IWebLocks` | Web Locks API | Serialise work across an origin's tabs/workers — hold a named lock for a callback | callback-scoped |
 | `IMediaStreams` | `MediaStream` | Attach a live stream to a `<video>`, or stop it (releasing the camera) | one-shot |
 | `ISignaling` | WebSocket | Join a room on Rask's signaling relay and pass payloads to one peer | **subscription** |
 | `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
-| `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | one-shot |
 | `IWakeLock` | Screen Wake Lock API | Keep the screen awake (sentinel; dispose to release) | one-shot |
 
-The last two are **PWA** APIs but transport-agnostic (`IJSRuntime`-backed, no transient activation), so they
-register on Server too — their JS helpers just ship on the Server client only under `AddRaskPwa` (see
-[pwa.md](pwa.md)).
+The last is a **PWA** API but transport-agnostic (`IJSRuntime`-backed, no transient activation), so it
+registers on Server too — its JS helper just ships on the Server client only under `AddRaskPwa` (see
+[pwa.md](pwa.md)). Web Push subscription is MDN's own `PushManager`, from [`Rask.Web`](web-apis.md#keeping-an-object).
 
 ## Sharing — declarative (all hosts) vs imperative (in-process)
 
@@ -92,12 +90,13 @@ Registered only by the WASM host. Each needs something the Server transport cann
 installed-PWA instance / live document, or a browser-only device API. WebUSB, WebHID, Web Serial and Web Bluetooth are
 `Navigator.Usb`, `Navigator.Hid`, `Navigator.Serial` and `Navigator.Bluetooth` in
 [`Rask.Web`](web-apis.md#what-only-webassembly-runs). Fullscreen and Picture-in-Picture are
-`await _stage.RequestFullscreen()` and `await _video.RequestPictureInPicture()` on an element ref there.
+`await _stage.RequestFullscreen()` and `await _video.RequestPictureInPicture()` on an element ref there. The camera
+and microphone are `await Navigator.MediaDevices.GetUserMedia(new() { Video = new() })` (every host) and screen
+capture is `GetDisplayMedia()` (WASM); show the stream with `await _video.SetSrcObject(stream)`.
 
 | Service | Wraps | What it does | Why WASM-only |
 | --- | --- | --- | --- |
 | `IInstallPrompt` | `beforeinstallprompt` | Custom "Install app" button: capture + replay the deferred prompt | live document + activation |
-| `IMediaDevices` | `getUserMedia` / `getDisplayMedia` | Capture camera / mic / screen into a `<video>` (calls, capture) | transient activation + secure context |
 | `IBackgroundSync` | Background Sync + Periodic Background Sync | Ask the browser to wake the app when connectivity returns, or on a schedule, to drain an offline queue | service-worker registration |
 
 PWA infrastructure (the typed `WebAppManifest`, the default service worker, `--pwa` templates) is
@@ -113,7 +112,6 @@ each change back into C#:
 - **`IWebRtc`** — `CreateAsync(config, handlers)` → connection (`IAsyncDisposable`); its channels'
   `ListenAsync(onMessages)` delivers **batches**, not single messages — on Server each push is a WebSocket
   frame, so the framework coalesces them
-- **`IDeviceOrientation`** / **`IDeviceMotion`** — `WatchAsync(onReading)` → `IAsyncDisposable`
 
 They share one mechanism: the JS event invokes a static `[JSInvokable]` via
 `window.DotNet.invokeMethodAsync` (which Rask implements on **both** transports), routed back to your

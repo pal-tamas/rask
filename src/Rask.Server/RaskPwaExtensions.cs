@@ -13,10 +13,11 @@ namespace Rask.Server;
 /// <remarks>
 ///     What you get on Server: an installable <see cref="WebAppManifest" /> (served at
 ///     <c>{PathBase}/rask/manifest.webmanifest</c> and linked from the server-rendered <c>&lt;head&gt;</c>),
-///     a service worker at <c>{PathBase}/rask-sw.js</c> that handles Web Push and serves a static
-///     <c>offline.html</c> for failed navigations, and the transport-agnostic PWA APIs
-///     (<see cref="IWebPush" />/<c>Notification</c>/<c>Navigator.SetAppBadge</c>/<see cref="IWakeLock" />,
-///     registered by <c>AddRask()</c>).
+///     a service worker at <c>{PathBase}/rask-sw.js</c> — registered by the page's head, so
+///     <c>await Navigator.ServiceWorker.Ready</c> reaches it — that shows Web Push and serves a static
+///     <c>offline.html</c> for failed navigations, and the transport-agnostic PWA APIs (MDN's
+///     <c>PushManager</c>/<c>Notification</c>/<c>Navigator.SetAppBadge</c> from Rask.Web, and
+///     <see cref="IWakeLock" />, registered by <c>AddRask()</c>).
 ///     <para>
 ///         What you do NOT get (a Server app renders over a live WebSocket): a true offline app — the SW
 ///         deliberately does not cache the server-rendered shell (it carries a one-shot session id and is

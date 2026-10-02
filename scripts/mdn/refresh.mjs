@@ -429,10 +429,12 @@ function eventInterface(target, type) {
 
 // ---- Enums, dictionaries and callbacks the members reach (for typed refs and Rask.Web) -------------
 const reachedEnums = {}, reachedDicts = {}, reachedCallbacks = {};
-function reach(type) {
+// `withCallbacks`: false for an overload's arguments, whose callbacks are legacy forms that the promise the main one
+// answers with replaced (RTCPeerConnection's success and failure callbacks).
+function reach(type, withCallbacks = true) {
   for (const n of type.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []) {
     if (enums.has(n) && !reachedEnums[n]) reachedEnums[n] = enums.get(n);
-    const c = callbacks.get(n);
+    const c = withCallbacks ? callbacks.get(n) : undefined;
     if (c && !reachedCallbacks[n]) {
       reachedCallbacks[n] = { returns: typeOf(c.idlType), args: c.arguments.map(a => ({ name: a.name, type: typeOf(a.idlType), optional: a.optional || undefined, variadic: a.variadic || undefined })) };
       reach(reachedCallbacks[n].returns);
@@ -441,8 +443,8 @@ function reach(type) {
     const d = dictionaries.get(n);
     if (d && !reachedDicts[n]) {
       reachedDicts[n] = { parent: d.inheritance ?? undefined, members: d.members.filter(m => m.name).map(m => ({ name: m.name, type: typeOf(m.idlType), required: m.required || undefined })) };
-      if (d.inheritance) reach(d.inheritance);
-      for (const m of reachedDicts[n].members) reach(m.type);
+      if (d.inheritance) reach(d.inheritance, withCallbacks);
+      for (const m of reachedDicts[n].members) reach(m.type, withCallbacks);
     }
   }
 }
@@ -450,6 +452,8 @@ for (const i of Object.values(interfaceOut)) {
   for (const m of [...i.members, ...(i.statics ?? []), ...(i.constructors ?? [])]) {
     if (m.type ?? m.returns) reach(m.type ?? m.returns);
     for (const a of m.args ?? []) reach(a.type);
+    // The overloads' options too: LockManager.request's (ifAvailable, steal) are only in its second argument list.
+    for (const a of (m.overloads ?? []).flat()) reach(a.type, false);
   }
 }
 // The dictionaries an `object` argument really takes, which the IDL never names (Permissions.query's descriptor): the

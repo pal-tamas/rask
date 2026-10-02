@@ -1,69 +1,67 @@
 using System.Globalization;
-using Rask.Core;
-using Rask.Core.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IDeviceOrientation" /> + <see cref="IDeviceMotion" /> — read the gyroscope/compass tilt
-///     and the accelerometer. Tap <b>Start</b> (which requests sensor permission from the gesture, required
-///     on iOS), then tilt or shake the device: the browser pushes each reading to C#, which updates the
-///     readout (the handler calls <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed
-///     update). Sensors only emit on a real device with motion hardware.
+///     MDN's <c>deviceorientation</c> and <c>devicemotion</c> events from Rask.Web — read the gyroscope/compass tilt
+///     and the accelerometer. Tap <b>Start</b> (which asks for sensor permission inside the click, as iOS requires),
+///     then tilt or shake the device: each reading re-renders the readout. Sensors only fire on a real device with
+///     motion hardware.
 /// </summary>
-public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, IDeviceMotion motion)
-    : Component, IAsyncDisposable
+public sealed partial class DeviceSensorsDemo : Component
 {
     private IAsyncDisposable? _orientationWatch;
     private IAsyncDisposable? _motionWatch;
     private string _status = "(idle)";
-    private OrientationReading? _tilt;
-    private MotionReading? _accel;
+    private Rask.Web.Types.DeviceOrientationEvent? _tilt;
+    private Rask.Web.Types.DeviceMotionEventAcceleration? _accel;
 
     private async Task Start()
     {
         try
         {
-            if (!await orientation.IsSupportedAsync())
+            if (!await DeviceOrientationEvent.IsSupported)
             {
                 _status = "Device orientation not supported";
                 return;
             }
 
-            // Request both permissions up front, before any WatchAsync — iOS only honours
-            // requestPermission() while the click's user activation is still live, so the motion request
-            // must not wait behind the orientation watch.
-            var orientationGranted = await orientation.RequestPermissionAsync() == SensorPermissionState.Granted;
-            var motionGranted = await motion.RequestPermissionAsync() == SensorPermissionState.Granted;
-
-            if (!orientationGranted)
+            // Ask for both before subscribing: iOS only honours requestPermission() while the click is still live.
+            var orientationAllowed = await Allowed(DeviceOrientationEvent.RequestPermission);
+            var motionAllowed = await Allowed(DeviceMotionEvent.RequestPermission);
+            if (!orientationAllowed)
             {
                 _status = "Permission denied";
                 return;
             }
 
-            _orientationWatch ??= await orientation.WatchAsync(r =>
+            // The sensors fire ~60 times a second; ten readings (the latest each time) is plenty for a readout.
+            _orientationWatch ??= await Window.OnDeviceOrientation(e => _tilt = e, every: 100.Milliseconds);
+            if (motionAllowed)
             {
-                _tilt = r;
-                StateHasChanged();
-                return Task.CompletedTask;
-            });
-
-            if (motionGranted)
-            {
-                _motionWatch ??= await motion.WatchAsync(r =>
-                {
-                    _accel = r;
-                    StateHasChanged();
-                    return Task.CompletedTask;
-                });
+                _motionWatch ??= await Window.OnDeviceMotion(e => _accel = e.Acceleration, every: 100.Milliseconds);
             }
 
             _status = "listening — tilt or shake the device";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _status = "start failed: " + ex.Message;
+        }
+    }
+
+    // Only iOS asks: elsewhere requestPermission() does not exist, and the sensors just fire.
+    private static async Task<bool> Allowed(Func<ValueTask<Rask.Web.Types.PermissionState>> request)
+    {
+        try
+        {
+            return await request() is Rask.Web.Types.PermissionState.Granted;
+        }
+        catch (JSException ex) when (ex.Message.Contains("is not a function", StringComparison.Ordinal))
+        {
+            return true;
         }
     }
 
@@ -82,16 +80,16 @@ public sealed partial class DeviceSensorsDemo(IDeviceOrientation orientation, ID
                     Div.Class("col-span-12 sm:col-span-6")[
                         Div.Class("font-semibold text-sm mb-1")["Acceleration (m/s²)"],
                         Div.Class("text-sm text-ui-muted")[
-                            "x ", Code.Id("sensor-ax")[Fmt(_accel?.AccelerationX)],
-                            " · y ", Code.Id("sensor-ay")[Fmt(_accel?.AccelerationY)],
-                            " · z ", Code.Id("sensor-az")[Fmt(_accel?.AccelerationZ)]]
+                            "x ", Code.Id("sensor-ax")[Fmt(_accel?.X)],
+                            " · y ", Code.Id("sensor-ay")[Fmt(_accel?.Y)],
+                            " · z ", Code.Id("sensor-az")[Fmt(_accel?.Z)]]
                     ]
                 ]
             ];
 
     private static string Fmt(double? value) => value is null ? "—" : value.Value.ToString("0.0", CultureInfo.InvariantCulture);
 
-    public async ValueTask DisposeAsync()
+    protected override async Task OnUnmount()
     {
         if (_orientationWatch is not null)
         {

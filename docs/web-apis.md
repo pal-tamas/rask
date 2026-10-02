@@ -40,7 +40,18 @@ var matches = await wide.Matches;
 ```
 
 A method whose promise resolves to an object (`Navigator.MediaDevices.GetUserMedia(…)`) keeps that object the same
-way.
+way, and so does an attribute that is such a promise — the service worker's `ready`, which is where a Web Push
+subscription starts:
+
+```csharp
+await using var worker = await Navigator.ServiceWorker.Ready;   // settles once the page's worker is active
+await using var subscription = await worker.PushManager.Subscribe(new()
+{
+    UserVisibleOnly = true,
+    ApplicationServerKey = Base64Url.DecodeFromChars(vapidPublicKey),   // System.Buffers.Text
+});
+var json = await subscription.ToJSON();   // MDN's PushSubscriptionJSON: what /_rask/push/subscribe and Push.Subscribe keep
+```
 
 A method that returns an object at once is a step of the path like any other, so it runs when the path does — once
 per await. `Window.MatchMedia(q).Matches` wants exactly that; a method you call for what it does, like
@@ -172,6 +183,20 @@ var state = await status.State;                                   // PermissionS
   service UUID), and where the text is a name instead — an animation's `"auto"`, a performance mark's name — a number
   written as text would be taken for one. Read back, a number is its text.
 - **A `record<K, V>`** is a `Dictionary<string, V>`: a file picker's `Accept`, `Headers.Create(…)`, `PushSubscriptionJSON.Keys`.
+- **A boolean or a dictionary** is the dictionary, nullable: `null` is `false` (left out, not asked for) and an empty
+  one is `true`, since any object is truthy in JS — a media request's `Video`/`Audio`. Read back, the browser's
+  `true` is an empty dictionary and its `false` is `null`.
+- **A media constraint** — MDN's `ConstrainBoolean`, `ConstrainDouble`, `ConstrainULong`, `ConstrainDOMString` — is
+  its plain value, nullable: `bool?`, `double?`, `int?`, `string?`, which the browser takes as the ideal. Read back,
+  one a page wrote as an object is its `ideal`, else its `exact`, a list is its first item, and a range alone is `null`.
+
+```csharp
+_stream = await Navigator.MediaDevices.GetUserMedia(new() { Video = new() });   // video: true; no audio
+_stream = await Navigator.MediaDevices.GetUserMedia(new() { Video = new() { Width = 640, FacingMode = "user", Torch = true } });
+```
+
+The constraints with no single plain value — `Pan`/`Tilt`/`Zoom` (a boolean or a number), `EchoCancellation` (a
+boolean or a string) and `PointsOfInterest` (points) — are not generated.
 
 ```csharp
 var battery = await Navigator.Bluetooth.RequestDevice(new()      // WebAssembly: in the click
@@ -225,6 +250,16 @@ var accepted = answer.UserChoice == AppBannerPromptOutcome.Accepted;
 
 The spec moved the outcome from the old `userChoice` promise onto what `prompt()` answers with, so it is read there.
 
+**A hot event is throttled on the subscription.** A sensor fires ~60 times a second, and each one would cross to C#
+and re-render; `every:` coalesces them in the browser before they cross. The first event goes at once, then at most one
+per interval — the latest, so the last reading always arrives (the ones between are dropped before any payload is
+built). Without `every` each event crosses, as before; disposing of the subscription clears its timer.
+
+```csharp
+_tilt = await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds);
+_moved = await Window.OnDeviceMotion(e => _accel = e.Acceleration, every: 100.Milliseconds);
+```
+
 Each one is a handle the browser holds until you dispose of it, or until the handler's component unmounts — so dispose
 of what you do not keep. An event that only ever fires on the object it names (a HID device's `inputreport`, many a
 second) leaves that field out: you are holding it already. A method or constructor
@@ -239,6 +274,7 @@ await using var io = await IntersectionObserver.Create(entries =>
 await io.Observe(_card);                                          // readonly ElementRef _card = ElementRef.New();
 
 await Navigator.Locks.Request("sync", async lk => await Sync());  // the lock is held until Sync() returns
+await Navigator.Locks.Request("sync", new() { IfAvailable = true }, lk => _free = lk is not null);   // null: held elsewhere
 ```
 
 What a callback is handed is data, read when it ran: an `IntersectionObserverEntry`, a `ResizeObserverEntry`, a
@@ -249,7 +285,9 @@ order — an observer's entries, not the observer, which you already hold. A cal
 generated.
 
 A handler has to belong to a component — a lambda written in one, or a method of it — since that is the component it
-re-renders; the component unmounting drops it. Keep the subscription or the observer in a field and dispose of it in
+re-renders; the component unmounting drops it. A handler the browser awaits is the exception: one written outside any
+component (a hosted service's lock request) runs at once, re-renders nothing, and is dropped when the call that runs
+it settles. Keep the subscription or the observer in a field and dispose of it in
 `OnUnmount` to drop its handlers sooner; `Disconnect()` an observer to stop the browser watching.
 
 ## Asking whether the browser has it
@@ -296,10 +334,20 @@ from a fake stays in it. `Raise("change", new MediaQueryListEvent { Matches = tr
 subscribed to it, which run in their components as the browser's would. The globals fake the same way:
 `using var storage = LocalStorage.Fake();`.
 
+`Returns(l => l.IsSupported, false)` makes a fake absent, `Throws(s => s.Persist(), new JSException("denied"))` fails
+a member as the browser refusing it would, and `CallsBack` runs the handler a call such as a lock request was handed,
+the call settling when it has:
+
+```csharp
+using var locks = Navigator.Locks.Fake();
+locks.CallsBack<Lock?>("request", (call, handler) => handler(new Lock { Name = (string)call.Args[0]! }));
+```
+
 ## Where to call it
 
 From an event handler or `OnRendered`, where the page is live — on the server host each chain runs over the page's
-socket, in WebAssembly in-process. A call made anywhere else throws, saying so. Browser-gated members (clipboard,
+socket, in WebAssembly in-process. A call made anywhere else throws, saying so. (Rask's own services that call one
+outside a handler — the browser SQLite host at boot, the culture cookie — name the page they run on themselves.) Browser-gated members (clipboard,
 geolocation) can still be refused; that arrives as a `JSException` from the awaited call.
 
 Every member's doc comment carries its browser support and links to MDN and the spec, straight from MDN's data, and

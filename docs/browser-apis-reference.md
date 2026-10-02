@@ -27,7 +27,8 @@ text (`SetAsync`/`GetAsync`) or raw bytes (`SetBytesAsync`/`GetBytesAsync`, stor
 
 <!-- demo:browser-cookies -->
 
-**`IStorageEstimator`** — the origin's storage quota and usage, to budget a cache.
+**Storage estimate** — `await Navigator.Storage.Estimate()` (`Quota` / `Usage` bytes), `Persisted()` and `Persist()`,
+from [Rask.Web](web-apis.md); the origin's storage budget, and asking for it to survive eviction.
 
 <!-- demo:browser-storage-estimate -->
 
@@ -105,7 +106,10 @@ on a typed element ref, from [Rask.Web](web-apis.md#on-an-element-ref); `await f
 
 <!-- demo:browser-geolocation-watch -->
 
-**`IDeviceOrientation` / `IDeviceMotion`** — gyroscope/compass and accelerometer readings.
+**Device orientation and motion** — `await Window.OnDeviceOrientation(e => _angle = e.Alpha, every: 100.Milliseconds)` and
+`Window.OnDeviceMotion(e => …, every: …)`, from [Rask.Web](web-apis.md#events-and-callbacks). `every:` throttles the
+readings in the browser before they cross. On iOS, ask first with `await DeviceOrientationEvent.RequestPermission()`
+(WASM, in the click).
 
 <!-- demo:browser-device-sensors -->
 
@@ -181,10 +185,10 @@ app owns, with no picker. The right home for a local database file.
 
 <!-- demo:browser-broadcast-channel -->
 
-**`IWebLocks`** — serialise work across an origin's tabs/workers: `RequestAsync(name, work)` waits for the
-named lock, runs `work` while holding it, then releases (even if `work` throws); `TryRequestAsync` returns
-`false` without waiting when the lock is already held. Open this guide in a second tab and click "Hold" in
-both to watch one wait for the other.
+**Web Locks** — `await Navigator.Locks.Request(name, async lk => { … })` holds the named lock until the handler
+returns; `new() { IfAvailable = true }` hands the handler `null` at once instead of waiting when it is held, and
+`Query()` snapshots the held and waiting locks — from [Rask.Web](web-apis.md). Open this guide in a second tab and
+click "Hold" in both to watch one wait for the other.
 
 <!-- demo:browser-web-locks -->
 

@@ -193,7 +193,10 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
                 return "byte[]" + suffix;
             }
 
-            return _unions && Union(bare, returned) is { } union ? union + suffix : null;
+            var union = _unions ? Union(bare, returned) : null;
+
+            // A boolean-or-dictionary union is nullable already: its null is the `false`.
+            return union is null || union.EndsWith("?", StringComparison.Ordinal) ? union : union + suffix;
         }
 
         if (_unions && bare.StartsWith("record<", StringComparison.Ordinal))
@@ -233,6 +236,10 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
     // accept, `".txt"` or `[".txt", ".text"]`). A string or a number C# hands over is a string, which StringOrNumber
     // writes as a number where it reads as one: the number is the short form the browser also takes as text (a
     // Bluetooth service, 0x180F or "battery_service"), where the text is a name (a mark's, "auto") it takes only as text.
+    // A boolean or a dictionary (a media request's video, `true` or its constraints) is the dictionary, nullable: null
+    // is `false`, not asked for, and an empty one is `true`, since any object is truthy. A media constraint (MDN's
+    // ConstrainBoolean, ConstrainDouble, ConstrainULong, ConstrainDOMString) is its plain value, nullable: what a page
+    // writes, `Width = 640`, which the browser takes as the ideal.
     private string? Union(string union, bool returned)
     {
         var alternatives = Alternatives(union).ToList();
@@ -241,7 +248,35 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
             return Map(list, returned);
         }
 
+        if (PlainConstraint(alternatives) is { } plain)
+        {
+            return plain + "?";
+        }
+
+        if (BooleanOrDictionary(alternatives) is { } dictionary)
+        {
+            return Map(dictionary, returned) is { } mapped ? mapped.TrimEnd('?') + "?" : null;
+        }
+
         return !returned && IsStringOrNumber(alternatives) ? "string" : null;
+    }
+
+    // The dictionary of a `(boolean or Dictionary)` union, in either order; null for any other union.
+    private string? BooleanOrDictionary(List<string> alternatives) =>
+        alternatives.Count == 2 && alternatives.Any(a => string.Equals(a.TrimEnd('?'), "boolean", StringComparison.Ordinal))
+            ? alternatives.Select(a => a.TrimEnd('?')).FirstOrDefault(a => _dictionaries[a] is not null)
+            : null;
+
+    // The C# primitive of a media constraint: one plain value (and perhaps a list of it) beside a Constrain… dictionary,
+    // `(unsigned long or ConstrainULongRange)` → int. Null for any other union, one of two plain values among them.
+    private string? PlainConstraint(List<string> alternatives)
+    {
+        var constraints = alternatives.Where(a => a.StartsWith("Constrain", StringComparison.Ordinal) && _dictionaries[a] is not null).ToList();
+        var plain = alternatives.Except(constraints, StringComparer.Ordinal).ToList();
+        var value = plain.Where(p => Primitive(p) is not null).ToList();
+        return constraints.Count == 1 && value.Count == 1 && plain.All(p => string.Equals(p, value[0], StringComparison.Ordinal) || IsListOf(p, value))
+            ? Primitive(value[0])
+            : null;
     }
 
     private static bool IsListOf(string list, List<string> alternatives) =>
@@ -353,7 +388,9 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
     private const string StringsOrNumbers = "global::Rask.Web.StringsOrNumbersJsonConverter";
 
     // The converter a field's union needs, if any: a string or a number (StringOrNumber); a value or a list of it, which
-    // the browser may answer with as the lone value it was set to (OneOrMany, an ICE server's urls).
+    // the browser may answer with as the lone value it was set to (OneOrMany, an ICE server's urls); a boolean or a
+    // dictionary, which the browser may answer with as the boolean (BooleanOrDictionary: `true` is an empty one); a
+    // media constraint, which it may answer with as the dictionary (PlainConstraint: its ideal, else its exact).
     private string? Converter(string idl, string type)
     {
         if (IsStringOrNumber(idl))
@@ -363,6 +400,17 @@ internal sealed class DomValueTypes(JsonNode root, string prefix = "")
 
         var bare = idl.TrimEnd('?');
         var alternatives = bare.StartsWith("(", StringComparison.Ordinal) ? Alternatives(bare).ToList() : new List<string>();
+        if (PlainConstraint(alternatives) is not null)
+        {
+            // typeof(…<string?>) is not C#: a reference type is named bare, a value type as its Nullable.
+            return "global::Rask.Web.PlainConstraintJsonConverter<" + (IsValueType(type.TrimEnd('?')) ? type : type.TrimEnd('?')) + ">";
+        }
+
+        if (BooleanOrDictionary(alternatives) is not null)
+        {
+            return "global::Rask.Web.BooleanOrDictionaryJsonConverter<" + type.TrimEnd('?') + ">";
+        }
+
         return alternatives.Count == 2 && alternatives.Any(a => IsListOf(a, alternatives))
             ? "global::Rask.Web.OneOrManyJsonConverter<" + type.TrimEnd('?').Substring(0, type.TrimEnd('?').Length - 2) + ">"
             : null;

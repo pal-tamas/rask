@@ -273,17 +273,17 @@ public sealed partial class PwaPage : Component
         new("media-devices", "Camera & microphone", () =>
         [
             P.Class("text-ui-muted")[
-                "Capture the camera, microphone, or screen and show it in a <video> via IMediaDevices ",
-                "(getUserMedia / getDisplayMedia) — for photo capture, video calls, or screen recording. ",
-                "WASM-only: capture needs a live user gesture and a secure context. Dispose the stream handle ",
-                "to stop every track and release the hardware (the camera indicator turns off)."
+                "Capture the camera, microphone, or screen and show it in a <video> via MDN's MediaDevices in ",
+                "Rask.Web (getUserMedia / getDisplayMedia) — for photo capture, video calls, or screen recording. ",
+                "WASM-only: capture needs a live user gesture and a secure context. Stop each track to release ",
+                "the hardware (the camera indicator turns off), then dispose of the stream."
             ],
             CodeSample
                 .Files(["MediaDevicesDemo.cs"])
-                .Notes("GetUserMediaAsync(constraints) / GetDisplayMediaAsync() return a disposable "
-                    + "IMediaStreamHandle; AttachToAsync(ElementRef) wires the stream to a <video> and plays it. "
-                    + "The live MediaStream stays JS-side under a minted id. Gate on IsSupportedAsync and "
-                    + "try/catch — a denied request throws.")
+                .Notes("Navigator.MediaDevices.GetUserMedia(new() { Video = new() }) asks for the camera — an empty "
+                    + "constraints object is MDN's `video: true`, and leaving Video null does not ask. It answers with "
+                    + "a kept MediaStream: SetSrcObject on an ElementRef<HTMLVideoElement> shows it, Play() starts it. "
+                    + "Gate on IsSupported and catch JSException — a denied request rejects.")
                 .Result(MediaDevicesDemo)
         ]);
 

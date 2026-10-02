@@ -1,5 +1,7 @@
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.JSInterop;
 
 namespace Rask.SQLite.Browser.Tests;
 
@@ -7,10 +9,15 @@ public sealed class BrowserSqliteHostTests : IDisposable
 {
     private readonly string _temp = Directory.CreateTempSubdirectory("rask-browser-sqlite").FullName;
     private readonly FakeIndexedDb _db = new();
-    private readonly FakeWebLocks _locks = new();
+    private readonly FakeWebApis _web = new();
     private readonly RecordingSnapshotter _snapshotter = new();
+    private IDisposable? _faked;
 
-    public void Dispose() => Directory.Delete(_temp, recursive: true);
+    public void Dispose()
+    {
+        _faked?.Dispose();
+        Directory.Delete(_temp, recursive: true);
+    }
 
     private BrowserSqliteOptions Options(string name = "app")
     {
@@ -26,10 +33,14 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     private readonly BrowserSqliteOwnership _ownership = new();
-    private readonly FakeStorageEstimator _storage = new();
 
-    private BrowserSqliteHost Host(BrowserSqliteOptions options) =>
-        new(options, _locks, _db, _storage, _snapshotter, _ownership, NullLogger<BrowserSqliteHost>.Instance);
+    // Enters the web fakes here, in the test's own flow, which StartAsync and the tasks it starts inherit.
+    private BrowserSqliteHost Host(BrowserSqliteOptions options)
+    {
+        _faked = _web.Enter();
+        return new(options, new ServiceCollection().BuildServiceProvider(), _db, _snapshotter, _ownership,
+            NullLogger<BrowserSqliteHost>.Instance);
+    }
 
     private void Seed(string name, string snapshotName, string content) =>
         _db.Store(BrowserSqlite.SnapshotStoreName(name)).Values[snapshotName] = Encoding.UTF8.GetBytes(content);
@@ -51,7 +62,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     public async Task Starting_while_another_tab_holds_the_lock_does_not_make_this_tab_the_owner()
     {
         var options = Options();
-        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+        _web.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
         var host = Host(options);
 
         await host.StartAsync(CancellationToken.None);
@@ -79,7 +90,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     public async Task A_non_owner_publishes_its_ownership_on_start_too()
     {
         var options = Options();
-        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+        _web.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
 
         await Host(options).StartAsync(CancellationToken.None);
 
@@ -93,7 +104,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     {
         var options = Options();
         Seed(options.Name, "app-20260808-120000000.db", "restored");
-        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+        _web.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
 
         await Host(options).StartAsync(CancellationToken.None);
 
@@ -105,7 +116,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     [Fact]
     public async Task Starting_without_Web_Locks_support_makes_this_tab_the_owner()
     {
-        _locks.Supported = false;
+        _web.LocksSupported = false;
         var host = Host(Options());
 
         await host.StartAsync(CancellationToken.None);
@@ -123,7 +134,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
         await host.StartAsync(CancellationToken.None);
 
-        Assert.Equal(1, _storage.PersistRequests);
+        Assert.Equal(1, _web.PersistRequests);
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -131,12 +142,12 @@ public sealed class BrowserSqliteHostTests : IDisposable
     [Fact]
     public async Task Starting_does_not_ask_again_when_storage_is_already_persisted()
     {
-        _storage.AlreadyPersisted = true;
+        _web.AlreadyPersisted = true;
         var host = Host(Options());
 
         await host.StartAsync(CancellationToken.None);
 
-        Assert.Equal(0, _storage.PersistRequests);
+        Assert.Equal(0, _web.PersistRequests);
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -144,7 +155,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     [Fact]
     public async Task Starting_still_boots_and_restores_when_persistent_storage_is_declined()
     {
-        _storage.GrantsPersist = false;
+        _web.GrantsPersist = false;
         var options = Options();
         Seed(options.Name, "app-20260808-140000000.db", "restored");
         var host = Host(options);
@@ -159,7 +170,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     [Fact]
     public async Task Starting_still_boots_when_asking_for_persistent_storage_throws()
     {
-        _storage.Throws = new InvalidOperationException("interop failed");
+        _web.StorageThrows = new JSException("interop failed");
         var host = Host(Options());
 
         await host.StartAsync(CancellationToken.None);
@@ -177,7 +188,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
         await host.StartAsync(CancellationToken.None);
 
-        Assert.Equal(0, _storage.PersistRequests);
+        Assert.Equal(0, _web.PersistRequests);
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -186,11 +197,11 @@ public sealed class BrowserSqliteHostTests : IDisposable
     public async Task A_non_owner_never_asks_for_persistent_storage_on_start()
     {
         var options = Options();
-        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+        _web.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
 
         await Host(options).StartAsync(CancellationToken.None);
 
-        Assert.Equal(0, _storage.PersistRequests);
+        Assert.Equal(0, _web.PersistRequests);
     }
 
     // A second tab is otherwise stuck: told to close the other one, with no way to know when that
@@ -200,14 +211,14 @@ public sealed class BrowserSqliteHostTests : IDisposable
     {
         var options = Options();
         var lockName = BrowserSqlite.OwnerLockName(options.Name);
-        _locks.HoldElsewhere(lockName);
+        _web.HoldElsewhere(lockName);
         var host = Host(options);
 
         await host.StartAsync(CancellationToken.None);
 
         Assert.False(_ownership.Available.IsCompleted);   // the owner is still there
 
-        _locks.ReleaseElsewhere(lockName);               // that tab closes
+        _web.ReleaseElsewhere(lockName);               // that tab closes
 
         await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         await host.StopAsync(CancellationToken.None);
@@ -220,15 +231,15 @@ public sealed class BrowserSqliteHostTests : IDisposable
     {
         var options = Options();
         var lockName = BrowserSqlite.OwnerLockName(options.Name);
-        _locks.HoldElsewhere(lockName);
+        _web.HoldElsewhere(lockName);
         var host = Host(options);
         await host.StartAsync(CancellationToken.None);
 
-        _locks.ReleaseElsewhere(lockName);
+        _web.ReleaseElsewhere(lockName);
         await _ownership.Available.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Free for a tab that can actually use it — a reloaded page, or another tab.
-        Assert.DoesNotContain(await _locks.QueryAsync(), l => l.Name == lockName);
+        Assert.False(_web.IsHeld(lockName));
         await host.StopAsync(CancellationToken.None);
     }
 
@@ -250,14 +261,14 @@ public sealed class BrowserSqliteHostTests : IDisposable
     {
         var options = Options();
         var lockName = BrowserSqlite.OwnerLockName(options.Name);
-        _locks.HoldElsewhere(lockName);
+        _web.HoldElsewhere(lockName);
         var host = Host(options);
         await host.StartAsync(CancellationToken.None);
 
         // Returns only once the watcher has stopped — a watcher still polling after shutdown would hang it.
         await host.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-        _locks.ReleaseElsewhere(lockName);
+        _web.ReleaseElsewhere(lockName);
         await Task.Delay(60, TestContext.Current.CancellationToken);
 
         Assert.False(_ownership.Available.IsCompleted);
@@ -321,7 +332,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     public async Task Stopping_a_non_owner_writes_nothing()
     {
         var options = Options();
-        _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
+        _web.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
         var host = Host(options);
         await host.StartAsync(CancellationToken.None);
 
@@ -351,10 +362,10 @@ public sealed class BrowserSqliteHostTests : IDisposable
         var host = Host(options);
         await host.StartAsync(CancellationToken.None);
 
-        Assert.Contains(await _locks.QueryAsync(), l => l.Name == BrowserSqlite.OwnerLockName(options.Name));
+        Assert.True(_web.IsHeld(BrowserSqlite.OwnerLockName(options.Name)));
 
         await host.StopAsync(CancellationToken.None);
 
-        Assert.DoesNotContain(await _locks.QueryAsync(), l => l.Name == BrowserSqlite.OwnerLockName(options.Name));
+        Assert.False(_web.IsHeld(BrowserSqlite.OwnerLockName(options.Name)));
     }
 }

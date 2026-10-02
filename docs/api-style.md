@@ -205,11 +205,10 @@ What the rules above settled, so a new package has one place to look rather than
 | SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
 | Time | `Clock` (static) | `Now`; `Clock.Fake(at:)` + `Advance` in tests |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
-| Web Push | `IWebPush` | `SubscribeAsync` (browser), `Send` (server) |
+| Web Push | `Push` (static) / `IWebPush` | `Subscribe`, `Send`, `Unsubscribe` |
 
-`IWebPush` is deliberately one name on both sides of the wire, in two namespaces
-(`Rask.Core.Browser` subscribes, `Rask.WebPush` sends) over one shared `PushSubscription`. A file that
-needs both aliases one; no file does today.
+The browser subscribes through MDN's own `PushManager` from `Rask.Web`; `Push.Subscribe` keeps what its
+`ToJSON()` answers.
 
 ## The gate
 

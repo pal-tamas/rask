@@ -233,9 +233,9 @@ internal static class RaskBatteryWiring
         }
 
         // The PWA battery serves the manifest and, more importantly, the service worker at
-        // {PathBase}/rask-sw.js. AddRask() registers IWebPush/INotifications/IBadge/IWakeLock
-        // unconditionally, and on a Server host their JS helper is served only by this call — so without
-        // it those four inject fine and then fail on a 404. The default manifest is named after the entry
+        // {PathBase}/rask-sw.js, registered by the page's head. MDN's PushManager is reached only through a
+        // registered worker (`await Navigator.ServiceWorker.Ready`), so without this call a push subscription
+        // waits forever. The default manifest is named after the entry
         // assembly so an app that configures nothing is still installable.
         if (options.Pwa.Enabled)
         {

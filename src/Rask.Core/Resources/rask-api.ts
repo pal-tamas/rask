@@ -136,8 +136,8 @@ const raskWebData = (value: unknown, depth = 0): unknown => {
     }
     return data;
 };
-// A subscription's listener, by the id C# holds to remove it.
-const raskWebListeners = new Map<number, { target: EventTarget; type: string; listener: (event: Event) => void }>();
+// A subscription's listener, by the id C# holds to remove it, and the timer of its throttle while one runs.
+const raskWebListeners = new Map<number, { target: EventTarget; type: string; listener: (event: Event) => void; stop: () => void }>();
 let raskWebNextListener = 0;
 window.__raskWeb = window.__raskWeb || {
     run: (root: unknown, steps: string, ...extras: unknown[]) => raskWebWalk(root, raskWebSteps(steps, extras)),
@@ -159,12 +159,14 @@ window.__raskWeb = window.__raskWeb || {
     },
     // Listens on what the chain ends at; each event reaches C# as the fields its payload type reads, and nothing else
     // (an event's `view` is a Window, which does not serialize). A `*device` field is a live object, kept for C# as
-    // a handle the host holds until C# lets it go.
-    listen: (root: unknown, steps: string, type: string, fields: string, handler: (payload: unknown) => void, ...extras: unknown[]) => {
+    // a handle the host holds until C# lets it go. With `every` (ms), a hot event (a sensor's, ~60 a second) is
+    // throttled here: the first crosses at once, then at most one per interval — the latest, so the last reading always
+    // arrives. The events between are dropped before any payload is built, so none of their live fields is kept.
+    listen: (root: unknown, steps: string, type: string, fields: string, handler: (payload: unknown) => void, every: number | null, ...extras: unknown[]) => {
         const target = raskWebWalk(root, raskWebSteps(steps, extras)) as EventTarget | null;
         if (!target || typeof target.addEventListener !== "function") throw new Error(`Rask: there is nothing to listen to for ${type}`);
         const names = JSON.parse(fields) as string[];
-        const listener = (event: Event) => {
+        const send = (event: Event) => {
             const payload: Record<string, unknown> = {};
             for (const field of names) {
                 const name = field.replace(/^\*/, "");
@@ -175,15 +177,36 @@ window.__raskWeb = window.__raskWeb || {
             }
             handler(payload);
         };
+        const interval = every ?? 0;
+        let timer = 0;
+        let pending: Event | null = null;
+        const flush = () => {
+            if (pending) {
+                send(pending);
+                pending = null;
+                timer = window.setTimeout(flush, interval);
+            } else {
+                timer = 0;
+            }
+        };
+        const listener = !interval ? send : (event: Event) => {
+            if (timer) {
+                pending = event;
+                return;
+            }
+            send(event);
+            timer = window.setTimeout(flush, interval);
+        };
         target.addEventListener(type, listener);
         const id = ++raskWebNextListener;
-        raskWebListeners.set(id, { target, type, listener });
+        raskWebListeners.set(id, { target, type, listener, stop: () => window.clearTimeout(timer) });
         return id;
     },
     unlisten: (id: number) => {
         const entry = raskWebListeners.get(id);
         if (!entry) return;
         entry.target.removeEventListener(entry.type, entry.listener);
+        entry.stop();
         raskWebListeners.delete(id);
     }
 };

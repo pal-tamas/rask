@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Rask.Wire;
 
 namespace Rask.Core.Browser;
 
@@ -16,14 +15,8 @@ namespace Rask.Core.Browser;
 [JsonSerializable(typeof(ShareData))]
 [JsonSerializable(typeof(Rask.Core.Components.GesturePayload))]
 [JsonSerializable(typeof(Rask.Core.Components.GestureMediaConstraints))]
-[JsonSerializable(typeof(PushSubscription))]
 [JsonSerializable(typeof(SpeechRecognitionOptions))]
 [JsonSerializable(typeof(RecognitionResult))]
-[JsonSerializable(typeof(StorageEstimate))]
-[JsonSerializable(typeof(LockInfo))]
-[JsonSerializable(typeof(LockInfo[]))]
-[JsonSerializable(typeof(OrientationReading))]
-[JsonSerializable(typeof(MotionReading))]
 [JsonSerializable(typeof(PublicKeyCredentialCreationOptions))]
 [JsonSerializable(typeof(PublicKeyCredentialRequestOptions))]
 [JsonSerializable(typeof(AttestationResult))]

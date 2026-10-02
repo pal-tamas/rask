@@ -2,7 +2,7 @@
 //
 // Import from here to get everything under a namespace per API:
 //
-//     import { cookies, webLocks } from "./rask/browser";
+//     import { cookies, indexedDb } from "./rask/browser";
 //     const theme = cookies.get("theme");
 //
 // or import a single module directly, which is what a bundler tree-shakes best:
@@ -16,8 +16,6 @@
 
 export * as auth from "./auth.js";
 export * as cookies from "./cookies.js";
-export * as deviceMotion from "./deviceMotion.js";
-export * as deviceOrientation from "./deviceOrientation.js";
 export * as eyeDropper from "./eyeDropper.js";
 export * as fullscreen from "./fullscreen.js";
 export * as indexedDb from "./indexedDb.js";
@@ -27,8 +25,5 @@ export * as pictureInPicture from "./pictureInPicture.js";
 export * as screenOrientation from "./screenOrientation.js";
 export * as signaling from "./signaling.js";
 export * as speechRecognition from "./speechRecognition.js";
-export * as storageManager from "./storageManager.js";
 export * as wakeLock from "./wakeLock.js";
 export * as webAuthn from "./webAuthn.js";
-export * as webLocks from "./webLocks.js";
-export * as webPush from "./webPush.js";

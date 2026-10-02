@@ -74,38 +74,9 @@ interface Window {
     __raskDirtyFields?: WeakMap<Element, RaskFieldBase>;
 
     // The transport-neutral PWA helpers (rask-pwa), reached from C# by dotted name.
-    __raskPush: RaskPushApi;
     __raskNotify: RaskNotifyApi;
     __raskBadge: RaskBadgeApi;
     __raskWakeLock: RaskWakeLockApi;
-}
-
-/** The C# PushSubscription record, as this side shapes it. Field names are the wire contract. */
-interface RaskPushSubscriptionDto {
-    endpoint: string;
-    expirationTime: number | null;
-    p256dh: string;
-    auth: string;
-}
-
-interface RaskPushApi {
-    isSupported(): boolean;
-    requestPermission(): Promise<NotificationPermission>;
-    register(swUrl: string): Promise<void>;
-    subscribe(vapidPublicKey: string): Promise<RaskPushSubscriptionDto>;
-    getSubscription(): Promise<RaskPushSubscriptionDto | null>;
-    unsubscribe(): Promise<boolean>;
-
-    /** Internal helpers, on the object because the methods above reach them through `window`. */
-    _serialize(sub: PushSubscription): RaskPushSubscriptionDto;
-    _b64url(buf: ArrayBuffer | null): string;
-    /**
-     * Uint8Array<ArrayBuffer>, not a bare Uint8Array: the type is generic over its backing buffer
-     * now, and PushManager.subscribe's applicationServerKey rejects a SharedArrayBuffer-backed one.
-     * `new Uint8Array(length)` always allocates a plain ArrayBuffer, so this is a statement of fact
-     * rather than a cast.
-     */
-    _urlB64ToBytes(base64: string): Uint8Array<ArrayBuffer>;
 }
 
 interface RaskNotifyApi {
@@ -355,14 +326,6 @@ interface RaskWebAuthnGetOptions {
     timeoutMs?: number;
     userVerification?: UserVerificationRequirement;
     allowCredentials?: RaskCredentialDescriptor[];
-}
-
-/** One entry of a Web Locks query snapshot, as this shim reshapes it for C#. */
-interface RaskLockInfo {
-    name?: string;
-    mode?: string;
-    clientId?: string;
-    held: boolean;
 }
 
 /** One buffered data-channel message, in the shape the flush hands to C#. */

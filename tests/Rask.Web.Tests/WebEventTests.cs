@@ -31,6 +31,48 @@ public sealed class WebEventTests
     }
 
     [Fact]
+    public async Task A_throttled_subscription_hands_the_browser_its_interval_in_milliseconds()
+    {
+        var browser = new FakeBrowser().Answers("1");
+        var widget = new Widget();
+
+        using (browser.Enter())
+        {
+            await widget.WatchTilt();
+        }
+
+        Assert.Equal(("__raskWeb.listen", "deviceorientation", 100d), (browser.Calls[0].Identifier, (string)browser.Calls[0].Args[2]!, browser.Calls[0].Args[5]));
+    }
+
+    [Fact]
+    public async Task An_unthrottled_subscription_hands_the_browser_no_interval()
+    {
+        var browser = new FakeBrowser().Answers("1");
+        var widget = new Widget();
+
+        using (browser.Enter())
+        {
+            await widget.WatchWidth();
+        }
+
+        Assert.Null(browser.Calls[0].Args[5]);
+    }
+
+    [Fact]
+    public async Task A_negative_interval_is_refused_before_anything_reaches_the_browser()
+    {
+        var browser = new FakeBrowser();
+
+        ArgumentOutOfRangeException refused;
+        using (browser.Enter())
+        {
+            refused = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => Window.OnDeviceOrientation(() => { }, every: -1.Milliseconds).AsTask());
+        }
+
+        Assert.Equal(("every", 0), (refused.ParamName, browser.Calls.Count));
+    }
+
+    [Fact]
     public async Task A_disposed_subscription_no_longer_reaches_its_handler()
     {
         var browser = new FakeBrowser().Answers("1");
@@ -197,6 +239,10 @@ public sealed class WebEventTests
         public string Query { get; private set; } = "";
 
         public double Latitude { get; private set; }
+
+        public double? Alpha { get; private set; }
+
+        public ValueTask<IAsyncDisposable> WatchTilt() => Window.OnDeviceOrientation(e => Alpha = e.Alpha, every: 100.Milliseconds);
 
         public ValueTask<IAsyncDisposable> WatchWidth() =>
             Window.MatchMedia("(min-width: 800px)").OnChange(e =>

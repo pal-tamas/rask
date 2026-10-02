@@ -80,7 +80,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[Production SQLite](sqlite.md)** | WAL + busy-timeout pragmas, continuous backup (Litestream), scheduled snapshots. |
 | **[Auth](authentication.md)** | Accounts, on by default: register, sign in, sign out, with the first account as administrator. Cookie sessions, claims and authorization. Verification, reset and MFA are still [ahead](roadmap.md#not-shipped). |
 | **[PWA](pwa.md)** | Installable, offline, native-feeling apps from the same components. |
-| **[Web Push](webpush.md)** | Server-sent Web Push on your own VAPID keys (RFC 8292/8291), zero external deps — pairs with the client `IWebPush`. |
+| **[Web Push](webpush.md)** | Server-sent Web Push on your own VAPID keys (RFC 8292/8291), zero external deps — the browser subscribes with MDN's `PushManager` from `Rask.Web`. |
 | **[Secrets](secrets.md)** | Environment variables, remembered by name so a redeploy can't silently drop one. No vault or rotation. |
 | **[Deploy](deployment.md)** | `rask deploy` takes a bare VPS to a live HTTPS site — installs Docker, a non-root deploy login, a firewall and SSH hardening, then builds on the box and swaps in with zero downtime. No SSH session of your own required. |
 

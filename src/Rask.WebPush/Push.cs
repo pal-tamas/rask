@@ -21,7 +21,7 @@ public static class Push
         PushSubscription subscription, WebPushMessage message, CancellationToken cancellationToken = default) =>
         Resolve().Send(subscription, message, Ambient.Or(cancellationToken));
 
-    /// <summary>Keeps a browser's subscription for the signed-in user. On the server host this is the line after <c>IWebPush.SubscribeAsync</c>.</summary>
+    /// <summary>Keeps a browser's subscription for the signed-in user. On the server host this is the line after MDN's <c>PushManager.Subscribe</c>.</summary>
     public static Task<PushSubscriber> Subscribe(PushSubscription subscription, CancellationToken cancellationToken = default) =>
         Resolve().Subscribe(subscription, Ambient.Or(cancellationToken));
 

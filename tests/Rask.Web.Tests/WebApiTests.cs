@@ -139,6 +139,23 @@ public sealed class WebApiTests
     }
 
     [Fact]
+    public async Task An_attribute_that_promises_an_object_keeps_what_it_settles_with()
+    {
+        var browser = new FakeBrowser();
+
+        using (browser.Enter())
+        {
+            await using var worker = await Navigator.ServiceWorker.Ready;
+            await using var subscription = await worker.PushManager.Subscribe(new() { UserVisibleOnly = true, ApplicationServerKey = [4, 1] });
+        }
+
+        Assert.Equal("""[["g","navigator"],["g","serviceWorker"],["g","ready"]]""", browser.Steps(0));
+        Assert.Same(browser.Kept[0], browser.Calls[1].Args[0]);
+        Assert.StartsWith("""[["g","pushManager"],["c","subscribe",""", browser.Steps(1), StringComparison.Ordinal);
+        Assert.True(browser.Kept[0].Disposed);
+    }
+
+    [Fact]
     public async Task A_constructor_is_Create_and_keeps_the_new_object()
     {
         var browser = new FakeBrowser();

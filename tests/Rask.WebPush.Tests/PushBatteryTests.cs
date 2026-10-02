@@ -139,8 +139,11 @@ public sealed class PushBatteryTests
         Assert.Contains("modelBuilder.AddRaskWebPush();", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task A_browser_subscribes_through_the_endpoint_and_is_kept()
+    // MDN's PushSubscriptionJSON — what subscription.toJSON() answers, keys nested — and the flat record shape.
+    [Theory]
+    [InlineData("""{"endpoint":"https://push.example/browser","expirationTime":null,"keys":{"p256dh":"BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM","auth":"tBHItJI5svbpez7KI4CCXg"}}""")]
+    [InlineData("""{"endpoint":"https://push.example/browser","p256dh":"BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM","auth":"tBHItJI5svbpez7KI4CCXg"}""")]
+    public async Task A_browser_subscribes_through_the_endpoint_and_is_kept(string body)
     {
         var database = Path.Combine(Path.GetTempPath(), $"rask-push-endpoint-{Guid.NewGuid():N}.db");
         var builder = WebApplication.CreateBuilder();
@@ -156,12 +159,8 @@ public sealed class PushBatteryTests
         }
 
         using var http = app.GetTestClient();
-        var subscribed = await http.PostAsJsonAsync("/_rask/push/subscribe", new
-        {
-            endpoint = "https://push.example/browser",
-            p256dh = "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
-            auth = "tBHItJI5svbpez7KI4CCXg",
-        }, cancellationToken: TestContext.Current.CancellationToken);
+        using var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+        var subscribed = await http.PostAsync("/_rask/push/subscribe", content, TestContext.Current.CancellationToken);
         var key = await http.GetFromJsonAsync<Dictionary<string, string>>("/_rask/push/key", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, subscribed.StatusCode);

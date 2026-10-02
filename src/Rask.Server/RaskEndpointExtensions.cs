@@ -337,8 +337,8 @@ public static partial class RaskEndpointExtensions
         // Typed browser/device API wrappers — the transport-agnostic Core set, Scoped (one per WebSocket
         // session). Registered via the shared helper (RaskBrowserApis) so the interface → impl list lives in
         // one place instead of being duplicated across the Server and WASM hosts. TryAdd inside the helper
-        // lets an app pre-register a better implementation and win. The PWA members (IWebPush, INotifications,
-        // IBadge, IWakeLock) are included; their JS helpers ship in the Server client only under AddRaskPwa.
+        // lets an app pre-register a better implementation and win. The PWA member IWakeLock is included, and
+        // push is MDN's own PushManager from Rask.Web, through the service worker AddRaskPwa serves.
         // The remaining browser APIs are intentionally NOT registered on Server: they need transient user
         // activation, a live document/handle, or the installed-PWA instance the WebSocket round-trip loses,
         // so they are provided only by the WASM host (IShare and the rest of the WASM-only set — see

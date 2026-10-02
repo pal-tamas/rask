@@ -91,7 +91,8 @@ internal static class WebPushAssembly
               // the way a database password is — never committed, and never served to a browser.
               // PublicKey is the other half and is not secret at all: it is exactly the
               // `applicationServerKey` the browser passes to pushManager.subscribe, which is why the
-              // same string is what you hand to IWebPush.SubscribeAsync.
+              // same string, decoded, is what you hand PushManager.Subscribe — and what Push.PublicKey
+              // and GET /_rask/push/key answer.
               //
               // Production does NOT read this file — it is Development-only. Deployed, both keys come
               // from the environment, which is what `rask deploy --env` sets:

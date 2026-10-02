@@ -1,16 +1,17 @@
-using Rask.Wasm.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IMediaDevices" /> — capture the camera/microphone (or screen) and show it in a
-///     <c>&lt;video&gt;</c>. The live stream lives JS-side; dispose the handle to stop every track and
-///     release the hardware (the camera indicator turns off).
+///     MDN's <c>MediaDevices</c> from Rask.Web — capture the camera/microphone (or the screen) and show it in a
+///     <c>&lt;video&gt;</c>. The stream is a live object the browser holds: stopping its tracks releases the hardware
+///     (the camera indicator turns off), and disposing of it lets the browser drop it.
 /// </summary>
-public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, IAsyncDisposable
+public sealed partial class MediaDevicesDemo : Component
 {
-    private readonly ElementRef _video = ElementRef.New();
-    private IMediaStreamHandle? _stream;
+    private readonly ElementRef<HTMLVideoElement> _video = new();
+    private Rask.Web.Types.MediaStream? _stream;
     private string _status = "(idle)";
 
     protected override Component? Render() =>
@@ -33,45 +34,59 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status]]
             ];
 
-    private Task StartCamera() => Capture(() => media.GetUserMediaAsync(new MediaConstraints(Video: true)), "Camera live");
+    // An empty constraints object asks for the camera with whatever the browser picks; `Video = null` would not ask.
+    private Task StartCamera() =>
+        Capture(() => Navigator.MediaDevices.GetUserMedia(new() { Video = new() }), "Camera live");
 
-    private Task ShareScreen() => Capture(() => media.GetDisplayMediaAsync(), "Screen sharing");
+    private Task ShareScreen() => Capture(() => Navigator.MediaDevices.GetDisplayMedia(), "Screen sharing");
 
-    private async Task Capture(Func<ValueTask<IMediaStreamHandle>> request, string okStatus)
+    private async Task Capture(Func<ValueTask<Rask.Web.Types.MediaStream>> request, string okStatus)
     {
         try
         {
-            if (!await media.IsSupportedAsync())
+            if (!await Navigator.MediaDevices.IsSupported)
             {
                 _status = "Media capture not supported in this browser";
                 return;
             }
 
-            await StopInternal();
+            await Release();
             _stream = await request();
-            await _stream.AttachToAsync(_video);
+            await _video.SetSrcObject(_stream);
+            await _video.Play();
             _status = okStatus;
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
+            // A denied or dismissed prompt rejects (NotAllowedError), as does a page with no camera (NotFoundError).
             _status = "Failed: " + ex.Message;
         }
     }
 
     private async Task Stop()
     {
-        await StopInternal();
+        await Release();
         _status = "Stopped — hardware released";
     }
 
-    private async Task StopInternal()
+    // Stopping every track is what turns the camera off; disposing only lets go of the handles.
+    private async Task Release()
     {
-        if (_stream is not null)
+        if (_stream is null)
         {
-            await _stream.DisposeAsync();
-            _stream = null;
+            return;
         }
+
+        foreach (var track in await _stream.GetTracks())
+        {
+            await track.Stop();
+            await track.DisposeAsync();
+        }
+
+        await _video.SetSrcObject(null);
+        await _stream.DisposeAsync();
+        _stream = null;
     }
 
-    public async ValueTask DisposeAsync() => await StopInternal();
+    protected override Task OnUnmount() => Release();
 }
