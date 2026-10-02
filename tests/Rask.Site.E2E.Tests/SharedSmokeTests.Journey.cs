@@ -1447,8 +1447,9 @@ public abstract partial class SharedSmokeTests
 
         // Callbacks: an IntersectionObserver made with a C# handler gets its entries as data, and a lock is held until
         // its async handler has finished.
-        await Page.Locator("#web-observe-out").ScrollIntoViewIfNeededAsync();
+        // Observe first, then bring the panel into view: the observer reports the crossing, wherever the page put it.
         await Page.Locator("#web-observe").ClickAsync();
+        await Page.Locator("#web-observe-out").ScrollIntoViewIfNeededAsync();
         await Expect(Page.Locator("#web-observe-out")).ToContainTextAsync("In view", contains);
         await Page.Locator("#web-lock").ClickAsync();
         await Expect(Page.Locator("#web-lock-out")).ToHaveTextAsync("Holding rask-web-demo (Exclusive), then let it go",

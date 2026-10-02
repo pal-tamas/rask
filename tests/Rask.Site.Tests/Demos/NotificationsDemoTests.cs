@@ -1,59 +1,38 @@
-using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Browser;
-using Rask.Site.Features;
-
-#pragma warning disable RASK014 // test renders the demo component directly as a root
+using Rask.Site.Tests.Infrastructure;
+using Rask.Web;
 
 namespace Rask.Site.Tests.Demos;
 
-// The Notifications + Badge showcase: it injects INotifications/IBadge and renders a button row that drives
-// them. Assert the demo mounts its live buttons (the browser's notification/badge behaviour is
-// device-specific and not asserted here) so a regression in the wiring is caught without an E2E.
-public sealed class NotificationsDemoTests
+/// <summary>
+///     The Notifications + Badge showcase, with MDN's <c>Notification</c> and <c>navigator</c> faked so no browser is
+///     needed: it mounts its buttons idle, and says what it asked the browser for.
+/// </summary>
+public sealed partial class NotificationsDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void Rendering_mounts_the_permission_notify_and_badge_buttons_idle()
     {
-        var html = Render();
+        var page = Page.Render(() => NotificationsDemo, TestServices.Default());
 
-        Assert.Contains("id=\"notif-permission\"", html);
-        Assert.Contains("id=\"notif-show\"", html);
-        Assert.Contains("id=\"badge-set\"", html);
-        Assert.Contains("id=\"badge-clear\"", html);
-        // Starts idle until a button runs.
-        Assert.Contains("(idle)", html);
+        var html = page.Render();
+
+        Assert.Contains("id=\"notif-permission\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"notif-show\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"badge-set\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"badge-clear\"", html, StringComparison.Ordinal);
+        Assert.Contains("(idle)", html, StringComparison.Ordinal);
     }
 
-    private static string Render()
+    [Fact]
+    public async Task Setting_the_badge_asks_the_navigator_for_three()
     {
-        INotifications notifications = new FakeNotifications();
-        IBadge badge = new FakeBadge();
-        var sp = new ServiceCollection()
-            .AddSingleton(notifications)
-            .AddSingleton(badge)
-            .BuildServiceProvider();
-        return new NotificationsDemo(notifications, badge).RenderAsLiveRoot(sp);
-    }
+        using var navigator = Navigator.Fake();
+        var page = Page.Render(() => NotificationsDemo, TestServices.Default());
+        var setBadge = MarkupAssert.Attrs(page.Render(), "data-rask-on-click")[2];   // Permission, Notify, Set, Clear
 
-    private sealed class FakeNotifications : INotifications
-    {
-        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(true);
+        await page.Invoke(setBadge, "{}");
 
-        public ValueTask<NotificationPermissionState> PermissionAsync() =>
-            ValueTask.FromResult(NotificationPermissionState.Default);
-
-        public ValueTask<NotificationPermissionState> RequestPermissionAsync() =>
-            ValueTask.FromResult(NotificationPermissionState.Granted);
-
-        public ValueTask ShowAsync(string title, NotificationOptions? options = null) => default;
-    }
-
-    private sealed class FakeBadge : IBadge
-    {
-        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(true);
-
-        public ValueTask SetAsync(int? count = null) => default;
-
-        public ValueTask ClearAsync() => default;
+        Assert.Contains("Badge set to 3", page.Render(), StringComparison.Ordinal);
+        Assert.Equal("setAppBadge", navigator.Calls.Single().Member);
     }
 }

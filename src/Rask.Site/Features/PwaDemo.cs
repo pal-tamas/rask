@@ -1,15 +1,17 @@
 using System.Text;
 using System.Text.Json;
+using Microsoft.JSInterop;
 using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     A live, WASM-only PWA demo: local notifications (<see cref="INotifications" />), Web Push
-///     readiness (<see cref="IWebPush" />), and the installed-app badge (<see cref="IBadge" />). These
-///     APIs are WASM-only; <see cref="PwaPage" /> hosts this demo (with its source) in the showcase.
+///     A live, WASM-only PWA demo: local notifications (MDN's <c>Notification</c> from Rask.Web), Web Push
+///     readiness (<see cref="IWebPush" />), and the installed-app badge (MDN's <c>navigator.setAppBadge</c> from
+///     Rask.Web). <see cref="PwaPage" /> hosts this demo (with its source) in the showcase.
 /// </summary>
-public sealed partial class PwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
+public sealed partial class PwaDemo(IWebPush push, HttpClient http) : Component
 {
     // Fallback VAPID public key for the standalone static showcase (no backend to ask). When a backend
     // is present the key comes from GET /_rask/push/key instead, so the two never drift.
@@ -25,7 +27,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
     protected override Component? Render() =>
     [
         Ui.Card.Class("shadow-sm mb-3")[
-                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Bell).Class("me-2"), "Local notification (INotifications)"],
+                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Bell).Class("me-2"), "Local notification (Notification)"],
                 P.Class("text-sm text-ui-muted")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
@@ -53,7 +55,7 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
             ],
 
         Ui.Card.Class("shadow-sm")[
-                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Overview).Class("me-2"), "App badge (IBadge)"],
+                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Overview).Class("me-2"), "App badge (Navigator.SetAppBadge)"],
                 P.Class("text-sm text-ui-muted")[
                     "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",
                     "A silent no-op in a normal browser tab."
@@ -70,27 +72,27 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
     {
         try
         {
-            if (!await notifications.IsSupportedAsync())
+            if (!await Notification.IsSupported)
             {
                 _notifyStatus = "Notifications not supported in this browser";
                 return;
             }
 
-            var permission = await notifications.RequestPermissionAsync();
-            if (permission != NotificationPermissionState.Granted)
+            var permission = await Notification.RequestPermission();
+            if (permission != Rask.Web.Types.NotificationPermission.Granted)
             {
                 _notifyStatus = $"Permission: {permission}";
                 return;
             }
 
-            await notifications.ShowAsync("Hello from Rask", new NotificationOptions
+            await using var shown = await Notification.Create("Hello from Rask", new()
             {
                 Body = "A local notification, shown from C#.",
                 Tag = "rask-pwa-demo"
             });
             _notifyStatus = "Notification shown";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _notifyStatus = "Failed: " + ex.Message;
         }
@@ -182,22 +184,17 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
         }
     }
 
+    // setAppBadge is a method, so there is nothing to ask first: a browser without it rejects the call.
     private async Task BumpBadge()
     {
         try
         {
-            if (!await badge.IsSupportedAsync())
-            {
-                _badgeStatus = "App badges not supported in this browser";
-                return;
-            }
-
-            await badge.SetAsync(++_badgeCount);
+            await Navigator.SetAppBadge(++_badgeCount);
             _badgeStatus = $"Badge set to {_badgeCount} (visible on the installed icon)";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
-            _badgeStatus = "Failed: " + ex.Message;
+            _badgeStatus = "App badges not supported in this browser: " + ex.Message;
         }
     }
 
@@ -206,10 +203,10 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
         try
         {
             _badgeCount = 0;
-            await badge.ClearAsync();
+            await Navigator.ClearAppBadge();
             _badgeStatus = "Badge cleared";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _badgeStatus = "Failed: " + ex.Message;
         }

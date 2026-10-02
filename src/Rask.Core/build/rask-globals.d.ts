@@ -32,6 +32,12 @@ interface RaskDotNetInterop {
      * the object it was holding for that handle.
      */
     disposeJSObjectReferenceById?(id: number): void;
+
+    /**
+     * Holds `value` for .NET, which reads what this returns as an `IJSObjectReference`, and lets it go when .NET
+     * disposes of that. Blazor's name for the same thing.
+     */
+    createJSObjectReference?(value: unknown): { __jsObjectId: number };
 }
 
 interface Window {

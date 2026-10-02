@@ -17,8 +17,6 @@ public class RaskWasmBrowserApisTests
         (typeof(IPictureInPicture), typeof(PictureInPicture)),
         (typeof(IMediaDevices), typeof(MediaDevices)),
         (typeof(IInstallPrompt), typeof(InstallPrompt)),
-        (typeof(ISerial), typeof(Serial)),
-        (typeof(IBluetooth), typeof(Bluetooth)),
         (typeof(IBackgroundSync), typeof(BackgroundSync)),
     ];
 

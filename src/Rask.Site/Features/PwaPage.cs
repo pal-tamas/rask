@@ -291,16 +291,17 @@ public sealed partial class PwaPage : Component
         [
             P.Class("text-ui-muted")[
                 "Talk to a serial device — an Arduino or microcontroller, a GPS, a USB-to-serial adapter — ",
-                "straight from C# via ISerial (the Web Serial API): pick a port, write a line, and watch inbound ",
-                "bytes stream into the log. WASM-only: requestPort() needs a live user gesture and the live port ",
-                "stream, and it's Chromium-family only at the time of writing."
+                "straight from C# via MDN's Web Serial API in Rask.Web: pick a port, write a line, and watch inbound ",
+                "bytes stream into the log. WASM-only: requestPort() needs a live user gesture, and it's ",
+                "Chromium-family only at the time of writing."
             ],
             CodeSample
                 .Files(["SerialDemo.cs"])
-                .Notes("RequestPortAsync shows the browser port chooser, opens the port, and starts a read loop "
-                    + "that pushes inbound bytes to your callback; it returns null if the user dismisses the "
-                    + "chooser (not an error). Dispose the port to stop reading and release it. Gate on "
-                    + "IsSupportedAsync.")
+                .Notes("await Navigator.Serial.RequestPort() shows the browser port chooser and keeps the SerialPort "
+                    + "it answers (dismissing the chooser throws); Open(new() { BaudRate = 9600 }) opens it. "
+                    + "port.Readable.GetReader() reads inbound chunks with Read<byte[]>() until Done, and "
+                    + "port.Writable.GetWriter() writes a byte[] with Write(bytes). Cancel the reader, Close() the "
+                    + "port, then dispose it to release it. Gate on await Navigator.Serial.IsSupported.")
                 .Result(SerialDemo)
         ]);
 
@@ -347,16 +348,17 @@ public sealed partial class PwaPage : Component
             P.Class("text-ui-muted")[
                 "Pair with a Bluetooth Low Energy device and talk to its GATT services from C# — connect, read / ",
                 "write characteristics, and subscribe to notifications (heart-rate monitors, thermometers, fitness ",
-                "sensors, custom hardware) — via IBluetooth (the Web Bluetooth API). WASM-only: requestDevice() ",
-                "needs a live user gesture and the live device handle, and it's Chromium-family only at the time of ",
-                "writing."
+                "sensors, custom hardware) — via MDN's Web Bluetooth API in Rask.Web. WASM-only: requestDevice() ",
+                "needs a live user gesture, and it's Chromium-family only at the time of writing."
             ],
             CodeSample
                 .Files(["BluetoothDemo.cs"])
-                .Notes("RequestDeviceAsync shows the chooser and returns an IBluetoothDevice (null if dismissed). "
-                    + "Connect, then GetCharacteristicAsync(service, characteristic) → read/write/WatchAsync "
-                    + "(notifications). This demo reads the standard Battery Service. Values cross as byte[]; "
-                    + "dispose the device to drop the connection. Gate on IsSupportedAsync.")
+                .Notes("await Navigator.Bluetooth.RequestDevice(new() { Filters = [new() { Services = "
+                    + "[\"battery_service\"] }] }) shows the chooser and keeps the BluetoothDevice (dismissing it "
+                    + "throws). Gatt.Connect(), then GetPrimaryService → GetCharacteristic → ReadValue() / "
+                    + "WriteValueWithResponse(bytes) / OnCharacteristicValueChanged. This demo reads the standard "
+                    + "Battery Service. Values cross as byte[]; Gatt.Disconnect() then dispose the device. Gate on "
+                    + "await Navigator.Bluetooth.IsSupported.")
                 .Result(BluetoothDemo)
         ]);
 }

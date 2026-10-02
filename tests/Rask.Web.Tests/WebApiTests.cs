@@ -124,6 +124,21 @@ public sealed class WebApiTests
     }
 
     [Fact]
+    public async Task A_class_says_whether_this_browser_has_it_before_you_create_one()
+    {
+        var browser = new FakeBrowser().Answers("false");
+
+        bool supported;
+        using (browser.Enter())
+        {
+            supported = await EyeDropper.IsSupported;
+        }
+
+        Assert.False(supported);
+        Assert.Equal(("__raskWeb.has", """[["g","EyeDropper"]]"""), (browser.Calls[0].Identifier, browser.Steps(0)));
+    }
+
+    [Fact]
     public async Task A_constructor_is_Create_and_keeps_the_new_object()
     {
         var browser = new FakeBrowser();

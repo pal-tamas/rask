@@ -321,8 +321,8 @@ builder.Services.AddRaskPwa(new WebAppManifest
   server-rendered `<head>` — no boot-time JS injection;
 - **serves Rask's service worker** at `{PathBase}/rask-sw.js` and **auto-registers it**, so the app
   meets install criteria with no extra wiring;
-- works with the transport-agnostic PWA APIs `AddRask()` already registers — `IWebPush`,
-  `INotifications`, `IBadge`, `IWakeLock`.
+- works with the transport-agnostic PWA APIs `AddRask()` already registers — `IWebPush` and `IWakeLock` —
+  and with `Notification` and `Navigator.SetAppBadge` from [`Rask.Web`](web-apis.md).
 
 Then ship a static **`wwwroot/offline.html`** (the SW serves it on failed navigations) and, to send
 push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
@@ -344,8 +344,8 @@ push, add **[`Rask.WebPush`](#sending-from-your-backend-raskwebpush)**.
 
 The browser APIs that make a web app feel native. Rows marked *(Rask.Web)* are MDN's own surface from
 [`Rask.Web`](web-apis.md) (`using Rask.Web;`); the rest are typed wrappers. Everything in `Rask.Core.Browser`
-works on **both transports** (and is registered on Server too) — including the PWA APIs `IWebPush`,
-`INotifications`, `IBadge`, `IWakeLock`, and the headless declarative `Shareable` *(all hosts)*. The
+works on **both transports** (and is registered on Server too) — including the PWA APIs `IWebPush` and
+`IWakeLock`, and the headless declarative `Shareable` *(all hosts)*. The
 `*(WASM)*` ones need a live user gesture or the installed-app instance the Server round-trip can't carry: the
 device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server.
 
@@ -357,7 +357,7 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Clipboard** | `Navigator.Clipboard` *(Rask.Web)* | Copy/paste (`WriteText` / `ReadText`) |
 | **Storage / Cookies** | `LocalStorage` *(Rask.Web)* / `ICookies` | Persist state on-device |
 | **Large storage** | `IIndexedDb` | Async key/value store backed by IndexedDB — cache app data offline |
-| **Files on disk** | `IFileSystemAccess` | Open/save a file back to disk + directory access (editors, file managers) |
+| **Files on disk** | `Window.ShowOpenFilePicker(…)` *(Rask.Web, WASM)* | Open a file, then `ShowSaveFilePicker` / `CreateWritable()` to save it back (editors, file managers) |
 | **Passkeys** | `IWebAuthn` | Passwordless register / sign-in with a biometric or security key |
 | **Permissions** | `Navigator.Permissions.Query(…)` *(Rask.Web)* | Check before prompting |
 | **Page visibility** | `Document.VisibilityState` *(Rask.Web)* | Pause work when backgrounded |
@@ -369,25 +369,25 @@ device/handle set lives in `Rask.Wasm.Browser`, and none is registered on Server
 | **Storage estimate** | `IStorageEstimator` | `EstimateAsync()` → quota / usage, to budget offline caches |
 | **Visual viewport** | `Window.VisualViewport` *(Rask.Web)* | Visible size/offset/zoom, e.g. above the soft keyboard |
 | **Cross-tab messaging** | `BroadcastChannel.Create(name)` *(Rask.Web)* | `PostMessage` / `OnMessage` — sync sign-out, theme, "data updated" across tabs |
-| **Local notifications** | `INotifications` | Show a notification from the page (no server) |
-| **App badge** | `IBadge` | Unread count on the installed icon (`SetAsync(3)` / `ClearAsync()`) |
+| **Local notifications** | `Notification.Create(title, …)` *(Rask.Web)* | Show a notification from the page (no server); `Notification.RequestPermission()` *(WASM)* first |
+| **App badge** | `Navigator.SetAppBadge(3)` *(Rask.Web)* | Unread count on the installed icon (`SetAppBadge(3)` / `ClearAppBadge()`) |
 | **Wake lock** | `IWakeLock` | Keep the screen awake; dispose the sentinel to release |
 | **Screen orientation** | `Screen.Orientation` *(Rask.Web)* | Read orientation; `Lock(…)` *(WASM)* / `Unlock()` (needs fullscreen) |
 | **Fullscreen** | `IFullscreen` *(WASM)* | Present an element/page fullscreen (`RequestAsync(ElementRef?)` / `ExitAsync`) |
 | **Camera / mic / screen** | `IMediaDevices` *(WASM)* | Capture into a `<video>` (`GetUserMediaAsync` / `GetDisplayMediaAsync`) |
 | **Picture-in-Picture** | `IPictureInPicture` *(WASM)* | Float a `<video>` into an always-on-top miniplayer |
-| **Gamepad** | `IGamepad` | Read connected controllers — sticks / triggers / buttons (`WatchAsync`) |
+| **Gamepad** | `Navigator.GetGamepads()` *(Rask.Web)* | Read connected controllers — `Buttons` / `Axes`; `Window.OnGamepadConnected` |
 | **Idle detection** | `IdleDetector.Create()` *(Rask.Web, WASM)* | Auto-lock / presence when the user goes idle or the screen locks |
 | **EyeDropper** | `EyeDropper.Create()` *(Rask.Web, WASM)* | Pick a color from anywhere on screen (`Open()`) |
-| **Serial device** | `ISerial` *(WASM)* | Talk to an Arduino / serial device — `RequestPortAsync(options, onData, onClosed?)` → `ISerialPort?` |
+| **Serial device** | `Navigator.Serial` *(Rask.Web, WASM)* | Talk to an Arduino / serial device — `RequestPort(…)`, then `Open(…)`, `Readable.GetReader()` / `Writable.GetWriter()` |
 | **USB device** | `Navigator.Usb` *(Rask.Web, WASM)* | Pair with and drive a USB device — `RequestDevice(…)`, then `Open()` / `TransferIn` / `TransferOut` |
 | **HID device** | `Navigator.Hid` *(Rask.Web, WASM)* | Talk to a HID device — `RequestDevice(…)`, then `SendReport` / `OnInputReport` |
-| **Bluetooth (BLE)** | `IBluetooth` *(WASM)* | Pair with a BLE device — `RequestDeviceAsync(options)` → connect GATT, read/write/notify characteristics |
+| **Bluetooth (BLE)** | `Navigator.Bluetooth` *(Rask.Web, WASM)* | Pair with a BLE device — `RequestDevice(…)`, then read a characteristic's `ReadValue()` as `byte[]` |
 | **Background sync** | `IBackgroundSync` *(WASM)* | Wake the app to drain an offline queue when connectivity returns, or on a schedule |
 
-**App badge.** `IBadge` (`Rask.Core.Browser`) sets a count on the **installed** app's icon —
-`SetAsync(count)` (or `SetAsync()` for a plain dot) and `ClearAsync()`. A silent no-op in a normal
-browser tab, so gate on `IsSupportedAsync()`. Pairs with notifications/push to surface an unread count.
+**App badge.** `await Navigator.SetAppBadge(3)` from [`Rask.Web`](web-apis.md) sets a count on the **installed**
+app's icon. `SetAppBadge()` shows a plain dot and `ClearAppBadge()` removes it. It does nothing in a normal browser
+tab. Pair it with notifications or push to show an unread count.
 
 **Wake lock.** `IWakeLock.RequestAsync()` returns an `IWakeLockSentinel`; keep it while the screen
 should stay on and `DisposeAsync()` (e.g. `await using`, or from a component's `DisposeAsync`) to
@@ -404,9 +404,10 @@ needs a live user gesture, so call it from an event handler and gate on `IsSuppo
 fullscreen first when you also want to **lock the orientation** — most browsers only allow the lock in
 fullscreen.
 
-**Local vs push notifications.** `INotifications` (`Rask.Core.Browser`) shows a notification directly
-from the running page — `RequestPermissionAsync()` then `ShowAsync(title, new NotificationOptions { … })`.
-Use it for in-app alerts. For notifications delivered while the app is **closed**, use
+**Local vs push notifications.** `Notification` from [`Rask.Web`](web-apis.md) shows a notification directly from
+the running page. Ask first with `await Notification.RequestPermission()` (WASM, in the click), then
+`await using var n = await Notification.Create("Title", new() { Body = "…" })`. `await Notification.Permission` reads
+the answer. Use it for in-app alerts. For notifications delivered while the app is **closed**, use
 [`IWebPush`](#push-notifications-iwebpush) — those go through the service worker.
 
 See [JS interop → Typed browser APIs](js-interop-runtime.md#typed-browser-apis) for the full surface.

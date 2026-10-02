@@ -631,6 +631,24 @@ them until tagged releases begin.
     await Navigator.MediaSession.SetMetadata(await MediaMetadata.Create(new() { Title = "Song" }));
     var devices = await Navigator.Usb.GetDevices();                               // WebAssembly; each one kept
     ```
+  - **Streams, unions, maps, data lists, support checks and live event fields** — the rest of what device APIs need:
+    ```csharp
+    var reader = await port.Readable.GetReader();
+    var chunk = await reader.Read<byte[]>();                 // ReadableStreamReadResult<T>: Value, Done
+    await writer.Write(bytes);                               // a byte[] inside your own `any` arrives as a Uint8Array
+    await Navigator.Bluetooth.RequestDevice(new() { OptionalServices = ["battery_service"] });   // string-or-number
+    new FilePickerAcceptType { Accept = new() { ["text/plain"] = [".txt"] } };                  // record<K, V>
+    var pressed = (await pad.Buttons).Count(b => b.Pressed);  // a list of data-only objects reads as records
+    if (await EyeDropper.IsSupported) { … }                   // every class can be asked
+    await Navigator.Usb.OnDisconnect(e => _left = e.Device);  // a live object on an event is a kept handle
+    ```
+    A field typed "one or a list" reads a lone value back as a list of one. **BREAKING:** USB configurations,
+    `GamepadButton`, `RTCError`, `GPUError` and other read-only data objects are records now, not proxies.
+  - **BREAKING: `IBadge`, `INotifications`, `IGamepad`, `IFileSystemAccess`, `IOriginPrivateFileSystem`, and on
+    WebAssembly `ISerial` and `IBluetooth`, are gone** — with the above, MDN's own APIs do what they did:
+    `Navigator.SetAppBadge(3)`, `Notification.Create(title, new() { Body = … })`, `Navigator.GetGamepads()`,
+    `Window.ShowOpenFilePicker(…)`, `Navigator.Storage.GetDirectory()`, `Navigator.Serial.RequestPort(…)`,
+    `Navigator.Bluetooth.RequestDevice(…)`. The site's demos use them.
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

@@ -1,13 +1,13 @@
-using Rask.Core.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="INotifications" /> + <see cref="IBadge" /> — raise a local notification and set the app-icon
-///     badge from the page. Both work on every host, through the browser's Notifications and Badging APIs
-///     (a badge only shows on an installed PWA).
+///     MDN's <c>Notification</c> and <c>navigator.setAppBadge</c> from Rask.Web — raise a local notification and
+///     set the app-icon badge from the page (a badge only shows on an installed PWA).
 /// </summary>
-public sealed partial class NotificationsDemo(INotifications notifications, IBadge badge) : Component
+public sealed partial class NotificationsDemo : Component
 {
     private string? _status;
 
@@ -32,49 +32,58 @@ public sealed partial class NotificationsDemo(INotifications notifications, IBad
 
     private async Task RequestPermission()
     {
-        if (!await notifications.IsSupportedAsync())
+        if (!await Notification.IsSupported)
         {
             _status = "Notifications not supported on this host";
             return;
         }
 
-        _status = $"Permission: {await notifications.RequestPermissionAsync()}";
+        _status = $"Permission: {await Notification.RequestPermission()}";
     }
 
     private async Task Notify()
     {
-        if (!await notifications.IsSupportedAsync())
+        if (!await Notification.IsSupported)
         {
             _status = "Notifications not supported on this host";
             return;
         }
 
         // Showing without permission throws (matching the browser), so gate on it and prompt the user first.
-        if (await notifications.PermissionAsync() != NotificationPermissionState.Granted)
+        if (await Notification.Permission != Rask.Web.Types.NotificationPermission.Granted)
         {
             _status = "Grant permission first";
             return;
         }
 
-        await notifications.ShowAsync("Rask", new NotificationOptions { Body = "Hello from your Rask app.", Tag = "demo" });
+        await using var shown = await Notification.Create("Rask", new() { Body = "Hello from your Rask app.", Tag = "demo" });
         _status = "Notification sent";
     }
 
+    // setAppBadge is a method, so there is nothing to ask first: a browser without it rejects the call.
     private async Task SetBadge()
     {
-        if (!await badge.IsSupportedAsync())
+        try
         {
-            _status = "Badge not supported on this host";
-            return;
+            await Navigator.SetAppBadge(3);
+            _status = "Badge set to 3";
         }
-
-        await badge.SetAsync(3);
-        _status = "Badge set to 3";
+        catch (JSException ex)
+        {
+            _status = "Badge not supported on this host: " + ex.Message;
+        }
     }
 
     private async Task ClearBadge()
     {
-        await badge.ClearAsync();
-        _status = "Badge cleared";
+        try
+        {
+            await Navigator.ClearAppBadge();
+            _status = "Badge cleared";
+        }
+        catch (JSException ex)
+        {
+            _status = "Badge not supported on this host: " + ex.Message;
+        }
     }
 }

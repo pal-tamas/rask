@@ -1,17 +1,17 @@
 using System.Text;
-using Rask.Core.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IOriginPrivateFileSystem" /> — write a byte range into an app-owned file, read it back,
+///     MDN's origin private file system from Rask.Web — write a byte range into an app-owned file, read it back,
 ///     and ask for the origin's storage to survive eviction.
 /// </summary>
-public sealed partial class OriginPrivateFileSystemDemo(
-    IOriginPrivateFileSystem fs,
-    IStorageEstimator storage) : Component
+public sealed partial class OriginPrivateFileSystemDemo : Component
 {
-    private const string Path = "demo/notes.bin";
+    private const string Folder = "demo";
+    private const string FileName = "notes.bin";
     private const long Offset = 4096;
 
     private string? _content;
@@ -47,11 +47,19 @@ public sealed partial class OriginPrivateFileSystemDemo(
 
         try
         {
-            await fs.WriteAsync(Path, Offset, Encoding.UTF8.GetBytes("hello from OPFS"));
-            _size = await fs.GetSizeAsync(Path) is { } size ? $"{size} bytes" : "(missing)";
+            await using var handle = await OpenFile(create: true);
+            await using (var writable = await handle.CreateWritable(new() { KeepExistingData = true }))
+            {
+                await writable.Seek(Offset);
+                await writable.Write(Encoding.UTF8.GetBytes("hello from OPFS"));
+                await writable.Close();
+            }
+
+            await using var file = await handle.GetFile();
+            _size = $"{await file.Size} bytes";
             _status = "Wrote 15 bytes at offset 4096";
         }
-        catch (Exception ex) { _status = "Write failed: " + ex.Message; }
+        catch (JSException ex) { _status = "Write failed: " + ex.Message; }
     }
 
     private async Task Read()
@@ -63,11 +71,40 @@ public sealed partial class OriginPrivateFileSystemDemo(
 
         try
         {
-            var bytes = await fs.ReadAsync(Path, Offset, 15);
-            _content = bytes is null ? "(file does not exist)" : Encoding.UTF8.GetString(bytes);
+            await using var handle = await OpenFile(create: false);
+            await using var file = await handle.GetFile();
+            _content = Encoding.UTF8.GetString(await file.Slice(Offset, Offset + 15).ArrayBuffer());
             _status = "Read 15 bytes at offset 4096";
         }
-        catch (Exception ex) { _status = "Read failed: " + ex.Message; }
+        catch (JSException ex)
+        {
+            _content = "(file does not exist)";
+            _status = "Read failed: " + ex.Message;
+        }
+    }
+
+    // navigator.storage.getDirectory() is the origin's root; without `create` a missing entry rejects (NotFoundError).
+    private static async Task<Rask.Web.Types.FileSystemFileHandle> OpenFile(bool create)
+    {
+        Rask.Web.Types.FileSystemFileHandle file;
+        await using (var root = await Navigator.Storage.GetDirectory())
+        await using (var folder = await root.GetDirectoryHandle(Folder, new() { Create = create }))
+        {
+            file = await folder.GetFileHandle(FileName, new() { Create = create });
+        }
+
+        return file;
+    }
+
+    private async Task<bool> Supported()
+    {
+        if (await Navigator.Storage.IsSupported)
+        {
+            return true;
+        }
+
+        _status = "OPFS unavailable in this browser";
+        return false;
     }
 
     // OPFS is persistent but still evictable under storage pressure until the origin is exempted.
@@ -75,22 +112,11 @@ public sealed partial class OriginPrivateFileSystemDemo(
     {
         try
         {
-            var persisted = await storage.IsPersistedAsync() || await storage.RequestPersistAsync();
+            var persisted = await Navigator.Storage.Persisted() || await Navigator.Storage.Persist();
             _status = persisted
                 ? "Storage is exempt from eviction"
                 : "Storage is still evictable (declined or unsupported)";
         }
-        catch (Exception ex) { _status = "Persist request failed: " + ex.Message; }
-    }
-
-    private async Task<bool> Supported()
-    {
-        if (await fs.IsSupportedAsync())
-        {
-            return true;
-        }
-
-        _status = "OPFS unavailable in this browser";
-        return false;
+        catch (JSException ex) { _status = "Persist request failed: " + ex.Message; }
     }
 }

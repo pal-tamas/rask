@@ -14,13 +14,4 @@ namespace Rask.Wasm.Browser;
 [JsonSerializable(typeof(MediaConstraints))]
 [JsonSerializable(typeof(MediaDeviceInfo))]
 [JsonSerializable(typeof(MediaDeviceInfo[]))]
-[JsonSerializable(typeof(SerialOptions))]
-[JsonSerializable(typeof(SerialPortFilter))]
-[JsonSerializable(typeof(SerialPortFilter[]))]
-[JsonSerializable(typeof(BluetoothRequestOptions))]
-[JsonSerializable(typeof(BluetoothFilter))]
-[JsonSerializable(typeof(BluetoothFilter[]))]
-[JsonSerializable(typeof(BluetoothDeviceInfo))]
-[JsonSerializable(typeof(BluetoothDeviceHandshake))]
-[JsonSerializable(typeof(BluetoothDeviceHandshake[]))]
 internal sealed partial class RaskWasmBrowserJsonContext : JsonSerializerContext;

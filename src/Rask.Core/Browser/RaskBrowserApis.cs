@@ -52,7 +52,6 @@ public static class RaskBrowserApis
 
     private static void AddPageAndDeviceApis(IServiceCollection services, ServiceLifetime lifetime)
     {
-        services.AddBrowserApi<IGamepad, Gamepad>(lifetime);
         services.AddBrowserApi<IDeviceOrientation, DeviceOrientation>(lifetime);
         services.AddBrowserApi<IDeviceMotion, DeviceMotion>(lifetime);
         services.AddBrowserApi<IViewTransitions, ViewTransitions>(lifetime);
@@ -72,8 +71,6 @@ public static class RaskBrowserApis
     {
         services.AddBrowserApi<IStorageEstimator, StorageEstimator>(lifetime);
         services.AddBrowserApi<IIndexedDb, IndexedDb>(lifetime);
-        services.AddBrowserApi<IFileSystemAccess, FileSystemAccess>(lifetime);
-        services.AddBrowserApi<IOriginPrivateFileSystem, OriginPrivateFileSystem>(lifetime);
         services.AddBrowserApi<ICookies, Cookies>(lifetime);
         services.AddBrowserApi<IWebLocks, WebLocks>(lifetime);
         services.AddBrowserApi<IWebAuthn, WebAuthn>(lifetime);
@@ -84,8 +81,6 @@ public static class RaskBrowserApis
     private static void AddPwaApis(IServiceCollection services, ServiceLifetime lifetime)
     {
         services.AddBrowserApi<IWebPush, WebPush>(lifetime);
-        services.AddBrowserApi<INotifications, Notifications>(lifetime);
-        services.AddBrowserApi<IBadge, Badge>(lifetime);
         services.AddBrowserApi<IWakeLock, WakeLock>(lifetime);
     }
 }

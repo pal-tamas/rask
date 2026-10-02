@@ -130,7 +130,8 @@ only you know whether a given one is a loading affordance or decoration. Read th
 
 <!-- demo:browser-device-sensors -->
 
-**`IGamepad`** — connected game controllers (sticks, triggers, buttons); prefer WASM for twitch input.
+**Gamepad** — `await Navigator.GetGamepads()`, then each pad's `Buttons` and `Axes`, and
+`Window.OnGamepadConnected(e => …)`, from [Rask.Web](web-apis.md); prefer WASM for twitch input.
 
 <!-- demo:browser-gamepad -->
 
@@ -180,11 +181,14 @@ data and re-renders its component.
 
 <!-- demo:browser-crypto -->
 
-**`IFileSystemAccess`** — open a file, edit it, and save it back to the same file (Chromium-family).
+**File System Access** — `await Window.ShowOpenFilePicker(…)` *(WASM)*, then `await (await files[0].GetFile()).Text()`;
+`ShowSaveFilePicker` and `CreateWritable()` save it back, from [Rask.Web](web-apis.md) (Chromium-family).
 
 <!-- demo:browser-file-system -->
 
-**`IOriginPrivateFileSystem`** — a private, persistent file tree the app owns: no picker, addressed by path, written in byte ranges. The right home for a local database file.
+**Origin private file system** — `await Navigator.Storage.GetDirectory()`, then
+`GetFileHandle(name, new() { Create = true })`, from [Rask.Web](web-apis.md); a private, persistent file tree the
+app owns, with no picker. The right home for a local database file.
 
 <!-- demo:browser-opfs -->
 
@@ -220,9 +224,9 @@ exchange.
 
 <!-- demo:browser-signaling -->
 
-**`INotifications` + `IBadge`** — raise a local notification and set the app-icon badge from the page. They
-use the browser's Notifications and Badging APIs (a badge only shows on an installed PWA). On iOS the badge
-is numeric-only.
+**Notifications and the app badge** — `await Notification.RequestPermission()` *(WASM, in the click)*, then
+`await using var n = await Notification.Create("Title", new() { Body = "…" })`; `await Navigator.SetAppBadge(3)` and
+`ClearAppBadge()`. All from [Rask.Web](web-apis.md). A badge only shows on an installed PWA; on iOS it is numeric-only.
 
 <!-- demo:browser-notifications -->
 

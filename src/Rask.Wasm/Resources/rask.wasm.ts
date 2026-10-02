@@ -832,6 +832,12 @@ window.DotNet = window.DotNet || {
     },
     disposeJSObjectReferenceById(id: number): void {
         jsObjectRefs.delete(id);
+    },
+    // A live object handed to .NET as an IJSObjectReference (a Rask.Web event's device), held until disposed of.
+    createJSObjectReference(value: unknown): { __jsObjectId: number } {
+        const refId = nextJsObjectRefId++;
+        jsObjectRefs.set(refId, value);
+        return {"__jsObjectId": refId};
     }
 };
 

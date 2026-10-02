@@ -9,8 +9,9 @@ namespace Rask.Core.Dom.Build;
 // The C# type an event handed to a Rask.Web handler arrives as. Core's event classes where Core has one (Event,
 // MouseEvent: the element events'), so an Event is one type everywhere; the rest (MediaQueryListEvent, StorageEvent) are
 // written here, in Rask.Web.Types, deriving from the nearest one Core has. Each reads the fields of its interface whose
-// types are values, and only those cross: the listener sends exactly what the type reads.
-internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
+// types are values, and only those cross: the listener sends exactly what the type reads. A field holding a live object
+// (`proxies`: a USB connection's device) crosses as one kept for the handler, `*device` in that list.
+internal sealed class WebPayloads(JsonNode root, DomValueTypes types, HashSet<string> proxies)
 {
     private const string TypesNs = "global::Rask.Web.Types.";
     private const string CoreNs = "global::Rask.Core.";
@@ -18,6 +19,7 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
     private readonly JsonNode _interfaces = root["interfaces"]!;
     private readonly HashSet<string> _core = CoreClasses(root);
     private readonly HashSet<string> _coreSealed = CoreSealed(root);
+    private readonly Dictionary<string, List<string>> _firedOn = FiredOn(root);
     private readonly SortedDictionary<string, List<(string Property, string Type, string Json, JsonNode Data)>> _declared = new(StringComparer.Ordinal);
 
     // The payload type and the JSON array of field names its listener sends.
@@ -74,17 +76,17 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
             Declare(parent);
         }
 
-        var inherited = new HashSet<string>(parent is null ? Enumerable.Empty<string>() : Fields(parent), StringComparer.Ordinal);
+        var inherited = new HashSet<string>(parent is null ? Enumerable.Empty<string>() : Fields(parent).Select(f => f.TrimStart('*')), StringComparer.Ordinal);
         _declared[name] = Own(name).Where(f => !inherited.Contains(f.Json)).ToList();
     }
 
-    // An interface's attributes whose types are values, and its `any` ones (a message's data), as Any.
+    // An interface's attributes whose types are values, its `any` ones (a message's data) as Any, and its live ones.
     private IEnumerable<(string Property, string Type, string Json, JsonNode Data)> Own(string name)
     {
         foreach (var m in _interfaces[name]!["members"]?.Items ?? new List<JsonNode>())
         {
             if (string.Equals(m["kind"]?.AsString(), "attribute", StringComparison.Ordinal) && m["type"]!.AsString() is { } idl
-                && (string.Equals(idl, "any", StringComparison.Ordinal) ? Any : types.CSharp(idl, returned: false)) is { } type)
+                && (string.Equals(idl, "any", StringComparison.Ordinal) ? Any : types.CSharp(idl, returned: false) ?? Live(name, idl)) is { } type)
             {
                 yield return (DomRefEmitter.Pascal(m["name"]!.AsString()!), type, m["name"]!.AsString()!, m);
             }
@@ -93,13 +95,53 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
 
     private const string Any = "any";
 
-    // Every field the payload reads: its own and its ancestors'.
+    // A field holding a live object, kept for the handler — unless the event only ever fires on that object (a HID
+    // device's input report, many a second), which the handler already holds: keeping it again per event would pile up
+    // handles. One only WebAssembly runs (a GPU error) is Rask.Wasm's, which this assembly cannot name.
+    private string? Live(string iface, string idl)
+    {
+        // Core's own event classes (Event: its target) read no live field, so their listeners keep none.
+        if (_core.Contains(iface))
+        {
+            return null;
+        }
+
+        var live = idl.TrimEnd('?');
+        var targets = _firedOn.TryGetValue(iface, out var t) ? t : new List<string>();
+        var held = targets.Count > 0 && targets.All(target => DomValueTypes.Derives(_interfaces, target, live));
+        return proxies.Contains(live) && !WebHost.IsWasmInterface(live) && !held ? TypesNs + idl : null;
+    }
+
+    private bool IsLive(string type) => type.StartsWith(TypesNs, StringComparison.Ordinal) && proxies.Contains(type.Substring(TypesNs.Length).TrimEnd('?'));
+
+    // Which interfaces fire events of each payload interface: USBConnectionEvent fires on USB.
+    private static Dictionary<string, List<string>> FiredOn(JsonNode root)
+    {
+        var result = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var target in root["interfaces"]!.Members)
+        {
+            foreach (var e in target.Value["events"]?.Items ?? new List<JsonNode>())
+            {
+                var payload = e["interface"]?.AsString() ?? "Event";
+                if (!result.TryGetValue(payload, out var list))
+                {
+                    result[payload] = list = new List<string>();
+                }
+
+                list.Add(target.Key);
+            }
+        }
+
+        return result;
+    }
+
+    // Every field the payload reads, its own and its ancestors', as its listener asks for them: a live one as `*name`.
     private List<string> Fields(string name)
     {
         var result = new List<string>();
         for (var n = name; n is not null && _interfaces[n] is not null; n = _interfaces[n]!["parent"]?.AsString())
         {
-            result.AddRange(Own(n).Select(f => f.Json).Where(f => !result.Contains(f)));
+            result.AddRange(Own(n).Select(f => (IsLive(f.Type) ? "*" : "") + f.Json).Where(f => !result.Contains(f)));
         }
 
         return result;
@@ -137,7 +179,8 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
         foreach (var (property, type, json, _) in fields)
         {
             sb.Append("        ").Append(string.Equals(type, Any, StringComparison.Ordinal) ? "_" + json : property).Append(" = global::Rask.Web.JsChain.");
-            sb.Append(string.Equals(type, Any, StringComparison.Ordinal) ? "AnyFieldOf" : "Field<" + type + ">").Append("(p, \"").Append(json).AppendLine("\");");
+            sb.Append(Read(type)).Append("(p, \"").Append(json).Append('"');
+            sb.AppendLine(IsLive(type) ? $", static c => new {type.TrimEnd('?')}(c));" : ");");
         }
 
         sb.AppendLine("    }");
@@ -150,7 +193,9 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
                 continue;
             }
 
-            DomEmitter.Doc(sb, "    ", $"The event's <c>{json}</c>.", data);
+            DomEmitter.Doc(sb, "    ", IsLive(type)
+                ? $"The event's <c>{json}</c>, kept in the browser until you dispose of it or the handler's component unmounts."
+                : $"The event's <c>{json}</c>.", data);
             // A non-nullable reference (a string, an array, a record) starts as default! for the empty constructor.
             var valueOrNullable = type.EndsWith("?", StringComparison.Ordinal) || type is "bool" or "int" or "long" or "double" || types.IsEnum(type);
             sb.Append("    public ").Append(type).Append(' ').Append(property).Append(" { get; init; }").AppendLine(valueOrNullable ? "" : " = default!;");
@@ -158,6 +203,14 @@ internal sealed class WebPayloads(JsonNode root, DomValueTypes types)
 
         sb.AppendLine("}");
     }
+
+    // How the constructor reads a field: as the handler's own type later, as a kept object, or as a value.
+    private string Read(string type) => type switch
+    {
+        Any => "AnyFieldOf",
+        _ when IsLive(type) => "KeptField",
+        _ => "Field<" + type + ">",
+    };
 
     // An `any` field is the sender's own type, which only the handler knows: kept as JSON, read when it asks, e.Data<T>().
     private static void AnyField(StringBuilder sb, string property, string json, JsonNode data)

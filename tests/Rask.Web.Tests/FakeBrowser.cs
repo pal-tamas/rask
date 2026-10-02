@@ -25,7 +25,10 @@ internal sealed class FakeBrowser : IJSRuntime
         return this;
     }
 
-    public IDisposable Enter() => DispatchServicesScope.Push(new Page(this));
+    public IDisposable Enter() => Enter(this);
+
+    // Any runtime as the page the current event is on.
+    public static IDisposable Enter(IJSRuntime runtime) => DispatchServicesScope.Push(new Page(runtime));
 
     public string Steps(int call) => (string)Calls[call].Args[1]!;
 

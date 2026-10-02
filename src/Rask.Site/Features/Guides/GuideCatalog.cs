@@ -426,16 +426,6 @@ public static class GuideCatalog
             SearchTitle = "Background Sync API in C# and .NET (IBackgroundSync)",
             Description = "Register one-off and periodic Background Sync from C# and get the woken tag in a callback. WASM-only; needs a service worker and runs while a tab is open.",
         },
-        new("badge", "IBadge", "Typed browser API: IBadge.", "Browser API reference", "apis/badge.md")
-        {
-            SearchTitle = "Badging API in C# and .NET (IBadge)",
-            Description = "Set or clear the count on an installed PWA's app icon from C# with the Badging API wrapper. Works on Server and WebAssembly; rendering varies by platform.",
-        },
-        new("bluetooth", "IBluetooth", "Typed browser API: IBluetooth.", "Browser API reference", "apis/bluetooth.md")
-        {
-            SearchTitle = "Web Bluetooth API in C# and .NET (IBluetooth)",
-            Description = "Pair a Bluetooth LE device from C# and read, write or watch GATT characteristics with the Web Bluetooth API. WebAssembly host only, behind the device chooser.",
-        },
         new("cookies", "ICookies", "Typed browser API: ICookies.", "Browser API reference", "apis/cookies.md")
         {
             SearchTitle = "document.cookie in C# and .NET (ICookies)",
@@ -451,20 +441,10 @@ public static class GuideCatalog
             SearchTitle = "DeviceOrientation Events in C# (IDeviceOrientation)",
             Description = "Receive alpha, beta and gamma tilt from device orientation events in a C# callback. Works on Server and WebAssembly; iOS needs a gesture-triggered grant.",
         },
-        new("file-system-access", "IFileSystemAccess", "Typed browser API: IFileSystemAccess.", "Browser API reference", "apis/file-system-access.md")
-        {
-            SearchTitle = "File System Access API in C# (IFileSystemAccess)",
-            Description = "Open a file, save it back to disk and read directories from C# with the File System Access API wrapper. Works on Server and WebAssembly in Chromium browsers.",
-        },
         new("fullscreen", "IFullscreen", "Typed browser API: IFullscreen.", "Browser API reference", "apis/fullscreen.md")
         {
             SearchTitle = "Fullscreen API in C# and .NET (IFullscreen)",
             Description = "Present an element or the whole page fullscreen from C# with the Fullscreen API. IFullscreen is WASM-only; on Server, Trigger.Fullscreen runs it in a click.",
-        },
-        new("gamepad", "IGamepad", "Typed browser API: IGamepad.", "Browser API reference", "apis/gamepad.md")
-        {
-            SearchTitle = "Gamepad API in C# and .NET (IGamepad)",
-            Description = "Read connected game controllers and their state in C# with the Gamepad API, with readings pushed to a callback. Works on Server; prefer WASM for twitch input.",
         },
         new("indexeddb", "IIndexedDb", "Typed browser API: IIndexedDb.", "Browser API reference", "apis/indexeddb.md")
         {
@@ -486,25 +466,10 @@ public static class GuideCatalog
             SearchTitle = "MediaStream in C#: Attach and Stop (IMediaStreams)",
             Description = "Attach a live MediaStream to a video element or stop its tracks from C#, whether from capture or a WebRTC peer. Works on every host without a gesture.",
         },
-        new("notifications", "INotifications", "Typed browser API: INotifications.", "Browser API reference", "apis/notifications.md")
-        {
-            SearchTitle = "Notifications API in C# and .NET (INotifications)",
-            Description = "Show local browser notifications from C# with INotifications. Request permission, replace a notification by tag, and handle a denied Notifications API prompt.",
-        },
-        new("origin-private-file-system", "IOriginPrivateFileSystem", "Typed browser API: IOriginPrivateFileSystem.", "Browser API reference", "apis/origin-private-file-system.md")
-        {
-            SearchTitle = "Origin Private File System (OPFS) in C# and .NET",
-            Description = "Read and write files in the origin private file system from C# by path and byte range, with no picker or user gesture. A fit for a local SQLite database file.",
-        },
         new("picture-in-picture", "IPictureInPicture", "Typed browser API: IPictureInPicture.", "Browser API reference", "apis/picture-in-picture.md")
         {
             SearchTitle = "Picture-in-Picture API in C# (IPictureInPicture)",
             Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the Trigger.PictureInPicture component on Server.",
-        },
-        new("serial", "ISerial", "Typed browser API: ISerial.", "Browser API reference", "apis/serial.md")
-        {
-            SearchTitle = "Web Serial API in C# and .NET (ISerial)",
-            Description = "Talk to a serial device such as an Arduino or GPS from C# with ISerial, a Web Serial API wrapper that pushes incoming data to a callback. WebAssembly only.",
         },
         new("speech-recognition", "ISpeechRecognition", "Typed browser API: ISpeechRecognition.", "Browser API reference", "apis/speech-recognition.md")
         {

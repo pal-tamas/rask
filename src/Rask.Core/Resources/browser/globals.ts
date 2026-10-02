@@ -20,19 +20,14 @@
 // break — the identifier simply fails to resolve at run time, in the browser, with no compiler
 // anywhere in the path to notice.
 
-import * as badge from "./badge.js";
 import * as cookies from "./cookies.js";
 import * as deviceMotion from "./deviceMotion.js";
 import * as deviceOrientation from "./deviceOrientation.js";
 import * as eyeDropper from "./eyeDropper.js";
-import * as fileSystem from "./fileSystem.js";
 import * as fullscreen from "./fullscreen.js";
-import * as gamepad from "./gamepad.js";
 import * as installPrompt from "./installPrompt.js";
 import * as indexedDb from "./indexedDb.js";
 import * as mediaDevices from "./mediaDevices.js";
-import * as notifications from "./notifications.js";
-import * as opfs from "./originPrivateFileSystem.js";
 import * as pictureInPicture from "./pictureInPicture.js";
 import * as screenOrientation from "./screenOrientation.js";
 import * as signaling from "./signaling.js";
@@ -135,7 +130,7 @@ window.__raskIdb = window.__raskIdb || (() => {
     };
 })();
 
-// The PWA four — IWebPush, INotifications, IBadge, IWakeLock. These used to live in rask-pwa.ts, which
+// The PWA pair — IWebPush, IWakeLock. These used to live in rask-pwa.ts, which
 // is now gone: they are transport-agnostic browser APIs like the rest, and there was no reason for
 // them to sit in a second file with its own import in both entry points.
 window.__raskPush = window.__raskPush || {
@@ -145,17 +140,6 @@ window.__raskPush = window.__raskPush || {
     subscribe: (vapidPublicKey: string) => webPush.subscribe(vapidPublicKey),
     getSubscription: () => webPush.getSubscription(),
     unsubscribe: () => webPush.unsubscribe()
-};
-
-window.__raskNotify = window.__raskNotify || {
-    isSupported: () => notifications.isSupported(),
-    show: (title: string, options?: NotificationOptions) => notifications.show(title, options)
-};
-
-window.__raskBadge = window.__raskBadge || {
-    isSupported: () => badge.isSupported(),
-    set: (count: number | null | undefined) => badge.set(count),
-    clear: () => badge.clear()
 };
 
 // IWakeLock. C# holds an integer id where the module hands back a handle; the re-acquire-on-visible
@@ -226,123 +210,6 @@ window.__raskSignal = window.__raskSignal || (() => {
             }
             conns.delete(id);
             conn.close();
-        }
-    };
-})();
-
-// IOriginPrivateFileSystem. Path-based on both sides, so this is only the base64 hop — and `delete`,
-// which C# calls it and TypeScript cannot export under that name.
-window.__raskOpfs = window.__raskOpfs || (() => {
-    const toBase64 = (bytes: Uint8Array) => {
-        let binary = "";
-        for (let i = 0; i < bytes.length; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
-    };
-
-    const fromBase64 = (base64: string) => {
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
-        return bytes;
-    };
-
-    return {
-        isSupported: () => opfs.isSupported(),
-        exists: (path: string) => opfs.exists(path),
-        size: (path: string) => opfs.size(path),
-        read: async (path: string, offset: number, count: number) => {
-            const bytes = await opfs.read(path, offset, count);
-            return bytes === null ? null : toBase64(bytes);
-        },
-        readAll: async (path: string) => {
-            const bytes = await opfs.readAll(path);
-            return bytes === null ? null : toBase64(bytes);
-        },
-        write: (path: string, offset: number, base64: string) =>
-            opfs.write(path, offset, fromBase64(base64)),
-        writeAll: (path: string, base64: string) => opfs.writeAll(path, fromBase64(base64)),
-        truncate: (path: string, size: number) => opfs.truncate(path, size),
-        delete: (path: string, recursive: boolean) => opfs.remove(path, recursive),
-        list: (path: string) => opfs.list(path)
-    };
-})();
-
-// IFileSystemAccess. A FileSystemHandle cannot cross interop, so handles are held here under an id and
-// C# operates by id — the module hands back the handle itself, which is what a TypeScript caller wants
-// to keep. Bytes cross base64-encoded for the same reason as IndexedDB's.
-window.__raskFs = window.__raskFs || (() => {
-    const handles = new Map<number, FileSystemHandle>();
-    let nextId = 0;
-
-    const put = (handle: FileSystemHandle) => {
-        const id = ++nextId;
-        handles.set(id, handle);
-        return {id, name: handle.name};
-    };
-
-    const fileOf = (id: number): FileSystemFileHandle => {
-        const h = handles.get(id);
-        if (!h || h.kind !== "file") {
-            throw new Error("Rask file system: file handle " + id + " is closed.");
-        }
-        return h as FileSystemFileHandle;
-    };
-
-    const dirOf = (id: number): FileSystemDirectoryHandle => {
-        const h = handles.get(id);
-        if (!h || h.kind !== "directory") {
-            throw new Error("Rask file system: directory handle " + id + " is closed.");
-        }
-        return h as FileSystemDirectoryHandle;
-    };
-
-    const toBase64 = (bytes: Uint8Array) => {
-        let binary = "";
-        for (let i = 0; i < bytes.length; i++) {
-            binary += String.fromCharCode(bytes[i]);
-        }
-        return btoa(binary);
-    };
-
-    const fromBase64 = (base64: string) => {
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
-        return bytes;
-    };
-
-    return {
-        isSupported: () => fileSystem.isSupported(),
-        openFile: async (opts: RaskFilePickerOptions | null) => {
-            const handle = await fileSystem.openFile(opts);
-            return handle ? put(handle) : null;
-        },
-        openFiles: async (opts: RaskFilePickerOptions | null) =>
-            (await fileSystem.openFiles(opts)).map(put),
-        saveFile: async (opts: RaskFilePickerOptions | null) => {
-            const handle = await fileSystem.saveFile(opts);
-            return handle ? put(handle) : null;
-        },
-        openDirectory: async () => {
-            const handle = await fileSystem.openDirectory();
-            return handle ? put(handle) : null;
-        },
-        readText: (id: number) => fileSystem.readText(fileOf(id)),
-        readBytes: async (id: number) => toBase64(await fileSystem.readBytes(fileOf(id))),
-        writeText: (id: number, text: string) => fileSystem.writeText(fileOf(id), text),
-        writeBytes: (id: number, base64: string) =>
-            fileSystem.writeBytes(fileOf(id), fromBase64(base64)),
-        list: (id: number) => fileSystem.list(dirOf(id)),
-        getFile: async (id: number, name: string, create: boolean) =>
-            put(await fileSystem.getFile(dirOf(id), name, create)),
-        release: (id: number) => {
-            handles.delete(id);
         }
     };
 })();
@@ -477,31 +344,6 @@ window.__raskLocks = window.__raskLocks || (() => {
             }
         },
         query: () => webLocks.query()
-    };
-})();
-
-// IGamepad. Polled at ~12 Hz rather than every animation frame, for the same reason the sensors are
-// throttled: each reading that changes is a frame on the wire. In-page callers poll every frame.
-const GAMEPAD_POLL_MS = 80;
-
-window.__raskGamepad = window.__raskGamepad || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        isSupported: () => gamepad.isSupported(),
-        watch: (id: number) => {
-            stops.set(id, gamepad.watch(
-                (reading) =>
-                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskGamepadReading", id, reading),
-                {throttleMs: GAMEPAD_POLL_MS}));
-        },
-        unwatch: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
     };
 })();
 

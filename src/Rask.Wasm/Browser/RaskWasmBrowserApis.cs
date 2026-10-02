@@ -19,8 +19,6 @@ public static class RaskWasmBrowserApis
         services.AddBrowserApi<IPictureInPicture, PictureInPicture>(lifetime);
         services.AddBrowserApi<IMediaDevices, MediaDevices>(lifetime);
         services.AddBrowserApi<IInstallPrompt, InstallPrompt>(lifetime);
-        services.AddBrowserApi<ISerial, Serial>(lifetime);
-        services.AddBrowserApi<IBluetooth, Bluetooth>(lifetime);
         services.AddBrowserApi<IBackgroundSync, BackgroundSync>(lifetime);
         return services;
     }

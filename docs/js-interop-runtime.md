@@ -98,8 +98,8 @@ transient activation has expired. The practical effect:
   `beforeinstallprompt` for a custom install button) are likewise **WASM-only** in `Rask.Wasm.Browser` —
   they depend on the installed-PWA instance or the live document the Server round-trip can't carry. See
   the [Mobile & PWA guide](pwa.md#device-capabilities-for-mobile).
-- **`IBadge`** (app icon badge) and **`IWakeLock`** (keep the screen awake) need no transient activation, so
-  they are shared; their JS helpers ship on the Server client under `AddRaskPwa`.
+- **`IWakeLock`** (keep the screen awake) needs no transient activation, so it is shared; its JS helper ships on
+  the Server client under `AddRaskPwa`. The app badge is `await Navigator.SetAppBadge(3)` in [`Rask.Web`](web-apis.md).
 - Everything else here (cookies, speech synthesis, storage estimate, indexeddb) is unaffected by activation and
   behaves identically on both transports.
 

@@ -15,7 +15,7 @@ namespace Rask.Server;
 ///     <c>{PathBase}/rask/manifest.webmanifest</c> and linked from the server-rendered <c>&lt;head&gt;</c>),
 ///     a service worker at <c>{PathBase}/rask-sw.js</c> that handles Web Push and serves a static
 ///     <c>offline.html</c> for failed navigations, and the transport-agnostic PWA APIs
-///     (<see cref="IWebPush" />/<see cref="INotifications" />/<see cref="IBadge" />/<see cref="IWakeLock" />,
+///     (<see cref="IWebPush" />/<c>Notification</c>/<c>Navigator.SetAppBadge</c>/<see cref="IWakeLock" />,
 ///     registered by <c>AddRask()</c>).
 ///     <para>
 ///         What you do NOT get (a Server app renders over a live WebSocket): a true offline app — the SW

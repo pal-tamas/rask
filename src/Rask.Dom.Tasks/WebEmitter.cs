@@ -44,8 +44,9 @@ internal static class WebEmitter
             DomEmitter.Emit(snapshotJson, new Partials(), wasm: wasmRefs);
         }
 
-        var payloads = new WebPayloads(root, types);
-        var model = Build(root, types, payloads);
+        var proxies = Proxies(root, types);
+        var payloads = new WebPayloads(root, types, proxies);
+        var model = Build(root, types, payloads, proxies);
         var files = new List<KeyValuePair<string, string>>();
         foreach (var name in model.ProxyNames.Where(n => WebHost.IsWasmInterface(n) == wasm).OrderBy(n => n, StringComparer.Ordinal))
         {
@@ -69,10 +70,9 @@ internal static class WebEmitter
     }
 
     // Every proxy's members, statics and constructors, bases first so a derived one never declares a name again.
-    private static Model Build(JsonNode root, DomValueTypes types, WebPayloads payloads)
+    private static Model Build(JsonNode root, DomValueTypes types, WebPayloads payloads, HashSet<string> proxies)
     {
         var interfaces = root["interfaces"]!;
-        var proxies = Proxies(root, types);
         var members = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
         var extras = new Dictionary<string, List<WebMember>>(StringComparer.Ordinal);
         foreach (var name in proxies.OrderBy(n => Depth(interfaces, n)).ThenBy(n => n, StringComparer.Ordinal))
@@ -106,27 +106,14 @@ internal static class WebEmitter
         var result = new HashSet<string>(StringComparer.Ordinal);
         foreach (var name in (root["web"]?.Items ?? new List<JsonNode>()).Select(n => n.AsString()!))
         {
-            var node = Derives(interfaces, name, "Node") && !string.Equals(name, "Document", StringComparison.Ordinal);
-            if (!node && !Derives(interfaces, name, "Event") && !types.IsValue(name))
+            var node = DomValueTypes.Derives(interfaces, name, "Node") && !string.Equals(name, "Document", StringComparison.Ordinal);
+            if (!node && !DomValueTypes.Derives(interfaces, name, "Event") && !types.IsValue(name))
             {
                 result.Add(name);
             }
         }
 
         return result;
-    }
-
-    private static bool Derives(JsonNode interfaces, string name, string ancestor)
-    {
-        for (var n = name; n is not null; n = interfaces[n]?["parent"]?.AsString())
-        {
-            if (string.Equals(n, ancestor, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     // The nearest ancestor that is a proxy too: Document's is EventTarget, past Node.
@@ -320,6 +307,10 @@ internal static class WebEmitter
     {
         DomEmitter.Doc(sb, "", $"MDN's <c>{name}</c> class: its constructors, as Create, and its static members.", model.Interfaces[name]!);
         OpenClass(sb, name);
+
+        // The guard before a Create a browser may not have: `if (await EyeDropper.IsSupported)`.
+        sb.Append("    /// <summary>Whether this browser has it: <c>\"").Append(name).AppendLine("\" in window</c>.</summary>");
+        sb.Append("    public static ValueTask<bool> IsSupported => global::Rask.Web.JsChain.Window.Get(\"").Append(name).AppendLine("\").Exists();");
         WriteFacade(sb, extras);
         sb.AppendLine("}");
         sb.AppendLine();

@@ -14,26 +14,26 @@ public class BrowserCallbackOwnershipTests
     public async Task A_watch_answers_only_the_session_that_registered_it()
     {
         var mine = new FakeJsRuntime();
-        GamepadReading? seen = null;
-        var id = GamepadInterop.Register(mine, reading =>
+        MotionReading? seen = null;
+        var id = DeviceMotionInterop.Register(mine, reading =>
         {
             seen = reading;
             return Task.CompletedTask;
         });
-        var reading = new GamepadReading(0, "pad", Connected: true, Axes: [0.5], Buttons: [1]);
+        var reading = new MotionReading(0.1, 0.2, 0.3, null, null, null, 16);
 
         using (JsCaller.Enter(new FakeJsRuntime()))
         {
-            await GamepadInterop.Reading(id, reading);
+            await DeviceMotionInterop.Reading(id, reading);
         }
 
         var fromAnotherSession = seen;
         using (JsCaller.Enter(mine))
         {
-            await GamepadInterop.Reading(id, reading);
+            await DeviceMotionInterop.Reading(id, reading);
         }
 
-        GamepadInterop.Unregister(id);
+        DeviceMotionInterop.Unregister(id);
         Assert.Null(fromAnotherSession);
         Assert.Same(reading, seen);
     }

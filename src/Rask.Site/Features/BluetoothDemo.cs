@@ -1,16 +1,16 @@
-using Rask.Wasm.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IBluetooth" /> — pair with a Bluetooth Low Energy device that advertises the standard
-///     Battery Service, connect to its GATT server, and read the battery level. WASM-only: requestDevice()
-///     needs a live user gesture and the live device handle, and it's Chromium-family only at the time of
-///     writing. Reads the <c>battery_level</c> characteristic (0–100%).
+///     MDN's Web Bluetooth API from Rask.Web — pair with a Bluetooth Low Energy device, connect to its GATT server,
+///     and read the standard Battery Service's <c>battery_level</c> (0–100%). WASM-only: requestDevice() needs a live
+///     user gesture, and it's Chromium-family only at the time of writing.
 /// </summary>
-public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAsyncDisposable
+public sealed partial class BluetoothDemo : Component
 {
-    private IBluetoothDevice? _device;
+    private Rask.Web.Types.BluetoothDevice? _device;
     private IAsyncDisposable? _disconnectWatch;
     private string? _name;
     private string _battery = "—";
@@ -36,61 +36,69 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("bt-status")[_status]]
             ];
 
+    // navigator.bluetooth.requestDevice() shows the chooser (dismissing it rejects), then the GATT server walks
+    // service → characteristic → readValue(), whose DataView comes back as bytes.
     private async Task PairAndRead()
     {
         try
         {
-            if (!await bluetooth.IsSupportedAsync())
+            if (!await Navigator.Bluetooth.IsSupported)
             {
                 _status = "Web Bluetooth not supported in this browser (Chromium-family only)";
                 return;
             }
 
             await CloseInternal();
-            _device = await bluetooth.RequestDeviceAsync(new BluetoothRequestOptions(
-                Filters: [new BluetoothFilter(Services: ["battery_service"])]));
-            if (_device is null)
+            _device = await Navigator.Bluetooth.RequestDevice(new()
             {
-                _status = "No device selected";
-                return;
-            }
+                Filters = [new() { Services = ["battery_service"] }],
+                OptionalServices = ["battery_service"]
+            });
+            _name = await _device.Name ?? await _device.Id;
+            _disconnectWatch = await _device.OnGattServerDisconnected(async () =>
+            {
+                await CloseInternal();
+                _status = "Device disconnected";
+            });
 
-            _name = _device.Info.Name ?? _device.Info.Id;
-            _disconnectWatch = await _device.WatchDisconnectAsync(OnDisconnect);
-
-            await _device.ConnectAsync();
-            var level = await _device.GetCharacteristicAsync("battery_service", "battery_level");
-            var bytes = await level.ReadAsync();
+            await using var server = await _device.Gatt.Connect();
+            await using var battery = await server.GetPrimaryService("battery_service");
+            await using var level = await battery.GetCharacteristic("battery_level");
+            var bytes = await level.ReadValue();
             _battery = bytes.Length > 0 ? $"{bytes[0]}%" : "(empty)";
             _status = "Connected — battery read";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _status = "Failed: " + ex.Message;
         }
     }
 
-    private async Task OnDisconnect()
-    {
-        // The device dropped its GATT link — release the handle (and its watch) so nothing leaks, then reset.
-        await CloseInternal();
-        _status = "Device disconnected";
-        StateHasChanged();
-    }
-
+    // Stop listening first, so dropping the link ourselves isn't reported as the device going away.
     private async Task Disconnect()
     {
+        await StopWatching();
+        if (_device is not null)
+        {
+            await _device.Gatt.Disconnect();
+        }
+
         await CloseInternal();
         _status = "Disconnected";
     }
 
-    private async Task CloseInternal()
+    private async Task StopWatching()
     {
         if (_disconnectWatch is not null)
         {
             await _disconnectWatch.DisposeAsync();
             _disconnectWatch = null;
         }
+    }
+
+    private async Task CloseInternal()
+    {
+        await StopWatching();
 
         if (_device is not null)
         {
@@ -101,5 +109,5 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
         }
     }
 
-    public async ValueTask DisposeAsync() => await CloseInternal();
+    protected override Task OnUnmount() => CloseInternal();
 }

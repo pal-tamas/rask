@@ -1916,6 +1916,12 @@ import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
         disposeJSObjectReferenceById(id: number) {
             jsObjectRefs.delete(id);
         },
+        // A live object handed to .NET as an IJSObjectReference (a Rask.Web event's device), held until disposed of.
+        createJSObjectReference(value: unknown) {
+            const refId = nextJsObjectRefId++;
+            jsObjectRefs.set(refId, value);
+            return {"__jsObjectId": refId};
+        },
         _endInvokeDotNet(msg: { callId: string; success: boolean; result?: unknown; error?: string }) {
             const pending = dotNetPending.get(msg.callId);
             if (!pending) return;

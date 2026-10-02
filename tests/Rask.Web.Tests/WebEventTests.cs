@@ -137,12 +137,36 @@ public sealed class WebEventTests
         Assert.Contains("has to belong to a component", error.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_live_field_of_an_event_is_kept_for_the_handler_and_let_go_when_its_component_unmounts()
+    {
+        var browser = new HostedBrowser();
+        var widget = new Widget();
+        using (FakeBrowser.Enter(browser))
+        {
+            await widget.WatchUsb();
+        }
+
+        var listen = JsonDocument.Parse(browser.Calls[0].ArgsJson!).RootElement;
+        await ScopedScript.Invoke(listen[4].GetProperty("__raskCb__").GetInt32(), JsonDocument.Parse("""[{"device":{"__jsObjectId":5}}]""").RootElement);
+        widget.CancelLifetimeToken();
+
+        Assert.Equal("""["*device","type","eventPhase","bubbles","cancelable","defaultPrevented","composed","isTrusted","timeStamp"]""", listen[3].GetString());
+        Assert.NotNull(widget.Left);
+        Assert.EndsWith("disposeJSObjectReferenceById", browser.Calls[^1].Identifier, StringComparison.Ordinal);
+        Assert.Equal("[5]", browser.Calls[^1].ArgsJson);
+    }
+
     // What the browser does when it fires: calls the function it was handed, with the listener's payload.
     private static Task Fire(object? callback, string args) =>
         ScopedScript.Invoke(((ScopedScript.ScriptCallback)callback!).Id, JsonDocument.Parse(args).RootElement);
 
     private sealed class Widget : Component
     {
+        public USBDevice? Left { get; private set; }
+
+        public ValueTask<IAsyncDisposable> WatchUsb() => Navigator.Usb.OnDisconnect(e => Left = e.Device);
+
         public bool Wide { get; private set; }
 
         public string Query { get; private set; } = "";

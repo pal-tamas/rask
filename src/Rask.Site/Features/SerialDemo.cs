@@ -1,18 +1,22 @@
 using System.Globalization;
 using System.Text;
-using Rask.Wasm.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="ISerial" /> — talk to a serial device (Arduino / microcontroller, USB-to-serial adapter)
-///     from C# in the browser: pick a port from a gesture, write a line, and watch inbound bytes stream into
-///     the log. WASM-only: <c>requestPort()</c> needs a live user gesture and the live port stream, and it's
-///     Chromium-family only at the time of writing.
+///     MDN's Web Serial API from Rask.Web — talk to a serial device (Arduino / microcontroller, USB-to-serial
+///     adapter) from C# in the browser: pick a port from a gesture, write a line, and watch inbound bytes stream into
+///     the log. WASM-only: <c>requestPort()</c> needs a live user gesture, and it's Chromium-family only at the time
+///     of writing.
 /// </summary>
-public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDisposable
+public sealed partial class SerialDemo : Component
 {
-    private ISerialPort? _port;
+    private Rask.Web.Types.SerialPort? _port;
+    private Rask.Web.Types.ReadableStreamDefaultReader? _reader;
+    private Task _reading = Task.CompletedTask;
+    private IAsyncDisposable? _unplugged;
     private int _baudRate = 9600;
     private string _outgoing = string.Empty;
     private readonly List<string> _log = [];
@@ -54,45 +58,59 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("serial-status")[_status]]
             ];
 
+    // navigator.serial.requestPort() shows the chooser (dismissing it rejects), then port.open({ baudRate }).
     private async Task Connect()
     {
         try
         {
-            if (!await serial.IsSupportedAsync())
+            if (!await Navigator.Serial.IsSupported)
             {
                 _status = "Web Serial not supported in this browser (Chromium-family only)";
                 return;
             }
 
-            _port = await serial.RequestPortAsync(new SerialOptions(BaudRate: _baudRate), OnData, OnClosed);
-            _status = _port is null ? "No port selected" : $"Connected at {_baudRate} baud";
+            _port = await Navigator.Serial.RequestPort();
+            await _port.Open(new() { BaudRate = _baudRate });
+            _unplugged = await _port.OnDisconnect(async () =>
+            {
+                await Release();
+                _status = "Device disconnected";
+            });
+            _reader = await _port.Readable.GetReader();
+            _reading = ReadLoop(_reader);
+            _status = $"Connected at {_baudRate} baud";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
+            await Release();
             _status = "Failed: " + ex.Message;
         }
     }
 
-    private Task OnData(byte[] data)
+    // reader.read() resolves with each chunk the device sends, and with done once the reader is cancelled.
+    private async Task ReadLoop(Rask.Web.Types.ReadableStreamDefaultReader reader)
     {
-        _log.Add(Encoding.UTF8.GetString(data));
-        if (_log.Count > 100)
+        try
         {
-            _log.RemoveRange(0, _log.Count - 100);
+            while (await reader.Read<byte[]>() is { Done: false } chunk)
+            {
+                _log.Add(Encoding.UTF8.GetString(chunk.Value));
+                if (_log.Count > 100)
+                {
+                    _log.RemoveRange(0, _log.Count - 100);
+                }
+
+                StateHasChanged();
+            }
         }
-
-        StateHasChanged();
-        return Task.CompletedTask;
+        catch (JSException ex)
+        {
+            _status = "Read stopped: " + ex.Message;
+            StateHasChanged();
+        }
     }
 
-    private Task OnClosed()
-    {
-        _port = null;
-        _status = "Device disconnected";
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
+    // A writer locks the port's writable stream, so take one per line and let it go again.
     private async Task Send()
     {
         if (_port is null)
@@ -102,11 +120,20 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
 
         try
         {
-            await _port.WriteAsync(Encoding.UTF8.GetBytes(_outgoing + "\n"));
+            await using var writer = await _port.Writable.GetWriter();
+            try
+            {
+                await writer.Write(Encoding.UTF8.GetBytes(_outgoing + "\n"));
+            }
+            finally
+            {
+                await writer.ReleaseLock();
+            }
+
             _status = "Sent: " + _outgoing;
             _outgoing = string.Empty;
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _status = "Send failed: " + ex.Message;
         }
@@ -114,18 +141,52 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
 
     private async Task Disconnect()
     {
-        await CloseInternal();
+        await Release();
         _status = "Disconnected — port released";
     }
 
-    private async Task CloseInternal()
+    // Cancel the read (it ends the loop), unlock the stream, then close the port and let every handle go.
+    private async Task Release()
     {
-        if (_port is not null)
+        var port = _port;
+        var reader = _reader;
+        _port = null;
+        _reader = null;
+        try
         {
-            await _port.DisposeAsync();
-            _port = null;
+            if (reader is not null)
+            {
+                await reader.Cancel();
+                await _reading;
+                await reader.ReleaseLock();
+            }
+
+            if (port is not null)
+            {
+                await port.Close();
+            }
+        }
+        catch (JSException)
+        {
+            // An unplugged port has already closed its streams; there is nothing left to release on its side.
+        }
+
+        if (_unplugged is not null)
+        {
+            await _unplugged.DisposeAsync();
+            _unplugged = null;
+        }
+
+        if (reader is not null)
+        {
+            await reader.DisposeAsync();
+        }
+
+        if (port is not null)
+        {
+            await port.DisposeAsync();
         }
     }
 
-    public async ValueTask DisposeAsync() => await CloseInternal();
+    protected override Task OnUnmount() => Release();
 }

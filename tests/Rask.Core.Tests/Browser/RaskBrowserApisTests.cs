@@ -16,12 +16,9 @@ public class RaskBrowserApisTests
         (typeof(ISpeechSynthesis), typeof(SpeechSynthesis)),
         (typeof(ISpeechRecognition), typeof(SpeechRecognition)),
         (typeof(IStorageEstimator), typeof(StorageEstimator)),
-        (typeof(IGamepad), typeof(Gamepad)),
         (typeof(IDeviceOrientation), typeof(DeviceOrientation)),
         (typeof(IDeviceMotion), typeof(DeviceMotion)),
         (typeof(IIndexedDb), typeof(IndexedDb)),
-        (typeof(IFileSystemAccess), typeof(FileSystemAccess)),
-        (typeof(IOriginPrivateFileSystem), typeof(OriginPrivateFileSystem)),
         (typeof(IWebAuthn), typeof(WebAuthn)),
         (typeof(ICookies), typeof(Cookies)),
         (typeof(IViewTransitions), typeof(ViewTransitions)),
@@ -31,8 +28,6 @@ public class RaskBrowserApisTests
         (typeof(ISignaling), typeof(Signaling)),
         (typeof(IWebRtc), typeof(WebRtc)),
         (typeof(IWebPush), typeof(Rask.Core.Browser.WebPush)),
-        (typeof(INotifications), typeof(Notifications)),
-        (typeof(IBadge), typeof(Badge)),
         (typeof(IWakeLock), typeof(WakeLock)),
     ];
 

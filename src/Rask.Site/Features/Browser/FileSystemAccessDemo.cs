@@ -1,15 +1,17 @@
-using Rask.Core.Browser;
+using Microsoft.JSInterop;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IFileSystemAccess" /> — a tiny text editor: open a file from disk, edit it, and save it
-///     <em>back to the same file</em> (or "Save as…" to a new one). Falls back to a notice where the API is
-///     unsupported (Firefox/Safari).
+///     MDN's File System Access API from Rask.Web — a tiny text editor: open a file from disk, edit it, and save it
+///     <em>back to the same file</em> (or "Save as…" to a new one). Falls back to a notice where the pickers don't
+///     exist (Firefox/Safari).
 /// </summary>
-public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Component, IAsyncDisposable
+public sealed partial class FileSystemAccessDemo : Component
 {
-    private IFileHandle? _handle;
+    private Rask.Web.Types.FileSystemFileHandle? _handle;
+    private string? _name;
     private string _text = string.Empty;
     private string _status = "(idle)";
 
@@ -23,7 +25,7 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                         .OnClick(Save)[Ui.Icon.Name(Ui.IconName.Save), "Save"],
                     Ui.Button.Primary.Outline.Id("fs-saveas").OnClick(SaveAs)["Save as…"]
                 ],
-                Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
+                Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_name ?? "(none)"]],
                 Ui.Textarea
                     .Value(_text)
                     .Label("File contents")
@@ -35,32 +37,34 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fs-status")[_status]]
             ];
 
+    private const string Unsupported = "File System Access not supported — use Chrome/Edge";
+
+    // window.showOpenFilePicker(): every file picked comes back kept; dismissing the picker rejects with AbortError.
     private async Task Open()
     {
         try
         {
-            if (!await files.IsSupportedAsync())
+            var picked = await Window.ShowOpenFilePicker(new()
             {
-                _status = "File System Access not supported — use Chrome/Edge";
-                return;
-            }
-
-            var handle = await files.OpenFileAsync(new FilePickerOptions
-            {
-                Description = "Text files",
-                Accept = new Dictionary<string, string[]>(StringComparer.Ordinal) { ["text/plain"] = [".txt", ".md", ".json", ".cs"] }
+                Types =
+                [
+                    new()
+                    {
+                        Description = "Text files",
+                        Accept = new(StringComparer.Ordinal) { ["text/plain"] = [".txt", ".md", ".json", ".cs"] }
+                    }
+                ]
             });
-            if (handle is null)
-            {
-                _status = "Open cancelled";
-                return;
-            }
-
-            await ReplaceHandle(handle);
-            _text = await handle.ReadTextAsync();
-            _status = $"Opened {handle.Name} ({_text.Length} chars)";
+            await Adopt(picked[0]);
+            await using var file = await picked[0].GetFile();
+            _text = await file.Text();
+            _status = $"Opened {_name} ({_text.Length} chars)";
         }
-        catch (Exception ex)
+        catch (JSException ex) when (IsMissing(ex))
+        {
+            _status = Unsupported;
+        }
+        catch (JSException ex)
         {
             _status = "Open failed: " + ex.Message;
         }
@@ -75,10 +79,10 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
 
         try
         {
-            await _handle.WriteTextAsync(_text);
-            _status = $"Saved {_handle.Name}";
+            await WriteText(_handle);
+            _status = $"Saved {_name}";
         }
-        catch (Exception ex)
+        catch (JSException ex)
         {
             _status = "Save failed: " + ex.Message;
         }
@@ -88,31 +92,33 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     {
         try
         {
-            if (!await files.IsSupportedAsync())
-            {
-                _status = "File System Access not supported — use Chrome/Edge";
-                return;
-            }
-
-            var handle = await files.SaveFileAsync(new SaveFilePickerOptions { SuggestedName = "rask-note.txt" });
-            if (handle is null)
-            {
-                _status = "Save cancelled";
-                return;
-            }
-
-            await ReplaceHandle(handle);
-            await handle.WriteTextAsync(_text);
-            _status = $"Saved to {handle.Name}";
+            var handle = await Window.ShowSaveFilePicker(new() { SuggestedName = "rask-note.txt" });
+            await Adopt(handle);
+            await WriteText(handle);
+            _status = $"Saved to {_name}";
         }
-        catch (Exception ex)
+        catch (JSException ex) when (IsMissing(ex))
+        {
+            _status = Unsupported;
+        }
+        catch (JSException ex)
         {
             _status = "Save failed: " + ex.Message;
         }
     }
 
-    // Drop the previous JS-side handle before adopting a new one, so handles don't leak across opens.
-    private async Task ReplaceHandle(IFileHandle handle)
+    // A browser without the pickers has no window.showOpenFilePicker / showSaveFilePicker to call.
+    private static bool IsMissing(JSException ex) => ex.Message.Contains("is not a function", StringComparison.Ordinal);
+
+    private async Task WriteText(Rask.Web.Types.FileSystemFileHandle handle)
+    {
+        await using var writable = await handle.CreateWritable();
+        await writable.Write(_text);
+        await writable.Close();
+    }
+
+    // Let the previous handle go before keeping a new one, so handles don't pile up across opens.
+    private async Task Adopt(Rask.Web.Types.FileSystemFileHandle handle)
     {
         if (_handle is not null)
         {
@@ -120,9 +126,10 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
         }
 
         _handle = handle;
+        _name = await handle.Name;
     }
 
-    public async ValueTask DisposeAsync()
+    protected override async Task OnUnmount()
     {
         if (_handle is not null)
         {

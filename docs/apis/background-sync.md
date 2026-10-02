@@ -24,7 +24,7 @@ Two consequences:
 
 - **Re-request your tags at boot.** Treat a registration as best-effort rather than durable queue
   state. Keep the work itself in [`IIndexedDb`](indexeddb.md) or
-  [OPFS](origin-private-file-system.md) and let the sync be the *nudge* to drain it, not the store.
+  OPFS (`Navigator.Storage.GetDirectory()` in [Rask.Web](../web-apis.md)) and let the sync be the *nudge* to drain it, not the store.
 - **The realistic win is a backgrounded tab, not a closed one.** A hidden or frozen tab is still a
   client, so it wakes and drains the moment the network is back — which is the case most offline-first
   apps actually hit.

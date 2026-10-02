@@ -68,10 +68,31 @@ const raskWebWalk = (root: unknown, steps: RaskWebStep[]): unknown => {
 // and the steps name it by position: {"__raskArg__": 0}.
 // A C# handler among them is handed what the browser calls it with as data, and the browser gets back the promise of
 // its finishing, which a lock waits on. C#'s bytes arrive as {"__raskBytes__": base64}, and go in as a Uint8Array.
+// The app's own value (an `any`) is written by Rask.Web and revived by the host, {"__raskAny__": 0}, so a kept object
+// inside it is the object; its bytes are turned back into Uint8Arrays wherever they are in it.
+const raskWebBytes = (value: unknown): Uint8Array | undefined => {
+    const bytes = value && typeof value === "object" ? (value as { __raskBytes__?: unknown }).__raskBytes__ : undefined;
+    return typeof bytes === "string" ? Uint8Array.from(atob(bytes), c => c.charCodeAt(0)) : undefined;
+};
+const raskWebAny = (value: unknown, depth = 0): unknown => {
+    if (value === null || typeof value !== "object" || depth > 32) return value;
+    const bytes = raskWebBytes(value);
+    if (bytes) return bytes;
+    if (Array.isArray(value)) return value.map(v => raskWebAny(v, depth + 1));
+    // What the host revived (a kept object, an element) is itself, not data to walk.
+    if (Object.getPrototypeOf(value) !== Object.prototype) return value;
+    const data: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) {
+        if (!raskWebUnsafe.has(key)) data[key] = raskWebAny((value as Record<string, unknown>)[key], depth + 1);
+    }
+    return data;
+};
 const raskWebSteps = (steps: string, extras: unknown[]): RaskWebStep[] =>
     JSON.parse(steps, (_key, value: unknown) => {
-        const bytes = value && typeof value === "object" ? (value as { __raskBytes__?: unknown }).__raskBytes__ : undefined;
-        if (typeof bytes === "string") return Uint8Array.from(atob(bytes), c => c.charCodeAt(0));
+        const bytes = raskWebBytes(value);
+        if (bytes) return bytes;
+        const any = value && typeof value === "object" ? (value as { __raskAny__?: unknown }).__raskAny__ : undefined;
+        if (typeof any === "number") return raskWebAny(extras[any]);
         const index = value && typeof value === "object" ? (value as { __raskArg__?: unknown }).__raskArg__ : undefined;
         if (typeof index !== "number") return value;
         const extra = extras[index];
@@ -131,14 +152,20 @@ window.__raskWeb = window.__raskWeb || {
         }
     },
     // Listens on what the chain ends at; each event reaches C# as the fields its payload type reads, and nothing else
-    // (an event's `view` is a Window, which does not serialize).
+    // (an event's `view` is a Window, which does not serialize). A `*device` field is a live object, kept for C# as
+    // a handle the host holds until C# lets it go.
     listen: (root: unknown, steps: string, type: string, fields: string, handler: (payload: unknown) => void, ...extras: unknown[]) => {
         const target = raskWebWalk(root, raskWebSteps(steps, extras)) as EventTarget | null;
         if (!target || typeof target.addEventListener !== "function") throw new Error(`Rask: there is nothing to listen to for ${type}`);
         const names = JSON.parse(fields) as string[];
         const listener = (event: Event) => {
             const payload: Record<string, unknown> = {};
-            for (const name of names) payload[name] = raskWebData((event as unknown as Record<string, unknown>)[name]);
+            for (const field of names) {
+                const name = field.replace(/^\*/, "");
+                const value = (event as unknown as Record<string, unknown>)[name];
+                payload[name] = field === name ? raskWebData(value)
+                    : value == null ? null : window.DotNet.createJSObjectReference?.(value);
+            }
             handler(payload);
         };
         target.addEventListener(type, listener);

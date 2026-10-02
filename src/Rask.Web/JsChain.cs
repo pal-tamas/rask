@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -109,11 +110,32 @@ internal sealed class JsChain
 
     internal ValueTask<T> CallAny<[DynamicallyAccessedMembers(Json)] T>(string name, object?[] args) => Invoke(name, args).RunAny<T>();
 
-    // An argument of IDL `any`: the app's own value, which rides beside the steps for the host's runtime to write, as
-    // it writes any InvokeAsync argument. Annotated as InvokeAsync<T> is, so the trimmer keeps what that writes.
-    internal static object? Any<[DynamicallyAccessedMembers(Json)] T>(T value) => value is null ? null : new AnyArg(value);
+    // An argument of IDL `any`: the app's own value, written with the host's options and Rask.Web's bytes (WebOptions),
+    // riding beside the steps for the host to revive what it holds (a kept object). Annotated as InvokeAsync<T> is, so
+    // the trimmer keeps what that writes.
+    internal static object? Any<[DynamicallyAccessedMembers(Json)] T>(T value) => value is null ? null : new AnyArg(value, typeof(T));
 
-    internal sealed record AnyArg(object Content);
+    internal sealed class AnyArg(object content, [DynamicallyAccessedMembers(Json)] Type type)
+    {
+        public object Content { get; } = content;
+
+        [DynamicallyAccessedMembers(Json)]
+        public Type Type { get; } = type;
+    }
+
+    // The host's options with Rask.Web's bytes first: what the app's own values are written and read with, so a byte[]
+    // anywhere in one crosses as a Uint8Array, not as the host's byte-array handle, which no web API takes. One copy per
+    // host's options.
+    private static readonly ConditionalWeakTable<JsonSerializerOptions, JsonSerializerOptions> s_webOptions = new();
+
+    private static JsonSerializerOptions WebOptions(IJSRuntime runtime) =>
+        s_webOptions.GetValue((runtime as RaskJSRuntimeBase)?.SerializerOptions ?? Unhosted, static host =>
+        {
+            // A host that names no resolver (the server's) leaves it to JSInterop, which reads by reflection: so does this.
+            var options = new JsonSerializerOptions(host) { TypeInfoResolver = host.TypeInfoResolver ?? Unhosted.TypeInfoResolver };
+            options.Converters.Insert(0, new BytesJsonConverter());
+            return options;
+        });
 
     // Runs the chain and keeps each item of the array it ends at as an object of its own (each USB device, each file
     // handle), disposed of one by one. The array is kept while that happens, so each item is taken from the array the
@@ -209,11 +231,9 @@ internal sealed class JsChain
         }
 
         var runtime = Runtime;
-        // The host's own options read an `any` field as the caller's type. A runtime that is not Rask's (a test's)
-        // gets plain web defaults, which resolve a type only where reflection is on — as it is in a test.
-        var options = (runtime as RaskJSRuntimeBase)?.SerializerOptions ?? Unhosted;
-        var callback = ScopedScript.Handler(Owner(handler), args => invoke(ReadEvent(read, First(args), options)));
-        var (steps, extras) = Serialize();
+        var reading = new Reading(WebOptions(runtime), runtime, Owner(handler));
+        var callback = ScopedScript.Handler(reading.Component, args => invoke(ReadEvent(read, First(args), reading)));
+        var (steps, extras) = Serialize(reading.Options);
         int id;
         try
         {
@@ -269,19 +289,39 @@ internal sealed class JsChain
 
     // A field of IDL `any` (a message's data), kept as its JSON until the handler reads it as its own type: e.Data<T>().
     internal static AnyField AnyFieldOf(JsonElement payload, string name) =>
-        payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty(name, out var value) ? new AnyField(value.Clone(), t_reading) : default;
+        payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty(name, out var value) ? new AnyField(value.Clone(), t_reading?.Options) : default;
 
-    // The options of the runtime an event came over, while its payload is read: what its `any` fields are read with later.
-    [ThreadStatic] private static JsonSerializerOptions? t_reading;
+    // A field holding a live object (a USB connection's device), which the listener kept for the handler: let go when it
+    // is disposed of, or when the handler's component unmounts.
+    internal static T KeptField<T>(JsonElement payload, string name, Func<JsChain, T> wrap)
+        where T : class
+    {
+        if (t_reading is not { } reading || payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty(name, out var value)
+            || value.ValueKind != JsonValueKind.Object)
+        {
+            return null!;
+        }
 
-    // Reflection-backed web defaults, for a runtime that is not Rask's. Both hosts pass their own source-generated
-    // options, so a trimmed app never reaches this; a test's fake runtime does, where reflection is on.
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reached only from a runtime that is not Rask's, a test's; both hosts pass their own options.")]
+        var handle = value.Deserialize((JsonTypeInfo<IJSObjectReference>)reading.Options.GetTypeInfo(typeof(IJSObjectReference)))!;
+        reading.Component.LifetimeTokenInternal.Register(static h => _ = ((IJSObjectReference)h!).DisposeAsync().AsTask(), handle);
+        return wrap(new JsChain(null, StepRoot, null, null, handle, reading.JsRuntime));
+    }
+
+    // What an event's payload is read with, while it is: the options of the runtime it came over (its `any` fields are
+    // read with them later), that runtime (its live fields' home), and the component whose handler it is.
+    private sealed record Reading(JsonSerializerOptions Options, IJSRuntime JsRuntime, Component Component);
+
+    [ThreadStatic] private static Reading? t_reading;
+
+    // Reflection-backed web defaults, for a runtime that is not Rask's, or the resolver of one that names none (the
+    // server's, which is never trimmed). The WebAssembly host passes its own source-generated options, so a trimmed app
+    // never reaches this; a test's fake runtime does, where reflection is on.
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reached only from a test's runtime, or the server's, which names no resolver and is never trimmed; the WebAssembly host passes its own.")]
     private static JsonSerializerOptions Unhosted => JsonSerializerOptions.Web;
 
-    private static TEvent ReadEvent<TEvent>(Func<JsonElement, TEvent> read, JsonElement payload, JsonSerializerOptions? options)
+    private static TEvent ReadEvent<TEvent>(Func<JsonElement, TEvent> read, JsonElement payload, Reading reading)
     {
-        t_reading = options;
+        t_reading = reading;
         try
         {
             return read(payload);
@@ -350,7 +390,9 @@ internal sealed class JsChain
             return fake.Answer<T>(rest);
         }
 
-        return await Runtime.InvokeAsync<T>("__raskWeb.read", Arguments()).ConfigureAwait(false);
+        var runtime = Runtime;
+        var result = await runtime.InvokeAsync<JsonElement>("__raskWeb.read", Arguments()).ConfigureAwait(false);
+        return new AnyField(result, WebOptions(runtime)).As<T>();
     }
 
     // The fake standing in for where this chain goes, if a test set one up.
@@ -377,7 +419,7 @@ internal sealed class JsChain
     // [root, steps, …the arguments the steps name by position].
     private object?[] Arguments()
     {
-        var (steps, extras) = Serialize();
+        var (steps, extras) = Serialize(WebOptions(Runtime));
         return [Start._handle, steps, .. extras];
     }
 
@@ -403,9 +445,10 @@ internal sealed class JsChain
             "A web API was called outside a page: call it from an event handler or from OnRendered, where the page is live.");
 
     // [["g","navigator"],["g","clipboard"],["c","writeText",["hi"]]]
-    internal string Steps() => Serialize().Steps;
+    internal string Steps() => Serialize(null).Steps;
 
-    private (string Steps, List<object> Extras) Serialize()
+    // `options`: what the app's own values are written with (WebOptions); without them they ride as they are.
+    private (string Steps, List<object> Extras) Serialize(JsonSerializerOptions? options)
     {
         var steps = new List<JsChain>();
         for (var c = this; c._kind != StepRoot; c = c._parent!)
@@ -421,7 +464,7 @@ internal sealed class JsChain
             writer.WriteStartArray();
             foreach (var step in steps)
             {
-                step.WriteStep(writer, extras);
+                step.WriteStep(writer, extras, options);
             }
 
             writer.WriteEndArray();
@@ -430,7 +473,7 @@ internal sealed class JsChain
         return (Encoding.UTF8.GetString(buffer.WrittenSpan), extras);
     }
 
-    private void WriteStep(Utf8JsonWriter writer, List<object> extras)
+    private void WriteStep(Utf8JsonWriter writer, List<object> extras, JsonSerializerOptions? options)
     {
         writer.WriteStartArray();
         writer.WriteStringValue(_kind.ToString());
@@ -440,7 +483,7 @@ internal sealed class JsChain
             writer.WriteStartArray();
             foreach (var arg in _args)
             {
-                WriteArg(writer, arg, extras);
+                WriteArg(writer, arg, extras, options);
             }
 
             writer.WriteEndArray();
@@ -449,7 +492,7 @@ internal sealed class JsChain
         writer.WriteEndArray();
     }
 
-    private static void WriteArg(Utf8JsonWriter writer, object? arg, List<object> extras)
+    private static void WriteArg(Utf8JsonWriter writer, object? arg, List<object> extras, JsonSerializerOptions? options)
     {
         switch (arg)
         {
@@ -465,10 +508,10 @@ internal sealed class JsChain
             case JsObject:
                 throw new InvalidOperationException("Only a kept object can be handed to the browser: await it first, to keep it.");
             case AnyArg { Content: ScopedScript.ScriptCallback or IJSObjectReference or ElementRef or JsObject } any:
-                WriteArg(writer, any.Content, extras);
+                WriteArg(writer, any.Content, extras, options);
                 break;
             case AnyArg any:
-                Placeholder(writer, any.Content, extras);
+                Placeholder(writer, options is null ? any.Content : JsonSerializer.SerializeToElement(any.Content, options.GetTypeInfo(any.Type)), extras, "__raskAny__");
                 break;
             default:
                 JsonSerializer.Serialize(writer, arg, RaskWebJsonContext.Default.GetTypeInfo(arg.GetType())
@@ -477,10 +520,12 @@ internal sealed class JsChain
         }
     }
 
-    private static void Placeholder(Utf8JsonWriter writer, object value, List<object> extras)
+    // `kind`: __raskArg__ for what the host revives alone, __raskAny__ for the app's own value, whose bytes the browser
+    // revives too.
+    private static void Placeholder(Utf8JsonWriter writer, object value, List<object> extras, string kind = "__raskArg__")
     {
         writer.WriteStartObject();
-        writer.WriteNumber("__raskArg__", extras.Count);
+        writer.WriteNumber(kind, extras.Count);
         writer.WriteEndObject();
         extras.Add(value);
     }

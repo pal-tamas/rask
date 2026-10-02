@@ -60,7 +60,6 @@ internal sealed class WebMember
 
     private static readonly string[] ReadsT = { "T" };
     private static readonly string[] WritesTValue = { "TValue" };
-    private static readonly string[] Arrays = { "sequence<", "FrozenArray<" };
 
     // Members that write into the bytes they are handed and answer with something else: the bytes cross as a copy, so
     // C# would never see them filled, and their overloads that take bytes are not written. (getRandomValues answers with
@@ -354,7 +353,7 @@ internal sealed class WebMember
                 .Where(p => signatures.Add(string.Join(",", p.Select(x => x.Type))));
             foreach (var parameters in distinct)
             {
-                if (Call(m, idl, method, returns, parameters, types, proxies) is { } member)
+                if (Answer(returns, parameters, proxies) is { } answer && Call(new CallSite(m, idl, method, parameters), answer, types, proxies) is { } member)
                 {
                     result.Add(member);
                 }
@@ -364,57 +363,69 @@ internal sealed class WebMember
         return result;
     }
 
-    private static WebMember? Call(
-        JsonNode m, string idl, string method, string returns, List<(string Type, string Name, string Arg)> parameters, DomValueTypes types, HashSet<string> proxies)
+    // What a call answers with. A union of live objects is the first MDN lists when nothing asks for another — the
+    // default: getReader() is a ReadableStreamDefaultReader. With arguments that could pick another, it is not written.
+    private static string? Answer(string returns, List<(string Type, string Name, string Arg)> parameters, HashSet<string> proxies)
     {
-        var declared = string.Join(", ", parameters.Select(p => p.Type + " " + p.Name));
-        var names = string.Join(", ", parameters.Select(p => p.Name));
-        var values = string.Join(", ", parameters.Select(p => p.Arg));
+        var alternatives = DomValueTypes.Alternatives(returns).ToList();
+        if (alternatives.Count < 2 || !alternatives.All(a => proxies.Contains(a)))
+        {
+            return returns;
+        }
+
+        return parameters.Count == 0 ? alternatives[0] : null;
+    }
+
+    // One overload of a call: what it declares, and the arguments it hands the chain, written into each shape of member.
+    private sealed class CallSite(JsonNode m, string idl, string method, List<(string Type, string Name, string Arg)> parameters)
+    {
+        public string Idl => idl;
+
         // Always an explicit array: a lone string[] argument would otherwise BE the params array (array covariance).
-        var args = parameters.Count == 0 ? "" : ", new object?[] { " + values + " }";
+        public string Args { get; } = parameters.Count == 0 ? "" : ", new object?[] { " + string.Join(", ", parameters.Select(p => p.Arg)) + " }";
+
+        public string[] Generics { get; } = GenericsOf(parameters);
+
+        public bool TakesHandler => parameters.Any(p => IsHandler(p.Arg));
+
+        public WebMember Member(string note, string returns, string body, string? readsAs = null) =>
+            new(m, $"MDN's <c>{idl}()</c>, called in the browser.{note}", returns, method, string.Join(", ", parameters.Select(p => p.Type + " " + p.Name)),
+                string.Join(", ", parameters.Select(p => p.Name)), body, parameterTypes: string.Join(",", parameters.Select(p => p.Type)))
+            { Generics = readsAs is null ? Generics : Generics.Concat(new[] { readsAs }).ToArray() };
+    }
+
+    private static WebMember? Call(CallSite call, string returns, DomValueTypes types, HashSet<string> proxies)
+    {
+        var (idl, args) = (call.Idl, call.Args);
         var promised = returns.StartsWith("Promise<", StringComparison.Ordinal) ? returns.Substring(8, returns.Length - 9) : null;
-        var summary = $"MDN's <c>{idl}()</c>, called in the browser.";
-        var generics = GenericsOf(parameters);
         if (promised is not null && proxies.Contains(promised.TrimEnd('?')))
         {
             var proxy = TypesNs + promised.TrimEnd('?');
-            return new WebMember(m, summary + " The object it resolves to is kept: dispose of it when done.", $"ValueTask<{proxy}>", method, declared, names,
-                $"Chain.Invoke(\"{idl}\"{args}).Keep(static c => new {proxy}(c))")
-            { Generics = generics };
+            return call.Member(" The object it resolves to is kept: dispose of it when done.", $"ValueTask<{proxy}>",
+                $"Chain.Invoke(\"{idl}\"{args}).Keep(static c => new {proxy}(c))");
         }
 
         if (promised is null && proxies.Contains(returns.TrimEnd('?')))
         {
-            var proxy = TypesNs + returns.TrimEnd('?');
-            return new WebMember(m, summary + " Nothing runs until a member of the result is awaited.", proxy, method, declared, names,
-                $"new(Chain.Invoke(\"{idl}\"{args}))")
-            { Generics = generics };
+            return call.Member(" Nothing runs until a member of the result is awaited.", TypesNs + returns.TrimEnd('?'), $"new(Chain.Invoke(\"{idl}\"{args}))");
         }
 
         if (ItemOf(promised ?? returns) is { } item && proxies.Contains(item.TrimEnd('?')))
         {
             var proxy = TypesNs + item.TrimEnd('?');
             var orNull = item.EndsWith("?", StringComparison.Ordinal);
-            return new WebMember(m, summary + " Each object in it is kept: dispose of each when done.", $"ValueTask<{proxy}{(orNull ? "?" : "")}[]>", method,
-                declared, names, $"Chain.Invoke(\"{idl}\"{args}).{(orNull ? "KeepEachOrNull" : "KeepEach")}(static c => new {proxy}(c))")
-            { Generics = generics };
+            return call.Member(" Each object in it is kept: dispose of each when done.", $"ValueTask<{proxy}{(orNull ? "?" : "")}[]>",
+                $"Chain.Invoke(\"{idl}\"{args}).{(orNull ? "KeepEachOrNull" : "KeepEach")}(static c => new {proxy}(c))");
         }
 
-        var typesOnly = string.Join(",", parameters.Select(p => p.Type));
-
-        // A promise of anything that settles with what its callback returned (a lock request's) is waited on, not read.
-        // Anything else is read as the caller's own type, as a response's JSON is read as an Order.
+        // An `any` is read as the caller's own type (`await response.Json<Order>()`) — except a promise that settles with
+        // what its callback returned (a lock request's), which is waited on, not read.
         if (string.Equals(promised ?? returns, "any", StringComparison.Ordinal))
         {
-            if (promised is not null && parameters.Any(p => IsHandler(p.Arg)))
-            {
-                return new WebMember(m, summary, "ValueTask", method, declared, names, $"Chain.Call(\"{idl}\"{args})", parameterTypes: typesOnly) { Generics = generics };
-            }
-
-            var result = generics.Length == 0 ? "T" : "TResult";
-            return new WebMember(m, summary + " Its result is read as your own type.", $"ValueTask<{result}>", method, declared, names,
-                $"Chain.CallAny<{result}>(\"{idl}\"{args})", parameterTypes: typesOnly)
-            { Generics = generics.Concat(new[] { result }).ToArray() };
+            var result = call.Generics.Length == 0 ? "T" : "TResult";
+            return promised is not null && call.TakesHandler
+                ? call.Member("", "ValueTask", $"Chain.Call(\"{idl}\"{args})")
+                : call.Member(" Its result is read as your own type.", $"ValueTask<{result}>", $"Chain.CallAny<{result}>(\"{idl}\"{args})", result);
         }
 
         if (types.CSharp(returns, returned: true) is not { } value)
@@ -422,17 +433,22 @@ internal sealed class WebMember
             return null;
         }
 
-        var isVoid = string.Equals(value, "void", StringComparison.Ordinal);
-        return new WebMember(m, summary, isVoid ? "ValueTask" : $"ValueTask<{value}>", method, declared, names,
-            isVoid ? $"Chain.Call(\"{idl}\"{args})" : $"Chain.Call<{value}>(\"{idl}\"{args})", parameterTypes: typesOnly)
-        { Generics = generics };
+        // A record of your own type (a stream read's ReadableStreamReadResult<T>) is read as an `any` is.
+        if (value.EndsWith("<T>", StringComparison.Ordinal))
+        {
+            return call.Member(" Its result is read as your own type.", $"ValueTask<{value}>", $"Chain.CallAny<{value}>(\"{idl}\"{args})", "T");
+        }
+
+        return string.Equals(value, "void", StringComparison.Ordinal)
+            ? call.Member("", "ValueTask", $"Chain.Call(\"{idl}\"{args})")
+            : call.Member("", $"ValueTask<{value}>", $"Chain.Call<{value}>(\"{idl}\"{args})");
     }
 
     // The item type of a sequence or frozen array, `sequence<USBDevice>` → USBDevice; null for anything else.
     private static string? ItemOf(string idl)
     {
         var bare = idl.TrimEnd('?');
-        var open = Arrays.FirstOrDefault(a => bare.StartsWith(a, StringComparison.Ordinal) && bare.EndsWith(">", StringComparison.Ordinal));
+        var open = DomValueTypes.Arrays.FirstOrDefault(a => bare.StartsWith(a, StringComparison.Ordinal) && bare.EndsWith(">", StringComparison.Ordinal));
         return open is null ? null : bare.Substring(open.Length, bare.Length - open.Length - 1);
     }
 

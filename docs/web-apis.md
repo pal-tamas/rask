@@ -89,7 +89,23 @@ await using var _ = await channel.OnMessage(e => _last = e.Data<CartChanged>());
 
 Your type is kept whole in a trimmed WebAssembly app, as for `InvokeAsync<T>`; under full AOT give it a
 `JsonSerializerContext`, as Blazor asks. A promise of anything that settles with what your callback returned (a lock
-request's) is only waited on.
+request's) is only waited on. Bytes are bytes there too — a `byte[]` you hand over as an `any`, alone or anywhere inside
+your own type, arrives as a `Uint8Array`, and one the browser answers with comes back as a `byte[]`.
+
+A dictionary the browser answers with that holds an `any` is generic on your type, which is how a stream is read:
+
+```csharp
+await using var writer = await port.Writable.GetWriter();
+await writer.Write(new byte[] { 0x01, 0x02 });                     // WritableStreamDefaultWriter.write(any)
+
+await using var reader = await port.Readable.GetReader();          // the default reader: ReadableStreamDefaultReader
+var r = await reader.Read<byte[]>();                               // ReadableStreamReadResult<byte[]>
+if (!r.Done) Use(r.Value);
+await reader.ReleaseLock();                                        // or reader.Cancel()
+```
+
+`GetReader()` is the reader MDN lists first, the one you get without asking for another; the overload that asks for a
+BYOB reader is not generated, since C# could not tell which object it answers with.
 
 **A list of live objects is an array of kept objects**, each disposed of on its own; an empty slot (a gamepad not
 connected) is `null`:
@@ -109,6 +125,33 @@ await using var status = await Navigator.Permissions.Query(new() { Name = "geolo
 var state = await status.State;                                   // PermissionState.Granted
 ```
 
+**A union is one C# type where one type can stand for every case:**
+
+- **A value or a list of it** is the list — written as the list, and a lone value read back is a list of one: an
+  observer's `Threshold`, an ICE server's `Urls`, a notification's `Vibrate`.
+- **A string or a number** is a `string`, and crosses as the number where it spells one: `"6159"` goes as `6159`,
+  `"battery_service"` and `"0x180F"` as text. The number is the short form of what the text also says (a Bluetooth
+  service UUID), and where the text is a name instead — an animation's `"auto"`, a performance mark's name — a number
+  written as text would be taken for one. Read back, a number is its text.
+- **A `record<K, V>`** is a `Dictionary<string, V>`: a file picker's `Accept`, `Headers.Create(…)`, `PushSubscriptionJSON.Keys`.
+
+```csharp
+var battery = await Navigator.Bluetooth.RequestDevice(new()      // WebAssembly: in the click
+{
+    Filters = [new() { Services = ["battery_service"] }], OptionalServices = ["battery_service"],
+});
+var files = await Window.ShowOpenFilePicker(new()
+{
+    Types = [new() { Description = "Text", Accept = new() { ["text/plain"] = [".txt"] } }],
+});
+```
+
+**An object that is nothing but values is a record**, wherever the browser hands it over: in a callback (an
+observer's entries), in a read-only list (`await pad.Buttons` is a `GamepadButton[]`, `await device.Configurations` a
+`USBConfiguration[]`), or in an event (a `DeviceMotionEvent`'s `Acceleration`, an `RTCErrorEvent`'s `Error`). Its
+fields are typed as MDN says. One that holds a live object too (an XR input source, with its spaces) stays live, since
+its record would lose it.
+
 ## Events and callbacks
 
 An object's events are `On{Event}` — MDN's event name, like the element events — and subscribing returns a
@@ -121,7 +164,20 @@ await using var online = await Window.OnOnline(() => _online = true);
 ```
 
 The event is MDN's type — Core's `Event` where an element event uses the same one, else a type in `Rask.Web.Types`
-(`MediaQueryListEvent`, `StorageEvent`) deriving from it — holding the fields that are values. A method or constructor
+(`MediaQueryListEvent`, `StorageEvent`) deriving from it — holding the fields that are values. A field that is a live
+object is kept for you, the same object the browser fired with:
+
+```csharp
+await using var _ = await Navigator.Usb.OnDisconnect(async e =>
+{
+    await using var device = e.Device;                            // which device left
+    _left = await device.ProductName;
+});
+```
+
+Each one is a handle the browser holds until you dispose of it, or until the handler's component unmounts — so dispose
+of what you do not keep. An event that only ever fires on the object it names (a HID device's `inputreport`, many a
+second) leaves that field out: you are holding it already. A method or constructor
 that takes a callback takes a C# handler for it, run and re-rendered the same way, and an element it takes is your
 `ElementRef`:
 
@@ -149,7 +205,10 @@ re-renders; the component unmounting drops it. Keep the subscription or the obse
 ## Asking whether the browser has it
 
 `IsSupported` asks the browser whether the object at the end of a path is there, instead of your guessing from its
-user agent: `await Navigator.Clipboard.IsSupported`, `await Navigator.IsSupported`.
+user agent: `await Navigator.Clipboard.IsSupported`, `await Navigator.IsSupported`. A class has one too, for the
+guard before `Create` — `if (await EyeDropper.IsSupported)` asks `"EyeDropper" in window`. A method has none, since a
+C# method has no members to ask with: a method on a global (`Window.ShowOpenFilePicker`) that this browser lacks
+answers the call with a `JSException`.
 
 A web API is generated once ONE browser engine ships it, so the device APIs only Chromium has are here too — WebUSB,
 WebHID, Web Bluetooth, the Battery Status and Network Information APIs, `navigator.vibrate`, the EyeDropper and Idle

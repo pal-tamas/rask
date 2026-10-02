@@ -1,7 +1,4 @@
 #nullable enable
-Rask.Web.CookieCulturePersistence
-Rask.Web.CookieCulturePersistence.CookieCulturePersistence(System.IServiceProvider! services, Rask.Core.Globalization.RaskCultureOptions! options) -> void
-Rask.Web.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Web.CookieStore
 Rask.Web.CustomElements
 Rask.Web.Document
@@ -1413,13 +1410,7 @@ Rask.Web.Types.DataTransferItemList.Remove(int index) -> System.Threading.Tasks.
 Rask.Web.Types.DelayNode
 Rask.Web.Types.DelayNode.DelayTime.get -> Rask.Web.Types.AudioParam!
 Rask.Web.Types.DeviceMotionEventAcceleration
-Rask.Web.Types.DeviceMotionEventAcceleration.X.get -> System.Threading.Tasks.ValueTask<double?>
-Rask.Web.Types.DeviceMotionEventAcceleration.Y.get -> System.Threading.Tasks.ValueTask<double?>
-Rask.Web.Types.DeviceMotionEventAcceleration.Z.get -> System.Threading.Tasks.ValueTask<double?>
 Rask.Web.Types.DeviceMotionEventRotationRate
-Rask.Web.Types.DeviceMotionEventRotationRate.Alpha.get -> System.Threading.Tasks.ValueTask<double?>
-Rask.Web.Types.DeviceMotionEventRotationRate.Beta.get -> System.Threading.Tasks.ValueTask<double?>
-Rask.Web.Types.DeviceMotionEventRotationRate.Gamma.get -> System.Threading.Tasks.ValueTask<double?>
 Rask.Web.Types.DigitalCredentialCreateRequest
 Rask.Web.Types.DigitalCredentialCreateRequest.<Clone>$() -> Rask.Web.Types.DigitalCredentialCreateRequest!
 Rask.Web.Types.DigitalCredentialCreateRequest.DigitalCredentialCreateRequest() -> void
@@ -2581,9 +2572,6 @@ Rask.Web.Types.Gamepad.Index.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.Gamepad.Mapping.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GamepadMappingType>
 Rask.Web.Types.Gamepad.VibrationActuator.get -> Rask.Web.Types.GamepadHapticActuator!
 Rask.Web.Types.GamepadButton
-Rask.Web.Types.GamepadButton.Pressed.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.GamepadButton.Touched.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.GamepadButton.Value.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.GamepadEffectParameters
 Rask.Web.Types.GamepadEffectParameters.<Clone>$() -> Rask.Web.Types.GamepadEffectParameters!
 Rask.Web.Types.GamepadEffectParameters.Duration.get -> long?
@@ -4556,11 +4544,6 @@ Rask.Web.Types.RTCEncodedVideoFrameMetadata.Timestamp.init -> void
 Rask.Web.Types.RTCEncodedVideoFrameMetadata.Width.get -> int?
 Rask.Web.Types.RTCEncodedVideoFrameMetadata.Width.init -> void
 Rask.Web.Types.RTCError
-Rask.Web.Types.RTCError.ErrorDetail.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCErrorDetailType>
-Rask.Web.Types.RTCError.ReceivedAlert.get -> System.Threading.Tasks.ValueTask<int?>
-Rask.Web.Types.RTCError.SctpCauseCode.get -> System.Threading.Tasks.ValueTask<int?>
-Rask.Web.Types.RTCError.SdpLineNumber.get -> System.Threading.Tasks.ValueTask<int?>
-Rask.Web.Types.RTCError.SentAlert.get -> System.Threading.Tasks.ValueTask<int?>
 Rask.Web.Types.RTCErrorDetailType
 Rask.Web.Types.RTCErrorDetailType.DataChannelFailure = 0 -> Rask.Web.Types.RTCErrorDetailType
 Rask.Web.Types.RTCErrorDetailType.DtlsFailure = 1 -> Rask.Web.Types.RTCErrorDetailType
@@ -8455,22 +8438,6 @@ Rask.Web.Types.RTCEncodedVideoFrameOptions.Equals(Rask.Web.Types.RTCEncodedVideo
 Rask.Web.Types.RTCEncodedVideoFrameOptions.Metadata.get -> Rask.Web.Types.RTCEncodedVideoFrameMetadata?
 Rask.Web.Types.RTCEncodedVideoFrameOptions.Metadata.init -> void
 Rask.Web.Types.RTCEncodedVideoFrameOptions.RTCEncodedVideoFrameOptions() -> void
-Rask.Web.Types.RTCErrorInit
-Rask.Web.Types.RTCErrorInit.<Clone>$() -> Rask.Web.Types.RTCErrorInit!
-Rask.Web.Types.RTCErrorInit.Equals(Rask.Web.Types.RTCErrorInit? other) -> bool
-Rask.Web.Types.RTCErrorInit.ErrorDetail.get -> Rask.Web.Types.RTCErrorDetailType
-Rask.Web.Types.RTCErrorInit.ErrorDetail.init -> void
-Rask.Web.Types.RTCErrorInit.HttpRequestStatusCode.get -> int?
-Rask.Web.Types.RTCErrorInit.HttpRequestStatusCode.init -> void
-Rask.Web.Types.RTCErrorInit.RTCErrorInit() -> void
-Rask.Web.Types.RTCErrorInit.ReceivedAlert.get -> int?
-Rask.Web.Types.RTCErrorInit.ReceivedAlert.init -> void
-Rask.Web.Types.RTCErrorInit.SctpCauseCode.get -> int?
-Rask.Web.Types.RTCErrorInit.SctpCauseCode.init -> void
-Rask.Web.Types.RTCErrorInit.SdpLineNumber.get -> int?
-Rask.Web.Types.RTCErrorInit.SdpLineNumber.init -> void
-Rask.Web.Types.RTCErrorInit.SentAlert.get -> int?
-Rask.Web.Types.RTCErrorInit.SentAlert.init -> void
 Rask.Web.Types.RTCRtpCapabilities
 Rask.Web.Types.RTCRtpCapabilities.<Clone>$() -> Rask.Web.Types.RTCRtpCapabilities!
 Rask.Web.Types.RTCRtpCapabilities.Codecs.get -> Rask.Web.Types.RTCRtpCodec![]!
@@ -8935,9 +8902,6 @@ override Rask.Web.Types.RTCEncodedAudioFrameOptions.ToString() -> string!
 override Rask.Web.Types.RTCEncodedVideoFrameOptions.Equals(object? obj) -> bool
 override Rask.Web.Types.RTCEncodedVideoFrameOptions.GetHashCode() -> int
 override Rask.Web.Types.RTCEncodedVideoFrameOptions.ToString() -> string!
-override Rask.Web.Types.RTCErrorInit.Equals(object? obj) -> bool
-override Rask.Web.Types.RTCErrorInit.GetHashCode() -> int
-override Rask.Web.Types.RTCErrorInit.ToString() -> string!
 override Rask.Web.Types.RTCRtpCapabilities.Equals(object? obj) -> bool
 override Rask.Web.Types.RTCRtpCapabilities.GetHashCode() -> int
 override Rask.Web.Types.RTCRtpCapabilities.ToString() -> string!
@@ -9151,8 +9115,6 @@ static Rask.Web.Types.RTCEncodedAudioFrameOptions.operator !=(Rask.Web.Types.RTC
 static Rask.Web.Types.RTCEncodedAudioFrameOptions.operator ==(Rask.Web.Types.RTCEncodedAudioFrameOptions? left, Rask.Web.Types.RTCEncodedAudioFrameOptions? right) -> bool
 static Rask.Web.Types.RTCEncodedVideoFrameOptions.operator !=(Rask.Web.Types.RTCEncodedVideoFrameOptions? left, Rask.Web.Types.RTCEncodedVideoFrameOptions? right) -> bool
 static Rask.Web.Types.RTCEncodedVideoFrameOptions.operator ==(Rask.Web.Types.RTCEncodedVideoFrameOptions? left, Rask.Web.Types.RTCEncodedVideoFrameOptions? right) -> bool
-static Rask.Web.Types.RTCErrorInit.operator !=(Rask.Web.Types.RTCErrorInit? left, Rask.Web.Types.RTCErrorInit? right) -> bool
-static Rask.Web.Types.RTCErrorInit.operator ==(Rask.Web.Types.RTCErrorInit? left, Rask.Web.Types.RTCErrorInit? right) -> bool
 static Rask.Web.Types.RTCRtpCapabilities.operator !=(Rask.Web.Types.RTCRtpCapabilities? left, Rask.Web.Types.RTCRtpCapabilities? right) -> bool
 static Rask.Web.Types.RTCRtpCapabilities.operator ==(Rask.Web.Types.RTCRtpCapabilities? left, Rask.Web.Types.RTCRtpCapabilities? right) -> bool
 static Rask.Web.Types.RTCRtpHeaderExtensionCapability.operator !=(Rask.Web.Types.RTCRtpHeaderExtensionCapability? left, Rask.Web.Types.RTCRtpHeaderExtensionCapability? right) -> bool
@@ -9344,7 +9306,6 @@ Rask.Web.Types.ReadableStreamDefaultController.Error() -> System.Threading.Tasks
 Rask.Web.Types.ReadableStreamDefaultReader
 Rask.Web.Types.ReadableStreamDefaultReader.Cancel() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.ReadableStreamDefaultReader.Closed.get -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.ReadableStreamDefaultReader.Read() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult!>
 Rask.Web.Types.ReadableStreamDefaultReader.ReleaseLock() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.ReadableStreamGetReaderOptions
 Rask.Web.Types.ReadableStreamGetReaderOptions.<Clone>$() -> Rask.Web.Types.ReadableStreamGetReaderOptions!
@@ -9352,12 +9313,6 @@ Rask.Web.Types.ReadableStreamGetReaderOptions.Equals(Rask.Web.Types.ReadableStre
 Rask.Web.Types.ReadableStreamGetReaderOptions.Mode.get -> Rask.Web.Types.ReadableStreamReaderMode?
 Rask.Web.Types.ReadableStreamGetReaderOptions.Mode.init -> void
 Rask.Web.Types.ReadableStreamGetReaderOptions.ReadableStreamGetReaderOptions() -> void
-Rask.Web.Types.ReadableStreamReadResult
-Rask.Web.Types.ReadableStreamReadResult.<Clone>$() -> Rask.Web.Types.ReadableStreamReadResult!
-Rask.Web.Types.ReadableStreamReadResult.Done.get -> bool?
-Rask.Web.Types.ReadableStreamReadResult.Done.init -> void
-Rask.Web.Types.ReadableStreamReadResult.Equals(Rask.Web.Types.ReadableStreamReadResult? other) -> bool
-Rask.Web.Types.ReadableStreamReadResult.ReadableStreamReadResult() -> void
 Rask.Web.Types.ReadableStreamReaderMode
 Rask.Web.Types.ReadableStreamReaderMode.Byob = 0 -> Rask.Web.Types.ReadableStreamReaderMode
 Rask.Web.Types.Request.Body.get -> Rask.Web.Types.ReadableStream!
@@ -9498,9 +9453,6 @@ override Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.ToString() -> string
 override Rask.Web.Types.ReadableStreamGetReaderOptions.Equals(object? obj) -> bool
 override Rask.Web.Types.ReadableStreamGetReaderOptions.GetHashCode() -> int
 override Rask.Web.Types.ReadableStreamGetReaderOptions.ToString() -> string!
-override Rask.Web.Types.ReadableStreamReadResult.Equals(object? obj) -> bool
-override Rask.Web.Types.ReadableStreamReadResult.GetHashCode() -> int
-override Rask.Web.Types.ReadableStreamReadResult.ToString() -> string!
 override Rask.Web.Types.StreamPipeOptions.Equals(object? obj) -> bool
 override Rask.Web.Types.StreamPipeOptions.GetHashCode() -> int
 override Rask.Web.Types.StreamPipeOptions.ToString() -> string!
@@ -9527,8 +9479,6 @@ static Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.operator !=(Rask.Web.T
 static Rask.Web.Types.ReadableStreamBYOBReaderReadOptions.operator ==(Rask.Web.Types.ReadableStreamBYOBReaderReadOptions? left, Rask.Web.Types.ReadableStreamBYOBReaderReadOptions? right) -> bool
 static Rask.Web.Types.ReadableStreamGetReaderOptions.operator !=(Rask.Web.Types.ReadableStreamGetReaderOptions? left, Rask.Web.Types.ReadableStreamGetReaderOptions? right) -> bool
 static Rask.Web.Types.ReadableStreamGetReaderOptions.operator ==(Rask.Web.Types.ReadableStreamGetReaderOptions? left, Rask.Web.Types.ReadableStreamGetReaderOptions? right) -> bool
-static Rask.Web.Types.ReadableStreamReadResult.operator !=(Rask.Web.Types.ReadableStreamReadResult? left, Rask.Web.Types.ReadableStreamReadResult? right) -> bool
-static Rask.Web.Types.ReadableStreamReadResult.operator ==(Rask.Web.Types.ReadableStreamReadResult? left, Rask.Web.Types.ReadableStreamReadResult? right) -> bool
 static Rask.Web.Types.StreamPipeOptions.operator !=(Rask.Web.Types.StreamPipeOptions? left, Rask.Web.Types.StreamPipeOptions? right) -> bool
 static Rask.Web.Types.StreamPipeOptions.operator ==(Rask.Web.Types.StreamPipeOptions? left, Rask.Web.Types.StreamPipeOptions? right) -> bool
 static Rask.Web.Types.TextDecodeOptions.operator !=(Rask.Web.Types.TextDecodeOptions? left, Rask.Web.Types.TextDecodeOptions? right) -> bool
@@ -9595,7 +9545,6 @@ Rask.Web.PerformanceMark
 Rask.Web.PerformanceObserver
 Rask.Web.PublicKeyCredential
 Rask.Web.PushManager
-Rask.Web.RTCError
 Rask.Web.RTCIceCandidate
 Rask.Web.RTCPeerConnection
 Rask.Web.RTCRtpReceiver
@@ -9727,8 +9676,6 @@ static Rask.Web.PublicKeyCredential.SignalAllAcceptedCredentials(Rask.Web.Types.
 static Rask.Web.PublicKeyCredential.SignalCurrentUserDetails(Rask.Web.Types.CurrentUserDetailsOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Web.PublicKeyCredential.SignalUnknownCredential(Rask.Web.Types.UnknownCredentialOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Web.PushManager.SupportedContentEncodings.get -> System.Threading.Tasks.ValueTask<string![]!>
-static Rask.Web.RTCError.Create(Rask.Web.Types.RTCErrorInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCError!>
-static Rask.Web.RTCError.Create(Rask.Web.Types.RTCErrorInit! init, string! message) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCError!>
 static Rask.Web.RTCIceCandidate.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidate!>
 static Rask.Web.RTCIceCandidate.Create(Rask.Web.Types.RTCLocalIceCandidateInit! candidateInitDict) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceCandidate!>
 static Rask.Web.RTCPeerConnection.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCPeerConnection!>
@@ -11141,7 +11088,6 @@ Rask.Web.IdentityCredential
 Rask.Web.IdentityCredentialError
 Rask.Web.IdentityProvider
 Rask.Web.IdleDetector
-Rask.Web.InputDeviceCapabilities
 Rask.Web.LanguageDetector
 Rask.Web.LanguageModel
 Rask.Web.LaunchQueue
@@ -11481,9 +11427,6 @@ Rask.Web.Types.CaptureStartFocusBehavior.FocusCapturedSurface = 1 -> Rask.Web.Ty
 Rask.Web.Types.CaptureStartFocusBehavior.FocusCapturingApplication = 0 -> Rask.Web.Types.CaptureStartFocusBehavior
 Rask.Web.Types.CaptureStartFocusBehavior.NoFocusChange = 2 -> Rask.Web.Types.CaptureStartFocusBehavior
 Rask.Web.Types.ChapterInformation
-Rask.Web.Types.ChapterInformation.Artwork.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.MediaImage![]!>
-Rask.Web.Types.ChapterInformation.StartTime.get -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.ChapterInformation.Title.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.CharacterBoundsUpdateEvent
 Rask.Web.Types.CharacterBoundsUpdateEvent.CharacterBoundsUpdateEvent() -> void
 Rask.Web.Types.CharacterBoundsUpdateEvent.RangeEnd.get -> int
@@ -11968,15 +11911,6 @@ Rask.Web.Types.InkTrailStyle.Diameter.init -> void
 Rask.Web.Types.InkTrailStyle.Equals(Rask.Web.Types.InkTrailStyle? other) -> bool
 Rask.Web.Types.InkTrailStyle.InkTrailStyle() -> void
 Rask.Web.Types.InputDeviceCapabilities
-Rask.Web.Types.InputDeviceCapabilities.FiresTouchEvents.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.InputDeviceCapabilitiesInit
-Rask.Web.Types.InputDeviceCapabilitiesInit.<Clone>$() -> Rask.Web.Types.InputDeviceCapabilitiesInit!
-Rask.Web.Types.InputDeviceCapabilitiesInit.Equals(Rask.Web.Types.InputDeviceCapabilitiesInit? other) -> bool
-Rask.Web.Types.InputDeviceCapabilitiesInit.FiresTouchEvents.get -> bool?
-Rask.Web.Types.InputDeviceCapabilitiesInit.FiresTouchEvents.init -> void
-Rask.Web.Types.InputDeviceCapabilitiesInit.InputDeviceCapabilitiesInit() -> void
-Rask.Web.Types.InputDeviceCapabilitiesInit.PointerMovementScrolls.get -> bool?
-Rask.Web.Types.InputDeviceCapabilitiesInit.PointerMovementScrolls.init -> void
 Rask.Web.Types.InteractionContentfulPaint
 Rask.Web.Types.InteractionContentfulPaint.Equals(Rask.Web.Types.InteractionContentfulPaint? other) -> bool
 Rask.Web.Types.InteractionContentfulPaint.InteractionContentfulPaint() -> void
@@ -12543,7 +12477,6 @@ Rask.Web.Types.QuotaExceededErrorOptions.QuotaExceededErrorOptions() -> void
 Rask.Web.Types.QuotaExceededErrorOptions.Requested.get -> double?
 Rask.Web.Types.QuotaExceededErrorOptions.Requested.init -> void
 Rask.Web.Types.RTCDataChannel.Priority.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCPriorityType>
-Rask.Web.Types.RTCError.HttpRequestStatusCode.get -> System.Threading.Tasks.ValueTask<int?>
 Rask.Web.Types.RTCIceCandidate.RelayProtocol.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCIceServerTransportProtocol?>
 Rask.Web.Types.RTCIceCandidate.Url.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Web.Types.RTCIceCandidatePair
@@ -12981,14 +12914,7 @@ Rask.Web.Types.USB.OnDisconnect(System.Action<Rask.Web.Types.USBConnectionEvent!
 Rask.Web.Types.USB.OnDisconnect(System.Func<Rask.Web.Types.USBConnectionEvent!, System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.USB.OnDisconnect(System.Func<System.Threading.Tasks.Task!>! handler) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.USBAlternateInterface
-Rask.Web.Types.USBAlternateInterface.AlternateSetting.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.USBAlternateInterface.InterfaceClass.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.USBAlternateInterface.InterfaceName.get -> System.Threading.Tasks.ValueTask<string?>
-Rask.Web.Types.USBAlternateInterface.InterfaceProtocol.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.USBAlternateInterface.InterfaceSubclass.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.USBConfiguration
-Rask.Web.Types.USBConfiguration.ConfigurationName.get -> System.Threading.Tasks.ValueTask<string?>
-Rask.Web.Types.USBConfiguration.ConfigurationValue.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.USBConnectionEvent
 Rask.Web.Types.USBConnectionEvent.USBConnectionEvent() -> void
 Rask.Web.Types.USBControlTransferParameters
@@ -13009,7 +12935,6 @@ Rask.Web.Types.USBDevice
 Rask.Web.Types.USBDevice.ClaimInterface(int interfaceNumber) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.USBDevice.ClearHalt(Rask.Web.Types.USBDirection direction, int endpointNumber) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.USBDevice.Close() -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.USBDevice.Configuration.get -> Rask.Web.Types.USBConfiguration!
 Rask.Web.Types.USBDevice.ControlTransferIn(Rask.Web.Types.USBControlTransferParameters! setup, int length) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBInTransferResult!>
 Rask.Web.Types.USBDevice.ControlTransferOut(Rask.Web.Types.USBControlTransferParameters! setup) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBOutTransferResult!>
 Rask.Web.Types.USBDevice.DeviceClass.get -> System.Threading.Tasks.ValueTask<int>
@@ -13063,10 +12988,6 @@ Rask.Web.Types.USBDirection
 Rask.Web.Types.USBDirection.In = 0 -> Rask.Web.Types.USBDirection
 Rask.Web.Types.USBDirection.Out = 1 -> Rask.Web.Types.USBDirection
 Rask.Web.Types.USBEndpoint
-Rask.Web.Types.USBEndpoint.Direction.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBDirection>
-Rask.Web.Types.USBEndpoint.EndpointNumber.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.USBEndpoint.PacketSize.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.USBEndpoint.Type.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBEndpointType>
 Rask.Web.Types.USBEndpointType
 Rask.Web.Types.USBEndpointType.Bulk = 0 -> Rask.Web.Types.USBEndpointType
 Rask.Web.Types.USBEndpointType.Interrupt = 1 -> Rask.Web.Types.USBEndpointType
@@ -13075,14 +12996,9 @@ Rask.Web.Types.USBInTransferResult
 Rask.Web.Types.USBInTransferResult.Status.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBTransferStatus>
 Rask.Web.Types.USBInterface
 Rask.Web.Types.USBInterface.Alternate.get -> Rask.Web.Types.USBAlternateInterface!
-Rask.Web.Types.USBInterface.Claimed.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.USBInterface.InterfaceNumber.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.USBIsochronousInTransferPacket
-Rask.Web.Types.USBIsochronousInTransferPacket.Status.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBTransferStatus>
 Rask.Web.Types.USBIsochronousInTransferResult
 Rask.Web.Types.USBIsochronousOutTransferPacket
-Rask.Web.Types.USBIsochronousOutTransferPacket.BytesWritten.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.USBIsochronousOutTransferPacket.Status.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBTransferStatus>
 Rask.Web.Types.USBIsochronousOutTransferResult
 Rask.Web.Types.USBOutTransferResult
 Rask.Web.Types.USBOutTransferResult.BytesWritten.get -> System.Threading.Tasks.ValueTask<int>
@@ -13750,8 +13666,6 @@ Rask.Web.Types.XRWebGLSubImage.DepthStencilTextureHeight.get -> System.Threading
 Rask.Web.Types.XRWebGLSubImage.DepthStencilTextureWidth.get -> System.Threading.Tasks.ValueTask<int?>
 Rask.Web.Types.XRWebGLSubImage.ImageIndex.get -> System.Threading.Tasks.ValueTask<int?>
 Rask.Web.USBInTransferResult
-Rask.Web.USBIsochronousInTransferPacket
-Rask.Web.USBIsochronousOutTransferPacket
 Rask.Web.USBOutTransferResult
 Rask.Web.Viewport
 Rask.Web.XRRay
@@ -13869,9 +13783,6 @@ override Rask.Web.Types.ImageResource.ToString() -> string!
 override Rask.Web.Types.InkTrailStyle.Equals(object? obj) -> bool
 override Rask.Web.Types.InkTrailStyle.GetHashCode() -> int
 override Rask.Web.Types.InkTrailStyle.ToString() -> string!
-override Rask.Web.Types.InputDeviceCapabilitiesInit.Equals(object? obj) -> bool
-override Rask.Web.Types.InputDeviceCapabilitiesInit.GetHashCode() -> int
-override Rask.Web.Types.InputDeviceCapabilitiesInit.ToString() -> string!
 override Rask.Web.Types.InteractionContentfulPaint.<Clone>$() -> Rask.Web.Types.InteractionContentfulPaint!
 override Rask.Web.Types.InteractionContentfulPaint.Equals(object? obj) -> bool
 override Rask.Web.Types.InteractionContentfulPaint.GetHashCode() -> int
@@ -14163,8 +14074,6 @@ static Rask.Web.IdentityCredentialError.Create(string! message, Rask.Web.Types.I
 static Rask.Web.IdentityProvider.Close() -> System.Threading.Tasks.ValueTask
 static Rask.Web.IdentityProvider.GetUserInfo(Rask.Web.Types.IdentityProviderConfig! config) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IdentityUserInfo![]!>
 static Rask.Web.IdleDetector.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.IdleDetector!>
-static Rask.Web.InputDeviceCapabilities.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.InputDeviceCapabilities!>
-static Rask.Web.InputDeviceCapabilities.Create(Rask.Web.Types.InputDeviceCapabilitiesInit! deviceInitDict) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.InputDeviceCapabilities!>
 static Rask.Web.LanguageDetector.Availability() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Availability>
 static Rask.Web.LanguageDetector.Availability(Rask.Web.Types.LanguageDetectorCreateCoreOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Availability>
 static Rask.Web.LanguageDetector.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.LanguageDetector!>
@@ -14323,8 +14232,6 @@ static Rask.Web.Types.ImageResource.operator !=(Rask.Web.Types.ImageResource? le
 static Rask.Web.Types.ImageResource.operator ==(Rask.Web.Types.ImageResource? left, Rask.Web.Types.ImageResource? right) -> bool
 static Rask.Web.Types.InkTrailStyle.operator !=(Rask.Web.Types.InkTrailStyle? left, Rask.Web.Types.InkTrailStyle? right) -> bool
 static Rask.Web.Types.InkTrailStyle.operator ==(Rask.Web.Types.InkTrailStyle? left, Rask.Web.Types.InkTrailStyle? right) -> bool
-static Rask.Web.Types.InputDeviceCapabilitiesInit.operator !=(Rask.Web.Types.InputDeviceCapabilitiesInit? left, Rask.Web.Types.InputDeviceCapabilitiesInit? right) -> bool
-static Rask.Web.Types.InputDeviceCapabilitiesInit.operator ==(Rask.Web.Types.InputDeviceCapabilitiesInit? left, Rask.Web.Types.InputDeviceCapabilitiesInit? right) -> bool
 static Rask.Web.Types.InteractionContentfulPaint.operator !=(Rask.Web.Types.InteractionContentfulPaint? left, Rask.Web.Types.InteractionContentfulPaint? right) -> bool
 static Rask.Web.Types.InteractionContentfulPaint.operator ==(Rask.Web.Types.InteractionContentfulPaint? left, Rask.Web.Types.InteractionContentfulPaint? right) -> bool
 static Rask.Web.Types.IsInputPendingOptions.operator !=(Rask.Web.Types.IsInputPendingOptions? left, Rask.Web.Types.IsInputPendingOptions? right) -> bool
@@ -14464,9 +14371,6 @@ static Rask.Web.Types.XRTransientInputHitTestOptionsInit.operator ==(Rask.Web.Ty
 static Rask.Web.Types.XRWebGLLayerInit.operator !=(Rask.Web.Types.XRWebGLLayerInit? left, Rask.Web.Types.XRWebGLLayerInit? right) -> bool
 static Rask.Web.Types.XRWebGLLayerInit.operator ==(Rask.Web.Types.XRWebGLLayerInit? left, Rask.Web.Types.XRWebGLLayerInit? right) -> bool
 static Rask.Web.USBInTransferResult.Create(Rask.Web.Types.USBTransferStatus status) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBInTransferResult!>
-static Rask.Web.USBIsochronousInTransferPacket.Create(Rask.Web.Types.USBTransferStatus status) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousInTransferPacket!>
-static Rask.Web.USBIsochronousOutTransferPacket.Create(Rask.Web.Types.USBTransferStatus status) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousOutTransferPacket!>
-static Rask.Web.USBIsochronousOutTransferPacket.Create(Rask.Web.Types.USBTransferStatus status, int bytesWritten) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousOutTransferPacket!>
 static Rask.Web.USBOutTransferResult.Create(Rask.Web.Types.USBTransferStatus status) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBOutTransferResult!>
 static Rask.Web.USBOutTransferResult.Create(Rask.Web.Types.USBTransferStatus status, int bytesWritten) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBOutTransferResult!>
 static Rask.Web.Viewport.Fake() -> Rask.Web.WebFake<Rask.Web.Types.Viewport!>!
@@ -15600,8 +15504,6 @@ Rask.Web.Types.ReadableByteStreamController.Error<TE>(TE e) -> System.Threading.
 Rask.Web.Types.ReadableStream.Cancel<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.ReadableStream.Tee() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStream![]!>
 Rask.Web.Types.ReadableStreamBYOBReader.Cancel<TReason>(TReason reason) -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.ReadableStreamBYOBReader.Read(byte[]! view) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult!>
-Rask.Web.Types.ReadableStreamBYOBReader.Read(byte[]! view, Rask.Web.Types.ReadableStreamBYOBReaderReadOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult!>
 Rask.Web.Types.ReadableStreamBYOBRequest.RespondWithNewView(byte[]! view) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.ReadableStreamBYOBRequest.View.get -> System.Threading.Tasks.ValueTask<byte[]?>
 Rask.Web.Types.ReadableStreamDefaultController.Enqueue<TChunk>(TChunk chunk) -> System.Threading.Tasks.ValueTask
@@ -15640,7 +15542,6 @@ Rask.Web.Types.USBDevice.ControlTransferOut(Rask.Web.Types.USBControlTransferPar
 Rask.Web.Types.USBDevice.IsochronousTransferOut(int endpointNumber, byte[]! data, int[]! packetLengths) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousOutTransferResult!>
 Rask.Web.Types.USBDevice.TransferOut(int endpointNumber, byte[]! data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBOutTransferResult!>
 Rask.Web.Types.USBInTransferResult.Data.get -> System.Threading.Tasks.ValueTask<byte[]?>
-Rask.Web.Types.USBIsochronousInTransferPacket.Data.get -> System.Threading.Tasks.ValueTask<byte[]?>
 Rask.Web.Types.USBIsochronousInTransferResult.Data.get -> System.Threading.Tasks.ValueTask<byte[]?>
 Rask.Web.Types.VideoDecoderConfig.Description.get -> byte[]?
 Rask.Web.Types.VideoDecoderConfig.Description.init -> void
@@ -15756,7 +15657,6 @@ static Rask.Web.Types.HMACGetSecretOutput.operator ==(Rask.Web.Types.HMACGetSecr
 static Rask.Web.Types.PermissionDescriptor.operator !=(Rask.Web.Types.PermissionDescriptor? left, Rask.Web.Types.PermissionDescriptor? right) -> bool
 static Rask.Web.Types.PermissionDescriptor.operator ==(Rask.Web.Types.PermissionDescriptor? left, Rask.Web.Types.PermissionDescriptor? right) -> bool
 static Rask.Web.USBInTransferResult.Create(Rask.Web.Types.USBTransferStatus status, byte[]? data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBInTransferResult!>
-static Rask.Web.USBIsochronousInTransferPacket.Create(Rask.Web.Types.USBTransferStatus status, byte[]? data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousInTransferPacket!>
 static Rask.Web.VideoFrame.Create(byte[]! data, Rask.Web.Types.VideoFrameBufferInit! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.VideoFrame!>
 static Rask.Web.Window.Opener<T>() -> System.Threading.Tasks.ValueTask<T>
 static Rask.Web.Window.PostMessage<TMessage>(TMessage message) -> System.Threading.Tasks.ValueTask
@@ -15795,3 +15695,504 @@ Rask.Web.Types.XREquirectLayer.SetTransform(Rask.Web.Types.XRRigidTransform! val
 Rask.Web.Types.XRProjectionLayer.SetDeltaPose(Rask.Web.Types.XRRigidTransform? value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.XRQuadLayer.SetSpace(Rask.Web.Types.XRSpace! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.XRQuadLayer.SetTransform(Rask.Web.Types.XRRigidTransform! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.AudioWorkletNodeOptions.ParameterData.get -> System.Collections.Generic.Dictionary<string!, double>?
+Rask.Web.Types.AudioWorkletNodeOptions.ParameterData.init -> void
+Rask.Web.Types.AuthenticationExtensionsPRFInputs.EvalByCredential.get -> System.Collections.Generic.Dictionary<string!, Rask.Web.Types.AuthenticationExtensionsPRFValues!>?
+Rask.Web.Types.AuthenticationExtensionsPRFInputs.EvalByCredential.init -> void
+Rask.Web.Types.AuthenticationExtensionsPRFInputsJSON.EvalByCredential.get -> System.Collections.Generic.Dictionary<string!, Rask.Web.Types.AuthenticationExtensionsPRFValuesJSON!>?
+Rask.Web.Types.AuthenticationExtensionsPRFInputsJSON.EvalByCredential.init -> void
+Rask.Web.Types.BluetoothLEScanFilterInit.Services.get -> string![]?
+Rask.Web.Types.BluetoothLEScanFilterInit.Services.init -> void
+Rask.Web.Types.BluetoothServiceDataFilterInit.Service.get -> string!
+Rask.Web.Types.BluetoothServiceDataFilterInit.Service.init -> void
+Rask.Web.Types.ChapterInformation.<Clone>$() -> Rask.Web.Types.ChapterInformation!
+Rask.Web.Types.ChapterInformation.Artwork.get -> Rask.Web.Types.MediaImage![]!
+Rask.Web.Types.ChapterInformation.Artwork.init -> void
+Rask.Web.Types.ChapterInformation.ChapterInformation() -> void
+Rask.Web.Types.ChapterInformation.Equals(Rask.Web.Types.ChapterInformation? other) -> bool
+Rask.Web.Types.ChapterInformation.StartTime.get -> double
+Rask.Web.Types.ChapterInformation.StartTime.init -> void
+Rask.Web.Types.ChapterInformation.Title.get -> string!
+Rask.Web.Types.ChapterInformation.Title.init -> void
+Rask.Web.Types.FilePickerAcceptType.Accept.get -> System.Collections.Generic.Dictionary<string!, string![]!>?
+Rask.Web.Types.FilePickerAcceptType.Accept.init -> void
+Rask.Web.Types.GPUCompilationMessage
+Rask.Web.Types.GPUCompilationMessage.<Clone>$() -> Rask.Web.Types.GPUCompilationMessage!
+Rask.Web.Types.GPUCompilationMessage.Equals(Rask.Web.Types.GPUCompilationMessage? other) -> bool
+Rask.Web.Types.GPUCompilationMessage.GPUCompilationMessage() -> void
+Rask.Web.Types.GPUCompilationMessage.Length.get -> long
+Rask.Web.Types.GPUCompilationMessage.Length.init -> void
+Rask.Web.Types.GPUCompilationMessage.LineNum.get -> long
+Rask.Web.Types.GPUCompilationMessage.LineNum.init -> void
+Rask.Web.Types.GPUCompilationMessage.LinePos.get -> long
+Rask.Web.Types.GPUCompilationMessage.LinePos.init -> void
+Rask.Web.Types.GPUCompilationMessage.Message.get -> string!
+Rask.Web.Types.GPUCompilationMessage.Message.init -> void
+Rask.Web.Types.GPUCompilationMessage.Offset.get -> long
+Rask.Web.Types.GPUCompilationMessage.Offset.init -> void
+Rask.Web.Types.GPUCompilationMessage.Type.get -> Rask.Web.Types.GPUCompilationMessageType
+Rask.Web.Types.GPUCompilationMessage.Type.init -> void
+Rask.Web.Types.GPUProgrammableStage.Constants.get -> System.Collections.Generic.Dictionary<string!, double>?
+Rask.Web.Types.GPUProgrammableStage.Constants.init -> void
+Rask.Web.Types.Gamepad.Buttons.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GamepadButton![]!>
+Rask.Web.Types.GamepadButton.<Clone>$() -> Rask.Web.Types.GamepadButton!
+Rask.Web.Types.GamepadButton.Equals(Rask.Web.Types.GamepadButton? other) -> bool
+Rask.Web.Types.GamepadButton.GamepadButton() -> void
+Rask.Web.Types.GamepadButton.Pressed.get -> bool
+Rask.Web.Types.GamepadButton.Pressed.init -> void
+Rask.Web.Types.GamepadButton.Touched.get -> bool
+Rask.Web.Types.GamepadButton.Touched.init -> void
+Rask.Web.Types.GamepadButton.Value.get -> double
+Rask.Web.Types.GamepadButton.Value.init -> void
+Rask.Web.Types.IDBObjectStoreParameters.KeyPath.get -> string![]?
+Rask.Web.Types.IDBObjectStoreParameters.KeyPath.init -> void
+Rask.Web.Types.IntersectionObserverInit.Threshold.get -> double[]?
+Rask.Web.Types.IntersectionObserverInit.Threshold.init -> void
+Rask.Web.Types.MediaMetadata.ChapterInfo.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ChapterInformation![]!>
+Rask.Web.Types.Navigator.DeprecatedReplaceInURN(string! urnOrConfig, System.Collections.Generic.Dictionary<string!, string!>! replacements) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.NotificationOptions.Vibrate.get -> int[]?
+Rask.Web.Types.NotificationOptions.Vibrate.init -> void
+Rask.Web.Types.OptionalEffectTiming.Duration.get -> string?
+Rask.Web.Types.OptionalEffectTiming.Duration.init -> void
+Rask.Web.Types.PerformanceMeasureOptions.End.get -> string?
+Rask.Web.Types.PerformanceMeasureOptions.End.init -> void
+Rask.Web.Types.PerformanceMeasureOptions.Start.get -> string?
+Rask.Web.Types.PerformanceMeasureOptions.Start.init -> void
+Rask.Web.Types.PushSubscriptionJSON.Keys.get -> System.Collections.Generic.Dictionary<string!, string!>?
+Rask.Web.Types.PushSubscriptionJSON.Keys.init -> void
+Rask.Web.Types.RTCIceServer.Urls.get -> string![]!
+Rask.Web.Types.RTCIceServer.Urls.init -> void
+Rask.Web.Types.ReadableStream.GetReader() -> Rask.Web.Types.ReadableStreamDefaultReader!
+Rask.Web.Types.ReadableStreamBYOBReader.Read<T>(byte[]! view) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult<T>!>
+Rask.Web.Types.ReadableStreamBYOBReader.Read<T>(byte[]! view, Rask.Web.Types.ReadableStreamBYOBReaderReadOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult<T>!>
+Rask.Web.Types.ReadableStreamDefaultReader.Read<T>() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ReadableStreamReadResult<T>!>
+Rask.Web.Types.ReadableStreamReadResult<T>
+Rask.Web.Types.ReadableStreamReadResult<T>.<Clone>$() -> Rask.Web.Types.ReadableStreamReadResult<T>!
+Rask.Web.Types.ReadableStreamReadResult<T>.Done.get -> bool
+Rask.Web.Types.ReadableStreamReadResult<T>.Done.init -> void
+Rask.Web.Types.ReadableStreamReadResult<T>.Equals(Rask.Web.Types.ReadableStreamReadResult<T>? other) -> bool
+Rask.Web.Types.ReadableStreamReadResult<T>.ReadableStreamReadResult() -> void
+Rask.Web.Types.ReadableStreamReadResult<T>.Value.get -> T
+Rask.Web.Types.ReadableStreamReadResult<T>.Value.init -> void
+Rask.Web.Types.RequestDeviceOptions.OptionalServices.get -> string![]?
+Rask.Web.Types.RequestDeviceOptions.OptionalServices.init -> void
+Rask.Web.Types.SerialPortFilter.BluetoothServiceClassId.get -> string?
+Rask.Web.Types.SerialPortFilter.BluetoothServiceClassId.init -> void
+Rask.Web.Types.SerialPortInfo.BluetoothServiceClassId.get -> string?
+Rask.Web.Types.SerialPortInfo.BluetoothServiceClassId.init -> void
+Rask.Web.Types.SerialPortRequestOptions.AllowedBluetoothServiceClassIds.get -> string![]?
+Rask.Web.Types.SerialPortRequestOptions.AllowedBluetoothServiceClassIds.init -> void
+Rask.Web.Types.USBAlternateInterface.<Clone>$() -> Rask.Web.Types.USBAlternateInterface!
+Rask.Web.Types.USBAlternateInterface.AlternateSetting.get -> int
+Rask.Web.Types.USBAlternateInterface.AlternateSetting.init -> void
+Rask.Web.Types.USBAlternateInterface.Endpoints.get -> Rask.Web.Types.USBEndpoint![]!
+Rask.Web.Types.USBAlternateInterface.Endpoints.init -> void
+Rask.Web.Types.USBAlternateInterface.Equals(Rask.Web.Types.USBAlternateInterface? other) -> bool
+Rask.Web.Types.USBAlternateInterface.InterfaceClass.get -> int
+Rask.Web.Types.USBAlternateInterface.InterfaceClass.init -> void
+Rask.Web.Types.USBAlternateInterface.InterfaceName.get -> string?
+Rask.Web.Types.USBAlternateInterface.InterfaceName.init -> void
+Rask.Web.Types.USBAlternateInterface.InterfaceProtocol.get -> int
+Rask.Web.Types.USBAlternateInterface.InterfaceProtocol.init -> void
+Rask.Web.Types.USBAlternateInterface.InterfaceSubclass.get -> int
+Rask.Web.Types.USBAlternateInterface.InterfaceSubclass.init -> void
+Rask.Web.Types.USBAlternateInterface.USBAlternateInterface() -> void
+Rask.Web.Types.USBConfiguration.<Clone>$() -> Rask.Web.Types.USBConfiguration!
+Rask.Web.Types.USBConfiguration.ConfigurationName.get -> string?
+Rask.Web.Types.USBConfiguration.ConfigurationName.init -> void
+Rask.Web.Types.USBConfiguration.ConfigurationValue.get -> int
+Rask.Web.Types.USBConfiguration.ConfigurationValue.init -> void
+Rask.Web.Types.USBConfiguration.Equals(Rask.Web.Types.USBConfiguration? other) -> bool
+Rask.Web.Types.USBConfiguration.Interfaces.get -> Rask.Web.Types.USBInterface![]!
+Rask.Web.Types.USBConfiguration.Interfaces.init -> void
+Rask.Web.Types.USBConfiguration.USBConfiguration() -> void
+Rask.Web.Types.USBDevice.Configuration.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBConfiguration?>
+Rask.Web.Types.USBDevice.Configurations.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBConfiguration![]!>
+Rask.Web.Types.USBEndpoint.<Clone>$() -> Rask.Web.Types.USBEndpoint!
+Rask.Web.Types.USBEndpoint.Direction.get -> Rask.Web.Types.USBDirection
+Rask.Web.Types.USBEndpoint.Direction.init -> void
+Rask.Web.Types.USBEndpoint.EndpointNumber.get -> int
+Rask.Web.Types.USBEndpoint.EndpointNumber.init -> void
+Rask.Web.Types.USBEndpoint.Equals(Rask.Web.Types.USBEndpoint? other) -> bool
+Rask.Web.Types.USBEndpoint.PacketSize.get -> int
+Rask.Web.Types.USBEndpoint.PacketSize.init -> void
+Rask.Web.Types.USBEndpoint.Type.get -> Rask.Web.Types.USBEndpointType
+Rask.Web.Types.USBEndpoint.Type.init -> void
+Rask.Web.Types.USBEndpoint.USBEndpoint() -> void
+Rask.Web.Types.USBInterface.<Clone>$() -> Rask.Web.Types.USBInterface!
+Rask.Web.Types.USBInterface.Alternate.init -> void
+Rask.Web.Types.USBInterface.Alternates.get -> Rask.Web.Types.USBAlternateInterface![]!
+Rask.Web.Types.USBInterface.Alternates.init -> void
+Rask.Web.Types.USBInterface.Claimed.get -> bool
+Rask.Web.Types.USBInterface.Claimed.init -> void
+Rask.Web.Types.USBInterface.Equals(Rask.Web.Types.USBInterface? other) -> bool
+Rask.Web.Types.USBInterface.InterfaceNumber.get -> int
+Rask.Web.Types.USBInterface.InterfaceNumber.init -> void
+Rask.Web.Types.USBInterface.USBInterface() -> void
+Rask.Web.Types.USBIsochronousInTransferPacket.<Clone>$() -> Rask.Web.Types.USBIsochronousInTransferPacket!
+Rask.Web.Types.USBIsochronousInTransferPacket.Data.get -> byte[]?
+Rask.Web.Types.USBIsochronousInTransferPacket.Data.init -> void
+Rask.Web.Types.USBIsochronousInTransferPacket.Equals(Rask.Web.Types.USBIsochronousInTransferPacket? other) -> bool
+Rask.Web.Types.USBIsochronousInTransferPacket.Status.get -> Rask.Web.Types.USBTransferStatus
+Rask.Web.Types.USBIsochronousInTransferPacket.Status.init -> void
+Rask.Web.Types.USBIsochronousInTransferPacket.USBIsochronousInTransferPacket() -> void
+Rask.Web.Types.USBIsochronousInTransferResult.Packets.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousInTransferPacket![]!>
+Rask.Web.Types.USBIsochronousOutTransferPacket.<Clone>$() -> Rask.Web.Types.USBIsochronousOutTransferPacket!
+Rask.Web.Types.USBIsochronousOutTransferPacket.BytesWritten.get -> int
+Rask.Web.Types.USBIsochronousOutTransferPacket.BytesWritten.init -> void
+Rask.Web.Types.USBIsochronousOutTransferPacket.Equals(Rask.Web.Types.USBIsochronousOutTransferPacket? other) -> bool
+Rask.Web.Types.USBIsochronousOutTransferPacket.Status.get -> Rask.Web.Types.USBTransferStatus
+Rask.Web.Types.USBIsochronousOutTransferPacket.Status.init -> void
+Rask.Web.Types.USBIsochronousOutTransferPacket.USBIsochronousOutTransferPacket() -> void
+Rask.Web.Types.USBIsochronousOutTransferResult.Packets.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousOutTransferPacket![]!>
+Rask.Web.USBIsochronousInTransferResult
+Rask.Web.USBIsochronousOutTransferResult
+override Rask.Web.Types.ChapterInformation.Equals(object? obj) -> bool
+override Rask.Web.Types.ChapterInformation.GetHashCode() -> int
+override Rask.Web.Types.ChapterInformation.ToString() -> string!
+override Rask.Web.Types.GPUCompilationMessage.Equals(object? obj) -> bool
+override Rask.Web.Types.GPUCompilationMessage.GetHashCode() -> int
+override Rask.Web.Types.GPUCompilationMessage.ToString() -> string!
+override Rask.Web.Types.GamepadButton.Equals(object? obj) -> bool
+override Rask.Web.Types.GamepadButton.GetHashCode() -> int
+override Rask.Web.Types.GamepadButton.ToString() -> string!
+override Rask.Web.Types.ReadableStreamReadResult<T>.Equals(object? obj) -> bool
+override Rask.Web.Types.ReadableStreamReadResult<T>.GetHashCode() -> int
+override Rask.Web.Types.ReadableStreamReadResult<T>.ToString() -> string!
+override Rask.Web.Types.USBAlternateInterface.Equals(object? obj) -> bool
+override Rask.Web.Types.USBAlternateInterface.GetHashCode() -> int
+override Rask.Web.Types.USBAlternateInterface.ToString() -> string!
+override Rask.Web.Types.USBConfiguration.Equals(object? obj) -> bool
+override Rask.Web.Types.USBConfiguration.GetHashCode() -> int
+override Rask.Web.Types.USBConfiguration.ToString() -> string!
+override Rask.Web.Types.USBEndpoint.Equals(object? obj) -> bool
+override Rask.Web.Types.USBEndpoint.GetHashCode() -> int
+override Rask.Web.Types.USBEndpoint.ToString() -> string!
+override Rask.Web.Types.USBInterface.Equals(object? obj) -> bool
+override Rask.Web.Types.USBInterface.GetHashCode() -> int
+override Rask.Web.Types.USBInterface.ToString() -> string!
+override Rask.Web.Types.USBIsochronousInTransferPacket.Equals(object? obj) -> bool
+override Rask.Web.Types.USBIsochronousInTransferPacket.GetHashCode() -> int
+override Rask.Web.Types.USBIsochronousInTransferPacket.ToString() -> string!
+override Rask.Web.Types.USBIsochronousOutTransferPacket.Equals(object? obj) -> bool
+override Rask.Web.Types.USBIsochronousOutTransferPacket.GetHashCode() -> int
+override Rask.Web.Types.USBIsochronousOutTransferPacket.ToString() -> string!
+static Rask.Web.AbortController.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.AbortSignal.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.AbsoluteOrientationSensor.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Accelerometer.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Animation.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.AudioBuffer.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.AudioContext.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.AudioData.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.AudioDecoder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.AudioEncoder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.BarcodeDetector.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Blob.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.BluetoothUUID.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.BroadcastChannel.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ByteLengthQueuingStrategy.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSKeywordValue.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSMathClamp.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSMathInvert.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSMathNegate.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSPerspective.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSScale.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSStyleSheet.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSStyleValue.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSUnitValue.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CSSVariableReferenceValue.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CaptureController.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ClipboardItem.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CloseWatcher.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CompressionStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CountQueuingStrategy.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Credential.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CropTarget.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.CustomElementRegistry.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DOMMatrix.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DOMMatrixReadOnly.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DOMParser.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DOMQuad.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DataCue.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DataTransfer.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DecompressionStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DigitalCredential.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.DocumentTimeline.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.EditContext.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.EncodedAudioChunk.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.EncodedVideoChunk.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.EventSource.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.EventTarget.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.EyeDropper.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.FederatedCredential.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.FileReader.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.FontFace.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.FormData.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.GravitySensor.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Gyroscope.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Headers.Create(System.Collections.Generic.Dictionary<string!, string!>! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.Headers!>
+static Rask.Web.Headers.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.IDBKeyRange.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.IdentityCredential.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.IdentityCredentialError.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.IdentityProvider.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.IdleDetector.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ImageData.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ImageDecoder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.IntersectionObserver.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.LanguageDetector.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.LanguageModel.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.LinearAccelerationSensor.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ManagedMediaSource.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaMetadata.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaRecorder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaSource.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MediaStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MessageChannel.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.MutationObserver.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.NDEFMessage.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.NDEFReader.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.NDEFRecord.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Navigator.DeprecatedReplaceInURN(string! urnOrConfig, System.Collections.Generic.Dictionary<string!, string!>! replacements) -> System.Threading.Tasks.ValueTask
+static Rask.Web.Notification.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Observable.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.OfflineAudioContext.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.OffscreenCanvas.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Origin.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.OverconstrainedError.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PasswordCredential.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Path2D.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PaymentRequest.GetSecurePaymentConfirmationCapabilities() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, bool>!>
+static Rask.Web.PaymentRequest.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PerformanceMark.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PerformanceObserver.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PresentationRequest.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PressureObserver.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Profiler.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.PublicKeyCredential.GetClientCapabilities() -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, bool>!>
+static Rask.Web.PublicKeyCredential.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.QuotaExceededError.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCIceCandidate.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCPeerConnection.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCRtpReceiver.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCRtpScriptTransform.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCRtpSender.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Range.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ReadableStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RelativeOrientationSensor.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ReportingObserver.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Request.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ResizeObserver.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Response.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RestrictionTarget.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Sanitizer.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ScrollTimeline.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.SharedWorker.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.SpeechRecognition.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.SpeechRecognitionPhrase.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.SpeechSynthesisUtterance.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.StaticRange.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.SubtleCrypto.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Summarizer.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TaskController.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TextDecoder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TextDecoderStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TextEncoder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TextEncoderStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TextFormat.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Touch.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.TransformStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Translator.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Types.ChapterInformation.operator !=(Rask.Web.Types.ChapterInformation? left, Rask.Web.Types.ChapterInformation? right) -> bool
+static Rask.Web.Types.ChapterInformation.operator ==(Rask.Web.Types.ChapterInformation? left, Rask.Web.Types.ChapterInformation? right) -> bool
+static Rask.Web.Types.GPUCompilationMessage.operator !=(Rask.Web.Types.GPUCompilationMessage? left, Rask.Web.Types.GPUCompilationMessage? right) -> bool
+static Rask.Web.Types.GPUCompilationMessage.operator ==(Rask.Web.Types.GPUCompilationMessage? left, Rask.Web.Types.GPUCompilationMessage? right) -> bool
+static Rask.Web.Types.GamepadButton.operator !=(Rask.Web.Types.GamepadButton? left, Rask.Web.Types.GamepadButton? right) -> bool
+static Rask.Web.Types.GamepadButton.operator ==(Rask.Web.Types.GamepadButton? left, Rask.Web.Types.GamepadButton? right) -> bool
+static Rask.Web.Types.ReadableStreamReadResult<T>.operator !=(Rask.Web.Types.ReadableStreamReadResult<T>? left, Rask.Web.Types.ReadableStreamReadResult<T>? right) -> bool
+static Rask.Web.Types.ReadableStreamReadResult<T>.operator ==(Rask.Web.Types.ReadableStreamReadResult<T>? left, Rask.Web.Types.ReadableStreamReadResult<T>? right) -> bool
+static Rask.Web.Types.USBAlternateInterface.operator !=(Rask.Web.Types.USBAlternateInterface? left, Rask.Web.Types.USBAlternateInterface? right) -> bool
+static Rask.Web.Types.USBAlternateInterface.operator ==(Rask.Web.Types.USBAlternateInterface? left, Rask.Web.Types.USBAlternateInterface? right) -> bool
+static Rask.Web.Types.USBConfiguration.operator !=(Rask.Web.Types.USBConfiguration? left, Rask.Web.Types.USBConfiguration? right) -> bool
+static Rask.Web.Types.USBConfiguration.operator ==(Rask.Web.Types.USBConfiguration? left, Rask.Web.Types.USBConfiguration? right) -> bool
+static Rask.Web.Types.USBEndpoint.operator !=(Rask.Web.Types.USBEndpoint? left, Rask.Web.Types.USBEndpoint? right) -> bool
+static Rask.Web.Types.USBEndpoint.operator ==(Rask.Web.Types.USBEndpoint? left, Rask.Web.Types.USBEndpoint? right) -> bool
+static Rask.Web.Types.USBInterface.operator !=(Rask.Web.Types.USBInterface? left, Rask.Web.Types.USBInterface? right) -> bool
+static Rask.Web.Types.USBInterface.operator ==(Rask.Web.Types.USBInterface? left, Rask.Web.Types.USBInterface? right) -> bool
+static Rask.Web.Types.USBIsochronousInTransferPacket.operator !=(Rask.Web.Types.USBIsochronousInTransferPacket? left, Rask.Web.Types.USBIsochronousInTransferPacket? right) -> bool
+static Rask.Web.Types.USBIsochronousInTransferPacket.operator ==(Rask.Web.Types.USBIsochronousInTransferPacket? left, Rask.Web.Types.USBIsochronousInTransferPacket? right) -> bool
+static Rask.Web.Types.USBIsochronousOutTransferPacket.operator !=(Rask.Web.Types.USBIsochronousOutTransferPacket? left, Rask.Web.Types.USBIsochronousOutTransferPacket? right) -> bool
+static Rask.Web.Types.USBIsochronousOutTransferPacket.operator ==(Rask.Web.Types.USBIsochronousOutTransferPacket? left, Rask.Web.Types.USBIsochronousOutTransferPacket? right) -> bool
+static Rask.Web.URL.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.URLPattern.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.URLSearchParams.Create(System.Collections.Generic.Dictionary<string!, string!>! init) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.URLSearchParams!>
+static Rask.Web.URLSearchParams.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.USBInTransferResult.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.USBIsochronousInTransferResult.Create(Rask.Web.Types.USBIsochronousInTransferPacket![]! packets) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousInTransferResult!>
+static Rask.Web.USBIsochronousInTransferResult.Create(Rask.Web.Types.USBIsochronousInTransferPacket![]! packets, byte[]? data) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousInTransferResult!>
+static Rask.Web.USBIsochronousInTransferResult.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.USBIsochronousOutTransferResult.Create(Rask.Web.Types.USBIsochronousOutTransferPacket![]! packets) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.USBIsochronousOutTransferResult!>
+static Rask.Web.USBIsochronousOutTransferResult.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.USBOutTransferResult.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.VTTCue.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.VTTRegion.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.VideoColorSpace.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.VideoDecoder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.VideoEncoder.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.VideoFrame.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.ViewTimeline.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.WebSocket.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.WebTransport.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.WebTransportError.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.Worker.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.WritableStream.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.XMLHttpRequest.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.XMLSerializer.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.XPathEvaluator.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.XRRay.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.XRRigidTransform.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.BlobEvent.Data.get -> Rask.Web.Types.Blob!
+Rask.Web.Types.BlobEvent.Data.init -> void
+Rask.Web.Types.BufferedChangeEvent.AddedRanges.get -> Rask.Web.Types.TimeRanges!
+Rask.Web.Types.BufferedChangeEvent.AddedRanges.init -> void
+Rask.Web.Types.BufferedChangeEvent.RemovedRanges.get -> Rask.Web.Types.TimeRanges!
+Rask.Web.Types.BufferedChangeEvent.RemovedRanges.init -> void
+Rask.Web.Types.DeviceMotionEvent.Acceleration.get -> Rask.Web.Types.DeviceMotionEventAcceleration?
+Rask.Web.Types.DeviceMotionEvent.Acceleration.init -> void
+Rask.Web.Types.DeviceMotionEvent.AccelerationIncludingGravity.get -> Rask.Web.Types.DeviceMotionEventAcceleration?
+Rask.Web.Types.DeviceMotionEvent.AccelerationIncludingGravity.init -> void
+Rask.Web.Types.DeviceMotionEvent.RotationRate.get -> Rask.Web.Types.DeviceMotionEventRotationRate?
+Rask.Web.Types.DeviceMotionEvent.RotationRate.init -> void
+Rask.Web.Types.DeviceMotionEventAcceleration.<Clone>$() -> Rask.Web.Types.DeviceMotionEventAcceleration!
+Rask.Web.Types.DeviceMotionEventAcceleration.DeviceMotionEventAcceleration() -> void
+Rask.Web.Types.DeviceMotionEventAcceleration.Equals(Rask.Web.Types.DeviceMotionEventAcceleration? other) -> bool
+Rask.Web.Types.DeviceMotionEventAcceleration.X.get -> double?
+Rask.Web.Types.DeviceMotionEventAcceleration.X.init -> void
+Rask.Web.Types.DeviceMotionEventAcceleration.Y.get -> double?
+Rask.Web.Types.DeviceMotionEventAcceleration.Y.init -> void
+Rask.Web.Types.DeviceMotionEventAcceleration.Z.get -> double?
+Rask.Web.Types.DeviceMotionEventAcceleration.Z.init -> void
+Rask.Web.Types.DeviceMotionEventRotationRate.<Clone>$() -> Rask.Web.Types.DeviceMotionEventRotationRate!
+Rask.Web.Types.DeviceMotionEventRotationRate.Alpha.get -> double?
+Rask.Web.Types.DeviceMotionEventRotationRate.Alpha.init -> void
+Rask.Web.Types.DeviceMotionEventRotationRate.Beta.get -> double?
+Rask.Web.Types.DeviceMotionEventRotationRate.Beta.init -> void
+Rask.Web.Types.DeviceMotionEventRotationRate.DeviceMotionEventRotationRate() -> void
+Rask.Web.Types.DeviceMotionEventRotationRate.Equals(Rask.Web.Types.DeviceMotionEventRotationRate? other) -> bool
+Rask.Web.Types.DeviceMotionEventRotationRate.Gamma.get -> double?
+Rask.Web.Types.DeviceMotionEventRotationRate.Gamma.init -> void
+Rask.Web.Types.DocumentPictureInPictureEvent.Window.get -> Rask.Web.Types.Window!
+Rask.Web.Types.DocumentPictureInPictureEvent.Window.init -> void
+Rask.Web.Types.GPUError
+Rask.Web.Types.GPUError.GPUError() -> void
+Rask.Web.Types.GPUError.GPUError(Rask.Web.Types.GPUError! original) -> void
+Rask.Web.Types.GPUError.Message.get -> string!
+Rask.Web.Types.GPUError.Message.init -> void
+Rask.Web.Types.GPUUncapturedErrorEvent.Error.get -> Rask.Web.Types.GPUError!
+Rask.Web.Types.GPUUncapturedErrorEvent.Error.init -> void
+Rask.Web.Types.GamepadEvent.Gamepad.get -> Rask.Web.Types.Gamepad!
+Rask.Web.Types.GamepadEvent.Gamepad.init -> void
+Rask.Web.Types.HIDConnectionEvent.Device.get -> Rask.Web.Types.HIDDevice!
+Rask.Web.Types.HIDConnectionEvent.Device.init -> void
+Rask.Web.Types.InputDeviceCapabilities.<Clone>$() -> Rask.Web.Types.InputDeviceCapabilities!
+Rask.Web.Types.InputDeviceCapabilities.Equals(Rask.Web.Types.InputDeviceCapabilities? other) -> bool
+Rask.Web.Types.InputDeviceCapabilities.FiresTouchEvents.get -> bool
+Rask.Web.Types.InputDeviceCapabilities.FiresTouchEvents.init -> void
+Rask.Web.Types.InputDeviceCapabilities.InputDeviceCapabilities() -> void
+Rask.Web.Types.MIDIConnectionEvent.Port.get -> Rask.Web.Types.MIDIPort?
+Rask.Web.Types.MIDIConnectionEvent.Port.init -> void
+Rask.Web.Types.MediaStreamTrackEvent.Track.get -> Rask.Web.Types.MediaStreamTrack!
+Rask.Web.Types.MediaStreamTrackEvent.Track.init -> void
+Rask.Web.Types.NDEFReadingEvent.Message.get -> Rask.Web.Types.NDEFMessage!
+Rask.Web.Types.NDEFReadingEvent.Message.init -> void
+Rask.Web.Types.NavigateEvent.Destination.get -> Rask.Web.Types.NavigationDestination!
+Rask.Web.Types.NavigateEvent.Destination.init -> void
+Rask.Web.Types.NavigateEvent.FormData.get -> Rask.Web.Types.FormData?
+Rask.Web.Types.NavigateEvent.FormData.init -> void
+Rask.Web.Types.NavigateEvent.Signal.get -> Rask.Web.Types.AbortSignal!
+Rask.Web.Types.NavigateEvent.Signal.init -> void
+Rask.Web.Types.NavigationCurrentEntryChangeEvent.From.get -> Rask.Web.Types.NavigationHistoryEntry!
+Rask.Web.Types.NavigationCurrentEntryChangeEvent.From.init -> void
+Rask.Web.Types.OfflineAudioCompletionEvent.RenderedBuffer.get -> Rask.Web.Types.AudioBuffer!
+Rask.Web.Types.OfflineAudioCompletionEvent.RenderedBuffer.init -> void
+Rask.Web.Types.PageRevealEvent.ViewTransition.get -> Rask.Web.Types.ViewTransition?
+Rask.Web.Types.PageRevealEvent.ViewTransition.init -> void
+Rask.Web.Types.PageSwapEvent.Activation.get -> Rask.Web.Types.NavigationActivation?
+Rask.Web.Types.PageSwapEvent.Activation.init -> void
+Rask.Web.Types.PageSwapEvent.ViewTransition.get -> Rask.Web.Types.ViewTransition?
+Rask.Web.Types.PageSwapEvent.ViewTransition.init -> void
+Rask.Web.Types.PresentationConnectionAvailableEvent.Connection.get -> Rask.Web.Types.PresentationConnection!
+Rask.Web.Types.PresentationConnectionAvailableEvent.Connection.init -> void
+Rask.Web.Types.RTCDataChannelEvent.Channel.get -> Rask.Web.Types.RTCDataChannel!
+Rask.Web.Types.RTCDataChannelEvent.Channel.init -> void
+Rask.Web.Types.RTCError.Equals(Rask.Web.Types.RTCError? other) -> bool
+Rask.Web.Types.RTCError.ErrorDetail.get -> Rask.Web.Types.RTCErrorDetailType
+Rask.Web.Types.RTCError.ErrorDetail.init -> void
+Rask.Web.Types.RTCError.HttpRequestStatusCode.get -> int?
+Rask.Web.Types.RTCError.HttpRequestStatusCode.init -> void
+Rask.Web.Types.RTCError.RTCError() -> void
+Rask.Web.Types.RTCError.ReceivedAlert.get -> int?
+Rask.Web.Types.RTCError.ReceivedAlert.init -> void
+Rask.Web.Types.RTCError.SctpCauseCode.get -> int?
+Rask.Web.Types.RTCError.SctpCauseCode.init -> void
+Rask.Web.Types.RTCError.SdpLineNumber.get -> int?
+Rask.Web.Types.RTCError.SdpLineNumber.init -> void
+Rask.Web.Types.RTCError.SentAlert.get -> int?
+Rask.Web.Types.RTCError.SentAlert.init -> void
+Rask.Web.Types.RTCErrorEvent.Error.get -> Rask.Web.Types.RTCError!
+Rask.Web.Types.RTCErrorEvent.Error.init -> void
+Rask.Web.Types.RTCPeerConnectionIceEvent.Candidate.get -> Rask.Web.Types.RTCIceCandidate?
+Rask.Web.Types.RTCPeerConnectionIceEvent.Candidate.init -> void
+Rask.Web.Types.RTCTrackEvent.Receiver.get -> Rask.Web.Types.RTCRtpReceiver!
+Rask.Web.Types.RTCTrackEvent.Receiver.init -> void
+Rask.Web.Types.RTCTrackEvent.Track.get -> Rask.Web.Types.MediaStreamTrack!
+Rask.Web.Types.RTCTrackEvent.Track.init -> void
+Rask.Web.Types.RTCTrackEvent.Transceiver.get -> Rask.Web.Types.RTCRtpTransceiver!
+Rask.Web.Types.RTCTrackEvent.Transceiver.init -> void
+Rask.Web.Types.SpeechRecognitionEvent.Results.get -> Rask.Web.Types.SpeechRecognitionResultList!
+Rask.Web.Types.SpeechRecognitionEvent.Results.init -> void
+Rask.Web.Types.StorageEvent.StorageArea.get -> Rask.Web.Types.Storage?
+Rask.Web.Types.StorageEvent.StorageArea.init -> void
+Rask.Web.Types.USBConnectionEvent.Device.get -> Rask.Web.Types.USBDevice!
+Rask.Web.Types.USBConnectionEvent.Device.init -> void
+Rask.Web.Types.XRInputSourceEvent.Frame.get -> Rask.Web.Types.XRFrame!
+Rask.Web.Types.XRInputSourceEvent.Frame.init -> void
+Rask.Web.Types.XRInputSourceEvent.InputSource.get -> Rask.Web.Types.XRInputSource!
+Rask.Web.Types.XRInputSourceEvent.InputSource.init -> void
+Rask.Web.Types.XRReferenceSpaceEvent.Transform.get -> Rask.Web.Types.XRRigidTransform?
+Rask.Web.Types.XRReferenceSpaceEvent.Transform.init -> void
+override Rask.Web.Types.DeviceMotionEventAcceleration.Equals(object? obj) -> bool
+override Rask.Web.Types.DeviceMotionEventAcceleration.GetHashCode() -> int
+override Rask.Web.Types.DeviceMotionEventAcceleration.ToString() -> string!
+override Rask.Web.Types.DeviceMotionEventRotationRate.Equals(object? obj) -> bool
+override Rask.Web.Types.DeviceMotionEventRotationRate.GetHashCode() -> int
+override Rask.Web.Types.DeviceMotionEventRotationRate.ToString() -> string!
+override Rask.Web.Types.GPUError.Equals(object? obj) -> bool
+override Rask.Web.Types.GPUError.GetHashCode() -> int
+override Rask.Web.Types.GPUError.ToString() -> string!
+override Rask.Web.Types.InputDeviceCapabilities.Equals(object? obj) -> bool
+override Rask.Web.Types.InputDeviceCapabilities.GetHashCode() -> int
+override Rask.Web.Types.InputDeviceCapabilities.ToString() -> string!
+override Rask.Web.Types.RTCError.<Clone>$() -> Rask.Web.Types.RTCError!
+override Rask.Web.Types.RTCError.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCError.GetHashCode() -> int
+override Rask.Web.Types.RTCError.ToString() -> string!
+override sealed Rask.Web.Types.RTCError.Equals(Rask.Web.Types.DOMException? other) -> bool
+static Rask.Web.Types.DeviceMotionEventAcceleration.operator !=(Rask.Web.Types.DeviceMotionEventAcceleration? left, Rask.Web.Types.DeviceMotionEventAcceleration? right) -> bool
+static Rask.Web.Types.DeviceMotionEventAcceleration.operator ==(Rask.Web.Types.DeviceMotionEventAcceleration? left, Rask.Web.Types.DeviceMotionEventAcceleration? right) -> bool
+static Rask.Web.Types.DeviceMotionEventRotationRate.operator !=(Rask.Web.Types.DeviceMotionEventRotationRate? left, Rask.Web.Types.DeviceMotionEventRotationRate? right) -> bool
+static Rask.Web.Types.DeviceMotionEventRotationRate.operator ==(Rask.Web.Types.DeviceMotionEventRotationRate? left, Rask.Web.Types.DeviceMotionEventRotationRate? right) -> bool
+static Rask.Web.Types.GPUError.operator !=(Rask.Web.Types.GPUError? left, Rask.Web.Types.GPUError? right) -> bool
+static Rask.Web.Types.GPUError.operator ==(Rask.Web.Types.GPUError? left, Rask.Web.Types.GPUError? right) -> bool
+static Rask.Web.Types.InputDeviceCapabilities.operator !=(Rask.Web.Types.InputDeviceCapabilities? left, Rask.Web.Types.InputDeviceCapabilities? right) -> bool
+static Rask.Web.Types.InputDeviceCapabilities.operator ==(Rask.Web.Types.InputDeviceCapabilities? left, Rask.Web.Types.InputDeviceCapabilities? right) -> bool
+static Rask.Web.Types.RTCError.operator !=(Rask.Web.Types.RTCError? left, Rask.Web.Types.RTCError? right) -> bool
+static Rask.Web.Types.RTCError.operator ==(Rask.Web.Types.RTCError? left, Rask.Web.Types.RTCError? right) -> bool
+virtual Rask.Web.Types.GPUError.<Clone>$() -> Rask.Web.Types.GPUError!
+virtual Rask.Web.Types.GPUError.EqualityContract.get -> System.Type!
+virtual Rask.Web.Types.GPUError.Equals(Rask.Web.Types.GPUError? other) -> bool
+virtual Rask.Web.Types.GPUError.PrintMembers(System.Text.StringBuilder! builder) -> bool
+Rask.Web.CookieCulturePersistence
+Rask.Web.CookieCulturePersistence.CookieCulturePersistence(System.IServiceProvider! services, Rask.Core.Globalization.RaskCultureOptions! options) -> void
+Rask.Web.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

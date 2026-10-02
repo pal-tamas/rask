@@ -54,20 +54,130 @@ public sealed class WebCrossingTests
     }
 
     [Fact]
-    public async Task An_any_argument_is_the_apps_own_value_handed_to_the_host_to_write()
+    public async Task An_any_argument_is_the_apps_own_value_written_beside_the_steps_for_the_host_to_revive()
     {
         var browser = new FakeBrowser();
-        var message = new CartChanged(42);
 
         using (browser.Enter())
         {
             await using var channel = await BroadcastChannel.Create("cart");
-            await channel.PostMessage(message);
+            await channel.PostMessage(new CartChanged(42));
         }
 
-        Assert.Equal("""[["c","postMessage",[{"__raskArg__":0}]]]""", browser.Steps(1));
-        Assert.Same(message, browser.Calls[1].Args[2]);
+        Assert.Equal("""[["c","postMessage",[{"__raskAny__":0}]]]""", browser.Steps(1));
+        Assert.Equal("""{"id":42}""", Written(browser.Calls[1].Args[2]));
     }
+
+    [Fact]
+    public async Task Bytes_handed_as_an_any_cross_marked_for_the_browser_alone_or_inside_your_own_type()
+    {
+        var browser = new FakeBrowser();
+
+        using (browser.Enter())
+        {
+            await using var stream = await WritableStream.Create();
+            await using var writer = await stream.GetWriter();
+            await writer.Write(new byte[] { 1, 2, 3 });
+            await writer.Write(new Chunk([4, 5]));
+        }
+
+        Assert.Equal("""[["c","write",[{"__raskAny__":0}]]]""", browser.Steps(2));
+        Assert.Equal("""{"__raskBytes__":"AQID"}""", Written(browser.Calls[2].Args[2]));
+        Assert.Equal("""{"data":{"__raskBytes__":"BAU="}}""", Written(browser.Calls[3].Args[2]));
+    }
+
+    [Fact]
+    public async Task A_stream_read_answers_with_your_own_type_and_its_bytes_as_a_byte_array()
+    {
+        var browser = new FakeBrowser().Answers("""{"value":"AQID","done":false}""");
+
+        ReadableStreamReadResult<byte[]> chunk;
+        using (browser.Enter())
+        {
+            await using var stream = await ReadableStream.Create();
+            await using var reader = await stream.GetReader();
+            chunk = await reader.Read<byte[]>();
+            await reader.ReleaseLock();
+        }
+
+        Assert.Equal(("__raskWeb.read", """[["c","read"]]"""), (browser.Calls[2].Identifier, browser.Steps(2)));
+        Assert.False(chunk.Done);
+        Assert.Equal(new byte[] { 1, 2, 3 }, chunk.Value);
+        Assert.Equal("""[["c","releaseLock"]]""", browser.Steps(3));
+    }
+
+    [Fact]
+    public async Task A_string_or_a_number_crosses_as_the_number_it_spells_or_as_the_name_it_is()
+    {
+        var browser = new FakeBrowser();
+
+        using (browser.Enter())
+        {
+            await using var device = await Navigator.Bluetooth.RequestDevice(new()
+            {
+                Filters = [new() { Services = ["battery_service", "6159"] }],
+                OptionalServices = ["0x180F"],
+            });
+        }
+
+        Assert.Equal(
+            """[["g","navigator"],["g","bluetooth"],["c","requestDevice",[{"filters":[{"services":["battery_service",6159]}],"optionalServices":["0x180F"]}]]]""",
+            browser.Steps(0));
+    }
+
+    [Fact]
+    public async Task A_map_of_a_value_or_a_list_of_it_takes_the_list()
+    {
+        var browser = new FakeBrowser().Answers("[]");
+
+        using (browser.Enter())
+        {
+            await Window.ShowOpenFilePicker(new() { Types = [new() { Description = "Text", Accept = new() { ["text/plain"] = [".txt"] } }] });
+        }
+
+        Assert.Equal(
+            """[["c","showOpenFilePicker",[{"types":[{"description":"Text","accept":{"text/plain":[".txt"]}}]}]]]""",
+            browser.Steps(0));
+    }
+
+    [Fact]
+    public async Task A_value_or_a_list_of_it_is_written_as_the_list_and_read_back_from_a_lone_value()
+    {
+        var browser = new FakeBrowser().Answers("""{"iceServers":[{"urls":"stun:x"},{"urls":["stun:y","stun:z"]}]}""");
+
+        RTCConfiguration configuration;
+        using (browser.Enter())
+        {
+            await using var connection = await RTCPeerConnection.Create();
+            await connection.SetConfiguration(new() { IceServers = [new() { Urls = ["stun:x"] }] });
+            configuration = await connection.GetConfiguration();
+        }
+
+        Assert.Equal("""[["c","setConfiguration",[{"iceServers":[{"urls":["stun:x"]}]}]]]""", browser.Steps(1));
+        Assert.Equal(new[] { "stun:x" }, configuration.IceServers![0].Urls);
+        Assert.Equal(new[] { "stun:y", "stun:z" }, configuration.IceServers[1].Urls);
+    }
+
+    [Fact]
+    public async Task A_list_of_objects_that_are_only_values_is_read_whole_as_records()
+    {
+        var browser = new FakeBrowser().Answers("[true]", """[{"pressed":true,"touched":true,"value":1}]""");
+
+        GamepadButton[] buttons;
+        using (browser.Enter())
+        {
+            var pads = await Navigator.GetGamepads();
+            buttons = await pads[0]!.Buttons;
+        }
+
+        Assert.Equal(("__raskWeb.read", """[["g","buttons"]]"""), (browser.Calls[3].Identifier, browser.Steps(3)));
+        Assert.Equal(new GamepadButton { Pressed = true, Touched = true, Value = 1 }, buttons.Single());
+    }
+
+    // What the host's runtime is handed to write: the app's value, already written with the host's options.
+    private static string Written(object? extra) => ((JsonElement)extra!).GetRawText();
+
+    public sealed record Chunk(byte[] Data);
 
     [Fact]
     public async Task An_any_result_is_read_as_the_callers_own_type()
