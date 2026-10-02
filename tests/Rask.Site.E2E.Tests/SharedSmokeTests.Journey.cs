@@ -1565,6 +1565,18 @@ public abstract partial class SharedSmokeTests
         await Page.Locator("#io-target").ScrollIntoViewIfNeededAsync();
         await Expect(Page.Locator("#io-status")).ToContainTextAsync("in view", contains);
 
+        // Resize and mutation observers (Rask.Web): the observed box reports its size, and mutating the watched list
+        // hands its MutationRecords to C#.
+        await Page.Locator("#resize-box").ScrollIntoViewIfNeededAsync();
+        await Expect(Page.Locator("#resize-value")).ToContainTextAsync(" px", contains);
+        var wide = await Page.Locator("#resize-value").TextContentAsync();
+        await Page.Locator("#resize-toggle").ClickAsync();
+        await Expect(Page.Locator("#resize-value")).Not.ToHaveTextAsync(wide!, new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.Locator("#mo-add").ClickAsync();
+        await Expect(Page.Locator("#mo-last")).ToHaveTextAsync("childList", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.Locator("#mo-toggle").ClickAsync();
+        await Expect(Page.Locator("#mo-last")).ToHaveTextAsync("attributes (class)", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+
         // Gesture bridge (GestureBridgeDemo) — the declarative triggers stamp a data-rask-gesture attribute
         // that runs an activation-gated API inside the click, so they work on this Server host too. The
         // gestures themselves need a real display / permission and can't fire headlessly (same ceiling as

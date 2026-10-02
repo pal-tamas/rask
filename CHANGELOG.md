@@ -577,6 +577,13 @@ them until tagged releases begin.
   - **BREAKING: a record the browser sends is typed as MDN types it.** `DOMRect`, `GeolocationPosition` and the other
     records read from an interface have non-nullable fields where MDN's are: `rect.Width` (was `double?`),
     `p.Coords.Latitude` (was `p.Coords!.Latitude ?? 0`). Dictionaries you fill in keep their optional fields.
+  - **BREAKING: the observer wrappers are gone — use MDN's own.** `IIntersectionObserver`, `IResizeObserver` and
+    `IMutationObserver` (and their `IntersectionEntry`/`ResizeEntry`/`MutationEntry` and options) are removed:
+    ```csharp
+    // before: _obs = await io.ObserveAsync(_card, e => { _seen = e.IsIntersecting; StateHasChanged(); return Task.CompletedTask; });
+    _io = await IntersectionObserver.Create(entries => _seen = entries[^1].IsIntersecting);   // re-renders itself
+    await _io.Observe(_card);
+    ```
 - **BREAKING: MDN's element types live in `Rask.Core`,** beside MDN's event types, so a signature or a typed ref
   names one with no import: `ElementRef<HTMLDialogElement>`, `HTMLSpanElement Dot(…)`. Was
   `Rask.Core.Components.HTMLSpanElement`; drop the prefix. The primitives and framework components (`Text`, `Raw`,

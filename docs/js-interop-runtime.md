@@ -66,9 +66,6 @@ later step on the same pattern.
 | `IStorageEstimator` | `navigator.storage.estimate` | `IsSupportedAsync`, `EstimateAsync()` → `StorageEstimate?` (quota / usage bytes + `UsageRatio`) |
 | `IVisualViewport` | `window.visualViewport` | `IsSupportedAsync`, `GetAsync()` → `VisualViewport?` (visible size/offset/zoom after the soft keyboard) |
 | `IBroadcastChannel` | `BroadcastChannel` | `OpenAsync(name, Func<string,Task>)` → connection (`PostAsync`, `IAsyncDisposable`) — cross-tab messaging |
-| `IIntersectionObserver` | `IntersectionObserver` | `ObserveAsync(ElementRef, Func<IntersectionEntry,Task>, IntersectionOptions?)` → `IAsyncDisposable` — element enters/leaves the viewport |
-| `IResizeObserver` | `ResizeObserver` | `ObserveAsync(ElementRef, Func<ResizeEntry,Task>)` → `IAsyncDisposable` — element's size changes |
-| `IMutationObserver` | `MutationObserver` | `ObserveAsync(ElementRef, Func<MutationEntry,Task>, MutationOptions?)` → `IAsyncDisposable` — element's children/attributes/text change |
 | `IMediaSession` | `navigator.mediaSession` | `SetMetadataAsync`/`SetPlaybackStateAsync` + `SetActionHandlerAsync(MediaSessionAction, Func<Task>)` → `IAsyncDisposable` — now-playing metadata + media keys |
 | `IDeviceOrientation` | `deviceorientation` | `RequestPermissionAsync()` + `WatchAsync(Func<OrientationReading,Task>)` → `IAsyncDisposable` — gyroscope/compass tilt |
 | `IDeviceMotion` | `devicemotion` | `RequestPermissionAsync()` + `WatchAsync(Func<MotionReading,Task>)` → `IAsyncDisposable` — accelerometer / rotation |
@@ -122,12 +119,10 @@ transient activation has expired. The practical effect:
   performance, indexeddb, page visibility) is unaffected by activation and behaves identically on both
   transports.
 
-Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IIntersectionObserver`**,
-**`IResizeObserver`**, **`IMutationObserver`**, **`IDeviceOrientation`**, **`IDeviceMotion`**, **`IMediaSession`**'s
+Most of these are one-shot request/response calls. **`IBroadcastChannel`**, **`IDeviceOrientation`**, **`IDeviceMotion`**, **`IMediaSession`**'s
 action handlers, and **`IGeolocation.WatchAsync`** are the exceptions — they're *subscriptions*: you
 open/observe/watch (returning an `IAsyncDisposable`) and the browser **pushes** each change back to a C#
-handler (via a static `[JSInvokable]`, so one wiring works on both transports — the observers additionally
-hand the observed element across as an `ElementRef`). Open from a lifecycle hook and dispose on unmount; a
+handler (via a static `[JSInvokable]`, so one wiring works on both transports). Open from a lifecycle hook and dispose on unmount; a
 handler
 that updates state calls `StateHasChanged()` — the same pattern as subscribing to a background feed (it's a
 subscription, not a render/binding callback, so RASK026 doesn't apply).

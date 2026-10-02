@@ -137,17 +137,19 @@ only you know whether a given one is a loading affordance or decoration. Read th
 
 ### Observers
 
-The push pattern above, one element at a time.
+MDN's own `IntersectionObserver`, `ResizeObserver` and `MutationObserver`, from [Rask.Web](web-apis.md#events-and-callbacks):
+`await IntersectionObserver.Create(entries => …)`, then `await observer.Observe(_ref)`. The handler gets the entries as
+data and re-renders its component.
 
-**`IIntersectionObserver`** — notified when an element enters or leaves the viewport.
+**IntersectionObserver** — notified when an element enters or leaves the viewport.
 
 <!-- demo:browser-intersection -->
 
-**`IResizeObserver`** — notified when an element's size changes.
+**ResizeObserver** — notified when an element's size changes.
 
 <!-- demo:browser-resize -->
 
-**`IMutationObserver`** — notified when an element's children, attributes, or text change.
+**MutationObserver** — notified when an element's children or attributes change.
 
 <!-- demo:browser-mutation -->
 

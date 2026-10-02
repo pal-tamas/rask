@@ -1,19 +1,16 @@
 using System.Globalization;
-using Rask.Core;
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IMutationObserver" /> — observe DOM changes (children, attributes, text) on an element.
-///     Mutate the watched box with the buttons: the browser pushes each <c>MutationRecord</c> to C#, which
-///     updates the tally (the handler calls <c>StateHasChanged()</c>, the sanctioned pattern for an
-///     externally-pushed update).
+///     MDN's <c>MutationObserver</c>, from Rask.Web — observe DOM changes (children, attributes) on an element. Mutate
+///     the watched box with the buttons: the browser hands each batch of <c>MutationRecord</c>s to the C# handler.
 /// </summary>
-public sealed partial class MutationObserverDemo(IMutationObserver observer) : Component, IAsyncDisposable
+public sealed partial class MutationObserverDemo : Component
 {
     private readonly ElementRef _target = ElementRef.New();
-    private IAsyncDisposable? _observation;
+    private Rask.Web.Types.MutationObserver? _observer;
     private int _items = 1;
     private bool _highlight;
     private int _childChanges;
@@ -22,31 +19,32 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
 
     protected override async Task OnFirstRender()
     {
-        if (_observation is not null)
-
+        _observer ??= await MutationObserver.Create(records =>
         {
+            foreach (var record in records)
+            {
+                if (record.Type is "attributes")
+                {
+                    _attrChanges++;
+                    _last = $"attributes ({record.AttributeName})";
+                }
+                else
+                {
+                    _childChanges++;
+                    _last = record.Type;
+                }
+            }
+        });
+        await _observer.Observe(_target, new() { ChildList = true, Attributes = true, Subtree = true });
+    }
 
-            return;
-
+    protected override async Task OnUnmount()
+    {
+        if (_observer is not null)
+        {
+            await _observer.Disconnect();
+            await _observer.DisposeAsync();
         }
-
-        _observation = await observer.ObserveAsync(_target, entry =>
-        {
-            if (entry.Type is "attributes")
-            {
-                _attrChanges++;
-            }
-            else
-            {
-                _childChanges++;
-            }
-
-            _last = entry.Type is "attributes"
-                ? $"attributes ({entry.AttributeName})"
-                : $"childList (+{entry.AddedCount} / -{entry.RemovedCount})";
-            StateHasChanged();
-            return Task.CompletedTask;
-        }, new MutationOptions { ChildList = true, Attributes = true, Subtree = true });
     }
 
     protected override Component? Render() =>
@@ -74,12 +72,4 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
                 ],
                 Div.Class("text-sm text-ui-muted")["Last: ", Code.Id("mo-last")[_last]]
             ];
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_observation is not null)
-        {
-            await _observation.DisposeAsync();
-        }
-    }
 }

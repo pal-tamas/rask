@@ -34,18 +34,15 @@ import * as gamepad from "./gamepad.js";
 import * as installPrompt from "./installPrompt.js";
 import * as geolocation from "./geolocation.js";
 import * as indexedDb from "./indexedDb.js";
-import * as intersectionObserver from "./intersectionObserver.js";
 import * as mediaDevices from "./mediaDevices.js";
 import * as mediaQuery from "./mediaQuery.js";
 import * as mediaSession from "./mediaSession.js";
-import * as mutationObserver from "./mutationObserver.js";
 import * as networkInformation from "./networkInformation.js";
 import * as notifications from "./notifications.js";
 import * as opfs from "./originPrivateFileSystem.js";
 import * as performance from "./performance.js";
 import * as permissions from "./permissions.js";
 import * as pictureInPicture from "./pictureInPicture.js";
-import * as resizeObserver from "./resizeObserver.js";
 import * as screenInfo from "./screen.js";
 import * as screenOrientation from "./screenOrientation.js";
 import * as signaling from "./signaling.js";
@@ -187,58 +184,6 @@ window.__raskCrypto = window.__raskCrypto || {
     randomBytes: (length: number) => Array.from(crypto.randomBytes(length)),
     digestHex: (algorithm: AlgorithmIdentifier, text: string) => crypto.digestHex(algorithm, text)
 };
-
-// IResizeObserver / IIntersectionObserver. Same shape for both: C# mints the id, the element arrives
-// already resolved from an ElementRef by the JSON reviver, and the stop function is parked under the
-// id. A null element means the ref never resolved — nothing to observe, and nothing to report.
-window.__raskResize = window.__raskResize || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        observe: (id: number, element: Element | null) => {
-            if (!element) {
-                return;
-            }
-            stops.set(id, resizeObserver.observe(element, (rect) =>
-                window.DotNet.invokeMethodAsync("Rask.Core", "RaskResizeChanged", id, rect)));
-        },
-        unobserve: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
-    };
-})();
-
-window.__raskIntersect = window.__raskIntersect || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        observe: (
-            id: number,
-            element: Element | null,
-            thresholds: number[] | null,
-            rootMargin: string | null) => {
-            if (!element) {
-                return;
-            }
-            stops.set(id, intersectionObserver.observe(
-                element,
-                (change) =>
-                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskIntersectionChanged", id, change),
-                {thresholds, rootMargin}));
-        },
-        unobserve: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
-    };
-})();
 
 // IBattery. watch resolves as soon as the subscription is REGISTERED rather than once the manager has
 // arrived: navigator.getBattery is a promise, and the module hands back a stop function synchronously
@@ -648,39 +593,6 @@ window.__raskMediaSession = window.__raskMediaSession || (() => {
             }
         },
         clear: () => mediaSession.clear()
-    };
-})();
-
-// IMutationObserver. The seven positional flags are what an IJSRuntime call site can express; the
-// module takes them as one options object.
-window.__raskMutation = window.__raskMutation || (() => {
-    const stops = new Map<number, () => void>();
-    return {
-        observe: (
-            id: number,
-            element: Element | null,
-            childList: boolean,
-            attributes: boolean,
-            characterData: boolean,
-            subtree: boolean,
-            attributeFilter: string[] | null) => {
-            if (!element) {
-                return;
-            }
-            stops.set(id, mutationObserver.observe(
-                element,
-                (change) =>
-                    window.DotNet.invokeMethodAsync("Rask.Core", "RaskMutationChanged", id, change),
-                {childList, attributes, characterData, subtree, attributeFilter}));
-        },
-        unobserve: (id: number) => {
-            const stop = stops.get(id);
-            if (!stop) {
-                return;
-            }
-            stops.delete(id);
-            stop();
-        }
     };
 })();
 

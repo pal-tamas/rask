@@ -40,9 +40,6 @@ activation-gated call inside a click), not as an injected service · ⬜ not ava
 | [`ISignaling`](apis/signaling.md) | ✅ | ✅ |
 | [`IWebRtc`](apis/webrtc.md) | ✅ | ✅ |
 | [`IBroadcastChannel`](apis/broadcast-channel.md) | ✅ | ✅ |
-| [`IIntersectionObserver`](apis/intersection-observer.md) | ✅ | ✅ |
-| [`IResizeObserver`](apis/resize-observer.md) | ✅ | ✅ |
-| [`IMutationObserver`](apis/mutation-observer.md) | ✅ | ✅ |
 | [`IGamepad`](apis/gamepad.md) | ✅ | ✅ |
 | [`IWebPush`](apis/web-push.md) | ✅ | ✅ |
 | [`INotifications`](apis/notifications.md) | ✅ | ✅ |

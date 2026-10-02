@@ -1,36 +1,35 @@
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IIntersectionObserver" /> — observe when an element enters/leaves the viewport. Scroll
-///     the box below into view: the browser pushes the change to C#, which updates the badge (the handler
-///     calls <c>StateHasChanged()</c>, the sanctioned pattern for an externally-pushed update).
+///     MDN's <c>IntersectionObserver</c>, from Rask.Web — observe when an element enters or leaves the viewport. Scroll
+///     the box below into view: the browser hands the entries to the C# handler, which re-renders this component.
 /// </summary>
-public sealed partial class IntersectionObserverDemo(IIntersectionObserver observer) : Component, IAsyncDisposable
+public sealed partial class IntersectionObserverDemo : Component
 {
     private readonly ElementRef _target = ElementRef.New();
-    private IAsyncDisposable? _observation;
+    private Rask.Web.Types.IntersectionObserver? _observer;
     private bool _visible;
     private int _changes;
 
     protected override async Task OnFirstRender()
     {
-        if (_observation is not null)
-
+        _observer ??= await IntersectionObserver.Create(entries =>
         {
-
-            return;
-
-        }
-
-        _observation = await observer.ObserveAsync(_target, entry =>
-        {
-            _visible = entry.IsIntersecting;
+            _visible = entries[^1].IsIntersecting;
             _changes++;
-            StateHasChanged();
-            return Task.CompletedTask;
         });
+        await _observer.Observe(_target);
+    }
+
+    protected override async Task OnUnmount()
+    {
+        if (_observer is not null)
+        {
+            await _observer.Disconnect();
+            await _observer.DisposeAsync();
+        }
     }
 
     protected override Component? Render() =>
@@ -52,12 +51,4 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
                     "🎯 observed target"
                 ]
             ];
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_observation is not null)
-        {
-            await _observation.DisposeAsync();
-        }
-    }
 }

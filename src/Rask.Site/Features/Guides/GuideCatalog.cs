@@ -516,11 +516,6 @@ public static class GuideCatalog
             SearchTitle = "PWA Install Prompt (beforeinstallprompt) in C#",
             Description = "Capture the beforeinstallprompt event and replay the PWA install prompt from C#. IInstallPrompt is WASM-only; on Server, Trigger.Install reports the outcome.",
         },
-        new("intersection-observer", "IIntersectionObserver", "Typed browser API: IIntersectionObserver.", "Browser API reference", "apis/intersection-observer.md")
-        {
-            SearchTitle = "Intersection Observer API in C# and .NET",
-            Description = "Get notified in C# when an element enters or leaves the viewport with the Intersection Observer API. It observes the live document on Server and WebAssembly.",
-        },
         new("media-devices", "IMediaDevices", "Typed browser API: IMediaDevices.", "Browser API reference", "apis/media-devices.md")
         {
             SearchTitle = "getUserMedia Camera Capture in C# (IMediaDevices)",
@@ -540,11 +535,6 @@ public static class GuideCatalog
         {
             SearchTitle = "MediaStream in C#: Attach and Stop (IMediaStreams)",
             Description = "Attach a live MediaStream to a video element or stop its tracks from C#, whether from capture or a WebRTC peer. Works on every host without a gesture.",
-        },
-        new("mutation-observer", "IMutationObserver", "Typed browser API: IMutationObserver.", "Browser API reference", "apis/mutation-observer.md")
-        {
-            SearchTitle = "MutationObserver in C# and .NET (IMutationObserver)",
-            Description = "Get notified in C# when an element's children, attributes or text change with MutationObserver. It observes the live document on Server and WebAssembly.",
         },
         new("navigator-info", "INavigatorInfo", "Typed browser API: INavigatorInfo.", "Browser API reference", "apis/navigator-info.md")
         {
@@ -585,11 +575,6 @@ public static class GuideCatalog
         {
             SearchTitle = "Picture-in-Picture API in C# (IPictureInPicture)",
             Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the Trigger.PictureInPicture component on Server.",
-        },
-        new("resize-observer", "IResizeObserver", "Typed browser API: IResizeObserver.", "Browser API reference", "apis/resize-observer.md")
-        {
-            SearchTitle = "ResizeObserver in C# and .NET (IResizeObserver)",
-            Description = "Get notified in C# when an element's size changes with IResizeObserver, a ResizeObserver wrapper that pushes each change to a callback on every host.",
         },
         new("screen-info", "IScreenInfo", "Typed browser API: IScreenInfo.", "Browser API reference", "apis/screen-info.md")
         {

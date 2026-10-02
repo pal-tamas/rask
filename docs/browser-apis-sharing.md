@@ -41,9 +41,6 @@ Work identically on Server and WASM. **Shape** is *one-shot* (a request/response
 | `IMediaStreams` | `MediaStream` | Attach a live stream to a `<video>`, or stop it (releasing the camera) | one-shot |
 | `ISignaling` | WebSocket | Join a room on Rask's signaling relay and pass payloads to one peer | **subscription** |
 | `IWebRtc` | WebRTC | Peer-to-peer data channels between two browsers (you supply the signaling) | **subscription** |
-| `IIntersectionObserver` | `IntersectionObserver` | Element enters/leaves the viewport (lazy-load, infinite scroll) | **subscription** |
-| `IResizeObserver` | `ResizeObserver` | Element's size changes (container-responsive layout) | **subscription** |
-| `IMutationObserver` | `MutationObserver` | Element's children/attributes/text change (react to externally-written DOM) | **subscription** |
 | `IGamepad` | Gamepad API | Connected controllers — sticks / triggers / buttons (browser games) | **subscription** |
 | `IWebPush` | Push API | Subscribe to Web Push (returns a `PushSubscription`); send from the backend with [`Rask.WebPush`](pwa.md#sending-from-your-backend-raskwebpush) | one-shot |
 | `INotifications` | Notifications API | Show a local notification from the page | one-shot |
@@ -142,9 +139,6 @@ each change back into C#:
 - **`IWebRtc`** — `CreateAsync(config, handlers)` → connection (`IAsyncDisposable`); its channels'
   `ListenAsync(onMessages)` delivers **batches**, not single messages — on Server each push is a WebSocket
   frame, so the framework coalesces them
-- **`IIntersectionObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
-- **`IResizeObserver`** — `ObserveAsync(elementRef, onChange)` → `IAsyncDisposable`
-- **`IMutationObserver`** — `ObserveAsync(elementRef, onChange, options?)` → `IAsyncDisposable`
 - **`IMediaSession.SetActionHandlerAsync`** — `SetActionHandlerAsync(action, onAction)` → `IAsyncDisposable`
 - **`IDeviceOrientation`** / **`IDeviceMotion`** — `WatchAsync(onReading)` → `IAsyncDisposable`
 - **`IBattery`** — `WatchAsync(onChange)` → `IAsyncDisposable` (plus a one-shot `GetStatusAsync`)
@@ -168,23 +162,29 @@ handler, **not** a chain-set callback, so [RASK026](diagnostics.md) (which forbi
 `StateHasChanged` inside `OnChange`/`OnClick`/`Bind`/… callbacks) does not apply.
 
 ```csharp
-public sealed partial class LazyImages(IIntersectionObserver io) : Component, IAsyncDisposable
+using Rask.Web;
+
+public sealed partial class LazyImages : Component
 {
     private readonly ElementRef _sentinel = ElementRef.New();
-    private IAsyncDisposable? _obs;
+    private Rask.Web.Types.IntersectionObserver? _io;
 
     protected override Component? Render() => Div.Ref(_sentinel)[ /* … */ ];
 
+    // The observers are MDN's own, from Rask.Web (docs/web-apis.md): the handler runs in this component and
+    // re-renders it, so it needs no StateHasChanged.
     protected override async Task OnFirstRender()
     {
-        _obs = await io.ObserveAsync(_sentinel, e =>
+        _io ??= await IntersectionObserver.Create(entries =>
         {
-            if (e.IsIntersecting) LoadMore();   // update state…
-            StateHasChanged();                  // …and the framework re-renders
-            return Task.CompletedTask;
-        }, new IntersectionOptions { RootMargin = "200px" });
+            if (entries.Any(e => e.IsIntersecting)) LoadMore();
+        }, new() { RootMargin = "200px" });
+        await _io.Observe(_sentinel);
     }
 
-    public async ValueTask DisposeAsync() { if (_obs is not null) await _obs.DisposeAsync(); }
+    protected override async Task OnUnmount()
+    {
+        if (_io is not null) await _io.DisposeAsync();
+    }
 }
 ```

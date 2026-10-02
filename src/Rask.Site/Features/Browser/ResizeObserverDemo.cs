@@ -1,39 +1,38 @@
 using System.Globalization;
-using Rask.Core.Browser;
+using Rask.Web;
 
 namespace Rask.Site.Features;
 
 /// <summary>
-///     <see cref="IResizeObserver" /> — report an element's size as it changes. The box below is observed;
-///     toggle its width (or resize the window) and the browser pushes the new size to C#, which re-renders
-///     the readout (the handler calls <c>StateHasChanged()</c>, the sanctioned pushed-update pattern).
+///     MDN's <c>ResizeObserver</c>, from Rask.Web — report an element's size as it changes. The box below is observed;
+///     toggle its width (or resize the window) and the browser hands the new size to the C# handler.
 /// </summary>
-public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Component, IAsyncDisposable
+public sealed partial class ResizeObserverDemo : Component
 {
     private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     private readonly ElementRef _box = ElementRef.New();
-    private IAsyncDisposable? _observation;
+    private Rask.Web.Types.ResizeObserver? _observer;
     private double _width;
     private double _height;
     private bool _wide = true;
 
     protected override async Task OnFirstRender()
     {
-        if (_observation is not null)
-
+        _observer ??= await ResizeObserver.Create(entries =>
         {
-
-            return;
-
-        }
-
-        _observation = await observer.ObserveAsync(_box, size =>
-        {
-            _width = size.Width;
-            _height = size.Height;
-            StateHasChanged();
-            return Task.CompletedTask;
+            var size = entries[^1].ContentRect;
+            (_width, _height) = (size.Width, size.Height);
         });
+        await _observer.Observe(_box);
+    }
+
+    protected override async Task OnUnmount()
+    {
+        if (_observer is not null)
+        {
+            await _observer.Disconnect();
+            await _observer.DisposeAsync();
+        }
     }
 
     protected override Component? Render() =>
@@ -53,12 +52,4 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
                     "📐 observed box (resize the window too)"
                 ]
             ];
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_observation is not null)
-        {
-            await _observation.DisposeAsync();
-        }
-    }
 }

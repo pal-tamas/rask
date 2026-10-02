@@ -407,8 +407,6 @@ Rask.Core.Browser.IGeolocation.WatchAsync(System.Func<Rask.Core.Browser.Geolocat
 Rask.Core.Browser.IIndexedDb
 Rask.Core.Browser.IIndexedDb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IIndexedDb.OpenStoreAsync(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
-Rask.Core.Browser.IIntersectionObserver
-Rask.Core.Browser.IIntersectionObserver.ObserveAsync(Rask.Core.ElementRef! element, System.Func<Rask.Core.Browser.IntersectionEntry!, System.Threading.Tasks.Task!>! onChange, Rask.Core.Browser.IntersectionOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.IKeyValueStore
 Rask.Core.Browser.IKeyValueStore.ClearAsync() -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IKeyValueStore.DeleteAsync(string! key) -> System.Threading.Tasks.ValueTask
@@ -430,8 +428,6 @@ Rask.Core.Browser.IMediaSession.SetPlaybackStateAsync(Rask.Core.Browser.Playback
 Rask.Core.Browser.IMediaStreams
 Rask.Core.Browser.IMediaStreams.AttachAsync(Rask.Core.Browser.MediaStreamId stream, Rask.Core.ElementRef! video) -> System.Threading.Tasks.ValueTask
 Rask.Core.Browser.IMediaStreams.StopAsync(Rask.Core.Browser.MediaStreamId stream) -> System.Threading.Tasks.ValueTask
-Rask.Core.Browser.IMutationObserver
-Rask.Core.Browser.IMutationObserver.ObserveAsync(Rask.Core.ElementRef! element, System.Func<Rask.Core.Browser.MutationEntry!, System.Threading.Tasks.Task!>! onChange, Rask.Core.Browser.MutationOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.INavigatorInfo
 Rask.Core.Browser.INavigatorInfo.LanguageAsync() -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.Browser.INavigatorInfo.OnLineAsync() -> System.Threading.Tasks.ValueTask<bool>
@@ -472,8 +468,6 @@ Rask.Core.Browser.IPerformance.GetNavigationTimingAsync() -> System.Threading.Ta
 Rask.Core.Browser.IPerformance.NowAsync() -> System.Threading.Tasks.ValueTask<double>
 Rask.Core.Browser.IPermissions
 Rask.Core.Browser.IPermissions.QueryAsync(Rask.Core.Browser.PermissionName name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.PermissionState>
-Rask.Core.Browser.IResizeObserver
-Rask.Core.Browser.IResizeObserver.ObserveAsync(Rask.Core.ElementRef! element, System.Func<Rask.Core.Browser.ResizeEntry!, System.Threading.Tasks.Task!>! onChange) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Core.Browser.IRtcDataChannel
 Rask.Core.Browser.IRtcDataChannel.Label.get -> string!
 Rask.Core.Browser.IRtcDataChannel.ListenAsync(System.Func<System.Collections.Generic.IReadOnlyList<Rask.Core.Browser.RtcMessage!>!, System.Threading.Tasks.Task!>! onMessages) -> System.Threading.Tasks.ValueTask
@@ -551,27 +545,6 @@ Rask.Core.Browser.IndexedDb
 Rask.Core.Browser.IndexedDb.IndexedDb(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.IndexedDb.IsSupportedAsync() -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.Browser.IndexedDb.OpenStoreAsync(string! name) -> System.Threading.Tasks.ValueTask<Rask.Core.Browser.IKeyValueStore!>
-Rask.Core.Browser.IntersectionEntry
-Rask.Core.Browser.IntersectionEntry.<Clone>$() -> Rask.Core.Browser.IntersectionEntry!
-Rask.Core.Browser.IntersectionEntry.Deconstruct(out bool IsIntersecting, out double Ratio) -> void
-Rask.Core.Browser.IntersectionEntry.Equals(Rask.Core.Browser.IntersectionEntry? other) -> bool
-Rask.Core.Browser.IntersectionEntry.IntersectionEntry(bool IsIntersecting, double Ratio) -> void
-Rask.Core.Browser.IntersectionEntry.IsIntersecting.get -> bool
-Rask.Core.Browser.IntersectionEntry.IsIntersecting.init -> void
-Rask.Core.Browser.IntersectionEntry.Ratio.get -> double
-Rask.Core.Browser.IntersectionEntry.Ratio.init -> void
-Rask.Core.Browser.IntersectionInterop
-Rask.Core.Browser.IntersectionObserverService
-Rask.Core.Browser.IntersectionObserverService.IntersectionObserverService(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.IntersectionObserverService.ObserveAsync(Rask.Core.ElementRef! element, System.Func<Rask.Core.Browser.IntersectionEntry!, System.Threading.Tasks.Task!>! onChange, Rask.Core.Browser.IntersectionOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.IntersectionOptions
-Rask.Core.Browser.IntersectionOptions.<Clone>$() -> Rask.Core.Browser.IntersectionOptions!
-Rask.Core.Browser.IntersectionOptions.Equals(Rask.Core.Browser.IntersectionOptions? other) -> bool
-Rask.Core.Browser.IntersectionOptions.IntersectionOptions() -> void
-Rask.Core.Browser.IntersectionOptions.RootMargin.get -> string?
-Rask.Core.Browser.IntersectionOptions.RootMargin.init -> void
-Rask.Core.Browser.IntersectionOptions.Thresholds.get -> double[]?
-Rask.Core.Browser.IntersectionOptions.Thresholds.init -> void
 Rask.Core.Browser.LockInfo
 Rask.Core.Browser.LockInfo.<Clone>$() -> Rask.Core.Browser.LockInfo!
 Rask.Core.Browser.LockInfo.ClientId.get -> string?
@@ -714,37 +687,6 @@ Rask.Core.Browser.MotionReading.RotationBeta.get -> double?
 Rask.Core.Browser.MotionReading.RotationBeta.init -> void
 Rask.Core.Browser.MotionReading.RotationGamma.get -> double?
 Rask.Core.Browser.MotionReading.RotationGamma.init -> void
-Rask.Core.Browser.MutationEntry
-Rask.Core.Browser.MutationEntry.<Clone>$() -> Rask.Core.Browser.MutationEntry!
-Rask.Core.Browser.MutationEntry.AddedCount.get -> int
-Rask.Core.Browser.MutationEntry.AddedCount.init -> void
-Rask.Core.Browser.MutationEntry.AttributeName.get -> string?
-Rask.Core.Browser.MutationEntry.AttributeName.init -> void
-Rask.Core.Browser.MutationEntry.Deconstruct(out string! Type, out int AddedCount, out int RemovedCount, out string? AttributeName) -> void
-Rask.Core.Browser.MutationEntry.Equals(Rask.Core.Browser.MutationEntry? other) -> bool
-Rask.Core.Browser.MutationEntry.MutationEntry(string! Type, int AddedCount, int RemovedCount, string? AttributeName) -> void
-Rask.Core.Browser.MutationEntry.RemovedCount.get -> int
-Rask.Core.Browser.MutationEntry.RemovedCount.init -> void
-Rask.Core.Browser.MutationEntry.Type.get -> string!
-Rask.Core.Browser.MutationEntry.Type.init -> void
-Rask.Core.Browser.MutationInterop
-Rask.Core.Browser.MutationObserverService
-Rask.Core.Browser.MutationObserverService.MutationObserverService(Microsoft.JSInterop.IJSRuntime! js) -> void
-Rask.Core.Browser.MutationObserverService.ObserveAsync(Rask.Core.ElementRef! element, System.Func<Rask.Core.Browser.MutationEntry!, System.Threading.Tasks.Task!>! onChange, Rask.Core.Browser.MutationOptions? options = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.MutationOptions
-Rask.Core.Browser.MutationOptions.<Clone>$() -> Rask.Core.Browser.MutationOptions!
-Rask.Core.Browser.MutationOptions.AttributeFilter.get -> string![]?
-Rask.Core.Browser.MutationOptions.AttributeFilter.init -> void
-Rask.Core.Browser.MutationOptions.Attributes.get -> bool
-Rask.Core.Browser.MutationOptions.Attributes.init -> void
-Rask.Core.Browser.MutationOptions.CharacterData.get -> bool
-Rask.Core.Browser.MutationOptions.CharacterData.init -> void
-Rask.Core.Browser.MutationOptions.ChildList.get -> bool
-Rask.Core.Browser.MutationOptions.ChildList.init -> void
-Rask.Core.Browser.MutationOptions.Equals(Rask.Core.Browser.MutationOptions? other) -> bool
-Rask.Core.Browser.MutationOptions.MutationOptions() -> void
-Rask.Core.Browser.MutationOptions.Subtree.get -> bool
-Rask.Core.Browser.MutationOptions.Subtree.init -> void
 Rask.Core.Browser.NavigationTiming
 Rask.Core.Browser.NavigationTiming.<Clone>$() -> Rask.Core.Browser.NavigationTiming!
 Rask.Core.Browser.NavigationTiming.Deconstruct(out double TimeToFirstByteMs, out double DomInteractiveMs, out double DomContentLoadedMs, out double LoadMs, out double DurationMs) -> void
@@ -939,19 +881,6 @@ Rask.Core.Browser.RelyingParty.Id.init -> void
 Rask.Core.Browser.RelyingParty.Name.get -> string!
 Rask.Core.Browser.RelyingParty.Name.init -> void
 Rask.Core.Browser.RelyingParty.RelyingParty(string! Name, string? Id = null) -> void
-Rask.Core.Browser.ResizeEntry
-Rask.Core.Browser.ResizeEntry.<Clone>$() -> Rask.Core.Browser.ResizeEntry!
-Rask.Core.Browser.ResizeEntry.Deconstruct(out double Width, out double Height) -> void
-Rask.Core.Browser.ResizeEntry.Equals(Rask.Core.Browser.ResizeEntry? other) -> bool
-Rask.Core.Browser.ResizeEntry.Height.get -> double
-Rask.Core.Browser.ResizeEntry.Height.init -> void
-Rask.Core.Browser.ResizeEntry.ResizeEntry(double Width, double Height) -> void
-Rask.Core.Browser.ResizeEntry.Width.get -> double
-Rask.Core.Browser.ResizeEntry.Width.init -> void
-Rask.Core.Browser.ResizeInterop
-Rask.Core.Browser.ResizeObserverService
-Rask.Core.Browser.ResizeObserverService.ObserveAsync(Rask.Core.ElementRef! element, System.Func<Rask.Core.Browser.ResizeEntry!, System.Threading.Tasks.Task!>! onChange) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
-Rask.Core.Browser.ResizeObserverService.ResizeObserverService(Microsoft.JSInterop.IJSRuntime! js) -> void
 Rask.Core.Browser.RtcConfiguration
 Rask.Core.Browser.RtcConfiguration.<Clone>$() -> Rask.Core.Browser.RtcConfiguration!
 Rask.Core.Browser.RtcConfiguration.Equals(Rask.Core.Browser.RtcConfiguration? other) -> bool
@@ -2443,12 +2372,6 @@ override Rask.Core.Browser.GeolocationOptions.ToString() -> string!
 override Rask.Core.Browser.GeolocationPosition.Equals(object? obj) -> bool
 override Rask.Core.Browser.GeolocationPosition.GetHashCode() -> int
 override Rask.Core.Browser.GeolocationPosition.ToString() -> string!
-override Rask.Core.Browser.IntersectionEntry.Equals(object? obj) -> bool
-override Rask.Core.Browser.IntersectionEntry.GetHashCode() -> int
-override Rask.Core.Browser.IntersectionEntry.ToString() -> string!
-override Rask.Core.Browser.IntersectionOptions.Equals(object? obj) -> bool
-override Rask.Core.Browser.IntersectionOptions.GetHashCode() -> int
-override Rask.Core.Browser.IntersectionOptions.ToString() -> string!
 override Rask.Core.Browser.LockInfo.Equals(object? obj) -> bool
 override Rask.Core.Browser.LockInfo.GetHashCode() -> int
 override Rask.Core.Browser.LockInfo.ToString() -> string!
@@ -2471,12 +2394,6 @@ override Rask.Core.Browser.MediaStreamId.GetHashCode() -> int
 override Rask.Core.Browser.MotionReading.Equals(object? obj) -> bool
 override Rask.Core.Browser.MotionReading.GetHashCode() -> int
 override Rask.Core.Browser.MotionReading.ToString() -> string!
-override Rask.Core.Browser.MutationEntry.Equals(object? obj) -> bool
-override Rask.Core.Browser.MutationEntry.GetHashCode() -> int
-override Rask.Core.Browser.MutationEntry.ToString() -> string!
-override Rask.Core.Browser.MutationOptions.Equals(object? obj) -> bool
-override Rask.Core.Browser.MutationOptions.GetHashCode() -> int
-override Rask.Core.Browser.MutationOptions.ToString() -> string!
 override Rask.Core.Browser.NavigationTiming.Equals(object? obj) -> bool
 override Rask.Core.Browser.NavigationTiming.GetHashCode() -> int
 override Rask.Core.Browser.NavigationTiming.ToString() -> string!
@@ -2507,9 +2424,6 @@ override Rask.Core.Browser.RecognitionResult.ToString() -> string!
 override Rask.Core.Browser.RelyingParty.Equals(object? obj) -> bool
 override Rask.Core.Browser.RelyingParty.GetHashCode() -> int
 override Rask.Core.Browser.RelyingParty.ToString() -> string!
-override Rask.Core.Browser.ResizeEntry.Equals(object? obj) -> bool
-override Rask.Core.Browser.ResizeEntry.GetHashCode() -> int
-override Rask.Core.Browser.ResizeEntry.ToString() -> string!
 override Rask.Core.Browser.RtcConfiguration.Equals(object? obj) -> bool
 override Rask.Core.Browser.RtcConfiguration.GetHashCode() -> int
 override Rask.Core.Browser.RtcConfiguration.ToString() -> string!
@@ -2667,11 +2581,6 @@ static Rask.Core.Browser.GeolocationOptions.operator ==(Rask.Core.Browser.Geoloc
 static Rask.Core.Browser.GeolocationPosition.operator !=(Rask.Core.Browser.GeolocationPosition? left, Rask.Core.Browser.GeolocationPosition? right) -> bool
 static Rask.Core.Browser.GeolocationPosition.operator ==(Rask.Core.Browser.GeolocationPosition? left, Rask.Core.Browser.GeolocationPosition? right) -> bool
 static Rask.Core.Browser.GeolocationWatchInterop.Fix(int id, Rask.Core.Browser.GeolocationPosition! position) -> System.Threading.Tasks.Task!
-static Rask.Core.Browser.IntersectionEntry.operator !=(Rask.Core.Browser.IntersectionEntry? left, Rask.Core.Browser.IntersectionEntry? right) -> bool
-static Rask.Core.Browser.IntersectionEntry.operator ==(Rask.Core.Browser.IntersectionEntry? left, Rask.Core.Browser.IntersectionEntry? right) -> bool
-static Rask.Core.Browser.IntersectionInterop.Changed(int id, Rask.Core.Browser.IntersectionEntry! entry) -> System.Threading.Tasks.Task!
-static Rask.Core.Browser.IntersectionOptions.operator !=(Rask.Core.Browser.IntersectionOptions? left, Rask.Core.Browser.IntersectionOptions? right) -> bool
-static Rask.Core.Browser.IntersectionOptions.operator ==(Rask.Core.Browser.IntersectionOptions? left, Rask.Core.Browser.IntersectionOptions? right) -> bool
 static Rask.Core.Browser.LockInfo.operator !=(Rask.Core.Browser.LockInfo? left, Rask.Core.Browser.LockInfo? right) -> bool
 static Rask.Core.Browser.LockInfo.operator ==(Rask.Core.Browser.LockInfo? left, Rask.Core.Browser.LockInfo? right) -> bool
 static Rask.Core.Browser.ManifestIcon.operator !=(Rask.Core.Browser.ManifestIcon? left, Rask.Core.Browser.ManifestIcon? right) -> bool
@@ -2689,11 +2598,6 @@ static Rask.Core.Browser.MediaStreamId.operator !=(Rask.Core.Browser.MediaStream
 static Rask.Core.Browser.MediaStreamId.operator ==(Rask.Core.Browser.MediaStreamId left, Rask.Core.Browser.MediaStreamId right) -> bool
 static Rask.Core.Browser.MotionReading.operator !=(Rask.Core.Browser.MotionReading? left, Rask.Core.Browser.MotionReading? right) -> bool
 static Rask.Core.Browser.MotionReading.operator ==(Rask.Core.Browser.MotionReading? left, Rask.Core.Browser.MotionReading? right) -> bool
-static Rask.Core.Browser.MutationEntry.operator !=(Rask.Core.Browser.MutationEntry? left, Rask.Core.Browser.MutationEntry? right) -> bool
-static Rask.Core.Browser.MutationEntry.operator ==(Rask.Core.Browser.MutationEntry? left, Rask.Core.Browser.MutationEntry? right) -> bool
-static Rask.Core.Browser.MutationInterop.Changed(int id, Rask.Core.Browser.MutationEntry! entry) -> System.Threading.Tasks.Task!
-static Rask.Core.Browser.MutationOptions.operator !=(Rask.Core.Browser.MutationOptions? left, Rask.Core.Browser.MutationOptions? right) -> bool
-static Rask.Core.Browser.MutationOptions.operator ==(Rask.Core.Browser.MutationOptions? left, Rask.Core.Browser.MutationOptions? right) -> bool
 static Rask.Core.Browser.NavigationTiming.operator !=(Rask.Core.Browser.NavigationTiming? left, Rask.Core.Browser.NavigationTiming? right) -> bool
 static Rask.Core.Browser.NavigationTiming.operator ==(Rask.Core.Browser.NavigationTiming? left, Rask.Core.Browser.NavigationTiming? right) -> bool
 static Rask.Core.Browser.NetworkStatus.operator !=(Rask.Core.Browser.NetworkStatus? left, Rask.Core.Browser.NetworkStatus? right) -> bool
@@ -2716,9 +2620,6 @@ static Rask.Core.Browser.RecognitionResult.operator !=(Rask.Core.Browser.Recogni
 static Rask.Core.Browser.RecognitionResult.operator ==(Rask.Core.Browser.RecognitionResult? left, Rask.Core.Browser.RecognitionResult? right) -> bool
 static Rask.Core.Browser.RelyingParty.operator !=(Rask.Core.Browser.RelyingParty? left, Rask.Core.Browser.RelyingParty? right) -> bool
 static Rask.Core.Browser.RelyingParty.operator ==(Rask.Core.Browser.RelyingParty? left, Rask.Core.Browser.RelyingParty? right) -> bool
-static Rask.Core.Browser.ResizeEntry.operator !=(Rask.Core.Browser.ResizeEntry? left, Rask.Core.Browser.ResizeEntry? right) -> bool
-static Rask.Core.Browser.ResizeEntry.operator ==(Rask.Core.Browser.ResizeEntry? left, Rask.Core.Browser.ResizeEntry? right) -> bool
-static Rask.Core.Browser.ResizeInterop.Changed(int id, Rask.Core.Browser.ResizeEntry! entry) -> System.Threading.Tasks.Task!
 static Rask.Core.Browser.RtcConfiguration.operator !=(Rask.Core.Browser.RtcConfiguration? left, Rask.Core.Browser.RtcConfiguration? right) -> bool
 static Rask.Core.Browser.RtcConfiguration.operator ==(Rask.Core.Browser.RtcConfiguration? left, Rask.Core.Browser.RtcConfiguration? right) -> bool
 static Rask.Core.Browser.RtcDataChannelOptions.operator !=(Rask.Core.Browser.RtcDataChannelOptions? left, Rask.Core.Browser.RtcDataChannelOptions? right) -> bool
